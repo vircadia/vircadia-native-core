@@ -12,7 +12,7 @@
 Script.include("cookies.js");
 
 var MENU = "Developer>Render>Debug Deferred Buffer";
-var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "Custom"];
+var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "AmbientOcclusion", "Custom"];
 var SETTINGS_KEY = "EngineDebugScript.DebugMode";
 
 Number.prototype.clamp = function(min, max) {

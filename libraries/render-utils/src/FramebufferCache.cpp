@@ -45,6 +45,8 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _cachedFramebuffers.clear();
         _lightingTexture.reset();
         _lightingFramebuffer.reset();
+        _depthPyramidFramebuffer.reset();
+        _depthPyramidTexture.reset();
     }
 }
 
@@ -96,6 +98,14 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
+
+    // For AO:
+    _depthPyramidTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::HALF, gpu::RGB), width, height, smoothSampler));
+    _depthPyramidFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _depthPyramidFramebuffer->setRenderBuffer(0, _depthPyramidTexture);
+    _depthPyramidFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -196,4 +206,18 @@ gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
         createPrimaryFramebuffer();
     }
     return _selfieFramebuffer;
+}
+
+gpu::FramebufferPointer FramebufferCache::getDepthPyramidFramebuffer() {
+    if (!_depthPyramidFramebuffer) {
+        createPrimaryFramebuffer();
+    }
+    return _depthPyramidFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getDepthPyramidTexture() {
+    if (!_depthPyramidTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _depthPyramidTexture;
 }

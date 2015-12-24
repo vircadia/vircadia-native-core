@@ -33,6 +33,7 @@ private:
         NormalMode,
         DepthMode,
         LightingMode,
+        AmbientOcclusionMode,
         
         CustomMode // Needs to stay last
     };

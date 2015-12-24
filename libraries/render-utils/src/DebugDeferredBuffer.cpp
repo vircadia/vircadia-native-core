@@ -31,7 +31,8 @@ enum Slots {
     Normal,
     Specular,
     Depth,
-    Lighting
+    Lighting,
+    Pyramid
 };
 
 static const std::string DEEFAULT_DIFFUSE_SHADER {
@@ -67,6 +68,12 @@ static const std::string DEEFAULT_DEPTH_SHADER {
 static const std::string DEEFAULT_LIGHTING_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
+    " }"
+};
+static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };
 static const std::string DEEFAULT_CUSTOM_SHADER {
@@ -111,6 +118,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
             return DEEFAULT_DEPTH_SHADER;
         case LightingMode:
             return DEEFAULT_LIGHTING_SHADER;
+        case AmbientOcclusionMode:
+            return DEFAULT_AMBIENT_OCCLUSION_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEEFAULT_CUSTOM_SHADER);
     }
@@ -158,6 +167,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
+        slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
         gpu::Shader::makeProgram(*program, slotBindings);
         
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
@@ -205,6 +215,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
+        batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
         
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);

@@ -16,56 +16,6 @@
 
 #include "render/DrawTask.h"
 
-class AmbientOcclusion {
-public:
-
-    AmbientOcclusion();
-
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<AmbientOcclusion> JobModel;
-
-    const gpu::PipelinePointer& getOcclusionPipeline();
-    const gpu::PipelinePointer& getHBlurPipeline();
-    const gpu::PipelinePointer& getVBlurPipeline();
-    const gpu::PipelinePointer& getBlendPipeline();
-
-private:
-
-    // Uniforms for AO
-    gpu::int32 _gScaleLoc;
-    gpu::int32 _gBiasLoc;
-    gpu::int32 _gSampleRadiusLoc;
-    gpu::int32 _gIntensityLoc;
-
-    gpu::int32 _nearLoc;
-    gpu::int32 _depthScaleLoc;
-    gpu::int32 _depthTexCoordOffsetLoc;
-    gpu::int32 _depthTexCoordScaleLoc;
-    gpu::int32 _renderTargetResLoc;
-    gpu::int32 _renderTargetResInvLoc;
-
-
-    float g_scale;
-    float g_bias;
-    float g_sample_rad;
-    float g_intensity;
-
-    gpu::PipelinePointer _occlusionPipeline;
-    gpu::PipelinePointer _hBlurPipeline;
-    gpu::PipelinePointer _vBlurPipeline;
-    gpu::PipelinePointer _blendPipeline;
-
-    gpu::FramebufferPointer _occlusionBuffer;
-    gpu::FramebufferPointer _hBlurBuffer;
-    gpu::FramebufferPointer _vBlurBuffer;
-
-    gpu::TexturePointer _occlusionTexture;
-    gpu::TexturePointer _hBlurTexture;
-    gpu::TexturePointer _vBlurTexture;
-
-};
-
-
 class AmbientOcclusionEffect {
 public:
 
@@ -74,24 +24,41 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
 
-    const gpu::PipelinePointer& getGenerateDepthPipeline();
-    const gpu::PipelinePointer& getOcclusionPipeline();
-    const gpu::PipelinePointer& getHBlurPipeline();
-    const gpu::PipelinePointer& getVBlurPipeline();
-
 private:
+
+    void setClipInfo(float nearZ, float farZ);
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class Parameters {
     public:
-        glm::vec4 spareB;
+        glm::vec4 _clipInfo;
+        glm::mat4 _projection;
 
         Parameters() {}
     };
     typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
-    gpu::PipelinePointer _generateDepthPipeline;
+    // Class describing the uniform buffer with all the parameters common to the deferred shaders
+    class DeferredTransform {
+    public:
+        glm::mat4 projection;
+        glm::mat4 viewInverse;
+        float stereoSide{ 0.f };
+        float spareA, spareB, spareC;
+
+        DeferredTransform() {}
+    };
+    UniformBufferView _deferredTransformBuffer[2];
+    void updateDeferredTransformBuffer(const render::RenderContextPointer& renderContext);
+
+
+    const gpu::PipelinePointer& getPyramidPipeline();
+    const gpu::PipelinePointer& getOcclusionPipeline();
+    const gpu::PipelinePointer& getHBlurPipeline();
+    const gpu::PipelinePointer& getVBlurPipeline();
+
+    gpu::PipelinePointer _pyramidPipeline;
     gpu::PipelinePointer _occlusionPipeline;
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;

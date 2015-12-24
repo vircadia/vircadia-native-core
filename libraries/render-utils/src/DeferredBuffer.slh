@@ -92,7 +92,7 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
 
     frag.diffuse = frag.diffuseVal.xyz;
-    frag.opacity = frag.diffuseVal.w;
+    frag.opacity = frag.normalVal.w;
     frag.specular = frag.specularVal.xyz;
     frag.gloss = frag.specularVal.w;
 

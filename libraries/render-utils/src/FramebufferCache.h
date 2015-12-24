@@ -41,7 +41,9 @@ public:
     gpu::TexturePointer getDeferredNormalTexture();
     gpu::TexturePointer getDeferredSpecularTexture();
 
-    
+    gpu::FramebufferPointer getDepthPyramidFramebuffer();
+    gpu::TexturePointer getDepthPyramidTexture();
+
     gpu::TexturePointer getLightingTexture();
     gpu::FramebufferPointer getLightingFramebuffer();
 
@@ -82,6 +84,9 @@ private:
     gpu::FramebufferPointer _shadowFramebuffer;
 
     gpu::FramebufferPointer _selfieFramebuffer;
+
+    gpu::FramebufferPointer _depthPyramidFramebuffer;
+    gpu::TexturePointer _depthPyramidTexture;
 
     QSize _frameBufferSize{ 100, 100 };
 };
