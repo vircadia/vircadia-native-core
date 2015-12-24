@@ -148,22 +148,48 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
             return params._radius_s0_s1_s2.x;
         }
 
-        vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord, mat4 projection) {
+        vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord) {
             // compute the view space position using the depth
             // basically manually pick the proj matrix components to do the inverse
-            float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * projection[2][0] - projection[3][0]) / projection[0][0];
-            float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * projection[2][1] - projection[3][1]) / projection[1][1];
+            float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[2][0] - params._projection[3][0]) / params._projection[0][0];
+            float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[2][1] - params._projection[3][1]) / params._projection[1][1];
             return vec3(Xe, Ye, Zeye);
         }
 
-        vec3 evalEyePosition(vec2 texcoord, mat4 projection) {
+        vec3 evalEyePosition(vec2 texcoord) {
             float Zeye = getZeye(texcoord);
-            return evalEyePositionFromZeye(Zeye, texcoord, projection);
+            return evalEyePositionFromZeye(Zeye, texcoord);
         }
 
         vec3 evalEyeNormal(vec3 C) {
-            return normalize(cross(dFdy(C), dFdx(C)));
+            return -normalize(cross(dFdy(C), dFdx(C)));
         }
+
+
+        /** Used for packing Z into the GB channels */
+        float CSZToKey(float z) {
+            return clamp(z * (1.0 / params._clipInfo.z), 0.0, 1.0);
+        }
+
+
+        /** Used for packing Z into the GB channels */
+        void packKey(float key, out vec2 p) {
+
+            // Round to the nearest 1/256.0
+            float temp = floor(key * 256.0); 
+
+
+
+
+
+
+            // Integer part
+            p.x = temp * (1.0 / 256.0);
+
+            // Fractional part
+            p.y = key * 256.0 - temp;
+        }
+
 
         vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
             // Radius relative to ssR
@@ -173,15 +199,12 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
             ssR = alpha;
             return vec2(cos(angle), sin(angle));
         }
+        in vec2 varTexCoord0;
 
         vec3 getOffsetPosition(ivec2 ssC, vec2 unitOffset, float ssR) {
             // Derivation:
             //  mipLevel = floor(log(ssR / MAX_OFFSET));
-        #   ifdef GL_EXT_gpu_shader5
                 int mipLevel = clamp(findMSB(int(ssR)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
-        #   else
-                int mipLevel = clamp(int(floor(log2(ssR))) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
-        #   endif
 
             ivec2 ssP = ivec2(ssR * unitOffset) + ssC;
     
@@ -189,12 +212,14 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
             // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.  
             // Manually clamp to the texture size because texelFetch bypasses the texture unit
-            ivec2 mipP = clamp(ssP >> mipLevel, ivec2(0), textureSize(CS_Z_buffer, mipLevel) - ivec2(1));
-            P.z = texelFetch(CS_Z_buffer, mipP, mipLevel).r;
+            ivec2 mipP = clamp(ssP >> mipLevel, ivec2(0), textureSize(pyramidMap, mipLevel) - ivec2(1));
+            P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
 
             // Offset to pixel center
-            P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
-
+            //P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
+                
+            vec2 tapUV = (vec2(ssP) + vec2(0.5)) / textureSize(pyramidMap, 0);
+            P = evalEyePositionFromZeye(P.z, tapUV);
             return P;
         }
 
@@ -213,7 +238,9 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
             float vv = dot(v, v);
             float vn = dot(v, n_C);
 
+            const float bias =  0.01;
             const float epsilon = 0.01;
+            const float radius2 = 0.5 * 0.5;
     
             // A: From the HPG12 paper
             // Note large epsilon to avoid overdarkening within cracks
@@ -232,14 +259,27 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         }
 
 
-        in vec2 varTexCoord0;
         out vec4 outFragColor;
+
+        vec3 debugValue(float f, float scale) {
+            if (f < 0.0) {
+                return vec3((scale + f) / scale, 0.0, 0.0);
+            } else {
+                return vec3(0.0, (scale - f) / scale, 0.0);
+            }
+        }
 
         void main(void) {
             // Pixel being shaded 
             ivec2 ssC = ivec2(gl_FragCoord.xy);
 
-            vec3 Cp = evalEyePosition(varTexCoord0, params._projection);
+            vec3 Cp = evalEyePosition(varTexCoord0);
+
+        //    packKey(CSZToKey(Cp.z), bilateralKey);
+
+            // Hash function used in the HPG12 AlchemyAO paper
+            float randomPatternRotationAngle = (3 * ssC.x ^ ssC.y + ssC.x * ssC.y) * 10;
+
 
             vec3 Cn = evalEyeNormal(Cp);
 
@@ -249,14 +289,24 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
             float sum = 0.0;
             for (int i = 0; i < NUM_SAMPLES; ++i) {
-                sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i);
+                sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
             }
 
             float intensityDivR6 = 1.0;
             float A = max(0.0, 1.0 - sum * intensityDivR6 * (5.0 / NUM_SAMPLES));
 
+            // Bilateral box-filter over a quad for free, respecting depth edges
+            // (the difference that this makes is subtle)
+            if (abs(dFdx(Cp.z)) < 0.02) {
+                A -= dFdx(A) * ((ssC.x & 1) - 0.5);
+            }
+            if (abs(dFdy(Cp.z)) < 0.02) {
+                A -= dFdy(A) * ((ssC.y & 1) - 0.5);
+            }
 
-            outFragColor = vec4(1.0, 0.0, 0.0, A);
+
+            //outFragColor = vec4(debugValue(Cn.y, 10), A);
+            outFragColor = vec4(debugValue(Cn.y, 1), A);
         }
         
         )SCRIBE";
@@ -277,7 +327,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         // Stencil test all the ao passes for objects pixels only, not the background
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
-        state->setColorWriteMask(false, false, false, true);
+      //  state->setColorWriteMask(false, false, false, true);
+        state->setColorWriteMask(true, true, true, true);
 
         // Good to go add the brand new pipeline
         _occlusionPipeline = gpu::Pipeline::create(program, state);
