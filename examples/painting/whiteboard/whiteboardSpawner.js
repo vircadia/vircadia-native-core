@@ -15,7 +15,7 @@
 /*global hexToRgb */
 
 Script.include("../../libraries/utils.js");
-var scriptURL = Script.resolvePath("whiteboardEntityScript.js";
+var scriptURL = Script.resolvePath("whiteboardEntityScript.js");
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/whiteboard.fbx";
 
 var colorIndicatorBorderModelURL = "https://s3.amazonaws.com/hifi-public/eric/models/colorIndicatorBorder.fbx";
