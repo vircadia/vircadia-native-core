@@ -47,7 +47,7 @@
 Var ChosenFrontEndInstallDir
 Var ChosenBackEndInstallDir
 
-SetCompressor /SOLID lzma
+SetCompressor bzip2
 ShowInstDetails hide
 ShowUninstDetails hide
 AutoCloseWindow true
@@ -74,8 +74,10 @@ Section /o "DDE Face Recognition" SEC01
 SectionEnd
 
 Section "Registry Entries and Procotol Handler" SEC02
+    SetRegView 64
     SectionIn RO
     WriteRegStr HKLM "${regkey}" "Install_Dir" "$ChosenFrontEndInstallDir"
+    WriteRegStr HKLM "${regkey}" "Backend_Install_Dir" "$ChosenBackEndInstallDir"
     WriteRegStr HKLM "${uninstkey}" "DisplayName" "${install_directory} (remove only)"
     WriteRegStr HKLM "${uninstkey}" "UninstallString" '"$ChosenFrontEndInstallDir\${uninstaller}"'
     WriteRegStr HKCR "${company}\Shell\open\command\" "" '"$ChosenFrontEndInstallDir\${interface_exec} "%1"'
@@ -114,14 +116,16 @@ Section "Start Menu Shortcuts" SEC05
     CreateShortCut "${startmenu_company}\Uninstall ${company}.lnk" "$ChosenFrontEndInstallDir\${uninstaller}"
 SectionEnd
 
-Section "Uninstall" 
-    SetShellVarContext all
-    SetOutPath $TEMP
-    RMDIR /r "${startmenu_company}"
-    RMDIR /r "$ChosenBackEndInstallDir"
-    RMDIR /r "$ChosenFrontEndInstallDir"
+Section "Uninstall"
+    SetRegView 64
+    ReadRegStr $0 HKLM "${regkey}" "Backend_Install_Dir"
+    Delete "$INSTDIR\${uninstaller}"
+    RMDir /r "$INSTDIR"
+    RMDir /r "${startmenu_company}"
+    RMDir /r "$0"
     DeleteRegKey HKLM "${uninstkey}"
     DeleteRegKey HKLM "${regkey}"
+    DeleteRegKey HKCR "${company}"
     DeleteRegKey HKCR 'hifi'
 SectionEnd
 
