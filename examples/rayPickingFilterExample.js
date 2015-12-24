@@ -52,9 +52,10 @@
    function castRay(event) {
        var pickRay = Camera.computePickRay(event.x, event.y);
        // In this example every entity will be pickable except the entities in the blacklist array
-       // the third arg is the whitelist array,a nd the fourth and final is the blacklist array
+       // the third argument is the whitelist array,and the fourth and final is the blacklist array
        var pickResults = Entities.findRayIntersection(pickRay, true, [], [blackListBox]);
-       // With below example, only entities adde dto whitelist will be pickable
+       
+       // With below example, only entities added to whitelist will be pickable
        // var pickResults = Entities.findRayIntersection(pickRay, true, [whiteListBox], []);
 
        if (pickResults.intersects) {
