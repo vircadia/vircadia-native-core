@@ -831,18 +831,40 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QU
                                                                         int jointIndex, glm::vec3 translation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
-    } else {
-        return false;
+        bool result = modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withReadLock([&] {
+                properties = entity->getProperties();
+            });
+
+            properties.setJointTranslationsDirty();
+            auto now = usecTimestampNow();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
     }
+    return false;
 }
 
 bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid& entityID,
                                                                      int jointIndex, glm::quat rotation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
-        return modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
-    } else {
-        return false;
+        bool result = modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withReadLock([&] {
+                properties = entity->getProperties();
+            });
+
+            properties.setJointRotationsDirty();
+            auto now = usecTimestampNow();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
     }
+    return false;
 }

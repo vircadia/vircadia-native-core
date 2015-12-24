@@ -265,10 +265,13 @@ public:
     void setActionDataDirty() { _actionDataChanged = true; }
 
     QList<QString> listChangedProperties();
-    
+
     bool getDimensionsInitialized() const { return _dimensionsInitialized; }
     void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
-    
+
+    void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
+    void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
+
 private:
     QUuid _id;
     bool _idSet;
