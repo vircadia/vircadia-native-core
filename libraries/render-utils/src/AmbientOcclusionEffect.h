@@ -33,6 +33,7 @@ private:
     public:
         glm::vec4 _clipInfo;
         glm::mat4 _projection;
+        glm::vec4 _radius_s0_s1_s2{ 0.5, 0.0, 0.0, 0.0 };
 
         Parameters() {}
     };

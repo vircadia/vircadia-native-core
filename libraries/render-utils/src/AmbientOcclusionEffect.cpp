@@ -57,6 +57,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
         struct AmbientOcclusionParams {
             vec4 _clipInfo;
             mat4 _projection;
+            vec4 _radius_s0_s1_s2;
         };
 
         uniform ambientOcclusionParamsBuffer {
@@ -116,14 +117,36 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
         //
 
+        const int NUM_SAMPLES = 11;
+        const int NUM_SPIRAL_TURNS= 7;
+        const int LOG_MAX_OFFSET = 3;
+        const int MAX_MIP_LEVEL = 5;
+
+
+        // the depth texture
+        uniform sampler2D pyramidMap;
+
+        float getZeye(vec2 texcoord) {
+            return -texture(pyramidMap, texcoord, 0).x;
+        }
+
         struct AmbientOcclusionParams {
             vec4 _clipInfo;
             mat4 _projection;
+            vec4 _radius_s0_s1_s2;
         };
 
         uniform ambientOcclusionParamsBuffer {
             AmbientOcclusionParams params;
         };
+
+        float getProjScale() {
+            return 500.0; // this should be viewportHeight * Proj[1][1] / 2.0
+        }
+
+        float getRadius() {
+            return params._radius_s0_s1_s2.x;
+        }
 
         vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord, mat4 projection) {
             // compute the view space position using the depth
@@ -133,17 +156,107 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
             return vec3(Xe, Ye, Zeye);
         }
 
-        // the depth texture
-        uniform sampler2D pyramidMap;
+        vec3 evalEyePosition(vec2 texcoord, mat4 projection) {
+            float Zeye = getZeye(texcoord);
+            return evalEyePositionFromZeye(Zeye, texcoord, projection);
+        }
+
+        vec3 evalEyeNormal(vec3 C) {
+            return normalize(cross(dFdy(C), dFdx(C)));
+        }
+
+        vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
+            // Radius relative to ssR
+            float alpha = float(sampleNumber + 0.5) * (1.0 / NUM_SAMPLES);
+            float angle = alpha * (NUM_SPIRAL_TURNS * 6.28) + spinAngle;
+
+            ssR = alpha;
+            return vec2(cos(angle), sin(angle));
+        }
+
+        vec3 getOffsetPosition(ivec2 ssC, vec2 unitOffset, float ssR) {
+            // Derivation:
+            //  mipLevel = floor(log(ssR / MAX_OFFSET));
+        #   ifdef GL_EXT_gpu_shader5
+                int mipLevel = clamp(findMSB(int(ssR)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+        #   else
+                int mipLevel = clamp(int(floor(log2(ssR))) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
+        #   endif
+
+            ivec2 ssP = ivec2(ssR * unitOffset) + ssC;
+    
+            vec3 P;
+
+            // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.  
+            // Manually clamp to the texture size because texelFetch bypasses the texture unit
+            ivec2 mipP = clamp(ssP >> mipLevel, ivec2(0), textureSize(CS_Z_buffer, mipLevel) - ivec2(1));
+            P.z = texelFetch(CS_Z_buffer, mipP, mipLevel).r;
+
+            // Offset to pixel center
+            P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
+
+            return P;
+        }
+
+
+        float sampleAO(in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssDiskRadius, in int tapIndex, in float randomPatternRotationAngle) {
+            // Offset on the unit disk, spun for this pixel
+            float ssR;
+            vec2 unitOffset = tapLocation(tapIndex, randomPatternRotationAngle, ssR);
+            ssR *= ssDiskRadius;
+        
+            // The occluding point in camera space
+            vec3 Q = getOffsetPosition(ssC, unitOffset, ssR);
+
+            vec3 v = Q - C;
+
+            float vv = dot(v, v);
+            float vn = dot(v, n_C);
+
+            const float epsilon = 0.01;
+    
+            // A: From the HPG12 paper
+            // Note large epsilon to avoid overdarkening within cracks
+            // return float(vv < radius2) * max((vn - bias) / (epsilon + vv), 0.0) * radius2 * 0.6;
+
+            // B: Smoother transition to zero (lowers contrast, smoothing out corners). [Recommended]
+            float f = max(radius2 - vv, 0.0); return f * f * f * max((vn - bias) / (epsilon + vv), 0.0);
+
+            // C: Medium contrast (which looks better at high radii), no division.  Note that the 
+            // contribution still falls off with radius^2, but we've adjusted the rate in a way that is
+            // more computationally efficient and happens to be aesthetically pleasing.
+            // return 4.0 * max(1.0 - vv * invRadius2, 0.0) * max(vn - bias, 0.0);
+
+            // D: Low contrast, no division operation
+            // return 2.0 * float(vv < radius * radius) * max(vn - bias, 0.0);
+        }
+
 
         in vec2 varTexCoord0;
         out vec4 outFragColor;
 
         void main(void) {
-            float Zeye = textureLod(pyramidMap, varTexCoord0, 0).x;
-            vec3 P = evalEyePositionFromZeye(-Zeye, varTexCoord0, params._projection);
+            // Pixel being shaded 
+            ivec2 ssC = ivec2(gl_FragCoord.xy);
 
-            outFragColor = vec4(1.0, 0.0, 0.0, P.x / 100.0);
+            vec3 Cp = evalEyePosition(varTexCoord0, params._projection);
+
+            vec3 Cn = evalEyeNormal(Cp);
+
+            // Choose the screen-space sample radius
+            // proportional to the projected area of the sphere
+            float ssDiskRadius = -getProjScale() * getRadius() / Cp.z;
+
+            float sum = 0.0;
+            for (int i = 0; i < NUM_SAMPLES; ++i) {
+                sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i);
+            }
+
+            float intensityDivR6 = 1.0;
+            float A = max(0.0, 1.0 - sum * intensityDivR6 * (5.0 / NUM_SAMPLES));
+
+
+            outFragColor = vec4(1.0, 0.0, 0.0, A);
         }
         
         )SCRIBE";
