@@ -126,6 +126,8 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
+
+    _jobs.push_back(Job(new Blit::JobModel("Blit")));
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
@@ -385,6 +387,77 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     args->_batch = nullptr;
 }
 
+void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_context);
+
+    RenderArgs* renderArgs = renderContext->getArgs();
+    auto blitFbo = renderArgs->_blitFramebuffer;
+
+    if (!blitFbo) {
+        return;
+    }
+
+    // Determine size from viewport
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+
+    // Blit primary to blit FBO
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+
+    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+        batch.setFramebuffer(blitFbo);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+
+        if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            if (renderArgs->_context->isStereo()) {
+                gpu::Vec4i srcRectLeft;
+                srcRectLeft.z = width / 2;
+                srcRectLeft.w = height;
+
+                gpu::Vec4i srcRectRight;
+                srcRectRight.x = width / 2;
+                srcRectRight.z = width;
+                srcRectRight.w = height;
+
+                gpu::Vec4i destRectLeft;
+                destRectLeft.x = srcRectLeft.z;
+                destRectLeft.z = srcRectLeft.x;
+                destRectLeft.y = srcRectLeft.y;
+                destRectLeft.w = srcRectLeft.w;
+
+                gpu::Vec4i destRectRight;
+                destRectRight.x = srcRectRight.z;
+                destRectRight.z = srcRectRight.x;
+                destRectRight.y = srcRectRight.y;
+                destRectRight.w = srcRectRight.w;
+
+                // Blit left to right and right to left in stereo
+                batch.blit(primaryFbo, srcRectRight, blitFbo, destRectLeft);
+                batch.blit(primaryFbo, srcRectLeft, blitFbo, destRectRight);
+            } else {
+                gpu::Vec4i srcRect;
+                srcRect.z = width;
+                srcRect.w = height;
+
+                gpu::Vec4i destRect;
+                destRect.x = width;
+                destRect.y = 0;
+                destRect.z = 0;
+                destRect.w = height;
+
+                batch.blit(primaryFbo, srcRect, blitFbo, destRect);
+            }
+        } else {
+            gpu::Vec4i rect;
+            rect.z = width;
+            rect.w = height;
+
+            batch.blit(primaryFbo, rect, blitFbo, rect);
+        }
+    });
+}
 
 void RenderDeferredTask::setToneMappingExposure(float exposure) {
     if (_toneMappingJobIndex >= 0) {
