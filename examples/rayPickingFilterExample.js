@@ -33,7 +33,7 @@
 
     function castRay(event) {
         var pickRay = Camera.computePickRay(event.x, event.y);
-        var pickResults = Entities.findRayIntersection(pickRay, true, [whiteListBox]);
+        var pickResults = Entities.findRayIntersection(pickRay, true, [], [blackListBox]);
 
         if(pickResults.intersects) {
             print("INTERSECTION");
