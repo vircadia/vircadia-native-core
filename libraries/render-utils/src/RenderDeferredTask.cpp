@@ -408,7 +408,6 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
 
     gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
             if (renderArgs->_context->isStereo()) {
