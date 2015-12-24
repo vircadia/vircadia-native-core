@@ -1,6 +1,5 @@
 // maps controller joint names to avatar joint names
 var JOINT_NAME_MAP = {
-    HipsPosition: "",
     Hips: "Hips",
     RightUpLeg: "RightUpLeg",
     RightLeg: "RightLeg",
@@ -124,11 +123,9 @@ NeuronAvatar.prototype.update = function (deltaTime) {
             var pose = Controller.getPoseValue(channel);
             var j = MyAvatar.getJointIndex(JOINT_NAME_MAP[keys[i]]);
             var defaultRot = MyAvatar.getDefaultJointRotation(j);
-            if (keys[i] == "Hips") {
-                MyAvatar.setJointRotation(j, Quat.multiply(pose.rotation, defaultRot));
-            } else {
-                MyAvatar.setJointRotation(j, defaultRot);
-            }
+            var rot = Quat.multiply(Quat.inverse(defaultRot), Quat.multiply(pose.rotation, defaultRot));
+            MyAvatar.setJointRotation(j, Quat.multiply(defaultRot, rot));
+            //MyAvatar.setJointTranslation(j, Vec3.multiply(100.0, pose.translation));
         }
     }
 };

@@ -17,6 +17,7 @@
 #include <DebugDraw.h>
 #include <cassert>
 #include <NumericalConstants.h>
+#include <StreamUtils.h>
 
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
@@ -30,8 +31,7 @@ const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
 
 // This matches controller::StandardPoseChannel
 enum JointIndex {
-    HipsPosition = 0,
-    Hips,
+    Hips = 0,
     RightUpLeg,
     RightLeg,
     RightFoot,
@@ -204,8 +204,9 @@ void NeuronPlugin::activate() {
     if (!_socketRef) {
         // error
         qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << "error = " << BRGetLastErrorMessage();
+    } else {
+        qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
     }
-    qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
 }
 
 void NeuronPlugin::deactivate() {
@@ -226,9 +227,9 @@ void NeuronPlugin::deactivate() {
 
 // convert between euler in degrees to quaternion
 static quat eulerToQuat(vec3 euler) {
-    return (glm::angleAxis(euler.y * RADIANS_PER_DEGREE, Vectors::UNIT_Y) *
-            glm::angleAxis(euler.x * RADIANS_PER_DEGREE, Vectors::UNIT_X) *
-            glm::angleAxis(euler.z * RADIANS_PER_DEGREE, Vectors::UNIT_Z));
+    // euler.x and euler.y are swaped (thanks NOMICOM!)
+    glm::vec3 e = glm::vec3(euler.y, euler.x, euler.z) * RADIANS_PER_DEGREE;
+    return (glm::angleAxis(e.y, Vectors::UNIT_Y) * glm::angleAxis(e.x, Vectors::UNIT_X) * glm::angleAxis(e.z, Vectors::UNIT_Z));
 }
 
 void NeuronPlugin::pluginUpdate(float deltaTime, bool jointsCaptured) {
@@ -274,7 +275,6 @@ static controller::StandardPoseChannel neuronJointIndexToPoseIndex(JointIndex i)
 
 static const char* neuronJointName(JointIndex i) {
     switch (i) {
-    case HipsPosition: return "HipsPosition";
     case Hips: return "Hips";
     case RightUpLeg: return "RightUpLeg";
     case RightLeg: return "RightLeg";
@@ -369,9 +369,17 @@ void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<Neuron
         }
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
 
+        // dump the first 5 joints
+        if (i <= JointIndex::LeftFoot) {
+            qCDebug(inputplugins) << neuronJointName((JointIndex)i);
+            qCDebug(inputplugins) << "    trans = " << joints[i].pos;
+            qCDebug(inputplugins) << "    euler = " << joints[i].euler;
+        }
+        /*
         if (glm::length(angularVel) > 0.5f) {
             qCDebug(inputplugins) << "Movement in joint" << i << neuronJointName((JointIndex)i);
         }
+        */
     }
 }
 

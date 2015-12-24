@@ -88,8 +88,7 @@ namespace controller {
 
     // No correlation to SDL
     enum StandardPoseChannel {
-        HIPS_ROOT = 0,
-        HIPS,
+        HIPS = 0,
         RIGHT_UP_LEG,
         RIGHT_LEG,
         RIGHT_FOOT,
