@@ -57,7 +57,7 @@ protected:
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
         virtual void update(float deltaTime, bool jointsCaptured) override {};
-        virtual void focusOutEvent() override;
+        virtual void focusOutEvent() override {};
 
         void update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints);
     };
@@ -71,9 +71,13 @@ protected:
     int _serverPort;
     void* _socketRef;
 
-    std::vector<NeuronJoint> _joints;
-    std::mutex _jointsMutex;  // used to guard access to _joints
+    // used to guard multi-threaded access to _joints
+    std::mutex _jointsMutex;
 
+    // copy of data directly from the NeuronDataReader SDK
+    std::vector<NeuronJoint> _joints;
+
+    // one frame old copy of _joints, used to caluclate angular and linear velocity.
     std::vector<NeuronJoint> _prevJoints;
 };
 

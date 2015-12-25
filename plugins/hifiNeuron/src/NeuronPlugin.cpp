@@ -29,8 +29,10 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 const QString NeuronPlugin::NAME = "Neuron";
 const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
 
-// This matches controller::StandardPoseChannel
-enum JointIndex {
+// indices of joints of the Neuron standard skeleton.
+// This is 'almost' the same as the High Fidelity standard skeleton.
+// It is missing a thumb joint.
+enum NeuronJointIndex {
     Hips = 0,
     RightUpLeg,
     RightLeg,
@@ -93,11 +95,159 @@ enum JointIndex {
     Size
 };
 
-bool NeuronPlugin::isSupported() const {
-    // Because it's a client/server network architecture, we can't tell
-    // if the neuron is actually connected until we connect to the server.
-    return true;
+// Almost a direct mapping except for LEFT_HAND_THUMB1 and RIGHT_HAND_THUMB1,
+// which are not present in the Neuron standard skeleton.
+static controller::StandardPoseChannel neuronJointIndexToPoseIndexMap[NeuronJointIndex::Size] = {
+    controller::HIPS,
+    controller::RIGHT_UP_LEG,
+    controller::RIGHT_LEG,
+    controller::RIGHT_FOOT,
+    controller::LEFT_UP_LEG,
+    controller::LEFT_LEG,
+    controller::LEFT_FOOT,
+    controller::SPINE,
+    controller::SPINE1,
+    controller::SPINE2,
+    controller::SPINE3,
+    controller::NECK,
+    controller::HEAD,
+    controller::RIGHT_SHOULDER,
+    controller::RIGHT_ARM,
+    controller::RIGHT_FORE_ARM,
+    controller::RIGHT_HAND,
+    controller::RIGHT_HAND_THUMB2,
+    controller::RIGHT_HAND_THUMB3,
+    controller::RIGHT_HAND_THUMB4,
+    controller::RIGHT_HAND_INDEX1,
+    controller::RIGHT_HAND_INDEX2,
+    controller::RIGHT_HAND_INDEX3,
+    controller::RIGHT_HAND_INDEX4,
+    controller::RIGHT_HAND_MIDDLE1,
+    controller::RIGHT_HAND_MIDDLE2,
+    controller::RIGHT_HAND_MIDDLE3,
+    controller::RIGHT_HAND_MIDDLE4,
+    controller::RIGHT_HAND_RING1,
+    controller::RIGHT_HAND_RING2,
+    controller::RIGHT_HAND_RING3,
+    controller::RIGHT_HAND_RING4,
+    controller::RIGHT_HAND_PINKY1,
+    controller::RIGHT_HAND_PINKY2,
+    controller::RIGHT_HAND_PINKY3,
+    controller::RIGHT_HAND_PINKY4,
+    controller::LEFT_SHOULDER,
+    controller::LEFT_ARM,
+    controller::LEFT_FORE_ARM,
+    controller::LEFT_HAND,
+    controller::LEFT_HAND_THUMB2,
+    controller::LEFT_HAND_THUMB3,
+    controller::LEFT_HAND_THUMB4,
+    controller::LEFT_HAND_INDEX1,
+    controller::LEFT_HAND_INDEX2,
+    controller::LEFT_HAND_INDEX3,
+    controller::LEFT_HAND_INDEX4,
+    controller::LEFT_HAND_MIDDLE1,
+    controller::LEFT_HAND_MIDDLE2,
+    controller::LEFT_HAND_MIDDLE3,
+    controller::LEFT_HAND_MIDDLE4,
+    controller::LEFT_HAND_RING1,
+    controller::LEFT_HAND_RING2,
+    controller::LEFT_HAND_RING3,
+    controller::LEFT_HAND_RING4,
+    controller::LEFT_HAND_PINKY1,
+    controller::LEFT_HAND_PINKY2,
+    controller::LEFT_HAND_PINKY3,
+    controller::LEFT_HAND_PINKY4
+};
+
+static controller::StandardPoseChannel neuronJointIndexToPoseIndex(NeuronJointIndex i) {
+    assert(i >= 0 && i < NeuronJointIndex::Size);
+    if (i >= 0 && i < NeuronJointIndex::Size) {
+        return neuronJointIndexToPoseIndexMap[i];
+    } else {
+        return (controller::StandardPoseChannel)0; // not sure what to do here, but don't crash!
+    }
 }
+
+static const char* controllerJointName(controller::StandardPoseChannel i) {
+    switch (i) {
+    case controller::HIPS: return "Hips";
+    case controller::RIGHT_UP_LEG: return "RightUpLeg";
+    case controller::RIGHT_LEG: return "RightLeg";
+    case controller::RIGHT_FOOT: return "RightFoot";
+    case controller::LEFT_UP_LEG: return "LeftUpLeg";
+    case controller::LEFT_LEG: return "LeftLeg";
+    case controller::LEFT_FOOT: return "LeftFoot";
+    case controller::SPINE: return "Spine";
+    case controller::SPINE1: return "Spine1";
+    case controller::SPINE2: return "Spine2";
+    case controller::SPINE3: return "Spine3";
+    case controller::NECK: return "Neck";
+    case controller::HEAD: return "Head";
+    case controller::RIGHT_SHOULDER: return "RightShoulder";
+    case controller::RIGHT_ARM: return "RightArm";
+    case controller::RIGHT_FORE_ARM: return "RightForeArm";
+    case controller::RIGHT_HAND: return "RightHand";
+    case controller::RIGHT_HAND_THUMB1: return "RightHandThumb1";
+    case controller::RIGHT_HAND_THUMB2: return "RightHandThumb2";
+    case controller::RIGHT_HAND_THUMB3: return "RightHandThumb3";
+    case controller::RIGHT_HAND_THUMB4: return "RightHandThumb4";
+    case controller::RIGHT_HAND_INDEX1: return "RightHandIndex1";
+    case controller::RIGHT_HAND_INDEX2: return "RightHandIndex2";
+    case controller::RIGHT_HAND_INDEX3: return "RightHandIndex3";
+    case controller::RIGHT_HAND_INDEX4: return "RightHandIndex4";
+    case controller::RIGHT_HAND_MIDDLE1: return "RightHandMiddle1";
+    case controller::RIGHT_HAND_MIDDLE2: return "RightHandMiddle2";
+    case controller::RIGHT_HAND_MIDDLE3: return "RightHandMiddle3";
+    case controller::RIGHT_HAND_MIDDLE4: return "RightHandMiddle4";
+    case controller::RIGHT_HAND_RING1: return "RightHandRing1";
+    case controller::RIGHT_HAND_RING2: return "RightHandRing2";
+    case controller::RIGHT_HAND_RING3: return "RightHandRing3";
+    case controller::RIGHT_HAND_RING4: return "RightHandRing4";
+    case controller::RIGHT_HAND_PINKY1: return "RightHandPinky1";
+    case controller::RIGHT_HAND_PINKY2: return "RightHandPinky2";
+    case controller::RIGHT_HAND_PINKY3: return "RightHandPinky3";
+    case controller::RIGHT_HAND_PINKY4: return "RightHandPinky4";
+    case controller::LEFT_SHOULDER: return "LeftShoulder";
+    case controller::LEFT_ARM: return "LeftArm";
+    case controller::LEFT_FORE_ARM: return "LeftForeArm";
+    case controller::LEFT_HAND: return "LeftHand";
+    case controller::LEFT_HAND_THUMB1: return "LeftHandThumb1";
+    case controller::LEFT_HAND_THUMB2: return "LeftHandThumb2";
+    case controller::LEFT_HAND_THUMB3: return "LeftHandThumb3";
+    case controller::LEFT_HAND_THUMB4: return "LeftHandThumb4";
+    case controller::LEFT_HAND_INDEX1: return "LeftHandIndex1";
+    case controller::LEFT_HAND_INDEX2: return "LeftHandIndex2";
+    case controller::LEFT_HAND_INDEX3: return "LeftHandIndex3";
+    case controller::LEFT_HAND_INDEX4: return "LeftHandIndex4";
+    case controller::LEFT_HAND_MIDDLE1: return "LeftHandMiddle1";
+    case controller::LEFT_HAND_MIDDLE2: return "LeftHandMiddle2";
+    case controller::LEFT_HAND_MIDDLE3: return "LeftHandMiddle3";
+    case controller::LEFT_HAND_MIDDLE4: return "LeftHandMiddle4";
+    case controller::LEFT_HAND_RING1: return "LeftHandRing1";
+    case controller::LEFT_HAND_RING2: return "LeftHandRing2";
+    case controller::LEFT_HAND_RING3: return "LeftHandRing3";
+    case controller::LEFT_HAND_RING4: return "LeftHandRing4";
+    case controller::LEFT_HAND_PINKY1: return "LeftHandPinky1";
+    case controller::LEFT_HAND_PINKY2: return "LeftHandPinky2";
+    case controller::LEFT_HAND_PINKY3: return "LeftHandPinky3";
+    case controller::LEFT_HAND_PINKY4: return "LeftHandPinky4";
+    default: return "???";
+    }
+}
+
+// convert between YXZ neuron euler angles in degrees to quaternion
+// this is the default setting in the Axis Neuron server.
+static quat eulerToQuat(vec3 euler) {
+    // euler.x and euler.y are swaped, WTF.
+    glm::vec3 e = glm::vec3(euler.y, euler.x, euler.z) * RADIANS_PER_DEGREE;
+    return (glm::angleAxis(e.y, Vectors::UNIT_Y) *
+            glm::angleAxis(e.x, Vectors::UNIT_X) *
+            glm::angleAxis(e.z, Vectors::UNIT_Z));
+}
+
+//
+// neuronDataReader SDK callback functions
+//
 
 // NOTE: must be thread-safe
 void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx* header, float* data) {
@@ -133,7 +283,28 @@ void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx
 
             // copy the data
             memcpy(&(neuronPlugin->_joints[0]), data, sizeof(NeuronPlugin::NeuronJoint) * NUM_JOINTS);
+
         } else {
+            // enter mutex
+            std::lock_guard<std::mutex> guard(neuronPlugin->_jointsMutex);
+
+            //
+            // Data is 3 floats per joint: 3 rotation euler angles (degrees)
+            //
+
+            // resize vector if necessary
+            const size_t NUM_FLOATS_PER_JOINT = 3;
+            const size_t NUM_JOINTS = header->DataCount / NUM_FLOATS_PER_JOINT;
+            if (neuronPlugin->_joints.size() != NUM_JOINTS) {
+                neuronPlugin->_joints.resize(NUM_JOINTS, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
+            }
+
+            assert(sizeof(NeuronPlugin::NeuronJoint) == (NUM_FLOATS_PER_JOINT * sizeof(float)));
+
+            for (int i = 0; i < NUM_JOINTS; i++) {
+                // TODO: should probably just copy over default positions?!
+                memcpy(&(neuronPlugin->_joints[i].euler), data, sizeof(float) * NUM_FLOATS_PER_JOINT);
+            }
 
             qCCritical(inputplugins) << "NeruonPlugin: format not supported";
 
@@ -148,6 +319,9 @@ void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx
     }
 }
 
+// I can't even get the SDK to send me a callback.
+// BRCommandFetchAvatarDataFromServer & BRRegisterAutoSyncParmeter [sic] don't seem to work.
+// So this is totally untested.
 // NOTE: must be thread-safe
 static void CommandDataReceivedCallback(void* context, SOCKET_REF sender, CommandPack* pack, void* data) {
 
@@ -196,7 +370,18 @@ static void CommandDataReceivedCallback(void* context, SOCKET_REF sender, Comman
 
 // NOTE: must be thread-safe
 static void SocketStatusChangedCallback(void* context, SOCKET_REF sender, SocketStatus status, char* message) {
+    // just dump to log, later we might want to pop up a connection lost dialog or attempt to reconnect.
     qCDebug(inputplugins) << "NeuronPlugin: socket status = " << message;
+}
+
+//
+// NeuronPlugin
+//
+
+bool NeuronPlugin::isSupported() const {
+    // Because it's a client/server network architecture, we can't tell
+    // if the neuron is actually connected until we connect to the server.
+    return true;
 }
 
 void NeuronPlugin::activate() {
@@ -206,28 +391,26 @@ void NeuronPlugin::activate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
 
-    qCDebug(inputplugins) << "NeuronPlugin::activate";
-
     // register c-style callbacks
     BRRegisterFrameDataCallback((void*)this, FrameDataReceivedCallback);
     BRRegisterCommandDataCallback((void*)this, CommandDataReceivedCallback);
     BRRegisterSocketStatusCallback((void*)this, SocketStatusChangedCallback);
 
-    // TODO: pull these from prefs!
+    // TODO: Pull these from prefs dialog?
+    // localhost is fine for now.
     _serverAddress = "localhost";
-    _serverPort = 7001;
+    _serverPort = 7001;  // default port for TCP Axis Neuron server.
+
     _socketRef = BRConnectTo((char*)_serverAddress.c_str(), _serverPort);
     if (!_socketRef) {
         // error
-        qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << "error = " << BRGetLastErrorMessage();
+        qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << ", error = " << BRGetLastErrorMessage();
     } else {
         qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
     }
 }
 
 void NeuronPlugin::deactivate() {
-    qCDebug(inputplugins) << "NeuronPlugin::deactivate";
-
     // unregister from userInputMapper
     if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -241,126 +424,35 @@ void NeuronPlugin::deactivate() {
     InputPlugin::deactivate();
 }
 
-// convert between euler in degrees to quaternion
-static quat eulerToQuat(vec3 euler) {
-    // euler.x and euler.y are swaped (thanks NOMICOM!)
-    glm::vec3 e = glm::vec3(euler.y, euler.x, euler.z) * RADIANS_PER_DEGREE;
-    return (glm::angleAxis(e.y, Vectors::UNIT_Y) * glm::angleAxis(e.x, Vectors::UNIT_X) * glm::angleAxis(e.z, Vectors::UNIT_Z));
-}
-
 void NeuronPlugin::pluginUpdate(float deltaTime, bool jointsCaptured) {
-
     std::vector<NeuronJoint> joints;
-    // copy the shared data
     {
+        // lock and copy
         std::lock_guard<std::mutex> guard(_jointsMutex);
         joints = _joints;
     }
-
-    /*
-    DebugDraw::getInstance().addMyAvatarMarker("LEFT_FOOT",
-                                               eulerToQuat(joints[6].euler),
-                                               joints[6].pos / 100.0f,
-                                               glm::vec4(1));
-    */
     _inputDevice->update(deltaTime, joints, _prevJoints);
     _prevJoints = joints;
 }
 
 void NeuronPlugin::saveSettings() const {
     InputPlugin::saveSettings();
-    // TODO:
-    qCDebug(inputplugins) << "NeuronPlugin::saveSettings";
 }
 
 void NeuronPlugin::loadSettings() {
     InputPlugin::loadSettings();
-    // TODO:
-    qCDebug(inputplugins) << "NeuronPlugin::loadSettings";
 }
 
 //
 // InputDevice
 //
 
-static controller::StandardPoseChannel neuronJointIndexToPoseIndex(JointIndex i) {
-    // Currently they are the same.
-    // but that won't always be the case...
-    return (controller::StandardPoseChannel)i;
-}
-
-static const char* neuronJointName(JointIndex i) {
-    switch (i) {
-    case Hips: return "Hips";
-    case RightUpLeg: return "RightUpLeg";
-    case RightLeg: return "RightLeg";
-    case RightFoot: return "RightFoot";
-    case LeftUpLeg: return "LeftUpLeg";
-    case LeftLeg: return "LeftLeg";
-    case LeftFoot: return "LeftFoot";
-    case Spine: return "Spine";
-    case Spine1: return "Spine1";
-    case Spine2: return "Spine2";
-    case Spine3: return "Spine3";
-    case Neck: return "Neck";
-    case Head: return "Head";
-    case RightShoulder: return "RightShoulder";
-    case RightArm: return "RightArm";
-    case RightForeArm: return "RightForeArm";
-    case RightHand: return "RightHand";
-    case RightHandThumb1: return "RightHandThumb1";
-    case RightHandThumb2: return "RightHandThumb2";
-    case RightHandThumb3: return "RightHandThumb3";
-    case RightInHandIndex: return "RightInHandIndex";
-    case RightHandIndex1: return "RightHandIndex1";
-    case RightHandIndex2: return "RightHandIndex2";
-    case RightHandIndex3: return "RightHandIndex3";
-    case RightInHandMiddle: return "RightInHandMiddle";
-    case RightHandMiddle1: return "RightHandMiddle1";
-    case RightHandMiddle2: return "RightHandMiddle2";
-    case RightHandMiddle3: return "RightHandMiddle3";
-    case RightInHandRing: return "RightInHandRing";
-    case RightHandRing1: return "RightHandRing1";
-    case RightHandRing2: return "RightHandRing2";
-    case RightHandRing3: return "RightHandRing3";
-    case RightInHandPinky: return "RightInHandPinky";
-    case RightHandPinky1: return "RightHandPinky1";
-    case RightHandPinky2: return "RightHandPinky2";
-    case RightHandPinky3: return "RightHandPinky3";
-    case LeftShoulder: return "LeftShoulder";
-    case LeftArm: return "LeftArm";
-    case LeftForeArm: return "LeftForeArm";
-    case LeftHand: return "LeftHand";
-    case LeftHandThumb1: return "LeftHandThumb1";
-    case LeftHandThumb2: return "LeftHandThumb2";
-    case LeftHandThumb3: return "LeftHandThumb3";
-    case LeftInHandIndex: return "LeftInHandIndex";
-    case LeftHandIndex1: return "LeftHandIndex1";
-    case LeftHandIndex2: return "LeftHandIndex2";
-    case LeftHandIndex3: return "LeftHandIndex3";
-    case LeftInHandMiddle: return "LeftInHandMiddle";
-    case LeftHandMiddle1: return "LeftHandMiddle1";
-    case LeftHandMiddle2: return "LeftHandMiddle2";
-    case LeftHandMiddle3: return "LeftHandMiddle3";
-    case LeftInHandRing: return "LeftInHandRing";
-    case LeftHandRing1: return "LeftHandRing1";
-    case LeftHandRing2: return "LeftHandRing2";
-    case LeftHandRing3: return "LeftHandRing3";
-    case LeftInHandPinky: return "LeftInHandPinky";
-    case LeftHandPinky1: return "LeftHandPinky1";
-    case LeftHandPinky2: return "LeftHandPinky2";
-    case LeftHandPinky3: return "LeftHandPinky3";
-    default: return "???";
-    }
-}
-
 controller::Input::NamedVector NeuronPlugin::InputDevice::getAvailableInputs() const {
-    // TODO:
     static controller::Input::NamedVector availableInputs;
-
     if (availableInputs.size() == 0) {
-        for (int i = 0; i < JointIndex::Size; i++) {
-            availableInputs.push_back(makePair(neuronJointIndexToPoseIndex((JointIndex)i), neuronJointName((JointIndex)i)));
+        for (int i = 0; i < controller::NUM_STANDARD_POSES; i++) {
+            auto channel = static_cast<controller::StandardPoseChannel>(i);
+            availableInputs.push_back(makePair(channel, controllerJointName(channel)));
         }
     };
     return availableInputs;
@@ -373,21 +465,21 @@ QString NeuronPlugin::InputDevice::getDefaultMappingConfig() const {
 
 void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
     for (int i = 0; i < joints.size(); i++) {
-        int poseIndex = neuronJointIndexToPoseIndex((JointIndex)i);
         glm::vec3 linearVel, angularVel;
         glm::vec3 pos = (joints[i].pos * METERS_PER_CENTIMETER);
         glm::quat rot = eulerToQuat(joints[i].euler);
         if (i < prevJoints.size()) {
-            linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;
-            // quat log imag part points along the axis of rotation, and it's length will be the half angle.
+            linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
+            // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
             glm::quat d = glm::log(rot * glm::inverse(eulerToQuat(prevJoints[i].euler)));
-            angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime);
+            angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
         }
+        int poseIndex = neuronJointIndexToPoseIndex((NeuronJointIndex)i);
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
     }
-}
 
-void NeuronPlugin::InputDevice::focusOutEvent() {
-    // TODO:
-    qCDebug(inputplugins) << "NeuronPlugin::InputDevice::focusOutEvent";
+    // fill in missing thumb joints with identity.
+    // TODO: need a standard displacement
+    _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(glm::vec3(), glm::quat(), glm::vec3(), glm::vec3());
+    _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(glm::vec3(), glm::quat(), glm::vec3(), glm::vec3());
 }
