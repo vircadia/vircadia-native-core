@@ -44,9 +44,9 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
-void Material::setDiffuse(const Color& diffuse) {
+void Material::setDiffuse(const Color& diffuse, bool isSRGB) {
     _key.setDiffuse(glm::any(glm::greaterThan(diffuse, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._diffuse = diffuse;
+    _schemaBuffer.edit<Schema>()._diffuse = (isSRGB ? ColorUtils::toLinearVec3(diffuse) : diffuse);
 }
 
 void Material::setMetallic(float metallic) {
@@ -54,9 +54,9 @@ void Material::setMetallic(float metallic) {
     _schemaBuffer.edit<Schema>()._metallic = glm::vec3(metallic);
 }
 
-void Material::setEmissive(const Color&  emissive) {
+void Material::setEmissive(const Color&  emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._emissive = emissive;
+    _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
 }
 
 void Material::setGloss(float gloss) {

@@ -35,16 +35,10 @@
 #include "deferred_light_limited_vert.h"
 
 #include "directional_light_frag.h"
-#include "directional_light_shadow_map_frag.h"
-#include "directional_light_cascaded_shadow_map_frag.h"
 
 #include "directional_ambient_light_frag.h"
-#include "directional_ambient_light_shadow_map_frag.h"
-#include "directional_ambient_light_cascaded_shadow_map_frag.h"
 
 #include "directional_skybox_light_frag.h"
-#include "directional_skybox_light_shadow_map_frag.h"
-#include "directional_skybox_light_cascaded_shadow_map_frag.h"
 
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
@@ -185,14 +179,8 @@ void QTestWindow::draw() {
         testShaderBuild(simple_vert, simple_textured_frag);
         testShaderBuild(simple_vert, simple_textured_emisive_frag);
         testShaderBuild(deferred_light_vert, directional_light_frag);
-        testShaderBuild(deferred_light_vert, directional_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_light_cascaded_shadow_map_frag);
         testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_ambient_light_cascaded_shadow_map_frag);
         testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_shadow_map_frag);
-        testShaderBuild(deferred_light_vert, directional_skybox_light_cascaded_shadow_map_frag);
         testShaderBuild(deferred_light_limited_vert, point_light_frag);
         testShaderBuild(deferred_light_limited_vert, spot_light_frag);
         testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);

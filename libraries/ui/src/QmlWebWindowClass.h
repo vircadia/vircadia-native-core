@@ -10,10 +10,11 @@
 #define hifi_ui_QmlWebWindowClass_h
 
 #include <QtCore/QObject>
-#include <GLMHelpers.h>
 #include <QtScript/QScriptValue>
 #include <QtQuick/QQuickItem>
 #include <QtWebChannel/QWebChannelAbstractTransport>
+
+#include <GLMHelpers.h>
 
 class QScriptEngine;
 class QScriptContext;

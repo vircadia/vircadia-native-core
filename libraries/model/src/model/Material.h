@@ -14,7 +14,7 @@
 #include <bitset>
 #include <map>
 
-#include <glm/glm.hpp>
+#include <ColorUtils.h>
 
 #include <gpu/Resource.h>
 
@@ -219,28 +219,31 @@ public:
     virtual ~Material();
 
     const MaterialKey& getKey() const { return _key; }
-     
-    const Color& getEmissive() const { return _schemaBuffer.get<Schema>()._emissive; }
-    const Color& getDiffuse() const { return _schemaBuffer.get<Schema>()._diffuse; }
-    float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic.x; }
-    float getGloss() const { return _schemaBuffer.get<Schema>()._gloss; }
-    float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
 
-    void setEmissive(const Color& emissive);
-    void setDiffuse(const Color& diffuse);
+    void setEmissive(const Color& emissive, bool isSRGB = true);
+    Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
+
+    void setDiffuse(const Color& diffuse, bool isSRGB = true);
+    Color getDiffuse(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._diffuse) : _schemaBuffer.get<Schema>()._diffuse); }
+
     void setMetallic(float metallic);
+    float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic.x; }
+
     void setGloss(float gloss);
+    float getGloss() const { return _schemaBuffer.get<Schema>()._gloss; }
+
     void setOpacity(float opacity);
+    float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
 
     // Schema to access the attribute values of the material
     class Schema {
     public:
         
-        Color _diffuse{0.5f};
+        glm::vec3 _diffuse{ 0.5f };
         float _opacity{1.f};
-        Color _metallic{0.03f};
+        glm::vec3 _metallic{ 0.03f };
         float _gloss{0.1f};
-        Color _emissive{0.0f};
+        glm::vec3 _emissive{ 0.0f };
         float _spare0{0.0f};
         glm::vec4  _spareVec4{0.0f}; // for alignment beauty, Material size == Mat4x4
 

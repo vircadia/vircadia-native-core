@@ -30,7 +30,6 @@
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
 
-#include <QmlWebWindowClass.h>
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
 
@@ -47,7 +46,6 @@
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
 
-#include "SceneScriptingInterface.h"
 #include "RecordingScriptingInterface.h"
 
 #include "MIDIEvent.h"
@@ -351,8 +349,6 @@ void ScriptEngine::init() {
     qScriptRegisterSequenceMetaType<QVector<glm::quat> >(this);
     qScriptRegisterSequenceMetaType<QVector<QString> >(this);
 
-    
-    registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
     QScriptValue xmlHttpRequestConstructorValue = newFunction(XMLHttpRequestClass::constructor);
     globalObject().setProperty("XMLHttpRequest", xmlHttpRequestConstructorValue);
 

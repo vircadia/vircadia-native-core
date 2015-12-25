@@ -21,6 +21,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QCursor>
 #include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
@@ -29,6 +30,7 @@
 #include <QtScript/QScriptValue>
 
 #include <DependencyManager.h>
+#include <StreamUtils.h>
 
 #include "UserInputMapper.h"
 #include "StandardControls.h"
@@ -87,6 +89,21 @@ namespace controller {
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
+        Q_INVOKABLE glm::vec2 getReticlePosition() { 
+            return toGlm(QCursor::pos()); 
+        }
+        Q_INVOKABLE void setReticlePosition(glm::vec2 position) { 
+            // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+            // remove it after we're done
+            const float REASONABLE_CHANGE = 50.0f;
+            glm::vec2 oldPos = toGlm(QCursor::pos());
+            auto distance = glm::distance(oldPos, position);
+            if (distance > REASONABLE_CHANGE) {
+                qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
+            }
+
+            QCursor::setPos(position.x, position.y);
+        }
 
         //Q_INVOKABLE bool isPrimaryButtonPressed() const;
         //Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;

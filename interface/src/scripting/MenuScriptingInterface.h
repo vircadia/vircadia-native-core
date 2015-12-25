@@ -42,6 +42,10 @@ public slots:
     void removeMenuItem(const QString& menuName, const QString& menuitem);
     bool menuItemExists(const QString& menuName, const QString& menuitem);
 
+    void addActionGroup(const QString& groupName, const QStringList& actionList,
+                        const QString& selected = QString());
+    void removeActionGroup(const QString& groupName);
+    
     bool isOptionChecked(const QString& menuOption);
     void setIsOptionChecked(const QString& menuOption, bool isChecked);
     

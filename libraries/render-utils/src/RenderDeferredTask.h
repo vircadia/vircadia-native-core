@@ -16,6 +16,8 @@
 
 #include "gpu/Pipeline.h"
 
+#include "ToneMappingEffect.h"
+
 class SetupDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -38,11 +40,13 @@ public:
     typedef render::Job::Model<RenderDeferred> JobModel;
 };
 
-class ResolveDeferred {
+class ToneMappingDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<ResolveDeferred> JobModel;
+    ToneMappingEffect _toneMappingEffect;
+
+    typedef render::Job::Model<ToneMappingDeferred> JobModel;
 };
 
 class DrawOpaqueDeferred {
@@ -80,10 +84,17 @@ class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
+    
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    
+    typedef render::Job::Model<DrawOverlay3D> JobModel;
+};
 
+class Blit {
+public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<DrawOverlay3D> JobModel;
+    typedef render::Job::Model<Blit> JobModel;
 };
 
 class RenderDeferredTask : public render::Task {
@@ -93,16 +104,23 @@ public:
     ~RenderDeferredTask();
 
     render::Jobs _jobs;
-
+    
+    int _drawDebugDeferredBufferIndex = -1;
     int _drawStatusJobIndex = -1;
     int _drawHitEffectJobIndex = -1;
-
+    
+    void setDrawDebugDeferredBuffer(int draw) {
+        if (_drawDebugDeferredBufferIndex >= 0) {
+            _jobs[_drawDebugDeferredBufferIndex].setEnabled(draw >= 0);
+        }
+    }
+    bool doDrawDebugDeferredBuffer() const { if (_drawDebugDeferredBufferIndex >= 0) { return _jobs[_drawDebugDeferredBufferIndex].isEnabled(); } else { return false; } }
+    
     void setDrawItemStatus(int draw) {
         if (_drawStatusJobIndex >= 0) {
             _jobs[_drawStatusJobIndex].setEnabled(draw > 0);
         }
     }
-
     bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
     
     void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
@@ -117,6 +135,14 @@ public:
 
     void setAntialiasingStatus(bool draw) { if (_antialiasingJobIndex >= 0) { _jobs[_antialiasingJobIndex].setEnabled(draw); } }
     bool doAntialiasingStatus() const { if (_antialiasingJobIndex >= 0) { return _jobs[_antialiasingJobIndex].isEnabled(); } else { return false; } }
+
+    int _toneMappingJobIndex = -1;
+
+    void setToneMappingExposure(float exposure);
+    float getToneMappingExposure() const;
+
+    void setToneMappingToneCurve(int toneCurve);
+    int getToneMappingToneCurve() const;
 
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
