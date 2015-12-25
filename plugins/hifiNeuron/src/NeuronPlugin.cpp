@@ -107,21 +107,37 @@ void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx
     // version 1.0
     if (header->DataVersion.Major == 1 && header->DataVersion.Minor == 0) {
 
-        std::lock_guard<std::mutex> guard(neuronPlugin->_jointsMutex);
-
-        // Data is 6 floats: 3 position values, 3 rotation euler angles (degrees)
-
-        // resize vector if necessary
-        const size_t NUM_FLOATS_PER_JOINT = 6;
-        const size_t NUM_JOINTS = header->DataCount / NUM_FLOATS_PER_JOINT;
-        if (neuronPlugin->_joints.size() != NUM_JOINTS) {
-            neuronPlugin->_joints.resize(NUM_JOINTS, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
+        // skip reference joint if present
+        if (header->WithReference && header->WithDisp) {
+            data += 6;
+        } else if (header->WithReference && !header->WithDisp) {
+            data += 3;
         }
 
-        assert(sizeof(NeuronPlugin::NeuronJoint) == (NUM_FLOATS_PER_JOINT * sizeof(float)));
+        if (header->WithDisp) {
+            // enter mutex
+            std::lock_guard<std::mutex> guard(neuronPlugin->_jointsMutex);
 
-        // copy the data
-        memcpy(&(neuronPlugin->_joints[0]), data, sizeof(NeuronPlugin::NeuronJoint) * NUM_JOINTS);
+            //
+            // Data is 6 floats per joint: 3 position values, 3 rotation euler angles (degrees)
+            //
+
+            // resize vector if necessary
+            const size_t NUM_FLOATS_PER_JOINT = 6;
+            const size_t NUM_JOINTS = header->DataCount / NUM_FLOATS_PER_JOINT;
+            if (neuronPlugin->_joints.size() != NUM_JOINTS) {
+                neuronPlugin->_joints.resize(NUM_JOINTS, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
+            }
+
+            assert(sizeof(NeuronPlugin::NeuronJoint) == (NUM_FLOATS_PER_JOINT * sizeof(float)));
+
+            // copy the data
+            memcpy(&(neuronPlugin->_joints[0]), data, sizeof(NeuronPlugin::NeuronJoint) * NUM_JOINTS);
+        } else {
+
+            qCCritical(inputplugins) << "NeruonPlugin: format not supported";
+
+        }
 
     } else {
         static bool ONCE = false;
@@ -368,18 +384,6 @@ void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<Neuron
             angularVel = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime);
         }
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
-
-        // dump the first 5 joints
-        if (i <= JointIndex::LeftFoot) {
-            qCDebug(inputplugins) << neuronJointName((JointIndex)i);
-            qCDebug(inputplugins) << "    trans = " << joints[i].pos;
-            qCDebug(inputplugins) << "    euler = " << joints[i].euler;
-        }
-        /*
-        if (glm::length(angularVel) > 0.5f) {
-            qCDebug(inputplugins) << "Movement in joint" << i << neuronJointName((JointIndex)i);
-        }
-        */
     }
 }
 
