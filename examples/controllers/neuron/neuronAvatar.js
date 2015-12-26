@@ -62,6 +62,8 @@ var JOINT_PARENT_MAP = {
     LeftHandPinky: "LeftHandPinky3",
 };
 
+var USE_TRANSLATIONS = false;
+
 function dumpHardwareMapping() {
     Object.keys(Controller.Hardware).forEach(function (deviceName) {
         Object.keys(Controller.Hardware[deviceName]).forEach(function (input) {
@@ -152,8 +154,12 @@ NeuronAvatar.prototype.update = function (deltaTime) {
             // Then we transform back into joint local by multiplying by the inverse of the parents absolute rotation.
             MyAvatar.setJointRotation(j, Quat.multiply(Quat.inverse(parentDefaultAbsRot), Quat.multiply(pose.rotation, defaultAbsRot)));
 
-            // TODO:
-            //MyAvatar.setJointTranslation(j, Vec3.multiply(100.0, pose.translation));
+            // translation proportions might be different from the neuron avatar and the user avatar skeleton.
+            // so this is disabled by default
+            if (USE_TRANSLATIONS) {
+                var localTranslation = Vec3.multiplyQbyV(Quat.inverse(parentDefaultAbsRot), pose.translation);
+                MyAvatar.setJointTranslation(j, localTranslation);
+            }
         }
     }
 };

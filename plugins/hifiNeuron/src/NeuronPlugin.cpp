@@ -159,6 +159,73 @@ static controller::StandardPoseChannel neuronJointIndexToPoseIndexMap[NeuronJoin
     controller::LEFT_HAND_PINKY4
 };
 
+// in rig frame
+static glm::vec3 rightHandThumb1DefaultAbsTranslation(-2.155500650405884, -0.7610001564025879, 2.685631036758423);
+static glm::vec3 leftHandThumb1DefaultAbsTranslation(2.1555817127227783, -0.7603635787963867, 2.6856393814086914);
+
+// default translations (cm)
+static glm::vec3 neuronJointTranslations[NeuronJointIndex::Size] = {
+    {131.901, 95.6602, -27.9815},
+    {-9.55907, -1.58772, 0.0760284},
+    {0.0144232, -41.4683, -0.105322},
+    {1.59348, -41.5875, -0.557237},
+    {9.72077, -1.68926, -0.280643},
+    {0.0886684, -43.1586, -0.0111596},
+    {-2.98473, -44.0517, 0.0694456},
+    {0.110967, 16.3959, 0.140463},
+    {0.0500451, 10.0238, 0.0731921},
+    {0.061568, 10.4352, 0.0583075},
+    {0.0500606, 10.0217, 0.0711083},
+    {0.0317731, 10.7176, 0.0779325},
+    {-0.0204253, 9.71067, 0.131734},
+    {-3.24245, 7.13584, 0.185638},
+    {-13.0885, -0.0877601, 0.176065},
+    {-27.2674, 0.0688724, 0.0272146},
+    {-26.7673, 0.0301916, 0.0102847},
+    {-2.56017, 0.195537, 3.20968},
+    {-3.78796, 0, 0},
+    {-2.63141, 0, 0},
+    {-3.31579, 0.522947, 2.03495},
+    {-5.36589, -0.0939789, 1.02771},
+    {-3.72278, 0, 0},
+    {-2.11074, 0, 0},
+    {-3.47874, 0.532042, 0.778358},
+    {-5.32194, -0.0864, 0.322863},
+    {-4.06232, 0, 0},
+    {-2.54653, 0, 0},
+    {-3.46131, 0.553263, -0.132632},
+    {-4.76716, -0.0227368, -0.492632},
+    {-3.54073, 0, 0},
+    {-2.45634, 0, 0},
+    {-3.25137, 0.482779, -1.23613},
+    {-4.25937, -0.0227368, -1.12168},
+    {-2.83528, 0, 0},
+    {-1.79166, 0, 0},
+    {3.25624, 7.13148, -0.131575},
+    {13.149, -0.052598, -0.125076},
+    {27.2903, 0.00282644, -0.0181535},
+    {26.6602, 0.000969969, -0.0487599},
+    {2.56017, 0.195537, 3.20968},
+    {3.78796, 0, 0},
+    {2.63141, 0, 0},
+    {3.31579, 0.522947, 2.03495},
+    {5.36589, -0.0939789, 1.02771},
+    {3.72278, 0, 0},
+    {2.11074, 0, 0},
+    {3.47874, 0.532042, 0.778358},
+    {5.32194, -0.0864, 0.322863},
+    {4.06232, 0, 0},
+    {2.54653, 0, 0},
+    {3.46131, 0.553263, -0.132632},
+    {4.76716, -0.0227368, -0.492632},
+    {3.54073, 0, 0},
+    {2.45634, 0, 0},
+    {3.25137, 0.482779, -1.23613},
+    {4.25937, -0.0227368, -1.12168},
+    {2.83528, 0, 0},
+    {1.79166, 0, 0}
+};
+
 static controller::StandardPoseChannel neuronJointIndexToPoseIndex(NeuronJointIndex i) {
     assert(i >= 0 && i < NeuronJointIndex::Size);
     if (i >= 0 && i < NeuronJointIndex::Size) {
@@ -285,31 +352,20 @@ void FrameDataReceivedCallback(void* context, SOCKET_REF sender, BvhDataHeaderEx
             memcpy(&(neuronPlugin->_joints[0]), data, sizeof(NeuronPlugin::NeuronJoint) * NUM_JOINTS);
 
         } else {
+            qCWarning(inputplugins) << "NeuronPlugin: unsuported binary format, please enable displacements";
+
             // enter mutex
             std::lock_guard<std::mutex> guard(neuronPlugin->_jointsMutex);
 
-            //
-            // Data is 3 floats per joint: 3 rotation euler angles (degrees)
-            //
-
-            // resize vector if necessary
-            const size_t NUM_FLOATS_PER_JOINT = 3;
-            const size_t NUM_JOINTS = header->DataCount / NUM_FLOATS_PER_JOINT;
-            if (neuronPlugin->_joints.size() != NUM_JOINTS) {
-                neuronPlugin->_joints.resize(NUM_JOINTS, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
+            if (neuronPlugin->_joints.size() != NeuronJointIndex::Size) {
+                neuronPlugin->_joints.resize(NeuronJointIndex::Size, { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } });
             }
 
-            assert(sizeof(NeuronPlugin::NeuronJoint) == (NUM_FLOATS_PER_JOINT * sizeof(float)));
-
-            for (int i = 0; i < NUM_JOINTS; i++) {
-                // TODO: should probably just copy over default positions?!
-                memcpy(&(neuronPlugin->_joints[i].euler), data, sizeof(float) * NUM_FLOATS_PER_JOINT);
+            for (int i = 0; i < NeuronJointIndex::Size; i++) {
+                neuronPlugin->_joints[i].euler = glm::vec3();
+                neuronPlugin->_joints[i].pos = neuronJointTranslations[i];
             }
-
-            qCCritical(inputplugins) << "NeruonPlugin: format not supported";
-
         }
-
     } else {
         static bool ONCE = false;
         if (!ONCE) {
@@ -466,7 +522,7 @@ QString NeuronPlugin::InputDevice::getDefaultMappingConfig() const {
 void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
     for (int i = 0; i < joints.size(); i++) {
         glm::vec3 linearVel, angularVel;
-        glm::vec3 pos = (joints[i].pos * METERS_PER_CENTIMETER);
+        glm::vec3 pos = joints[i].pos;
         glm::quat rot = eulerToQuat(joints[i].euler);
         if (i < prevJoints.size()) {
             linearVel = (pos - (prevJoints[i].pos * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
@@ -478,8 +534,6 @@ void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<Neuron
         _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVel, angularVel);
     }
 
-    // fill in missing thumb joints with identity.
-    // TODO: need a standard displacement
-    _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(glm::vec3(), glm::quat(), glm::vec3(), glm::vec3());
-    _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(glm::vec3(), glm::quat(), glm::vec3(), glm::vec3());
+    _poseStateMap[controller::RIGHT_HAND_THUMB1] = controller::Pose(rightHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
+    _poseStateMap[controller::LEFT_HAND_THUMB1] = controller::Pose(leftHandThumb1DefaultAbsTranslation, glm::quat(), glm::vec3(), glm::vec3());
 }
