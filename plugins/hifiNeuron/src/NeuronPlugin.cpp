@@ -463,6 +463,8 @@ void NeuronPlugin::activate() {
         qCCritical(inputplugins) << "NeuronPlugin: error connecting to " << _serverAddress.c_str() << ":" << _serverPort << ", error = " << BRGetLastErrorMessage();
     } else {
         qCDebug(inputplugins) << "NeuronPlugin: success connecting to " << _serverAddress.c_str() << ":" << _serverPort;
+
+        BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
     }
 }
 
@@ -474,6 +476,7 @@ void NeuronPlugin::deactivate() {
     }
 
     if (_socketRef) {
+        BRUnregisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
         BRCloseSocket(_socketRef);
     }
 
