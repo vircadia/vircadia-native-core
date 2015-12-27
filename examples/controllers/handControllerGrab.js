@@ -777,7 +777,7 @@ function MyController(hand) {
             }
 
             var intersection;
-            
+
             if(USE_BLACKLIST===true){
              intersection = Entities.findRayIntersection(pickRay, true, [], blacklist);
             }
@@ -1662,7 +1662,7 @@ handleHandMessages = function(channel, message, sender) {
                  
             } catch (e) { }
         }
-        else if (channel === 'Hifi-Hand-RayPick-Blacklist') {
+        else if (channel === 'Hifi-Hand-RayPick-Blacklist' && sender === MyAvatar.sessionUUID) {
             try {
                 var data = JSON.parse(message);
                 var action = data.action;
