@@ -778,13 +778,12 @@ function MyController(hand) {
 
             var intersection;
 
-            if(USE_BLACKLIST===true){
-             intersection = Entities.findRayIntersection(pickRay, true, [], blacklist);
+            if (USE_BLACKLIST === true && blacklist.length !== 0) {
+                intersection = Entities.findRayIntersection(pickRay, true, [], blacklist);
+            } else {
+                intersection = Entities.findRayIntersection(pickRayBacked, true);
             }
-            else{
-             intersection = Entities.findRayIntersection(pickRayBacked, true);
-            }
-
+            
             if (intersection.intersects) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
