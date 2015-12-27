@@ -116,6 +116,11 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
+
+// sometimes we want to exclude objects from being picked
+var USE_BLACKLIST = true;
+var blacklist = [];
+
 //we've created various ways of visualizing looking for and moving distant objects
 var USE_ENTITY_LINES_FOR_SEARCHING = false;
 var USE_OVERLAY_LINES_FOR_SEARCHING = false;
@@ -771,7 +776,14 @@ function MyController(hand) {
                 })
             }
 
-            var intersection = Entities.findRayIntersection(pickRayBacked, true);
+            var intersection;
+            
+            if(USE_BLACKLIST===true){
+             intersection = Entities.findRayIntersection(pickRay, true, [], blacklist);
+            }
+            else{
+             intersection = Entities.findRayIntersection(pickRayBacked, true);
+            }
 
             if (intersection.intersects) {
                 // the ray is intersecting something we can move.
@@ -1626,6 +1638,7 @@ function update() {
 
 Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
+Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 
 handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
@@ -1648,6 +1661,24 @@ handleHandMessages = function(channel, message, sender) {
                  selectedController.grabbedEntity = data.entityID;
                  
             } catch (e) { }
+        }
+        else if (channel === 'Hifi-Hand-RayPick-Blacklist') {
+            try {
+                var data = JSON.parse(message);
+                var action = data.action;
+                var id = data.id;
+                var index = blacklist.indexOf(id);
+         
+                if (action === 'add' && index ===-1) {
+                    blacklist.push(id);
+                }
+                if (action === 'remove') {
+                    if (index > -1) {
+                        blacklist.splice(index, 1);
+                    }
+                }
+
+            } catch (e) {}
         }
     }
 }
