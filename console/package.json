@@ -25,7 +25,6 @@
     "package-linux": "electron-packager . High\\ Fidelity --overwrite --platform=linux --arch=x64 --version=0.36.1"
   },
   "dependencies": {
-    "electron-compile": "^1.0.2",
     "extend": "^3.0.0",
     "yargs": "^3.30.0"
   }

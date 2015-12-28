@@ -2,7 +2,6 @@
 
 var electron = require('electron');
 var app = electron.app;  // Module to control application life.
-var BrowserWindow = require('browser-window');  // Module to create native browser window.
 var Menu = require('menu');
 var Tray = require('tray');
 var shell = require('shell');
@@ -16,71 +15,13 @@ var ProcessGroup = hfprocess.ProcessGroup;
 
 const ipcMain = electron.ipcMain;
 
-// Keep a global reference of the window object, if you don't, the window will
-// be closed automatically when the JavaScript object is garbage collected.
-var mainWindow = null;
 var tray = null;
 
 var path = require('path');
 var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
-var APP_ICON = path.join(__dirname, '../resources/console.png');
-
-// Don't quit when all windows are closed, make user explicitly quit from tray
-app.on('window-all-closed', function() {});
-
-function createNewWindow() {
-    // Create the browser window.
-    mainWindow = new BrowserWindow({
-        title: "High Fidelity",
-        width: 970,
-        height: 775,
-        icon: APP_ICON,
-        resizable: false
-    });
-
-    // In debug mode, keep the menu bar, but auto-hide it so the UI still looks the same.
-    if (debug) {
-        mainWindow.setAutoHideMenuBar(true);
-    } else {
-        mainWindow.setMenu(null);
-    }
-
-    // and load the index.html of the app.
-    mainWindow.loadURL('file://' + __dirname + '/index.html');
-
-    // Open the DevTools.
-    mainWindow.webContents.openDevTools();
-
-    // Emitted when the window is closed.
-    mainWindow.on('closed', function() {
-        // Dereference the window object, usually you would store windows
-        // in an array if your app supports multi windows, this is the time
-        // when you should delete the corresponding element.
-        mainWindow = null;
-    });
-
-    // When a link is clicked that has `_target="_blank"`, open it in the user's native browser
-    mainWindow.webContents.on('new-window', function(e, url) {
-        e.preventDefault();
-        shell.openExternal(url);
-    });
-}
-
-// When a user clicks on dock icon, re-create the window if we don't have one
-app.on('activate', function(){
-    if (!mainWindow) {
-        createNewWindow();
-    }
-})
 
 var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
-    // Someone tried to run a second instance, we should focus our window
-    if (mainWindow) {
-        if (mainWindow.isMinimized()) {
-            mainWindow.restore();
-        }
-        mainWindow.focus();
-    }
+    // Someone tried to run a second instance, focus the window (if there is one)
     return true;
 });
 
@@ -122,6 +63,9 @@ function openFileBrowser(path) {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+    // hide the dock icon
+    app.dock.hide()
+    
     // Create tray icon
     tray = new Tray(TRAY_ICON);
     tray.setToolTip('High Fidelity');
@@ -131,11 +75,6 @@ app.on('ready', function() {
         click: function() { app.quit(); }
     }]);
     tray.setContextMenu(contextMenu);
-
-    // Require electron-compile to use LESS files in place of basic CSS
-    require('electron-compile').init();
-
-    createNewWindow();
 
     var logPath = path.join(app.getAppPath(), 'logs');
 
@@ -154,22 +93,9 @@ app.on('ready', function() {
             home: homeServer
         };
 
-        function sendProcessUpdate(process) {
-            if (mainWindow) {
-                console.log("Sending process update to web view for " + process.name);
-                mainWindow.webContents.send('process-update', process);
-            }
-        };
-
-        function sendProcessGroupUpdate(processGroup) {
-            if (mainWindow) {
-                mainWindow.webContents.send('process-group-update', processGroup);
-            }
-        }
-
         // handle process updates
-        homeServer.on('process-update', sendProcessUpdate);
-        homeServer.on('state-update', sendProcessGroupUpdate);
+        // homeServer.on('process-update', sendProcessUpdate);
+        // homeServer.on('state-update', sendProcessGroupUpdate);
 
         // start the home server
         homeServer.start();
@@ -199,13 +125,13 @@ app.on('ready', function() {
         });
 
         ipcMain.on('update-all-processes', function(event, arg) {
-            // enumerate our processes and call sendProcessUpdate to update
-            // the window with their status
-            for (let process of homeServer.processes) {
-                sendProcessUpdate(process);
-            }
-
-            sendProcessGroupUpdate(homeServer);
+            // // enumerate our processes and call sendProcessUpdate to update
+            // // the window with their status
+            // for (let process of homeServer.processes) {
+            //     sendProcessUpdate(process);
+            // }
+            //
+            // sendProcessGroupUpdate(homeServer);
         });
     }
 });
