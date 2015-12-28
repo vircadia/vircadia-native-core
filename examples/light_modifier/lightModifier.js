@@ -636,7 +636,7 @@ function createCloseButton(axisStart) {
         modelURL: CLOSE_BUTTON_MODEL_URL,
         dimensions: CLOSE_BUTTON_DIMENSIONS,
         position: Vec3.sum(position, VERTICAL_OFFFSET),
-        rotation: Quat.multiply(avatarRot,Quat.fromPitchYawRollDegrees(90, 0, 45)),
+        rotation: Quat.multiply(avatarRot, Quat.fromPitchYawRollDegrees(90, 0, 45)),
         //rotation: Quat.fromPitchYawRollDegrees(0, 0, 90),
         collisionsWillMove: false,
         ignoreForCollisions: true,
@@ -652,8 +652,8 @@ function createCloseButton(axisStart) {
 
     closeButtons.push(button);
 
-    if(ROTATE_CLOSE_BUTTON===true){
-            Script.update.connect(rotateCloseButtons);
+    if (ROTATE_CLOSE_BUTTON === true) {
+        Script.update.connect(rotateCloseButtons);
     }
 }
 
@@ -742,7 +742,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         var lightID = doesIntersect.entityID;
         if (currentLight === lightID) {
-          //  print('ALREADY HAVE A BLOCK, EXIT')
+            //  print('ALREADY HAVE A BLOCK, EXIT')
             return;
         }
 
@@ -833,17 +833,17 @@ function cleanup(fromMessage) {
 
     Entities.deleteEntity(panel);
     Entities.deleteEntity(visiblePanel);
-    var data = {
-        action: 'remove',
-        id: visiblePanel
-    };
-    Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data))
 
     selectionManager.clearSelections();
-    Script.update.disconnect(rotateCloseButtons);
+
+    if (ROTATE_CLOSE_BUTTON === true) {
+        Script.update.disconnect(rotateCloseButtons);
+    }
+
     if (hasParent === false) {
         Entities.deleteEntity(block);
     }
+
     oldParent = null;
     hasParent = false;
     currentLight = null;
