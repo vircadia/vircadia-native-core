@@ -72,8 +72,9 @@ void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeTy
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->setOwnerType(nodeType);
 
-    // send a domain-server check in immediately
+    // send a domain-server check in immediately and start the timer to fire them every DOMAIN_SERVER_CHECK_IN_MSECS
     checkInWithDomainServerOrExit();
+    _domainServerTimer.start();
 
     // start sending stats packet once we connect to the domain
     connect(&nodeList->getDomainHandler(), SIGNAL(connectedToDomain(const QString&)), &_statsTimer, SLOT(start()));
