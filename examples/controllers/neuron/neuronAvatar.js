@@ -64,6 +64,27 @@ var JOINT_PARENT_MAP = {
 
 var USE_TRANSLATIONS = false;
 
+// ctor
+function Xform(rot, pos) {
+    this.rot = rot;
+    this.pos = pos;
+};
+Xform.mul = function (lhs, rhs) {
+    var rot = Quat.multiply(lhs.rot, rhs.rot);
+    var pos = Vec3.sum(lhs.pos, Vec3.multiplyQbyV(lhs.rot, rhs.pos));
+    return new Xform(rot, pos);
+};
+Xform.prototype.inv = function () {
+    var invRot = Quat.inverse(this.rot);
+    var invPos = Vec3.multiply(-1, this.pos);
+    return new Xform(invRot, Vec3.multiplyQbyV(invRot, invPos));
+};
+Xform.prototype.toString = function () {
+    var rot = this.rot;
+    var pos = this.pos;
+    return "Xform rot = (" + rot.x + ", " + rot.y + ", " + rot.z + ", " + rot.w + "), pos = (" + pos.x + ", " + pos.y + ", " + pos.z + ")";
+};
+
 function dumpHardwareMapping() {
     Object.keys(Controller.Hardware).forEach(function (deviceName) {
         Object.keys(Controller.Hardware[deviceName]).forEach(function (input) {
@@ -108,19 +129,19 @@ NeuronAvatar.prototype.activate = function () {
     this._active = true;
 
     // build absDefaultPoseMap
-    this._absDefaultRotMap = {};
-    this._absDefaultRotMap[""] = {x: 0, y: 0, z: 0, w: 1};
+    this._defaultAbsRotMap = {};
+    this._defaultAbsPosMap = {};
+    this._defaultAbsRotMap[""] = {x: 0, y: 0, z: 0, w: 1};
+    this._defaultAbsPosMap[""] = {x: 0, y: 0, z: 0};
     var keys = Object.keys(JOINT_PARENT_MAP);
     var i, l = keys.length;
     for (i = 0; i < l; i++) {
         var jointName = keys[i];
         var j = MyAvatar.getJointIndex(jointName);
         var parentJointName = JOINT_PARENT_MAP[jointName];
-        if (parentJointName === "") {
-            this._absDefaultRotMap[jointName] = MyAvatar.getDefaultJointRotation(j);
-        } else {
-            this._absDefaultRotMap[jointName] = Quat.multiply(this._absDefaultRotMap[parentJointName], MyAvatar.getDefaultJointRotation(j));
-        }
+        this._defaultAbsRotMap[jointName] = Quat.multiply(this._defaultAbsRotMap[parentJointName], MyAvatar.getDefaultJointRotation(j));
+        this._defaultAbsPosMap[jointName] = Vec3.sum(this._defaultAbsPosMap[parentJointName],
+                                                     Quat.multiply(this._defaultAbsRotMap[parentJointName], MyAvatar.getDefaultJointTranslation(j)));
     }
 };
 
@@ -134,10 +155,16 @@ NeuronAvatar.prototype.deactivate = function () {
 };
 
 NeuronAvatar.prototype.update = function (deltaTime) {
+
+    var hmdActive = HMD.active;
+    var hmdXform = new Xform(HMD.orientation, HMD.position);
+
     var keys = Object.keys(JOINT_PARENT_MAP);
     var i, l = keys.length;
     var absDefaultRot = {};
     var jointName, channel, pose, parentJointName, j, parentDefaultAbsRot;
+    var localRotations = {};
+    var localTranslations = {};
     for (i = 0; i < l; i++) {
         var jointName = keys[i];
         var channel = Controller.Hardware.Neuron[jointName];
@@ -145,22 +172,53 @@ NeuronAvatar.prototype.update = function (deltaTime) {
             pose = Controller.getPoseValue(channel);
             parentJointName = JOINT_PARENT_MAP[jointName];
             j = MyAvatar.getJointIndex(jointName);
-            defaultAbsRot = this._absDefaultRotMap[jointName];
-            parentDefaultAbsRot = this._absDefaultRotMap[parentJointName];
+            defaultAbsRot = this._defaultAbsRotMap[jointName];
+            parentDefaultAbsRot = this._defaultAbsRotMap[parentJointName];
 
             // Rotations from the neuron controller are in world orientation but are delta's from the default pose.
             // So first we build the absolute rotation of the default pose (local into world).
             // Then apply the rotation from the controller, in world space.
             // Then we transform back into joint local by multiplying by the inverse of the parents absolute rotation.
-            MyAvatar.setJointRotation(j, Quat.multiply(Quat.inverse(parentDefaultAbsRot), Quat.multiply(pose.rotation, defaultAbsRot)));
+            var localRotation = Quat.multiply(Quat.inverse(parentDefaultAbsRot), Quat.multiply(pose.rotation, defaultAbsRot));
+            if (!hmdActive || jointName !== "Hips") {
+                MyAvatar.setJointRotation(j, localRotation);
+            }
+            localRotations[jointName] = localRotation;
 
             // translation proportions might be different from the neuron avatar and the user avatar skeleton.
             // so this is disabled by default
             if (USE_TRANSLATIONS) {
                 var localTranslation = Vec3.multiplyQbyV(Quat.inverse(parentDefaultAbsRot), pose.translation);
                 MyAvatar.setJointTranslation(j, localTranslation);
+                localTranslations[jointName] = localTranslation;
+            } else {
+                localTranslations[jointName] = MyAvatar.getJointTranslation(j);
             }
         }
+    }
+
+    // TODO: Currrently does not work.
+    // it attempts to adjust the hips so that the avatar's head is at the same location & oreintation as the HMD.
+    // however it's fighting with the internal c++ code that also attempts to adjust the hips.
+    if (hmdActive) {
+
+        var y180Xform = new Xform({x: 0, y: 1, z: 0, w: 0}, {x: 0, y: 0, z: 0});
+        var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
+        var headXform = new Xform(localRotations["Head"], localTranslations["Head"]);
+
+        // transform eyes down the heirarchy chain into avatar space.
+        var hierarchy = ["Neck", "Spine3", "Spine2", "Spine1", "Spine"];
+        var i, l = hierarchy.length;
+        for (i = 0; i < l; i++) {
+            var xform = new Xform(localRotations[hierarchy[i]], localTranslations[hierarchy[i]]);
+            headXform = Xform.mul(xform, headXform);
+        }
+
+        // solve for the offset that will put the eyes at the hmd position & orientation.
+        var hipsXform = Xform.mul(y180Xform, Xform.mul(avatarXform.inv(), Xform.mul(hmdXform, Xform.mul(y180Xform, headXform.inv()))));
+
+        MyAvatar.setJointRotation("Hips", hipsXform.rot);
+        MyAvatar.setJointTranslation("Hips", hipsXform.pos);
     }
 };
 
