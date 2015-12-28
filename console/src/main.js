@@ -60,20 +60,44 @@ function openFileBrowser(path) {
 // if at this point any of the paths are null, we're missing something we wanted to find
 // TODO: show an error for the binaries that couldn't be found
 
+function startInterface(url) {
+    var argArray = [];
+
+    // check if we have a url parameter to include
+    if (url) {
+        argArray = ["--url", url];
+    }
+
+    // create a new Interface instance - Interface makes sure only one is running at a time
+    var pInterface = new Process('interface', interfacePath, argArray);
+    pInterface.start();
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
     // hide the dock icon
     app.dock.hide()
-    
+
     // Create tray icon
     tray = new Tray(TRAY_ICON);
     tray.setToolTip('High Fidelity');
-    var contextMenu = Menu.buildFromTemplate([{
-        label: 'Quit',
-        accelerator: 'Command+Q',
-        click: function() { app.quit(); }
-    }]);
+
+    var contextMenu = Menu.buildFromTemplate([
+        {
+            label: 'Go Home',
+            click: function() { startInterface('hifi://localhost'); }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Quit',
+            accelerator: 'Command+Q',
+            click: function() { app.quit(); }
+        }
+    ]);
+
     tray.setContextMenu(contextMenu);
 
     var logPath = path.join(app.getAppPath(), 'logs');
@@ -101,15 +125,7 @@ app.on('ready', function() {
         homeServer.start();
 
         ipcMain.on('start-interface', function(event, arg) {
-            // check if we have a url parameter to include
-            var argArray = [];
-            if (arg && arg.url) {
-                argArray = ["--url", arg.url];
-            }
 
-            // create a new Interface instance - Interface makes sure only one is running at a time
-            var pInterface = new Process('interface', interfacePath, argArray);
-            pInterface.start();
         });
 
         ipcMain.on('restart-server', function(event, arg) {
