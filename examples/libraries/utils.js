@@ -274,7 +274,6 @@ hexToRgb = function(hex) {
 calculateHandSizeRatio = function() {
     // Get the ratio of the current avatar's hand to Owen's hand
 
-    // var standardCenterHandPoint = 0.11288;
     var standardCenterHandPoint = 0.11288;
     var jointNames = MyAvatar.getJointNames();
     //get distance from handJoint up to leftHandIndex3 as a proxy for center of hand
