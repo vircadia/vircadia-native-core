@@ -226,6 +226,9 @@ function getSpatialOffsetPosition(hand, spatialKey) {
         position = spatialKey.relativePosition;
     }
 
+    // add the relative hand center offset
+    var handSizeRatio = calculateHandSizeRatio();
+    position = Vec3.multiply(position, handSizeRatio);
     return position;
 }
 
@@ -1159,14 +1162,16 @@ function MyController(hand) {
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
             this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-            if (grabbableData.spatialKey.relativePosition) {
-            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            if (grabbableData.spatialKey.relativePosition || grabbableData.spatialKey.rightRelativePosition 
+                || grabbableData.spatialKey.leftRelativePosition) {
+                this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
             } else {
                 this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
             }
-            if (grabbableData.spatialKey.relativeRotation) {
-            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
-        } else {
+            if (grabbableData.spatialKey.relativeRotation || grabbableData.spatialKey.rightRelativeRotation
+                || grabbableData.spatialKey.leftRelativeRotation) {
+                this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            } else {
                 this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
             }
         } else {
