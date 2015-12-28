@@ -1,4 +1,4 @@
-var TEST_MODEL_URL = '';
+var TEST_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/avatars/Jack_Skellington/Jack_Skellington.fbx';
 
 var doppelgangers = [];
 
@@ -7,7 +7,7 @@ function Doppelganger(avatar) {
         name: 'Hifi-Doppelganger',
         type: 'Model',
         modelURL: TEST_MODEL_URL,
-        dimensions: getAvatarDimensions(avatar),
+       // dimensions: getAvatarDimensions(avatar),
         position: putDoppelgangerAcrossFromAvatar(this, avatar),
         rotation: rotateDoppelgangerTowardAvatar(this, avatar),
     };
@@ -17,8 +17,17 @@ function Doppelganger(avatar) {
     return this;
 }
 
-function getJointData() {
-    return jointData;
+function getJointData(avatar) {
+    var allJointData;
+    var jointNames = MyAvatar.jointNames;
+
+    jointNames.forEach(function(joint) {
+        print('getting info for joint:' + joint);
+        var jointData = MyAvatar.getJointPosition(joint);
+        print('joint data:'+JSON.stringify(jointData));
+    });
+
+    return allJointData;
 }
 
 function setJointData(doppelganger, jointData) {
@@ -34,11 +43,13 @@ function createDoppelganger(avatar) {
 }
 
 function createDoppelgangerEntity(doppelganger) {
-    return Entities.addEntitiy(doppelganger.initialProperties);
+    return Entities.addEntity(doppelganger.initialProperties);
 }
 
 function putDoppelgangerAcrossFromAvatar(doppelganger, avatar) {
-    return position;
+    var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
+    var basePosition = Vec3.sum(avatar.position, Vec3.multiply(1.5, Quat.getFront(avatarRot)));
+    return basePosition;
 }
 
 function getAvatarDimensions(avatar) {
@@ -46,7 +57,9 @@ function getAvatarDimensions(avatar) {
 }
 
 function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
-    return rotation;
+       var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
+       avatarRot = Vec3.multiply(-1,avatarRot);
+    return avatarRot;
 }
 
 function connectDoppelgangerUpdates() {
@@ -59,7 +72,7 @@ function disconnectDoppelgangerUpdates() {
 
 function updateDoppelganger() {
     doppelgangers.forEach(function(doppelganger) {
-        var joints = getJointData(doppelganger.avatar.id);
+        var joints = getJointData(MyAvatar);
         var mirroredJoints = mirrorJointData(joints);
         setJointData(doppelganger, mirroredJoints);
     });
@@ -69,8 +82,11 @@ function updateDoppelganger() {
 function makeDoppelgangerForMyAvatar() {
     var doppelganger = createDoppelganger(MyAvatar);
     doppelgangers.push(doppelganger);
-    connectDoppelgangerUpdates();
+   // connectDoppelgangerUpdates();
 }
+
+
+makeDoppelgangerForMyAvatar();
 
 function cleanup() {
     disconnectDoppelgangerUpdates();
@@ -82,3 +98,8 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
+
+//  APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
+// APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
+//  APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
+// APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
