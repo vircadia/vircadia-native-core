@@ -847,7 +847,7 @@ function cleanup(fromMessage) {
     oldParent = null;
     hasParent = false;
     currentLight = null;
-
+    sliders = [];
 
 }
 
