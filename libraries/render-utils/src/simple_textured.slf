@@ -29,7 +29,7 @@ void main(void) {
     
     packDeferredFragment(
         normalize(_normal.xyz), 
-        glowIntensity * texel.a,
+        texel.a,
         _color.rgb * texel.rgb,
         DEFAULT_SPECULAR, DEFAULT_SHININESS);
 }

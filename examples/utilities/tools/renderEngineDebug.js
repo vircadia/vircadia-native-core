@@ -21,75 +21,55 @@ Number.prototype.clamp = function(min, max) {
 
 var panel = new Panel(10, 100);
 
-function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, capGetter) {
-    this.subPanel = panel.newSubPanel(name);
+function CounterWidget(parentPanel, name, counter) {
+    var subPanel = parentPanel.newSubPanel(name);
+    var widget = parentPanel.items[name];
+    widget.editTitle({ width: 270 });
 
-    this.subPanel.newSlider("Num Feed", 0, 1, 
-        function(value) { },
-        feedGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Num Drawn", 0, 1, 
-        function(value) { },
-        drawGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Max Drawn", -1, 1, 
-        capSetter,
-        capGetter,
-        function(value) { return (value); });
+    subPanel.newSlider('Max Drawn', -1, 1, 
+        function(value) { counter.maxDrawn = value; }, // setter
+        function() { return counter.maxDrawn; }, // getter
+        function(value) { return value; });
 
-   this.update = function () {
-        var numFeed = this.subPanel.get("Num Feed");
-        this.subPanel.set("Num Feed", numFeed);
-        this.subPanel.set("Num Drawn", this.subPanel.get("Num Drawn"));
+    var slider = subPanel.getWidget('Max Drawn');
 
-        var numMax = Math.max(numFeed, 1);
-        this.subPanel.getWidget("Num Feed").setMaxValue(numMax);
-        this.subPanel.getWidget("Num Drawn").setMaxValue(numMax);
-        this.subPanel.getWidget("Max Drawn").setMaxValue(numMax);
+    this.update = function () {
+        var numDrawn = counter.numDrawn; // avoid double polling
+        var numMax = Math.max(numDrawn, 1);
+        var title = [
+            ' ' + name,
+            numDrawn + ' / ' + counter.numFeed
+        ].join('\t');
+
+        widget.editTitle({ text: title });
+        slider.setMaxValue(numMax);
     };
 };
 
-var opaquesCounter = new CounterWidget(panel, "Opaques",
-    function () { return Render.getEngineNumFeedOpaqueItems(); },
-    function () { return Render.getEngineNumDrawnOpaqueItems(); },
-    function(value) {    Render.setEngineMaxDrawnOpaqueItems(value); },
-    function () { return Render.getEngineMaxDrawnOpaqueItems(); }
-);
-
-var transparentsCounter = new CounterWidget(panel, "Transparents",
-    function () { return Render.getEngineNumFeedTransparentItems(); },
-    function () { return Render.getEngineNumDrawnTransparentItems(); },
-    function(value) {    Render.setEngineMaxDrawnTransparentItems(value); },
-    function () { return Render.getEngineMaxDrawnTransparentItems(); }
-);
-
-var overlaysCounter = new CounterWidget(panel, "Overlays",
-    function () { return Render.getEngineNumFeedOverlay3DItems(); },
-    function () { return Render.getEngineNumDrawnOverlay3DItems(); },
-    function(value) {    Render.setEngineMaxDrawnOverlay3DItems(value); },
-    function () { return Render.getEngineMaxDrawnOverlay3DItems(); }
-);
+var opaquesCounter = new CounterWidget(panel, "Opaques", Render.opaque);
+var transparentsCounter = new CounterWidget(panel, "Transparents", Render.transparent);
+var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
-Render.setEngineDeferredDebugMode(previousMode);
-Render.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
+Render.deferredDebugMode = previousMode;
+Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
 
 function setEngineDeferredDebugSize(eventX) {
     var scaledX = (2.0 * (eventX / Window.innerWidth) - 1.0).clamp(-1.0, 1.0);
-    Render.setEngineDeferredDebugSize({ x: scaledX, y: -1.0, z: 1.0, w: 1.0 });
+    Render.deferredDebugSize = { x: scaledX, y: -1.0, z: 1.0, w: 1.0 };
 }
 function shouldStartResizing(eventX) {
-    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Render.getEngineDeferredDebugSize().x) / 2.0);
-    var mode = Render.getEngineDeferredDebugMode();
+    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Render.deferredDebugSize.x) / 2.0);
+    var mode = Render.deferredDebugMode;
     return mode !== -1 && x < 20;
 }
 
 function menuItemEvent(menuItem) {
     var index = ACTIONS.indexOf(menuItem);
     if (index >= 0) {
-        Render.setEngineDeferredDebugMode(index - 1);
+        Render.deferredDebugMode = (index - 1);
     }
 }
 
@@ -98,24 +78,24 @@ var showDisplayStatusFlag = 1;
 var showNetworkStatusFlag = 2;
 
 panel.newCheckbox("Display status",
-    function(value) { Render.setEngineDisplayItemStatus(value ?
-                                                       Render.doEngineDisplayItemStatus() | showDisplayStatusFlag :
-                                                       Render.doEngineDisplayItemStatus() & ~showDisplayStatusFlag); },
-    function() { return (Render.doEngineDisplayItemStatus() & showDisplayStatusFlag) > 0; },
+    function(value) { Render.displayItemStatus = (value ?
+                                                       Render.displayItemStatus | showDisplayStatusFlag :
+                                                       Render.displayItemStatus & ~showDisplayStatusFlag); },
+    function() { return (Render.displayItemStatus & showDisplayStatusFlag) > 0; },
     function(value) { return (value & showDisplayStatusFlag) > 0; }
 );
 
 panel.newCheckbox("Network/Physics status",
-    function(value) { Render.setEngineDisplayItemStatus(value ?
-                                                       Render.doEngineDisplayItemStatus() | showNetworkStatusFlag :
-                                                       Render.doEngineDisplayItemStatus() & ~showNetworkStatusFlag); },
-    function() { return (Render.doEngineDisplayItemStatus() & showNetworkStatusFlag) > 0; },
+    function(value) { Render.displayItemStatus = (value ?
+                                                       Render.displayItemStatus | showNetworkStatusFlag :
+                                                       Render.displayItemStatus & ~showNetworkStatusFlag); },
+    function() { return (Render.displayItemStatus & showNetworkStatusFlag) > 0; },
     function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
 
 panel.newSlider("Tone Mapping Exposure", -10, 10,
-    function (value) { Render.setEngineToneMappingExposure(value); },
-    function() { return Render.getEngineToneMappingExposure(); },
+    function (value) { Render.tone.exposure = value; },
+    function() { return Render.tone.exposure; },
     function (value) { return (value); });
 
 var tickTackPeriod = 500;
@@ -160,9 +140,13 @@ Menu.menuItemEvent.connect(menuItemEvent);
 function scriptEnding() {
     panel.destroy();
     Menu.removeActionGroup(MENU);
-    Settings.setValue(SETTINGS_KEY, Render.getEngineDeferredDebugMode());
-    Render.setEngineDeferredDebugMode(-1);
-    Render.setEngineDeferredDebugSize({ x: 0.0, y: -1.0, z: 1.0, w: 1.0 }); // Reset to default size
+    // Reset
+    Settings.setValue(SETTINGS_KEY, Render.deferredDebugMode);
+    Render.deferredDebugMode = -1;
+    Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 };
+    Render.opaque.maxDrawn = -1;
+    Render.transparent.maxDrawn = -1;
+    Render.overlay3D.maxDrawn = -1;
 }
 Script.scriptEnding.connect(scriptEnding);
 

@@ -13,11 +13,15 @@
 #include "DrawTask.h"
 using namespace render;
 
-void RenderContext::setOptions(int drawStatus, bool drawHitEffect, bool occlusion, bool fxaa, bool showOwned) {
-    _drawStatus = drawStatus;
+RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode)
+    : _deferredDebugMode{ deferredDebugMode }, _deferredDebugSize{ deferredDebugSize },
+    _args{ nullptr },
+    _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
+    _items{ items }, _tone{ tone } {}
+
+void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
     _occlusionStatus = occlusion;
     _fxaaStatus = fxaa;
-    _drawHitEffect = drawHitEffect;
 
     if (showOwned) {
         _drawStatus |= render::showNetworkStatusFlag;
