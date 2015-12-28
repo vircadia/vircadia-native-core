@@ -21,6 +21,7 @@ var VISIBLE_PANEL = true;
 var USE_LABELS = true;
 var LEFT_LABELS = false;
 var RIGHT_LABELS = true;
+var ROTATE_CLOSE_BUTTON = false;
 
 //variables for managing overlays
 var selectionDisplay;
@@ -65,6 +66,7 @@ var LIGHT_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier
 var CLOSE_BUTTON_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/red_x.fbx';
 var CLOSE_BUTTON_SCRIPT_URL = Script.resolvePath('closeButton.js?' + Math.random(0, 100));
 var TRANSPARENT_PANEL_URL = 'http://hifi-content.s3.amazonaws.com/james/light_modifier/transparent_box_alpha_15.fbx';
+var VISIBLE_PANEL_SCRIPT_URL = Script.resolvePath('visiblePanel.js?' + Math.random(0, 100));
 
 var RED = {
     red: 255,
@@ -137,7 +139,7 @@ var slidersRef = {
 var light = null;
 
 var basePosition;
-var avatarRotation; 
+var avatarRotation;
 
 function entitySlider(light, color, sliderType, displayText, row) {
     this.light = light;
@@ -150,7 +152,7 @@ function entitySlider(light, color, sliderType, displayText, row) {
     this.avatarRot = Quat.fromPitchYawRollDegrees(0, MyAvatar.bodyYaw, 0.0);
     this.basePosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(this.avatarRot)));
     this.basePosition.y += 1;
-    basePosition=this.basePosition;
+    basePosition = this.basePosition;
     avatarRot = this.avatarRot;
 
     var message = {
@@ -261,7 +263,7 @@ entitySlider.prototype = {
                 blue: 255
             },
             position: this.endOfAxis,
-            parentID:this.axis,
+            parentID: this.axis,
             visible: false
         }
 
@@ -312,7 +314,7 @@ entitySlider.prototype = {
                 blue: 0
             },
             position: position,
-            rotation:this.avatarRot,
+            rotation: this.avatarRot,
         }
         print('BEFORE CREATE LABEL' + JSON.stringify(labelProperties))
         this.label = Entities.addEntity(labelProperties);
@@ -499,7 +501,7 @@ function makeSliders(light) {
         sliders.push(slidersRef.exponent);
     }
 
-    createCloseButton(slidersRef.exponent.endOfAxis);
+    createCloseButton(slidersRef.color_red.axisStart);
 
     subscribeToSliderMessages();
 
@@ -566,28 +568,28 @@ function createPanelEntity(position) {
 function createVisiblePanel() {
     var totalOffset = -PER_ROW_OFFSET.y * sliders.length;
 
-    var moveRight =Vec3.sum(basePosition,Vec3.multiply(AXIS_SCALE/2,Quat.getRight(avatarRot)));
+    var moveRight = Vec3.sum(basePosition, Vec3.multiply(AXIS_SCALE / 2, Quat.getRight(avatarRot)));
 
-    var moveDown = Vec3.sum(moveRight,Vec3.multiply((sliders.length+1)/2,PER_ROW_OFFSET))
+    var moveDown = Vec3.sum(moveRight, Vec3.multiply((sliders.length + 1) / 2, PER_ROW_OFFSET))
     var panelProperties = {
         name: 'Hifi-Visible-Transparent-Panel',
         type: 'Model',
         modelURL: TRANSPARENT_PANEL_URL,
         dimensions: {
-            x: AXIS_SCALE+0.1,
+            x: AXIS_SCALE + 0.1,
             y: totalOffset,
-            z: SLIDER_DIMENSIONS.z/4
+            z: SLIDER_DIMENSIONS.z / 4
         },
         visible: true,
         collisionsWillMove: false,
         ignoreForCollisions: true,
         position: moveDown,
-        rotation:avatarRot
+        rotation: avatarRot,
+        script: VISIBLE_PANEL_SCRIPT_URL
     }
 
     var panel = Entities.addEntity(panelProperties);
-    var data = {action:'add', id:panel};
-    Messages.sendMessage ('Hifi-Hand-RayPick-Blacklist',JSON.stringify(data))
+
     return panel
 }
 
@@ -617,19 +619,25 @@ function createLightModel(position, rotation) {
 
 var closeButtons = [];
 
-function createCloseButton(endOfAxis) {
+function createCloseButton(axisStart) {
+    var MARGIN = 0.10;
+    var VERTICAL_OFFFSET = {
+        x: 0,
+        y: 0.15,
+        z: 0
+    };
+    var leftVector = Vec3.multiply(-1, Quat.getRight(avatarRot));
+    var extension = Vec3.multiply(MARGIN, leftVector);
+    var position = Vec3.sum(axisStart, extension);
 
     var buttonProperties = {
         name: 'Hifi-Close-Button',
         type: 'Model',
         modelURL: CLOSE_BUTTON_MODEL_URL,
         dimensions: CLOSE_BUTTON_DIMENSIONS,
-        position: Vec3.sum(endOfAxis, {
-            x: 0,
-            y: -0.15,
-            z: 0
-        }),
-        rotation: Quat.fromPitchYawRollDegrees(0, 45, 90),
+        position: Vec3.sum(position, VERTICAL_OFFFSET),
+        rotation: Quat.multiply(avatarRot,Quat.fromPitchYawRollDegrees(90, 0, 45)),
+        //rotation: Quat.fromPitchYawRollDegrees(0, 0, 90),
         collisionsWillMove: false,
         ignoreForCollisions: true,
         script: CLOSE_BUTTON_SCRIPT_URL,
@@ -644,7 +652,9 @@ function createCloseButton(endOfAxis) {
 
     closeButtons.push(button);
 
-    Script.update.connect(rotateCloseButtons);
+    if(ROTATE_CLOSE_BUTTON===true){
+            Script.update.connect(rotateCloseButtons);
+    }
 }
 
 function rotateCloseButtons() {
@@ -732,7 +742,7 @@ function handleLightOverlayRayCheckMessages(channel, message, sender) {
 
         var lightID = doesIntersect.entityID;
         if (currentLight === lightID) {
-            print('ALREADY HAVE A BLOCK, EXIT')
+          //  print('ALREADY HAVE A BLOCK, EXIT')
             return;
         }
 
@@ -828,7 +838,7 @@ function cleanup(fromMessage) {
         id: visiblePanel
     };
     Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data))
-    
+
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
     if (hasParent === false) {
