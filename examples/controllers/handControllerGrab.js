@@ -788,14 +788,19 @@ function MyController(hand) {
             } else {
                 intersection = Entities.findRayIntersection(pickRayBacked, true);
             }
-            
+
 
             if (intersection.intersects) {
-       
+
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
 
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
+                var defaultDisableNearGrabData = {
+                    disableNearGrab: false
+                };
+                //sometimes we want things to stay right where they are when we let go.
+                var disableNearGrabData = getEntityCustomData('handControllerKey', intersection.entityID, defaultDisableNearGrabData);
 
                 if (intersection.properties.name == "Grab Debug Entity") {
                     continue;
@@ -817,7 +822,11 @@ function MyController(hand) {
                     } else if (!intersection.properties.locked) {
                         this.grabbedEntity = intersection.entityID;
                         if (this.state == STATE_SEARCHING) {
-                            this.setState(STATE_NEAR_GRABBING);
+                            if (disableNearGrabData.disableNearGrab !== true) {
+                                this.setState(STATE_NEAR_GRABBING);
+                            } else {
+                                //disable near grab on this thing
+                            }
                         } else { // equipping
                             if (typeof grabbableData.spatialKey !== 'undefined') {
                                 // TODO
@@ -940,7 +949,18 @@ function MyController(hand) {
                 this.setState(STATE_NEAR_TRIGGER);
                 return;
             } else if (!props.locked && props.collisionsWillMove) {
-                this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP)
+                var defaultDisableNearGrabData = {
+                    disableNearGrab: false
+                };
+                //sometimes we want things to stay right where they are when we let go.
+                var disableNearGrabData = getEntityCustomData('handControllerKey', this.grabbedEntity, defaultDisableNearGrabData);
+                if (disableNearGrabData.disableNearGrab === true) {
+                    //do nothing because near grab is disabled for this object
+                } else {
+                    this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP)
+
+                }
+
                 return;
             }
         }
@@ -1753,15 +1773,14 @@ handleHandMessages = function(channel, message, sender) {
 
             } catch (e) {}
 
-        }
-        else if (channel === 'Hifi-Hand-RayPick-Blacklist') {
+        } else if (channel === 'Hifi-Hand-RayPick-Blacklist') {
             try {
                 var data = JSON.parse(message);
                 var action = data.action;
                 var id = data.id;
                 var index = blacklist.indexOf(id);
-         
-                if (action === 'add' && index ===-1) {
+
+                if (action === 'add' && index === -1) {
                     blacklist.push(id);
                 }
                 if (action === 'remove') {

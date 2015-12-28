@@ -374,7 +374,8 @@ entitySlider.prototype = {
                 },
                 handControllerKey: {
                     disableReleaseVelocity: true,
-                    disableMoveWithHead: true
+                    disableMoveWithHead: true,
+                    disableNearGrab:true
                 }
             }),
         };
