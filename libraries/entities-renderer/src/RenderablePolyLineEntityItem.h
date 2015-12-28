@@ -29,6 +29,8 @@ public:
     RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
     
     virtual void render(RenderArgs* args);
+    virtual void update(const quint64& now) override;
+    virtual bool needsToCallUpdate() const { return true; };
     
     SIMPLE_RENDERABLE();
     
@@ -42,6 +44,7 @@ protected:
     void updateGeometry();
     void updateVertices();
     gpu::BufferPointer _verticesBuffer;
+    gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     QVector<glm::vec3> _vertices;
 

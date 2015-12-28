@@ -1,0 +1,52 @@
+<!
+//  Color.slh
+//  libraries/gpu/src
+//
+//  Created by Sam Gateau on 2015/12/18.
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_COLOR_SLH@>
+<@def GPU_COLOR_SLH@>
+<!
+float colorComponentToLinear(float cs) {
+    // sRGB to linear conversion
+    //      {  cs / 12.92,                 cs <= 0.04045
+    // cl = {
+    //      {  ((cs + 0.055)/1.055)^2.4,   cs >  0.04045
+    // constants:
+    // T = 0.04045
+    // A = 1 / 1.055 = 0.94786729857
+    // B = 0.055 * A = 0.05213270142
+    // C = 1 / 12.92 = 0.0773993808
+    // G = 2.4
+    const float T = 0.04045;
+    const float A = 0.947867;
+    const float B = 0.052132;
+    const float C = 0.077399;
+    const float G = 2.4;
+
+    if (cs > T) {
+        return pow((cs * A + B), G);
+    } else {
+        return cs * C;
+    }
+}
+
+vec3 colorToLinear(vec3 srgb) {
+    return vec3(colorComponentToLinear(srgb.x), colorComponentToLinear(srgb.y), colorComponentToLinear(srgb.z));
+}
+!>
+
+vec3 colorToLinearRGB(vec3 srgb) {
+    const float GAMMA_22 = 2.2;
+    return pow(srgb, vec3(GAMMA_22));
+}
+
+vec4 colorToLinearRGBA(vec4 srgba) {
+    return vec4(colorToLinearRGB(srgba.xyz), srgba.w);
+}
+
+<@endif@>

@@ -63,6 +63,9 @@ void unloadSixense() {
 // sixense.h wrapper for OSX dynamic linking
 int sixenseInit() {
     loadSixense();
+    if (!SIXENSE || !SIXENSE->isLoaded()) {
+        return SIXENSE_FAILURE;
+    }
     return FORWARD();
 }
 int sixenseExit() {

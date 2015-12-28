@@ -223,10 +223,10 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     particleUniforms.radius.middle = getParticleRadius();
     particleUniforms.radius.finish = getRadiusFinish();
     particleUniforms.radius.spread = getRadiusSpread();
-    particleUniforms.color.start = toGlm(getColorStart(), getAlphaStart());
-    particleUniforms.color.middle = toGlm(getXColor(), getAlpha());
-    particleUniforms.color.finish = toGlm(getColorFinish(), getAlphaFinish());
-    particleUniforms.color.spread = toGlm(getColorSpread(), getAlphaSpread());
+    particleUniforms.color.start = glm::vec4(getColorStartRGB(), getAlphaStart());
+    particleUniforms.color.middle = glm::vec4(getColorRGB(), getAlpha());
+    particleUniforms.color.finish = glm::vec4(getColorFinishRGB(), getAlphaFinish());
+    particleUniforms.color.spread = glm::vec4(getColorSpreadRGB(), getAlphaSpread());
     particleUniforms.lifespan = getLifespan();
     
     // Build particle primitives
@@ -240,8 +240,11 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     auto position = getPosition();
     auto rotation = getRotation();
     Transform transform;
-    transform.setTranslation(position);
-    transform.setRotation(rotation);
+    if (!getEmitterShouldTrail()) {
+        transform.setTranslation(position);
+        transform.setRotation(rotation);
+    }
+
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
