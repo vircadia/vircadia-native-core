@@ -16,8 +16,6 @@ var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 const ipcMain = electron.ipcMain;
 
-var tray = null;
-
 var path = require('path');
 var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
 
@@ -77,6 +75,7 @@ function startInterface(url) {
     pInterface.start();
 }
 
+var tray = null;
 var homeServer = null;
 
 const GO_HOME_INDEX = 0;
