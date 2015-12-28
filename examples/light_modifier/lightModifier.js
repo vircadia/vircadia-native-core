@@ -17,7 +17,7 @@ var VERTICAL_SLIDERS = false;
 var SHOW_OVERLAYS = true;
 var SHOW_LIGHT_VOLUME = true;
 var USE_PARENTED_PANEL = true;
-var VISIBLE_PANEL = false;
+var VISIBLE_PANEL = true;
 var USE_LABELS = true;
 var LEFT_LABELS = false;
 var RIGHT_LABELS = true;
@@ -586,6 +586,8 @@ function createVisiblePanel() {
     }
 
     var panel = Entities.addEntity(panelProperties);
+    var data = {action:'add', id:panel};
+    Messages.sendMessage ('Hifi-Hand-RayPick-Blacklist',JSON.stringify(data))
     return panel
 }
 
@@ -821,7 +823,12 @@ function cleanup(fromMessage) {
 
     Entities.deleteEntity(panel);
     Entities.deleteEntity(visiblePanel);
-
+    var data = {
+        action: 'remove',
+        id: visiblePanel
+    };
+    Messages.sendMessage('Hifi-Hand-RayPick-Blacklist', JSON.stringify(data))
+    
     selectionManager.clearSelections();
     Script.update.disconnect(rotateCloseButtons);
     if (hasParent === false) {
