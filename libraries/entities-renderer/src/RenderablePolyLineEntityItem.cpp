@@ -141,6 +141,11 @@ void RenderablePolyLineEntityItem::updateVertices() {
         _vertices << v1 << v2;
     }
 
+    // Guard against an empty polyline
+    if (finalIndex < 0) {
+        return;
+    }
+
     // For last point we can assume binormals are the same since it represents the last two vertices of quad
     point = _points.at(finalIndex);
     v1 = point + binormal;
