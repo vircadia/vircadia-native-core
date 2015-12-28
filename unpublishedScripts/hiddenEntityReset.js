@@ -169,7 +169,7 @@
         }
 
         function createRaveStick(position) {
-            var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/raveStick.fbx";
+            var modelURL = "http://hifi-content.s3.amazonaws.com/eric/models/raveStick.fbx";
             var stick = Entities.addEntity({
                 type: "Model",
                 name: "raveStick",
