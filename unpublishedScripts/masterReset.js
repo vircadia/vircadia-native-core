@@ -233,9 +233,9 @@ MasterReset = function() {
                 z: 0
             },
             accelerationSpread: {
-                x: .00,
-                y: .00,
-                z: .00
+                x: 0.00,
+                y: 0.00,
+                z: 0.00
             },
             radiusStart: 0.01,
             radiusFinish: 0.005,
