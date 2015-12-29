@@ -57,12 +57,10 @@ public:
     EntityEditPacketSender* getPacketSender() { return _entityPacketSender; }
 
 private:
-    // incoming changes to physics simulation
     SetOfEntities _entitiesToRemoveFromPhysics;
     SetOfEntities _entitiesToAddToPhysics; // entities to be be added to PhysicsEngine (and a their EntityMotionState created)
-    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
 
-    // outgoing changes from physics simulation
+    SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
 
     SetOfMotionStates _physicalObjects; // MotionStates of entities in PhysicsEngine
