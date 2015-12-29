@@ -71,6 +71,7 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 }
 
 ObjectMotionState::~ObjectMotionState() {
+    // adebug TODO: move shape release out of PhysicsEngine and into into the ObjectMotionState dtor
     assert(!_body);
     assert(!_shape);
 }
