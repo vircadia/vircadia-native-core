@@ -40,13 +40,18 @@ RaveStick = function(spawnPosition) {
         userData: JSON.stringify({
             grabbableKey: {
                 spatialKey: {
-                    relativePosition: {
-                        x: 0,
-                        y: 0,
-                        z: -0.1
+                        rightRelativePosition: {
+                            x: 0.02,
+                            y: 0,
+                            z: 0
+                        },
+                        leftRelativePosition: {
+                            x: -0.02,
+                            y: 0,
+                            z: 0
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                     },
-                    relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
-                },
                 invertSolidWhileHeld: true
             }
         })

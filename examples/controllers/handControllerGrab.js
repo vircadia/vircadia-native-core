@@ -116,6 +116,11 @@ var DEFAULT_GRABBABLE_DATA = {
     invertSolidWhileHeld: false
 };
 
+
+// sometimes we want to exclude objects from being picked
+var USE_BLACKLIST = true;
+var blacklist = [];
+
 //we've created various ways of visualizing looking for and moving distant objects
 var USE_ENTITY_LINES_FOR_SEARCHING = false;
 var USE_OVERLAY_LINES_FOR_SEARCHING = false;
@@ -226,6 +231,9 @@ function getSpatialOffsetPosition(hand, spatialKey) {
         position = spatialKey.relativePosition;
     }
 
+    // add the relative hand center offset
+    var handSizeRatio = calculateHandSizeRatio();
+    position = Vec3.multiply(position, handSizeRatio);
     return position;
 }
 
@@ -771,8 +779,14 @@ function MyController(hand) {
                 })
             }
 
-            var intersection = Entities.findRayIntersection(pickRayBacked, true);
+            var intersection;
 
+            if (USE_BLACKLIST === true && blacklist.length !== 0) {
+                intersection = Entities.findRayIntersection(pickRay, true, [], blacklist);
+            } else {
+                intersection = Entities.findRayIntersection(pickRayBacked, true);
+            }
+            
             if (intersection.intersects) {
                 // the ray is intersecting something we can move.
                 var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
@@ -1159,14 +1173,16 @@ function MyController(hand) {
         if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
             // if an object is "equipped" and has a spatialKey, use it.
             this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-            if (grabbableData.spatialKey.relativePosition) {
-            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            if (grabbableData.spatialKey.relativePosition || grabbableData.spatialKey.rightRelativePosition 
+                || grabbableData.spatialKey.leftRelativePosition) {
+                this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
             } else {
                 this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
             }
-            if (grabbableData.spatialKey.relativeRotation) {
-            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
-        } else {
+            if (grabbableData.spatialKey.relativeRotation || grabbableData.spatialKey.rightRelativeRotation
+                || grabbableData.spatialKey.leftRelativeRotation) {
+                this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+            } else {
                 this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
             }
         } else {
@@ -1626,6 +1642,7 @@ function update() {
 
 Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
+Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
 
 handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
@@ -1648,6 +1665,24 @@ handleHandMessages = function(channel, message, sender) {
                  selectedController.grabbedEntity = data.entityID;
                  
             } catch (e) { }
+        }
+        else if (channel === 'Hifi-Hand-RayPick-Blacklist' && sender === MyAvatar.sessionUUID) {
+            try {
+                var data = JSON.parse(message);
+                var action = data.action;
+                var id = data.id;
+                var index = blacklist.indexOf(id);
+         
+                if (action === 'add' && index ===-1) {
+                    blacklist.push(id);
+                }
+                if (action === 'remove') {
+                    if (index > -1) {
+                        blacklist.splice(index, 1);
+                    }
+                }
+
+            } catch (e) {}
         }
     }
 }
