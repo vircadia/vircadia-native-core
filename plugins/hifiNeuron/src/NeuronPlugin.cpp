@@ -24,7 +24,10 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 #define __OS_XUN__ 1
 #define BOOL int
+
+#ifdef HAVE_NEURON
 #include <NeuronDataReader.h>
+#endif
 
 const QString NeuronPlugin::NAME = "Neuron";
 const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
@@ -312,6 +315,8 @@ static quat eulerToQuat(vec3 euler) {
             glm::angleAxis(e.z, Vectors::UNIT_Z));
 }
 
+#ifdef HAVE_NEURON
+
 //
 // neuronDataReader SDK callback functions
 //
@@ -430,17 +435,24 @@ static void SocketStatusChangedCallback(void* context, SOCKET_REF sender, Socket
     qCDebug(inputplugins) << "NeuronPlugin: socket status = " << message;
 }
 
+#endif  // #ifdef HAVE_NEURON
+
 //
 // NeuronPlugin
 //
 
 bool NeuronPlugin::isSupported() const {
+#ifdef HAVE_NEURON
     // Because it's a client/server network architecture, we can't tell
     // if the neuron is actually connected until we connect to the server.
     return true;
+#else
+    return false;
+#endif
 }
 
 void NeuronPlugin::activate() {
+#ifdef HAVE_NEURON
     InputPlugin::activate();
 
     // register with userInputMapper
@@ -466,9 +478,11 @@ void NeuronPlugin::activate() {
 
         BRRegisterAutoSyncParmeter(_socketRef, Cmd_CombinationMode);
     }
+#endif
 }
 
 void NeuronPlugin::deactivate() {
+#ifdef HAVE_NEURON
     // unregister from userInputMapper
     if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -481,6 +495,7 @@ void NeuronPlugin::deactivate() {
     }
 
     InputPlugin::deactivate();
+#endif
 }
 
 void NeuronPlugin::pluginUpdate(float deltaTime, bool jointsCaptured) {
