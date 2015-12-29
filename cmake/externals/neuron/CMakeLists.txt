@@ -41,8 +41,15 @@ if(WIN32)
     set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${${EXTERNAL_NAME_UPPER}_LIB_PATH}/NeuronDataReader.lib" CACHE TYPE INTERNAL)
 
     add_paths_to_fixup_libs("${${EXTERNAL_NAME_UPPER}_LIB_PATH}")
+
 elseif(APPLE)
-    # TODO
+
+    set(${EXTERNAL_NAME_UPPER}_LIB_PATH "${SOURCE_DIR}/NeuronDataReader_Mac/dylib")
+    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE "${${EXTERNAL_NAME_UPPER}_LIB_PATH}/NeuronDataReader.dylib" CACHE TYPE INTERNAL)
+    set(${EXTERNAL_NAME_UPPER}_LIBRARIES "${${EXTERNAL_NAME_UPPER}_LIB_PATH}/NeuronDataReader.dylib" CACHE TYPE INTERNAL)
+
+    add_paths_to_fixup_libs("${${EXTERNAL_NAME_UPPER}_LIB_PATH}")
+
 else()
     # UNSUPPORTED
 endif()

@@ -523,7 +523,7 @@ QString NeuronPlugin::InputDevice::getDefaultMappingConfig() const {
 }
 
 void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
-    for (int i = 0; i < joints.size(); i++) {
+    for (size_t i = 0; i < joints.size(); i++) {
         glm::vec3 linearVel, angularVel;
         glm::vec3 pos = joints[i].pos;
         glm::quat rot = eulerToQuat(joints[i].euler);
