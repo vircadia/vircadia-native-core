@@ -76,7 +76,7 @@ void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
     }
 }
 
-// virtual 
+// virtual
 void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (!_avatar) {
         return;
@@ -154,12 +154,12 @@ QUuid AvatarMotionState::getSimulatorID() const {
     return _avatar->getSessionUUID();
 }
 
-// virtual 
+// virtual
 int16_t AvatarMotionState::computeCollisionGroup() {
     return COLLISION_GROUP_OTHER_AVATAR;
 }
 
-// virtual 
+// virtual
 void AvatarMotionState::clearObjectBackPointer() {
     ObjectMotionState::clearObjectBackPointer();
     _avatar = nullptr;
