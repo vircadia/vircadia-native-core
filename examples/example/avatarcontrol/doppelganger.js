@@ -9,8 +9,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  To-Do:  mirror joints, rotate avatar fully, automatically get avatar fbx, make sure dimensions for avatar are right when u bring it in
 
-var TEST_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/avatars/Jack_Skellington/Jack_Skellington.fbx';
+var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
 
 var doppelgangers = [];
 
