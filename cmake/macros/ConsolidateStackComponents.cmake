@@ -7,21 +7,19 @@ macro(CONSOLIDATE_STACK_COMPONENTS)
         if (TARGET_NAME STREQUAL "interface")
           set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/icon/${INTERFACE_ICON}")
           set (ICON_DESTINATION_NAME "interface.ico")
-          set (DEPLOYMENT_PATH "front-end-deployment")
         else ()
           set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/assets/${STACK_MANAGER_ICON}")
           set (ICON_DESTINATION_NAME "stack-manager.ico")
-          set (DEPLOYMENT_PATH "back-end-deployment")
         endif ()
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND "${CMAKE_COMMAND}" -E copy ${ICON_FILE_PATH} ${CMAKE_BINARY_DIR}/${DEPLOYMENT_PATH}/${ICON_DESTINATION_NAME}
-          COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/${DEPLOYMENT_PATH}
+          COMMAND "${CMAKE_COMMAND}" -E copy ${ICON_FILE_PATH} ${CMAKE_BINARY_DIR}/package-bundle/${ICON_DESTINATION_NAME}
+          COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/package-bundle
         )
       else ()
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/back-end-deployment
+          COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/package-bundle
         )
       endif ()
     endif ()
