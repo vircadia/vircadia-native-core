@@ -16,8 +16,12 @@ var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 const ipcMain = electron.ipcMain;
 
+const osType = os.type();
+
 var path = require('path');
-var TRAY_ICON = path.join(__dirname, '../resources/console-tray.png');
+
+const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
+const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', console.log.bind(console));
@@ -52,12 +56,11 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 // TODO: show an error for the binaries that couldn't be found
 
 function openFileBrowser(path) {
-    var type = os.type();
-    if (type == "Windows_NT") {
+    if (osType == "Windows_NT") {
         childProcess.exec('start ' + path);
-    } else if (type == "Darwin") {
+    } else if (osType == "Darwin") {
         childProcess.exec('open ' + path);
-    } else if (type == "Linux") {
+    } else if (osType == "Linux") {
         childProcess.exec('xdg-open ' + path);
     }
 }
@@ -161,7 +164,6 @@ function updateMenuArray(menuArray, serverState) {
 function updateTrayMenu(serverState) {
     if (tray) {
         var menuArray = buildMenuArray(serverState);
-        console.log(menuArray);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
     }
 }
