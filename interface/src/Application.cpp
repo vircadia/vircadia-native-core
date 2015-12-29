@@ -33,6 +33,9 @@
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
 
+#include <QtNetwork/QLocalSocket>
+#include <QtNetwork/QLocalServer>
+
 #include <QtWidgets/QActionGroup>
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QFileDialog>
@@ -5150,4 +5153,33 @@ void Application::setActiveDisplayPlugin(const QString& pluginName) {
         }
     }
     updateDisplayMode();
+}
+
+void Application::handleLocalServerConnection() {
+    auto server = qobject_cast<QLocalServer*>(sender());
+
+    qDebug() << "Got connection on local server from additional instance - waiting for parameters";
+
+    auto socket = server->nextPendingConnection();
+
+    connect(socket, &QLocalSocket::readyRead, this, &Application::readArgumentsFromLocalSocket);
+
+    qApp->getWindow()->raise();
+    qApp->getWindow()->activateWindow();
+}
+
+void Application::readArgumentsFromLocalSocket() {
+    auto socket = qobject_cast<QLocalSocket*>(sender());
+
+    qDebug() << "There are" << socket->bytesAvailable() << "bytes available";
+
+    auto message = socket->readAll();
+    socket->deleteLater();
+
+    qDebug() << "Read from connection: " << message;
+
+    // If we received a message, try to open it as a URL
+    if (message.length() > 0) {
+        qApp->openUrl(QString::fromUtf8(message));
+    }
 }

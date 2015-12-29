@@ -263,6 +263,9 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
 
+    void handleLocalServerConnection();
+    void readArgumentsFromLocalSocket();
+
     ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
         bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
     void stopAllScripts(bool restart = false);
