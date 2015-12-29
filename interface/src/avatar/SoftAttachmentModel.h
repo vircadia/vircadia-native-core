@@ -14,6 +14,14 @@
 
 #include <Model.h>
 
+// A model that allows the creator to specify a secondary rig instance.
+// When the cluster matrices are created for rendering, the
+// cluster matrices will use the secondary rig for the joint poses
+// instead of the primary rig.
+//
+// This is used by Avatar instances to wear clothing that follows the same
+// animated pose as the SkeletonModel.
+
 class SoftAttachmentModel : public Model {
     Q_OBJECT
 
