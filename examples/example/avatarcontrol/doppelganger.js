@@ -1,3 +1,15 @@
+//
+//  doppelganger.js
+//
+//  Created by James B. Pollack @imgntn on 12/28/2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  This script shows how to hook up a model entity to your avatar to act as a doppelganger.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var TEST_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/james/avatars/Jack_Skellington/Jack_Skellington.fbx';
 
 var doppelgangers = [];
@@ -7,7 +19,7 @@ function Doppelganger(avatar) {
         name: 'Hifi-Doppelganger',
         type: 'Model',
         modelURL: TEST_MODEL_URL,
-       // dimensions: getAvatarDimensions(avatar),
+        // dimensions: getAvatarDimensions(avatar),
         position: putDoppelgangerAcrossFromAvatar(this, avatar),
         rotation: rotateDoppelgangerTowardAvatar(this, avatar),
     };
@@ -18,19 +30,39 @@ function Doppelganger(avatar) {
 }
 
 function getJointData(avatar) {
-    var allJointData;
+    var allJointData = [];
     var jointNames = MyAvatar.jointNames;
-
-    jointNames.forEach(function(joint) {
-        print('getting info for joint:' + joint);
-        var jointData = MyAvatar.getJointPosition(joint);
-        print('joint data:'+JSON.stringify(jointData));
+    jointNames.forEach(function(joint, index) {
+        var translation = MyAvatar.getJointTranslation(index);
+        var rotation = MyAvatar.getJointRotation(index)
+        allJointData.push({
+            joint: joint,
+            index: index,
+            translation: translation,
+            rotation: rotation
+        })
     });
 
     return allJointData;
 }
 
-function setJointData(doppelganger, jointData) {
+function setJointData(doppelganger, allJointData) {
+    var jointRotationsSet = [];
+    var jointTranslationsSet = [];
+    var jointRotations = [];
+    var jointTranslations = [];
+
+    allJointData.forEach(function(jointData, index) {
+        jointRotationsSet[index] = true;
+        jointTranslationsSet[index] = true;
+        jointRotations.push(jointData.rotation);
+        jointTranslations.push(jointData.translation);
+
+        Entities.setAbsoluteJointTranslationInObjectFrame(doppelganger.id, index, jointData.translation);
+        Entities.setAbsoluteJointRotationInObjectFrame(doppelganger.id, index, jointData.rotation);
+
+    });
+
     return true;
 }
 
@@ -57,8 +89,8 @@ function getAvatarDimensions(avatar) {
 }
 
 function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
-       var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
-       avatarRot = Vec3.multiply(-1,avatarRot);
+    var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
+    avatarRot = Vec3.multiply(-1, avatarRot);
     return avatarRot;
 }
 
@@ -73,8 +105,8 @@ function disconnectDoppelgangerUpdates() {
 function updateDoppelganger() {
     doppelgangers.forEach(function(doppelganger) {
         var joints = getJointData(MyAvatar);
-        var mirroredJoints = mirrorJointData(joints);
-        setJointData(doppelganger, mirroredJoints);
+        //var mirroredJoints = mirrorJointData(joints);
+        setJointData(doppelganger, joints);
     });
 
 }
@@ -82,9 +114,8 @@ function updateDoppelganger() {
 function makeDoppelgangerForMyAvatar() {
     var doppelganger = createDoppelganger(MyAvatar);
     doppelgangers.push(doppelganger);
-   // connectDoppelgangerUpdates();
+    connectDoppelgangerUpdates();
 }
-
 
 makeDoppelgangerForMyAvatar();
 
@@ -94,7 +125,6 @@ function cleanup() {
     doppelgangers.forEach(function(doppelganger) {
         Entities.deleteEntity(doppelganger);
     });
-
 }
 
 Script.scriptEnding.connect(cleanup);
