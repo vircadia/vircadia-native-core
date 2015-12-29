@@ -130,7 +130,8 @@ private:
 
     QList<Model*> _releasedModels;
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>());
+                                                                bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
+                                                                const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>());
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;

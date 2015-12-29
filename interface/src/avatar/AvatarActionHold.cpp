@@ -77,7 +77,7 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         // getTarget would get the palm position of the previous location of the avatar (because
         // bullet has moved the av's rigid body but the rigid body's location has not yet been
         // copied out into the Avatar class.
-        glm::quat avatarRotationInverse = glm::inverse(avatarRigidBodyRotation);
+        //glm::quat avatarRotationInverse = glm::inverse(avatarRigidBodyRotation);
 
         // the offset should be in the frame of the avatar, but something about the order
         // things are updated makes this wrong:

@@ -24,6 +24,9 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
+// the lighting texture
+uniform sampler2D lightingMap;
+
 
 struct DeferredTransform { 
     mat4 projection;

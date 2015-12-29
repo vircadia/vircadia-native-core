@@ -44,7 +44,7 @@ void PhysicalEntitySimulation::updateEntitiesInternal(const quint64& now) {
 
 void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     assert(entity);
-    if (entity->shouldBePhysical()) { 
+    if (entity->shouldBePhysical()) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (!motionState) {
             _pendingAdds.insert(entity);
@@ -117,6 +117,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     _pendingRemoves.clear();
     _pendingAdds.clear();
     _pendingChanges.clear();
+    _outgoingChanges.clear();
 }
 // end EntitySimulation overrides
 

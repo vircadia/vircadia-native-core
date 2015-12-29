@@ -199,8 +199,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
 
-    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
-
     model::MaterialKey drawMaterialKey;
     if (_drawMaterial) {
         drawMaterialKey = _drawMaterial->getKey();
@@ -217,7 +215,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
     }
 
     ModelRender::Locations* locations = nullptr;
-    ModelRender::pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+    ModelRender::pickPrograms(batch, mode, translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
         args, locations);
 
 
@@ -395,9 +393,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
     auto mode = args->_renderMode;
-    
-    auto alphaThreshold = args->_alphaThreshold; //translucent ? TRANSPARENT_ALPHA_THRESHOLD : OPAQUE_ALPHA_THRESHOLD; // FIX ME
-    
+
     const FBXGeometry& geometry = _model->_geometry->getFBXGeometry();
     const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _model->_geometry->getMeshes();
     
@@ -467,9 +463,12 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     }
     
     ModelRender::Locations* locations = nullptr;
-    ModelRender::pickPrograms(batch, mode, translucentMesh, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
+    ModelRender::pickPrograms(batch, mode, translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
                               args, locations);
     
+    if (!locations) { // the pipeline could not be found
+        return;
+    }
 
     // Bind the model transform and the skinCLusterMatrices if needed
     bindTransform(batch, locations);

@@ -23,7 +23,7 @@ Shader::Shader(Type type, const Source& source):
 {
 }
 
-Shader::Shader(Type type, Pointer& vertex, Pointer& pixel):
+Shader::Shader(Type type, const Pointer& vertex, const Pointer& pixel):
     _type(type)
 {
     _shaders.resize(2);
@@ -44,7 +44,7 @@ Shader::Pointer Shader::createPixel(const Source& source) {
     return Pointer(new Shader(PIXEL, source));
 }
 
-Shader::Pointer Shader::createProgram(Pointer& vertexShader, Pointer& pixelShader) {
+Shader::Pointer Shader::createProgram(const Pointer& vertexShader, const Pointer& pixelShader) {
     if (vertexShader && vertexShader->getType() == VERTEX &&
         pixelShader && pixelShader->getType() == PIXEL) {
         return Pointer(new Shader(PROGRAM, vertexShader, pixelShader));

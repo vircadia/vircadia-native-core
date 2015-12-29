@@ -91,7 +91,7 @@ Assignment::Assignment(ReceivedMessage& message) :
 #endif
 
 
-Assignment::Assignment(const Assignment& otherAssignment) {
+Assignment::Assignment(const Assignment& otherAssignment) : QObject() {
     _uuid = otherAssignment._uuid;
     _command = otherAssignment._command;
     _type = otherAssignment._type;

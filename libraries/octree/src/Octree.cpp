@@ -1867,7 +1867,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
 
     QByteArray jsonBuffer;
     char* rawData = new char[READ_JSON_BUFFER_SIZE];
-    while (true) {
+    while (!inputStream.atEnd()) {
         int got = inputStream.readRawData(rawData, READ_JSON_BUFFER_SIZE - 1);
         if (got < 0) {
             qCritical() << "error while reading from json stream";

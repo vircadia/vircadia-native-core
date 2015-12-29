@@ -97,9 +97,9 @@ const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
 void DrawStatus::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext,
                      const ItemIDsBounds& inItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    RenderArgs* args = renderContext->args;
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
+    RenderArgs* args = renderContext->getArgs();
     auto& scene = sceneContext->_scene;
     const int NUM_STATUS_VEC4_PER_ITEM = 2;
     const int VEC4_LENGTH = 4;
@@ -179,7 +179,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-        if ((renderContext->_drawItemStatus & showDisplayStatusFlag) > 0) {
+        if ((renderContext->getDrawStatus() & showDisplayStatusFlag) > 0) {
             for (int i = 0; i < nbItems; i++) {
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
@@ -192,7 +192,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
         batch.setPipeline(getDrawItemStatusPipeline());
 
-        if ((renderContext->_drawItemStatus & showNetworkStatusFlag) > 0) {
+        if ((renderContext->getDrawStatus() & showNetworkStatusFlag) > 0) {
             for (int i = 0; i < nbItems; i++) {
                 batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
                 batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);

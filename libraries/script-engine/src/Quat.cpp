@@ -22,6 +22,10 @@ quat Quat::normalize(const glm::quat& q) {
     return glm::normalize(q);
 }
 
+quat Quat::conjugate(const glm::quat& q) {
+    return glm::conjugate(q);
+}
+
 glm::quat Quat::rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
     return ::rotationBetween(v1, v2);
 }
