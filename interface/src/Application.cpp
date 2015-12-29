@@ -5171,8 +5171,6 @@ void Application::handleLocalServerConnection() {
 void Application::readArgumentsFromLocalSocket() {
     auto socket = qobject_cast<QLocalSocket*>(sender());
 
-    qDebug() << "There are" << socket->bytesAvailable() << "bytes available";
-
     auto message = socket->readAll();
     socket->deleteLater();
 
