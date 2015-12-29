@@ -157,8 +157,6 @@ NeuronAvatar.prototype.deactivate = function () {
 NeuronAvatar.prototype.update = function (deltaTime) {
 
     var hmdActive = HMD.active;
-    var hmdXform = new Xform(HMD.orientation, HMD.position);
-
     var keys = Object.keys(JOINT_PARENT_MAP);
     var i, l = keys.length;
     var absDefaultRot = {};
@@ -192,18 +190,22 @@ NeuronAvatar.prototype.update = function (deltaTime) {
                 MyAvatar.setJointTranslation(j, localTranslation);
                 localTranslations[jointName] = localTranslation;
             } else {
-                localTranslations[jointName] = MyAvatar.getJointTranslation(j);
+                localTranslations[jointName] = MyAvatar.getDefaultJointTranslation(j);
             }
         }
     }
 
-    // TODO: Currrently does not work.
     // it attempts to adjust the hips so that the avatar's head is at the same location & oreintation as the HMD.
     // however it's fighting with the internal c++ code that also attempts to adjust the hips.
     if (hmdActive) {
-
+        var UNIT_SCALE = 1 / 100;
+        var hmdXform = new Xform(HMD.orientation, Vec3.multiply(1 / UNIT_SCALE, HMD.position)); // convert to cm
         var y180Xform = new Xform({x: 0, y: 1, z: 0, w: 0}, {x: 0, y: 0, z: 0});
-        var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
+        var avatarXform = new Xform(MyAvatar.orientation, Vec3.multiply(1 / UNIT_SCALE, MyAvatar.position)); // convert to cm
+        var hipsJointIndex = MyAvatar.getJointIndex("Hips");
+        var modelOffsetInvXform = new Xform({x: 0, y: 0, z: 0, w: 1}, MyAvatar.getDefaultJointTranslation(hipsJointIndex));
+        var defaultHipsXform = new Xform(MyAvatar.getDefaultJointRotation(hipsJointIndex), MyAvatar.getDefaultJointTranslation(hipsJointIndex));
+
         var headXform = new Xform(localRotations["Head"], localTranslations["Head"]);
 
         // transform eyes down the heirarchy chain into avatar space.
@@ -213,9 +215,16 @@ NeuronAvatar.prototype.update = function (deltaTime) {
             var xform = new Xform(localRotations[hierarchy[i]], localTranslations[hierarchy[i]]);
             headXform = Xform.mul(xform, headXform);
         }
+        headXform = Xform.mul(defaultHipsXform, headXform);
+
+        var preXform = Xform.mul(headXform, y180Xform);
+        var postXform = Xform.mul(avatarXform, Xform.mul(y180Xform, modelOffsetInvXform.inv()));
 
         // solve for the offset that will put the eyes at the hmd position & orientation.
-        var hipsXform = Xform.mul(y180Xform, Xform.mul(avatarXform.inv(), Xform.mul(hmdXform, Xform.mul(y180Xform, headXform.inv()))));
+        var hipsOffsetXform = Xform.mul(postXform.inv(), Xform.mul(hmdXform, preXform.inv()));
+
+        // now combine it with the default hips transform
+        var hipsXform = Xform.mul(hipsOffsetXform, defaultHipsXform);
 
         MyAvatar.setJointRotation("Hips", hipsXform.rot);
         MyAvatar.setJointTranslation("Hips", hipsXform.pos);
