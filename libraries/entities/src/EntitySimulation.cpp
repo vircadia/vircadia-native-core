@@ -53,16 +53,15 @@ void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     _entitiesToSort.remove(entity);
     _simpleKinematicEntities.remove(entity);
     _allEntities.remove(entity);
-    entity->_simulated = false;
+    entity->setSimulated(false);
 }
 
 void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
-    if (entity->_simulated) {
-        entity->clearActions(this);
-        _entitiesToDelete.insert(entity);
-        removeEntityInternal(entity);
-    }
+    assert(entity->isSimulated());
+    entity->clearActions(this);
+    removeEntityInternal(entity);
+    _entitiesToDelete.insert(entity);
 }
 
 void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
@@ -166,7 +165,7 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
     addEntityInternal(entity);
 
     _allEntities.insert(entity);
-    entity->_simulated = true;
+    entity->setSimulated(true);
 
     // DirtyFlags are used to signal changes to entities that have already been added,
     // so we can clear them for this entity which has just been added.
@@ -176,7 +175,7 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
 void EntitySimulation::changeEntity(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
     assert(entity);
-    if (!entity->_simulated) {
+    if (!entity->isSimulated()) {
         // This entity was either never added to the simulation or has been removed
         // (probably for pending delete), so we don't want to keep a pointer to it
         // on any internal lists.
@@ -232,7 +231,7 @@ void EntitySimulation::clearEntities() {
     clearEntitiesInternal();
 
     for (auto entityItr : _allEntities) {
-        entityItr->_simulated = false;
+        entityItr->setSimulated(false);
     }
     _allEntities.clear();
 }

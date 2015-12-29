@@ -101,6 +101,9 @@ protected:
     QList<EntityActionPointer> _actionsToAdd;
     QSet<QUuid> _actionsToRemove;
 
+protected:
+    SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
+
 private:
     void moveSimpleKinematics();
 
@@ -115,7 +118,6 @@ private:
 
 
     SetOfEntities _entitiesToUpdate; // entities that need to call EntityItem::update()
-    SetOfEntities _entitiesToDelete; // entities simulation decided needed to be deleted (EntityTree will actually delete)
 
 };
 

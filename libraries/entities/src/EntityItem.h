@@ -337,6 +337,8 @@ public:
 
     bool isMoving() const;
 
+    bool isSimulated() const { return _simulated; }
+
     void* getPhysicsInfo() const { return _physicsInfo; }
 
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
@@ -390,6 +392,8 @@ public:
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
 protected:
+
+    void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);
