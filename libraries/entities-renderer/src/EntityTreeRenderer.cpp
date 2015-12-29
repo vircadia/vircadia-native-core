@@ -256,33 +256,38 @@ void EntityTreeRenderer::forceRecheckEntities() {
 
 void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
     QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
+    auto sceneStage = scene->getStage();
+    auto sceneKeyLight = sceneStage->getKeyLight();
+    auto sceneLocation = sceneStage->getLocation();
+    auto sceneTime = sceneStage->getTime();
+
     if (zone) {
         if (!_hasPreviousZone) {
-            _previousKeyLightColor = scene->getKeyLightColor();
-            _previousKeyLightIntensity = scene->getKeyLightIntensity();
-            _previousKeyLightAmbientIntensity = scene->getKeyLightAmbientIntensity();
-            _previousKeyLightDirection = scene->getKeyLightDirection();
-            _previousStageSunModelEnabled = scene->isStageSunModelEnabled();
-            _previousStageLongitude = scene->getStageLocationLongitude();
-            _previousStageLatitude = scene->getStageLocationLatitude();
-            _previousStageAltitude = scene->getStageLocationAltitude();
-            _previousStageHour = scene->getStageDayTime();
-            _previousStageDay = scene->getStageYearTime();
+            _previousKeyLightColor = sceneKeyLight->getColor();
+            _previousKeyLightIntensity = sceneKeyLight->getIntensity();
+            _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
+            _previousKeyLightDirection = sceneKeyLight->getDirection();
+            _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
+            _previousStageLongitude = sceneLocation->getLongitude();
+            _previousStageLatitude = sceneLocation->getLatitude();
+            _previousStageAltitude = sceneLocation->getAltitude();
+            _previousStageHour = sceneTime->getHour();
+            _previousStageDay = sceneTime->getDay();
             _hasPreviousZone = true;
         }
-        scene->setKeyLightColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
-        scene->setKeyLightIntensity(zone->getKeyLightProperties().getIntensity());
-        scene->setKeyLightAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
-        scene->setKeyLightDirection(zone->getKeyLightProperties().getDirection());
-        scene->setStageSunModelEnable(zone->getStageProperties().getSunModelEnabled());
-        scene->setStageLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
+        sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
+        sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
+        sceneKeyLight->setAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
+        sceneKeyLight->setDirection(zone->getKeyLightProperties().getDirection());
+        sceneStage->setSunModelEnable(zone->getStageProperties().getSunModelEnabled());
+        sceneStage->setLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
                                 zone->getStageProperties().getAltitude());
-        scene->setStageDayTime(zone->getStageProperties().calculateHour());
-        scene->setStageYearTime(zone->getStageProperties().calculateDay());
+        sceneTime->setHour(zone->getStageProperties().calculateHour());
+        sceneTime->setDay(zone->getStageProperties().calculateDay());
         
         if (zone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
             EnvironmentData data = zone->getEnvironmentData();
-            glm::vec3 keyLightDirection = scene->getKeyLightDirection();
+            glm::vec3 keyLightDirection = sceneKeyLight->getDirection();
             glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
             
             // NOTE: is this right? It seems like the "sun" should be based on the center of the
@@ -293,7 +298,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             data.setSunLocation(keyLightLocation);
             
             const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
-            float sunBrightness = scene->getKeyLightIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
+            float sunBrightness = sceneKeyLight->getIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
             data.setSunBrightness(sunBrightness);
             
             _viewState->overrideEnvironmentData(data);
@@ -339,15 +344,15 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     } else {
         _pendingSkyboxTextureDownload = false;
         if (_hasPreviousZone) {
-            scene->setKeyLightColor(_previousKeyLightColor);
-            scene->setKeyLightIntensity(_previousKeyLightIntensity);
-            scene->setKeyLightAmbientIntensity(_previousKeyLightAmbientIntensity);
-            scene->setKeyLightDirection(_previousKeyLightDirection);
-            scene->setStageSunModelEnable(_previousStageSunModelEnabled);
-            scene->setStageLocation(_previousStageLongitude, _previousStageLatitude,
+            sceneKeyLight->setColor(_previousKeyLightColor);
+            sceneKeyLight->setIntensity(_previousKeyLightIntensity);
+            sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
+            sceneKeyLight->setDirection(_previousKeyLightDirection);
+            sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
+            sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
                                     _previousStageAltitude);
-            scene->setStageDayTime(_previousStageHour);
-            scene->setStageYearTime(_previousStageDay);
+            sceneTime->setHour(_previousStageHour);
+            sceneTime->setDay(_previousStageDay);
             _hasPreviousZone = false;
         }
         _viewState->endOverrideEnvironmentData();
@@ -482,7 +487,8 @@ void EntityTreeRenderer::deleteReleasedModels() {
 }
 
 RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude,
+                                                                                    const QVector<EntityItemID>& entityIdsToDiscard) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
@@ -490,7 +496,7 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, 
-                                                            result.face, result.surfaceNormal, entityIdsToInclude,
+                                                            result.face, result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard,
                                                             (void**)&intersectedEntity, lockType, &result.accurate,
                                                             precisionPicking);
         if (result.intersects && intersectedEntity) {

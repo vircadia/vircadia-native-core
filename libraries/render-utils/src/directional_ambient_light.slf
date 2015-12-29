@@ -27,7 +27,6 @@ void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-    // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,

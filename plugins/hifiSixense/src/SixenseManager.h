@@ -49,12 +49,12 @@ private:
     static const int CALIBRATION_STATE_IDLE = 0;
     static const int CALIBRATION_STATE_IN_PROGRESS = 1;
     static const int CALIBRATION_STATE_COMPLETE = 2;
-    static const glm::vec3 DEFAULT_AVATAR_POSITION; 
+    static const glm::vec3 DEFAULT_AVATAR_POSITION;
     static const float CONTROLLER_THRESHOLD;
-    
+
     template<typename T>
     using SampleAverage = MovingAverage<T, MAX_NUM_AVERAGING_SAMPLES>;
-    using Samples = std::pair<SampleAverage<glm::vec3>, SampleAverage<glm::vec4>>;
+    using Samples = std::pair<SampleAverage<glm::vec3>, SampleAverage<glm::vec3>>;
     using MovingAverageMap = std::map<int, Samples>;
 
     class InputDevice : public controller::InputDevice {
@@ -81,7 +81,7 @@ private:
         // these are calibration results
         glm::vec3 _avatarPosition { DEFAULT_AVATAR_POSITION }; // in hydra-frame
         glm::quat _avatarRotation; // in hydra-frame
-    
+
         float _lastDistance;
         bool _requestReset { false };
         bool _debugDrawRaw { false };
@@ -98,6 +98,8 @@ private:
 
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
+    
+    static bool _sixenseLoaded;
 };
 
 #endif // hifi_SixenseManager_h

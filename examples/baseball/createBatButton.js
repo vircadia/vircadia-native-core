@@ -46,7 +46,7 @@
 
         var BAT_MODEL = "atp:c47deaae09cca927f6bc9cca0e8bbe77fc618f8c3f2b49899406a63a59f885cb.fbx";
         var BAT_COLLISION_HULL = "atp:9eafceb7510c41d50661130090de7e0632aa4da236ebda84a0059a4be2130e0c.obj";
-        var SCRIPT_URL = "http://rawgit.com/birarda/hifi/baseball/examples/baseball/bat.js"
+        var SCRIPT_RELATIVE_PATH = "bat.js"
 
         var batUserData = {
             grabbableKey: {
@@ -69,7 +69,7 @@
             velocity: { x: 0, y: 0.05, z: 0}, // workaround for gravity not taking effect on add
             gravity: { x: 0, y: -9.81, z: 0},
             rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, -90.0),
-            script: SCRIPT_URL,
+            script: Script.resolvePath(SCRIPT_RELATIVE_PATH),
             userData: JSON.stringify(batUserData)
         });
     };

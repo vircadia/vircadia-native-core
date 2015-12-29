@@ -58,6 +58,8 @@ public:
 
     virtual bool shouldSuppressLocationEdits() { return false; }
 
+    virtual void prepareForPhysicsSimulation() { }
+
     // these look in the arguments map for a named argument.  if it's not found or isn't well formed,
     // ok will be set to false (note that it's never set to true -- set it to true before calling these).
     // if required is true, failure to extract an argument will cause a warning to be printed.

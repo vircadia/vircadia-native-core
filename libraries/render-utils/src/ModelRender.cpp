@@ -228,10 +228,8 @@ void ModelRender::RenderPipelineLib::addRenderPipeline(ModelRender::RenderKey ke
 
 
 void ModelRender::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, ModelRender::Locations& locations) {
-    locations.alphaThreshold = program->getUniforms().findLocation("alphaThreshold");
     locations.texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations.emissiveParams = program->getUniforms().findLocation("emissiveParams");
-    locations.glowIntensity = program->getUniforms().findLocation("glowIntensity");
     locations.normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
     locations.diffuseTextureUnit = program->getTextures().findLocation("diffuseMap");
     locations.normalTextureUnit = program->getTextures().findLocation("normalMap");
@@ -244,14 +242,14 @@ void ModelRender::RenderPipelineLib::initLocations(gpu::ShaderPointer& program, 
 }
 
 
-void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
+void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent,
     bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
     Locations*& locations) {
 
     PerformanceTimer perfTimer("Model::pickPrograms");
     getRenderPipelineLib();
 
-    RenderKey key(mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
+    RenderKey key(mode, translucent, hasLightmap, hasTangents, hasSpecular, isSkinned, isWireframe);
     auto pipeline = _renderPipelineLib.find(key.getRaw());
     if (pipeline == _renderPipelineLib.end()) {
         qDebug() << "No good, couldn't find a pipeline from the key ?" << key.getRaw();
@@ -265,15 +263,6 @@ void ModelRender::pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, b
 
     // Setup the One pipeline
     batch.setPipeline((*pipeline).second._pipeline);
-
-    if ((locations->alphaThreshold > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        batch._glUniform1f(locations->alphaThreshold, alphaThreshold);
-    }
-
-    if ((locations->glowIntensity > -1) && (mode != RenderArgs::SHADOW_RENDER_MODE)) {
-        const float DEFAULT_GLOW_INTENSITY = 1.0f; // FIXME - glow is removed
-        batch._glUniform1f(locations->glowIntensity, DEFAULT_GLOW_INTENSITY);
-    }
 
     if ((locations->normalFittingMapUnit > -1)) {
         batch.setResourceTexture(locations->normalFittingMapUnit,
