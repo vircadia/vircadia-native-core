@@ -1094,9 +1094,52 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
-    offscreenUi->getRootContext()->setContextProperty("MyAvatar", getMyAvatar());
+
+    auto rootContext = offscreenUi->getRootContext();
+    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+    rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    rootContext->setContextProperty("MyAvatar", getMyAvatar());
+    rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
+    rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+
+    rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
+    rootContext->setContextProperty("Quat", new Quat());
+    rootContext->setContextProperty("Vec3", new Vec3());
+    rootContext->setContextProperty("Uuid", new ScriptUUID());
+
+    rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+
+    rootContext->setContextProperty("Camera", &_myCamera);
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    rootContext->setContextProperty("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
+#endif
+
+    rootContext->setContextProperty("Overlays", &_overlays);
+    rootContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+
+    rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
+    rootContext->setContextProperty("Stats", Stats::getInstance());
+    rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+    rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+    rootContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
+    rootContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+    rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    rootContext->setContextProperty("ScriptDiscoveryService", this->getRunningScriptsWidget());
+
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
