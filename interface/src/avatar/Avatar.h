@@ -27,6 +27,7 @@
 #include "SkeletonModel.h"
 #include "world.h"
 #include "Rig.h"
+#include <ThreadSafeValue.h>
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -225,7 +226,14 @@ protected:
 
     virtual void updateJointMappings() override;
 
+    virtual void updatePalms();
+
     render::ItemID _renderItemID;
+
+    ThreadSafeValue<glm::vec3> _leftPalmPosition { glm::vec3() };
+    ThreadSafeValue<glm::quat> _leftPalmRotation { glm::quat() };
+    ThreadSafeValue<glm::vec3> _rightPalmPosition { glm::vec3() };
+    ThreadSafeValue<glm::quat> _rightPalmRotation { glm::quat() };
 
 private:
     bool _initialized;

@@ -257,6 +257,8 @@ void Avatar::simulate(float deltaTime) {
     // until velocity is included in AvatarData update message.
     //_position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
+
+    updatePalms();
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -1126,58 +1128,24 @@ void Avatar::rebuildCollisionShape() {
     }
 }
 
+// thread-safe
 glm::vec3 Avatar::getLeftPalmPosition() {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getLeftPalmPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, result));
-        return result;
-    }
-    glm::vec3 leftHandPosition;
-    getSkeletonModel().getLeftHandPosition(leftHandPosition);
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
-    return leftHandPosition;
+    return _leftPalmPosition.get();
 }
 
+// thread-safe
 glm::quat Avatar::getLeftPalmRotation() {
-    if (QThread::currentThread() != thread()) {
-        glm::quat result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getLeftPalmRotation", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::quat, result));
-        return result;
-    }
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    return leftRotation;
+    return _leftPalmRotation.get();
 }
 
+// thread-safe
 glm::vec3 Avatar::getRightPalmPosition() {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getRightPalmPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, result));
-        return result;
-    }
-    glm::vec3 rightHandPosition;
-    getSkeletonModel().getRightHandPosition(rightHandPosition);
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
-    return rightHandPosition;
+    return _rightPalmPosition.get();
 }
 
+// thread-safe
 glm::quat Avatar::getRightPalmRotation() {
-    if (QThread::currentThread() != thread()) {
-        glm::quat result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getRightPalmRotation", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::quat, result));
-        return result;
-    }
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    return rightRotation;
+    return _rightPalmRotation.get();
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
@@ -1188,4 +1156,37 @@ void Avatar::setPosition(const glm::vec3& position) {
 void Avatar::setOrientation(const glm::quat& orientation) {
     AvatarData::setOrientation(orientation);
     updateAttitude();
+}
+
+void Avatar::updatePalms() {
+
+    // get palm rotations
+    glm::quat leftPalmRotation, rightPalmRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), rightPalmRotation);
+
+    // get palm positions
+    glm::vec3 leftPalmPosition, rightPalmPosition;
+    getSkeletonModel().getLeftHandPosition(leftPalmPosition);
+    getSkeletonModel().getRightHandPosition(rightPalmPosition);
+    leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
+    rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
+
+    // update thread-safe values
+    _leftPalmRotation.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+        value = leftPalmRotation;
+        return false;
+    });
+    _rightPalmRotation.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+        value = rightPalmRotation;
+        return false;
+    });
+    _leftPalmPosition.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        value = rightPalmPosition;
+        return false;
+    });
+    _rightPalmPosition.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        value = leftPalmPosition;
+        return false;
+    });
 }
