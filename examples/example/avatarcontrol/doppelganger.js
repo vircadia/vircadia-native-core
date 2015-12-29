@@ -124,7 +124,7 @@ function cleanup() {
     disconnectDoppelgangerUpdates();
 
     doppelgangers.forEach(function(doppelganger) {
-        Entities.deleteEntity(doppelganger);
+        Entities.deleteEntity(doppelganger.id);
     });
 }
 
