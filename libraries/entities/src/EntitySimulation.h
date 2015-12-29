@@ -63,25 +63,20 @@ public:
     /// \sideeffect sets relevant backpointers in entity, but maybe later when appropriate data structures are locked
     void addEntity(EntityItemPointer entity);
 
-    /// \param entity pointer to EntityItem to be removed
-    /// \brief the actual removal may happen later when appropriate data structures are locked
-    /// \sideeffect nulls relevant backpointers in entity
-    void removeEntity(EntityItemPointer entity);
-
-    /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
+    /// \param entity pointer to EntityItem that may have changed in a way that would affect its simulation
     /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
     void changeEntity(EntityItemPointer entity);
 
     void clearEntities();
 
     void moveSimpleKinematics(const quint64& now);
-protected: // these only called by the EntityTree?
-
-public:
 
     EntityTreePointer getEntityTree() { return _entityTree; }
 
     void getEntitiesToDelete(VectorOfEntities& entitiesToDelete);
+
+    /// \param entity pointer to EntityItem that needs to be put on the entitiesToDelete list and removed from others.
+    virtual void prepareEntityForDelete(EntityItemPointer entity);
 
 signals:
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

@@ -47,6 +47,24 @@ void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
     _entitiesToDelete.clear();
 }
 
+void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    _mortalEntities.remove(entity);
+    _entitiesToUpdate.remove(entity);
+    _entitiesToSort.remove(entity);
+    _simpleKinematicEntities.remove(entity);
+    _allEntities.remove(entity);
+    entity->_simulated = false;
+}
+
+void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
+    assert(entity);
+    if (entity->_simulated) {
+        entity->clearActions(this);
+        _entitiesToDelete.insert(entity);
+        removeEntityInternal(entity);
+    }
+}
+
 void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
     if (entity->isMoving() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
@@ -71,15 +89,8 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
             EntityItemPointer entity = *itemItr;
             quint64 expiry = entity->getExpiry();
             if (expiry < now) {
-                _entitiesToDelete.insert(entity);
                 itemItr = _mortalEntities.erase(itemItr);
-                _entitiesToUpdate.remove(entity);
-                _entitiesToSort.remove(entity);
-                _simpleKinematicEntities.remove(entity);
-                removeEntityInternal(entity);
-
-                _allEntities.remove(entity);
-                entity->_simulated = false;
+                prepareEntityForDelete(entity);
             } else {
                 if (expiry < _nextExpiry) {
                     // remeber the smallest _nextExpiry so we know when to start the next search
@@ -97,7 +108,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     SetOfEntities::iterator itemItr = _entitiesToUpdate.begin();
     while (itemItr != _entitiesToUpdate.end()) {
         EntityItemPointer entity = *itemItr;
-        // TODO: catch transition from needing update to not as a "change" 
+        // TODO: catch transition from needing update to not as a "change"
         // so we don't have to scan for it here.
         if (!entity->needsToCallUpdate()) {
             itemItr = _entitiesToUpdate.erase(itemItr);
@@ -123,16 +134,8 @@ void EntitySimulation::sortEntitiesThatMoved() {
         AACube newCube = entity->getQueryAACube(success);
         if (success && !domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
-            _entitiesToDelete.insert(entity);
-            _mortalEntities.remove(entity);
-            _entitiesToUpdate.remove(entity);
-            _simpleKinematicEntities.remove(entity);
-            removeEntityInternal(entity);
-
-            _allEntities.remove(entity);
-            entity->_simulated = false;
-
             itemItr = _entitiesToSort.erase(itemItr);
+            prepareEntityForDelete(entity);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
             ++itemItr;
@@ -165,23 +168,9 @@ void EntitySimulation::addEntity(EntityItemPointer entity) {
     _allEntities.insert(entity);
     entity->_simulated = true;
 
-    // DirtyFlags are used to signal changes to entities that have already been added, 
+    // DirtyFlags are used to signal changes to entities that have already been added,
     // so we can clear them for this entity which has just been added.
     entity->clearDirtyFlags();
-}
-
-void EntitySimulation::removeEntity(EntityItemPointer entity) {
-    QMutexLocker lock(&_mutex);
-    assert(entity);
-    _entitiesToUpdate.remove(entity);
-    _mortalEntities.remove(entity);
-    _entitiesToSort.remove(entity);
-    _simpleKinematicEntities.remove(entity);
-    _entitiesToDelete.remove(entity);
-    removeEntityInternal(entity);
-
-    _allEntities.remove(entity);
-    entity->_simulated = false;
 }
 
 void EntitySimulation::changeEntity(EntityItemPointer entity) {
@@ -189,13 +178,13 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
     assert(entity);
     if (!entity->_simulated) {
         // This entity was either never added to the simulation or has been removed
-        // (probably for pending delete), so we don't want to keep a pointer to it 
+        // (probably for pending delete), so we don't want to keep a pointer to it
         // on any internal lists.
         return;
     }
 
     // Although it is not the responsibility of the EntitySimulation to sort the tree for EXTERNAL changes
-    // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence 
+    // it IS responsibile for triggering deletes for entities that leave the bounds of the domain, hence
     // we must check for that case here, however we rely on the change event to have set DIRTY_POSITION flag.
     bool wasRemoved = false;
     uint32_t dirtyFlags = entity->getDirtyFlags();
@@ -205,13 +194,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
         AACube newCube = entity->getQueryAACube(success);
         if (success && !domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
-            _entitiesToDelete.insert(entity);
-            _mortalEntities.remove(entity);
-            _entitiesToUpdate.remove(entity);
-            _entitiesToSort.remove(entity);
-            _simpleKinematicEntities.remove(entity);
-            removeEntityInternal(entity);
-            entity->_simulated = false;
+            prepareEntityForDelete(entity);
             wasRemoved = true;
         }
     }

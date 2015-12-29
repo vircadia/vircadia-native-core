@@ -55,6 +55,7 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
 }
 
 void PhysicalEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    EntitySimulation::removeEntityInternal(entity);
     EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
     if (motionState) {
         motionState->clearObjectBackPointer();
