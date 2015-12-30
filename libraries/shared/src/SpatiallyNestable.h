@@ -34,7 +34,7 @@ enum class NestableType {
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
-    virtual ~SpatiallyNestable() { }
+    virtual ~SpatiallyNestable() { assert(_isDead); }
 
     virtual const QUuid& getID() const { return _id; }
     virtual void setID(const QUuid& id) { _id = id; }
@@ -115,6 +115,9 @@ public:
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
+    void die() { _isDead = true; }
+    bool isDead() const { return _isDead; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -141,7 +144,8 @@ protected:
 private:
     mutable ReadWriteLockable _transformLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
-    mutable bool _parentKnowsMe = false;
+    mutable bool _parentKnowsMe { false };
+    bool _isDead { false };
 };
 
 

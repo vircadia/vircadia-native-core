@@ -38,16 +38,17 @@ void EntitySimulation::updateEntities() {
     sortEntitiesThatMoved();
 }
 
-void EntitySimulation::getEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
+void EntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) {
     QMutexLocker lock(&_mutex);
     for (auto entity : _entitiesToDelete) {
-        // this entity is still in its tree, so we insert into the external list
+        // push this entity onto the external list
         entitiesToDelete.push_back(entity);
     }
     _entitiesToDelete.clear();
 }
 
 void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    // remove from all internal lists except _entitiesToDelete
     _mortalEntities.remove(entity);
     _entitiesToUpdate.remove(entity);
     _entitiesToSort.remove(entity);
@@ -59,6 +60,7 @@ void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
 void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
     assert(entity->isSimulated());
+    assert(entity->isDead());
     entity->clearActions(this);
     removeEntityInternal(entity);
     _entitiesToDelete.insert(entity);
@@ -89,6 +91,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
             quint64 expiry = entity->getExpiry();
             if (expiry < now) {
                 itemItr = _mortalEntities.erase(itemItr);
+                entity->die();
                 prepareEntityForDelete(entity);
             } else {
                 if (expiry < _nextExpiry) {
@@ -134,6 +137,7 @@ void EntitySimulation::sortEntitiesThatMoved() {
         if (success && !domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
             itemItr = _entitiesToSort.erase(itemItr);
+            entity->die();
             prepareEntityForDelete(entity);
         } else {
             moveOperator.addEntityToMoveList(entity, newCube);
@@ -193,6 +197,7 @@ void EntitySimulation::changeEntity(EntityItemPointer entity) {
         AACube newCube = entity->getQueryAACube(success);
         if (success && !domainBounds.touches(newCube)) {
             qCDebug(entities) << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
+            entity->die();
             prepareEntityForDelete(entity);
             wasRemoved = true;
         }
@@ -226,14 +231,15 @@ void EntitySimulation::clearEntities() {
     _entitiesToUpdate.clear();
     _entitiesToSort.clear();
     _simpleKinematicEntities.clear();
-    _entitiesToDelete.clear();
 
     clearEntitiesInternal();
 
-    for (auto entityItr : _allEntities) {
-        entityItr->setSimulated(false);
+    for (auto entity : _allEntities) {
+        entity->setSimulated(false);
+        entity->die();
     }
     _allEntities.clear();
+    _entitiesToDelete.clear();
 }
 
 void EntitySimulation::moveSimpleKinematics(const quint64& now) {

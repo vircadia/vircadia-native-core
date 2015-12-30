@@ -302,7 +302,7 @@ public:
 
     virtual bool contains(const glm::vec3& point) const;
 
-    virtual bool isReadyToComputeShape() { return true; }
+    virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
     virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
 

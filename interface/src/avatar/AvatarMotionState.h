@@ -68,8 +68,7 @@ public:
 protected:
     virtual bool isReadyToComputeShape() { return true; }
     virtual btCollisionShape* computeNewShape();
-    virtual void clearObjectBackPointer();
-    Avatar* _avatar;
+    Avatar* _avatar; // do NOT use smartpointer here
     uint32_t _dirtyFlags;
 };
 

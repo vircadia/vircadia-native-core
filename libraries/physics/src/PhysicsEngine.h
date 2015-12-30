@@ -54,8 +54,8 @@ public:
     void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
     const QUuid& getSessionID() const { return _sessionID; }
 
-    void deleteObjects(const VectorOfMotionStates& objects);
-    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
+    void removeObjects(const VectorOfMotionStates& objects);
+    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
 
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
@@ -83,8 +83,6 @@ public:
 
     /// \brief call bump on any objects that touch the object corresponding to motionState
     void bump(ObjectMotionState* motionState);
-
-    void removeRigidBody(btRigidBody* body);
 
     void setCharacterController(CharacterController* character);
 

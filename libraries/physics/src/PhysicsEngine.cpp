@@ -156,7 +156,7 @@ void PhysicsEngine::removeObjectFromDynamicsWorld(ObjectMotionState* object) {
     _dynamicsWorld->removeRigidBody(body);
 }
 
-void PhysicsEngine::deleteObjects(const VectorOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
         removeObjectFromDynamicsWorld(object);
 
@@ -165,14 +165,11 @@ void PhysicsEngine::deleteObjects(const VectorOfMotionStates& objects) {
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
         delete body;
-        // adebug TODO: move this into ObjectMotionState dtor
-        object->releaseShape();
-        delete object;
     }
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::deleteObjects(const SetOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
         removeObjectFromDynamicsWorld(object);
@@ -181,9 +178,6 @@ void PhysicsEngine::deleteObjects(const SetOfMotionStates& objects) {
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
         delete body;
-        // adebug TODO: move this into ObjectMotionState dtor
-        object->releaseShape();
-        delete object;
     }
 }
 

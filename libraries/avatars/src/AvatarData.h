@@ -344,9 +344,6 @@ public:
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
 
-    void die() { _isDead = true; }
-    bool isDead() const { return _isDead; }
-
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
@@ -422,8 +419,6 @@ protected:
     // where Entities are located.  This is currently only used by the mixer to decide how often to send
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
-
-    bool _isDead { false };
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

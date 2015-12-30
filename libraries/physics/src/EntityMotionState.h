@@ -25,7 +25,7 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
+    EntityMotionState(btCollisionShape* shape, EntityItem* item);
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables(const QUuid& sessionID);
@@ -73,7 +73,7 @@ public:
     virtual QUuid getSimulatorID() const;
     virtual void bump(quint8 priority);
 
-    EntityItemPointer getEntity() const { return _entity; }
+    EntityItem* getEntity() const { return _entity; }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
@@ -94,10 +94,9 @@ protected:
 
     virtual bool isReadyToComputeShape();
     virtual btCollisionShape* computeNewShape();
-    virtual void clearObjectBackPointer();
     virtual void setMotionType(MotionType motionType);
 
-    EntityItemPointer _entity;
+    EntityItem* _entity { nullptr }; // do NOT use smartpointer here
 
     bool _sentInactive;   // true if body was inactive when we sent last update
 

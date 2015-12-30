@@ -165,7 +165,12 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
-            fadingIterator = _avatarFades.erase(fadingIterator);
+            // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
+            if (_motionStatesToRemoveFromPhysics.empty()) {
+                fadingIterator = _avatarFades.erase(fadingIterator);
+            } else {
+                ++fadingIterator;
+            }
         } else {
             avatar->simulate(deltaTime);
             ++fadingIterator;
@@ -193,20 +198,6 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     return newAvatar;
 }
 
-// protected
-void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
-    auto rawPointer = std::static_pointer_cast<Avatar>(avatar);
-    AvatarMotionState* motionState = rawPointer->getMotionState();
-    if (motionState) {
-        // clean up physics stuff
-        motionState->clearObjectBackPointer();
-        rawPointer->setMotionState(nullptr);
-        _avatarMotionStates.remove(motionState);
-        _motionStatesToAdd.remove(motionState);
-        _motionStatesToDelete.push_back(motionState);
-    }
-}
-
 // virtual
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     QWriteLocker locker(&_hashLock);
@@ -220,8 +211,16 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
 
-    removedAvatar->die();
-    removeAvatarMotionState(removedAvatar);
+    Avatar* avatar = static_cast<Avatar*>(removedAvatar.get());
+    avatar->die();
+
+    AvatarMotionState* motionState = avatar->getMotionState();
+    if (motionState) {
+        _motionStatesThatMightUpdate.remove(motionState);
+        _motionStatesToAddToPhysics.remove(motionState);
+        _motionStatesToRemoveFromPhysics.push_back(motionState);
+    }
+
     _avatarFades.push_back(removedAvatar);
 }
 
@@ -274,22 +273,22 @@ AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
 }
 
 
-void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
+void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
     result.clear();
-    result.swap(_motionStatesToDelete);
+    result.swap(_motionStatesToRemoveFromPhysics);
 }
 
-void AvatarManager::getObjectsToAdd(VectorOfMotionStates& result) {
+void AvatarManager::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
     result.clear();
-    for (auto motionState : _motionStatesToAdd) {
+    for (auto motionState : _motionStatesToAddToPhysics) {
         result.push_back(motionState);
     }
-    _motionStatesToAdd.clear();
+    _motionStatesToAddToPhysics.clear();
 }
 
 void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
     result.clear();
-    for (auto state : _avatarMotionStates) {
+    for (auto state : _motionStatesThatMightUpdate) {
         if (state->_dirtyFlags > 0) {
             result.push_back(state);
         }
@@ -344,8 +343,8 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
         // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
         avatar->setMotionState(motionState);
-        _motionStatesToAdd.insert(motionState);
-        _avatarMotionStates.insert(motionState);
+        _motionStatesToAddToPhysics.insert(motionState);
+        _motionStatesThatMightUpdate.insert(motionState);
     }
 }
 

@@ -35,6 +35,8 @@ public:
     virtual void addAction(EntityActionPointer action) override;
     virtual void applyActionChanges() override;
 
+    virtual void takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) override;
+
 protected: // only called by EntitySimulation
     // overrides for EntitySimulation
     virtual void updateEntitiesInternal(const quint64& now) override;
@@ -46,8 +48,8 @@ protected: // only called by EntitySimulation
 public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
 
-    void getObjectsToDelete(VectorOfMotionStates& result);
-    void getObjectsToAdd(VectorOfMotionStates& result);
+    void getObjectsToRemoveFromPhysics(VectorOfMotionStates& result);
+    void getObjectsToAddToPhysics(VectorOfMotionStates& result);
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);
 
@@ -58,7 +60,7 @@ public:
 
 private:
     SetOfEntities _entitiesToRemoveFromPhysics;
-    SetOfEntities _entitiesToAddToPhysics; // entities to be be added to PhysicsEngine (and a their EntityMotionState created)
+    SetOfEntities _entitiesToAddToPhysics;
 
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
     SetOfEntityMotionStates _outgoingChanges; // EntityMotionStates for which we need to send updates to entity-server
