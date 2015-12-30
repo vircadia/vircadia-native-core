@@ -42,52 +42,48 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 #endif
 
 int main(int argc, const char* argv[]) {
-    QString applicationName = "High Fidelity Interface";
+    QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
-    // Try to create a shared memory block - if it can't be created, there is an instance of
-    // interface already running.
-    QSharedMemory sharedMemory { applicationName };
-    if (!sharedMemory.create(1, QSharedMemory::ReadOnly)) {
-        // Connect to and send message to existing interface instance
-        QLocalSocket socket;
+    // Connect to and send message to existing interface instance
+    QLocalSocket socket;
 
-        socket.connectToServer(applicationName);
+    socket.connectToServer(applicationName);
 
-        // Try to connect - if we can't connect, interface has probably just gone down
-        if (socket.waitForConnected(100)) {
+    static const int LOCAL_SERVER_TIMEOUT_MS = 500;
 
-            QStringList arguments;
-            for (int i = 0; i < argc; ++i) {
-                arguments << argv[i];
-            }
+    // Try to connect - if we can't connect, interface has probably just gone down
+    if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
 
-            QCommandLineParser parser;
-            QCommandLineOption urlOption("url", "", "value");
-            parser.addOption(urlOption);
-            parser.process(arguments);
-
-            if (parser.isSet(urlOption)) {
-                QUrl url = QUrl(parser.value(urlOption));
-                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
-                    socket.write(url.toString().toUtf8());
-                    socket.waitForBytesWritten(5000);
-                }
-            }
-
-            socket.close();
+        QStringList arguments;
+        for (int i = 0; i < argc; ++i) {
+            arguments << argv[i];
         }
+
+        QCommandLineParser parser;
+        QCommandLineOption urlOption("url", "", "value");
+        parser.addOption(urlOption);
+        parser.process(arguments);
+
+        if (parser.isSet(urlOption)) {
+            QUrl url = QUrl(parser.value(urlOption));
+            if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                socket.write(url.toString().toUtf8());
+                socket.waitForBytesWritten(5000);
+            }
+        }
+
+        socket.close();
 
         qDebug() << "Interface instance appears to be running, exiting";
 
         return EXIT_SUCCESS;
     }
 
-
     QElapsedTimer startupTime;
     startupTime.start();
-    
-    // Debug option to demonstrate that the client's local time does not 
-    // need to be in sync with any other network node. This forces clock 
+
+    // Debug option to demonstrate that the client's local time does not
+    // need to be in sync with any other network node. This forces clock
     // skew for the individual client
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
@@ -109,36 +105,16 @@ int main(int argc, const char* argv[]) {
         // Setup local server
         QLocalServer server { &app };
 
-        // We have already acquired the shared memory block, so we can safely remove
-        // any existing servers. This can occur on Unix platforms after a crash.
+        // We failed to connect to a local server, so we remove any existing servers.
         server.removeServer(applicationName);
         server.listen(applicationName);
 
-        QObject::connect(&server, &QLocalServer::newConnection, qApp, [&server]() {
-            qDebug() << "Got connection on local server";
-
-            auto socket = server.nextPendingConnection();
-
-            QObject::connect(socket, &QLocalSocket::readyRead, qApp, [&socket]() {
-                auto message = socket->readAll();
-                socket->close();
-
-                qDebug() << "Read from connection: " << message;
-
-                // If we received a message, try to open it as a URL
-                if (message.length() > 0) {
-                    qApp->openUrl(QString::fromUtf8(message));
-                }
-            });
-
-            qApp->getWindow()->raise();
-            qApp->getWindow()->activateWindow();
-        });
+        QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
 
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
-    
+
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();
@@ -148,4 +124,4 @@ int main(int argc, const char* argv[]) {
 
     qCDebug(interfaceapp, "Normal exit.");
     return exitCode;
-}   
+}
