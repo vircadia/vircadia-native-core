@@ -14,52 +14,16 @@ VrDialog {
     title: "QmlWindow"
     resizable: true
     enabled: false
+    visible: false
     focus: true
     property var channel;
     
-
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     contentImplicitWidth: clientArea.implicitWidth
     contentImplicitHeight: clientArea.implicitHeight
     property alias source: pageLoader.source 
 
-    /*
-    WebSocket {
-        id: socket
-        url: "ws://localhost:51016";
-        active: false
-
-        // the following three properties/functions are required to align the QML WebSocket API with the HTML5 WebSocket API.
-        property var send: function (arg) {
-            sendTextMessage(arg);
-        }
-
-        onTextMessageReceived: {
-            onmessage({data: message});
-        }
-
-        property var onmessage;
-
-        onStatusChanged: {
-            if (socket.status == WebSocket.Error) {
-                console.error("Error: " + socket.errorString)
-             } else if (socket.status == WebSocket.Closed) {
-                 console.log("Socket closed");
-             } else if (socket.status == WebSocket.Open) {
-                 console.log("Connected")
-                 //open the webchannel with the socket as transport
-                 new WebChannel.QWebChannel(socket, function(ch) {
-                    root.channel = ch;
-                    var myUrl = root.source.toString().toLowerCase();
-                    console.log(myUrl);
-                    var bridge = root.channel.objects[myUrl];
-                    console.log(bridge);
-                });
-             }
-         }
-    }
-    */
     Keys.onPressed: {
         console.log("QmlWindow keypress")
     }
@@ -73,6 +37,7 @@ VrDialog {
         width: root.clientWidth
         height: root.clientHeight
         focus: true
+        clip: true
 
         Loader { 
             id: pageLoader
@@ -82,7 +47,6 @@ VrDialog {
             
             onLoaded: {
                 console.log("Loaded content")
-                //socket.active = true; //connect
                 forceActiveFocus()
             }
             

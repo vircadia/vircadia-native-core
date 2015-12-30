@@ -10,7 +10,8 @@ VrDialog {
     HifiConstants { id: hifi }
     title: "WebWindow"
     resizable: true
-	enabled: false
+    enabled: false
+    visible: false
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     contentImplicitWidth: clientArea.implicitWidth
@@ -29,7 +30,7 @@ VrDialog {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
 
-	    // Required to support clicking on "hifi://" links
+        // Required to support clicking on "hifi://" links
         webview.loadingChanged.connect(handleWebviewLoading) 
     }
 
@@ -54,6 +55,7 @@ VrDialog {
             id: webview
             url: root.source
             anchors.fill: parent
+            focus: true
 
             onUrlChanged: {
                 var currentUrl = url.toString();

@@ -122,7 +122,7 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
             height = argumentObject.property(HEIGHT_PROPERTY).toInt32();
         }
         if (argumentObject.property(VISIBILE_PROPERTY).isBool()) {
-            visible = argumentObject.property(VISIBILE_PROPERTY).isBool();
+            visible = argumentObject.property(VISIBILE_PROPERTY).toBool();
         }
     }
 
