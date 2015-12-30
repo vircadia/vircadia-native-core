@@ -27,7 +27,7 @@
 #include "SkeletonModel.h"
 #include "world.h"
 #include "Rig.h"
-#include <ThreadSafeValue.h>
+#include <ThreadSafeValueCache.h>
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -230,10 +230,10 @@ protected:
 
     render::ItemID _renderItemID;
 
-    ThreadSafeValue<glm::vec3> _leftPalmPosition { glm::vec3() };
-    ThreadSafeValue<glm::quat> _leftPalmRotation { glm::quat() };
-    ThreadSafeValue<glm::vec3> _rightPalmPosition { glm::vec3() };
-    ThreadSafeValue<glm::quat> _rightPalmRotation { glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
 private:
     bool _initialized;

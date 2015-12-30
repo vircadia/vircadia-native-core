@@ -1,5 +1,5 @@
 //
-//  ThreadSafeValue.h
+//  ThreadSafeValueCache.h
 //  interface/src/avatar
 //
 //  Copyright 2012 High Fidelity, Inc.
@@ -8,15 +8,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ThreadSafeValue_h
-#define hifi_ThreadSafeValue_h
+#ifndef hifi_ThreadSafeValueCache_h
+#define hifi_ThreadSafeValueCache_h
 
 #include <mutex>
 
 template <typename T>
-class ThreadSafeValue {
+class ThreadSafeValueCache {
 public:
-    ThreadSafeValue(const T& v) : _value { v }, _pending { v }, _hasPending { false } {}
+    ThreadSafeValueCache(const T& v) : _value { v }, _pending { v }, _hasPending { false } {}
 
     template <typename F>
     void update(const F& callback) {
@@ -26,7 +26,11 @@ public:
 
     T get() const {
         std::lock_guard<std::mutex> guard(_mutex);
-        return _value;
+        if (_hasPending) {
+            return _pending;
+        } else {
+            return _value;
+        }
     }
 
     void set(const T& v) {
@@ -42,8 +46,8 @@ private:
     bool _hasPending;
 
     // no copies
-    ThreadSafeValue(const ThreadSafeValue&) = delete;
-    ThreadSafeValue& operator=(const ThreadSafeValue&) = delete;
+    ThreadSafeValueCache(const ThreadSafeValueCache&) = delete;
+    ThreadSafeValueCache& operator=(const ThreadSafeValueCache&) = delete;
 };
 
-#endif // #define hifi_ThreadSafeValue_h
+#endif // #define hifi_ThreadSafeValueCache_h

@@ -1130,22 +1130,22 @@ void Avatar::rebuildCollisionShape() {
 
 // thread-safe
 glm::vec3 Avatar::getLeftPalmPosition() {
-    return _leftPalmPosition.get();
+    return _leftPalmPositionCache.get();
 }
 
 // thread-safe
 glm::quat Avatar::getLeftPalmRotation() {
-    return _leftPalmRotation.get();
+    return _leftPalmRotationCache.get();
 }
 
 // thread-safe
 glm::vec3 Avatar::getRightPalmPosition() {
-    return _rightPalmPosition.get();
+    return _rightPalmPositionCache.get();
 }
 
 // thread-safe
 glm::quat Avatar::getRightPalmRotation() {
-    return _rightPalmRotation.get();
+    return _rightPalmRotationCache.get();
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
@@ -1163,7 +1163,7 @@ void Avatar::updatePalms() {
     // get palm rotations
     glm::quat leftPalmRotation, rightPalmRotation;
     getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), rightPalmRotation);
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightPalmRotation);
 
     // get palm positions
     glm::vec3 leftPalmPosition, rightPalmPosition;
@@ -1172,21 +1172,21 @@ void Avatar::updatePalms() {
     leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
 
-    // update thread-safe values
-    _leftPalmRotation.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+    // update thread-safe cache values
+    _leftPalmRotationCache.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
         value = leftPalmRotation;
         return false;
     });
-    _rightPalmRotation.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+    _rightPalmRotationCache.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
         value = rightPalmRotation;
         return false;
     });
-    _leftPalmPosition.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        value = rightPalmPosition;
+    _leftPalmPositionCache.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        value = leftPalmPosition;
         return false;
     });
-    _rightPalmPosition.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        value = leftPalmPosition;
+    _rightPalmPositionCache.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        value = rightPalmPosition;
         return false;
     });
 }
