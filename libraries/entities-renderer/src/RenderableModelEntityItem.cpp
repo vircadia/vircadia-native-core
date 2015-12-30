@@ -299,10 +299,7 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                         _absoluteJointTranslationsInObjectFrameSet[j] = true;
                         _absoluteJointTranslationsInObjectFrameDirty[j] = true;
 
-                        // XXX Tony will fix this better in some other PR
-                        // _absoluteJointRotationsInObjectFrame[j] = glmExtractRotation(finalMat);
-                        _absoluteJointRotationsInObjectFrame[j] = fbxJoints[index].preRotation * rotation;
-                        // XXX
+                        _absoluteJointRotationsInObjectFrame[j] = glmExtractRotation(finalMat);
 
                         _absoluteJointRotationsInObjectFrameSet[j] = true;
                         _absoluteJointRotationsInObjectFrameDirty[j] = true;
