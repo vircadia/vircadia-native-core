@@ -29,20 +29,12 @@
         this.equipped = false;
         this.forceMultiplier = 1;
         this.laserLength = 100;
-        this.laserOffsets = {
-            y: .095
-        };
-        this.firingOffsets = {
-            z: 0.16
-        }
+
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.2;
         this.bulletForce = 10;
-
-
-
         this.showLaser = false;
 
     };
@@ -143,7 +135,7 @@
                 direction: this.firingDirection
             };
             this.createGunFireEffect(this.barrelPoint)
-            var intersection = Entities.findRayIntersection(pickRay, true);
+            var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
                 if (Math.random() < this.playRichochetSoundChance) {
@@ -301,76 +293,82 @@
                 visible: true,
                 lineWidth: 2
             });
-
+            this.laserOffsets = {
+                y: .095
+            };
+            this.firingOffsets = {
+                z: 0.16
+            }
             var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
             var position = gunProps.position;
-            var rotation = gunProps.rotation;
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
             this.firingDirection = Quat.getFront(rotation);
             var upVec = Quat.getUp(rotation);
             this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
             this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
 
-            // this.flash = Entities.addEntity({
-            //     type: "ParticleEffect",
-            //     parentID: this.entityID,
-            //     position: this.barrelPoint,
-            //     "name": "Muzzle Flash",
-            //     // isEmitting: false,
-            //     "color": {
-            //         red: 228,
-            //         green: 128,
-            //         blue: 12
-            //     },
-            //     "maxParticles": 1000,
-            //     "lifespan": 0.1,
-            //     "emitRate": 1000,
-            //     "emitSpeed": 0.5,
-            //     "speedSpread": 0,
-            //     "emitOrientation": {
-            //         "x": -0.4,
-            //         "y": 1,
-            //         "z": -0.2,
-            //         "w": 0.7071068286895752
-            //     },
-            //     "emitDimensions": {
-            //         "x": 0,
-            //         "y": 0,
-            //         "z": 0
-            //     },
-            //     "polarStart": 0,
-            //     "polarFinish": Math.PI,
-            //     "azimuthStart": -3.1415927410125732,
-            //     "azimuthFinish": 2,
-            //     "emitAcceleration": {
-            //         "x": 0,
-            //         "y": 0,
-            //         "z": 0
-            //     },
-            //     "accelerationSpread": {
-            //         "x": 0,
-            //         "y": 0,
-            //         "z": 0
-            //     },
-            //     "particleRadius": 0.05,
-            //     "radiusSpread": 0.01,
-            //     "radiusStart": 0.05,
-            //     "radiusFinish": 0.05,
-            //     "colorSpread": {
-            //         red: 100,
-            //         green: 100,
-            //         blue: 20
-            //     },
-            //     "alpha": 1,
-            //     "alphaSpread": 0,
-            //     "alphaStart": 0,
-            //     "alphaFinish": 0,
-            //     "additiveBlending": true,
-            //     "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
-            // });
+            this.flash = Entities.addEntity({
+                type: "ParticleEffect",
+                position: this.barrelPoint,
+                "name": "Muzzle Flash",
+                isEmitting: false,
+                "color": {
+                    red: 228,
+                    green: 128,
+                    blue: 12
+                },
+                "maxParticles": 1000,
+                "lifespan": 0.1,
+                "emitRate": 1000,
+                "emitSpeed": 0.5,
+                "speedSpread": 0,
+                "emitOrientation": {
+                    "x": -0.4,
+                    "y": 1,
+                    "z": -0.2,
+                    "w": 0.7071068286895752
+                },
+                "emitDimensions": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "polarStart": 0,
+                "polarFinish": Math.PI,
+                "azimuthStart": -3.1415927410125732,
+                "azimuthFinish": 2,
+                "emitAcceleration": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "accelerationSpread": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "particleRadius": 0.05,
+                "radiusSpread": 0.01,
+                "radiusStart": 0.05,
+                "radiusFinish": 0.05,
+                "colorSpread": {
+                    red: 100,
+                    green: 100,
+                    blue: 20
+                },
+                "alpha": 1,
+                "alphaSpread": 0,
+                "alphaStart": 0,
+                "alphaFinish": 0,
+                "additiveBlending": true,
+                "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+            });
+
+           Script.setTimeout(function() {
+                Entities.editEntity(_this.flash, {parentID: _this.entityID});
+           }, 500)
 
         },
-
-
     };
 
     // entity scripts always need to return a newly constructed object of our type
