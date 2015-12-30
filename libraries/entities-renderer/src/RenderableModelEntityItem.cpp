@@ -278,21 +278,28 @@ bool RenderableModelEntityItem::getAnimationFrame() {
 
                 resizeJointArrays();
                 if (_jointMapping.size() != _model->getJointStateCount()) {
-                    qDebug() << "BLERG" << _jointMapping.size() << _model->getJointStateCount();
+                    qDebug() << "RenderableModelEntityItem::getAnimationFrame -- joint count mismatch"
+                             << _jointMapping.size() << _model->getJointStateCount();
                     assert(false);
+                    return false;
                 }
+
+                const QVector<glm::quat>& rotations = frames[animationCurrentFrame].rotations;
+                const QVector<glm::vec3>& translations = frames[animationCurrentFrame].translations;
+
                 for (int j = 0; j < _jointMapping.size(); j++) {
                     int index = _jointMapping[j];
                     if (index >= 0) {
-                        if (index >= frames[animationCurrentFrame].rotations.size() ||
-                            index >= frames[animationCurrentFrame].translations.size()) {
-                            return false;
+                        glm::mat4 translationMat;
+                        if (index < translations.size()) {
+                            translationMat = glm::translate(translations[index]);
                         }
-                        const glm::quat rotation = frames[animationCurrentFrame].rotations[index];
-                        const glm::vec3 translation = frames[animationCurrentFrame].translations[index];
-
-                        glm::mat4 translationMat = glm::translate(translation);
-                        glm::mat4 rotationMat = glm::mat4_cast(rotation);
+                        glm::mat4 rotationMat(glm::mat4::_null);
+                        if (index < rotations.size()) {
+                            rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
+                        } else {
+                            rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * fbxJoints[index].postRotation);
+                        }
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);
                         _absoluteJointTranslationsInObjectFrame[j] = extractTranslation(finalMat);
