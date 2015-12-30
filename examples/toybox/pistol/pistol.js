@@ -44,6 +44,7 @@
 
 
         this.showLaser = false;
+
     };
 
     Pistol.prototype = {
@@ -58,20 +59,36 @@
             if (!this.equipped) {
                 return;
             }
-            this.toggleWithTriggerPressure();
+            this.updateProps();
             if (this.showLaser) {
                 this.updateLaser();
             }
+            this.toggleWithTriggerPressure();
+
+
+        },
+
+        updateProps: function() {
+            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+            this.position = gunProps.position;
+            this.rotation = gunProps.rotation;
+            this.firingDirection = Quat.getFront(this.rotation);
+            var upVec = Quat.getUp(this.rotation);
+            this.barrelPoint = Vec3.sum(this.position, Vec3.multiply(upVec, this.laserOffsets.y));
+            this.laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
+            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
+            var pickRay = {
+                origin: this.barrelPoint,
+                direction: this.firingDirection
+            };
         },
         toggleWithTriggerPressure: function() {
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
 
             if (this.triggerValue < RELOAD_THRESHOLD) {
-                // print('RELOAD');
                 this.canShoot = true;
             }
             if (this.canShoot === true && this.triggerValue === 1) {
-                // print('SHOOT');
                 this.fire();
                 this.canShoot = false;
             }
@@ -91,17 +108,10 @@
 
         },
         updateLaser: function() {
-            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
-            var position = gunProps.position;
-            var rotation = gunProps.rotation;
-            this.firingDirection = Quat.getFront(rotation);
-            var upVec = Quat.getUp(rotation);
-            this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
-            var laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
-            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
+
             Overlays.editOverlay(this.laser, {
                 start: this.barrelPoint,
-                end: laserTip,
+                end: this.laserTip,
                 alpha: 1
             });
         },
@@ -114,19 +124,6 @@
             });
         },
 
-        preload: function(entityID) {
-            this.entityID = entityID;
-            // this.initControllerMapping();
-            this.laser = Overlays.addOverlay("line3d", {
-                start: ZERO_VECTOR,
-                end: ZERO_VECTOR,
-                color: COLORS.RED,
-                alpha: 1,
-                visible: true,
-                lineWidth: 2
-            });
-        },
-
         triggerPress: function(hand, value) {
             if (this.hand === hand && value === 1) {
                 //We are pulling trigger on the hand we have the gun in, so fire
@@ -135,17 +132,18 @@
         },
 
         fire: function() {
-            var pickRay = {
-                origin: this.barrelPoint,
-                direction: this.firingDirection
-            };
+
             Audio.playSound(this.fireSound, {
                 position: this.barrelPoint,
                 volume: this.fireVolume
             });
 
+            var pickRay = {
+                origin: this.barrelPoint,
+                direction: this.firingDirection
+            };
             this.createGunFireEffect(this.barrelPoint)
-            var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
+            var intersection = Entities.findRayIntersection(pickRay, true);
             if (intersection.intersects) {
                 this.createEntityHitEffect(intersection.intersection);
                 if (Math.random() < this.playRichochetSoundChance) {
@@ -170,11 +168,11 @@
         },
 
         createEntityHitEffect: function(position) {
-            var flash = Entities.addEntity({
+            var sparks = Entities.addEntity({
                 type: "ParticleEffect",
                 position: position,
                 lifetime: 4,
-                "name": "Flash Emitter",
+                "name": "Sparks Emitter",
                 "color": {
                     red: 228,
                     green: 128,
@@ -228,7 +226,7 @@
             });
 
             Script.setTimeout(function() {
-                Entities.editEntity(flash, {
+                Entities.editEntity(sparks, {
                     isEmitting: false
                 });
             }, 100);
@@ -282,70 +280,96 @@
                 });
             }, 100);
 
-            var flash = Entities.addEntity({
-                type: "ParticleEffect",
-                position: position,
-                lifetime: 4,
-                "name": "Muzzle Flash",
-                "color": {
-                    red: 228,
-                    green: 128,
-                    blue: 12
-                },
-                "maxParticles": 1000,
-                "lifespan": 0.1,
-                "emitRate": 1000,
-                "emitSpeed": 0.5,
-                "speedSpread": 0,
-                "emitOrientation": {
-                    "x": -0.4,
-                    "y": 1,
-                    "z": -0.2,
-                    "w": 0.7071068286895752
-                },
-                "emitDimensions": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "polarStart": 0,
-                "polarFinish": Math.PI,
-                "azimuthStart": -3.1415927410125732,
-                "azimuthFinish": 2,
-                "emitAcceleration": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "accelerationSpread": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
-                },
-                "particleRadius": 0.05,
-                "radiusSpread": 0.01,
-                "radiusStart": 0.05,
-                "radiusFinish": 0.05,
-                "colorSpread": {
-                    red: 100,
-                    green: 100,
-                    blue: 20
-                },
-                "alpha": 1,
-                "alphaSpread": 0,
-                "alphaStart": 0,
-                "alphaFinish": 0,
-                "additiveBlending": true,
-                "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+            Entities.editEntity(this.flash, {
+                isEmitting: true
             });
-
             Script.setTimeout(function() {
-                Entities.editEntity(flash, {
+                Entities.editEntity(_this.flash, {
                     isEmitting: false
                 });
             }, 100)
 
-        }
+        },
+
+        preload: function(entityID) {
+            this.entityID = entityID;
+            this.laser = Overlays.addOverlay("line3d", {
+                start: ZERO_VECTOR,
+                end: ZERO_VECTOR,
+                color: COLORS.RED,
+                alpha: 1,
+                visible: true,
+                lineWidth: 2
+            });
+
+            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+            var position = gunProps.position;
+            var rotation = gunProps.rotation;
+            this.firingDirection = Quat.getFront(rotation);
+            var upVec = Quat.getUp(rotation);
+            this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
+            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
+
+            // this.flash = Entities.addEntity({
+            //     type: "ParticleEffect",
+            //     parentID: this.entityID,
+            //     position: this.barrelPoint,
+            //     "name": "Muzzle Flash",
+            //     // isEmitting: false,
+            //     "color": {
+            //         red: 228,
+            //         green: 128,
+            //         blue: 12
+            //     },
+            //     "maxParticles": 1000,
+            //     "lifespan": 0.1,
+            //     "emitRate": 1000,
+            //     "emitSpeed": 0.5,
+            //     "speedSpread": 0,
+            //     "emitOrientation": {
+            //         "x": -0.4,
+            //         "y": 1,
+            //         "z": -0.2,
+            //         "w": 0.7071068286895752
+            //     },
+            //     "emitDimensions": {
+            //         "x": 0,
+            //         "y": 0,
+            //         "z": 0
+            //     },
+            //     "polarStart": 0,
+            //     "polarFinish": Math.PI,
+            //     "azimuthStart": -3.1415927410125732,
+            //     "azimuthFinish": 2,
+            //     "emitAcceleration": {
+            //         "x": 0,
+            //         "y": 0,
+            //         "z": 0
+            //     },
+            //     "accelerationSpread": {
+            //         "x": 0,
+            //         "y": 0,
+            //         "z": 0
+            //     },
+            //     "particleRadius": 0.05,
+            //     "radiusSpread": 0.01,
+            //     "radiusStart": 0.05,
+            //     "radiusFinish": 0.05,
+            //     "colorSpread": {
+            //         red: 100,
+            //         green: 100,
+            //         blue: 20
+            //     },
+            //     "alpha": 1,
+            //     "alphaSpread": 0,
+            //     "alphaStart": 0,
+            //     "alphaFinish": 0,
+            //     "additiveBlending": true,
+            //     "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
+            // });
+
+        },
+
 
     };
 
