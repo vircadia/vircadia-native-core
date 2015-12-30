@@ -51,9 +51,6 @@ int main(int argc, const char* argv[]) {
 
     static const int LOCAL_SERVER_TIMEOUT_MS = 500;
 
-    QElapsedTimer waitingTimer;
-    waitingTimer.start();
-
     // Try to connect - if we can't connect, interface has probably just gone down
     if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
 
@@ -84,9 +81,9 @@ int main(int argc, const char* argv[]) {
 
     QElapsedTimer startupTime;
     startupTime.start();
-    
-    // Debug option to demonstrate that the client's local time does not 
-    // need to be in sync with any other network node. This forces clock 
+
+    // Debug option to demonstrate that the client's local time does not
+    // need to be in sync with any other network node. This forces clock
     // skew for the individual client
     const char* CLOCK_SKEW = "--clockSkew";
     const char* clockSkewOption = getCmdOption(argc, argv, CLOCK_SKEW);
@@ -117,7 +114,7 @@ int main(int argc, const char* argv[]) {
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
-    
+
         qCDebug(interfaceapp, "Created QT Application.");
         exitCode = app.exec();
         server.close();
@@ -127,4 +124,4 @@ int main(int argc, const char* argv[]) {
 
     qCDebug(interfaceapp, "Normal exit.");
     return exitCode;
-}   
+}

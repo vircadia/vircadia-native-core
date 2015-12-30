@@ -87,6 +87,7 @@ var homeServer = null;
 const GO_HOME_INDEX = 0;
 const SERVER_LABEL_INDEX = 2;
 const RESTART_INDEX = 3;
+const STOP_INDEX = 4;
 const SETTINGS_INDEX = 5;
 
 function buildMenuArray(serverState) {
@@ -147,7 +148,7 @@ function updateMenuArray(menuArray, serverState) {
     menuArray[GO_HOME_INDEX].enabled = running;
 
     // Stop is only visible if running
-    menuArray[RESTART_INDEX + 1].visible = running;
+    menuArray[STOP_INDEX].visible = running;
 
     // Settings is only visible if running
     menuArray[SETTINGS_INDEX].enabled = running;
