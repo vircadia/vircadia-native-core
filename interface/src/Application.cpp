@@ -3486,78 +3486,86 @@ namespace render {
 
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+        auto backgroundMode = skyStage->getBackgroundMode();
+
+        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
             // this line intentionally left blank
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                PerformanceTimer perfTimer("stars");
-                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                    "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                // should be the first rendering pass - w/o depth buffer / lighting
-
-                // compute starfield alpha based on distance from atmosphere
-                float alpha = 1.0f;
-                bool hasStars = true;
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    // TODO: handle this correctly for zones
-                    const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
-
-                    if (closestData.getHasStars()) {
-                        const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                        const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
-                                                        / closestData.getAtmosphereOuterRadius();
-                        float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
-                        if (height < closestData.getAtmosphereInnerRadius()) {
-                            // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                            alpha = 0.0f;
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-
-
-                        } else if (height < closestData.getAtmosphereOuterRadius()) {
-                            alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                                (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-                        }
-                    } else {
-                        hasStars = false;
-                    }
+        } else {
+            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+                auto skybox = skyStage->getSkybox();
+                if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
+                    PerformanceTimer perfTimer("skybox");
+                    skybox->render(batch, *(args->_viewFrustum));
+                } else {
+                    // If no skybox texture is available, render the SKY_DOME while it loads
+                    backgroundMode = model::SunSkyStage::SKY_DOME;
                 }
-
-                // finally render the starfield
-                if (hasStars) {
-                    background->_stars.render(args, alpha);
-                }
-
-                // draw the sky dome
-                if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    PerformanceTimer perfTimer("atmosphere");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::displaySide() ... atmosphere...");
-
-                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                }
-
             }
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            PerformanceTimer perfTimer("skybox");
-            auto skybox = skyStage->getSkybox();
-            if (skybox) {
-                skybox->render(batch, *(args->_viewFrustum));
+            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+                    PerformanceTimer perfTimer("stars");
+                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                        "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                    // should be the first rendering pass - w/o depth buffer / lighting
+
+                    // compute starfield alpha based on distance from atmosphere
+                    float alpha = 1.0f;
+                    bool hasStars = true;
+
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        // TODO: handle this correctly for zones
+                        const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
+
+                        if (closestData.getHasStars()) {
+                            const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                            const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                            glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
+                                                            / closestData.getAtmosphereOuterRadius();
+                            float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
+                            if (height < closestData.getAtmosphereInnerRadius()) {
+                                // If we're inside the atmosphere, then determine if our keyLight is below the horizon
+                                alpha = 0.0f;
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+
+
+                            } else if (height < closestData.getAtmosphereOuterRadius()) {
+                                alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+                            }
+                        } else {
+                            hasStars = false;
+                        }
+                    }
+
+                    // finally render the starfield
+                    if (hasStars) {
+                        background->_stars.render(args, alpha);
+                    }
+
+                    // draw the sky dome
+                    if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        PerformanceTimer perfTimer("atmosphere");
+                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "Application::displaySide() ... atmosphere...");
+
+                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                    }
+
+                }
             }
         }
     }
