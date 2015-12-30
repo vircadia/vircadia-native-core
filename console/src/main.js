@@ -2,6 +2,8 @@
 
 var electron = require('electron');
 var app = electron.app;  // Module to control application life.
+var BrowserWindow = electron.BrowserWindow;
+
 var Menu = require('menu');
 var Tray = require('tray');
 var shell = require('shell');
@@ -168,9 +170,16 @@ function updateTrayMenu(serverState) {
     }
 }
 
+var hiddenWindow = null;
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
+    // create a BrowserWindow so the app launches but don't show it
+    hiddenWindow = new BrowserWindow({
+        show: false
+    });
+
     // hide the dock icon
     app.dock.hide()
 
