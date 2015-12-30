@@ -251,11 +251,11 @@
                     "z": 0
                 },
                 "accelerationSpread": {
-                    "x": .2,
+                    "x": 0.2,
                     "y": 0,
-                    "z": .2
+                    "z": 0.2
                 },
-                "radiusSpread": .04,
+                "radiusSpread": 0.04,
                 "particleRadius": 0.07,
                 "radiusStart": 0.07,
                 "radiusFinish": 0.07,
@@ -294,7 +294,7 @@
                 lineWidth: 2
             });
             this.laserOffsets = {
-                y: .095
+                y: 0.095
             };
             this.firingOffsets = {
                 z: 0.16
