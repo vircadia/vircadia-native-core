@@ -176,15 +176,11 @@ var hiddenWindow = null;
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
-    // create a BrowserWindow so the app launches but don't show it
-    hiddenWindow = new BrowserWindow({
-        icon: APP_ICON,
-        title: "High Fidelity",
-        show: false
-    });
 
-    // hide the dock icon
-    app.dock.hide()
+    if (app.dock) {
+        // hide the dock icon on OS X
+        app.dock.hide()
+    }
 
     var logPath = path.join(app.getAppPath(), 'logs');
 
