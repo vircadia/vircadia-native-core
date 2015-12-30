@@ -28,10 +28,12 @@
 #include <QtGui/QImage>
 #include <QtGui/QWheelEvent>
 #include <QtGui/QWindow>
-#include <QtQml/QQmlContext>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
+
+#include <QtQml/QQmlContext>
+#include <QtQml/QQmlEngine>
 
 #include <QtWidgets/QActionGroup>
 #include <QtWidgets/QDesktopWidget>
@@ -1094,8 +1096,13 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
+    
 
     auto rootContext = offscreenUi->getRootContext();
+    auto engine = rootContext->engine();
+    connect(engine, &QQmlEngine::quit, [] {
+        qApp->quit();
+    });
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
