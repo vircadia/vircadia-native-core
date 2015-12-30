@@ -8,6 +8,7 @@
     ""
   ],
   "devDependencies": {
+    "electron-compilers": "^1.0.1",
     "electron-packager": "^5.1.1",
     "electron-prebuilt": "0.36.0"
   },
@@ -17,14 +18,15 @@
   },
   "main": "src/main.js",
   "scripts": {
-    "start": "electron . --local-debug-builds",
-    "local-release": "electron . --local-release-builds",
-    "package-darwin": "electron-packager . Console --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/console.icns",
-    "package-win": "electron-packager . Console --overwrite --platform=win32 --arch=x64 --version=0.36.0 --icon=resources/console.ico",
-    "package-linux": "electron-packager . Console --overwrite --platform=linux --arch=x64 --version=0.36.0"
+    "start": "electron . --local-debug-builds --debug",
+    "local-release": "electron . --local-release-builds --debug",
+    "package-darwin": "electron-packager . High\\ Fidelity --overwrite --platform=darwin --arch=x64 --version=0.36.0 --icon=resources/console.icns",
+    "package-win": "electron-packager . High\\ Fidelity --overwrite --platform=win32 --arch=x64 --version=0.36.0 --icon=resources/console.ico",
+    "package-linux": "electron-packager . High\\ Fidelity --overwrite --platform=linux --arch=x64 --version=0.36.0"
   },
   "dependencies": {
-    "yargs": "^3.30.0",
-    "extend": "^3.0.0"
+    "electron-compile": "^1.0.2",
+    "extend": "^3.0.0",
+    "yargs": "^3.30.0"
   }
 }

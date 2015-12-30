@@ -5,6 +5,7 @@ var util = require('util');
 var events = require('events');
 var childProcess = require('child_process');
 var fs = require('fs');
+var os = require('os');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -24,6 +25,7 @@ function ProcessGroup(name, processes) {
     this.name = name;
     this.state = ProcessGroupStates.STOPPED;
     this.processes = [];
+    this.restarting = false;
 
     for (let process of processes) {
         this.addProcess(process);
@@ -46,6 +48,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
 
         this.state = ProcessGroupStates.STARTED;
+        this.emit('state-update', this);
     },
     stop: function() {
         if (this.state != ProcessGroupStates.STARTED) {
@@ -56,6 +59,19 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
             process.stop();
         }
         this.state = ProcessGroupStates.STOPPING;
+        this.emit('state-update', this);
+    },
+    restart: function() {
+        if (this.state == ProcessGroupStates.STOPPED) {
+            // start the group, we were already stopped
+            this.start();
+        } else {
+            // set our restart flag so the group will restart once stopped
+            this.restarting = true;
+
+            // call stop, that will put them in the stopping state
+            this.stop();
+        }
     },
 
     // Event handlers
@@ -69,8 +85,15 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
         }
         if (!processesStillRunning) {
             this.state = ProcessGroupStates.STOPPED;
+            this.emit('state-update', this);
+
+            // if we we're supposed to restart, call start now and reset the flag
+            if (this.restarting) {
+                this.start();
+                this.restarting = false;
+            }
         }
-        this.emit('state-update', this, process);
+        this.emit('process-update', process);
     }
 });
 
@@ -78,7 +101,6 @@ var ID = 0;
 function Process(name, command, commandArgs, logDirectory) {
     events.EventEmitter.call(this);
 
-    this.blah = 'adsf';
     this.id = ++ID;
     this.name = name;
     this.command = command;
@@ -95,7 +117,7 @@ Process.prototype = extend(Process.prototype, {
             console.warn("Can't start process that is not stopped.");
             return;
         }
-        console.log("Starting " + this.command);
+        console.log("Starting " + this.command + " " + this.commandArgs.join(' '));
 
         var logStdout = 'ignore',
             logStderr = 'ignore';
@@ -176,8 +198,14 @@ Process.prototype = extend(Process.prototype, {
             console.warn("Can't stop process that is not started.");
             return;
         }
-        this.child.kill();
+        if (os.type() == "Windows_NT") {
+            childProcess.spawn("taskkill", ["/pid", this.child.pid, '/f', '/t']);
+        } else {
+            this.child.kill();
+        }
         this.state = ProcessStates.STOPPING;
+
+        this.emit('state-update', this);
     },
 
     // Events
@@ -195,4 +223,5 @@ Process.prototype = extend(Process.prototype, {
 
 module.exports.Process = Process;
 module.exports.ProcessGroup = ProcessGroup;
+module.exports.ProcessGroupStates = ProcessGroupStates;
 module.exports.ProcessStates = ProcessStates;

@@ -1,36 +1,112 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Console</title>
+<head>
+    <title>High Fidelity</title>
+    <script>
+        window.$ = window.jQuery = require('./vendor/jQuery/jquery-2.1.4.min.js');
+    </script>
     <script src="index.js"></script>
-  </head>
-  <body onload="ready()">
+    <link rel="stylesheet" type="text/css" href="css/style.less" />
+</head>
+<body>
+    <header>
+        <div id="console-version">
+            <p class="light-gray">Version <span class="number">1.0.0</span></p>
+        </div>
+        <div id="hf-brand">
+            <img src="images/logo-512.png" width="190" />
+        </div>
+    </header>
 
-    <h1>High Fidelity</h1>
-
-    <h2>Interface</h2>
-    <div id="process-status">
-      <div id="process-interface">
-        <span class="name">Interface</span>
-        <span class="status">unknown</span>
-        <button class="power-on">Turn On</button>
-        <button class="power-off">Turn Off</button>
-      </div>
-    </div>
-
-    <h2>Home</h2>
-    <div id="home">
-        <div id="server">
-          <span class="status">unknown</span>
-          <button class="power-on">Turn On</button>
-          <button class="power-off">Turn Off</button>
-          <a href="http://localhost:40100/" target="_blank">Settings</a>
-          <a id="open-logs" href="#">Open log directory</a>
+    <div id="console-tray">
+        <div id="navigation">
+            <h4 class="light-gray">NAVIGATE</h4>
+            <div id="nav-search" class="nav-item">
+                <div class="tray-square nav-square">
+                    <img src="images/search.svg" />
+                </div>
+                <p>Search</p>
+            </div>
+            <div id="nav-last-visited" class="nav-item">
+                <a href="#" id="last-visited-link">
+                    <div class="tray-square nav-square">
+                        <img src="images/last-visited.svg" />
+                    </div>
+                    <p>Last visited</p>
+                </a>
+            </div>
+        </div>
+        <div class="tray-line"></div>
+        <div id="servers">
+            <h4 class="light-gray">MY SERVER</h4>
+            <div class="tray-square">
+                <img src="images/server.png" />
+            </div>
+            <p>Home</p>
         </div>
     </div>
 
-    <div>
-        Node Version: <script>document.write(process.versions.node)</script>
+    <div id="tray-focus">
+        <div id="server-focus">
+            <div id="server-info">
+                <h2>Home</h2>
+                <div id="left-box" class="server-box">
+                    <div class="title">
+                        <h4 id="status">STATUS</h4>
+                    </div>
+
+                    <div id="ds-status" class="process-status">
+                        <div class="circle stopped"></div>
+                        <span>Domain Server</span>
+                    </div>
+                    <div id="ac-status" class="process-status">
+                        <div class="circle stopped"></div>
+                        <span>Assignment Clients</span>
+                    </div>
+                </div>
+                <div id="right-box" class="server-box">
+                    <div class="title">
+                        <p id="server-url">hifi://localhost</p>
+                    </div>
+                    <p>
+                        This is your domain. 4096 cubic kilometers of space for you<br>
+                        to build, explore, and share. We’ve started you off with a<br>
+                        home full of goodies to help you learn the ropes. Enjoy!
+                    </p>
+                    <button id="go-server-button">
+                        <img src="images/go-hmd.svg" />
+                    </button>
+                    <div id="server-stopped-text">
+                        <span>Server stopped<br>Click "Restart"</span>
+                    </div>
+                </div>
+            </div>
+            <div id="manage-server">
+                <div id="manage-buttons">
+                    <a id="restart" href="#" class="manage-button">
+                        <img src="images/restart.svg" />
+                        <p>Restart</p>
+                    </a>
+                    <a id="stop" href="#" class="manage-button">
+                        <img src="images/stop.svg" />
+                        <p>Stop</p>
+                    </a>
+                    <div id="manage-separator">
+                        <img src="images/manage-button-sep.svg"/>
+                    </div>
+
+                    <!-- TODO: handle the case where the DS HTTP port is non-standard -->
+                    <a id="settings" href="http://localhost:40100/settings" target="_blank" class="manage-button">
+                        <img src="images/settings.svg" />
+                        <p>Settings</p>
+                    </a>
+                    <a id="open-logs" href="#" class="manage-button">
+                        <img src="images/logs.svg" />
+                        <p>Logs</p>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-  </body>
+</body>
 </html>
