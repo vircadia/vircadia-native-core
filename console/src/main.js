@@ -24,6 +24,7 @@ var path = require('path');
 
 const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
+const APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', console.log.bind(console));
@@ -177,6 +178,8 @@ var hiddenWindow = null;
 app.on('ready', function() {
     // create a BrowserWindow so the app launches but don't show it
     hiddenWindow = new BrowserWindow({
+        icon: APP_ICON,
+        title: "High Fidelity",
         show: false
     });
 
