@@ -274,7 +274,7 @@ struct ByteData {
 
 QTextStream & operator << (QTextStream& stream, const ByteData & wrapper) {
     // Print bytes as hex
-    stream << QByteArray::fromRawData(wrapper.data, wrapper.length).toHex();
+    stream << QByteArray::fromRawData(wrapper.data, (int)wrapper.length).toHex();
 
     return stream;
 }

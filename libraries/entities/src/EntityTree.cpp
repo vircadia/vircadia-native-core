@@ -498,6 +498,7 @@ public:
     BoxFace& face;
     glm::vec3& surfaceNormal;
     const QVector<EntityItemID>& entityIdsToInclude;
+    const QVector<EntityItemID>& entityIdsToDiscard;
     void** intersectedObject;
     bool found;
     bool precisionPicking;
@@ -510,7 +511,7 @@ bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
     EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
     if (entityTreeElementPointer ->findRayIntersection(args->origin, args->direction, keepSearching,
         args->element, args->distance, args->face, args->surfaceNormal, args->entityIdsToInclude,
-        args->intersectedObject, args->precisionPicking)) {
+        args->entityIdsToDiscard, args->intersectedObject, args->precisionPicking)) {
         args->found = true;
     }
     return keepSearching;
@@ -518,9 +519,9 @@ bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
 
 bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                     OctreeElementPointer& element, float& distance, 
-                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, void** intersectedObject,
+                                    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard, void** intersectedObject,
                                     Octree::lockType lockType, bool* accurateResult, bool precisionPicking) {
-    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, intersectedObject, false, precisionPicking };
+    RayArgs args = { origin, direction, element, distance, face, surfaceNormal, entityIdsToInclude, entityIdsToDiscard, intersectedObject, false, precisionPicking };
     distance = FLT_MAX;
 
     bool requireLock = lockType == Octree::Lock;

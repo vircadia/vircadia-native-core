@@ -357,19 +357,21 @@ QVector<QUuid> EntityScriptingInterface::findEntitiesInBox(const glm::vec3& corn
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
-    QVector<EntityItemID> entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
-    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entities);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+    QVector<EntityItemID> entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
+    QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
+    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking, entitiesToInclude, entitiesToDiscard);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude) {
-    const QVector<EntityItemID>& entities = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
-    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entities);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking, const QScriptValue& entityIdsToInclude, const QScriptValue& entityIdsToDiscard) {
+    const QVector<EntityItemID>& entitiesToInclude = qVectorEntityItemIDFromScriptValue(entityIdsToInclude);
+    const QVector<EntityItemID> entitiesToDiscard = qVectorEntityItemIDFromScriptValue(entityIdsToDiscard);
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking, entitiesToInclude, entitiesToDiscard);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray,
                                                                                     Octree::lockType lockType,
-                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude) {
+                                                                                    bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard) {
 
 
     RayToEntityIntersectionResult result;
@@ -377,7 +379,7 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         OctreeElementPointer element;
         EntityItemPointer intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face,
-                                                                result.surfaceNormal, entityIdsToInclude, (void**)&intersectedEntity, lockType, &result.accurate,
+            result.surfaceNormal, entityIdsToInclude, entityIdsToDiscard, (void**)&intersectedEntity, lockType, &result.accurate,
                                                                 precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
