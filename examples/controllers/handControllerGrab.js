@@ -1865,7 +1865,7 @@ Script.update.connect(update);
 // we can't create the search system on-demand since it takes some time for the particles to reach their entire length.  
 // thus the system cannot have a fixed lifetime.  this loop updates the lifetimes and will stop updating if a user crashes.
 
-if(USE_PARTICLE_BEAM_FOR_SEARCHING===true || USE_PARTICLE_BEAM_FOR_SEARCHING ===true){
+if(USE_PARTICLE_BEAM_FOR_SEARCHING===true || USE_PARTICLE_BEAM_FOR_MOVING ===true){
 Script.update.connect(renewParticleBeamLifetimes)
 }
 
