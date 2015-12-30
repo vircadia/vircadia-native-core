@@ -47,6 +47,7 @@
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
@@ -337,6 +338,8 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
+    DependencyManager::set<ResourceScriptingInterface>();
+    
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
