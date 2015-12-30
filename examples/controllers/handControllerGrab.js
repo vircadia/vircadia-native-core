@@ -577,7 +577,6 @@ function MyController(hand) {
         Entities.editEntity(this.particleBeam,{
             lifetime: TEMPORARY_PARTICLE_BEAM_LIFETIME + props.age // renew lifetime
         })
-        var lifetime = Entities.getEntityProperties(this.particleBeam,"lfietime").lifetime;
     }
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
