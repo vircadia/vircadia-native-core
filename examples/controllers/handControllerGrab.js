@@ -23,8 +23,9 @@ var WANT_DEBUG = false;
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.1; // 0.0 disables smoothing of trigger value
-var TRIGGER_ON_VALUE = 0.4;
+var TRIGGER_SMOOTH_RATIO = 0.1;     //  Time averaging of trigger - 0.0 disables smoothing
+var TRIGGER_ON_VALUE = 0.4;         //  Squeezed just enough to activate search or near grab
+var TRIGGER_GRAB_VALUE = 0.85;      //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
@@ -738,6 +739,10 @@ function MyController(hand) {
             (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
     };
 
+    this.triggerSmoothedGrab = function() {
+        return this.triggerValue > TRIGGER_GRAB_VALUE;
+    };
+
     this.triggerSmoothedSqueezed = function() {
         return this.triggerValue > TRIGGER_ON_VALUE;
     };
@@ -775,7 +780,7 @@ function MyController(hand) {
             return;
         }
 
-        // the trigger is being pressed, do a ray test
+        // the trigger is being pressed, so do a ray test to see what we are hitting
         var handPosition = this.getHandPosition();
 
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -788,7 +793,7 @@ function MyController(hand) {
             length: PICK_MAX_DISTANCE
         };
 
-        // don't pick 60x per second.
+        // Pick at some maximum rate, not always
         var pickRays = [];
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
@@ -872,11 +877,11 @@ function MyController(hand) {
                             // this.setState(STATE_EQUIP_SPRING);
                             this.setState(STATE_EQUIP);
                             return;
-                        } else if (this.state == STATE_SEARCHING) {
+                        } else if ((this.state == STATE_SEARCHING) && this.triggerSmoothedGrab()) {
                             this.setState(STATE_DISTANCE_HOLDING);
                             return;
                         }
-                    } else if (grabbableData.wantsTrigger) {
+                    } else if (grabbableData.wantsTrigger && this.triggerSmoothedGrab()) {
                         this.grabbedEntity = intersection.entityID;
                         this.setState(STATE_FAR_TRIGGER);
                         return;
@@ -991,11 +996,11 @@ function MyController(hand) {
             this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE + this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
             var searchSphereLocation = Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
             searchSphereLocation.y -= ((this.intersectionDistance - this.searchSphereDistance) / this.intersectionDistance) * SEARCH_SPHERE_CHASE_DROP;
-            this.searchSphereOn(searchSphereLocation, SPHERE_INTERSECTION_SIZE * this.intersectionDistance, NO_INTERSECT_COLOR);
+            this.searchSphereOn(searchSphereLocation, SPHERE_INTERSECTION_SIZE * this.intersectionDistance, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
                 var OVERLAY_BEAM_SETBACK = 0.9;
                 var startBeam = Vec3.sum(handPosition, Vec3.multiply(Vec3.subtract(searchSphereLocation, handPosition), OVERLAY_BEAM_SETBACK));
-                this.overlayLineOn(startBeam, searchSphereLocation, NO_INTERSECT_COLOR);
+                this.overlayLineOn(startBeam, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             }
         }
     };
