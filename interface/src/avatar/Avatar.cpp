@@ -1172,21 +1172,17 @@ void Avatar::updatePalms() {
     leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
 
-    // update thread-safe cache values
-    _leftPalmRotationCache.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
-        value = leftPalmRotation;
-        return false;
+    // update thread-safe caches
+    _leftPalmRotationCache.merge([&](const glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+        return leftPalmRotation;
     });
-    _rightPalmRotationCache.update([&](glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
-        value = rightPalmRotation;
-        return false;
+    _rightPalmRotationCache.merge([&](const glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
+        return rightPalmRotation;
     });
-    _leftPalmPositionCache.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        value = leftPalmPosition;
-        return false;
+    _leftPalmPositionCache.merge([&](const glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        return leftPalmPosition;
     });
-    _rightPalmPositionCache.update([&](glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        value = rightPalmPosition;
-        return false;
+    _rightPalmPositionCache.merge([&](const glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
+        return rightPalmPosition;
     });
 }
