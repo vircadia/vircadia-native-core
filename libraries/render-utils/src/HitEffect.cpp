@@ -14,6 +14,7 @@
 
 #include <glm/gtc/random.hpp>
 
+#include <DependencyManager.h>
 #include <PathUtils.h>
 #include <SharedUtil.h>
 
@@ -60,9 +61,9 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
 }
 
 void HitEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    RenderArgs* args = renderContext->args;
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
+    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
     
         glm::mat4 projMat;

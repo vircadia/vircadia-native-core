@@ -407,7 +407,7 @@ public:
 
     TexturePointer _texture = TexturePointer(NULL);
     uint16 _subresource = 0;
-    Element _element = Element(gpu::VEC4, gpu::UINT8, gpu::RGBA);
+    Element _element = Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
 
     TextureView() {};
 

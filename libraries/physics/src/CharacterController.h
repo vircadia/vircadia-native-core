@@ -79,6 +79,8 @@ public:
     void setEnabled(bool enabled);
     bool isEnabled() const { return _enabled && _dynamicsWorld; }
 
+    bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
+
 protected:
     void updateUpAxis(const glm::quat& rotation);
 

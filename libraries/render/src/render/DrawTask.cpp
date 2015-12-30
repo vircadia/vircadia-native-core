@@ -37,7 +37,7 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
 
 
     // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->args && renderContext->args->_viewFrustum)) {
+    if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
         return;
     }
 
@@ -54,11 +54,11 @@ Job::~Job() {
 
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
-    RenderArgs* args = renderContext->args;
-    auto renderDetails = renderContext->args->_details._item;
+    RenderArgs* args = renderContext->getArgs();
+    auto renderDetails = renderContext->getArgs()->_details._item;
 
     renderDetails->_considered += inItems.size();
     
@@ -115,7 +115,7 @@ void CullItems::run(const SceneContextPointer& sceneContext, const RenderContext
 
     outItems.clear();
     outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, outItems);
 }
@@ -124,7 +124,7 @@ void CullItemsOpaque::run(const SceneContextPointer& sceneContext, const RenderC
 
     outItems.clear();
     outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::OPAQUE_ITEM);
     cullItems(sceneContext, renderContext, inItems, outItems);
 }
@@ -133,7 +133,7 @@ void CullItemsTransparent::run(const SceneContextPointer& sceneContext, const Re
 
     outItems.clear();
     outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::TRANSLUCENT_ITEM);
     cullItems(sceneContext, renderContext, inItems, outItems);
 }
@@ -163,11 +163,11 @@ struct BackToFrontSort {
 };
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
     
     auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     
 
     // Allocate and simply copy
@@ -211,7 +211,7 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
 
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     // render
     if ((maxDrawnItems < 0) || (maxDrawnItems > (int) inItems.size())) {
         for (auto itemDetails : inItems) {
@@ -236,8 +236,8 @@ void render::renderItems(const SceneContextPointer& sceneContext, const RenderCo
 }
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
     // render lights
     auto& scene = sceneContext->_scene;
@@ -253,7 +253,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
@@ -265,8 +265,8 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 }
 
 void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->getArgs());
+    assert(renderContext->getArgs()->_viewFrustum);
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
@@ -278,7 +278,7 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
     for (auto id : items) {
         inItems.emplace_back(id);
     }
-    RenderArgs* args = renderContext->args;
+    RenderArgs* args = renderContext->getArgs();
     doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
         batch.enableSkybox(true);

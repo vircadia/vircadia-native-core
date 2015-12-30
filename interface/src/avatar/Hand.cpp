@@ -37,7 +37,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
 void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
     float avatarScale = 1.0f;
     if (_owningAvatar) {
-        avatarScale = _owningAvatar->getAvatarScale();
+        avatarScale = _owningAvatar->getUniformScale();
     }
 
     const float alpha = 1.0f;
@@ -62,7 +62,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             transform.setRotation(palm.getRotation());
             transform.postScale(SPHERE_RADIUS);
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, grayColor);
-    
+
             // draw a green sphere at the old "finger tip"
             transform = Transform();
             position = palm.getTipPosition();
@@ -72,7 +72,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, greenColor);
         }
     }
-    
+
     const float AXIS_RADIUS = 0.1f * SPHERE_RADIUS;
     const float AXIS_LENGTH = 10.0f * SPHERE_RADIUS;
 

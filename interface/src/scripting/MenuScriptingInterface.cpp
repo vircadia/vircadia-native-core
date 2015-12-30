@@ -84,6 +84,19 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
     return result;
 }
 
+void MenuScriptingInterface::addActionGroup(const QString& groupName, const QStringList& actionList,
+                                            const QString& selected) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addActionGroup",
+                              Q_ARG(const QString&, groupName),
+                              Q_ARG(const QStringList&, actionList),
+                              Q_ARG(const QString&, selected));
+}
+
+void MenuScriptingInterface::removeActionGroup(const QString& groupName) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeActionGroup",
+                              Q_ARG(const QString&, groupName));
+}
+
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
     bool result;
     QMetaObject::invokeMethod(Menu::getInstance(), "isOptionChecked", Qt::BlockingQueuedConnection,

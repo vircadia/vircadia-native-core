@@ -25,17 +25,20 @@ public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
-    virtual bool updateArguments(QVariantMap arguments);
-    virtual QVariantMap getArguments();
+    virtual bool updateArguments(QVariantMap arguments) override;
+    virtual QVariantMap getArguments() override;
 
-    virtual void updateActionWorker(float deltaTimeStep);
+    virtual void updateActionWorker(float deltaTimeStep) override;
 
     QByteArray serialize() const;
-    virtual void deserialize(QByteArray serializedArguments);
+    virtual void deserialize(QByteArray serializedArguments) override;
 
-    virtual bool shouldSuppressLocationEdits() { return _active && !_ownerEntity.expired(); }
+    virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
 
+    bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
     std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
+
+    virtual void prepareForPhysicsSimulation() override;
 
 private:
     void doKinematicUpdate(float deltaTimeStep);
@@ -56,6 +59,10 @@ private:
 
     float _previousDeltaTimeStep = 0.0f;
     glm::vec3 _previousPositionalDelta;
+
+    glm::vec3 _palmOffsetFromRigidBody;
+    // leaving this here for future refernece.
+    // glm::quat _palmRotationFromRigidBody;
 };
 
 #endif // hifi_AvatarActionHold_h

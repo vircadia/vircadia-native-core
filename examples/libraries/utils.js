@@ -271,3 +271,29 @@ hexToRgb = function(hex) {
     } : null;
 }
 
+calculateHandSizeRatio = function() {
+    // Get the ratio of the current avatar's hand to Owen's hand
+
+    var standardCenterHandPoint = 0.11288;
+    var jointNames = MyAvatar.getJointNames();
+    //get distance from handJoint up to leftHandIndex3 as a proxy for center of hand
+    var wristToFingertipDistance = 0;;
+    for (var i = 0; i < jointNames.length; i++) {
+        var jointName = jointNames[i];
+        print(jointName)
+        if (jointName.indexOf("LeftHandIndex") !== -1) {
+            // translations are relative to parent joint, so simply add them together
+            // joints face down the y-axis
+            var translation = MyAvatar.getDefaultJointTranslation(i).y;
+            wristToFingertipDistance += translation;
+        }
+    }
+    // Right now units are in cm, so convert to meters
+    wristToFingertipDistance /= 100;
+
+    var centerHandPoint = wristToFingertipDistance/2;
+
+    // Compare against standard hand (Owen)
+    var handSizeRatio = centerHandPoint/standardCenterHandPoint;
+    return handSizeRatio;
+}

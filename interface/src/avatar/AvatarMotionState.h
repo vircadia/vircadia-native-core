@@ -46,7 +46,7 @@ public:
     virtual float getObjectFriction() const;
     virtual float getObjectLinearDamping() const;
     virtual float getObjectAngularDamping() const;
-    
+
     virtual glm::vec3 getObjectPosition() const;
     virtual glm::quat getObjectRotation() const;
     virtual glm::vec3 getObjectLinearVelocity() const;

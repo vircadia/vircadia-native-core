@@ -376,11 +376,15 @@ protected:
     
     // Resource Stage
     void do_setResourceTexture(Batch& batch, size_t paramOffset);
-    
+
+    // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
+
     void resetResourceStage();
     struct ResourceStageState {
         Textures _textures;
+
+        int findEmptyTextureSlot() const;
 
         ResourceStageState():
             _textures(MAX_NUM_RESOURCE_TEXTURES, nullptr)
@@ -432,6 +436,7 @@ protected:
     void do_setFramebuffer(Batch& batch, size_t paramOffset);
     void do_clearFramebuffer(Batch& batch, size_t paramOffset);
     void do_blit(Batch& batch, size_t paramOffset);
+    void do_generateTextureMips(Batch& batch, size_t paramOffset);
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();

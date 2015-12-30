@@ -29,6 +29,8 @@
     var MIN_STROKE_WIDTH = 0.0005;
     var MAX_STROKE_WIDTH = 0.03;
 
+    var textureURL = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/paintStroke.png";
+
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
         Controller.Standard.RT,
@@ -168,6 +170,7 @@
                 type: "PolyLine",
                 name: "paintStroke",
                 color: this.strokeColor,
+                textures: "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/paintStroke.png",
                 dimensions: {
                     x: 50,
                     y: 50,

@@ -108,5 +108,6 @@ void main (void)
     
     vec3 finalColor = frontColor.rgb + fMiePhase * secondaryFrontColor.rgb;
     outFragColor.a = finalColor.b;
-    outFragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
+  //  outFragColor.rgb = pow(finalColor.rgb, vec3(1.0/2.2));
+    outFragColor.rgb = finalColor.rgb;
 }
