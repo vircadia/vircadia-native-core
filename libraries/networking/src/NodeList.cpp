@@ -94,7 +94,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _keepAlivePingTimer.setInterval(KEEPALIVE_PING_INTERVAL_MS);
     connect(&_keepAlivePingTimer, &QTimer::timeout, this, &NodeList::sendKeepAlivePings);
     connect(&_domainHandler, SIGNAL(connectedToDomain(QString)), &_keepAlivePingTimer, SLOT(start()));
-    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::stopKeepalivePingTimer);
+    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, &_keepAlivePingTimer, &QTimer::stop);
 
     // we definitely want STUN to update our public socket, so call the LNL to kick that off
     startSTUNPublicSocketUpdate();

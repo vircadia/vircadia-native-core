@@ -24,6 +24,7 @@ namespace gpu {
 class Batch;
 class Context;
 class Texture;
+class Framebuffer;
 }
 
 class RenderDetails {
@@ -101,6 +102,7 @@ public:
     }
 
     std::shared_ptr<gpu::Context> _context = nullptr;
+    std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
     glm::ivec4 _viewport{ 0, 0, 1, 1 };
@@ -115,8 +117,6 @@ public:
     std::shared_ptr<gpu::Texture> _whiteTexture;
 
     RenderDetails _details;
-
-    float _alphaThreshold = 0.5f;
 };
 
 #endif // hifi_RenderArgs_h

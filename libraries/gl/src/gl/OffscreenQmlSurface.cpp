@@ -320,10 +320,13 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 void OffscreenQmlSurface::resize(const QSize& newSize) {
 
     if (!_renderer || !_renderer->_quickWindow) {
-        QSize currentSize = _renderer->_quickWindow->geometry().size();
-        if (newSize == currentSize) {
-            return;
-        }
+        return;
+    }
+
+
+    QSize currentSize = _renderer->_quickWindow->geometry().size();
+    if (newSize == currentSize) {
+        return;
     }
 
     _qmlEngine->rootContext()->setContextProperty("surfaceSize", newSize);
@@ -437,7 +440,9 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_render) {
+        QMutexLocker lock(&(_renderer->_mutex));
         _renderer->post(RENDER);
+        _renderer->_cond.wait(&(_renderer->_mutex));
         _render = false;
     }
 

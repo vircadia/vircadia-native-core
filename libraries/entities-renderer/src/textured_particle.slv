@@ -82,7 +82,7 @@ void main(void) {
     varColor = interpolate3Vec4(particle.color.start, particle.color.middle, particle.color.finish, age);
     
     // anchor point in eye space
-    float radius = bezierInterpolate(particle.radius.start, particle.radius.middle, particle.radius.finish , age);
+    float radius = bezierInterpolate(particle.radius.start, particle.radius.middle, particle.radius.finish, age);
     vec4 quadPos = radius * UNIT_QUAD[twoTriID];
 
     vec4 anchorPoint;

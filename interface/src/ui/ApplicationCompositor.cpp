@@ -34,7 +34,6 @@
 static const quint64 MSECS_TO_USECS = 1000ULL;
 static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
-static const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 static const float reticleSize = TWO_PI / 100.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
@@ -386,7 +385,7 @@ bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& positi
     glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
 
     float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getAvatarScale(), &t)){
+    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getUniformScale(), &t)){
         result = position + direction * t;
         return true;
     }

@@ -384,10 +384,10 @@ var CHECK_MARK_COLOR = {
             y: newY
         });
         Overlays.editOverlay(this.checkMark, {
-            y: newY
+            y: newY + (0.25 * this.thumbSize)
         });
         Overlays.editOverlay(this.unCheckMark, {
-            y: newY
+            y: newY + (0.25 * this.thumbSize)
         });
     };
 
@@ -399,10 +399,10 @@ var CHECK_MARK_COLOR = {
             y: this.y
         });
         Overlays.editOverlay(this.checkMark, {
-            y: this.y
+            y: this.y + (0.25 * this.thumbSize)
         });
         Overlays.editOverlay(this.unCheckMark, {
-            y: this.y
+            y: this.y+ (0.25 * this.thumbSize)
         });
     };
 
@@ -814,12 +814,14 @@ var CHECK_MARK_COLOR = {
         });
     };
 
-
     CollapsablePanelItem.prototype.destroy = function() {
         Overlays.deleteOverlay(this.title);
         Overlays.deleteOverlay(this.thumb);
     };
 
+    CollapsablePanelItem.prototype.editTitle = function(opts) {
+        Overlays.editOverlay(this.title, opts);
+    };
 
     CollapsablePanelItem.prototype.hide = function() {
         Overlays.editOverlay(this.title, {
