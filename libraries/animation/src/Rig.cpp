@@ -289,8 +289,10 @@ void Rig::clearJointState(int index) {
 
 void Rig::clearJointStates() {
     _internalPoseSet._overrideFlags.clear();
-    _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
-    _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    if (_animSkeleton) {
+        _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
+        _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    }
 }
 
 void Rig::clearJointAnimationPriority(int index) {
