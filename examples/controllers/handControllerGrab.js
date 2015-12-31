@@ -789,7 +789,8 @@ function MyController(hand) {
         
         var distantPickRay = {
             origin:  Camera.position,
-            direction: Quat.getFront(Quat.multiply(Camera.orientation, handDeltaRotation)),
+            //direction: Quat.getFront(Quat.multiply(Camera.orientation, handDeltaRotation)),
+            direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1022,9 +1023,7 @@ function MyController(hand) {
             searchSphereLocation.y -= ((this.intersectionDistance - this.searchSphereDistance) / this.intersectionDistance) * SEARCH_SPHERE_CHASE_DROP;
             this.searchSphereOn(searchSphereLocation, SPHERE_INTERSECTION_SIZE * this.intersectionDistance, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-                var OVERLAY_BEAM_SETBACK = 0.9;
-                var startBeam = Vec3.sum(handPosition, Vec3.multiply(Vec3.subtract(searchSphereLocation, handPosition), OVERLAY_BEAM_SETBACK));
-                this.overlayLineOn(startBeam, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                this.overlayLineOn(handPosition, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             }
         }
     };
