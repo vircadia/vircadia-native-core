@@ -55,6 +55,15 @@ enum class Action {
 
     SHIFT,
 
+    UI_NAV_UP,
+    UI_NAV_DOWN,
+    UI_NAV_LEFT,
+    UI_NAV_RIGHT,
+    UI_NAV_SELECT,
+    UI_NAV_BACK,
+    UI_NAV_NEXT_GROUP,
+    UI_NAV_PREVIOUS_GROUP,
+
     // Pointer/Reticle control
     RETICLE_CLICK,
     RETICLE_X,
@@ -89,6 +98,7 @@ enum class Action {
     // Bisected aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
+
 
     NUM_ACTIONS,
 };

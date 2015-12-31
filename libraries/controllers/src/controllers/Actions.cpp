@@ -62,6 +62,15 @@ namespace controller {
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
 
+            makeButtonPair(Action::UI_NAV_UP, "UiNavUp"),
+            makeButtonPair(Action::UI_NAV_DOWN, "UiNavDown"),
+            makeButtonPair(Action::UI_NAV_LEFT, "UiNavLeft"),
+            makeButtonPair(Action::UI_NAV_RIGHT, "UiNavRight"),
+            makeButtonPair(Action::UI_NAV_SELECT, "UiNavSelect"),
+            makeButtonPair(Action::UI_NAV_BACK, "UiNavBack"),
+            makeButtonPair(Action::UI_NAV_NEXT_GROUP, "UiNavNextGroup"),
+            makeButtonPair(Action::UI_NAV_PREVIOUS_GROUP, "UiNavPreviousGroup"),
+
             makeAxisPair(Action::RETICLE_CLICK, "ReticleClick"),
             makeAxisPair(Action::RETICLE_X, "ReticleX"),
             makeAxisPair(Action::RETICLE_Y, "ReticleY"),

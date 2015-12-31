@@ -11,6 +11,8 @@
 
 #include "Application.h"
 
+#include <gl/Config.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -34,6 +36,7 @@
 
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickWindow>
 
 #include <QtWidgets/QActionGroup>
 #include <QtWidgets/QDesktopWidget>
@@ -684,6 +687,50 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        using namespace controller;
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        if (offscreenUi->navigationFocused()) {
+            auto actionEnum = static_cast<Action>(action);
+            int key = Qt::Key_unknown;
+            switch (actionEnum) {
+                case Action::UI_NAV_UP:
+                    key = Qt::Key_Up; 
+                    break;
+                case Action::UI_NAV_DOWN:
+                    key = Qt::Key_Down;
+                    break;
+                case Action::UI_NAV_LEFT:
+                    key = Qt::Key_Left;
+                    break;
+                case Action::UI_NAV_RIGHT:
+                    key = Qt::Key_Right;
+                    break;
+                case Action::UI_NAV_BACK:
+                    key = Qt::Key_Escape;
+                    break;
+                case Action::UI_NAV_SELECT:
+                    key = Qt::Key_Return;
+                    break;
+                case Action::UI_NAV_NEXT_GROUP:
+                    key = Qt::Key_Tab;
+                    break;
+                case Action::UI_NAV_PREVIOUS_GROUP:
+                    key = Qt::Key_Backtab;
+                    break;
+            }
+
+            if (key != Qt::Key_unknown) {
+                if (state) {
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                } else {
+                    QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                }
+                return;
+            }
+        }
+
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto globalPos = QCursor::pos();
             auto localPos = _glWidget->mapFromGlobal(globalPos);
@@ -753,6 +800,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     }));
     _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
+    _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        return offscreenUi->navigationFocused() ? 1.0 : 0.0;
     }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
@@ -1096,7 +1147,9 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
-    
+    // FIXME either expose so that dialogs can set this themselves or
+    // do better detection in the offscreen UI of what has focus
+    offscreenUi->setNavigationFocused(false);
 
     auto rootContext = offscreenUi->getRootContext();
     auto engine = rootContext->engine();
