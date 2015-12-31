@@ -30,16 +30,6 @@ VrDialog {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
 
-        // Required to support clicking on "hifi://" links
-        webview.loadingChanged.connect(handleWebviewLoading) 
-    }
-
-    // Required to support clicking on "hifi://" links
-    function handleWebviewLoading(loadRequest) {
-        if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-            var newUrl = loadRequest.url.toString();
-            root.navigating(newUrl)
-        }
     }
 
     Item {
@@ -59,9 +49,21 @@ VrDialog {
 
             onUrlChanged: {
                 var currentUrl = url.toString();
-                var newUrl = urlFixer.fixupUrl(currentUrl);
+                var newUrl = urlHandler.fixupUrl(currentUrl);
                 if (newUrl != currentUrl) {
                     url = newUrl;
+                }
+            }
+    
+            onLoadingChanged: {
+                // Required to support clicking on "hifi://" links
+                if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                    var url = loadRequest.url.toString();
+                    if (urlHandler.canHandleUrl(url)) {
+                        if (urlHandler.handleUrl(url)) {
+                            webview.stop();
+                        }
+                    }
                 }
             }
 

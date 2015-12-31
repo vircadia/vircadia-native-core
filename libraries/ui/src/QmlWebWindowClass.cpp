@@ -27,7 +27,6 @@
 #include "OffscreenUi.h"
 
 static const char* const URL_PROPERTY = "source";
-static const QRegExp HIFI_URL_PATTERN { "^hifi://" };
 
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -41,16 +40,10 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWin
 
 void QmlWebWindowClass::handleNavigation(const QString& url) {
     bool handled = false;
-
-    if (url.contains(HIFI_URL_PATTERN)) {
-        DependencyManager::get<AddressManager>()->handleLookupString(url);
-        handled = true;
-    } else {
-        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-        if (handler) {
-            if (handler->canAcceptURL(url)) {
-                handled = handler->acceptURL(url);
-            }
+    static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+    if (handler) {
+        if (handler->canAcceptURL(url)) {
+            handled = handler->acceptURL(url);
         }
     }
 
