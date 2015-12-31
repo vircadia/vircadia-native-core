@@ -1874,7 +1874,7 @@ var sinceLastParticleLifetimeUpdate = 0;
 function renewParticleBeamLifetimes(deltaTime) {
     //debounce this call since we don't want it 60x a second
     sinceLastParticleLifetimeUpdate = sinceLastParticleLifetimeUpdate + deltaTime;
-    if (sinceLastParticleLifetimeUpdate > TEMPORARY_PARTICLE_BEAM_LIFETIME - 10) {
+    if (sinceLastParticleLifetimeUpdate > TEMPORARY_PARTICLE_BEAM_LIFETIME - 2) {
         sinceLastParticleLifetimeUpdate = 0;
     } else {
         return;
