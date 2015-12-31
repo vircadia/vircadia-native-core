@@ -1,4 +1,4 @@
-/3/
+//
 //  Avatar.cpp
 //  interface/src/avatar
 //
