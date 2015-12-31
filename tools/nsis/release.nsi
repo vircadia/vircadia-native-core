@@ -70,7 +70,7 @@ Section /o "DDE Face Recognition" "DDE"
 SectionEnd
 
 Section /o "Default Content Set" "CONTENT"
-    SetOutPath "$ChosenInstallDir/resources"
+    SetOutPath "$ChosenInstallDir\resources"
     NSISdl::download "https://s3-us-west-1.amazonaws.com/hifi-production/content/temp.exe" "$ChosenInstallDir\content.exe"
     ExecWait '"$ChosenInstallDir\content.exe" /S'
     Delete "$ChosenInstallDir\content.exe"
