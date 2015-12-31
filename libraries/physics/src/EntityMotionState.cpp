@@ -48,9 +48,10 @@ bool entityTreeIsLocked() {
 #endif
 
 
-EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItem* entity) :
+EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
-    _entity(entity),
+    _entityPtr(entity),
+    _entity(entity.get()),
     _sentInactive(true),
     _lastStep(0),
     _serverPosition(0.0f),

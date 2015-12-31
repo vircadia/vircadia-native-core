@@ -122,17 +122,15 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // first disconnect each MotionStates from its Entity
     for (auto stateItr : _physicalObjects) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(&(*stateItr));
-        EntityItem* entity = motionState->getEntity();
-        assert(entity);
-        _entitiesToDelete.insert(EntityItemPointer(entity));
+        _entitiesToDelete.insert(motionState->getEntity());
     }
 
-    // then remove the objects from physics (aka MotionStates)
+    // then remove the objects (aka MotionStates) from physics
     _physicsEngine->removeObjects(_physicalObjects);
 
-    // delete the objects (aka MotionStates)
-    // Someday when we invert the entities/physics lib dependencies we can let EntityItem delete its own PhysicsInfo
-    // rather than do it here
+    // delete the MotionStates
+    // TODO: after we invert the entities/physics lib dependencies we will let EntityItem delete
+    // its own PhysicsInfo rather than do it here
     for (auto entity : _entitiesToDelete) {
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
         if (motionState) {
@@ -182,15 +180,15 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
     QMutexLocker lock(&_mutex);
     SetOfEntities::iterator entityItr = _entitiesToAddToPhysics.begin();
     while (entityItr != _entitiesToAddToPhysics.end()) {
-        EntityItem* entity = (*entityItr).get();
+        EntityItemPointer entity = (*entityItr);
         assert(!entity->getPhysicsInfo());
         if (entity->isDead()) {
-            prepareEntityForDelete(EntityItemPointer(entity));
+            prepareEntityForDelete(entity);
         } else if (!entity->shouldBePhysical()) {
             // this entity should no longer be on the internal _entitiesToAddToPhysics
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
             if (entity->isMoving()) {
-                _simpleKinematicEntities.insert(EntityItemPointer(entity));
+                _simpleKinematicEntities.insert(entity);
             }
         } else if (entity->isReadyToComputeShape()) {
             ShapeInfo shapeInfo;
@@ -236,12 +234,12 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
         ObjectMotionState* state = &(*stateItr);
         if (state && state->getType() == MOTIONSTATE_TYPE_ENTITY) {
             EntityMotionState* entityState = static_cast<EntityMotionState*>(state);
-            EntityItem* entity = entityState->getEntity();
-            assert(entity);
+            EntityItemPointer entity = entityState->getEntity();
+            assert(entity.get());
             if (entityState->isCandidateForOwnership(sessionID)) {
                 _outgoingChanges.insert(entityState);
             }
-            _entitiesToSort.insert(EntityItemPointer(entity));
+            _entitiesToSort.insert(entity);
         }
     }
 

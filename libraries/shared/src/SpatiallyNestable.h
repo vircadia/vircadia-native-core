@@ -34,7 +34,7 @@ enum class NestableType {
 class SpatiallyNestable : public std::enable_shared_from_this<SpatiallyNestable> {
 public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
-    virtual ~SpatiallyNestable() { assert(_isDead); }
+    virtual ~SpatiallyNestable() { }
 
     virtual const QUuid& getID() const { return _id; }
     virtual void setID(const QUuid& id) { _id = id; }

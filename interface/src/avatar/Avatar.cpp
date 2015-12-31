@@ -1,4 +1,4 @@
-//
+/3/
 //  Avatar.cpp
 //  interface/src/avatar
 //
@@ -108,6 +108,7 @@ Avatar::Avatar(RigPointer rig) :
 }
 
 Avatar::~Avatar() {
+    assert(isDead()); // mark dead before calling the dtor
     for(auto attachment : _unusedAttachments) {
         delete attachment;
     }

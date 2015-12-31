@@ -34,6 +34,8 @@ public:
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 
+    virtual ~AvatarManager();
+
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.get(); }

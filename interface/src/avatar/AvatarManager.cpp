@@ -76,6 +76,10 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
+AvatarManager::~AvatarManager() {
+    _myAvatar->die();
+}
+
 void AvatarManager::init() {
     _myAvatar->init();
     {

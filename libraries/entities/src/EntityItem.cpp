@@ -85,6 +85,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
 }
 
 EntityItem::~EntityItem() {
+    assert(isDead()); // mark as dead before calling dtor
     // clear out any left-over actions
     EntityTreePointer entityTree = _element ? _element->getTree() : nullptr;
     EntitySimulation* simulation = entityTree ? entityTree->getSimulation() : nullptr;

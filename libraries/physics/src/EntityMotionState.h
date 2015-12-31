@@ -12,11 +12,11 @@
 #ifndef hifi_EntityMotionState_h
 #define hifi_EntityMotionState_h
 
+#include <EntityTypes.h>
 #include <AACube.h>
 
 #include "ObjectMotionState.h"
 
-class EntityItem;
 
 // From the MotionState's perspective:
 //      Inside = physics simulation
@@ -25,7 +25,7 @@ class EntityItem;
 class EntityMotionState : public ObjectMotionState {
 public:
 
-    EntityMotionState(btCollisionShape* shape, EntityItem* item);
+    EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables(const QUuid& sessionID);
@@ -73,7 +73,7 @@ public:
     virtual QUuid getSimulatorID() const;
     virtual void bump(quint8 priority);
 
-    EntityItem* getEntity() const { return _entity; }
+    EntityItemPointer getEntity() const { return _entityPtr.lock(); }
 
     void resetMeasuredBodyAcceleration();
     void measureBodyAcceleration();
@@ -96,7 +96,15 @@ protected:
     virtual btCollisionShape* computeNewShape();
     virtual void setMotionType(MotionType motionType);
 
-    EntityItem* _entity { nullptr }; // do NOT use smartpointer here
+    // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be
+    // properly "owned" by the EntityItem and will be deleted by it in the dtor.  In pursuit of that
+    // state of affairs we can't keep a real EntityItemPointer as data member (it would produce a
+    // recursive dependency).  Instead we keep a EntityItemWeakPointer to break that dependency while
+    // still granting us the capability to generate EntityItemPointers as necessary (for external data
+    // structures that use the MotionState to get to the EntityItem).
+    EntityItemWeakPointer _entityPtr;
+    // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
+    EntityItem* _entity;
 
     bool _sentInactive;   // true if body was inactive when we sent last update
 
