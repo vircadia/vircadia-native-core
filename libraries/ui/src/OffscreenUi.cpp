@@ -142,4 +142,44 @@ void OffscreenUi::error(const QString& text) {
 
 OffscreenUi::ButtonCallback OffscreenUi::NO_OP_CALLBACK = [](QMessageBox::StandardButton) {};
 
+static const char * const NAVIGATION_FOCUSED_PROPERTY = "NavigationFocused";
+class OffscreenFlags : public QObject{
+    Q_OBJECT
+    Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
+public:
+    OffscreenFlags(QObject* parent = nullptr) : QObject(parent) {}
+    bool isNavigationFocused() const { return _navigationFocused; }
+    void setNavigationFocused(bool focused) { 
+        if (_navigationFocused != focused) {
+            _navigationFocused = focused;
+            emit navigationFocusedChanged();
+        }
+    }
+
+signals:
+    void navigationFocusedChanged();
+
+private:
+    bool _navigationFocused { false };
+
+};
+
+
+OffscreenFlags* getFlags(QQmlContext* context) {
+    static OffscreenFlags* offscreenFlags { nullptr };
+    if (!offscreenFlags) {
+        offscreenFlags = new OffscreenFlags(context);
+        context->setContextProperty("OffscreenFlags", offscreenFlags);
+    }
+    return offscreenFlags;
+}
+
+bool OffscreenUi::navigationFocused() {
+    return getFlags(getRootContext())->isNavigationFocused();
+}
+
+void OffscreenUi::setNavigationFocused(bool focused) {
+    getFlags(getRootContext())->setNavigationFocused(focused);
+}
+
 #include "OffscreenUi.moc"

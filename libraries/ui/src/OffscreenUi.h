@@ -29,6 +29,8 @@ public:
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
+    bool navigationFocused();
+    void setNavigationFocused(bool focused);
 
     // Messagebox replacement functions
     using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
