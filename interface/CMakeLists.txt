@@ -109,7 +109,9 @@ add_dependency_external_projects(sdl2)
 if (WIN32)
     add_dependency_external_projects(OpenVR)
 endif()
-
+if(WIN32 OR APPLE)
+    add_dependency_external_projects(neuron)
+endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
