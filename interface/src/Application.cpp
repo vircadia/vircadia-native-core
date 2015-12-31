@@ -692,34 +692,61 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         if (offscreenUi->navigationFocused()) {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
+            bool navAxis = false;
+            static int lastKey = Qt::Key_unknown;
             switch (actionEnum) {
-                case Action::UI_NAV_UP:
-                    key = Qt::Key_Up; 
+                case Action::UI_NAV_VERTICAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Up;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Down;
+                    }
                     break;
-                case Action::UI_NAV_DOWN:
-                    key = Qt::Key_Down;
+
+                case Action::UI_NAV_LATERAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Right;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Left;
+                    }
                     break;
-                case Action::UI_NAV_LEFT:
-                    key = Qt::Key_Left;
+
+                case Action::UI_NAV_GROUP:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Tab;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Backtab;
+                    }
                     break;
-                case Action::UI_NAV_RIGHT:
-                    key = Qt::Key_Right;
-                    break;
+
                 case Action::UI_NAV_BACK:
                     key = Qt::Key_Escape;
                     break;
+
                 case Action::UI_NAV_SELECT:
                     key = Qt::Key_Return;
                     break;
-                case Action::UI_NAV_NEXT_GROUP:
-                    key = Qt::Key_Tab;
-                    break;
-                case Action::UI_NAV_PREVIOUS_GROUP:
-                    key = Qt::Key_Backtab;
-                    break;
             }
 
-            if (key != Qt::Key_unknown) {
+            if (navAxis) {
+                qDebug() << "Axis " << action << " value " << state;
+                if (lastKey != Qt::Key_unknown) {
+                    qDebug() << "Releasing key " << lastKey;
+                    QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = Qt::Key_unknown;
+                }
+
+                if (key != Qt::Key_unknown) {
+                    qDebug() << "Pressing key " << key;
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = key;
+                }
+            } else if (key != Qt::Key_unknown) {
                 if (state) {
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
                     sendEvent(offscreenUi->getWindow(), &event);

@@ -55,14 +55,11 @@ enum class Action {
 
     SHIFT,
 
-    UI_NAV_UP,
-    UI_NAV_DOWN,
-    UI_NAV_LEFT,
-    UI_NAV_RIGHT,
+    UI_NAV_LATERAL,
+    UI_NAV_VERTICAL,
+    UI_NAV_GROUP,
     UI_NAV_SELECT,
     UI_NAV_BACK,
-    UI_NAV_NEXT_GROUP,
-    UI_NAV_PREVIOUS_GROUP,
 
     // Pointer/Reticle control
     RETICLE_CLICK,
