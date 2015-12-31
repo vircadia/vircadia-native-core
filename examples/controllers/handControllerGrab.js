@@ -30,6 +30,8 @@ var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
 
+var HAND_HEAD_MIX_RATIO = 0.0;      //  0 = only use hands for search/move.  1 = only use head for search/move.
+
 //
 // distant manipulation
 //
@@ -790,7 +792,7 @@ function MyController(hand) {
         var distantPickRay = {
             origin:  Camera.position,
             //direction: Quat.getFront(Quat.multiply(Camera.orientation, handDeltaRotation)),
-            direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), 0.5),
+            direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1188,14 +1190,11 @@ function MyController(hand) {
                     y: 0.0,
                     z: objDistance
                 });
-                var change = Vec3.subtract(before, after);
+                var change = Vec3.multiply(Vec3.subtract(before, after), HAND_HEAD_MIX_RATIO);
                 this.currentCameraOrientation = Camera.orientation;
                 this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
             }
-        } else {
-            //  print('should not head move!');
         }
-
 
         var defaultConstraintData = {
             axisStart: false,
