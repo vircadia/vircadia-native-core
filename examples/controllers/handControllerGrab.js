@@ -791,7 +791,6 @@ function MyController(hand) {
         
         var distantPickRay = {
             origin:  Camera.position,
-            //direction: Quat.getFront(Quat.multiply(Camera.orientation, handDeltaRotation)),
             direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
