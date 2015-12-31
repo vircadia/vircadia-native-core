@@ -69,6 +69,13 @@ Section /o "DDE Face Recognition" "DDE"
     ExecWait '"$ChosenInstallDir\dde-installer.exe" /q:a /t:"$ChosenInstallDir\dde"'
 SectionEnd
 
+Section /o "Default Content Set" "CONTENT"
+    SetOutPath "$ChosenInstallDir/resources"
+    NSISdl::download "https://s3-us-west-1.amazonaws.com/hifi-production/content/temp.exe" "$ChosenInstallDir\content.exe"
+    ExecWait '"$ChosenInstallDir\content.exe" /S'
+    Delete "$ChosenInstallDir\content.exe"
+SectionEnd
+
 Section "Registry Entries and Procotol Handler" "REGISTRY"
     SetRegView 64
     SectionIn RO
@@ -205,6 +212,7 @@ FunctionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${DDE} "DDE enables facial gesture recognition using a standard 2D webcam"
+    !insertmacro MUI_DESCRIPTION_TEXT ${CONTENT} "Demo content set for your home server"
     !insertmacro MUI_DESCRIPTION_TEXT ${CLIENT} "The High Fidelity Interface Client for connection to domains in the metaverse."
     !insertmacro MUI_DESCRIPTION_TEXT ${SERVER} "The High Fidelity Server - run your own home domain"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
