@@ -1,15 +1,6 @@
 {
     "name": "Standard to Action",
     "channels": [
-        { "from": "Standard.DU", "when": "Application.NavigationFocused", "to": "Actions.UiNavUp" },
-        { "from": "Standard.DD", "when": "Application.NavigationFocused", "to": "Actions.UiNavDown" },
-        { "from": "Standard.DL", "when": "Application.NavigationFocused", "to": "Actions.UiNavLeft" },
-        { "from": "Standard.DR", "when": "Application.NavigationFocused", "to": "Actions.UiNavRight" },
-        { "from": "Standard.A", "when": "Application.NavigationFocused", "to": "Actions.UiNavSelect" },
-        { "from": "Standard.B", "when": "Application.NavigationFocused", "to": "Actions.UiNavBack" },
-        { "from": "Standard.LB", "when": "Application.NavigationFocused", "to": "Actions.UiNavPreviousGroup" },
-        { "from": "Standard.RB", "when": "Application.NavigationFocused", "to": "Actions.UiNavNextGroup" },
-    
         { "from": "Standard.LY", "to": "Actions.TranslateZ" },
         { "from": "Standard.LX", "to": "Actions.TranslateX" },
 
