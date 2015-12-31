@@ -10,6 +10,7 @@ import "styles"
 
 VrDialog {
     id: root
+    objectName: "topLevelWindow"
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
@@ -24,10 +25,6 @@ VrDialog {
     contentImplicitHeight: clientArea.implicitHeight
     property alias source: pageLoader.source 
 
-    Keys.onPressed: {
-        console.log("QmlWindow keypress")
-    }
-    
     Item {
         id: clientArea
         implicitHeight: 600
@@ -44,9 +41,9 @@ VrDialog {
             objectName: "Loader"
             anchors.fill: parent
             focus: true
+            property var dialog: root
             
             onLoaded: {
-                console.log("Loaded content")
                 forceActiveFocus()
             }
             
