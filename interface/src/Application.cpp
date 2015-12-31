@@ -692,8 +692,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         if (offscreenUi->navigationFocused()) {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
-            bool navAxis = false;
             static int lastKey = Qt::Key_unknown;
+            bool navAxis = false;
             switch (actionEnum) {
                 case Action::UI_NAV_VERTICAL:
                     navAxis = true;
@@ -732,16 +732,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             }
 
             if (navAxis) {
-                qDebug() << "Axis " << action << " value " << state;
                 if (lastKey != Qt::Key_unknown) {
-                    qDebug() << "Releasing key " << lastKey;
                     QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
                     sendEvent(offscreenUi->getWindow(), &event);
                     lastKey = Qt::Key_unknown;
                 }
 
                 if (key != Qt::Key_unknown) {
-                    qDebug() << "Pressing key " << key;
                     QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
                     sendEvent(offscreenUi->getWindow(), &event);
                     lastKey = key;

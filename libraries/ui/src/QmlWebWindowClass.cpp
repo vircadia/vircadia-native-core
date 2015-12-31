@@ -29,36 +29,10 @@
 static const char* const URL_PROPERTY = "source";
 static const QRegExp HIFI_URL_PATTERN { "^hifi://" };
 
-class UrlFixer : public QObject {
-    Q_OBJECT
-public:
-    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-        static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-        static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
-        QString result = originalUrl;
-        QUrl url(originalUrl);
-        QUrlQuery query(url);
-        if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-            qDebug() << "Updating URL with auth token";
-            AccountManager& accountManager = AccountManager::getInstance();
-            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
-            url.setQuery(query.query());
-            result = url.toString();
-        }
-
-        return result;
-    }
-};
-
-static UrlFixer URL_FIXER;
-
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QQmlContext* context, QObject* object) {
-            context->setContextProperty("urlFixer", &URL_FIXER);
-            return new QmlWebWindowClass(object);
-    });
+        [&](QQmlContext* context, QObject* object) { return new QmlWebWindowClass(object); });
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
@@ -101,5 +75,3 @@ void QmlWebWindowClass::setURL(const QString& urlString) {
     }
     _qmlWindow->setProperty(URL_PROPERTY, urlString);
 }
-
-#include "QmlWebWindowClass.moc"
