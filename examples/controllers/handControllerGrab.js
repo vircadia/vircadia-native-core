@@ -1856,8 +1856,10 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
+    if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+        Script.update.disconnect(renewParticleBeamLifetimes);
+    }
 }
-
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
 
