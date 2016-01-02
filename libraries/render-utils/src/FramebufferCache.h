@@ -43,6 +43,12 @@ public:
 
     gpu::FramebufferPointer getDepthPyramidFramebuffer();
     gpu::TexturePointer getDepthPyramidTexture();
+    
+    gpu::FramebufferPointer getOcclusionFramebuffer();
+    gpu::TexturePointer getOcclusionTexture();
+    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
+    gpu::TexturePointer getOcclusionBlurredTexture();
+    
 
     gpu::TexturePointer getLightingTexture();
     gpu::FramebufferPointer getLightingFramebuffer();
@@ -87,6 +93,13 @@ private:
 
     gpu::FramebufferPointer _depthPyramidFramebuffer;
     gpu::TexturePointer _depthPyramidTexture;
+    
+    
+    gpu::FramebufferPointer _occlusionFramebuffer;
+    gpu::TexturePointer _occlusionTexture;
+    
+    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
+    gpu::TexturePointer _occlusionBlurredTexture;
 
     QSize _frameBufferSize{ 100, 100 };
 };

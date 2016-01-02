@@ -12,7 +12,7 @@
 Script.include("cookies.js");
 
 var MENU = "Developer>Render>Debug Deferred Buffer";
-var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "AmbientOcclusion", "Custom"];
+var ACTIONS = ["Off", "Diffuse", "AmbientOcclusion", "Specular", "Roughness", "Normal", "Depth", "Lighting", "PyramidDepth", "OcclusionRaw", "OcclusionBlurred", "Custom"];
 var SETTINGS_KEY = "EngineDebugScript.DebugMode";
 
 Number.prototype.clamp = function(min, max) {
@@ -52,6 +52,7 @@ var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
+previousMode = 1;
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
 Render.deferredDebugMode = previousMode;
 Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
@@ -96,6 +97,11 @@ panel.newCheckbox("Network/Physics status",
 panel.newSlider("Tone Mapping Exposure", -10, 10,
     function (value) { Render.tone.exposure = value; },
     function() { return Render.tone.exposure; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Radius", 0.0, 2.0,
+    function (value) { Render.ambientOcclusion.radius = value; },
+    function() { return Render.ambientOcclusion.radius; },
     function (value) { return (value); });
 
 var tickTackPeriod = 500;

@@ -76,14 +76,20 @@ public:
         int toneCurve = 1; // Means just Gamma 2.2 correction
         float exposure = 0.0;
     };
+   
+    class AmbientOcclusion {
+    public:
+        float radius = 0.5; // radius in meters of the AO effect
+    };
     
-    RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
-    RenderContext() : RenderContext({}, {}, {}, {}, {}, {}) {};
+    RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
+    RenderContext() : RenderContext({}, {}, {}, {}, {}, {}, {}) {};
 
     void setArgs(RenderArgs* args) { _args = args; }
     inline RenderArgs* getArgs() { return _args; }
     inline ItemsConfig& getItemsConfig() { return _items; }
     inline Tone& getTone() { return _tone; }
+    inline AmbientOcclusion& getAmbientOcclusion() { return _ambientOcclusion; }
     inline int getDrawStatus() { return _drawStatus; }
     inline bool getDrawHitEffect() { return _drawHitEffect; }
     inline bool getOcclusionStatus() { return _occlusionStatus; }
@@ -105,6 +111,7 @@ protected:
 
     ItemsConfig _items;
     Tone _tone;
+    AmbientOcclusion _ambientOcclusion;
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
 

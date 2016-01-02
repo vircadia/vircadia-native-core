@@ -158,12 +158,16 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->getOcclusionStatus());
-
+    if (_occlusionJobIndex >= 0) {
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
+    }
+    
     setAntialiasingStatus(renderContext->getFxaaStatus());
 
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
 
+    
     renderContext->getArgs()->_context->syncCache();
 
     for (auto job : _jobs) {

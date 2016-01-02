@@ -1,0 +1,58 @@
+<!
+//  AmbientOcclusion.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SSAO_SLH@>
+<@def SSAO_SLH@>
+
+<@func declareAmbientOcclusion()@>
+
+struct AmbientOcclusionParams {
+    vec4 _clipInfo;
+    mat4 _projection;
+    vec4 _radius_radius2_InvRadius6_s2;
+};
+
+uniform ambientOcclusionParamsBuffer {
+    AmbientOcclusionParams params;
+};
+
+float getProjScale() {
+    return 500.0; // this should be viewportHeight * Proj[1][1] / 2.0
+}
+
+float getRadius() {
+    return params._radius_radius2_InvRadius6_s2.x;
+}
+float getRadius2() {
+    return params._radius_radius2_InvRadius6_s2.y;
+}
+float getInvRadius6() {
+    return params._radius_radius2_InvRadius6_s2.z;
+}
+
+float evalZeyeFromZdb(float depth) {
+    return params._clipInfo.x / (depth * params._clipInfo.y + params._clipInfo.z);
+}
+
+vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord) {
+    // compute the view space position using the depth
+    // basically manually pick the proj matrix components to do the inverse
+    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[2][0] - params._projection[3][0]) / params._projection[0][0];
+    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[2][1] - params._projection[3][1]) / params._projection[1][1];
+    return vec3(Xe, Ye, Zeye);
+}
+
+vec3 evalEyeNormal(vec3 C) {
+    return normalize(cross(dFdy(C), dFdx(C)));
+}
+<@endfunc@>
+
+
+<@endif@>

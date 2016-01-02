@@ -27,13 +27,15 @@ public:
 private:
     enum Modes : uint8_t {
         DiffuseMode = 0,
-        AlphaMode,
+        AmbientOcclusionMode,
         SpecularMode,
         RoughnessMode,
         NormalMode,
         DepthMode,
         LightingMode,
-        AmbientOcclusionMode,
+        PyramidDepthMode,
+        OcclusionRawMode,
+        OcclusionBlurredMode,
         
         CustomMode // Needs to stay last
     };

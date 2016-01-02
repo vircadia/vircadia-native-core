@@ -24,6 +24,9 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
 
+    void setRadius(float radius);
+    float getRadius() const { return _parametersBuffer.get<Parameters>()._radius_radius2_InvRadius6_s2.x; }
+    
 private:
 
     void setClipInfo(float nearZ, float farZ);
@@ -33,7 +36,7 @@ private:
     public:
         glm::vec4 _clipInfo;
         glm::mat4 _projection;
-        glm::vec4 _radius_s0_s1_s2{ 0.5, 0.0, 0.0, 0.0 };
+        glm::vec4 _radius_radius2_InvRadius6_s2{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 0.0 };
 
         Parameters() {}
     };
@@ -56,8 +59,8 @@ private:
 
     const gpu::PipelinePointer& getPyramidPipeline();
     const gpu::PipelinePointer& getOcclusionPipeline();
-    const gpu::PipelinePointer& getHBlurPipeline();
-    const gpu::PipelinePointer& getVBlurPipeline();
+    const gpu::PipelinePointer& getHBlurPipeline(); // first
+    const gpu::PipelinePointer& getVBlurPipeline(); // second
 
     gpu::PipelinePointer _pyramidPipeline;
     gpu::PipelinePointer _occlusionPipeline;

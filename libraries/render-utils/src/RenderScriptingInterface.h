@@ -65,6 +65,14 @@ namespace RenderScripting {
         void setCurve(const QString& curve);
     };
     using TonePointer = std::unique_ptr<Tone>;
+    
+    class AmbientOcclusion : public QObject, public render::RenderContext::AmbientOcclusion {
+        Q_OBJECT
+        
+    public:
+        Q_PROPERTY(float radius MEMBER radius)
+    };
+    using AmbientOcclusionPointer = std::unique_ptr<AmbientOcclusion>;
 };
 
 class RenderScriptingInterface : public QObject, public Dependency {
@@ -77,7 +85,8 @@ class RenderScriptingInterface : public QObject, public Dependency {
     Q_PROPERTY(RenderScripting::ItemCounter* overlay3D READ getOverlay3D)
 
     Q_PROPERTY(RenderScripting::Tone* tone READ getTone)
-
+    Q_PROPERTY(RenderScripting::AmbientOcclusion* ambientOcclusion READ getAmbientOcclusion)
+    
     Q_PROPERTY(int displayItemStatus MEMBER _drawStatus)
     Q_PROPERTY(bool displayHitEffect MEMBER _drawHitEffect)
 
@@ -96,12 +105,15 @@ protected:
     RenderScripting::ItemCounter* getOverlay3D() const { return _overlay3D.get(); }
 
     RenderScripting::Tone* getTone() const { return _tone.get(); }
+    RenderScripting::AmbientOcclusion* getAmbientOcclusion() const { return _ambientOcclusion.get(); }
 
     RenderScripting::ItemStatePointer _opaque = RenderScripting::ItemStatePointer{new RenderScripting::ItemState{}};
     RenderScripting::ItemStatePointer _transparent = RenderScripting::ItemStatePointer{new RenderScripting::ItemState{}};
     RenderScripting::ItemCounterPointer _overlay3D = RenderScripting::ItemCounterPointer{new RenderScripting::ItemCounter{}};
 
     RenderScripting::TonePointer _tone = RenderScripting::TonePointer{ new RenderScripting::Tone{} };
+    
+    RenderScripting::AmbientOcclusionPointer _ambientOcclusion = RenderScripting::AmbientOcclusionPointer{ new RenderScripting::AmbientOcclusion{} };
 
     // Options
     int _drawStatus = 0;
