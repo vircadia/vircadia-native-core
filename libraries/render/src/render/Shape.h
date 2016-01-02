@@ -152,6 +152,7 @@ class Shape {
 public:
     using Key = ShapeKey;
     using Pipeline = ShapePipeline;
+    using PipelinePointer = std::shared_ptr<Pipeline>;
     using Slots = ShapePipeline::Slots;
     using Locations = ShapePipeline::Locations;
 
@@ -164,12 +165,12 @@ public:
     static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
         _pipelineLib.addPipeline(key, vertexShader, pixelShader);
     }
-    virtual const Pipeline& pickPipeline(RenderArgs* args, const Key& key) {
+    virtual const PipelinePointer& pickPipeline(RenderArgs* args, const Key& key) {
         return Shape::_pickPipeline(args, key);
     }
 
 protected:
-    static const Pipeline& _pickPipeline(RenderArgs* args, const Key& key);
+    static const PipelinePointer& _pickPipeline(RenderArgs* args, const Key& key);
     static PipelineLib _pipelineLib;
 };
 

@@ -83,6 +83,9 @@ public:
     };
     ItemKey(const Builder& builder) : ItemKey(builder._flags) {}
 
+    bool isShape() const { return _flags[TYPE_SHAPE]; }
+    bool isLight() const { return _flags[TYPE_LIGHT]; }
+
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
     bool isTransparent() const { return _flags[TRANSLUCENT]; }
 

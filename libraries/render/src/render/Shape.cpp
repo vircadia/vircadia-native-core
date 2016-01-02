@@ -17,7 +17,7 @@ using namespace render;
 
 Shape::PipelineLib _pipelineLip;
 
-const Shape::Pipeline& Shape::_pickPipeline(RenderArgs* args, const Key& key) {
+const Shape::PipelinePointer& Shape::_pickPipeline(RenderArgs* args, const Key& key) {
     assert(!_pipelineLib.empty());
     assert(args);
     assert(args->_batch);
@@ -27,14 +27,14 @@ const Shape::Pipeline& Shape::_pickPipeline(RenderArgs* args, const Key& key) {
     const auto& pipelineIterator = _pipelineLib.find(key);
     if (pipelineIterator == _pipelineLib.end()) {
         qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
-        return Shape::Pipeline(); // uninitialized _pipeline == nullptr
+        return std::make_shared<Pipeline>();
     }
 
-    const auto& shapePipeline = pipelineIterator->second;
+    Shape::PipelinePointer shapePipeline(&(pipelineIterator->second));
     auto& batch = args->_batch;
 
     // Setup the one pipeline (to rule them all)
-    batch->setPipeline(shapePipeline.pipeline);
+    batch->setPipeline(shapePipeline->pipeline);
 
     return shapePipeline;
 }
