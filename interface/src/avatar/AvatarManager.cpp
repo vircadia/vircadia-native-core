@@ -310,8 +310,8 @@ QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
 }
 
 AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
-    QReadLocker locker(&_hashLock);
-    return _avatarHash[avatarID].get();  // Non-obvious: A bogus avatarID answers your own avatar.
+    // Null/Default-constructed QUuids will return MyAvatar
+    return getAvatarBySessionID(avatarID).get();
 }
 
 

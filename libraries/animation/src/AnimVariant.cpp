@@ -15,6 +15,8 @@
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
+const AnimVariant AnimVariant::False = AnimVariant();
+
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
         qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();

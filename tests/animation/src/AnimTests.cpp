@@ -8,12 +8,13 @@
 //
 
 #include "AnimTests.h"
-#include "AnimNodeLoader.h"
-#include "AnimClip.h"
-#include "AnimBlendLinear.h"
-#include "AnimationLogging.h"
-#include "AnimVariant.h"
-#include "AnimUtil.h"
+#include <AnimNodeLoader.h>
+#include <AnimClip.h>
+#include <AnimBlendLinear.h>
+#include <AnimationLogging.h>
+#include <AnimVariant.h>
+#include <AnimExpression.h>
+#include <AnimUtil.h>
 
 #include <../QTestExtensions.h>
 
@@ -315,7 +316,6 @@ void AnimTests::testAccumulateTimeWithParameters(float startFrame, float endFram
     triggers.clear();
 }
 
-
 void AnimTests::testAnimPose() {
     const float PI = (float)M_PI;
     const glm::quat ROT_X_90 = glm::angleAxis(PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
@@ -394,3 +394,234 @@ void AnimTests::testAnimPose() {
         }
     }
 }
+
+void AnimTests::testExpressionTokenizer() {
+    QString str = "(10 +  x) >= 20.1 && (y != !z)";
+    AnimExpression e("x");
+    auto iter = str.cbegin();
+    AnimExpression::Token token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LeftParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Int);
+    QVERIFY(token.intVal == 10);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Plus);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "x");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::RightParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::GreaterThanEqual);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Float);
+    QVERIFY(fabsf(token.floatVal - 20.1f) < 0.0001f);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::And);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::LeftParen);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "y");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::NotEqual);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Not);
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Identifier);
+    QVERIFY(token.strVal == "z");
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::RightParen);
+    token = e.consumeToken(str, iter);
+
+    str = "true";
+    iter = str.cbegin();
+    token = e.consumeToken(str, iter);
+    QVERIFY(token.type == AnimExpression::Token::Bool);
+    QVERIFY(token.intVal == (int)true);
+}
+
+void AnimTests::testExpressionParser() {
+
+    auto vars = AnimVariantMap();
+    vars.set("f", false);
+    vars.set("t", true);
+    vars.set("ten", (int)10);
+    vars.set("twenty", (int)20);
+    vars.set("five", (float)5.0f);
+    vars.set("forty", (float)40.0f);
+
+    AnimExpression e("10");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+    }
+
+    e = AnimExpression("(10)");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+    }
+
+    e = AnimExpression("((10))");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Int);
+        QVERIFY(e._opCodes[0].intVal == 10);
+    }
+
+    e = AnimExpression("12.5");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Float);
+        QVERIFY(e._opCodes[0].floatVal == 12.5f);
+    }
+
+    e = AnimExpression("twenty");
+    QVERIFY(e._opCodes.size() == 1);
+    if (e._opCodes.size() == 1) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Identifier);
+        QVERIFY(e._opCodes[0].strVal == "twenty");
+    }
+
+    e = AnimExpression("true || false");
+    QVERIFY(e._opCodes.size() == 3);
+    if (e._opCodes.size() == 3) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Or);
+    }
+
+    e = AnimExpression("true || false && true");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[2].intVal == (int)true);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::And);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Or);
+    }
+
+    e = AnimExpression("(true || false) && true");
+    QVERIFY(e._opCodes.size() == 5);
+    if (e._opCodes.size() == 5) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Or);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[3].intVal == (int)true);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::And);
+    }
+
+    e = AnimExpression("!(true || false) && true");
+    QVERIFY(e._opCodes.size() == 6);
+    if (e._opCodes.size() == 6) {
+        QVERIFY(e._opCodes[0].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[0].intVal == (int)true);
+        QVERIFY(e._opCodes[1].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[1].intVal == (int)false);
+        QVERIFY(e._opCodes[2].type == AnimExpression::OpCode::Or);
+        QVERIFY(e._opCodes[3].type == AnimExpression::OpCode::Not);
+        QVERIFY(e._opCodes[4].type == AnimExpression::OpCode::Bool);
+        QVERIFY(e._opCodes[4].intVal == (int)true);
+        QVERIFY(e._opCodes[5].type == AnimExpression::OpCode::And);
+    }
+}
+
+#define TEST_BOOL_EXPR(EXPR)                                \
+    result = AnimExpression( #EXPR ).evaluate(vars);        \
+    QVERIFY(result.type == AnimExpression::OpCode::Bool);   \
+    QVERIFY(result.intVal == (int)(EXPR))
+
+void AnimTests::testExpressionEvaluator() {
+    auto vars = AnimVariantMap();
+
+    bool f = false;
+    bool t = true;
+    int ten = 10;
+    int twenty = 20;
+    float five = 5.0f;
+    float fourty = 40.0f;
+    vars.set("f", f);
+    vars.set("t", t);
+    vars.set("ten", ten);
+    vars.set("twenty", twenty);
+    vars.set("five", five);
+    vars.set("forty", fourty);
+
+    AnimExpression::OpCode result(AnimExpression::OpCode::Int);
+
+    result = AnimExpression("10").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 10);
+
+    result = AnimExpression("(10)").evaluate(vars);
+    QVERIFY(result.type == AnimExpression::OpCode::Int);
+    QVERIFY(result.intVal == 10);
+
+    TEST_BOOL_EXPR(true);
+    TEST_BOOL_EXPR(false);
+    TEST_BOOL_EXPR(t);
+    TEST_BOOL_EXPR(f);
+
+    TEST_BOOL_EXPR(true || false);
+    TEST_BOOL_EXPR(true || true);
+    TEST_BOOL_EXPR(false || false);
+    TEST_BOOL_EXPR(false || true);
+
+    TEST_BOOL_EXPR(true && false);
+    TEST_BOOL_EXPR(true && true);
+    TEST_BOOL_EXPR(false && false);
+    TEST_BOOL_EXPR(false && true);
+
+    TEST_BOOL_EXPR(true || false && true);
+    TEST_BOOL_EXPR(true || false && false);
+    TEST_BOOL_EXPR(true || true && true);
+    TEST_BOOL_EXPR(true || true && false);
+    TEST_BOOL_EXPR(false || false && true);
+    TEST_BOOL_EXPR(false || false && false);
+    TEST_BOOL_EXPR(false || true && true);
+    TEST_BOOL_EXPR(false || true && false);
+
+    TEST_BOOL_EXPR(true && false || true);
+    TEST_BOOL_EXPR(true && false || false);
+    TEST_BOOL_EXPR(true && true || true);
+    TEST_BOOL_EXPR(true && true || false);
+    TEST_BOOL_EXPR(false && false || true);
+    TEST_BOOL_EXPR(false && false || false);
+    TEST_BOOL_EXPR(false && true || true);
+    TEST_BOOL_EXPR(false && true || false);
+
+    TEST_BOOL_EXPR(t || false);
+    TEST_BOOL_EXPR(t || true);
+    TEST_BOOL_EXPR(f || false);
+    TEST_BOOL_EXPR(f || true);
+
+    TEST_BOOL_EXPR(!true);
+    TEST_BOOL_EXPR(!false);
+    TEST_BOOL_EXPR(!true || true);
+
+    TEST_BOOL_EXPR(!true && !false || !true);
+    TEST_BOOL_EXPR(!true && !false || true);
+    TEST_BOOL_EXPR(!true && false || !true);
+    TEST_BOOL_EXPR(!true && false || true);
+    TEST_BOOL_EXPR(true && !false || !true);
+    TEST_BOOL_EXPR(true && !false || true);
+    TEST_BOOL_EXPR(true && false || !true);
+    TEST_BOOL_EXPR(true && false || true);
+
+    TEST_BOOL_EXPR(!(true && f) || !t);
+    TEST_BOOL_EXPR(!!!(t) && (!!f || true));
+    TEST_BOOL_EXPR(!(true && f) && true);
+}
+
+
