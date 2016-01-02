@@ -31,6 +31,8 @@ public:
         SHADOW,
         WIREFRAME,
 
+        INVALID,
+
         NUM_FLAGS,        // Not a valid flag
     };
     using Flags = std::bitset<NUM_FLAGS>;
@@ -59,6 +61,9 @@ public:
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withShadow() { _flags.set(SHADOW); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
+        Builder& invalidate() { _flags.set(INVALID); return (*this); }
+
+        static const ShapeKey& invalid() { return Builder().invalidate(); }
     };
     ShapeKey(const Builder& builder) : ShapeKey(builder._flags) {}
 
@@ -72,6 +77,7 @@ public:
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isShadow() const { return _flags[SHADOW]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
+    bool isValid() const { return !_flags[INVALID]; }
 
     // Hasher for use in unordered_maps
     class Hash {
@@ -104,11 +110,9 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
     return debug;
 }
 
-// Meta-information (pipeline and locations) to render a shape
-class Shape {
+// Rendering abstraction over gpu::Pipeline and map locations
+class ShapePipeline {
 public:
-    using Key = ShapeKey;
-
     class Slots {
     public:
         static const int SKINNING_GPU = 2;
@@ -135,16 +139,21 @@ public:
         int lightBufferUnit;
     };
 
-    // Rendering abstraction over gpu::Pipeline and map locations
-    class Pipeline {
-    public:
-        gpu::PipelinePointer pipeline;
-        std::shared_ptr<Locations> locations;
+    gpu::PipelinePointer pipeline;
+    std::shared_ptr<Locations> locations;
 
-        Pipeline() : Pipeline(nullptr, nullptr) {}
-        Pipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
-            pipeline(pipeline), locations(locations) {}
-    };
+    ShapePipeline() : ShapePipeline(nullptr, nullptr) {}
+    ShapePipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
+        pipeline(pipeline), locations(locations) {}
+};
+
+// Meta-information (pipeline and locations) to render a shape
+class Shape {
+public:
+    using Key = ShapeKey;
+    using Pipeline = ShapePipeline;
+    using Slots = ShapePipeline::Slots;
+    using Locations = ShapePipeline::Locations;
 
     using PipelineMap = std::unordered_map<ShapeKey, Pipeline, ShapeKey::Hash, ShapeKey::KeyEqual>;
     class PipelineLib : public PipelineMap {

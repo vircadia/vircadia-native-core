@@ -25,6 +25,7 @@
 #include <RenderArgs.h>
 
 #include "model/Material.h"
+#include "Shape.h"
 
 namespace render {
 
@@ -264,7 +265,7 @@ public:
 
         virtual void render(RenderArgs* args) = 0;
 
-        virtual const model::MaterialKey getMaterialKey() const = 0;
+        virtual const ShapeKey getShapeKey() const = 0;
 
         ~PayloadInterface() {}
 
@@ -304,7 +305,7 @@ public:
     void render(RenderArgs* args) { _payload->render(args); }
 
     // Shape Type Interface
-    const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
+    const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
@@ -346,7 +347,7 @@ template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { 
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 // Shape type interface
-template <class T> const model::MaterialKey shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
+template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::invalid(); }
 
 template <class T> class Payload : public Item::PayloadInterface {
 public:
@@ -364,7 +365,7 @@ public:
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
 
     // Shape Type interface
-    virtual const model::MaterialKey getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
+    virtual const ShapeKey getShapeKey() const { return shapeGetShapeKey<T>(_data); }
 
 protected:
     DataPointer _data;
