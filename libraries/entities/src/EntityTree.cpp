@@ -959,6 +959,9 @@ void EntityTree::fixupMissingParents() {
                 iter.remove();
                 entity->markAncestorMissing(false);
             }
+        } else {
+            // entity was deleted before we found its parent.
+            iter.remove();
         }
     }
 
