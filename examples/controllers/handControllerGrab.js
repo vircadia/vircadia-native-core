@@ -30,6 +30,8 @@ var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
 
+var HAND_HEAD_MIX_RATIO = 0.0;      //  0 = only use hands for search/move.  1 = only use head for search/move.
+
 //
 // distant manipulation
 //
@@ -789,7 +791,7 @@ function MyController(hand) {
         
         var distantPickRay = {
             origin:  Camera.position,
-            direction: Quat.getFront(Quat.multiply(Camera.orientation, handDeltaRotation)),
+            direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1022,9 +1024,7 @@ function MyController(hand) {
             searchSphereLocation.y -= ((this.intersectionDistance - this.searchSphereDistance) / this.intersectionDistance) * SEARCH_SPHERE_CHASE_DROP;
             this.searchSphereOn(searchSphereLocation, SPHERE_INTERSECTION_SIZE * this.intersectionDistance, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-                var OVERLAY_BEAM_SETBACK = 0.9;
-                var startBeam = Vec3.sum(handPosition, Vec3.multiply(Vec3.subtract(searchSphereLocation, handPosition), OVERLAY_BEAM_SETBACK));
-                this.overlayLineOn(startBeam, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+                this.overlayLineOn(handPosition, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             }
         }
     };
@@ -1189,14 +1189,11 @@ function MyController(hand) {
                     y: 0.0,
                     z: objDistance
                 });
-                var change = Vec3.subtract(before, after);
+                var change = Vec3.multiply(Vec3.subtract(before, after), HAND_HEAD_MIX_RATIO);
                 this.currentCameraOrientation = Camera.orientation;
                 this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, change);
             }
-        } else {
-            //  print('should not head move!');
         }
-
 
         var defaultConstraintData = {
             axisStart: false,
