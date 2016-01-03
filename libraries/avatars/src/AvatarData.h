@@ -437,9 +437,10 @@ public:
     glm::vec3 translation;
     glm::quat rotation;
     float scale { 1.0f };
-    
+    bool isSoft { false };
+
     bool isValid() const { return modelURL.isValid(); }
-    
+
     bool operator==(const AttachmentData& other) const;
 
     QJsonObject toJson() const;

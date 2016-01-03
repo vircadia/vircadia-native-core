@@ -68,7 +68,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
-    void simulateAttachments(float deltaTime);
+    virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
@@ -177,9 +177,9 @@ protected:
 
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
-    QVector<Model*> _attachmentModels;
-    QVector<Model*> _attachmentsToRemove;
-    QVector<Model*> _unusedAttachments;
+    std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
+
     float _bodyYawDelta;  // degrees/sec
 
     // These position histories and derivatives are in the world-frame.
