@@ -1207,23 +1207,12 @@ void Application::paintGL() {
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
+
+        renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        {
-            float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
-            // Flip the src and destination rect horizontally to do the mirror
-            auto mirrorRect = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
-            auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
-
-            auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                batch.setFramebuffer(selfieFbo);
-                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-                batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
-                batch.setFramebuffer(nullptr);
-            });
-        }
     }
 
     {
@@ -1394,65 +1383,11 @@ void Application::paintGL() {
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
         }
+        renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
+
+        renderArgs._blitFramebuffer.reset();
         renderArgs._context->enableStereo(false);
-
-        // Blit primary to final FBO
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
-
-        if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            if (displayPlugin->isStereo()) {
-                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                    gpu::Vec4i srcRectLeft;
-                    srcRectLeft.z = size.width() / 2;
-                    srcRectLeft.w = size.height();
-                    
-                    gpu::Vec4i srcRectRight;
-                    srcRectRight.x = size.width() / 2;
-                    srcRectRight.z = size.width();
-                    srcRectRight.w = size.height();
-  
-                    gpu::Vec4i destRectLeft;
-                    destRectLeft.x = srcRectLeft.z;
-                    destRectLeft.z = srcRectLeft.x;
-                    destRectLeft.y = srcRectLeft.y;
-                    destRectLeft.w = srcRectLeft.w;
-                    
-                    gpu::Vec4i destRectRight;
-                    destRectRight.x = srcRectRight.z;
-                    destRectRight.z = srcRectRight.x;
-                    destRectRight.y = srcRectRight.y;
-                    destRectRight.w = srcRectRight.w;
-                    
-                    batch.setFramebuffer(finalFramebuffer);
-                    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
-                    // BLit left to right and right to left in stereo
-                    batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectLeft);
-                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectRight);
-                });
-            } else {
-                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                    gpu::Vec4i srcRect;
-                    srcRect.z = size.width();
-                    srcRect.w = size.height();
-                    gpu::Vec4i destRect;
-                    destRect.x = size.width();
-                    destRect.y = 0;
-                    destRect.z = 0;
-                    destRect.w = size.height();
-                    batch.setFramebuffer(finalFramebuffer);
-                    batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
-                });
-            }
-        } else {
-            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                gpu::Vec4i rect;
-                rect.z = size.width();
-                rect.w = size.height();
-                batch.setFramebuffer(finalFramebuffer);
-                batch.blit(primaryFbo, rect, finalFramebuffer, rect);
-            });
-        }
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
@@ -3551,78 +3486,86 @@ namespace render {
 
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+        auto backgroundMode = skyStage->getBackgroundMode();
+
+        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
             // this line intentionally left blank
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                PerformanceTimer perfTimer("stars");
-                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                    "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                // should be the first rendering pass - w/o depth buffer / lighting
-
-                // compute starfield alpha based on distance from atmosphere
-                float alpha = 1.0f;
-                bool hasStars = true;
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    // TODO: handle this correctly for zones
-                    const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
-
-                    if (closestData.getHasStars()) {
-                        const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                        const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
-                                                        / closestData.getAtmosphereOuterRadius();
-                        float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
-                        if (height < closestData.getAtmosphereInnerRadius()) {
-                            // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                            alpha = 0.0f;
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-
-
-                        } else if (height < closestData.getAtmosphereOuterRadius()) {
-                            alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                                (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-                        }
-                    } else {
-                        hasStars = false;
-                    }
+        } else {
+            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+                auto skybox = skyStage->getSkybox();
+                if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
+                    PerformanceTimer perfTimer("skybox");
+                    skybox->render(batch, *(args->_viewFrustum));
+                } else {
+                    // If no skybox texture is available, render the SKY_DOME while it loads
+                    backgroundMode = model::SunSkyStage::SKY_DOME;
                 }
-
-                // finally render the starfield
-                if (hasStars) {
-                    background->_stars.render(args, alpha);
-                }
-
-                // draw the sky dome
-                if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    PerformanceTimer perfTimer("atmosphere");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::displaySide() ... atmosphere...");
-
-                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                }
-
             }
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            PerformanceTimer perfTimer("skybox");
-            auto skybox = skyStage->getSkybox();
-            if (skybox) {
-                skybox->render(batch, *(args->_viewFrustum));
+            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+                    PerformanceTimer perfTimer("stars");
+                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                        "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                    // should be the first rendering pass - w/o depth buffer / lighting
+
+                    // compute starfield alpha based on distance from atmosphere
+                    float alpha = 1.0f;
+                    bool hasStars = true;
+
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        // TODO: handle this correctly for zones
+                        const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
+
+                        if (closestData.getHasStars()) {
+                            const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                            const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                            glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
+                                                            / closestData.getAtmosphereOuterRadius();
+                            float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
+                            if (height < closestData.getAtmosphereInnerRadius()) {
+                                // If we're inside the atmosphere, then determine if our keyLight is below the horizon
+                                alpha = 0.0f;
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+
+
+                            } else if (height < closestData.getAtmosphereOuterRadius()) {
+                                alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+                            }
+                        } else {
+                            hasStars = false;
+                        }
+                    }
+
+                    // finally render the starfield
+                    if (hasStars) {
+                        background->_stars.render(args, alpha);
+                    }
+
+                    // draw the sky dome
+                    if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        PerformanceTimer perfTimer("atmosphere");
+                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "Application::displaySide() ... atmosphere...");
+
+                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                    }
+
+                }
             }
         }
     }

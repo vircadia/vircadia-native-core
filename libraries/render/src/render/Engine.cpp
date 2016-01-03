@@ -14,9 +14,10 @@
 using namespace render;
 
 RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode)
-        : _args{ nullptr }, _items{ items }, _tone{ tone },
-        _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
-        _deferredDebugSize{ deferredDebugSize }, _deferredDebugMode{ deferredDebugMode } {};
+    : _deferredDebugMode{ deferredDebugMode }, _deferredDebugSize{ deferredDebugSize },
+    _args{ nullptr },
+    _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
+    _items{ items }, _tone{ tone } {}
 
 void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
     _occlusionStatus = occlusion;

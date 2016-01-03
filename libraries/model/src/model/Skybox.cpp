@@ -96,7 +96,12 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
         }
     });
 
+
     // Render
+    gpu::TexturePointer skymap = skybox.getCubemap();
+    // FIXME: skymap->isDefined may not be threadsafe
+    assert(skymap && skymap->isDefined());
+
     glm::mat4 projMat;
     viewFrustum.evalProjectionMatrix(projMat);
 
@@ -106,11 +111,6 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.setViewTransform(viewTransform);
     batch.setModelTransform(Transform()); // only for Mac
 
-    gpu::TexturePointer skymap;
-    if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
-        skymap = skybox.getCubemap();
-    }
-
     batch.setPipeline(thePipeline);
     batch.setUniformBuffer(SKYBOX_CONSTANTS_SLOT, skybox._dataBuffer);
     batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, skymap);
@@ -118,6 +118,5 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
     batch.draw(gpu::TRIANGLE_STRIP, 4);
 
     batch.setResourceTexture(SKYBOX_SKYMAP_SLOT, nullptr);
-
 }
 

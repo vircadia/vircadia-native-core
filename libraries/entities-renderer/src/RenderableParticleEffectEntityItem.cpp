@@ -245,8 +245,11 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
         return;
     }
     Transform transform;
-    transform.setTranslation(position);
-    transform.setRotation(rotation);
+    if (!getEmitterShouldTrail()) {
+        transform.setTranslation(position);
+        transform.setRotation(rotation);
+    }
+
 
     render::PendingChanges pendingChanges;
     pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [=](ParticlePayloadData& payload) {
