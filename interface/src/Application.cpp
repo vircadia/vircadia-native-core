@@ -11,6 +11,8 @@
 
 #include "Application.h"
 
+#include <gl/Config.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -28,10 +30,13 @@
 #include <QtGui/QImage>
 #include <QtGui/QWheelEvent>
 #include <QtGui/QWindow>
-#include <QtQml/QQmlContext>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
+
+#include <QtQml/QQmlContext>
+#include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickWindow>
 
 #include <QtWidgets/QActionGroup>
 #include <QtWidgets/QDesktopWidget>
@@ -682,6 +687,74 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        using namespace controller;
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        if (offscreenUi->navigationFocused()) {
+            auto actionEnum = static_cast<Action>(action);
+            int key = Qt::Key_unknown;
+            static int lastKey = Qt::Key_unknown;
+            bool navAxis = false;
+            switch (actionEnum) {
+                case Action::UI_NAV_VERTICAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Up;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Down;
+                    }
+                    break;
+
+                case Action::UI_NAV_LATERAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Right;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Left;
+                    }
+                    break;
+
+                case Action::UI_NAV_GROUP:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Tab;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Backtab;
+                    }
+                    break;
+
+                case Action::UI_NAV_BACK:
+                    key = Qt::Key_Escape;
+                    break;
+
+                case Action::UI_NAV_SELECT:
+                    key = Qt::Key_Return;
+                    break;
+            }
+
+            if (navAxis) {
+                if (lastKey != Qt::Key_unknown) {
+                    QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = Qt::Key_unknown;
+                }
+
+                if (key != Qt::Key_unknown) {
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = key;
+                }
+            } else if (key != Qt::Key_unknown) {
+                if (state) {
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                } else {
+                    QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                }
+                return;
+            }
+        }
+
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto globalPos = QCursor::pos();
             auto localPos = _glWidget->mapFromGlobal(globalPos);
@@ -751,6 +824,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     }));
     _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
+    _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        return offscreenUi->navigationFocused() ? 1.0 : 0.0;
     }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
@@ -1094,9 +1171,59 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
-    offscreenUi->getRootContext()->setContextProperty("MyAvatar", getMyAvatar());
+    // FIXME either expose so that dialogs can set this themselves or
+    // do better detection in the offscreen UI of what has focus
+    offscreenUi->setNavigationFocused(false);
+
+    auto rootContext = offscreenUi->getRootContext();
+    auto engine = rootContext->engine();
+    connect(engine, &QQmlEngine::quit, [] {
+        qApp->quit();
+    });
+    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+    rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    rootContext->setContextProperty("MyAvatar", getMyAvatar());
+    rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
+    rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+
+    rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
+    rootContext->setContextProperty("Quat", new Quat());
+    rootContext->setContextProperty("Vec3", new Vec3());
+    rootContext->setContextProperty("Uuid", new ScriptUUID());
+
+    rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+
+    rootContext->setContextProperty("Camera", &_myCamera);
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    rootContext->setContextProperty("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
+#endif
+
+    rootContext->setContextProperty("Overlays", &_overlays);
+    rootContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+
+    rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
+    rootContext->setContextProperty("Stats", Stats::getInstance());
+    rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+    rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+    rootContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
+    rootContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+    rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    rootContext->setContextProperty("ScriptDiscoveryService", this->getRunningScriptsWidget());
+
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
@@ -4110,6 +4237,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+    scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());

@@ -1,9 +1,6 @@
-
 import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtWebEngine 1.1
-import QtWebChannel 1.0
-import QtWebSockets 1.0
 
 import "controls"
 import "styles"
@@ -13,6 +10,8 @@ VrDialog {
     HifiConstants { id: hifi }
     title: "WebWindow"
     resizable: true
+    enabled: false
+    visible: false
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     contentImplicitWidth: clientArea.implicitWidth
@@ -24,23 +23,13 @@ VrDialog {
     function stop() {
         webview.stop();
     }
-    
 
     Component.onCompleted: {
-        enabled = true
-        console.log("Web Window Created " + root);
+        // Ensure the JS from the web-engine makes it to our logging
         webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
-        webview.loadingChanged.connect(handleWebviewLoading) 
-    }
 
-
-    function handleWebviewLoading(loadRequest) {
-        if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-            var newUrl = loadRequest.url.toString();
-            root.navigating(newUrl)
-        }
     }
 
     Item {
@@ -56,13 +45,28 @@ VrDialog {
             id: webview
             url: root.source
             anchors.fill: parent
+            focus: true
+
             onUrlChanged: {
                 var currentUrl = url.toString();
-                var newUrl = urlFixer.fixupUrl(currentUrl);
+                var newUrl = urlHandler.fixupUrl(currentUrl);
                 if (newUrl != currentUrl) {
                     url = newUrl;
                 }
             }
+    
+            onLoadingChanged: {
+                // Required to support clicking on "hifi://" links
+                if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                    var url = loadRequest.url.toString();
+                    if (urlHandler.canHandleUrl(url)) {
+                        if (urlHandler.handleUrl(url)) {
+                            webview.stop();
+                        }
+                    }
+                }
+            }
+
             profile: WebEngineProfile {
                 id: webviewProfile
                 httpUserAgent: "Mozilla/5.0 (HighFidelityInterface)"

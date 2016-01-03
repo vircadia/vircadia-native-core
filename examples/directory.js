@@ -62,8 +62,13 @@ var directory = (function () {
     function setUp() {
         viewport = Controller.getViewportDimensions();
 
-        directoryWindow = new OverlayWebWindow('Directory', DIRECTORY_URL, 900, 700, false);
-        directoryWindow.setVisible(false);
+        directoryWindow = new OverlayWebWindow({
+            title: 'Directory', 
+            source: DIRECTORY_URL, 
+            width: 900, 
+            height: 700,
+            visible: false      
+        });
 
         directoryButton = Overlays.addOverlay("image", {
             imageURL: DIRECTORY_BUTTON_URL,
