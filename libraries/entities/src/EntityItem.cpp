@@ -1310,7 +1310,7 @@ bool EntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         bool success;
         bool result = getAABox(success).contains(point);
-        return result & success;
+        return result && success;
     } else {
         ShapeInfo info;
         info.setParams(getShapeType(), glm::vec3(0.5f));
