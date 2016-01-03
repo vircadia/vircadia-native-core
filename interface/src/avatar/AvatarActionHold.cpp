@@ -89,8 +89,6 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         // code here for future reference.
         // _palmRotationFromRigidBody = avatarRotationInverse * palmRotation;
     });
-
-    activateBody();
 }
 
 std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
@@ -199,6 +197,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         if (_kinematic) {
             doKinematicUpdate(deltaTimeStep);
         } else {
+            activateBody();
             forceBodyNonStatic();
             ObjectActionSpring::updateActionWorker(deltaTimeStep);
         }
@@ -248,6 +247,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         _previousSet = true;
     });
 
+    activateBody();
     forceBodyNonStatic();
 }
 
@@ -344,6 +344,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
                 ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
+        activateBody();
     }
 
     return true;
@@ -430,5 +431,6 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _active = true;
     });
 
+    activateBody();
     forceBodyNonStatic();
 }
