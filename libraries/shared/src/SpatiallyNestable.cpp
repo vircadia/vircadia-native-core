@@ -585,7 +585,6 @@ bool SpatiallyNestable::setPuffedQueryAACube() {
     AACube currentAACube = getMaximumAACube(success);
     // make an AACube with edges thrice as long and centered on the object
     _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(currentAACube.getScale()), currentAACube.getScale() * 3.0f);
-    // _queryAACube = AACube(currentAACube.getCorner(), currentAACube.getScale());
     _queryAACubeSet = true;
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
