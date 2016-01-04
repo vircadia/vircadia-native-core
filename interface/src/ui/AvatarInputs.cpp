@@ -66,6 +66,7 @@ void AvatarInputs::update() {
         && !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
     AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
+    AI_UPDATE(isHMD, qApp->isHMDMode());
 
     auto audioIO = DependencyManager::get<AudioClient>();
     const float AUDIO_METER_AVERAGING = 0.5;
