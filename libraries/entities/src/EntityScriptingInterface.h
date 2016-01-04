@@ -153,6 +153,9 @@ public slots:
     Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
     Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
     Q_INVOKABLE bool setAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex, glm::quat rotation);
+    Q_INVOKABLE bool setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
+                                                        const QVector<glm::quat>& rotations,
+                                                        const QVector<glm::vec3>& translations);
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);

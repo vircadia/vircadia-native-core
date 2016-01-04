@@ -872,3 +872,34 @@ bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid
     }
     return false;
 }
+
+
+bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
+                                                                  const QVector<glm::quat>& rotations,
+                                                                  const QVector<glm::vec3>& translations) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+
+        int count = glm::max(rotations.size(), translations.size());
+        bool result = false;
+        for (int index = 0; index < count; index++) {
+            result |= modelEntity->setAbsoluteJointRotationInObjectFrame(index, rotations[index]);
+            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
+        }
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                properties = entity->getProperties();
+                entity->setLastBroadcast(now);
+            });
+
+            properties.setJointRotationsDirty();
+            properties.setJointTranslationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}

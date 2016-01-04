@@ -709,11 +709,12 @@ glm::vec3 RenderableModelEntityItem::getAbsoluteJointTranslationInObjectFrame(in
     return glm::vec3(0.0f);
 }
 
-bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, glm::quat& rotation) {
+bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size()) {
+        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
+            _absoluteJointRotationsInObjectFrame[index] != rotation) {
             _absoluteJointRotationsInObjectFrame[index] = rotation;
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
@@ -723,11 +724,12 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     return result;
 }
 
-bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, glm::vec3& translation) {
+bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) {
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size()) {
+        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
+            _absoluteJointTranslationsInObjectFrame[index] != translation) {
             _absoluteJointTranslationsInObjectFrame[index] = translation;
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
