@@ -63,7 +63,7 @@ public:
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
-        static const ShapeKey& invalid() { return Builder().invalidate(); }
+        static const ShapeKey invalid() { return Builder().invalidate(); }
     };
     ShapeKey(const Builder& builder) : ShapeKey(builder._flags) {}
 
@@ -165,12 +165,12 @@ public:
     static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
         _pipelineLib.addPipeline(key, vertexShader, pixelShader);
     }
-    virtual const PipelinePointer& pickPipeline(RenderArgs* args, const Key& key) {
+    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) {
         return Shape::_pickPipeline(args, key);
     }
 
 protected:
-    static const PipelinePointer& _pickPipeline(RenderArgs* args, const Key& key);
+    static const PipelinePointer _pickPipeline(RenderArgs* args, const Key& key);
     static PipelineLib _pipelineLib;
 };
 
