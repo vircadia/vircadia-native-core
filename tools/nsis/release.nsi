@@ -26,9 +26,9 @@
 
 ; Executables and icons for GUI applications that will be added as shortcuts.
 !define interface_exec "interface.exe"
-!define console_exec "High\ Fidelity\ Console.exe"
+!define console_exec "server-console.exe"
 !define interface_icon "interface.ico"
-!define console_icon "High\ Fidelity\ Console.ico"
+!define console_icon "server-console.ico"
 
 ; Registry entries
 !define regkey "Software\${install_directory}"
@@ -100,7 +100,7 @@ SectionEnd
 Section "Base Files" "BASE"
     SectionIn RO
     SetOutPath $ChosenInstallDir
-    File /r /x assignment-client.* /x domain-server.* /x interface.* /x High\ Fidelity\ Console.* "${installer_srcdir}\"
+    File /r /x assignment-client.* /x domain-server.* /x interface.* /x server-console.* "${installer_srcdir}\"
 SectionEnd
 
 Section "High Fidelity Interface" "CLIENT"
@@ -111,7 +111,7 @@ SectionEnd
 
 Section "High Fidelity Server" "SERVER"
     SetOutPath $ChosenInstallDir
-    File /a "${installer_srcdir}\High\ Fidelity\ Console.*"
+    File /a "${installer_srcdir}\server-console.*"
     File /a "${installer_srcdir}\domain-server.*"
     File /a "${installer_srcdir}\assignment-client.*"
 SectionEnd
@@ -120,15 +120,15 @@ Section "Start Menu Shortcuts" "SHORTCUTS"
     SetShellVarContext all
     CreateDirectory "${startmenu_company}"
     SetOutPath $ChosenInstallDir
-    CreateShortCut "${startmenu_company}\Client.lnk" "$ChosenInstallDir\${interface_exec}" "" "$ChosenInstallDir\${interface_icon}"
-    CreateShortCut "${startmenu_company}\Home Server.lnk" "$ChosenInstallDir\${console_exec}" "" "$ChosenInstallDir\${console_icon}"
+    CreateShortCut "${startmenu_company}\High Fidelity.lnk" "$ChosenInstallDir\${interface_exec}" "" "$ChosenInstallDir\${interface_icon}"
+    CreateShortCut "${startmenu_company}\Server Console.lnk" "$ChosenInstallDir\${console_exec}" "" "$ChosenInstallDir\${console_icon}"
     CreateShortCut "${startmenu_company}\Uninstall ${company}.lnk" "$ChosenInstallDir\${uninstaller}"
 SectionEnd
 
 Section "Uninstall"
     SetRegView 64
     Delete "$INSTDIR\${uninstaller}"
-    Delete "$SMSTARTUP\High Fidelity Home Server.lnk"
+    Delete "$SMSTARTUP\High Fidelity Server Console.lnk"
     RMDir /r "$INSTDIR"
     RMDir /r "${startmenu_company}"
     RMDir /r "$0"
@@ -169,11 +169,11 @@ Function HandleCheckBoxes
         ${NSD_GetState} $ServerCheckBox $ServerCheckBox_state
         ${If} $ServerCheckBox_state == ${BST_CHECKED}
             SetOutPath $ChosenInstallDir
-            ExecShell "" '"$ChosenInstallDir\stack-manager.exe"'
+            ExecShell "" '"$ChosenInstallDir\${console_exec}"'
         ${EndIf}
         ${NSD_GetState} $RunOnStartupCheckBox $RunOnStartupCheckBox_state
         ${If} $ServerCheckBox_state == ${BST_CHECKED}
-            CreateShortCut "$SMSTARTUP\High Fidelity Home Server.lnk" "$ChosenInstallDir\${console_exec}" "" "$ChosenInstallDir\${console_icon}"
+            CreateShortCut "$SMSTARTUP\High Fidelity Server Console.lnk" "$ChosenInstallDir\${console_exec}" "" "$ChosenInstallDir\${console_icon}"
         ${EndIf}
     ${EndIf}
 FunctionEnd
