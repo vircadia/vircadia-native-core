@@ -30,6 +30,7 @@
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 #include <SoundCache.h>
+#include <ResourceScriptingInterface.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentActionFactory.h"
@@ -61,6 +62,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
     auto actionFactory = DependencyManager::set<AssignmentActionFactory>();
+    DependencyManager::set<ResourceScriptingInterface>();
 
     // setup a thread for the NodeList and its PacketReceiver
     QThread* nodeThread = new QThread(this);
