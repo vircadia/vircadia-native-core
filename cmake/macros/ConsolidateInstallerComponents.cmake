@@ -12,9 +12,13 @@ macro(CONSOLIDATE_INSTALLER_COMPONENTS)
         COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/package-bundle
       )
     elseif (TARGET_NAME STREQUAL "package-console")
+      set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/resources/${CONSOLE_ICON}")
+      set (ICON_DESTINATION_NAME "console.ico")
+
       # add a command to copy the folder produced by electron-packager to package-bundle
       add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy ${ICON_FILE_PATH} ${CMAKE_BINARY_DIR}/package-bundle/${ICON_DESTINATION_NAME}
         COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/High\ Fidelity\ Console-* ${CMAKE_BINARY_DIR}/package-bundle
       )
     else ()
