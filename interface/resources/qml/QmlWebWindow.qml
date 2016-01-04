@@ -49,7 +49,7 @@ VrDialog {
 
             onUrlChanged: {
                 var currentUrl = url.toString();
-                var newUrl = urlHandler.fixupUrl(currentUrl);
+                var newUrl = urlHandler.fixupUrl(currentUrl).toString();
                 if (newUrl != currentUrl) {
                     url = newUrl;
                 }
