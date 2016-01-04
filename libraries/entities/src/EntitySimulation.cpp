@@ -59,11 +59,12 @@ void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
 
 void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
-    assert(entity->isSimulated());
     assert(entity->isDead());
-    entity->clearActions(this);
-    removeEntityInternal(entity);
-    _entitiesToDelete.insert(entity);
+    if (entity->isSimulated()) {
+        entity->clearActions(this);
+        removeEntityInternal(entity);
+        _entitiesToDelete.insert(entity);
+    }
 }
 
 void EntitySimulation::addEntityInternal(EntityItemPointer entity) {

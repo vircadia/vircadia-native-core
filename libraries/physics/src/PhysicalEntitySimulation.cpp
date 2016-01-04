@@ -150,7 +150,6 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
 // virtual
 void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
-    assert(entity->isSimulated());
     assert(entity->isDead());
     entity->clearActions(this);
     removeEntityInternal(entity);
