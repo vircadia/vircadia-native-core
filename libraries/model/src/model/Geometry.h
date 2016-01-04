@@ -58,7 +58,7 @@ public:
     const gpu::Stream::FormatPointer getVertexFormat() const { return _vertexFormat; }
 
     // BufferStream on the mesh vertices and attributes matching the vertex format
-    const gpu::BufferStream getVertexStream() const { return _vertexStream; }
+    const gpu::BufferStream& getVertexStream() const { return _vertexStream; }
 
     // Index Buffer
     void setIndexBuffer(const BufferView& buffer);
