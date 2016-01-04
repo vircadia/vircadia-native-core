@@ -15,4 +15,6 @@ add_custom_target(${TARGET_NAME}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Installer")
+
 consolidate_installer_components()
