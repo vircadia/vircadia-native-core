@@ -187,7 +187,7 @@ app.on('ready', function() {
 
     // Create tray icon
     tray = new Tray(TRAY_ICON);
-    tray.setToolTip('High Fidelity');
+    tray.setToolTip('High Fidelity Server Console');
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
