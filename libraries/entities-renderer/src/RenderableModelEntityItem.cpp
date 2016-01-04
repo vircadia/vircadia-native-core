@@ -713,8 +713,8 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() &&
-            _absoluteJointRotationsInObjectFrame[index] != rotation) {
+        if (index >= 0 && index < _absoluteJointRotationsInObjectFrame.size() /* &&
+            _absoluteJointRotationsInObjectFrame[index] != rotation*/) {
             _absoluteJointRotationsInObjectFrame[index] = rotation;
             _absoluteJointRotationsInObjectFrameSet[index] = true;
             _absoluteJointRotationsInObjectFrameDirty[index] = true;
@@ -728,8 +728,8 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     bool result = false;
     _jointDataLock.withWriteLock([&] {
         resizeJointArrays();
-        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() &&
-            _absoluteJointTranslationsInObjectFrame[index] != translation) {
+        if (index >= 0 && index < _absoluteJointTranslationsInObjectFrame.size() /* &&
+            _absoluteJointTranslationsInObjectFrame[index] != translation*/) {
             _absoluteJointTranslationsInObjectFrame[index] = translation;
             _absoluteJointTranslationsInObjectFrameSet[index] = true;
             _absoluteJointTranslationsInObjectFrameDirty[index] = true;
