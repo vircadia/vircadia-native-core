@@ -80,7 +80,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), AmbientOcclusionEffect_DeferredTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_PyramidMapSlot));
-
+        
+        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), AmbientOcclusionEffect_PyramidMapSlot + 1));
         gpu::Shader::makeProgram(*program, slotBindings);
 
 
@@ -90,7 +91,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         state->setColorWriteMask(true, true, true, false);
-
+        //state->setColorWriteMask(true, true, true, true);
+        
         // Good to go add the brand new pipeline
         _occlusionPipeline = gpu::Pipeline::create(program, state);
     }
@@ -147,83 +149,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         
         // Good to go add the brand new pipeline
         _vBlurPipeline = gpu::Pipeline::create(program, state);
-        
-        const char blur_frag[] = R"SCRIBE(#version 410 core
-        //
-        //  Created by Sam Gateau on 12/31/2015
-        //  Copyright 2015 High Fidelity, Inc.
-        //
-        //  Distributed under the Apache License, Version 2.0.
-        //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-        //
-        
-        struct AmbientOcclusionParams {
-            vec4 _clipInfo;
-            mat4 _projection;
-            vec4 _radius_s0_s1_s2;
-        };
-        
-        uniform ambientOcclusionParamsBuffer {
-            AmbientOcclusionParams params;
-        };
-        
-        float evalZeyeFromZdb(float depth) {
-            return params._clipInfo.x / (depth * params._clipInfo.y + params._clipInfo.z);
-        }
-        
-        // the depth texture
-        uniform sampler2D depthMap;
-        
-        in vec2 varTexCoord0;
-        out vec4 outFragColor;
-        
-        ivec2 ssC = ivec2(gl_FragCoord.xy);
-        
-        vec4 temp = texelFetch(source, ssC, 0);
-        
-        keyPassThrough = temp.KEY_COMPONENTS;
-        float key = unpackKey(keyPassThrough);
-        
-        VALUE_TYPE sum = temp.VALUE_COMPONENTS;
-        
-        if (key == 1.0) {
-            // Sky pixel (if you aren't using depth keying, disable this test)
-            result = sum;
-            return;
-        }
-        
-        // Base weight for depth falloff.  Increase this for more blurriness,
-        // decrease it for better edge discrimination
-        float BASE = gaussian[0];
-        float totalWeight = BASE;
-        sum *= totalWeight;
-        
-        
-        for (int r = -R; r <= R; ++r) {
-            // We already handled the zero case above.  This loop should be unrolled and the static branch optimized out,
-            // so the IF statement has no runtime cost
-            if (r != 0) {
-                temp = texelFetch(source, ssC + axis * (r * SCALE), 0);
-                float      tapKey = unpackKey(temp.KEY_COMPONENTS);
-                VALUE_TYPE value  = temp.VALUE_COMPONENTS;
-                
-                // spatial domain: offset gaussian tap
-                float weight = 0.3 + gaussian[abs(r)];
-                
-                // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-                weight *= max(0.0, 1.0
-                              - (EDGE_SHARPNESS * 2000.0) * abs(tapKey - key)
-                              );
-                
-                sum += value * weight;
-                totalWeight += weight;
-            }
-        }
-        
-        const float epsilon = 0.0001;
-        result = sum / (totalWeight + epsilon);
-        
-        )SCRIBE";
     }
     return _vBlurPipeline;
 }
@@ -346,6 +271,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     RenderArgs* args = renderContext->getArgs();
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
+    auto normalBuffer = framebufferCache->getDeferredNormalTexture();
     auto pyramidFBO = framebufferCache->getDepthPyramidFramebuffer();
     auto occlusionFBO = framebufferCache->getOcclusionFramebuffer();
     auto occlusionBlurredFBO = framebufferCache->getOcclusionBlurredFramebuffer();
@@ -366,7 +292,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     setClipInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
     _parametersBuffer.edit<Parameters>()._projection = monoProjMat;
-
+    _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
 
     auto pyramidPipeline = getPyramidPipeline();
     auto occlusionPipeline = getOcclusionPipeline();
@@ -404,9 +330,13 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
         // Occlusion pass
         batch.setPipeline(occlusionPipeline);
+        
+       // batch.setFramebuffer(occlusionFinalFBO);
         batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot, pyramidFBO->getRenderBuffer(0));
+        batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, normalBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+        batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, gpu::TexturePointer());
+        
         // Blur 1 pass
         batch.setFramebuffer(occlusionBlurredFBO);
         batch.setPipeline(firstHBlurPipeline);

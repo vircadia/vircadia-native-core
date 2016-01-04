@@ -11,9 +11,28 @@
 <@if not SSAO_SLH@>
 <@def SSAO_SLH@>
 
+<@func declarePackOcclusionDepth()@>
+
+const float FAR_PLANE_Z = -300.0;
+
+float CSZToDephtKey(float z) {
+    return clamp(z * (1.0 / FAR_PLANE_Z), 0.0, 1.0);
+}
+vec3 packOcclusionDepth(float occlusion, float depth) {
+    // Round to the nearest 1/256.0
+    float temp = floor(depth * 256.0);
+    return vec3(occlusion, temp * (1.0 / 256.0), depth * 256.0 - temp);
+}
+vec2 unpackOcclusionDepth(vec3 packed) {
+    float z = packed.y * (256.0 / 257.0) + packed.z * (1.0 / 257.0);
+    return vec2(packed.x, z);
+}
+<@endfunc@>
+
 <@func declareAmbientOcclusion()@>
 
 struct AmbientOcclusionParams {
+    vec4 _pixelInfo;
     vec4 _clipInfo;
     mat4 _projection;
     vec4 _radius_radius2_InvRadius6_s2;
@@ -23,8 +42,11 @@ uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
+vec2 getWidthHeight() {
+    return params._pixelInfo.zw;
+}
 float getProjScale() {
-    return 500.0; // this should be viewportHeight * Proj[1][1] / 2.0
+    return getWidthHeight().y * params._projection[1][1] * 0.5;
 }
 
 float getRadius() {
@@ -50,8 +72,77 @@ vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord) {
 }
 
 vec3 evalEyeNormal(vec3 C) {
-    return normalize(cross(dFdy(C), dFdx(C)));
+    //return normalize(cross(dFdy(C), dFdx(C)));
+    return normalize(cross(dFdx(C), dFdy(C)));
 }
+
+<@endfunc@>
+
+<@func declareBlurPass(axis)@>
+
+<$declarePackOcclusionDepth()$>
+
+// the source occlusion texture
+uniform sampler2D occlusionMap;
+
+vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
+    raw = texelFetch(occlusionMap, coords, 0).xyz;
+    return unpackOcclusionDepth(raw);
+}
+
+vec2 fetchOcclusionDepth(ivec2 coords) {
+    return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
+}
+
+
+const int BLUR_RADIUS = 4;
+const int RADIUS_SCALE = 2;
+const float EDGE_SHARPNESS = 1.0;
+
+const float gaussian[BLUR_RADIUS + 1] =
+//    float[](0.356642, 0.239400, 0.072410, 0.009869); // R = 2
+//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // R = 3
+float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // R = 4
+//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // R = 5.0
+
+vec3 getBlurredOcclusion(vec2 coord) {
+    ivec2 ssC = ivec2(coord);
+
+    vec3 rawSample;
+    vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
+    float key = occlusionDepth.y;
+    float sum = occlusionDepth.x;
+
+    // Base weight for depth falloff.  Increase this for more blurriness,
+    // decrease it for better edge discrimination
+    float BASE = gaussian[0];
+    float totalWeight = BASE;
+    sum *= totalWeight;
+
+    for (int r = -BLUR_RADIUS; r <= BLUR_RADIUS; ++r) {
+        // We already handled the zero case above.  This loop should be unrolled and the static branch optimized out,
+        // so the IF statement has no runtime cost
+        if (r != 0) {
+            vec2 tapOZ = fetchOcclusionDepth(ssC + <$axis$> * (r * RADIUS_SCALE));
+
+            // spatial domain: offset gaussian tap
+            float weight = 0.3 + gaussian[abs(r)];
+
+            // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
+            weight *= max(0.0, 1.0 - (EDGE_SHARPNESS * 2000.0) * abs(tapOZ.y - key));
+
+            sum += tapOZ.x * weight;
+            totalWeight += weight;
+        }
+    }
+
+    const float epsilon = 0.0001;
+    float result = sum / (totalWeight + epsilon);
+
+    rawSample.x = result;
+    return rawSample;
+}
+
 <@endfunc@>
 
 

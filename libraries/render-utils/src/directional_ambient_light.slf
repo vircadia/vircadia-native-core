@@ -27,7 +27,7 @@ void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
+    if (frag.mode == LIGHT_MAPPED) {
         vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
                         1.0,
@@ -38,7 +38,7 @@ void main(void) {
     } else {
         vec3 color =  evalAmbienSphereGlobalColor(
                         deferredTransform.viewInverse,
-                        1.0,
+                        frag.obscurance,
                         frag.position.xyz,
                         frag.normal,
                         frag.diffuse,

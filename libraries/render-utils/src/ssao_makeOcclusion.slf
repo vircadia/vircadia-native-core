@@ -11,6 +11,7 @@
 
 <@include ssao.slh@>
 <$declareAmbientOcclusion()$>
+<$declarePackOcclusionDepth()$>
 
 const int NUM_SAMPLES = 11;
 const float INV_NUM_SAMPLES = 1.0 / float(NUM_SAMPLES);
@@ -21,34 +22,15 @@ const int MAX_MIP_LEVEL = 5;
 // the depth pyramid texture
 uniform sampler2D pyramidMap;
 
-float getZeye(vec2 texcoord) {
-    return -texture(pyramidMap, texcoord, 0).x;
-}
-
 vec3 evalEyePosition(vec2 texcoord) {
-    float Zeye = getZeye(texcoord);
+    float Zeye = -texture(pyramidMap, texcoord, 0).x;
     return evalEyePositionFromZeye(Zeye, texcoord);
 }
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
-/** Used for packing Z into the GB channels */
-float CSZToKey(float z) {
-    return clamp(z * (1.0 / params._clipInfo.z), 0.0, 1.0);
-}
-
-/** Used for packing Z into the GB channels */
-void packKey(float key, out vec2 p) {
-    // Round to the nearest 1/256.0
-    float temp = floor(key * 256.0);
-
-    // Integer part
-    p.x = temp * (1.0 / 256.0);
-
-    // Fractional part
-    p.y = key * 256.0 - temp;
-}
+uniform sampler2D normalMap;
 
 vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
     // Radius relative to ssR
@@ -76,7 +58,7 @@ vec3 getOffsetPosition(ivec2 ssC, vec2 unitOffset, float ssR) {
     // Offset to pixel center
     //P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
 
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / textureSize(pyramidMap, 0);
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / getWidthHeight();
     P = evalEyePositionFromZeye(P.z, tapUV);
     return P;
 }
@@ -128,14 +110,11 @@ void main(void) {
 
     vec3 Cp = evalEyePosition(varTexCoord0);
 
-    //    packKey(CSZToKey(Cp.z), bilateralKey);
-
     // Hash function used in the HPG12 AlchemyAO paper
     float randomPatternRotationAngle = (3 * ssC.x ^ ssC.y + ssC.x * ssC.y) * 10;
-    //float randomPatternRotationAngle = 0;
-
 
     vec3 Cn = evalEyeNormal(Cp);
+   // vec3 Cn = normalize((texelFetch(normalMap, ssC, 0).xyz * 2.0) - vec3(1.0));
 
     // Choose the screen-space sample radius
     // proportional to the projected area of the sphere
@@ -143,20 +122,20 @@ void main(void) {
 
     float sum = 0.0;
     for (int i = 0; i < NUM_SAMPLES; ++i) {
-    sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
+        sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
     }
 
     float A = max(0.0, 1.0 - sum * getInvRadius6() * 5.0 * INV_NUM_SAMPLES);
 
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
-    if (abs(dFdx(Cp.z)) < 0.02) {
+    /*if (abs(dFdx(Cp.z)) < 0.02) {
         A -= dFdx(A) * ((ssC.x & 1) - 0.5);
     }
     if (abs(dFdy(Cp.z)) < 0.02) {
         A -= dFdy(A) * ((ssC.y & 1) - 0.5);
-    }
+    }*/
 
-
-    outFragColor = vec4(A, debugValue(Cn.y, 10));
+    outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
+    //outFragColor = vec4(0.5 * (Cn + vec3(1.0)), A);
 }

@@ -34,6 +34,7 @@ private:
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class Parameters {
     public:
+        glm::vec4 _pixelInfo;
         glm::vec4 _clipInfo;
         glm::mat4 _projection;
         glm::vec4 _radius_radius2_InvRadius6_s2{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 0.0 };
