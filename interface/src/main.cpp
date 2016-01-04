@@ -44,40 +44,63 @@ static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
 int main(int argc, const char* argv[]) {
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
-    // Connect to and send message to existing interface instance
-    QLocalSocket socket;
+    bool instanceMightBeRunning = true;
 
-    socket.connectToServer(applicationName);
+#ifdef Q_OS_WIN
+    // Try to create a shared memory block - if it can't be created, there is an instance of
+    // interface already running. We only do this on Windows for now because of the potential
+    // for crashed instances to leave behind shared memory instances on unix.
+    QSharedMemory sharedMemory { applicationName };
+    instanceMightBeRunning = !sharedMemory.create(1, QSharedMemory::ReadOnly);
+#endif
 
-    static const int LOCAL_SERVER_TIMEOUT_MS = 500;
+    if (instanceMightBeRunning) {
+        // Try to connect and send message to existing interface instance
+        QLocalSocket socket;
 
-    // Try to connect - if we can't connect, interface has probably just gone down
-    if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
+        socket.connectToServer(applicationName);
 
-        QStringList arguments;
-        for (int i = 0; i < argc; ++i) {
-            arguments << argv[i];
-        }
+        static const int LOCAL_SERVER_TIMEOUT_MS = 500;
 
-        QCommandLineParser parser;
-        QCommandLineOption urlOption("url", "", "value");
-        parser.addOption(urlOption);
-        parser.process(arguments);
+        // Try to connect - if we can't connect, interface has probably just gone down
+        if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
 
-        if (parser.isSet(urlOption)) {
-            QUrl url = QUrl(parser.value(urlOption));
-            if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
-                socket.write(url.toString().toUtf8());
-                socket.waitForBytesWritten(5000);
+            QStringList arguments;
+            for (int i = 0; i < argc; ++i) {
+                arguments << argv[i];
             }
+
+            QCommandLineParser parser;
+            QCommandLineOption urlOption("url", "", "value");
+            parser.addOption(urlOption);
+            parser.process(arguments);
+
+            if (parser.isSet(urlOption)) {
+                QUrl url = QUrl(parser.value(urlOption));
+                if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                    socket.write(url.toString().toUtf8());
+                    socket.waitForBytesWritten(5000);
+                }
+            }
+
+            socket.close();
+
+            qDebug() << "Interface instance appears to be running, exiting";
+
+            return EXIT_SUCCESS;
         }
 
-        socket.close();
-
-        qDebug() << "Interface instance appears to be running, exiting";
-
+#ifdef Q_OS_WIN
         return EXIT_SUCCESS;
+#endif
     }
+
+    // Setup local server
+    QLocalServer server;
+
+    // We failed to connect to a local server, so we remove any existing servers.
+    server.removeServer(applicationName);
+    server.listen(applicationName);
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -101,13 +124,6 @@ int main(int argc, const char* argv[]) {
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
-
-        // Setup local server
-        QLocalServer server { &app };
-
-        // We failed to connect to a local server, so we remove any existing servers.
-        server.removeServer(applicationName);
-        server.listen(applicationName);
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
 
