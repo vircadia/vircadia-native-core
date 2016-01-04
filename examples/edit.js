@@ -140,8 +140,37 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
 });
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var marketplaceWindow = new WebWindow('Marketplace', MARKETPLACE_URL, 900, 700, false);
-marketplaceWindow.setVisible(false);
+var marketplaceWindow = new OverlayWebWindow({
+    title: 'Marketplace', 
+    source: "about:blank", 
+    width: 900, 
+    height: 700,
+    visible: false
+});
+
+function showMarketplace(marketplaceID) {
+    var url = MARKETPLACE_URL;
+    if (marketplaceID) {
+        url = url + "/items/" + marketplaceID;
+    }
+    print("setting marketplace URL to " + url);
+    marketplaceWindow.setURL(url);
+    marketplaceWindow.setVisible(true);
+    marketplaceWindow.raise();
+}
+
+function hideMarketplace() {
+    marketplaceWindow.setVisible(false);
+    marketplaceWindow.setURL("about:blank");
+}
+
+function toggleMarketplace() {
+    if (marketplaceWindow.visible) {
+        hideMarketplace();
+    } else {
+        showMarketplace();
+    }
+}
 
 var toolBar = (function() {
     var that = {},
@@ -413,12 +442,9 @@ var toolBar = (function() {
             newModelButtonDown = true;
             return true;
         }
+        
         if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-            if (marketplaceWindow.url != MARKETPLACE_URL) {
-                marketplaceWindow.setURL(MARKETPLACE_URL);
-            }
-            marketplaceWindow.setVisible(true);
-            marketplaceWindow.raise();
+            toggleMarketplace();
             return true;
         }
 
@@ -1336,6 +1362,7 @@ function getPositionToCreateEntity() {
 }
 
 function importSVO(importURL) {
+    print("Import URL requested: " + importURL)
     if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
@@ -1574,11 +1601,7 @@ PropertiesTool = function(opts) {
             pushCommandForSelections();
             selectionManager._update();
         } else if (data.type == "showMarketplace") {
-            if (marketplaceWindow.url != data.url) {
-                marketplaceWindow.setURL(data.url);
-            }
-            marketplaceWindow.setVisible(true);
-            marketplaceWindow.raise();
+            showMarketplace();
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -1859,12 +1882,7 @@ var propertyMenu = PopupMenu();
 
 propertyMenu.onSelectMenuItem = function(name) {
     if (propertyMenu.marketplaceID) {
-        var url = MARKETPLACE_URL + "/items/" + propertyMenu.marketplaceID;
-        if (marketplaceWindow.url != url) {
-            marketplaceWindow.setURL(url);
-        }
-        marketplaceWindow.setVisible(true);
-        marketplaceWindow.raise();
+        showMarketplace(propertyMenu.marketplaceID);
     }
 };
 

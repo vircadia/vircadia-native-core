@@ -311,6 +311,12 @@ void Batch::blit(const FramebufferPointer& src, const Vec4i& srcViewport,
     _params.push_back(dstViewport.w);
 }
 
+void Batch::generateTextureMips(const TexturePointer& texture) {
+    ADD_COMMAND(generateTextureMips);
+
+    _params.push_back(_textures.cache(texture));
+}
+
 void Batch::beginQuery(const QueryPointer& query) {
     ADD_COMMAND(beginQuery);
 

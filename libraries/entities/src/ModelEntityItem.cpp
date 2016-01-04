@@ -252,9 +252,11 @@ void ModelEntityItem::getAnimationFrame(bool& newFrame,
                         if (index < translations.size()) {
                             translationMat = glm::translate(translations[index]);
                         }
-                        glm::mat4 rotationMat;
+                        glm::mat4 rotationMat(glm::mat4::_null);
                         if (index < rotations.size()) {
-                            rotationMat = glm::mat4_cast(rotations[index]);
+                            rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
+                        } else {
+                            rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * fbxJoints[index].postRotation);
                         }
                         glm::mat4 finalMat = (translationMat * fbxJoints[index].preTransform *
                                               rotationMat * fbxJoints[index].postTransform);

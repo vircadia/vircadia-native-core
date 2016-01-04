@@ -241,9 +241,9 @@
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
-                    }
+                    },
+                    creatorSessionUUID: MyAvatar.sessionUUID
                 })
-
             });
 
             var makeArrowStick = function(entityA, entityB, collision) {

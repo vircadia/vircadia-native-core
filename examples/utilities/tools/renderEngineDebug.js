@@ -1,6 +1,7 @@
 //
-//  SunLightExample.js
-//  examples
+//  renderEngineDebug.js
+//  examples/utilities/tools
+//
 //  Sam Gateau
 //  Copyright 2015 High Fidelity, Inc.
 //
@@ -10,77 +11,92 @@
 
 Script.include("cookies.js");
 
+var MENU = "Developer>Render>Debug Deferred Buffer";
+var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "Custom"];
+var SETTINGS_KEY = "EngineDebugScript.DebugMode";
+
+Number.prototype.clamp = function(min, max) {
+    return Math.min(Math.max(this, min), max);
+};
+
 var panel = new Panel(10, 100);
 
-function CounterWidget(parentPanel, name, feedGetter, drawGetter, capSetter, capGetter) {
-    this.subPanel = panel.newSubPanel(name);
+function CounterWidget(parentPanel, name, counter) {
+    var subPanel = parentPanel.newSubPanel(name);
+    var widget = parentPanel.items[name];
+    widget.editTitle({ width: 270 });
 
-    this.subPanel.newSlider("Num Feed", 0, 1, 
-        function(value) { },
-        feedGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Num Drawn", 0, 1, 
-        function(value) { },
-        drawGetter,
-        function(value) { return (value); });
-    this.subPanel.newSlider("Max Drawn", -1, 1, 
-        capSetter,
-        capGetter,
-        function(value) { return (value); });
+    subPanel.newSlider('Max Drawn', -1, 1, 
+        function(value) { counter.maxDrawn = value; }, // setter
+        function() { return counter.maxDrawn; }, // getter
+        function(value) { return value; });
 
-   this.update = function () {
-        var numFeed = this.subPanel.get("Num Feed");
-        this.subPanel.set("Num Feed", numFeed);
-        this.subPanel.set("Num Drawn", this.subPanel.get("Num Drawn"));
+    var slider = subPanel.getWidget('Max Drawn');
 
-        var numMax = Math.max(numFeed, 1);
-        this.subPanel.getWidget("Num Feed").setMaxValue(numMax);
-        this.subPanel.getWidget("Num Drawn").setMaxValue(numMax);
-        this.subPanel.getWidget("Max Drawn").setMaxValue(numMax);
+    this.update = function () {
+        var numDrawn = counter.numDrawn; // avoid double polling
+        var numMax = Math.max(numDrawn, 1);
+        var title = [
+            ' ' + name,
+            numDrawn + ' / ' + counter.numFeed
+        ].join('\t');
+
+        widget.editTitle({ text: title });
+        slider.setMaxValue(numMax);
     };
 };
 
-var opaquesCounter = new CounterWidget(panel, "Opaques",
-    function () { return Scene.getEngineNumFeedOpaqueItems(); },
-    function () { return Scene.getEngineNumDrawnOpaqueItems(); },
-    function(value) {    Scene.setEngineMaxDrawnOpaqueItems(value); },
-    function () { return Scene.getEngineMaxDrawnOpaqueItems(); }
-);
+var opaquesCounter = new CounterWidget(panel, "Opaques", Render.opaque);
+var transparentsCounter = new CounterWidget(panel, "Transparents", Render.transparent);
+var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
-var transparentsCounter = new CounterWidget(panel, "Transparents",
-    function () { return Scene.getEngineNumFeedTransparentItems(); },
-    function () { return Scene.getEngineNumDrawnTransparentItems(); },
-    function(value) {    Scene.setEngineMaxDrawnTransparentItems(value); },
-    function () { return Scene.getEngineMaxDrawnTransparentItems(); }
-);
+var resizing = false;
+var previousMode = Settings.getValue(SETTINGS_KEY, -1);
+Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
+Render.deferredDebugMode = previousMode;
+Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
 
-var overlaysCounter = new CounterWidget(panel, "Overlays",
-    function () { return Scene.getEngineNumFeedOverlay3DItems(); },
-    function () { return Scene.getEngineNumDrawnOverlay3DItems(); },
-    function(value) {    Scene.setEngineMaxDrawnOverlay3DItems(value); },
-    function () { return Scene.getEngineMaxDrawnOverlay3DItems(); }
-);
+function setEngineDeferredDebugSize(eventX) {
+    var scaledX = (2.0 * (eventX / Window.innerWidth) - 1.0).clamp(-1.0, 1.0);
+    Render.deferredDebugSize = { x: scaledX, y: -1.0, z: 1.0, w: 1.0 };
+}
+function shouldStartResizing(eventX) {
+    var x = Math.abs(eventX - Window.innerWidth * (1.0 + Render.deferredDebugSize.x) / 2.0);
+    var mode = Render.deferredDebugMode;
+    return mode !== -1 && x < 20;
+}
 
+function menuItemEvent(menuItem) {
+    var index = ACTIONS.indexOf(menuItem);
+    if (index >= 0) {
+        Render.deferredDebugMode = (index - 1);
+    }
+}
 
 // see libraries/render/src/render/Engine.h
 var showDisplayStatusFlag = 1;
 var showNetworkStatusFlag = 2;
 
 panel.newCheckbox("Display status",
-    function(value) { Scene.setEngineDisplayItemStatus(value ?
-                                                       Scene.doEngineDisplayItemStatus() | showDisplayStatusFlag :
-                                                       Scene.doEngineDisplayItemStatus() & ~showDisplayStatusFlag); },
-    function() { return (Scene.doEngineDisplayItemStatus() & showDisplayStatusFlag) > 0; },
+    function(value) { Render.displayItemStatus = (value ?
+                                                       Render.displayItemStatus | showDisplayStatusFlag :
+                                                       Render.displayItemStatus & ~showDisplayStatusFlag); },
+    function() { return (Render.displayItemStatus & showDisplayStatusFlag) > 0; },
     function(value) { return (value & showDisplayStatusFlag) > 0; }
 );
 
 panel.newCheckbox("Network/Physics status",
-    function(value) { Scene.setEngineDisplayItemStatus(value ?
-                                                       Scene.doEngineDisplayItemStatus() | showNetworkStatusFlag :
-                                                       Scene.doEngineDisplayItemStatus() & ~showNetworkStatusFlag); },
-    function() { return (Scene.doEngineDisplayItemStatus() & showNetworkStatusFlag) > 0; },
+    function(value) { Render.displayItemStatus = (value ?
+                                                       Render.displayItemStatus | showNetworkStatusFlag :
+                                                       Render.displayItemStatus & ~showNetworkStatusFlag); },
+    function() { return (Render.displayItemStatus & showNetworkStatusFlag) > 0; },
     function(value) { return (value & showNetworkStatusFlag) > 0; }
 );
+
+panel.newSlider("Tone Mapping Exposure", -10, 10,
+    function (value) { Render.tone.exposure = value; },
+    function() { return Render.tone.exposure; },
+    function (value) { return (value); });
 
 var tickTackPeriod = 500;
 
@@ -91,11 +107,51 @@ function updateCounters() {
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 
-Controller.mouseMoveEvent.connect(function panelMouseMoveEvent(event) { return panel.mouseMoveEvent(event); });
-Controller.mousePressEvent.connect( function panelMousePressEvent(event) { return panel.mousePressEvent(event); });
-Controller.mouseReleaseEvent.connect(function(event) { return panel.mouseReleaseEvent(event); });
+function mouseMoveEvent(event) {
+    if (resizing) {
+        setEngineDeferredDebugSize(event.x);
+    } else {
+        panel.mouseMoveEvent(event);
+    }
+}
+
+function mousePressEvent(event) {
+    if (shouldStartResizing(event.x)) {
+        resizing = true;
+    } else {
+        panel.mousePressEvent(event);
+    }
+}
+
+function mouseReleaseEvent(event) {
+    if (resizing) {
+        resizing = false;
+    } else {
+        panel.mouseReleaseEvent(event);
+    }
+}
+
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
+
+Menu.menuItemEvent.connect(menuItemEvent);
 
 function scriptEnding() {
     panel.destroy();
+    Menu.removeActionGroup(MENU);
+    // Reset
+    Settings.setValue(SETTINGS_KEY, Render.deferredDebugMode);
+    Render.deferredDebugMode = -1;
+    Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 };
+    Render.opaque.maxDrawn = -1;
+    Render.transparent.maxDrawn = -1;
+    Render.overlay3D.maxDrawn = -1;
 }
 Script.scriptEnding.connect(scriptEnding);
+
+
+// Collapse items
+panel.mousePressEvent({ x: panel.x, y: panel.items["Overlays"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Transparents"].y});
+panel.mousePressEvent({ x: panel.x, y: panel.items["Opaques"].y});

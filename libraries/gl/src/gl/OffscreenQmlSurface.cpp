@@ -254,10 +254,33 @@ private:
         _quit = true;
     }
 
+    static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 5;
     void stop() {
-        QMutexLocker lock(&_mutex);
-        post(STOP);
-        _cond.wait(&_mutex);
+        if (_thread.isRunning()) {
+            qDebug() << "Stopping QML render thread " << _thread.currentThreadId();
+            {
+                QMutexLocker lock(&_mutex);
+                post(STOP);
+            }
+            auto start = usecTimestampNow();
+            auto now = usecTimestampNow();
+            bool shutdownClean = false;
+            while (now - start < (MAX_SHUTDOWN_WAIT_SECS * USECS_PER_SECOND)) {
+                QMutexLocker lock(&_mutex);
+                if (_cond.wait(&_mutex, MSECS_PER_SECOND)) {
+                    shutdownClean = true;
+                    break;
+                }
+                now = usecTimestampNow();
+            }
+
+            if (!shutdownClean) {
+                qWarning() << "Failed to shut down the QML render thread";
+            }
+
+        } else {
+            qDebug() << "QML render thread already completed";
+        }
     }
 
     bool allowNewFrame(uint8_t fps) {
@@ -320,10 +343,13 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
 void OffscreenQmlSurface::resize(const QSize& newSize) {
 
     if (!_renderer || !_renderer->_quickWindow) {
-        QSize currentSize = _renderer->_quickWindow->geometry().size();
-        if (newSize == currentSize) {
-            return;
-        }
+        return;
+    }
+
+
+    QSize currentSize = _renderer->_quickWindow->geometry().size();
+    if (newSize == currentSize) {
+        return;
     }
 
     _qmlEngine->rootContext()->setContextProperty("surfaceSize", newSize);
@@ -437,7 +463,9 @@ void OffscreenQmlSurface::updateQuick() {
     }
 
     if (_render) {
+        QMutexLocker lock(&(_renderer->_mutex));
         _renderer->post(RENDER);
+        _renderer->_cond.wait(&(_renderer->_mutex));
         _render = false;
     }
 

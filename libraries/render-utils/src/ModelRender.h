@@ -29,21 +29,19 @@ public:
 
     class Locations {
     public:
-        int alphaThreshold;
         int texcoordMatrices;
         int diffuseTextureUnit;
         int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;
         int emissiveParams;
-        int glowIntensity;
         int normalFittingMapUnit;
         int skinClusterBufferUnit;
         int materialBufferUnit;
         int lightBufferUnit;
     };
 
-    static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent, float alphaThreshold,
+    static void pickPrograms(gpu::Batch& batch, RenderArgs::RenderMode mode, bool translucent,
         bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe, RenderArgs* args,
         Locations*& locations);
 
@@ -111,9 +109,9 @@ public:
             ) {}
 
         RenderKey(RenderArgs::RenderMode mode,
-            bool translucent, float alphaThreshold, bool hasLightmap,
+            bool translucent, bool hasLightmap,
             bool hasTangents, bool hasSpecular, bool isSkinned, bool isWireframe) :
-            RenderKey(((translucent && (alphaThreshold == 0.0f) && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
+            RenderKey(((translucent && (mode != RenderArgs::SHADOW_RENDER_MODE)) ? IS_TRANSLUCENT : 0)
             | (hasLightmap && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_LIGHTMAP : 0) // Lightmap, tangents and specular don't matter for depthOnly
             | (hasTangents && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_TANGENTS : 0)
             | (hasSpecular && (mode != RenderArgs::SHADOW_RENDER_MODE) ? HAS_SPECULAR : 0)

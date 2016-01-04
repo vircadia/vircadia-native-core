@@ -24,6 +24,7 @@
     var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
     var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
     var bowScriptURL = Script.resolvePath('../examples/toybox/bow/bow.js');
+    var raveStickEntityScriptURL = Script.resolvePath("../examples/flowArts/raveStick/raveStickEntityScript.js");
     var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
     var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
 
@@ -106,6 +107,13 @@
                 z: 505.78
             });
 
+            createRaveStick({
+                x: 547.4,
+                y: 495.4,
+                z: 504.5
+            });
+
+
             createCombinedArmChair({
                 x: 549.29,
                 y: 494.9,
@@ -158,6 +166,46 @@
                     Entities.deleteEntity(entity);
                 }
             });
+        }
+
+        function createRaveStick(position) {
+            var modelURL = "http://hifi-content.s3.amazonaws.com/eric/models/raveStick.fbx";
+            var stick = Entities.addEntity({
+                type: "Model",
+                name: "raveStick",
+                modelURL: modelURL,
+                position: position,
+                shapeType: 'box',
+                collisionsWillMove: true,
+                script: raveStickEntityScriptURL,
+                dimensions: {
+                    x: 0.06,
+                    y: 0.06,
+                    z: 0.31
+                },
+                gravity: {
+                    x: 0,
+                    y: -3,
+                    z: 0
+                },
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: 0,
+                                y: 0,
+                                z: -0.1
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
+                        },
+                        invertSolidWhileHeld: true
+                    }
+                })
+            });
+
         }
 
         function createGun(position) {
@@ -1012,7 +1060,7 @@
                 z: 503.39
             };
 
-            var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
             var pingPongGun = Entities.addEntity({
                 type: "Model",
@@ -1040,6 +1088,14 @@
                         resetMe: true
                     },
                     grabbableKey: {
+                        spatialKey: {
+                            relativePosition: {
+                                x: -0.05,
+                                y: 0,
+                                z: 0.0
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
+                        },
                         invertSolidWhileHeld: true
                     }
 

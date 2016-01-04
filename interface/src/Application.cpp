@@ -11,6 +11,8 @@
 
 #include "Application.h"
 
+#include <gl/Config.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -28,10 +30,13 @@
 #include <QtGui/QImage>
 #include <QtGui/QWheelEvent>
 #include <QtGui/QWindow>
-#include <QtQml/QQmlContext>
 #include <QtGui/QKeyEvent>
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
+
+#include <QtQml/QQmlContext>
+#include <QtQml/QQmlEngine>
+#include <QtQuick/QQuickWindow>
 
 #include <QtWidgets/QActionGroup>
 #include <QtWidgets/QDesktopWidget>
@@ -47,6 +52,7 @@
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <ApplicationVersion.h>
@@ -89,6 +95,7 @@
 #include <RenderableWebEntityItem.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
+#include <RenderScriptingInterface.h>
 #include <SceneScriptingInterface.h>
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
@@ -101,6 +108,7 @@
 #include <VrMenu.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
+#include <QmlWebWindowClass.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -335,12 +343,15 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
+    DependencyManager::set<ResourceScriptingInterface>();
+    
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
+    DependencyManager::set<RenderScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
@@ -361,6 +372,17 @@ bool setupEssentials(int& argc, char** argv) {
 Cube3DOverlay* _keyboardFocusHighlight{ nullptr };
 int _keyboardFocusHighlightID{ -1 };
 PluginContainer* _pluginContainer;
+
+
+// FIXME hack access to the internal share context for the Chromium helper
+// Normally we'd want to use QWebEngine::initialize(), but we can't because 
+// our primary context is a QGLWidget, which can't easily be initialized to share
+// from a QOpenGLContext.
+//
+// So instead we create a new offscreen context to share with the QGLWidget,
+// and manually set THAT to be the shared context for the Chromium helper
+OffscreenGLCanvas* _chromiumShareContext { nullptr };
+Q_GUI_EXPORT void qt_gl_set_global_share_context(QOpenGLContext *context);
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
@@ -623,6 +645,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _glWidget->makeCurrent();
     _glWidget->initializeGL();
 
+    _chromiumShareContext = new OffscreenGLCanvas();
+    _chromiumShareContext->create(_glWidget->context()->contextHandle());
+    _chromiumShareContext->makeCurrent();
+    qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+
     _offscreenContext = new OffscreenGLCanvas();
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
@@ -663,6 +690,74 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Setup the userInputMapper with the actions
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
+        using namespace controller;
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        if (offscreenUi->navigationFocused()) {
+            auto actionEnum = static_cast<Action>(action);
+            int key = Qt::Key_unknown;
+            static int lastKey = Qt::Key_unknown;
+            bool navAxis = false;
+            switch (actionEnum) {
+                case Action::UI_NAV_VERTICAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Up;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Down;
+                    }
+                    break;
+
+                case Action::UI_NAV_LATERAL:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Right;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Left;
+                    }
+                    break;
+
+                case Action::UI_NAV_GROUP:
+                    navAxis = true;
+                    if (state > 0.0f) {
+                        key = Qt::Key_Tab;
+                    } else if (state < 0.0f) {
+                        key = Qt::Key_Backtab;
+                    }
+                    break;
+
+                case Action::UI_NAV_BACK:
+                    key = Qt::Key_Escape;
+                    break;
+
+                case Action::UI_NAV_SELECT:
+                    key = Qt::Key_Return;
+                    break;
+            }
+
+            if (navAxis) {
+                if (lastKey != Qt::Key_unknown) {
+                    QKeyEvent event(QEvent::KeyRelease, lastKey, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = Qt::Key_unknown;
+                }
+
+                if (key != Qt::Key_unknown) {
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                    lastKey = key;
+                }
+            } else if (key != Qt::Key_unknown) {
+                if (state) {
+                    QKeyEvent event(QEvent::KeyPress, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                } else {
+                    QKeyEvent event(QEvent::KeyRelease, key, Qt::NoModifier);
+                    sendEvent(offscreenUi->getWindow(), &event);
+                }
+                return;
+            }
+        }
+
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
             auto globalPos = QCursor::pos();
             auto localPos = _glWidget->mapFromGlobal(globalPos);
@@ -686,13 +781,37 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
                 VrMenu::toggle(); // show context menu even on non-stereo displays
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setX(globalPos.x() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setX(oldPos.x() + state);
+                QCursor::setPos(newPos);
+
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
+
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto globalPos = QCursor::pos();
-                globalPos.setY(globalPos.y() + state);
-                QCursor::setPos(globalPos);
+                auto oldPos = QCursor::pos();
+                auto newPos = oldPos;
+                newPos.setY(oldPos.y() + state);
+                QCursor::setPos(newPos);
+
+                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+                // remove it after we're done
+                const float REASONABLE_CHANGE = 50.0f;
+                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
+                glm::vec2 newPosG = { newPos.x(), newPos.y() };
+                auto distance = glm::distance(oldPosG, newPosG);
+                if (distance > REASONABLE_CHANGE) {
+                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
+                }
             }
         }
     });
@@ -706,9 +825,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
         return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
     }));
-	_applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
-		return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
-	}));
+    _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
+    }));
+    _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
+        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        return offscreenUi->navigationFocused() ? 1.0 : 0.0;
+    }));
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
@@ -1051,9 +1174,59 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
     offscreenUi->load("RootMenu.qml");
-    auto scriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-    offscreenUi->getRootContext()->setContextProperty("Controller", scriptingInterface.data());
-    offscreenUi->getRootContext()->setContextProperty("MyAvatar", getMyAvatar());
+    // FIXME either expose so that dialogs can set this themselves or
+    // do better detection in the offscreen UI of what has focus
+    offscreenUi->setNavigationFocused(false);
+
+    auto rootContext = offscreenUi->getRootContext();
+    auto engine = rootContext->engine();
+    connect(engine, &QQmlEngine::quit, [] {
+        qApp->quit();
+    });
+    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+    rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    rootContext->setContextProperty("MyAvatar", getMyAvatar());
+    rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
+    rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+
+    rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
+    rootContext->setContextProperty("Quat", new Quat());
+    rootContext->setContextProperty("Vec3", new Vec3());
+    rootContext->setContextProperty("Uuid", new ScriptUUID());
+
+    rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+
+    rootContext->setContextProperty("Camera", &_myCamera);
+
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+    rootContext->setContextProperty("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
+#endif
+
+    rootContext->setContextProperty("Overlays", &_overlays);
+    rootContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+
+    rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
+    rootContext->setContextProperty("Stats", Stats::getInstance());
+    rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+    rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+    rootContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
+    rootContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
+    rootContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+    rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    rootContext->setContextProperty("ScriptDiscoveryService", this->getRunningScriptsWidget());
+
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
     VrMenu::executeQueuedLambdas();
@@ -1161,26 +1334,15 @@ void Application::paintGL() {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         PerformanceTimer perfTimer("Mirror");
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
+        renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
+
+        renderArgs._blitFramebuffer.reset();
         renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-
-        {
-            float ratio = ((float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale());
-            // Flip the src and destination rect horizontally to do the mirror
-            auto mirrorRect = glm::ivec4(0, 0, _mirrorViewRect.width() * ratio, _mirrorViewRect.height() * ratio);
-            auto mirrorRectDest = glm::ivec4(mirrorRect.z, mirrorRect.y, mirrorRect.x, mirrorRect.w);
-
-            auto selfieFbo = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
-            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                batch.setFramebuffer(selfieFbo);
-                batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 0.0f, 0.0f));
-                batch.blit(primaryFbo, mirrorRect, selfieFbo, mirrorRectDest);
-                batch.setFramebuffer(nullptr);
-            });
-        }
     }
 
     {
@@ -1351,65 +1513,11 @@ void Application::paintGL() {
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
         }
+        renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
+
+        renderArgs._blitFramebuffer.reset();
         renderArgs._context->enableStereo(false);
-
-        // Blit primary to final FBO
-        auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
-
-        if (renderArgs._renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            if (displayPlugin->isStereo()) {
-                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                    gpu::Vec4i srcRectLeft;
-                    srcRectLeft.z = size.width() / 2;
-                    srcRectLeft.w = size.height();
-                    
-                    gpu::Vec4i srcRectRight;
-                    srcRectRight.x = size.width() / 2;
-                    srcRectRight.z = size.width();
-                    srcRectRight.w = size.height();
-  
-                    gpu::Vec4i destRectLeft;
-                    destRectLeft.x = srcRectLeft.z;
-                    destRectLeft.z = srcRectLeft.x;
-                    destRectLeft.y = srcRectLeft.y;
-                    destRectLeft.w = srcRectLeft.w;
-                    
-                    gpu::Vec4i destRectRight;
-                    destRectRight.x = srcRectRight.z;
-                    destRectRight.z = srcRectRight.x;
-                    destRectRight.y = srcRectRight.y;
-                    destRectRight.w = srcRectRight.w;
-                    
-                    batch.setFramebuffer(finalFramebuffer);
-                    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
-                    // BLit left to right and right to left in stereo
-                    batch.blit(primaryFbo, srcRectRight, finalFramebuffer, destRectLeft);
-                    batch.blit(primaryFbo, srcRectLeft, finalFramebuffer, destRectRight);
-                });
-            } else {
-                gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                    gpu::Vec4i srcRect;
-                    srcRect.z = size.width();
-                    srcRect.w = size.height();
-                    gpu::Vec4i destRect;
-                    destRect.x = size.width();
-                    destRect.y = 0;
-                    destRect.z = 0;
-                    destRect.w = size.height();
-                    batch.setFramebuffer(finalFramebuffer);
-                    batch.blit(primaryFbo, srcRect, finalFramebuffer, destRect);
-                });
-            }
-        } else {
-            gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
-                gpu::Vec4i rect;
-                rect.z = size.width();
-                rect.w = size.height();
-                batch.setFramebuffer(finalFramebuffer);
-                batch.blit(primaryFbo, rect, finalFramebuffer, rect);
-            });
-        }
     }
 
     // Overlay Composition, needs to occur after screen space effects have completed
@@ -1417,7 +1525,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/compositor");
         PerformanceTimer perfTimer("compositor");
+
         auto primaryFbo = finalFramebuffer;
+
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
         if (displayPlugin->isStereo()) {
             QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
@@ -1442,7 +1552,9 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
+
         auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
+
         GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
         Q_ASSERT(0 != finalTexture);
 
@@ -2570,7 +2682,7 @@ void Application::init() {
 
     _environment.init();
 
-    DependencyManager::get<DeferredLightingEffect>()->init(this);
+    DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -3021,8 +3133,7 @@ void Application::update(float deltaTime) {
                 getEntities()->update(); // update the models...
             }
 
-            myAvatar->harvestResultsFromPhysicsSimulation();
-            myAvatar->simulateAttachments(deltaTime);
+            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
         }
     }
 
@@ -3407,7 +3518,7 @@ QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
     renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
     renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
 
@@ -3508,78 +3619,86 @@ namespace render {
 
         // Background rendering decision
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::NO_BACKGROUND) {
+        auto backgroundMode = skyStage->getBackgroundMode();
+
+        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
             // this line intentionally left blank
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_DOME) {
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
-                PerformanceTimer perfTimer("stars");
-                PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                    "Application::payloadRender<BackgroundRenderData>() ... stars...");
-                // should be the first rendering pass - w/o depth buffer / lighting
-
-                // compute starfield alpha based on distance from atmosphere
-                float alpha = 1.0f;
-                bool hasStars = true;
-
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    // TODO: handle this correctly for zones
-                    const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
-
-                    if (closestData.getHasStars()) {
-                        const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                        const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                        glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
-                                                        / closestData.getAtmosphereOuterRadius();
-                        float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
-                        if (height < closestData.getAtmosphereInnerRadius()) {
-                            // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                            alpha = 0.0f;
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-
-
-                        } else if (height < closestData.getAtmosphereOuterRadius()) {
-                            alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                                (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                            if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                float directionY = glm::clamp(sunDirection.y,
-                                                    -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                    + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                            }
-                        }
-                    } else {
-                        hasStars = false;
-                    }
+        } else {
+            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+                auto skybox = skyStage->getSkybox();
+                if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
+                    PerformanceTimer perfTimer("skybox");
+                    skybox->render(batch, *(args->_viewFrustum));
+                } else {
+                    // If no skybox texture is available, render the SKY_DOME while it loads
+                    backgroundMode = model::SunSkyStage::SKY_DOME;
                 }
-
-                // finally render the starfield
-                if (hasStars) {
-                    background->_stars.render(args, alpha);
-                }
-
-                // draw the sky dome
-                if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                    PerformanceTimer perfTimer("atmosphere");
-                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::displaySide() ... atmosphere...");
-
-                    background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                }
-
             }
-        } else if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            PerformanceTimer perfTimer("skybox");
-            auto skybox = skyStage->getSkybox();
-            if (skybox) {
-                skybox->render(batch, *(args->_viewFrustum));
+            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+                    PerformanceTimer perfTimer("stars");
+                    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                        "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                    // should be the first rendering pass - w/o depth buffer / lighting
+
+                    // compute starfield alpha based on distance from atmosphere
+                    float alpha = 1.0f;
+                    bool hasStars = true;
+
+                    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        // TODO: handle this correctly for zones
+                        const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
+
+                        if (closestData.getHasStars()) {
+                            const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
+                            const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
+
+                            glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
+                                                            / closestData.getAtmosphereOuterRadius();
+                            float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
+                            if (height < closestData.getAtmosphereInnerRadius()) {
+                                // If we're inside the atmosphere, then determine if our keyLight is below the horizon
+                                alpha = 0.0f;
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+
+
+                            } else if (height < closestData.getAtmosphereOuterRadius()) {
+                                alpha = (height - closestData.getAtmosphereInnerRadius()) /
+                                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
+
+                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
+                                    float directionY = glm::clamp(sunDirection.y,
+                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
+                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
+                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
+                                }
+                            }
+                        } else {
+                            hasStars = false;
+                        }
+                    }
+
+                    // finally render the starfield
+                    if (hasStars) {
+                        background->_stars.render(args, alpha);
+                    }
+
+                    // draw the sky dome
+                    if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+                        PerformanceTimer perfTimer("atmosphere");
+                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "Application::displaySide() ... atmosphere...");
+
+                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
+                    }
+
+                }
             }
         }
     }
@@ -3677,34 +3796,19 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // For now every frame pass the renderContext
     {
         PerformanceTimer perfTimer("EngineRun");
-        render::RenderContext renderContext;
 
-        auto sceneInterface = DependencyManager::get<SceneScriptingInterface>();
-
-        renderContext._cullOpaque = sceneInterface->doEngineCullOpaque();
-        renderContext._sortOpaque = sceneInterface->doEngineSortOpaque();
-        renderContext._renderOpaque = sceneInterface->doEngineRenderOpaque();
-        renderContext._cullTransparent = sceneInterface->doEngineCullTransparent();
-        renderContext._sortTransparent = sceneInterface->doEngineSortTransparent();
-        renderContext._renderTransparent = sceneInterface->doEngineRenderTransparent();
-
-        renderContext._maxDrawnOpaqueItems = sceneInterface->getEngineMaxDrawnOpaqueItems();
-        renderContext._maxDrawnTransparentItems = sceneInterface->getEngineMaxDrawnTransparentItems();
-        renderContext._maxDrawnOverlay3DItems = sceneInterface->getEngineMaxDrawnOverlay3DItems();
-
-        renderContext._drawItemStatus = sceneInterface->doEngineDisplayItemStatus();
-        if (Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned)) {
-            renderContext._drawItemStatus |= render::showNetworkStatusFlag;
-        }
-        renderContext._drawHitEffect = sceneInterface->doEngineDisplayHitEffect();
-
-        renderContext._occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        renderContext._fxaaStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
+        auto renderContext = renderInterface->getRenderContext();
 
         renderArgs->_shouldRender = LODManager::shouldRender;
-
-        renderContext.args = renderArgs;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
+        renderContext.setArgs(renderArgs);
+
+        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
+        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
+
         _renderEngine->setRenderContext(renderContext);
 
         // Before the deferred pass, let's try to use the render engine
@@ -3712,15 +3816,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         _renderEngine->run();
         myAvatar->endRenderRun();
 
-        auto engineRC = _renderEngine->getRenderContext();
-        sceneInterface->setEngineFeedOpaqueItems(engineRC->_numFeedOpaqueItems);
-        sceneInterface->setEngineDrawnOpaqueItems(engineRC->_numDrawnOpaqueItems);
-
-        sceneInterface->setEngineFeedTransparentItems(engineRC->_numFeedTransparentItems);
-        sceneInterface->setEngineDrawnTransparentItems(engineRC->_numDrawnTransparentItems);
-
-        sceneInterface->setEngineFeedOverlay3DItems(engineRC->_numFeedOverlay3DItems);
-        sceneInterface->setEngineDrawnOverlay3DItems(engineRC->_numDrawnOverlay3DItems);
+        auto engineContext = _renderEngine->getRenderContext();
+        renderInterface->setItemCounts(engineContext->getItemsConfig());
     }
 
     activeRenderingThread = nullptr;
@@ -4146,6 +4243,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
                                        LocationScriptingInterface::locationSetter);
 
     scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
+    scriptEngine->registerFunction("OverlayWebWindow", QmlWebWindowClass::constructor);
+    scriptEngine->registerFunction("OverlayWindow", QmlWindowClass::constructor);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
@@ -4174,11 +4273,12 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
 }
 
-bool Application::canAcceptURL(const QString& urlString) {
+bool Application::canAcceptURL(const QString& urlString) const {
     QUrl url(urlString);
     if (urlString.startsWith(HIFI_URL_SCHEME)) {
         return true;
