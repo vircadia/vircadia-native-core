@@ -21,7 +21,7 @@
     "start": "electron . --local-debug-builds --debug",
     "local-release": "electron . --local-release-builds --debug",
     "package-darwin": "electron-packager . High\\ Fidelity\\ Console --overwrite --prune --platform=darwin --arch=x64 --version=0.35.4 --icon=resources/console.icns",
-    "package-win": "electron-packager . High\\ Fidelity\\ Console --overwrite --prune --platform=win32 --arch=x64 --version=0.35.4 --icon=resources/console.ico",
+    "package-win": "electron-packager . \"High Fidelity Console\" --overwrite --prune --platform=win32 --arch=x64 --version=0.35.4 --icon=resources/console.ico",
     "package-linux": "electron-packager . High\\ Fidelity\\ Console --overwrite --prune --platform=linux --arch=x64 --version=0.35.4"
   },
   "dependencies": {
