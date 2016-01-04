@@ -109,7 +109,9 @@ add_dependency_external_projects(sdl2)
 if (WIN32)
     add_dependency_external_projects(OpenVR)
 endif()
-
+if(WIN32 OR APPLE)
+    add_dependency_external_projects(neuron)
+endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
@@ -209,6 +211,9 @@ else (APPLE)
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
     "${PROJECT_SOURCE_DIR}/resources"
     $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/examples"
+    $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
   # link target to external libraries

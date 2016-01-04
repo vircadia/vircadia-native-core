@@ -48,6 +48,10 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
     }
 
     if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
+        gpu::TexturePointer skymap = skybox.getCubemap();
+        // FIXME: skymap->isDefined may not be threadsafe
+        assert(skymap && skymap->isDefined());
+
         glm::mat4 projMat;
         viewFrustum.evalProjectionMatrix(projMat);
 
@@ -56,10 +60,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewTransform);
         batch.setModelTransform(Transform()); // only for Mac
-
-        if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
-            batch.setResourceTexture(0, skybox.getCubemap());
-        }
+        batch.setResourceTexture(0, skybox.getCubemap());
 
         skybox._procedural->prepare(batch, glm::vec3(0), glm::vec3(1));
         batch.draw(gpu::TRIANGLE_STRIP, 4);

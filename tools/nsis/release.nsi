@@ -1,164 +1,220 @@
 !include LogicLib.nsh
 !include x64.nsh
+!include MUI2.nsh
 
-!define srcdir "$%INSTALLER_SOURCE_DIR%"
+;------------------------------------------------------------------------------------------------------
+; Source Directory Definition
+;
+; installer_srcdir = Source directory for Interface
+; scripts_srcdir = Source directory for JS scripts
+
+!define installer_srcdir "$%INSTALLER_SOURCE_DIR%"
+!define scripts_srcdir "$%INSTALLER_SCRIPTS_DIR%"
+
+; Install Directories, Icons and Registry entries
+;
+; setup = Name of the installer executable that will be produced
+; uninstaller = Name of the uninstaller executable
+; company = String to use for company name, includes build type suffix [eg. High Fidelity - PR] for non-release installers
+; install_directory = Subdirectory where this specific version will be installed, in the case of dev and pr builds, its a
+;                     unique subdirectory inside a company parent [eg. \High Fidelity - PR\1234\ ]
+
 !define setup "$%INSTALLER_NAME%"
-!define scriptsdir "$%INSTALLER_SCRIPTS_DIR%"
+!define uninstaller "uninstall.exe"
 !define company "$%INSTALLER_COMPANY%"
 !define install_directory "$%INSTALLER_DIRECTORY%"
+
+; Executables and icons for GUI applications that will be added as shortcuts. 
 !define interface_exec "interface.exe"
 !define stack_manager_exec "stack-manager.exe"
 !define interface_icon "interface.ico"
 !define stack_manager_icon "stack-manager.ico"
-!define regkey "Software\${company}"
-!define uninstkey "Software\Microsoft\Windows\CurrentVersion\Uninstall\${company}"
-!define install_dir_company "$PROGRAMFILES64\${install_directory}"
+
+; Registry entries
+!define regkey "Software\${install_directory}"
+!define uninstkey "Software\Microsoft\Windows\CurrentVersion\Uninstall\${install_directory}"
+!define instdir "$PROGRAMFILES64\${install_directory}"
+
+; Start Menu program group
 !define startmenu_company "$SMPROGRAMS\${install_directory}"
-!define uninstaller "uninstall.exe"
 
-;--------------------------------
+;------------------------------------------------------------------------------------------------------
+; Local Variables and Other Options
 
-XPStyle on
+var ChosenInstallDir
+
+SetCompressor bzip2
 ShowInstDetails hide
 ShowUninstDetails hide
-
-Name "${company}"
-Caption "${company}"
-
-!ifdef icon
-    Icon "${icon}"
-!endif
-
-OutFile "${setup}"
-
+AutoCloseWindow true
+ShowInstDetails show
 SetDateSave on
 SetDatablockOptimize on
 CRCCheck on
 SilentInstall normal
+Icon "${installer_srcdir}\${interface_icon}"
+UninstallIcon "${installer_srcdir}\${interface_icon}"
+UninstallText "This will uninstall ${company}."
+Name "${company}"
+Caption "${company}"
+OutFile "${setup}"
 
-InstallDir "${install_dir_company}"
-InstallDirRegKey HKLM "${regkey}" ""
+;------------------------------------------------------------------------------------------------------
+; Components
 
-; Page components
-Page directory
-Page components
-Page instfiles
-
-UninstPage uninstConfirm
-UninstPage instfiles
-
-;--------------------------------
-
-AutoCloseWindow true
-ShowInstDetails show
-
-
-!ifdef screenimage
-
-    ; set up background image
-    ; uses BgImage plugin
-
-    Function .onGUIInit
-        ; extract background BMP into temp plugin directory
-        InitPluginsDir
-        File /oname=$PLUGINSDIR\1.bmp "${screenimage}"
-
-        BgImage::SetBg /NOUNLOAD /FILLSCREEN $PLUGINSDIR\1.bmp
-        BgImage::Redraw /NOUNLOAD
-    FunctionEnd
-
-    Function .onGUIEnd
-        ; Destroy must not have /NOUNLOAD so NSIS will be able to unload and delete BgImage before it exits
-        BgImage::Destroy
-    FunctionEnd
-
-!endif
-
-; Optional Component Selection
-Section /o "DDE Face Recognition" SEC01
-    SetOutPath "$INSTDIR"
-    CreateDirectory $INSTDIR\dde
-    NSISdl::download "https://s3-us-west-1.amazonaws.com/hifi-production/optionals/dde-installer.exe" "$INSTDIR\dde-installer.exe"
-    ExecWait '"$INSTDIR\dde-installer.exe" /q:a /t:"$INSTDIR\dde"'
+Section /o "DDE Face Recognition" "DDE"
+    SetOutPath "$ChosenInstallDir"
+    CreateDirectory $ChosenInstallDir\dde
+    NSISdl::download "https://s3-us-west-1.amazonaws.com/hifi-production/optionals/dde-installer.exe" "$ChosenInstallDir\dde-installer.exe"
+    ExecWait '"$ChosenInstallDir\dde-installer.exe" /q:a /t:"$ChosenInstallDir\dde"'
 SectionEnd
 
-; beginning (invisible) section
-Section "Registry Entries and Procotol Handler" SEC02
+Section /o "Default Content Set" "CONTENT"
+    SetOutPath "$ChosenInstallDir\resources"
+    NSISdl::download "https://s3-us-west-1.amazonaws.com/hifi-production/content/temp.exe" "$ChosenInstallDir\content.exe"
+    ExecWait '"$ChosenInstallDir\content.exe" /S'
+    Delete "$ChosenInstallDir\content.exe"
+SectionEnd
 
+Section "Registry Entries and Procotol Handler" "REGISTRY"
+    SetRegView 64
     SectionIn RO
-
-    WriteRegStr HKLM "${regkey}" "Install_Dir" "$INSTDIR"
-    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${company} (remove only)"
-    WriteRegStr HKLM "${uninstkey}" "UninstallString" '"$INSTDIR\${uninstaller}"'
-    WriteRegStr HKCR "${company}\Shell\open\command\" "" '"$INSTDIR\${interface_exec} "%1"'
-    WriteRegStr HKCR "${company}\DefaultIcon" "" "$INSTDIR\${interface_icon}"
+    WriteRegStr HKLM "${regkey}" "Install_Dir" "$ChosenInstallDir"
+    WriteRegStr HKLM "${uninstkey}" "DisplayName" "${install_directory} (remove only)"
+    WriteRegStr HKLM "${uninstkey}" "UninstallString" '"$ChosenInstallDir\${uninstaller}"'
+    WriteRegStr HKCR "${company}\Shell\open\command\" "" '"$ChosenInstallDir\${interface_exec} "%1"'
+    WriteRegStr HKCR "${company}\DefaultIcon" "" "$ChosenInstallDir\${interface_icon}"
 
     ; hifi:// protocol handler registry entries
     WriteRegStr HKCR 'hifi' '' 'URL:Alert Protocol'
     WriteRegStr HKCR 'hifi' 'URL Protocol' ''
-    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${interface_icon},1'
-    WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${interface_exec} --url "%1"'
+    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$ChosenInstallDir\${interface_icon},1'
+    WriteRegStr HKCR 'hifi\shell\open\command' '' '$ChosenInstallDir\${interface_exec} --url "%1"'
 
-    SetOutPath $INSTDIR
-
-    ; package all files, recursively, preserving attributes
-    ; assume files are in the correct places
-    File /r "${srcdir}\"
-    File /a "${srcdir}\${interface_icon}"
-    File /a "${srcdir}\${stack_manager_icon}"
-    ; any application-specific files
-    !ifdef files
-        !include "${files}"
-    !endif
-    WriteUninstaller "${uninstaller}"
-    Exec '"$INSTDIR\2013_vcredist_x64.exe" /q /norestart'
-    Exec '"$INSTDIR\2010_vcredist_x86.exe" /q /norestart'
+    SetOutPath $ChosenInstallDir
+    WriteUninstaller "$ChosenInstallDir\${uninstaller}"
+    Exec '"$ChosenInstallDir\2013_vcredist_x64.exe" /q /norestart'
+    Exec '"$ChosenInstallDir\2010_vcredist_x86.exe" /q /norestart'
 SectionEnd
 
-; create shortcuts
-Section "Start Menu Shortcuts" SEC03
-
+Section "Base Files" "BASE"
     SectionIn RO
+    SetOutPath $ChosenInstallDir
+    File /r /x assignment-client.* /x domain-server.* /x interface.* /x stack-manager.* "${installer_srcdir}\"
+SectionEnd
 
-    ; This should install the shortcuts for "All Users"
+Section "HighFidelity Interface" "CLIENT"
+    SetOutPath $ChosenInstallDir
+    File /a "${installer_srcdir}\interface.*"
+    File /a "${installer_srcdir}\${interface_icon}"
+SectionEnd
+
+Section "HighFidelity Server" "SERVER"
+    SetOutPath $ChosenInstallDir
+    File /a "${installer_srcdir}\stack-manager.*"
+    File /a "${installer_srcdir}\domain-server.*"
+    File /a "${installer_srcdir}\assignment-client.*"
+    File /a "${installer_srcdir}\${stack_manager_icon}"
+SectionEnd
+
+Section "Start Menu Shortcuts" "SHORTCUTS"
     SetShellVarContext all
     CreateDirectory "${startmenu_company}"
-    SetOutPath $INSTDIR ; for working directory
-    CreateShortCut "${startmenu_company}\Interface.lnk" "$INSTDIR\${interface_exec}" "" "$INSTDIR\${interface_icon}"
-    CreateShortCut "${startmenu_company}\Stack Manager.lnk" "$INSTDIR\${stack_manager_exec}" "" "$INSTDIR\${stack_manager_icon}"
-    CreateShortCut "${startmenu_company}\Uninstall ${company}.lnk" "$INSTDIR\${uninstaller}"
+    SetOutPath $ChosenInstallDir
+    CreateShortCut "${startmenu_company}\Client.lnk" "$ChosenInstallDir\${interface_exec}" "" "$ChosenInstallDir\${interface_icon}"
+    CreateShortCut "${startmenu_company}\Home Server.lnk" "$ChosenInstallDir\${stack_manager_exec}" "" "$ChosenInstallDir\${stack_manager_icon}"
+    CreateShortCut "${startmenu_company}\Uninstall ${company}.lnk" "$ChosenInstallDir\${uninstaller}"
 SectionEnd
 
-; Uninstaller
-; All section names prefixed by "Un" will be in the uninstaller
-
-UninstallText "This will uninstall ${company}."
-
-!ifdef icon
-    UninstallIcon "${interface_icon}"
-!endif
-
-Section "Uninstall" SEC04
-
-    SectionIn RO
-
-    ; Explicitly remove all added shortcuts
-    SetShellVarContext all
-    DELETE "${startmenu_company}\Interface.lnk"
-    DELETE "${startmenu_company}\Stack Manager.lnk"
-    DELETE "${startmenu_company}\Uninstall ${company}.lnk"
-
-    RMDIR "${startmenu_company}"
-
-    RMDIR /r "$INSTDIR"
-    ; This should remove the High Fidelity folder in Program Files if it's empty
-    RMDIR "${install_dir_company}"
-
-    !ifdef unfiles
-        !include "${unfiles}"
-    !endif
-    ; It's good practice to put the registry key removal at the very end
+Section "Uninstall"
+    SetRegView 64
+    Delete "$INSTDIR\${uninstaller}"
+    Delete "$SMSTARTUP\High Fidelity Home Server.lnk"
+    RMDir /r "$INSTDIR"
+    RMDir /r "${startmenu_company}"
+    RMDir /r "$0"
     DeleteRegKey HKLM "${uninstkey}"
     DeleteRegKey HKLM "${regkey}"
+    DeleteRegKey HKCR "${company}"
     DeleteRegKey HKCR 'hifi'
 SectionEnd
+
+;------------------------------------------------------------------------------------------------------
+; Functions
+
+Function .onInit
+    StrCpy $ChosenInstallDir "${instdir}"
+    SectionSetText ${REGISTRY} ""
+    SectionSetText ${SHORTCUTS} ""
+    SectionSetText ${BASE} ""
+FunctionEnd
+
+var ServerCheckBox
+var ServerCheckBox_state
+var RunOnStartupCheckBox
+var RunOnStartupCheckBox_state
+
+Function RunCheckboxes
+    ${If} ${SectionIsSelected} ${SERVER}
+        ${NSD_CreateCheckbox} 36.2% 56% 100% 10u "&Start Home Server"
+        Pop $ServerCheckBox
+        SetCtlColors $ServerCheckBox "" "ffffff"
+        ${NSD_CreateCheckbox} 36.2% 65% 100% 10u "&Always launch your Home Server on startup"
+        Pop $RunOnStartupCheckBox
+        SetCtlColors $RunOnStartupCheckBox "" "ffffff"
+    ${EndIf}
+FunctionEnd
+
+Function HandleCheckBoxes
+    ${If} ${SectionIsSelected} ${SERVER}
+        ${NSD_GetState} $ServerCheckBox $ServerCheckBox_state
+        ${If} $ServerCheckBox_state == ${BST_CHECKED}
+            SetOutPath $ChosenInstallDir
+            ExecShell "" '"$ChosenInstallDir\stack-manager.exe"'
+        ${EndIf}
+        ${NSD_GetState} $RunOnStartupCheckBox $RunOnStartupCheckBox_state
+        ${If} $ServerCheckBox_state == ${BST_CHECKED}
+            CreateShortCut "$SMSTARTUP\High Fidelity Home Server.lnk" "$ChosenInstallDir\${stack_manager_exec}" "" "$ChosenInstallDir\${stack_manager_icon}"
+        ${EndIf}
+    ${EndIf}
+FunctionEnd
+
+;------------------------------------------------------------------------------------------------------
+; User interface macros and other definitions
+
+!define MUI_WELCOMEFINISHPAGE_BITMAP "installer_vertical.bmp"
+!define MUI_WELCOMEPAGE_TITLE "High Fidelity - Integrated Installer"
+!define MUI_WELCOMEPAGE_TEXT "Welcome to High Fidelity! This installer includes both High Fidelity Interface for VR access as well as the High Fidelity Server for you to host your own domain in the metaverse."
+!insertmacro MUI_PAGE_WELCOME
+
+!define MUI_PAGE_HEADER_TEXT "Please select the components you want to install"
+!define MUI_COMPONENTSPAGE_TEXT_DESCRIPTION_INFO "Hover over a component for a brief description"
+!insertmacro MUI_PAGE_COMPONENTS
+
+!define MUI_DIRECTORYPAGE_VARIABLE $ChosenInstallDir
+!define MUI_PAGE_HEADER_TEXT "High Fidelity"
+!define MUI_PAGE_HEADER_SUBTEXT ""
+!define MUI_DIRECTORYPAGE_TEXT_TOP "Choose a location for your High Fidelity installation."
+!define MUI_DIRECTORYPAGE_TEXT_DESTINATION "Install Directory"
+!insertmacro MUI_PAGE_DIRECTORY
+
+!insertmacro MUI_PAGE_INSTFILES
+
+!insertmacro MUI_UNPAGE_CONFIRM
+!insertmacro MUI_UNPAGE_INSTFILES
+
+!define MUI_PAGE_CUSTOMFUNCTION_SHOW RunCheckboxes
+!define MUI_PAGE_CUSTOMFUNCTION_LEAVE HandleCheckboxes
+!define MUI_FINISHPAGE_RUN_NOTCHECKED
+!define MUI_FINISHPAGE_RUN "$ChosenInstallDir\interface.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Start High Fidelity Interface"
+!insertmacro MUI_PAGE_FINISH
+
+!insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
+    !insertmacro MUI_DESCRIPTION_TEXT ${DDE} "DDE enables facial gesture recognition using a standard 2D webcam"
+    !insertmacro MUI_DESCRIPTION_TEXT ${CONTENT} "Demo content set for your home server"
+    !insertmacro MUI_DESCRIPTION_TEXT ${CLIENT} "The High Fidelity Interface Client for connection to domains in the metaverse."
+    !insertmacro MUI_DESCRIPTION_TEXT ${SERVER} "The High Fidelity Server - run your own home domain"
+!insertmacro MUI_FUNCTION_DESCRIPTION_END
+
+!insertmacro MUI_LANGUAGE "English"
