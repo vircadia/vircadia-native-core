@@ -37,6 +37,13 @@
         this.bulletForce = 10;
         this.showLaser = false;
 
+        this.laserOffsets = {
+            y: 0.095
+        };
+        this.firingOffsets = {
+            z: 0.16
+        }
+
     };
 
     Pistol.prototype = {
@@ -272,46 +279,12 @@
                 });
             }, 100);
 
-            Entities.editEntity(this.flash, {
-                isEmitting: true
-            });
-            Script.setTimeout(function() {
-                Entities.editEntity(_this.flash, {
-                    isEmitting: false
-                });
-            }, 100)
-
-        },
-
-        preload: function(entityID) {
-            this.entityID = entityID;
-            this.laser = Overlays.addOverlay("line3d", {
-                start: ZERO_VECTOR,
-                end: ZERO_VECTOR,
-                color: COLORS.RED,
-                alpha: 1,
-                visible: true,
-                lineWidth: 2
-            });
-            this.laserOffsets = {
-                y: 0.095
-            };
-            this.firingOffsets = {
-                z: 0.16
-            }
-            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
-            var position = gunProps.position;
-            var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-            this.firingDirection = Quat.getFront(rotation);
-            var upVec = Quat.getUp(rotation);
-            this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
-            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
-
-            this.flash = Entities.addEntity({
+            var flash = Entities.addEntity({
                 type: "ParticleEffect",
                 position: this.barrelPoint,
                 "name": "Muzzle Flash",
-                isEmitting: false,
+                lifetime: 4,
+                parentID: this.entityID,
                 "color": {
                     red: 228,
                     green: 128,
@@ -363,11 +336,24 @@
                 "additiveBlending": true,
                 "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
             });
+            Script.setTimeout(function() {
+                Entities.editEntity(flash, {
+                    isEmitting: false
+                });
+            }, 100)
 
-           Script.setTimeout(function() {
-                Entities.editEntity(_this.flash, {parentID: _this.entityID});
-           }, 500)
+        },
 
+        preload: function(entityID) {
+            this.entityID = entityID;
+            this.laser = Overlays.addOverlay("line3d", {
+                start: ZERO_VECTOR,
+                end: ZERO_VECTOR,
+                color: COLORS.RED,
+                alpha: 1,
+                visible: true,
+                lineWidth: 2
+            });
         },
     };
 

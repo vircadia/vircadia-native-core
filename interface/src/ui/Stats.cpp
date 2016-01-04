@@ -116,8 +116,6 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(avatarRenderableCount, avatarManager->getNumberInRenderRange());
-    STAT_UPDATE(avatarRenderDistance, (int) round(avatarManager->getRenderDistance())); // deliberately truncating
     STAT_UPDATE(serverCount, (int)nodeList->size());
     STAT_UPDATE(renderrate, (int)qApp->getFps());
     if (qApp->getActiveDisplayPlugin()) {
@@ -285,7 +283,9 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
+        STAT_UPDATE(lodStatsRenderText, DependencyManager::get<LODManager>()->getLODStatsRenderText());
     }
+    STAT_UPDATE(showAcuity, (_expanded || force) && DependencyManager::get<LODManager>()->getUseAcuity());
 
     bool performanceTimerIsActive = PerformanceTimer::isActive();
     bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);

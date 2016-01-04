@@ -44,7 +44,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return 17;
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
         default:
             return 17;
     }

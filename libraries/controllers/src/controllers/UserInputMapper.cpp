@@ -100,7 +100,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
 
     _registeredDevices[deviceID] = device;
-    auto mapping = loadMapping(device->getDefaultMappingConfig());
+    auto mapping = loadMappings(device->getDefaultMappingConfigs());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
         enableMapping(mapping);
@@ -139,7 +139,7 @@ void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
     }
 
 
-    auto mapping = loadMapping(proxyEntry->second->getDefaultMappingConfig());
+    auto mapping = loadMappings(proxyEntry->second->getDefaultMappingConfigs());
     if (mapping) {
         auto prevMapping = _mappingsByDevice[deviceID];
         disableMapping(prevMapping);
@@ -710,6 +710,21 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
     return parseMapping(json);
 }
 
+MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
+    Mapping::Pointer result;
+    for (const QString& jsonFile : jsonFiles) {
+        auto subMapping = loadMapping(jsonFile);
+        if (subMapping) {
+            if (!result) {
+                result = subMapping;
+            } else {
+                auto& routes = result->routes;
+                routes.insert(routes.end(), subMapping->routes.begin(), subMapping->routes.end());
+            }
+        }
+    }
+    return result;
+}
 
 
 static const QString JSON_NAME = QStringLiteral("name");
@@ -888,7 +903,7 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
 
 Endpoint::Pointer UserInputMapper::parseAxis(const QJsonValue& value) {
     if (value.isObject()) {
-        auto object = value.toObject();
+        auto object = value.toObject();     
         if (object.contains("makeAxis")) {
             auto axisValue = object.value("makeAxis");
             if (axisValue.isArray()) {
@@ -985,6 +1000,20 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     return result;
 }
 
+void injectConditional(Route::Pointer& route, Conditional::Pointer& conditional) {
+    if (!conditional) {
+        return;
+    }
+
+    if (!route->conditional) {
+        route->conditional = conditional;
+        return;
+    }
+
+    route->conditional = std::make_shared<AndConditional>(conditional, route->conditional);
+}
+
+
 Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
     if (!json.isObject()) {
         return Mapping::Pointer();
@@ -994,12 +1023,24 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
     auto mapping = std::make_shared<Mapping>("default");
     mapping->name = obj[JSON_NAME].toString();
     const auto& jsonChannels = obj[JSON_CHANNELS].toArray();
+    Conditional::Pointer globalConditional;
+    if (obj.contains(JSON_CHANNEL_WHEN)) {
+        auto conditionalsValue = obj[JSON_CHANNEL_WHEN];
+        globalConditional = parseConditional(conditionalsValue);
+    }
+
     for (const auto& channelIt : jsonChannels) {
         Route::Pointer route = parseRoute(channelIt);
+
         if (!route) {
             qWarning() << "Couldn't parse route";
             continue;
         }
+
+        if (globalConditional) {
+            injectConditional(route, globalConditional);
+        }
+
         mapping->routes.push_back(route);
     }
     _mappingsByName[mapping->name] = mapping;

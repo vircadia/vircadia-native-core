@@ -17,6 +17,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QVBoxLayout>
+#include <QCheckBox>
 
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
@@ -27,13 +28,13 @@
 
 AttachmentsDialog::AttachmentsDialog(QWidget* parent) :
     QDialog(parent) {
-    
+
     setWindowTitle("Edit Attachments");
     setAttribute(Qt::WA_DeleteOnClose);
-    
+
     QVBoxLayout* layout = new QVBoxLayout();
     setLayout(layout);
-    
+
     QScrollArea* area = new QScrollArea();
     layout->addWidget(area);
     area->setWidgetResizable(true);
@@ -42,26 +43,26 @@ AttachmentsDialog::AttachmentsDialog(QWidget* parent) :
     container->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     area->setWidget(container);
     _attachments->addStretch(1);
-    
+
     foreach (const AttachmentData& data, DependencyManager::get<AvatarManager>()->getMyAvatar()->getAttachmentData()) {
         addAttachment(data);
     }
-    
+
     QPushButton* newAttachment = new QPushButton("New Attachment");
     connect(newAttachment, SIGNAL(clicked(bool)), SLOT(addAttachment()));
     layout->addWidget(newAttachment);
-    
+
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok);
     layout->addWidget(buttons);
     connect(buttons, SIGNAL(accepted()), SLOT(deleteLater()));
     _ok = buttons->button(QDialogButtonBox::Ok);
-    
+
     setMinimumSize(600, 600);
 }
 
 void AttachmentsDialog::setVisible(bool visible) {
     QDialog::setVisible(visible);
-    
+
     // un-default the OK button
     if (visible) {
         _ok->setDefault(false);
@@ -104,11 +105,11 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
         _dialog(dialog),
         _applying(false) {
     setFrameStyle(QFrame::StyledPanel);
- 
+
     QFormLayout* layout = new QFormLayout();
     layout->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
     setLayout(layout);
- 
+
     QHBoxLayout* urlBox = new QHBoxLayout();
     layout->addRow("Model URL:", urlBox);
     urlBox->addWidget(_modelURL = new QLineEdit(data.modelURL.toString()), 1);
@@ -117,7 +118,7 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     QPushButton* chooseURL = new QPushButton("Choose");
     urlBox->addWidget(chooseURL);
     connect(chooseURL, SIGNAL(clicked(bool)), SLOT(chooseModelURL()));
-    
+
     layout->addRow("Joint:", _jointName = new QComboBox());
     QSharedPointer<NetworkGeometry> geometry = DependencyManager::get<AvatarManager>()->getMyAvatar()->getSkeletonModel().getGeometry();
     if (geometry && geometry->isLoaded()) {
@@ -127,26 +128,30 @@ AttachmentPanel::AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData
     }
     _jointName->setCurrentText(data.jointName);
     connect(_jointName, SIGNAL(currentIndexChanged(int)), SLOT(jointNameChanged()));
-    
+
     QHBoxLayout* translationBox = new QHBoxLayout();
     translationBox->addWidget(_translationX = createTranslationBox(this, data.translation.x));
     translationBox->addWidget(_translationY = createTranslationBox(this, data.translation.y));
     translationBox->addWidget(_translationZ = createTranslationBox(this, data.translation.z));
     layout->addRow("Translation:", translationBox);
-    
+
     QHBoxLayout* rotationBox = new QHBoxLayout();
     glm::vec3 eulers = glm::degrees(safeEulerAngles(data.rotation));
     rotationBox->addWidget(_rotationX = createRotationBox(this, eulers.x));
     rotationBox->addWidget(_rotationY = createRotationBox(this, eulers.y));
     rotationBox->addWidget(_rotationZ = createRotationBox(this, eulers.z));
     layout->addRow("Rotation:", rotationBox);
-    
+
     layout->addRow("Scale:", _scale = new QDoubleSpinBox());
     _scale->setSingleStep(0.01);
     _scale->setMaximum(FLT_MAX);
     _scale->setValue(data.scale);
     connect(_scale, SIGNAL(valueChanged(double)), SLOT(updateAttachmentData()));
-    
+
+    layout->addRow("Is Soft:", _isSoft = new QCheckBox());
+    _isSoft->setChecked(data.isSoft);
+    connect(_isSoft, SIGNAL(stateChanged(int)), SLOT(updateAttachmentData()));
+
     QPushButton* remove = new QPushButton("Delete");
     layout->addRow(remove);
     connect(remove, SIGNAL(clicked(bool)), SLOT(deleteLater()));
@@ -160,6 +165,7 @@ AttachmentData AttachmentPanel::getAttachmentData() const {
     data.translation = glm::vec3(_translationX->value(), _translationY->value(), _translationZ->value());
     data.rotation = glm::quat(glm::radians(glm::vec3(_rotationX->value(), _rotationY->value(), _rotationZ->value())));
     data.scale = _scale->value();
+    data.isSoft = _isSoft->isChecked();
     return data;
 }
 
@@ -227,6 +233,7 @@ void AttachmentPanel::applyAttachmentData(const AttachmentData& attachment) {
     _rotationY->setValue(eulers.y);
     _rotationZ->setValue(eulers.z);
     _scale->setValue(attachment.scale);
+    _isSoft->setChecked(attachment.isSoft);
     _applying = false;
     _dialog->updateAttachmentData();
 }
