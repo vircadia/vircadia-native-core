@@ -263,8 +263,7 @@ void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, flo
         // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
         // goes up.
         distance = 1.0f / _renderDistanceController.update(measuredFps, deltaTime);
-    }
-    else {
+    } else {
         // Here we choose to just use the maximum render cutoff distance if throttled.
         distance = 1.0f / _renderDistanceController.getControlledValueLowLimit();
     }
