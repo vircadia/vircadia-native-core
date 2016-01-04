@@ -48,10 +48,11 @@ function getJointData(avatar) {
 }
 
 function setJointData(doppelganger, allJointData) {
+    var jointRotations = [];
     allJointData.forEach(function(jointData, index) {
-        Entities.setAbsoluteJointTranslationInObjectFrame(doppelganger.id, index, jointData.translation);
-        Entities.setAbsoluteJointRotationInObjectFrame(doppelganger.id, index, jointData.rotation);
+        jointRotations.push(jointData.rotation);
     });
+    Entities.setAbsoluteJointRotationsInObjectFrame(doppelganger.id, jointRotations);
 
     return true;
 }
@@ -86,7 +87,7 @@ function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
 
 function connectDoppelgangerUpdates() {
     // Script.update.connect(updateDoppelganger);
-    Script.setInterval(updateDoppelganger, 500);
+    Script.setInterval(updateDoppelganger, 100);
 }
 
 function disconnectDoppelgangerUpdates() {
