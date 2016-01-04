@@ -71,12 +71,6 @@
 #include "textured_particle_frag.h"
 #include "textured_particle_vert.h"
 
-#include "ambient_occlusion_vert.h"
-#include "ambient_occlusion_frag.h"
-#include "gaussian_blur_vertical_vert.h"
-#include "gaussian_blur_horizontal_vert.h"
-#include "gaussian_blur_frag.h"
-#include "occlusion_blend_frag.h"
 
 #include "hit_effect_vert.h"
 #include "hit_effect_frag.h"
@@ -210,12 +204,12 @@ void QTestWindow::draw() {
         testShaderBuild(model_shadow_vert, model_shadow_frag);
         testShaderBuild(untextured_particle_vert, untextured_particle_frag);
         testShaderBuild(textured_particle_vert, textured_particle_frag);
-
+/* FIXME: Bring back the ssao shader tests
         testShaderBuild(gaussian_blur_vertical_vert, gaussian_blur_frag);
         testShaderBuild(gaussian_blur_horizontal_vert, gaussian_blur_frag);
         testShaderBuild(ambient_occlusion_vert, ambient_occlusion_frag);
         testShaderBuild(ambient_occlusion_vert, occlusion_blend_frag);
-        
+*/
         testShaderBuild(hit_effect_vert, hit_effect_frag);
 
         testShaderBuild(overlay3D_vert, overlay3D_frag);
