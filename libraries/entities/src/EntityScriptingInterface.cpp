@@ -885,7 +885,6 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
         bool result = false;
         for (int index = 0; index < count; index++) {
             result |= modelEntity->setAbsoluteJointRotationInObjectFrame(index, rotations[index]);
-            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
         }
         if (result) {
             EntityItemProperties properties;
@@ -896,6 +895,23 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
             });
 
             properties.setJointRotationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+
+        result = false;
+        for (int index = 0; index < count; index++) {
+            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
+        }
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                    properties = entity->getProperties();
+                    entity->setLastEdited(now);
+                    entity->setLastBroadcast(now);
+                });
+
             properties.setJointTranslationsDirty();
             properties.setLastEdited(now);
             queueEntityMessage(PacketType::EntityEdit, entityID, properties);
