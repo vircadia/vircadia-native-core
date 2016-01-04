@@ -15,9 +15,6 @@ macro(SETUP_HIFI_PROJECT)
 
   file(GLOB SRC_SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
 
-  # inlcude the generated application version header
-  include_directories("${CMAKE_BINARY_DIR}/includes")
-
   foreach(DIR ${SRC_SUBDIRS})
     if (IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/${DIR}")
       file(GLOB DIR_CONTENTS "src/${DIR}/*")
@@ -30,6 +27,9 @@ macro(SETUP_HIFI_PROJECT)
   else ()
     add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
   endif()
+
+  # include the generated application version header
+  target_include_directories(${TARGET_NAME} "${CMAKE_BINARY_DIR}/includes")
 
   set(${TARGET_NAME}_DEPENDENCY_QT_MODULES ${ARGN})
   list(APPEND ${TARGET_NAME}_DEPENDENCY_QT_MODULES Core)

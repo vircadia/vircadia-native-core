@@ -27,6 +27,6 @@ macro(GENERATE_INSTALLERS)
       COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
     )
 
-    set_target_properties(build-package PROPERTIES FOLDER "Installer")
+    set_target_properties(build-package PROPERTIES EXCLUDE_FROM_ALL TRUE FOLDER "Installer")
   endif ()
 endmacro()
