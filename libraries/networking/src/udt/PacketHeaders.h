@@ -163,4 +163,9 @@ const PacketVersion VERSION_ENTITIES_POLYLINE_TEXTURE = 50;
 const PacketVersion VERSION_ENTITIES_HAVE_PARENTS = 51;
 const PacketVersion VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP = 52;
 
+enum class AvatarMixerPacketVersion : PacketVersion {
+    TranslationSupport = 17,
+    SoftAttachmentSupport
+};
+
 #endif // hifi_PacketHeaders_h

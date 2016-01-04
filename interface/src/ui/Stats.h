@@ -30,6 +30,7 @@ class Stats : public QQuickItem {
     Q_PROPERTY(QString monospaceFont READ monospaceFont CONSTANT)
     Q_PROPERTY(float audioPacketlossUpstream READ getAudioPacketLossUpstream)
     Q_PROPERTY(float audioPacketlossDownstream READ getAudioPacketLossDownstream)
+    Q_PROPERTY(bool showAcuity READ getShowAcuity WRITE setShowAcuity NOTIFY showAcuityChanged)
 
     STATS_PROPERTY(int, serverCount, 0)
     STATS_PROPERTY(int, renderrate, 0)
@@ -37,8 +38,6 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, simrate, 0)
     STATS_PROPERTY(int, avatarSimrate, 0)
     STATS_PROPERTY(int, avatarCount, 0)
-    STATS_PROPERTY(int, avatarRenderableCount, 0)
-    STATS_PROPERTY(int, avatarRenderDistance, 0)
     STATS_PROPERTY(int, packetInCount, 0)
     STATS_PROPERTY(int, packetOutCount, 0)
     STATS_PROPERTY(float, mbpsIn, 0)
@@ -77,6 +76,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(QString, packetStats, QString())
     STATS_PROPERTY(QString, lodStatus, QString())
     STATS_PROPERTY(QString, timingStats, QString())
+    STATS_PROPERTY(QString, lodStatsRenderText, QString())
     STATS_PROPERTY(int, serverElements, 0)
     STATS_PROPERTY(int, serverInternal, 0)
     STATS_PROPERTY(int, serverLeaves, 0)
@@ -108,12 +108,15 @@ public:
             emit expandedChanged();
         }
     }
+    bool getShowAcuity() { return _showAcuity; }
+    void setShowAcuity(bool newValue) { _showAcuity = newValue; }
 
 public slots:
     void forceUpdateStats() { updateStats(true); }
 
 signals:
     void expandedChanged();
+    void showAcuityChanged();
     void timingExpandedChanged();
     void serverCountChanged();
     void renderrateChanged();
@@ -121,8 +124,7 @@ signals:
     void simrateChanged();
     void avatarSimrateChanged();
     void avatarCountChanged();
-    void avatarRenderableCountChanged();
-    void avatarRenderDistanceChanged();
+    void lodStatsRenderTextChanged();
     void packetInCountChanged();
     void packetOutCountChanged();
     void mbpsInChanged();
@@ -172,6 +174,7 @@ private:
     int _recentMaxPackets{ 0 } ; // recent max incoming voxel packets to process
     bool _resetRecentMaxPacketsSoon{ true };
     bool _expanded{ false };
+    bool _showAcuity{ false };
     bool _timingExpanded{ false };
     QString _monospaceFont;
     const AudioIOStats* _audioStats;

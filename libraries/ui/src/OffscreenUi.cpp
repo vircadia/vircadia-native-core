@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenUi.h"
-#include <QOpenGLDebugLogger>
-#include <QQuickWindow>
-#include <QGLWidget>
-#include <QtQml>
+
+#include <QtQml/QtQml>
+#include <QtQuick/QQuickWindow>
+
+#include <AbstractUriHandler.h>
+#include <AccountManager.h>
+
 #include "ErrorDialog.h"
 #include "MessageDialog.h"
 
@@ -27,7 +30,62 @@ public:
     }
 };
 
+class OffscreenFlags : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
 
+public:
+
+    OffscreenFlags(QObject* parent = nullptr) : QObject(parent) {}
+    bool isNavigationFocused() const { return _navigationFocused; }
+    void setNavigationFocused(bool focused) {
+        if (_navigationFocused != focused) {
+            _navigationFocused = focused;
+            emit navigationFocusedChanged();
+        }
+    }
+
+signals:
+    void navigationFocusedChanged();
+
+private:
+    bool _navigationFocused { false };
+};
+
+class UrlHandler : public QObject {
+    Q_OBJECT
+public:
+    Q_INVOKABLE bool canHandleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->canAcceptURL(url);
+    }
+
+    Q_INVOKABLE bool handleUrl(const QString& url) {
+        static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
+        return handler->acceptURL(url);
+    }
+    
+    // FIXME hack for authentication, remove when we migrate to Qt 5.6
+    Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
+        static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+        static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+        QString result = originalUrl;
+        QUrl url(originalUrl);
+        QUrlQuery query(url);
+        if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+            qDebug() << "Updating URL with auth token";
+            AccountManager& accountManager = AccountManager::getInstance();
+            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+            url.setQuery(query.query());
+            result = url.toString();
+        }
+
+        return result;
+    }
+};
+
+static UrlHandler * urlHandler { nullptr };
+static OffscreenFlags* offscreenFlags { nullptr };
 
 // This hack allows the QML UI to work with keys that are also bound as 
 // shortcuts at the application level.  However, it seems as though the 
@@ -58,9 +116,15 @@ OffscreenUi::OffscreenUi() {
     ::qmlRegisterType<OffscreenUiRoot>("Hifi", 1, 0, "Root");
 }
 
-OffscreenUi::~OffscreenUi() {
-}
+void OffscreenUi::create(QOpenGLContext* context) {
+    OffscreenQmlSurface::create(context);
+    auto rootContext = getRootContext();
 
+    offscreenFlags = new OffscreenFlags();
+    rootContext->setContextProperty("offscreenFlags", offscreenFlags);
+    urlHandler = new UrlHandler();
+    rootContext->setContextProperty("urlHandler", urlHandler);
+}
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
@@ -139,7 +203,14 @@ void OffscreenUi::error(const QString& text) {
     pDialog->setEnabled(true);
 }
 
-
 OffscreenUi::ButtonCallback OffscreenUi::NO_OP_CALLBACK = [](QMessageBox::StandardButton) {};
+
+bool OffscreenUi::navigationFocused() {
+    return offscreenFlags->isNavigationFocused();
+}
+
+void OffscreenUi::setNavigationFocused(bool focused) {
+    offscreenFlags->setNavigationFocused(focused);
+}
 
 #include "OffscreenUi.moc"

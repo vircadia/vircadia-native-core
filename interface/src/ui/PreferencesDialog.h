@@ -51,6 +51,7 @@ private slots:
     void openScriptsLocationBrowser();
     void changeFullAvatarURL();
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
+    void changeUseAcuity();
 };
 
 #endif // hifi_PreferencesDialog_h

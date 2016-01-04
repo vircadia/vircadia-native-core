@@ -91,6 +91,7 @@ public:
     bool jointStatesEmpty();
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
+    QString nameOfJoint(int jointIndex) const;
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
