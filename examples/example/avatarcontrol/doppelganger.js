@@ -48,20 +48,9 @@ function getJointData(avatar) {
 }
 
 function setJointData(doppelganger, allJointData) {
-    var jointRotationsSet = [];
-    var jointTranslationsSet = [];
-    var jointRotations = [];
-    var jointTranslations = [];
-
     allJointData.forEach(function(jointData, index) {
-        jointRotationsSet[index] = true;
-        jointTranslationsSet[index] = true;
-        jointRotations.push(jointData.rotation);
-        jointTranslations.push(jointData.translation);
-
         Entities.setAbsoluteJointTranslationInObjectFrame(doppelganger.id, index, jointData.translation);
         Entities.setAbsoluteJointRotationInObjectFrame(doppelganger.id, index, jointData.rotation);
-
     });
 
     return true;
@@ -96,7 +85,8 @@ function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
 }
 
 function connectDoppelgangerUpdates() {
-    Script.update.connect(updateDoppelganger);
+    // Script.update.connect(updateDoppelganger);
+    Script.setInterval(updateDoppelganger, 500);
 }
 
 function disconnectDoppelgangerUpdates() {
@@ -109,7 +99,6 @@ function updateDoppelganger() {
         //var mirroredJoints = mirrorJointData(joints);
         setJointData(doppelganger, joints);
     });
-
 }
 
 function makeDoppelgangerForMyAvatar() {
@@ -129,8 +118,3 @@ function cleanup() {
 }
 
 Script.scriptEnding.connect(cleanup);
-
-//  APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
-// APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
-//  APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
-// APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
