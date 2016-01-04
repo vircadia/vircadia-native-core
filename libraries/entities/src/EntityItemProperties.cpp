@@ -1811,6 +1811,18 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (parentJointIndexChanged()) {
         out += "parentJointIndex";
     }
+    if (jointRotationsSetChanged()) {
+        out += "jointRotationsSet";
+    }
+    if (jointRotationsChanged()) {
+        out += "jointRotations";
+    }
+    if (jointTranslationsSetChanged()) {
+        out += "jointTranslationsSet";
+    }
+    if (jointTranslationsChanged()) {
+        out += "jointTranslations";
+    }
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
