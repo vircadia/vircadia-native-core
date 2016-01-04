@@ -24,7 +24,7 @@
 !define company "$%INSTALLER_COMPANY%"
 !define install_directory "$%INSTALLER_DIRECTORY%"
 
-; Executables and icons for GUI applications that will be added as shortcuts. 
+; Executables and icons for GUI applications that will be added as shortcuts.
 !define interface_exec "interface.exe"
 !define stack_manager_exec "stack-manager.exe"
 !define interface_icon "interface.ico"
@@ -103,15 +103,15 @@ Section "Base Files" "BASE"
     File /r /x assignment-client.* /x domain-server.* /x interface.* /x stack-manager.* "${installer_srcdir}\"
 SectionEnd
 
-Section "HighFidelity Interface" "CLIENT"
+Section "High Fidelity Interface" "CLIENT"
     SetOutPath $ChosenInstallDir
     File /a "${installer_srcdir}\interface.*"
     File /a "${installer_srcdir}\${interface_icon}"
 SectionEnd
 
-Section "HighFidelity Server" "SERVER"
+Section "High Fidelity Server" "SERVER"
     SetOutPath $ChosenInstallDir
-    File /a "${installer_srcdir}\stack-manager.*"
+    File /a "${installer_srcdir}\High\ Fidelity\ Console.*"
     File /a "${installer_srcdir}\domain-server.*"
     File /a "${installer_srcdir}\assignment-client.*"
     File /a "${installer_srcdir}\${stack_manager_icon}"

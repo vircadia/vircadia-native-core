@@ -15,7 +15,7 @@ macro(CONSOLIDATE_INSTALLER_COMPONENTS)
       # add a command to copy the folder produced by electron-packager to package-bundle
       add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/High\ Fidelity-* ${CMAKE_BINARY_DIR}/package-bundle
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/High\ Fidelity\ Console-* ${CMAKE_BINARY_DIR}/package-bundle
       )
     else ()
       # add a command to copy the fixed up binary and libraries to package-bundle
