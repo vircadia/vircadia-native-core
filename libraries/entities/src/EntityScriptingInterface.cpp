@@ -832,16 +832,18 @@ glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const 
 bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID,
                                                                         int jointIndex, glm::vec3 translation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
         bool result = modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
         if (result) {
             EntityItemProperties properties;
             _entityTree->withReadLock([&] {
                 properties = entity->getProperties();
+                entity->setLastEdited(now);
+                entity->setLastBroadcast(now);
             });
 
             properties.setJointTranslationsDirty();
-            auto now = usecTimestampNow();
             properties.setLastEdited(now);
             queueEntityMessage(PacketType::EntityEdit, entityID, properties);
             return true;
@@ -853,16 +855,18 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QU
 bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid& entityID,
                                                                      int jointIndex, glm::quat rotation) {
     if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
         auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
         bool result = modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
         if (result) {
             EntityItemProperties properties;
             _entityTree->withReadLock([&] {
                 properties = entity->getProperties();
+                entity->setLastEdited(now);
+                entity->setLastBroadcast(now);
             });
 
             properties.setJointRotationsDirty();
-            auto now = usecTimestampNow();
             properties.setLastEdited(now);
             queueEntityMessage(PacketType::EntityEdit, entityID, properties);
             return true;
