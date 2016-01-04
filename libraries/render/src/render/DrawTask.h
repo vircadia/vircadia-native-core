@@ -222,7 +222,7 @@ typedef std::vector<Job> Jobs;
 
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {
@@ -268,7 +268,7 @@ public:
     typedef Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
-class DrawLight {
+class DrawLight : public Shape {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 

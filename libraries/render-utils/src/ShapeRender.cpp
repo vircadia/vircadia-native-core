@@ -1,8 +1,8 @@
 //
-//  ModelRender.cpp
-//  interface/src/renderer
+//  ShapeRender.cpp
+//  render-utils/src
 //
-//  Created by Sam Gateau on 10/3/15.
+//  Created by Zach Pomerantz on 1/4/2015.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

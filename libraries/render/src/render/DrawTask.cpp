@@ -209,24 +209,36 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
     depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
 }
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+void render::renderItem(RenderArgs* args, const Shape* shapeContext, Item& item) {
+    if (item.isShape()) {
+        assert(shapeContext);
+        const auto& key = item._payload.getShapeKey();
+        args->_pipeline = shapeContext->pickPipeline(args, key);
+        if (!args->pipeline) {
+            return;
+        }
+    }
+    item.render(args);
+}
+
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
     // render
     if ((maxDrawnItems < 0) || (maxDrawnItems > (int) inItems.size())) {
         for (auto itemDetails : inItems) {
             auto item = scene->getItem(itemDetails.id);
-            item.render(args);
+            renderItem(args, shapeContext, item);
         }
     } else {
         int numItems = 0;
         for (auto itemDetails : inItems) {
             auto item = scene->getItem(itemDetails.id);
             if (numItems + 1 >= maxDrawnItems) {
-                item.render(args);
+                renderItem(args, shapeContext, item);
                 return;
             }
-            item.render(args);
+            renderItem(args, jobContext, item);
             numItems++;
             if (numItems >= maxDrawnItems) {
                 return;
@@ -259,7 +271,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, culledItems);
+        renderItems(sceneContext, renderContext, this, culledItems);
     });
     args->_batch = nullptr;
 }

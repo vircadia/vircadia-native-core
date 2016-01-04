@@ -1,5 +1,5 @@
 //
-//  ModelRender.h
+//  ShapeRender.h
 //  render-utils/src
 //
 //  Created by Zach Pomerantz on 1/4/2015.

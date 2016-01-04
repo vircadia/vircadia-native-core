@@ -16,6 +16,7 @@
 
 #include "gpu/Pipeline.h"
 
+#include "ShapeRender.h"
 #include "ToneMappingEffect.h"
 
 class SetupDeferred {
@@ -49,14 +50,14 @@ public:
     typedef render::Job::Model<ToneMappingDeferred> JobModel;
 };
 
-class DrawOpaqueDeferred {
+class DrawOpaqueDeferred : public ShapeRender {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 };
 
-class DrawTransparentDeferred {
+class DrawTransparentDeferred : public ShapeRender {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
@@ -80,7 +81,7 @@ public:
     typedef render::Job::Model<DrawBackgroundDeferred> JobModel;
 };
 
-class DrawOverlay3D {
+class DrawOverlay3D : public ShapeRender {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
