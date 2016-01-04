@@ -23,14 +23,14 @@ var WANT_DEBUG = false;
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.1;     //  Time averaging of trigger - 0.0 disables smoothing
-var TRIGGER_ON_VALUE = 0.4;         //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.85;      //  Squeezed far enough to complete distant grab
+var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
+var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
+var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
 
-var HAND_HEAD_MIX_RATIO = 0.0;      //  0 = only use hands for search/move.  1 = only use head for search/move.
+var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 //
 // distant manipulation
@@ -421,7 +421,7 @@ function MyController(hand) {
     this.searchSphereOn = function(location, size, color) {
         if (this.searchSphere === null) {
             var sphereProperties = {
-                position: location, 
+                position: location,
                 size: size,
                 color: color,
                 alpha: SEARCH_SPHERE_ALPHA,
@@ -429,10 +429,15 @@ function MyController(hand) {
                 visible: true
             }
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
-        } else { 
-            Overlays.editOverlay(this.searchSphere, { position: location, size: size, color: color, visible: true });
+        } else {
+            Overlays.editOverlay(this.searchSphere, {
+                position: location,
+                size: size,
+                color: color,
+                visible: true
+            });
         }
-    } 
+    }
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
@@ -765,7 +770,7 @@ function MyController(hand) {
         if (this.triggerSmoothedSqueezed() || this.bumperSqueezed()) {
             this.lastPickTime = 0;
             var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-            this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation; 
+            this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
             if (this.triggerSmoothedSqueezed()) {
                 this.setState(STATE_SEARCHING);
             } else {
@@ -788,10 +793,16 @@ function MyController(hand) {
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
-        
+
         var distantPickRay = {
-            origin:  Camera.position,
+            origin: Camera.position,
             direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            length: PICK_MAX_DISTANCE
+        };
+
+        var searchVisualizationPickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1015,6 +1026,11 @@ function MyController(hand) {
         if (USE_PARTICLE_BEAM_FOR_SEARCHING === true) {
             this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
         }
+
+        if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
+            this.overlayLineOn(searchVisualizationPickRay.origin, Vec3.sum(searchVisualizationPickRay.origin, Vec3.multiply(searchVisualizationPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        }
+
         if (this.intersectionDistance > 0) {
             var SPHERE_INTERSECTION_SIZE = 0.011;
             var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
