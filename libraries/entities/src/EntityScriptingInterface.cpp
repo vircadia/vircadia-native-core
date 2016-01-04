@@ -908,10 +908,10 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
         if (result) {
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
-                    properties = entity->getProperties();
-                    // entity->setLastEdited(now);
-                    entity->setLastBroadcast(now);
-                });
+                properties = entity->getProperties();
+                entity->setLastEdited(now);
+                entity->setLastBroadcast(now);
+            });
 
             properties.setJointTranslationsDirty();
             properties.setLastEdited(now);
