@@ -974,7 +974,7 @@
             <string notr="true"/>
            </property>
            <property name="text">
-            <string>Minimum Avatar Display Distance</string>
+            <string>Minimum Display Distance</string>
            </property>
            <property name="indent">
             <number>0</number>
