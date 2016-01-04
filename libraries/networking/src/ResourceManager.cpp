@@ -23,16 +23,27 @@ QMutex ResourceManager::_prefixMapLock;
 
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
     QMutexLocker locker(&_prefixMapLock);
-    _prefixMap[prefix] = replacement;
+    if (replacement.isEmpty()) {
+        _prefixMap.erase(prefix);
+    } else {
+        _prefixMap[prefix] = replacement;
+    }
 }
 
 QString ResourceManager::normalizeURL(const QString& urlString) {
     QString result = urlString;
-    QMutexLocker locker(&_prefixMapLock);
-    foreach(const auto& entry, _prefixMap) {
+    PrefixMap copy;
+
+    {
+        QMutexLocker locker(&_prefixMapLock);
+        copy = _prefixMap;
+    }
+
+    foreach(const auto& entry, copy) {
         const auto& prefix = entry.first;
         const auto& replacement = entry.second;
         if (result.startsWith(prefix)) {
+            qDebug() << "Replacing " << prefix << " with " << replacement;
             result.replace(0, prefix.size(), replacement);
         }
     }

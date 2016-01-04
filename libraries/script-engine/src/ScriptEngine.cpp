@@ -26,6 +26,7 @@
 #include <EntityScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
+#include <ResourceScriptingInterface.h>
 #include <NodeList.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
@@ -391,7 +392,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Recording", recordingInterface.data());
 
     registerGlobalObject("Assets", &_assetScriptingInterface);
-
+    registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 }
 
 void ScriptEngine::registerValue(const QString& valueName, QScriptValue value) {
