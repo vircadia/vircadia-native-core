@@ -9,15 +9,16 @@ ListView {
     HifiConstants { id: hifi }
     width: 128
     height: count * 32
-    onEnabledChanged: root.recalcSize();
-    onVisibleChanged: root.recalcSize();
+    onEnabledChanged: recalcSize();
+    onVisibleChanged: recalcSize();
+    onCountChanged: recalcSize();
+
     signal selected(var item)
 
     highlight: Rectangle {
         width: root.currentItem ? root.currentItem.width : 0
         height: root.currentItem ? root.currentItem.height : 0
         color: "lightsteelblue"; radius: 3
-//        y: root.currentItem ? root.currentItem.y : 0
     }
 
     delegate: VrMenuItem {
@@ -33,8 +34,6 @@ ListView {
             onClicked: root.selected(item)
         }
     }
-
-    onCountChanged: recalcSize();
 
     function recalcSize() {
         if (model.count !== count || !visible) {

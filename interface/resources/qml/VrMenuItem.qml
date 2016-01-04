@@ -1,18 +1,18 @@
 import QtQuick 2.4
 import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
-
-import "styles"
 import "controls"
+import "styles"
 
 Item {
     id: root
-    HifiConstants { id: hifi }
+    HifiConstants { 
+        id: hifi 
+    }
 
     // The model object
     property alias text: label.text
     property var source
-
 
     implicitHeight: source.visible ? label.implicitHeight * 1.5 : 0
     implicitWidth: label.width + label.height * 2.5

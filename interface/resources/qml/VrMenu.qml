@@ -24,17 +24,11 @@ Hifi.VrMenu {
     property var columns: []
 
     onEnabledChanged: {
-        console.log("Activating menu " + enabled);
         if (enabled && columns.length == 0) {
-            console.log(rootMenu)
-            console.log(rootMenu.items)
             pushColumn(rootMenu.items);
         }
         opacity = enabled ? 1.0 : 0.0
         offscreenFlags.navigationFocused = enabled;
-//        if (enabled) {
-            //forceActiveFocus()
-//        }
     }
 
     // The actual animator
@@ -67,7 +61,6 @@ Hifi.VrMenu {
                     x = lastColumn.x + 64;
                     y = lastMousePosition.y - height / 2;
                 }
-                //recalcSize();
             }
 
             onSelected: {
@@ -112,8 +105,6 @@ Hifi.VrMenu {
 
     function itemsToModel(items) {
         var newListModel = Qt.createQmlObject('import QtQuick 2.2; ListModel {}', root);
-        console.log(items)
-        console.log(items.length)
         for (var i = 0; i < items.length; ++i) {
             var item = items[i];
             switch (item.type) {
