@@ -50,6 +50,11 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotationsSet, getJointRotationsSet);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotations, getJointRotations);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
+
     _animationProperties.getProperties(properties);
     return properties;
 }
@@ -63,6 +68,10 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
 
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
 
