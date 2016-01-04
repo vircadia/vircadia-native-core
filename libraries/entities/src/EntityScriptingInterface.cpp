@@ -890,7 +890,7 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
                 properties = entity->getProperties();
-                entity->setLastEdited(now);
+                // entity->setLastEdited(now);
                 entity->setLastBroadcast(now);
             });
 
@@ -909,7 +909,7 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
                 properties = entity->getProperties();
-                entity->setLastEdited(now);
+                // entity->setLastEdited(now);
                 entity->setLastBroadcast(now);
             });
 
