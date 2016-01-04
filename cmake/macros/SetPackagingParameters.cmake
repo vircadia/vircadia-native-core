@@ -1,5 +1,5 @@
-# 
-#  IncludeApplicationVersion.cmake
+#
+#  SetPackagingParameters.cmake
 #  cmake/macros
 #
 #  Created by Leonardo Murillo on 07/14/2015.
@@ -7,12 +7,12 @@
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
 
-macro(INCLUDE_APPLICATION_VERSION)
-  #
-  # We are relying on Jenkins defined environment variables to determine the origin of this build
-  # and will only package if this is a PR or Release build
+# This macro checks some Jenkins defined environment variables to determine the origin of this build
+# and decides how targets should be packaged.
+
+macro(SET_PACKAGING_PARAMETERS)
+
   if (DEFINED ENV{JOB_ID})
     set(DEPLOY_PACKAGE 1)
     set(BUILD_SEQ $ENV{JOB_ID})
@@ -37,6 +37,9 @@ macro(INCLUDE_APPLICATION_VERSION)
     set(INTERFACE_ICON "interface-beta.ico")
     set(STACK_MANAGER_ICON "icon-beta.ico")
   endif ()
-  configure_file("${MACRO_DIR}/ApplicationVersion.h.in" "${PROJECT_BINARY_DIR}/includes/ApplicationVersion.h")
-  include_directories("${PROJECT_BINARY_DIR}/includes")
-endmacro(INCLUDE_APPLICATION_VERSION)
+
+  # create a header file our targets can use to find out the application version
+  file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")
+  configure_file("${MACRO_DIR}/ApplicationVersion.h.in" "${CMAKE_BINARY_DIR}/includes/ApplicationVersion.h")
+
+endmacro(SET_PACKAGING_PARAMETERS)
