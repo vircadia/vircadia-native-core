@@ -91,15 +91,15 @@ public:
     void setOptions(bool occlusion, bool fxaa, bool showOwned);
 
     // Debugging
-    int _deferredDebugMode = -1;
-    glm::vec4 _deferredDebugSize { 0.0f, -1.0f, 1.0f, 1.0f };
+    int _deferredDebugMode;
+    glm::vec4 _deferredDebugSize;
 
 protected:
     RenderArgs* _args;
 
     // Options
-    int _drawStatus = 0; // bitflag
-    bool _drawHitEffect = false;
+    int _drawStatus; // bitflag
+    bool _drawHitEffect;
     bool _occlusionStatus = false;
     bool _fxaaStatus = false;
 

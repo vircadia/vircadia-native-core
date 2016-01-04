@@ -36,11 +36,11 @@ public slots:
     void updateAttachmentData();
 
 private slots:
-    
+
     void addAttachment(const AttachmentData& data = AttachmentData());
 
 private:
-    
+
     QVBoxLayout* _attachments;
     QPushButton* _ok;
 };
@@ -50,7 +50,7 @@ class AttachmentPanel : public QFrame {
     Q_OBJECT
 
 public:
-    
+
     AttachmentPanel(AttachmentsDialog* dialog, const AttachmentData& data = AttachmentData());
 
     AttachmentData getAttachmentData() const;
@@ -64,9 +64,9 @@ private slots:
     void updateAttachmentData();
 
 private:
-    
+
     void applyAttachmentData(const AttachmentData& attachment);
-    
+
     AttachmentsDialog* _dialog;
     QLineEdit* _modelURL;
     QComboBox* _jointName;
@@ -77,6 +77,7 @@ private:
     QDoubleSpinBox* _rotationY;
     QDoubleSpinBox* _rotationZ;
     QDoubleSpinBox* _scale;
+    QCheckBox* _isSoft;
     bool _applying;
 };
 

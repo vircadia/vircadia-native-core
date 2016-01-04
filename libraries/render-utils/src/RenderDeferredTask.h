@@ -90,6 +90,13 @@ public:
     typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
 
+class Blit {
+public:
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    typedef render::Job::Model<Blit> JobModel;
+};
+
 class RenderDeferredTask : public render::Task {
 public:
 

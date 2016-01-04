@@ -83,6 +83,7 @@ protected:
     friend class UserInputMapper;
 
     virtual Input::NamedVector getAvailableInputs() const = 0;
+    virtual QStringList getDefaultMappingConfigs() const { return QStringList() << getDefaultMappingConfig(); }
     virtual QString getDefaultMappingConfig() const { return QString(); }
     virtual EndpointPointer createEndpoint(const Input& input) const;
 

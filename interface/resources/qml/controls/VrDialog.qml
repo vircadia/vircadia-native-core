@@ -41,6 +41,11 @@ DialogBase {
     // modify the visibility
     onEnabledChanged: {
         opacity = enabled ? 1.0 : 0.0
+        // If the dialog is initially invisible, setting opacity doesn't 
+        // trigger making it visible.
+        if (enabled) {
+            visible = true;
+        }
     }
 
     // The actual animator

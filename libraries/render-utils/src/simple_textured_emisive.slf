@@ -27,7 +27,7 @@ void main(void) {
     
     packDeferredFragmentLightmap(
          normalize(_normal),
-         glowIntensity * texel.a,
+         texel.a,
          _color.rgb,
          DEFAULT_SPECULAR, DEFAULT_SHININESS,
          texel.rgb);

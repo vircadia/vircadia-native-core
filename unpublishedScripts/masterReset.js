@@ -23,9 +23,11 @@ var wandScriptURL = Script.resolvePath("../examples/toybox/bubblewand/wand.js");
 var dollScriptURL = Script.resolvePath("../examples/toybox/doll/doll.js");
 var lightsScriptURL = Script.resolvePath("../examples/toybox/lights/lightSwitch.js");
 var bowScriptURL = Script.resolvePath("../examples/toybox/bow/bow.js");
+var raveStickEntityScriptURL = Script.resolvePath("../examples/flowArts/raveStick/raveStickEntityScript.js");
 var targetsScriptURL = Script.resolvePath('../examples/toybox/ping_pong_gun/wallTarget.js');
 var basketballResetterScriptURL = Script.resolvePath('basketballsResetter.js');
 var targetsResetterScriptURL = Script.resolvePath('targetsResetter.js');
+
 
 MasterReset = function() {
     var resetKey = "resetMe";
@@ -80,6 +82,12 @@ MasterReset = function() {
             z: 505.78
         });
 
+        createRaveStick({
+            x: 547.4,
+            y: 495.4,
+            z: 504.5
+        });
+
 
 
         createCombinedArmChair({
@@ -93,6 +101,8 @@ MasterReset = function() {
             y: 495.2,
             z: 504.53
         });
+
+
 
         createPingPongBallGun();
         createTargets();
@@ -137,6 +147,111 @@ MasterReset = function() {
         });
     }
 
+    function createRaveStick(position) {
+        var modelURL = "http://hifi-content.s3.amazonaws.com/eric/models/raveStick.fbx";
+        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+        var stick = Entities.addEntity({
+            type: "Model",
+            name: "raveStick",
+            modelURL: modelURL,
+            rotation: rotation,
+            position: position,
+            shapeType: 'box',
+            collisionsWillMove: true,
+            script: raveStickEntityScriptURL,
+            dimensions: {
+                x: 0.06,
+                y: 0.06,
+                z: 0.31
+            },
+            gravity: {
+                x: 0,
+                y: -3,
+                z: 0
+            },
+            userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                },
+                grabbableKey: {
+                    spatialKey: {
+                        rightRelativePosition: {
+                            x: 0.02,
+                            y: 0,
+                            z: 0
+                        },
+                        leftRelativePosition: {
+                            x: -0.02,
+                            y: 0,
+                            z: 0
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
+                    },
+                    invertSolidWhileHeld: true
+                }
+            })
+        });
+
+        var forwardVec = Quat.getFront(rotation);
+        var forwardQuat = Quat.rotationBetween(Vec3.UNIT_Z, forwardVec);
+        var color = {
+            red: 150,
+            green: 20,
+            blue: 100
+        }
+        var raveGlowEmitter = Entities.addEntity({
+            type: "ParticleEffect",
+            name: "Rave Stick Glow Emitter",
+            position: position,
+            parentID: stick,
+            isEmitting: true,
+            colorStart: color,
+            color: {
+                red: 200,
+                green: 200,
+                blue: 255
+            },
+            colorFinish: color,
+            maxParticles: 100000,
+            lifespan: 0.8,
+            emitRate: 1000,
+            emitOrientation: forwardQuat,
+            emitSpeed: 0.2,
+            speedSpread: 0.0,
+            emitDimensions: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            polarStart: 0,
+            polarFinish: 0,
+            azimuthStart: 0.1,
+            azimuthFinish: 0.01,
+            emitAcceleration: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            accelerationSpread: {
+                x: 0.00,
+                y: 0.00,
+                z: 0.00
+            },
+            radiusStart: 0.01,
+            radiusFinish: 0.005,
+            alpha: 0.7,
+            alphaSpread: 0.1,
+            alphaStart: 0.1,
+            alphaFinish: 0.1,
+            textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
+            emitterShouldTrail: false,
+            userData: JSON.stringify({
+                resetMe: {
+                    resetMe: true
+                }
+            })
+        });
+    }
 
     function createGun(position) {
         var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
@@ -169,10 +284,15 @@ MasterReset = function() {
             userData: JSON.stringify({
                 grabbableKey: {
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
+                        rightRelativePosition: {
+                            x: 0.02,
                             y: 0,
-                            z: -0.1
+                            z: -0.03
+                        },
+                        leftRelativePosition: {
+                            x: -0.02,
+                            y: 0,
+                            z: -0.03
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
                     },
@@ -992,7 +1112,7 @@ MasterReset = function() {
             z: 503.39
         };
 
-        var rotation = Quat.fromPitchYawRollDegrees(0, 36, 0);
+        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 
         var pingPongGun = Entities.addEntity({
             type: "Model",
@@ -1020,6 +1140,14 @@ MasterReset = function() {
                     resetMe: true
                 },
                 grabbableKey: {
+                    spatialKey: {
+                        relativePosition: {
+                            x: 0,
+                            y: 0,
+                            z: 0.06
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
+                    },
                     invertSolidWhileHeld: true
                 }
 
@@ -1349,7 +1477,7 @@ MasterReset = function() {
                             resetMe: true
                         },
                         grabbableKey: {
-                          invertSolidWhileHeld: true  
+                            invertSolidWhileHeld: true
                         }
                     })
                 });
