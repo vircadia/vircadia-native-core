@@ -125,7 +125,10 @@ link_hifi_libraries(shared octree environment gpu gl procedural model render
                     recording fbx networking model-networking entities avatars
                     audio audio-client animation script-engine physics
                     render-utils entities-renderer ui auto-updater
-                    controllers plugins display-plugins input-plugins )
+                    controllers plugins display-plugins input-plugins)
+
+# include the binary directory of render-utils for shader includes
+target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/libraries/render-utils")
 
 #fixme find a way to express faceshift as a plugin
 target_bullet()
