@@ -222,7 +222,8 @@ typedef std::vector<Job> Jobs;
 
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {

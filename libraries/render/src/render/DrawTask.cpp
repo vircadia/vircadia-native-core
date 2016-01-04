@@ -209,39 +209,43 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
     depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
 }
 
-void render::renderItem(RenderArgs* args, const Shape* shapeContext, Item& item) {
-    if (item.isShape()) {
-        assert(shapeContext);
-        const auto& key = item._payload.getShapeKey();
-        args->_pipeline = shapeContext->pickPipeline(args, key);
-        if (!args->pipeline) {
-            return;
-        }
-    }
-    item.render(args);
-}
-
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
-    // render
-    if ((maxDrawnItems < 0) || (maxDrawnItems > (int) inItems.size())) {
-        for (auto itemDetails : inItems) {
-            auto item = scene->getItem(itemDetails.id);
-            renderItem(args, shapeContext, item);
+
+    for (const auto& itemDetails : inItems) {
+        const auto& item = scene->getItem(itemDetails.id);
+        item.render(args);
+    }
+}
+
+void renderShape(RenderArgs* args, const Item& item, const ShapeKey& lastKey) {
+    assert(item.isShape());
+    const auto& key = item._payload.getShapeKey();
+    args->_pipeline = shapeContext->pickPipeline(args, key);
+    // only render with a pipeline
+    if (args->_pipeline) {
+        item.render(args);
+    }
+}
+
+void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+    auto& scene = sceneContext->_scene;
+    RenderArgs* args = renderContext->getArgs();
+
+    if ((maxDrawnItems < 0) || (maxDrawnItems > (int)inItems.size())) {
+        for (const auto& itemDetails : inItems) {
+            const auto& item = scene->getItem(itemDetails.id);
+            renderShape(args, item);
         }
     } else {
         int numItems = 0;
-        for (auto itemDetails : inItems) {
-            auto item = scene->getItem(itemDetails.id);
-            if (numItems + 1 >= maxDrawnItems) {
-                renderItem(args, shapeContext, item);
-                return;
-            }
-            renderItem(args, jobContext, item);
+        for (const auto& itemDetails : inItems) {
             numItems++;
+            const auto& item = scene->getItem(itemDetails.id);
+            renderShape(args, item);
             if (numItems >= maxDrawnItems) {
-                return;
+                break;
             }
         }
     }
@@ -254,7 +258,6 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     // render lights
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
-
 
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
@@ -271,7 +274,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, this, culledItems);
+        renderLights(sceneContext, renderContext, culledItems);
     });
     args->_batch = nullptr;
 }
