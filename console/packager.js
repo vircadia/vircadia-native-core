@@ -29,8 +29,6 @@ if (osType == "Darwin") {
     options["name"] = "server-console"
 }
 
-console.log(options);
-
 // call the packager now
 packager(options, function(error, appPath){
     console.log("Wrote new app to " + appPath);
