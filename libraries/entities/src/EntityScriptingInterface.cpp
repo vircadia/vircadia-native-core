@@ -895,7 +895,7 @@ bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& e
             });
 
             properties.setJointRotationsDirty();
-            // properties.setLastEdited(now);
+            properties.setLastEdited(now);
             queueEntityMessage(PacketType::EntityEdit, entityID, properties);
             return true;
         }
