@@ -169,6 +169,8 @@ public:
         return Shape::_pickPipeline(args, key);
     }
 
+    virtual ~Shape() {};
+
 protected:
     static const PipelinePointer _pickPipeline(RenderArgs* args, const Key& key);
     static PipelineLib _pipelineLib;
