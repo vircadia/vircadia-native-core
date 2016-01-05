@@ -43,10 +43,6 @@ VrDialog {
             focus: true
             property var dialog: root
             
-            onLoaded: {
-                forceActiveFocus()
-            }
-            
             Keys.onPressed: {
                 console.log("QmlWindow pageLoader keypress")
             }
