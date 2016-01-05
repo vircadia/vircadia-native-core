@@ -11,11 +11,13 @@ if (osType == "Darwin" || osType == "Linux") {
 // setup the common options for the packager
 var options = {
     dir: __dirname,
+    name: "server-console",
     version: "0.35.4",
     overwrite: true,
     prune: true,
     arch: "x64",
-    platform: platform
+    platform: platform,
+    icon: "resources/console"
 }
 
 const EXEC_NAME = "server-console";
@@ -25,18 +27,13 @@ const FULL_NAME = "High Fidelity Server Console";
 // setup per OS options
 if (osType == "Darwin") {
     options["name"] = SHORT_NAME
-    options["icon"] = "resources/console.icns"
 } else if (osType == "Windows_NT") {
-    options["name"] = "server-console"
-    options["icon"] = "resources/console.ico"
     options["version-string"] = {
         CompanyName: "High Fidelity, Inc.",
         FileDescription: SHORT_NAME,
         ProductName: FULL_NAME,
         OriginalFilename: EXEC_NAME + ".exe"
     }
-} else if (osType == "Linux") {
-    options["name"] = "server-console"
 }
 
 // check if we were passed a custom out directory, pass it along if so
