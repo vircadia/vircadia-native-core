@@ -10,6 +10,7 @@ var shell = require('shell');
 var os = require('os');
 var childProcess = require('child_process');
 var path = require('path');
+const dialog = require('electron').dialog;
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
@@ -55,8 +56,31 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
 }
 
+function binaryMissingMessage(binaryName) {
+    var message = "The " + binaryName + " executable was not found.\n";
+    message += "It is required for the Server Console to run.\n\n";
+
+    if (debug) {
+        message += "Please ensure there is a compiled " + binaryName + " in a folder named build in this checkout.";
+    } else {
+        message += "It is expected to be found beside this executable.\n"
+        message += "You may need to re-install the Server Console.";
+    }
+
+    return message;
+}
+
 // if at this point any of the paths are null, we're missing something we wanted to find
-// TODO: show an error for the binaries that couldn't be found
+
+if (!dsPath) {
+    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server"));
+    app.quit();
+}
+
+if (!acPath) {
+    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client"))
+    app.quit();
+}
 
 function openFileBrowser(path) {
     if (osType == "Windows_NT") {
