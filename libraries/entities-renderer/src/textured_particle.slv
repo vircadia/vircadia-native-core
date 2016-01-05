@@ -64,14 +64,11 @@ float interpolate3Points(float y1, float y2, float y3, float u) {
         return y2;
     }
 
+	float slope;
     if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
         // U or inverted-U shape.
         // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
-        if (u <= 0.5f) {
-            return bezierInterpolate(y1, y2, y2, 2.0f * u);
-        } else {
-            return bezierInterpolate(y2, y2, y3, 2.0f * u - 1.0f);
-        }
+		slope = 0.0f;
 
     } else {
         // L or inverted and/or mirrored L shape.
@@ -79,20 +76,22 @@ float interpolate3Points(float y1, float y2, float y3, float u) {
         // and y2, and y2 and y3. Use this slope to calculate the control points half way between the value points.
         // Note: The maximum ensures that the control points and therefore the interpolated values stay between y1 and y3.
         float slope = y3 - y1;
-        float slope12 = y2 - y1;
-        float slope23 = y3 - y2;
-        if (abs(slope) > abs(2.0f * slope12)) {
-            slope = 2.0f * slope12;
-        } else if (abs(slope) > abs(2.0f * slope23)) {
-            slope = 2.0f * slope23;
-        }
-
-        if (u <= 0.5f) {
-            return bezierInterpolate(y1, y2 - slope / 2.0f, y2, 2.0f * u);
-        } else {
-            return bezierInterpolate(y2, y2 + slope / 2.0f, y3, 2.0f * u - 1.0f);
+        float doubleSlope12 = 2.0f * (y2 - y1);
+        float doubleSlope23 = 2.0f * (y3 - y2);
+        if (abs(slope) > abs(doubleSlope12)) {
+            slope = doubleSlope12;
+        } else if (abs(slope) > abs(doubleSlope23)) {
+            slope = doubleSlope23;
         }
     }
+
+    float stepU = step(0.5f, u);  // 0.0 if u < 0.5, 1.0 otherwise.
+    float slopeSign = 2.0f * stepU - 1.0f; // -1.0 if u < 0.5, 1.0 otherwise
+    float start = (1.0f - stepU) * y1 + stepU * y2;  // y1 if u < 0.5, y2 otherwise
+    float middle = y2 + slopeSign * slope / 2.0f;
+    float finish = (1.0f - stepU) * y2 + stepU * y3; // y2 if u < 0.5, y3 otherwise
+    float v = 2.0f * u - step(0.5f, u);  // 0.0-0.5 -> 0.0-1.0 and 0.5-1.0 -> 0.0-1.0
+    return bezierInterpolate(start, middle, finish, v);
 }
 
 vec4 interpolate3Vec4(vec4 y1, vec4 y2, vec4 y3, float u) {
