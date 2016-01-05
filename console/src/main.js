@@ -82,6 +82,7 @@ function startInterface(url) {
 }
 
 var tray = null;
+var logPath = null;
 var homeServer = null;
 
 const GO_HOME_INDEX = 0;
@@ -183,11 +184,15 @@ app.on('ready', function() {
         app.dock.hide()
     }
 
-    var logPath = path.join(app.getAppPath(), 'logs');
+    logPath = path.join(app.getAppPath(), 'logs');
 
     // Create tray icon
     tray = new Tray(TRAY_ICON);
     tray.setToolTip('High Fidelity Server Console');
+
+    tray.on('clicked', function() {
+      tray.popContextMenu();
+    });
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
