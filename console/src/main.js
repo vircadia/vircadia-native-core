@@ -56,12 +56,23 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
 }
 
-function binaryMissingMessage(binaryName) {
-    var message = "The " + binaryName + " executable was not found.\n";
-    message += "It is required for the Server Console to run.\n\n";
+function binaryMissingMessage(displayName, executableName, required) {
+    var message = "The " + displayName + " executable was not found.\n";
+
+    if (required) {
+        message += "It is required for the Server Console to run.\n\n";
+    } else {
+        message += "\n";
+    }
 
     if (debug) {
-        message += "Please ensure there is a compiled " + binaryName + " in a folder named build in this checkout.";
+        message += "Please ensure there is a compiled " + displayName + " in a folder named build in this checkout.\n\n";
+        message += "It was expected to be found at one of the following paths:\n";
+
+        var paths = pathFinder.searchPaths(executableName, argv.localReleaseBuilds);
+        for (var i = 0; i < paths.length; i++) {
+            message += paths[i] + "\n";
+        }
     } else {
         message += "It is expected to be found beside this executable.\n"
         message += "You may need to re-install the Server Console.";
@@ -73,12 +84,12 @@ function binaryMissingMessage(binaryName) {
 // if at this point any of the paths are null, we're missing something we wanted to find
 
 if (!dsPath) {
-    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server"));
+    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
     app.quit();
 }
 
 if (!acPath) {
-    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client"))
+    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true))
     app.quit();
 }
 
@@ -115,11 +126,20 @@ const RESTART_INDEX = 3;
 const STOP_INDEX = 4;
 const SETTINGS_INDEX = 5;
 
+function goHomeClicked() {
+    if (interfacePath) {
+        startInterface('hifi://localhost');
+    } else {
+        // show an error to say that we can't go home without an interface instance
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity Client", "Interface", false));
+    }
+}
+
 function buildMenuArray(serverState) {
     var menuArray = [
         {
             label: 'Go Home',
-            click: function() { startInterface('hifi://localhost'); },
+            click: goHomeClicked,
             enabled: false
         },
         {
@@ -220,7 +240,7 @@ app.on('ready', function() {
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
-    if (interfacePath && dsPath && acPath) {
+    if (dsPath && acPath) {
         homeServer = new ProcessGroup('home', [
             new Process('domain-server', dsPath),
             new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])
