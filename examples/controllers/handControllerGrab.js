@@ -1119,12 +1119,15 @@ function MyController(hand) {
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
-            typeof grabbableData.spatialKey !== 'undefined') {
+        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed()) {
             var saveGrabbedID = this.grabbedEntity;
             this.release();
             this.setState(STATE_EQUIP);
             this.grabbedEntity = saveGrabbedID;
+
+            if (typeof grabbableData.spatialKey === 'undefined') {
+                Entities.editEntity(this.grabbedEntity, {position: handPosition});
+            }
             return;
         }
 
