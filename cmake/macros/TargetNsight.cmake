@@ -6,11 +6,10 @@
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 #
 macro(TARGET_NSIGHT)
-    if (WIN32 AND USE_NSIGHT AND NOT NSIGHT_FIND_CALLED)
+    if (WIN32 AND USE_NSIGHT)
       # try to find the Nsight package and add it to the build if we find it
       find_package(NSIGHT)
-      set(NSIGHT_FIND_CALLED TRUE)
-
+      
       if (NSIGHT_FOUND)
         include_directories(${NSIGHT_INCLUDE_DIRS})
         add_definitions(-DNSIGHT_FOUND)
