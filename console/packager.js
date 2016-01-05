@@ -22,7 +22,8 @@ var options = {
     prune: true,
     arch: "x64",
     platform: platform,
-    icon: "resources/" + iconName
+    icon: "resources/" + iconName,
+    ignore: "logs|(S|s)erver(\s|-)(C|c)onsole-\S+"
 }
 
 const EXEC_NAME = "server-console";
