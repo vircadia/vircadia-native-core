@@ -497,16 +497,6 @@ const Transform SpatiallyNestable::getAbsoluteJointTransformInObjectFrame(int jo
     return jointTransformInObjectFrame;
 }
 
-glm::quat SpatiallyNestable::getAbsoluteJointRotationInObjectFrame(int index) const {
-    assert(false);
-    return glm::quat();
-}
-
-glm::vec3 SpatiallyNestable::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    assert(false);
-    return glm::vec3();
-}
-
 SpatiallyNestablePointer SpatiallyNestable::getThisPointer() const {
     SpatiallyNestableConstPointer constThisPointer = shared_from_this();
     SpatiallyNestablePointer thisPointer = std::const_pointer_cast<SpatiallyNestable>(constThisPointer); // ermahgerd !!!
@@ -562,7 +552,7 @@ bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
     // make sure children are still in their boxes, also.
     bool childNeedsUpdate = false;
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        if (descendant->queryAABoxNeedsUpdate()) {
+        if (!childNeedsUpdate && descendant->queryAABoxNeedsUpdate()) {
             childNeedsUpdate = true;
         }
     });
@@ -577,7 +567,7 @@ bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
     return true;
 }
 
-bool SpatiallyNestable::setPuffedQueryAACube() {
+bool SpatiallyNestable::computePuffedQueryAACube() {
     if (!queryAABoxNeedsUpdate()) {
         return false;
     }

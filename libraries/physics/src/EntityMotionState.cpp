@@ -470,7 +470,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         properties.setActionData(_serverActionData);
     }
 
-    if (properties.parentRelatedPropertyChanged() && _entity->setPuffedQueryAACube()) {
+    if (properties.parentRelatedPropertyChanged() && _entity->computePuffedQueryAACube()) {
         // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
         properties.setQueryAACube(_entity->getQueryAACube());
     }
@@ -516,7 +516,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         if (descendant->getNestableType() == NestableType::Entity) {
             EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-            if (descendant->setPuffedQueryAACube()) {
+            if (descendant->computePuffedQueryAACube()) {
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);

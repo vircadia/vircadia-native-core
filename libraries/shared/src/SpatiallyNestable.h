@@ -69,7 +69,7 @@ public:
     virtual void setOrientation(const glm::quat& orientation);
 
     virtual AACube getMaximumAACube(bool& success) const;
-    virtual bool setPuffedQueryAACube();
+    virtual bool computePuffedQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAABoxNeedsUpdate() const;
@@ -102,8 +102,8 @@ public:
 
     // this object's frame
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
-    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const;
-    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const;
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const = 0;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const = 0;
 
     SpatiallyNestablePointer getThisPointer() const;
 

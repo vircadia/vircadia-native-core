@@ -274,7 +274,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->flagForOwnership();
                 }
             }
-            if (properties.parentRelatedPropertyChanged() && entity->setPuffedQueryAACube()) {
+            if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
@@ -283,8 +283,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // if they've changed.
             entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                 if (descendant->getNestableType() == NestableType::Entity) {
-                    EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
-                    if (descendant->setPuffedQueryAACube()) {
+                    if (descendant->computePuffedQueryAACube()) {
+                        EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                         queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);

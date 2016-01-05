@@ -356,6 +356,9 @@ public slots:
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
 
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+
 protected:
     glm::vec3 _handPosition;
 

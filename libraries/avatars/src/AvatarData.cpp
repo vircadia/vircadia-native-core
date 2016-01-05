@@ -1648,3 +1648,13 @@ void AvatarData::setPosition(const glm::vec3& position) {
 void AvatarData::setOrientation(const glm::quat& orientation) {
     SpatiallyNestable::setOrientation(orientation);
 }
+
+glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
+    assert(false);
+    return glm::quat();
+}
+
+glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    assert(false);
+    return glm::vec3();
+}
