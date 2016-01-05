@@ -161,11 +161,10 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
 
-    inline glm::vec3 getCenterPosition() const { return getTransformToCenter().getTranslation(); }
+    inline glm::vec3 getCenterPosition(bool& success) const { return getTransformToCenter(success).getTranslation(); }
     void setCenterPosition(const glm::vec3& position);
 
-    const Transform getTransformToCenter() const;
-    void setTranformToCenter(const Transform& transform);
+    const Transform getTransformToCenter(bool& success) const;
 
     inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
@@ -232,9 +231,12 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    const AACube& getMaximumAACube() const;
-    const AACube& getMinimumAACube() const;
-    const AABox& getAABox() const; /// axis aligned bounding box in world-frame (meters)
+    virtual AACube getMaximumAACube(bool& success) const override;
+    AACube getMinimumAACube(bool& success) const;
+    AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
+
+    using SpatiallyNestable::getQueryAACube;
+    virtual AACube getQueryAACube(bool& success) const override;
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }

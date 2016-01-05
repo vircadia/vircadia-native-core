@@ -163,6 +163,8 @@ enum EntityPropertyList {
     PROP_JOINT_TRANSLATIONS_SET,
     PROP_JOINT_TRANSLATIONS,
 
+    PROP_QUERY_AA_CUBE, // how the EntityTree considers the size and position on an entity
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,

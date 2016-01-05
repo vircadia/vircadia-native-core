@@ -300,6 +300,10 @@ VrDialog {
 
 
     Keys.onPressed: {
+        if (!enabled) {
+            return
+        }
+
         if (event.modifiers === Qt.ControlModifier)
             switch (event.key) {
             case Qt.Key_A:

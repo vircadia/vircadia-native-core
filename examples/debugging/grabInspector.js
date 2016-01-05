@@ -1,6 +1,6 @@
 //
-//  actionInspector.js
-//  examples
+//  grabInspector.js
+//  examples/debugging/
 //
 //  Created by Seth Alves on 2015-9-30.
 //  Copyright 2015 High Fidelity, Inc.
@@ -9,26 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/utils.js");
-
+Script.include("../libraries/utils.js");
 
 var INSPECT_RADIUS = 10;
 var overlays = {};
 
-
 var toType = function(obj) {
-  return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
+    return ({}).toString.call(obj).match(/\s([a-zA-Z]+)/)[1].toLowerCase()
 }
 
+function grabDataToString(grabData) {
+    var result = "";
 
-function actionArgumentsToString(actionArguments) {
-    var result = "type: " + actionArguments["type"] + "\n";
-    for (var argumentName in actionArguments) {
-        if (actionArguments.hasOwnProperty(argumentName)) {
+    for (var argumentName in grabData) {
+        if (grabData.hasOwnProperty(argumentName)) {
             if (argumentName == "type") {
                 continue;
             }
-            var arg = actionArguments[argumentName];
+            var arg = grabData[argumentName];
             var argType = toType(arg);
             var argString = arg;
             if (argType == "object") {
@@ -39,7 +37,7 @@ function actionArgumentsToString(actionArguments) {
                 argString = arg.toFixed(2);
             }
             result += argumentName + ": "
-                // + toType(arg) + " -- "
+            // + toType(arg) + " -- "
                 + argString + "\n";
         }
     }
@@ -48,18 +46,18 @@ function actionArgumentsToString(actionArguments) {
 }
 
 
-function updateOverlay(entityID, actionText) {
+
+function updateOverlay(entityID, grabText) {
     var properties = Entities.getEntityProperties(entityID, ["position", "dimensions"]);
     var position = Vec3.sum(properties.position, {x:0, y:properties.dimensions.y, z:0});
-    // print("position: " + vec3toStr(position) + " " + actionText);
     if (entityID in overlays) {
         var overlay = overlays[entityID];
         Overlays.editOverlay(overlay, {
-            text: actionText,
+            text: grabText,
             position: position
         });
     } else {
-        var lines = actionText.split(/\r\n|\r|\n/);
+        var lines = grabText.split(/\r\n|\r|\n/);
 
         var maxLineLength = lines[0].length;
         for (var i = 1; i < lines.length; i++) {
@@ -83,7 +81,7 @@ function updateOverlay(entityID, actionText) {
             leftMargin: textMargin,
             bottomMargin: textMargin,
             rightMargin: textMargin,
-            text: actionText,
+            text: grabText,
             lineHeight: lineHeight,
             alpha: 0.9,
             backgroundAlpha: 0.9,
@@ -106,30 +104,23 @@ Script.setInterval(function() {
     var nearbyEntities = Entities.findEntities(MyAvatar.position, INSPECT_RADIUS);
     for (var entityIndex = 0; entityIndex < nearbyEntities.length; entityIndex++) {
         var entityID = nearbyEntities[entityIndex];
-        var actionIDs = Entities.getActionIDs(entityID);
-        var actionText = ""
-        for (var actionIndex = 0; actionIndex < actionIDs.length; actionIndex++) {
-            var actionID = actionIDs[actionIndex];
-            var actionArguments = Entities.getActionArguments(entityID, actionID);
-            var actionArgumentText = actionArgumentsToString(actionArguments);
-            if (actionArgumentText != "") {
-                actionText += "-----------------\n";
-                actionText += actionArgumentText;
-            }
-        }
-        if (actionText != "") {
-            updateOverlay(entityID, actionText);
-        }
+        var userData = getEntityUserData(entityID);
+        var grabData = userData["grabKey"]
 
-        // if an entity no longer has an action, remove its overlay
-        if (actionIDs.length == 0) {
+        // {"grabbableKey":{"invertSolidWhileHeld":true},
+        //  "grabKey":{"activated":true,"avatarId":"{6ea8b092-10e0-4058-888b-6facc40d0fe9}","refCount":1,"gravity":{"x":0,"y":0,"z":0},"ignoreForCollisions":0,"collisionsWillMove":1}
+        // }
+
+        if (typeof grabData != 'undefined') {
+            var grabText = grabDataToString(grabData);
+            updateOverlay(entityID, grabText);
+        } else {
             if (entityID in overlays) {
                 Overlays.deleteOverlay(overlays[entityID]);
                 delete overlays[entityID];
             }
         }
     }
-
 
     // if an entity is too far away, remove its overlay
     for (var entityID in overlays) {

@@ -465,3 +465,16 @@ AABox AACube::clamp(float min, float max) const {
     return temp.clamp(min, max);
 }
 
+AACube& AACube::operator += (const glm::vec3& point) {
+    glm::vec3 oldMaximumPoint = getMaximumPoint();
+    _corner = glm::vec3(glm::min(_corner.x, point.x),
+                        glm::min(_corner.y, point.y),
+                        glm::min(_corner.z, point.z));
+
+    glm::vec3 scaleOld = oldMaximumPoint - _corner;
+    glm::vec3 scalePoint = point - _corner;
+    _scale = glm::max(_scale, scalePoint.x, scalePoint.y, scalePoint.z);
+    _scale = glm::max(_scale, scaleOld.x, scaleOld.y, scaleOld.z);
+
+    return (*this);
+}

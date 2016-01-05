@@ -264,7 +264,7 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        visible: root.expanded
+                        visible: root.expanded && !root.showAcuity
                         text: root.lodStatsRenderText;
                     }
                 }

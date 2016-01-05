@@ -65,7 +65,8 @@ void PreferencesDialog::changeUseAcuity() {
     ui.desktopMinimumFPSSpin->setEnabled(useAcuity);
     ui.label_hmdMinimumFPSSpin->setEnabled(useAcuity);
     ui.hmdMinimumFPSSpin->setEnabled(useAcuity);
-    ui.label_smallestReasonableRenderHorizon->setText(useAcuity ? "Minimum Avatar Display Distance (@half speed)" : "Minimum Display Distance (@half speed)");
+    ui.label_smallestReasonableRenderHorizon->setEnabled(!useAcuity);
+    ui.smallestReasonableRenderHorizon->setEnabled(!useAcuity);
     Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(useAcuity);
     Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(useAcuity);
 }

@@ -5,6 +5,7 @@ import "../styles"
 
 Item {
     id: root
+    objectName: "topLevelWindow"
     HifiConstants { id: hifi }
     implicitHeight: contentImplicitHeight + titleBorder.height + hifi.styles.borderWidth
     implicitWidth: contentImplicitWidth + hifi.styles.borderWidth * 2
