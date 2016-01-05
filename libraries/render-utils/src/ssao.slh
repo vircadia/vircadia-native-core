@@ -23,9 +23,9 @@ vec3 packOcclusionDepth(float occlusion, float depth) {
     float temp = floor(depth * 256.0);
     return vec3(occlusion, temp * (1.0 / 256.0), depth * 256.0 - temp);
 }
-vec2 unpackOcclusionDepth(vec3 packed) {
-    float z = packed.y * (256.0 / 257.0) + packed.z * (1.0 / 257.0);
-    return vec2(packed.x, z);
+vec2 unpackOcclusionDepth(vec3 raw) {
+    float z = raw.y * (256.0 / 257.0) + raw.z * (1.0 / 257.0);
+    return vec2(raw.x, z);
 }
 <@endfunc@>
 
