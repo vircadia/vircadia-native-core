@@ -11,7 +11,7 @@ macro(CONSOLIDATE_INSTALLER_COMPONENTS)
         COMMAND "${CMAKE_COMMAND}" -E copy ${ICON_FILE_PATH} ${CMAKE_BINARY_DIR}/package-bundle/${ICON_DESTINATION_NAME}
         COMMAND "${CMAKE_COMMAND}" -E copy_directory $<TARGET_FILE_DIR:${TARGET_NAME}> ${CMAKE_BINARY_DIR}/package-bundle
       )
-    elseif (TARGET_NAME STREQUAL "package-console")
+     elseif (TARGET_NAME STREQUAL "package-console")
       set (ICON_FILE_PATH "${PROJECT_SOURCE_DIR}/resources/${CONSOLE_ICON}")
       set (ICON_DESTINATION_NAME "console.ico")
 
@@ -19,7 +19,7 @@ macro(CONSOLIDATE_INSTALLER_COMPONENTS)
       add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy ${ICON_FILE_PATH} ${CMAKE_BINARY_DIR}/package-bundle/${ICON_DESTINATION_NAME}
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/High\ Fidelity\ Console-* ${CMAKE_BINARY_DIR}/package-bundle
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory ${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER} ${CMAKE_BINARY_DIR}/package-bundle
       )
     else ()
       # add a command to copy the fixed up binary and libraries to package-bundle
