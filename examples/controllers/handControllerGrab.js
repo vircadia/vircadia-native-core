@@ -1257,16 +1257,39 @@ function MyController(hand) {
             this.handleSpotlight(this.grabbedEntity);
         }
 
-        Entities.updateAction(this.grabbedEntity, this.actionID, {
+        var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: targetPosition,
             linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             targetRotation: this.currentObjectRotation,
             angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
             ttl: ACTION_TTL
         });
+        if (success) {
+            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+        } else {
+            print("continueDistanceHolding -- updateAction failed");
+        }
+    };
 
+
+    this.setupHoldAction = function() {
+        this.actionID = Entities.addAction("hold", this.grabbedEntity, {
+            hand: this.hand === RIGHT_HAND ? "right" : "left",
+            timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
+            relativePosition: this.offsetPosition,
+            relativeRotation: this.offsetRotation,
+            ttl: ACTION_TTL,
+            kinematic: NEAR_GRABBING_KINEMATIC,
+            kinematicSetVelocity: true,
+            ignoreIK: this.ignoreIK
+        });
+        if (this.actionID === NULL_ACTION_ID) {
+            this.actionID = null;
+            return false;
+        }
+        var now = Date.now();
         this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
-
+        return true;
     };
 
     this.projectVectorAlongAxis = function(position, axisStart, axisEnd) {
@@ -1296,7 +1319,7 @@ function MyController(hand) {
 
             return projection
 
-        },
+        };
 
         this.nearGrabbing = function() {
             var now = Date.now();
@@ -1340,42 +1363,28 @@ function MyController(hand) {
                 this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
             }
 
-            this.actionID = NULL_ACTION_ID;
-            this.actionID = Entities.addAction("hold", this.grabbedEntity, {
-                hand: this.hand === RIGHT_HAND ? "right" : "left",
-                timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
-                relativePosition: this.offsetPosition,
-                relativeRotation: this.offsetRotation,
-                ttl: ACTION_TTL,
-                kinematic: NEAR_GRABBING_KINEMATIC,
-                kinematicSetVelocity: true,
-                ignoreIK: this.ignoreIK
-            });
-            if (this.actionID === NULL_ACTION_ID) {
-                this.actionID = null;
-            } else {
-                this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
-                if (this.state == STATE_NEAR_GRABBING) {
-                    this.setState(STATE_CONTINUE_NEAR_GRABBING);
-                } else {
-                    // equipping
-                    Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
-                    this.startHandGrasp();
-
-                    this.setState(STATE_CONTINUE_EQUIP_BD);
-                }
-
-                if (this.hand === RIGHT_HAND) {
-                    Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
-                } else {
-                    Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
-                }
-
-                Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
-
-                Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
-
+            if (!this.setupHoldAction()) {
+                return;
             }
+
+            if (this.state == STATE_NEAR_GRABBING) {
+                this.setState(STATE_CONTINUE_NEAR_GRABBING);
+            } else {
+                // equipping
+                Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
+                this.startHandGrasp();
+
+                this.setState(STATE_CONTINUE_EQUIP_BD);
+            }
+
+            if (this.hand === RIGHT_HAND) {
+                Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+            } else {
+                Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
+            }
+
+            Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
+            Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
 
             this.currentHandControllerTipPosition =
                 (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
@@ -1426,7 +1435,7 @@ function MyController(hand) {
 
         if (this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
-            Entities.updateAction(this.grabbedEntity, this.actionID, {
+            var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
@@ -1436,7 +1445,13 @@ function MyController(hand) {
                 kinematicSetVelocity: true,
                 ignoreIK: this.ignoreIK
             });
-            this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+            if (success) {
+                this.actionTimeout = now + (ACTION_TTL * MSEC_PER_SEC);
+            } else {
+                print("continueNearGrabbing -- updateAction failed");
+                Entities.deleteAction(this.grabbedEntity, this.actionID);
+                this.setupHoldAction();
+            }
         }
     };
 
@@ -1483,7 +1498,7 @@ function MyController(hand) {
                 return;
             }
         } else {
-            Entities.updateAction(this.grabbedEntity, this.equipSpringID, {
+            var success = Entities.updateAction(this.grabbedEntity, this.equipSpringID, {
                 targetPosition: targetPosition,
                 linearTimeScale: EQUIP_SPRING_TIMEFRAME,
                 targetRotation: targetRotation,
@@ -1491,6 +1506,9 @@ function MyController(hand) {
                 ttl: ACTION_TTL,
                 ignoreIK: ignoreIK
             });
+            if (!success) {
+                print("pullTowardEquipPosition -- updateActionfailed");
+            }
         }
 
         if (Vec3.distance(grabbedProperties.position, targetPosition) < EQUIP_SPRING_SHUTOFF_DISTANCE) {
