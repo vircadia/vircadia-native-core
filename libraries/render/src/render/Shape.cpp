@@ -27,10 +27,10 @@ const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& k
     const auto& pipelineIterator = _pipelineLib.find(key);
     if (pipelineIterator == _pipelineLib.end()) {
         qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
-        return std::make_shared<Pipeline>();
+        return PipelinePointer(nullptr);
     }
 
-    Shape::PipelinePointer shapePipeline(&(pipelineIterator->second));
+    PipelinePointer shapePipeline(&(pipelineIterator->second));
     auto& batch = args->_batch;
 
     // Setup the one pipeline (to rule them all)
@@ -41,14 +41,14 @@ const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& k
 
 void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Shape::Slots::SKINNING_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Shape::Slots::MATERIAL_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), Shape::Slots::DIFFUSE_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Shape::Slots::NORMAL_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), Shape::Slots::SPECULAR_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Shape::Slots::LIGHTMAP_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Shape::Slots::LIGHT_BUFFER));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Shape::Slots::NORMAL_FITTING_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slots::SKINNING_GPU));
+    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slots::MATERIAL_GPU));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), Slots::DIFFUSE_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slots::NORMAL_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), Slots::SPECULAR_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slots::LIGHTMAP_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slots::LIGHT_BUFFER));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slots::NORMAL_FITTING_MAP));
 
     gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -86,7 +86,7 @@ void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, 
 
     // Add the brand new pipeline and cache its location in the lib
     auto pipeline = gpu::Pipeline::create(program, state);
-    insert(value_type(key, Shape::Pipeline(pipeline, locations)));
+    insert(value_type(key, Pipeline(pipeline, locations)));
 
     // Add a wireframe version
     if (!key.isWireFrame()) {
@@ -96,6 +96,6 @@ void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, 
         wireframeState->setFillMode(gpu::State::FILL_LINE);
 
         auto wireframePipeline = gpu::Pipeline::create(program, wireframeState);
-        insert(value_type(wireframeKey, Shape::Pipeline(wireframePipeline, locations)));
+        insert(value_type(wireframeKey, Pipeline(wireframePipeline, locations)));
     }
 }
