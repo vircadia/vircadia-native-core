@@ -417,6 +417,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
+
+    lateUpdatePalms();
 }
 
 //  Update avatar head rotation with sensor data
@@ -1838,4 +1840,9 @@ QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioList
 
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
     audioListenerMode = (AudioListenerMode)object.toUInt16();
+}
+
+
+void MyAvatar::lateUpdatePalms() {
+    Avatar::updatePalms();
 }

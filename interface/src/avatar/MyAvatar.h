@@ -311,11 +311,13 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
-    PalmData getActivePalmData(int palmIndex) const;
-
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
+
+    virtual void updatePalms() override {}
+    void lateUpdatePalms();
+
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;
