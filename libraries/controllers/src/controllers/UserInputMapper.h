@@ -107,6 +107,7 @@ namespace controller {
         MappingPointer newMapping(const QString& mappingName);
         MappingPointer parseMapping(const QString& json);
         MappingPointer loadMapping(const QString& jsonFile);
+        MappingPointer loadMappings(const QStringList& jsonFiles);
 
         void loadDefaultMapping(uint16 deviceID);
         void enableMapping(const QString& mappingName, bool enable = true);

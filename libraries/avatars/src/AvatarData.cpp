@@ -1260,6 +1260,7 @@ void AvatarData::updateJointMappings() {
 static const QString JSON_ATTACHMENT_URL = QStringLiteral("modelUrl");
 static const QString JSON_ATTACHMENT_JOINT_NAME = QStringLiteral("jointName");
 static const QString JSON_ATTACHMENT_TRANSFORM = QStringLiteral("transform");
+static const QString JSON_ATTACHMENT_IS_SOFT = QStringLiteral("isSoft");
 
 QJsonObject AttachmentData::toJson() const {
     QJsonObject result;
@@ -1278,6 +1279,7 @@ QJsonObject AttachmentData::toJson() const {
     if (!transform.isIdentity()) {
         result[JSON_ATTACHMENT_TRANSFORM] = Transform::toJson(transform);
     }
+    result[JSON_ATTACHMENT_IS_SOFT] = isSoft;
     return result;
 }
 
@@ -1302,21 +1304,25 @@ void AttachmentData::fromJson(const QJsonObject& json) {
         rotation = transform.getRotation();
         scale = transform.getScale().x;
     }
+
+    if (json.contains(JSON_ATTACHMENT_IS_SOFT)) {
+        isSoft = json[JSON_ATTACHMENT_IS_SOFT].toBool();
+    }
 }
 
 bool AttachmentData::operator==(const AttachmentData& other) const {
     return modelURL == other.modelURL && jointName == other.jointName && translation == other.translation &&
-        rotation == other.rotation && scale == other.scale;
+        rotation == other.rotation && scale == other.scale && isSoft == other.isSoft;
 }
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment) {
     return out << attachment.modelURL << attachment.jointName <<
-        attachment.translation << attachment.rotation << attachment.scale;
+        attachment.translation << attachment.rotation << attachment.scale << attachment.isSoft;
 }
 
 QDataStream& operator>>(QDataStream& in, AttachmentData& attachment) {
     return in >> attachment.modelURL >> attachment.jointName >>
-        attachment.translation >> attachment.rotation >> attachment.scale;
+        attachment.translation >> attachment.rotation >> attachment.scale >> attachment.isSoft;
 }
 
 void AttachmentDataObject::setModelURL(const QString& modelURL) const {

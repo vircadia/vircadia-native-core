@@ -83,6 +83,8 @@ public:
     MyAvatar(RigPointer rig);
     ~MyAvatar();
 
+    virtual void simulateAttachments(float deltaTime) override;
+
     AudioListenerMode getAudioListenerModeHead() const { return FROM_HEAD; }
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
@@ -204,7 +206,7 @@ public:
     MyCharacterController* getCharacterController() { return &_characterController; }
 
     void prepareForPhysicsSimulation();
-    void harvestResultsFromPhysicsSimulation();
+    void harvestResultsFromPhysicsSimulation(float deltaTime);
     void adjustSensorTransform();
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }

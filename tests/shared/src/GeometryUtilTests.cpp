@@ -1,6 +1,6 @@
 //
 //  GeometryUtilTests.cpp
-//  tests/physics/src
+//  tests/shared/src
 //
 //  Created by Andrew Meadows on 2015.07.27
 //  Copyright 2015 High Fidelity, Inc.

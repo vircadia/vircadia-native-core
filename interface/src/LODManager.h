@@ -15,6 +15,7 @@
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
 #include <OctreeConstants.h>
+#include <PIDController.h>
 #include <SimpleMovingAverage.h>
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 15.0;
@@ -81,6 +82,27 @@ public:
     Q_INVOKABLE float getLODDecreaseFPS();
     Q_INVOKABLE float getLODIncreaseFPS();
     
+    enum class LODPreference {
+        pid = 0,
+        acuity,
+        unspecified
+    };
+    static bool getUseAcuity();
+    static void setUseAcuity(bool newValue);
+    Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
+    Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
+    Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
+    Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
+    Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
+    Q_INVOKABLE float getRenderDistanceInverseLowLimit() { return _renderDistanceController.getControlledValueLowLimit(); }
+    Q_INVOKABLE void setRenderDistanceInverseLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
+    Q_INVOKABLE float getRenderDistanceInverseHighLimit() { return _renderDistanceController.getControlledValueHighLimit(); }
+    Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue);
+    void updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled);
+    float getRenderDistance();
+    int getRenderedCount();
+    QString getLODStatsRenderText();
+
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     void autoAdjustLOD(float currentFPS);
@@ -116,6 +138,9 @@ private:
     
     bool _shouldRenderTableNeedsRebuilding = true;
     QMap<float, float> _shouldRenderTable;
+
+    PIDController _renderDistanceController{};
+    SimpleMovingAverage _renderDistanceAverage{ 10 };
 };
 
 #endif // hifi_LODManager_h

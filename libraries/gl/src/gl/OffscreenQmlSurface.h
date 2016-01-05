@@ -37,7 +37,7 @@ public:
 
     using MouseTranslator = std::function<QPointF(const QPointF&)>;
 
-    void create(QOpenGLContext* context);
+    virtual void create(QOpenGLContext* context);
     void resize(const QSize& size);
     QSize size() const;
     Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});

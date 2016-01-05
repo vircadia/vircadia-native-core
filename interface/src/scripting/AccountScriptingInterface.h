@@ -24,6 +24,7 @@ signals:
 public slots:
     static AccountScriptingInterface* getInstance();
     float getBalance();
+    QString getUsername();
     bool isLoggedIn();
     void updateBalance();
 };

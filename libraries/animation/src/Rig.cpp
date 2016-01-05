@@ -245,6 +245,14 @@ int Rig::indexOfJoint(const QString& jointName) const {
     }
 }
 
+QString Rig::nameOfJoint(int jointIndex) const {
+    if (_animSkeleton) {
+        return _animSkeleton->getJointName(jointIndex);
+    } else {
+        return "";
+    }
+}
+
 void Rig::setModelOffset(const glm::mat4& modelOffsetMat) {
     AnimPose newModelOffset = AnimPose(modelOffsetMat);
     if (!isEqual(_modelOffset.trans, newModelOffset.trans) ||
@@ -289,8 +297,10 @@ void Rig::clearJointState(int index) {
 
 void Rig::clearJointStates() {
     _internalPoseSet._overrideFlags.clear();
-    _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
-    _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    if (_animSkeleton) {
+        _internalPoseSet._overrideFlags.resize(_animSkeleton->getNumJoints());
+        _internalPoseSet._overridePoses = _animSkeleton->getRelativeDefaultPoses();
+    }
 }
 
 void Rig::clearJointAnimationPriority(int index) {

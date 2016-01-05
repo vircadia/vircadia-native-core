@@ -1,6 +1,7 @@
 print("Launching web window");
 
-webWindow = new OverlayWebWindow('Test Event Bridge', "file:///C:/Users/bdavis/Git/hifi/examples/html/qmlWebTest.html", 320, 240, false);
+var htmlUrl =  Script.resolvePath("..//html/qmlWebTest.html")
+webWindow = new OverlayWebWindow('Test Event Bridge', htmlUrl, 320, 240, false);
 print("JS Side window: " + webWindow);
 print("JS Side bridge: " + webWindow.eventBridge);
 webWindow.eventBridge.webEventReceived.connect(function(data) {

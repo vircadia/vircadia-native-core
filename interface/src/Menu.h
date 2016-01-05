@@ -64,6 +64,7 @@ public:
     void saveSettings();
 
     MenuWrapper* getMenu(const QString& menuName);
+    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
@@ -130,7 +131,6 @@ private:
                                        const QString& grouping = QString());
 
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
-    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
 
     QAction* getMenuAction(const QString& menuName);
