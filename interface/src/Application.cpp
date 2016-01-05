@@ -2990,7 +2990,11 @@ void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
 
-    updateLOD();
+    if (DependencyManager::get<LODManager>()->getUseAcuity()) {
+        updateLOD();
+    } else {
+        DependencyManager::get<LODManager>()->updatePIDRenderDistance(getTargetFrameRate(), getLastInstanteousFps(), deltaTime, isThrottleRendering());
+    }
 
     {
         PerformanceTimer perfTimer("devices");

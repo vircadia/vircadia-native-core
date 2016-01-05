@@ -184,26 +184,6 @@ void Avatar::simulate(float deltaTime) {
         qCDebug(interfaceapp) << "Billboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
     }
 
-    const bool isControllerLogging = DependencyManager::get<AvatarManager>()->getRenderDistanceControllerIsLogging();
-    float renderDistance = DependencyManager::get<AvatarManager>()->getRenderDistance();
-    const float SKIP_HYSTERESIS_PROPORTION = isControllerLogging ? 0.0f : BILLBOARD_HYSTERESIS_PROPORTION;
-    float distance = glm::distance(qApp->getCamera()->getPosition(), getPosition());
-    if (_shouldSkipRender) {
-        if (distance < renderDistance * (1.0f - SKIP_HYSTERESIS_PROPORTION)) {
-            _shouldSkipRender = false;
-            _skeletonModel.setVisibleInScene(true, qApp->getMain3DScene());
-            if (!isControllerLogging) {  // Test for isMyAvatar is prophylactic. Never occurs in current code.
-                qCDebug(interfaceapp) << "Rerendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
-            }
-        }
-    } else if (distance > renderDistance * (1.0f + SKIP_HYSTERESIS_PROPORTION)) {
-        _shouldSkipRender = true;
-        _skeletonModel.setVisibleInScene(false, qApp->getMain3DScene());
-        if (!isControllerLogging) {
-            qCDebug(interfaceapp) << "Unrendering" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for distance" << renderDistance;
-        }
-    }
-
     // simple frustum check
     float boundingRadius = getBillboardSize();
     bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius) !=
