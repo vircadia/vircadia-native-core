@@ -23,14 +23,14 @@ var WANT_DEBUG = false;
 // these tune time-averaging and "on" value for analog trigger
 //
 
-var TRIGGER_SMOOTH_RATIO = 0.1;     //  Time averaging of trigger - 0.0 disables smoothing
-var TRIGGER_ON_VALUE = 0.4;         //  Squeezed just enough to activate search or near grab
-var TRIGGER_GRAB_VALUE = 0.85;      //  Squeezed far enough to complete distant grab
+var TRIGGER_SMOOTH_RATIO = 0.1; //  Time averaging of trigger - 0.0 disables smoothing
+var TRIGGER_ON_VALUE = 0.4; //  Squeezed just enough to activate search or near grab
+var TRIGGER_GRAB_VALUE = 0.85; //  Squeezed far enough to complete distant grab
 var TRIGGER_OFF_VALUE = 0.15;
 
 var BUMPER_ON_VALUE = 0.5;
 
-var HAND_HEAD_MIX_RATIO = 0.0;      //  0 = only use hands for search/move.  1 = only use head for search/move.
+var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
 //
 // distant manipulation
@@ -59,7 +59,6 @@ var LINE_ENTITY_DIMENSIONS = {
 
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
-
 //
 // near grabbing
 //
@@ -132,6 +131,7 @@ var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 var USE_ENTITY_LINES_FOR_MOVING = false;
 var USE_OVERLAY_LINES_FOR_MOVING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = true;
+var TEMPORARY_PARTICLE_BEAM_LIFETIME = 30;
 
 var USE_SPOTLIGHT = false;
 var USE_POINTLIGHT = false;
@@ -421,7 +421,7 @@ function MyController(hand) {
     this.searchSphereOn = function(location, size, color) {
         if (this.searchSphere === null) {
             var sphereProperties = {
-                position: location, 
+                position: location,
                 size: size,
                 color: color,
                 alpha: SEARCH_SPHERE_ALPHA,
@@ -429,10 +429,15 @@ function MyController(hand) {
                 visible: true
             }
             this.searchSphere = Overlays.addOverlay("sphere", sphereProperties);
-        } else { 
-            Overlays.editOverlay(this.searchSphere, { position: location, size: size, color: color, visible: true });
+        } else {
+            Overlays.editOverlay(this.searchSphere, {
+                position: location,
+                size: size,
+                color: color,
+                visible: true
+            });
         }
-    } 
+    }
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
@@ -573,6 +578,13 @@ function MyController(hand) {
         })
 
     };
+
+    this.renewParticleBeamLifetime = function(){
+        var props = Entities.getEntityProperties(this.particleBeam,"age");
+        Entities.editEntity(this.particleBeam,{
+            lifetime: TEMPORARY_PARTICLE_BEAM_LIFETIME + props.age // renew lifetime
+        })
+    }
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
 
@@ -765,7 +777,7 @@ function MyController(hand) {
         if (this.triggerSmoothedSqueezed() || this.bumperSqueezed()) {
             this.lastPickTime = 0;
             var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-            this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation; 
+            this.startingHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
             if (this.triggerSmoothedSqueezed()) {
                 this.setState(STATE_SEARCHING);
             } else {
@@ -788,10 +800,16 @@ function MyController(hand) {
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
-        
+
         var distantPickRay = {
-            origin:  Camera.position,
+            origin: Camera.position,
             direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            length: PICK_MAX_DISTANCE
+        };
+
+        var searchVisualizationPickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(this.getHandRotation()),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1015,6 +1033,11 @@ function MyController(hand) {
         if (USE_PARTICLE_BEAM_FOR_SEARCHING === true) {
             this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
         }
+
+        if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
+            this.overlayLineOn(searchVisualizationPickRay.origin, Vec3.sum(searchVisualizationPickRay.origin, Vec3.multiply(searchVisualizationPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
+        }
+
         if (this.intersectionDistance > 0) {
             var SPHERE_INTERSECTION_SIZE = 0.011;
             var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
@@ -1864,7 +1887,31 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
+    if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+        Script.update.disconnect(renewParticleBeamLifetimes);
+    }
 }
-
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+// particle systems can end up hanging around if a user crashes or something else causes controller cleanup not to get called. 
+// we can't create the search system on-demand since it takes some time for the particles to reach their entire length.  
+// thus the system cannot have a fixed lifetime.  this loop updates the lifetimes and will stop updating if a user crashes.
+
+if(USE_PARTICLE_BEAM_FOR_SEARCHING===true || USE_PARTICLE_BEAM_FOR_MOVING ===true){
+Script.update.connect(renewParticleBeamLifetimes)
+}
+
+var sinceLastParticleLifetimeUpdate = 0;
+
+function renewParticleBeamLifetimes(deltaTime) {
+    //debounce this call since we don't want it 60x a second
+    sinceLastParticleLifetimeUpdate = sinceLastParticleLifetimeUpdate + deltaTime;
+    if (sinceLastParticleLifetimeUpdate > TEMPORARY_PARTICLE_BEAM_LIFETIME - 2) {
+        sinceLastParticleLifetimeUpdate = 0;
+    } else {
+        return;
+    }
+    rightController.renewParticleBeamLifetime();
+    leftController.renewParticleBeamLifetime();
+}

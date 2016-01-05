@@ -30,6 +30,7 @@ class AvatarInputs : public QQuickItem {
     AI_PROPERTY(float, audioLevel, 0)
     AI_PROPERTY(bool, mirrorVisible, false)
     AI_PROPERTY(bool, mirrorZoomed, true)
+    AI_PROPERTY(bool, isHMD, false)
 
 public:
     static AvatarInputs* getInstance();
@@ -44,6 +45,7 @@ signals:
     void audioLevelChanged();
     void mirrorVisibleChanged();
     void mirrorZoomedChanged();
+    void isHMDChanged();
 
 protected:
     Q_INVOKABLE void resetSensors();

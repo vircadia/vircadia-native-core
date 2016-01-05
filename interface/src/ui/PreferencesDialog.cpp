@@ -48,6 +48,7 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::editingFinished, this, &PreferencesDialog::changeFullAvatarURL);
+    connect(ui.useAcuityCheckBox, &QCheckBox::clicked, this, &PreferencesDialog::changeUseAcuity);
 
     connect(qApp, &Application::fullAvatarURLChanged, this, &PreferencesDialog::fullAvatarURLChanged);
 
@@ -58,6 +59,17 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
     UIUtil::scaleWidgetFontSizes(this);
 }
 
+void PreferencesDialog::changeUseAcuity() {
+    bool useAcuity = ui.useAcuityCheckBox->isChecked();
+    ui.label_desktopMinimumFPSSpin->setEnabled(useAcuity);
+    ui.desktopMinimumFPSSpin->setEnabled(useAcuity);
+    ui.label_hmdMinimumFPSSpin->setEnabled(useAcuity);
+    ui.hmdMinimumFPSSpin->setEnabled(useAcuity);
+    ui.label_smallestReasonableRenderHorizon->setEnabled(!useAcuity);
+    ui.smallestReasonableRenderHorizon->setEnabled(!useAcuity);
+    Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(useAcuity);
+    Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(useAcuity);
+}
 void PreferencesDialog::changeFullAvatarURL() {
     DependencyManager::get<AvatarManager>()->getMyAvatar()->useFullAvatarURL(ui.appearanceDescription->text(), "");
     this->fullAvatarURLChanged(ui.appearanceDescription->text(), "");
@@ -212,9 +224,11 @@ void PreferencesDialog::loadPreferences() {
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();
+    ui.useAcuityCheckBox->setChecked(lodManager->getUseAcuity());
     ui.desktopMinimumFPSSpin->setValue(lodManager->getDesktopLODDecreaseFPS());
     ui.hmdMinimumFPSSpin->setValue(lodManager->getHMDLODDecreaseFPS());
-    ui.avatarRenderSmallestReasonableHorizon->setValue(1.0f / DependencyManager::get<AvatarManager>()->getRenderDistanceInverseHighLimit());
+    ui.smallestReasonableRenderHorizon->setValue(1.0f / lodManager->getRenderDistanceInverseHighLimit());
+    changeUseAcuity();
 }
 
 void PreferencesDialog::savePreferences() {
@@ -303,7 +317,8 @@ void PreferencesDialog::savePreferences() {
 
     // LOD items
     auto lodManager = DependencyManager::get<LODManager>();
+    lodManager->setUseAcuity(ui.useAcuityCheckBox->isChecked());
     lodManager->setDesktopLODDecreaseFPS(ui.desktopMinimumFPSSpin->value());
     lodManager->setHMDLODDecreaseFPS(ui.hmdMinimumFPSSpin->value());
-    DependencyManager::get<AvatarManager>()->setRenderDistanceInverseHighLimit(1.0f / ui.avatarRenderSmallestReasonableHorizon->value());
+    lodManager->setRenderDistanceInverseHighLimit(1.0f / ui.smallestReasonableRenderHorizon->value());
 }
