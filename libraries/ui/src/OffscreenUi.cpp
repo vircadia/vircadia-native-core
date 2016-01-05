@@ -212,6 +212,26 @@ void OffscreenUi::warning(const QString& title, const QString& text,
             static_cast<QMessageBox::Icon>(MessageDialog::Warning), buttons);
 }
 
+QMessageBox::StandardButton OffscreenUi::warning(void* ignored, const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+
+    bool waiting = true;
+    QMessageBox::StandardButton result = defaultButton;
+
+    OffscreenUi::warning(title, text, [&](QMessageBox::StandardButton response){
+        result = response;
+        waiting = false;
+    }, buttons);
+
+    // block until the call back has been called   
+    while (waiting) {
+        QCoreApplication::processEvents();
+    }
+
+    return result;
+}
+
+
 void OffscreenUi::critical(const QString& title, const QString& text,
     ButtonCallback callback,
     QMessageBox::StandardButtons buttons) {

@@ -188,7 +188,7 @@ void WindowScriptingInterface::chooseDirectory() {
     }
 
     if (!validateAs.exactMatch(directory)) {
-        QMessageBox::warning(NULL, "Invalid Directory", errorMessage);
+        OffscreenUi::warning(NULL, "Invalid Directory", errorMessage);
         return;
     }
 

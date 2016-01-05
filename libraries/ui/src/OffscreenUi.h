@@ -59,6 +59,11 @@ public:
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
+    /// Same design as QMessageBox::warning(), will block, returns result
+    static QMessageBox::StandardButton warning(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+
     static void critical(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);

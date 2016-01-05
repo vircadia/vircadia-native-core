@@ -68,7 +68,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             QByteArray jsonData;
             
             if (!gunzip(compressedJsonData, jsonData)) {
-                QMessageBox::warning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
+                OffscreenUi::warning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
             }
             
             QJsonDocument modelsJSON = QJsonDocument::fromJson(jsonData);
@@ -108,7 +108,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     if (request->getResult() == ResourceRequest::Success) {
                                         migrateResource(request);
                                     } else {
-                                        QMessageBox::warning(_dialogParent, "Error",
+                                        OffscreenUi::warning(_dialogParent, "Error",
                                                              QString("Could not retrieve asset at %1").arg(modelURL.toString()));
                                     }
                                     request->deleteLater();
@@ -116,7 +116,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                 
                                 request->send();
                             } else {
-                                QMessageBox::warning(_dialogParent, "Error",
+                                OffscreenUi::warning(_dialogParent, "Error",
                                                      QString("Could not create request for asset at %1").arg(modelURL.toString()));
                             }
                             
@@ -130,7 +130,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             _doneReading = true;
             
         } else {
-            QMessageBox::warning(_dialogParent, "Error",
+            OffscreenUi::warning(_dialogParent, "Error",
                                  "There was a problem loading that entity-server file for ATP asset migration. Please try again");
         }
     }
@@ -255,11 +255,11 @@ void ATPAssetMigrator::saveEntityServerFile() {
             QMessageBox::information(_dialogParent, "Success",
                                      QString("Your new entities file has been saved at %1").arg(saveName));
         } else {
-            QMessageBox::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
+            OffscreenUi::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
         }
     
     } else {
-        QMessageBox::warning(_dialogParent, "Error",
+        OffscreenUi::warning(_dialogParent, "Error",
                              QString("Could not open file at %1 to write new entities file to.").arg(saveName));
     }
 }
