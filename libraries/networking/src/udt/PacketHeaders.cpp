@@ -44,7 +44,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return VERSION_ENTITITES_HAVE_QUERY_BOX;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
-            return 17;
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
         default:
             return 17;
     }
