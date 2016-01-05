@@ -22,6 +22,7 @@
 #include <NetworkAccessManager.h>
 
 #include "DiskCacheEditor.h"
+#include "OffscreenUi.h"
 
 DiskCacheEditor::DiskCacheEditor(QWidget* parent) : QObject(parent) {
     
@@ -136,7 +137,7 @@ void DiskCacheEditor::refresh() {
 
 void DiskCacheEditor::clear() {
     QMessageBox::StandardButton buttonClicked =
-                        QMessageBox::question(_dialog, "Clearing disk cache",
+                                    OffscreenUi::question(_dialog, "Clearing disk cache",
                                               "You are about to erase all the content of the disk cache,"
                                               "are you sure you want to do that?");
     if (buttonClicked == QMessageBox::Yes) {

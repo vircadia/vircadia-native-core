@@ -20,6 +20,7 @@
 #include <QMessageBox>
 #include <QUrlQuery>
 
+#include <OffscreenUi.h>
 
 const int NARROW_SNAPSHOT_DIALOG_SIZE = 500;
 const int WIDE_SNAPSHOT_DIALOG_WIDTH = 650;
@@ -87,7 +88,7 @@ void SnapshotShareDialog::accept() {
 void SnapshotShareDialog::uploadSnapshot() {
 
     if (AccountManager::getInstance().getAccountInfo().getDiscourseApiKey().isEmpty()) {
-        QMessageBox::warning(this, "",
+        OffscreenUi::warning(this, "",
                              "Your Discourse API key is missing, you cannot share snapshots. Please try to relog.");
         return;
     }
@@ -178,7 +179,7 @@ void SnapshotShareDialog::postRequestFinished() {
                 errorMessage = errorArray.first().toString();
             }
         }
-        QMessageBox::warning(this, "", errorMessage);
+        OffscreenUi::warning(this, "", errorMessage);
         _ui.shareButton->setEnabled(true);
         _ui.shareButton->setStyleSheet(SHARE_BUTTON_STYLE + SHARE_BUTTON_ENABLED_STYLE);
     }
@@ -193,7 +194,7 @@ void SnapshotShareDialog::uploadRequestFinished() {
     if (responseObject.contains("url")) {
         sendForumPost(responseObject["url"].toString());
     } else {
-        QMessageBox::warning(this, "", SHARE_DEFAULT_ERROR);
+        OffscreenUi::warning(this, "", SHARE_DEFAULT_ERROR);
         _ui.shareButton->setEnabled(true);
         _ui.shareButton->setStyleSheet(SHARE_BUTTON_STYLE + SHARE_BUTTON_ENABLED_STYLE);
     }
