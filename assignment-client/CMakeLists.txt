@@ -9,5 +9,7 @@ link_hifi_libraries(
   controllers physics
 )
 
+install_beside_console()
+
 package_libraries_for_deployment()
 consolidate_installer_components()

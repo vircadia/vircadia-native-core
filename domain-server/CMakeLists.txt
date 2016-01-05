@@ -36,5 +36,7 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
+install_beside_console()
+
 package_libraries_for_deployment()
 consolidate_installer_components()
