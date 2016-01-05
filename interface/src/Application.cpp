@@ -20,6 +20,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <QtCore/QDebug>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
@@ -184,6 +186,7 @@ static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
+static const QString AVA_JSON_EXTENSION = ".ava.json";
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
@@ -219,7 +222,8 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl }
 };
 
 #ifdef Q_OS_WIN
@@ -4454,6 +4458,99 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
         upload->deleteLater();
     } else {
         AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
+    }
+}
+
+bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
+
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    int requestNumber = ++_avatarAttachmentRequest;
+    connect(reply, &QNetworkReply::finished, [this, reply, url, requestNumber]() {
+
+        if (requestNumber != _avatarAttachmentRequest) {
+            // this request has been superseded by another more recent request
+            reply->deleteLater();
+            return;
+        }
+
+        QNetworkReply::NetworkError networkError = reply->error();
+        if (networkError == QNetworkReply::NoError) {
+            // download success
+            QByteArray contents = reply->readAll();
+
+            QJsonParseError jsonError;
+            auto doc = QJsonDocument::fromJson(contents, &jsonError);
+            if (jsonError.error == QJsonParseError::NoError) {
+
+                auto jsonObject = doc.object();
+
+                // retrieve optional name field from JSON
+                QString name = tr("Unnamed Attachment");
+                auto nameValue = jsonObject.value("name");
+                if (nameValue.isString()) {
+                    name = nameValue.toString();
+                }
+
+                // display confirmation dialog
+                if (displayAvatarAttachmentConfirmationDialog(name)) {
+
+                    // add attachment to avatar
+                    auto myAvatar = getMyAvatar();
+                    assert(myAvatar);
+                    auto attachmentDataVec = myAvatar->getAttachmentData();
+                    AttachmentData attachmentData;
+                    attachmentData.fromJson(jsonObject);
+                    attachmentDataVec.push_back(attachmentData);
+                    myAvatar->setAttachmentData(attachmentDataVec);
+
+                } else {
+                    qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
+                }
+
+            } else {
+                // json parse error
+                auto avatarAttachmentParseErrorString = tr("Error parsing attachment JSON from url: \"%1\"");
+                displayAvatarAttachmentWarning(avatarAttachmentParseErrorString.arg(url));
+            }
+        } else {
+            // download failure
+            auto avatarAttachmentDownloadErrorString = tr("Error downloading attachment JSON from url: \"%1\"");
+            displayAvatarAttachmentWarning(avatarAttachmentDownloadErrorString.arg(url));
+        }
+        reply->deleteLater();
+    });
+    return true;
+}
+
+void Application::displayAvatarAttachmentWarning(const QString& message) const {
+    auto avatarAttachmentWarningTitle = tr("Avatar Attachment Failure");
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setWindowTitle(avatarAttachmentWarningTitle);
+    msgBox.setText(message);
+    msgBox.exec();
+    msgBox.addButton(QMessageBox::Ok);
+    msgBox.exec();
+}
+
+bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name) const {
+    auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
+    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?");
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle(avatarAttachmentConfirmationTitle);
+    QPushButton* button = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+    QString message = avatarAttachmentConfirmationMessage.arg(name);
+    msgBox.setText(message);
+    msgBox.addButton(QMessageBox::Cancel);
+    msgBox.exec();
+    if (msgBox.clickedButton() == button) {
+        return true;
+    } else {
+        return false;
     }
 }
 
