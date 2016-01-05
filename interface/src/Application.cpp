@@ -1173,7 +1173,6 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
-    offscreenUi->load("RootMenu.qml");
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -2033,16 +2032,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
                 break;
             }
-            case Qt::Key_Escape: {
-                getActiveDisplayPlugin()->abandonCalibration();
-                if (!event->isAutoRepeat()) {
-                    // this starts the HFCancelEvent
-                    HFBackEvent startBackEvent(HFBackEvent::startType());
-                    sendEvent(this, &startBackEvent);
-                }
-
-                break;
-            }
+//            case Qt::Key_Escape: {
+//                getActiveDisplayPlugin()->abandonCalibration();
+//                if (!event->isAutoRepeat()) {
+//                    // this starts the HFCancelEvent
+//                    HFBackEvent startBackEvent(HFBackEvent::startType());
+//                    sendEvent(this, &startBackEvent);
+//                }
+//
+//                break;
+//            }
 
             default:
                 event->ignore();
