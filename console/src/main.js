@@ -190,8 +190,8 @@ app.on('ready', function() {
     tray = new Tray(TRAY_ICON);
     tray.setToolTip('High Fidelity Server Console');
 
-    tray.on('clicked', function() {
-      tray.popContextMenu();
+    tray.on('click', function() {
+      tray.popUpContextMenu();
     });
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
