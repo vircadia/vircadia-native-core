@@ -18,7 +18,8 @@ var options = {
     platform: platform
 }
 
-const FULL_NAME = "High Fidelity Server Console"
+const SHORT_NAME = "Server Console";
+const FULL_NAME = "High Fidelity Server Console";
 
 // setup per OS options
 if (osType == "Darwin") {
@@ -29,7 +30,7 @@ if (osType == "Darwin") {
     options["icon"] = "resources/console.ico"
     options["version-string"] = {
         CompanyName: "High Fidelity, Inc.",
-        FileDescription: FULL_NAME,
+        FileDescription: SHORT_NAME,
         ProductName: FULL_NAME
     }
 } else if (osType == "Linux") {
