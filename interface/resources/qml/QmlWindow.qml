@@ -10,7 +10,6 @@ import "styles"
 
 VrDialog {
     id: root
-    objectName: "topLevelWindow"
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
