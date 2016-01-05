@@ -38,14 +38,14 @@ if (WIN32)
   # sets path for Microsoft SDKs
   # if you get build error about missing 'glu32' this path is likely wrong
   if (MSVC10)
-    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 " CACHE PATH)
+    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 " CACHE PATH "Windows SDK PATH")
   elseif (MSVC12)
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       set(WINDOW_SDK_FOLDER "x64")
     else()
       set(WINDOW_SDK_FOLDER "x86")
     endif()
-    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}" CACHE PATH)
+    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}" CACHE PATH "Windows SDK PATH")
   endif ()
 
   if (DEBUG_DISCOVERED_SDK_PATH)
