@@ -34,6 +34,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
                                                  quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
                                                  quint16 assignmentServerPort, quint16 httpStatusServerPort, QDir logDirectory) :
+    _logDirectory(logDirectory),
     _httpManager(QHostAddress::LocalHost, httpStatusServerPort, "", this),
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
@@ -42,8 +43,8 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentPool(assignmentPool),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
-    _assignmentServerPort(assignmentServerPort),
-    _logDirectory(logDirectory)
+    _assignmentServerPort(assignmentServerPort)
+
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
@@ -200,7 +201,7 @@ void AssignmentClientMonitor::spawnChildClient() {
         stderrPath = stderrPathTemp;
         stderrFilename = stderrFilenameTemp;
     }
-    
+
     qDebug() << "Child stdout being written to: " << stdoutFilename;
     qDebug() << "Child stderr being written to: " << stderrFilename;
 
@@ -209,10 +210,10 @@ void AssignmentClientMonitor::spawnChildClient() {
         // make sure we hear that this process has finished when it does
         connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
                 this, [this, pid]() { childProcessFinished(pid); });
-        
+
         qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
         _childProcesses.insert(assignmentClient->processId(), { assignmentClient, stdoutPath, stderrPath });
-    }    
+    }
 }
 
 void AssignmentClientMonitor::checkSpares() {
@@ -268,12 +269,12 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
         // The parent only expects to be talking with prorams running on this same machine.
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-             
+
             if (!senderID.isNull()) {
                 // We don't have this node yet - we should add it
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
                     (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
-                
+
                 auto childData = std::unique_ptr<AssignmentClientChildData>
                     { new AssignmentClientChildData(Assignment::Type::AllTypes) };
                 matchingNode->setLinkedData(std::move(childData));
@@ -298,9 +299,9 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
         // get child's assignment type out of the packet
         quint8 assignmentType;
         message->readPrimitive(&assignmentType);
-        
+
         childData->setChildType(Assignment::Type(assignmentType));
-        
+
         // note when this child talked
         matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     }
