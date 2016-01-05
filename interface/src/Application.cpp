@@ -2032,16 +2032,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
                 break;
             }
-//            case Qt::Key_Escape: {
-//                getActiveDisplayPlugin()->abandonCalibration();
-//                if (!event->isAutoRepeat()) {
-//                    // this starts the HFCancelEvent
-//                    HFBackEvent startBackEvent(HFBackEvent::startType());
-//                    sendEvent(this, &startBackEvent);
-//                }
-//
-//                break;
-//            }
+            case Qt::Key_Escape: {
+                getActiveDisplayPlugin()->abandonCalibration();
+                if (!event->isAutoRepeat()) {
+                    // this starts the HFCancelEvent
+                    HFBackEvent startBackEvent(HFBackEvent::startType());
+                    sendEvent(this, &startBackEvent);
+                }
+
+                break;
+            }
 
             default:
                 event->ignore();
