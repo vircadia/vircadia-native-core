@@ -25,6 +25,10 @@ if (osType == "Darwin") {
 } else if (osType == "Windows_NT") {
     options["name"] = "server-console"
     options["icon"] = "resources/console.ico"
+    options["version-string"] = {
+        CompanyName: "High Fidelity, Inc.",
+        ProductName: "High Fidelity Server Console"
+    }
 } else if (osType == "Linux") {
     options["name"] = "server-console"
 }
