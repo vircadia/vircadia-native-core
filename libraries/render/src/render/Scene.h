@@ -350,7 +350,7 @@ template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { 
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 // Shape type interface
-template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::invalid(); }
+template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::noPipeline(); }
 
 template <class T> class Payload : public Item::PayloadInterface {
 public:

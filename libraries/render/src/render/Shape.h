@@ -31,6 +31,7 @@ public:
         SHADOW,
         WIREFRAME,
 
+        NO_PIPELINE,
         INVALID,
 
         NUM_FLAGS,        // Not a valid flag
@@ -61,8 +62,10 @@ public:
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withShadow() { _flags.set(SHADOW); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
+        Builder& withoutPipeline() { _flags.set(NO_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
+        static const ShapeKey noPipeline() { return Builder().withoutPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
     };
     ShapeKey(const Builder& builder) : ShapeKey(builder._flags) {}
@@ -77,6 +80,8 @@ public:
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isShadow() const { return _flags[SHADOW]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
+
+    bool hasPipeline() const { return !_flags[NO_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
 
     // Hasher for use in unordered_maps

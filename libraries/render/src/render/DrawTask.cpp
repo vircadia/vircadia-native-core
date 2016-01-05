@@ -223,9 +223,12 @@ void render::renderLights(const SceneContextPointer& sceneContext, const RenderC
 void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
     assert(item.getKey().isShape());
     const auto& key = item.getShapeKey();
-    args->_pipeline = shapeContext.pickPipeline(args, key);
-    // only render with a pipeline
-    if (args->_pipeline) {
+    if (key.isValid() && key.hasPipeline()) {
+        args->_pipeline = shapeContext.pickPipeline(args, key);
+        if (args->_pipeline) {
+            item.render(args);
+        }
+    } else if (!key.hasPipeline()) {
         item.render(args);
     }
 }
