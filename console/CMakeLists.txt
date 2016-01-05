@@ -22,6 +22,6 @@ elseif (UNIX)
   set(PACKAGED_CONSOLE_FOLDER "server-console-linux-x64")
 endif ()
 
-install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/Server Console.app" DESTINATION bin COMPONENT ${APP_COMPONENT})
+install(PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/Server Console.app" DESTINATION bin COMPONENT ${SERVER_COMPONENT})
 
 consolidate_installer_components()
