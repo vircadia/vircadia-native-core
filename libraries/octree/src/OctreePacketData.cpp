@@ -403,7 +403,12 @@ bool OctreePacketData::appendValue(const QVector<glm::quat>& value) {
         for (int index = 0; index < value.size(); index++) {
             destinationBuffer += packOrientationQuatToBytes(destinationBuffer, value[index]);
         }
-        success = append(start, destinationBuffer - start);
+        int quatsSize = destinationBuffer - start;
+        success = append(start, quatsSize);
+        if (success) {
+            _bytesOfValues += quatsSize;
+            _totalBytesOfValues += quatsSize;
+        }
     }
 
     return success;
@@ -653,16 +658,16 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::quat>& result) {
     uint16_t length;
-    const unsigned char *start = dataBytes;
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
     result.resize(length);
 
+    const unsigned char *start = dataBytes;
     for (int i = 0; i < length; i++) {
         dataBytes += unpackOrientationQuatFromBytes(dataBytes, result[i]);
     }
 
-    return dataBytes - start;
+    return (dataBytes - start) + sizeof(uint16_t);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result) {
