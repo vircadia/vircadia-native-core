@@ -30,9 +30,8 @@ set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
-  # set path for Microsoft SDKs
-  # if get build error about missing 'glu32' this path is likely wrong
-  # Uncomment the line with 8.1 if running Windows 8.1
+  # sets path for Microsoft SDKs
+  # if you get build error about missing 'glu32' this path is likely wrong
   if (MSVC10)
     set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
   elseif (MSVC12)
@@ -43,7 +42,9 @@ if (WIN32)
     endif()
     set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}")
   endif ()
-  message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
+
+  message("The discovered Windows SDK path is ${WINDOW_SDK_PATH}")
+
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
   # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
