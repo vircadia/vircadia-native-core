@@ -193,7 +193,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, this, inItems, opaque.maxDrawn);
+        renderShapes(sceneContext, renderContext, _context, inItems, opaque.maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -219,7 +219,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, this, inItems, transparent.maxDrawn);
+        renderShapes(sceneContext, renderContext, _context, inItems, transparent.maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -292,7 +292,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderShapes(sceneContext, renderContext, this, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
+            renderShapes(sceneContext, renderContext, _context, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();

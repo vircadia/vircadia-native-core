@@ -57,7 +57,7 @@ public:
         void addJobConsumer(const std::shared_ptr<Job>& job) {
             _consumerJobs.push_back(job);
         }
- 
+
         class Concept {
         public:
             virtual ~Concept() = default;
@@ -101,8 +101,12 @@ public:
         _concept->run(sceneContext, renderContext);
     }
 
-protected:
 public:
+    class Context {
+    public:
+        virtual ShapePipeline pickPipeline(RenderArgs* args, const ShapeKey& key) = 0;
+    };
+    using ContextPointer = std::shared_ptr<Context>;
 
     class Concept {
         std::string _name;
@@ -111,7 +115,7 @@ public:
         Concept() : _name() {}
         Concept(const std::string& name) : _name(name) {}
         virtual ~Concept() = default;
-        
+
         void setName(const std::string& name) { _name = name; }
         const std::string& getName() const { return _name; }
 
@@ -175,7 +179,7 @@ public:
         const Varying getOutput() const { return _output; }
 
         ModelO(const std::string& name): Concept(name), _output(Output()) {
-            
+
         }
 
         ModelO(const std::string& name, Data data): Concept(name), _data(data), _output(Output()) {}
@@ -223,7 +227,7 @@ typedef std::vector<Job> Jobs;
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape* shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Job::ContextPointer& jobContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {
@@ -290,7 +294,7 @@ public:
 
 
 // A map of ItemIDs allowing to create bucket lists of SHAPE type items which are filtered by their
-// Material 
+// Material
 class ItemMaterialBucketMap : public std::map<model::MaterialFilter, ItemIDs, model::MaterialFilter::Less> {
 public:
 

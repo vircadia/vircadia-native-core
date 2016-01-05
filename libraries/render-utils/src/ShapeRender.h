@@ -18,6 +18,7 @@ class ShapeRender : public render::Shape {
     static model::MaterialPointer _collisionHullMaterial;
 
 public:
+    ShapeRender();
     static void initPipeline();
     const render::PipelinePointer pickPipeline(RenderArgs* args, Key& key) override;
 

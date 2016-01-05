@@ -50,14 +50,16 @@ public:
     typedef render::Job::Model<ToneMappingDeferred> JobModel;
 };
 
-class DrawOpaqueDeferred : public ShapeRender {
+class DrawOpaqueDeferred {
+    class JobContext : public render::Job::Context, public ShapeRender {} _context;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 };
 
-class DrawTransparentDeferred : public ShapeRender {
+class DrawTransparentDeferred {
+    class JobContext : public render::Job::Context, public ShapeRender {} _context;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
@@ -81,13 +83,15 @@ public:
     typedef render::Job::Model<DrawBackgroundDeferred> JobModel;
 };
 
-class DrawOverlay3D : public ShapeRender {
+class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+
+    class JobContext : public render::Job::Context, public ShapeRender {} _context;
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
-    
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    
+
     typedef render::Job::Model<DrawOverlay3D> JobModel;
 };
 

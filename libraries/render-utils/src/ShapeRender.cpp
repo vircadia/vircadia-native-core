@@ -37,6 +37,13 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 
+void ShapeRender::ShapeRender() {
+    // TODO: There is probably a cleaner way to init the pipeline that in a derived class
+    if (_pipelineLib.empty()) {
+        initPipeline();
+    }
+}
+
 void ShapeRender::initPipeline() {
     assert(_pipelineLib.empty());
 
@@ -164,10 +171,6 @@ void ShapeRender::initPipeline() {
 
 const render::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, Key& key) {
     PerformanceTimer perfTimer("ShapeRender::pickPipeline");
-    // TODO: There is probably a cleaner way to init the pipeline that in a derived class
-    if (_pipelineLib.empty()) {
-        initPipeline();
-    }
 
     auto pipeline = _pickPipeline(args, key);
     if (!pipeline) {
