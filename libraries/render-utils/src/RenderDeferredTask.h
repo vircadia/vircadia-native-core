@@ -51,7 +51,7 @@ public:
 };
 
 class DrawOpaqueDeferred {
-    class JobContext : public render::Job::Context, public ShapeRender {} _context;
+    ShapeRender _renderer;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
@@ -59,7 +59,7 @@ public:
 };
 
 class DrawTransparentDeferred {
-    class JobContext : public render::Job::Context, public ShapeRender {} _context;
+    ShapeRender _renderer;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
@@ -85,8 +85,7 @@ public:
 
 class DrawOverlay3D {
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
-
-    class JobContext : public render::Job::Context, public ShapeRender {} _context;
+    ShapeRender _renderer;
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
 

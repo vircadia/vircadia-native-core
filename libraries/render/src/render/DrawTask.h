@@ -13,6 +13,7 @@
 #define hifi_render_Task_h
 
 #include "Engine.h"
+#include "Shape.h"
 #include "gpu/Batch.h"
 #include <PerfStat.h>
 
@@ -104,7 +105,7 @@ public:
 public:
     class Context {
     public:
-        virtual ShapePipeline pickPipeline(RenderArgs* args, const ShapeKey& key) = 0;
+        virtual const ShapePipeline pickPipeline(RenderArgs* args, const ShapeKey& key) = 0;
     };
     using ContextPointer = std::shared_ptr<Context>;
 
@@ -227,7 +228,7 @@ typedef std::vector<Job> Jobs;
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Job::ContextPointer& jobContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {

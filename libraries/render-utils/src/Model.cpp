@@ -1193,7 +1193,7 @@ void Model::segregateMeshGroups() {
         int totalParts = mesh.parts.size();
         for (int partIndex = 0; partIndex < totalParts; partIndex++) {
             if (showingCollisionHull) {
-                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ModelRender::getCollisionHullMaterial(), transform, offset);
+                _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, ShapeRender::getCollisionHullMaterial(), transform, offset);
 
             } else {
                 _renderItemsSet << std::make_shared<ModelMeshPartPayload>(this, i, partIndex, shapeID, transform, offset);

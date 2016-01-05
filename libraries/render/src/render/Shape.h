@@ -138,6 +138,7 @@ public:
         int materialBufferUnit;
         int lightBufferUnit;
     };
+    using LocationsPointer = std::shared_ptr<Locations>;
 
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
@@ -165,7 +166,7 @@ public:
     static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
         _pipelineLib.addPipeline(key, vertexShader, pixelShader);
     }
-    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) {
+    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key)  const {
         return Shape::_pickPipeline(args, key);
     }
 

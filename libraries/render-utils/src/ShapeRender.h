@@ -13,6 +13,7 @@
 #define hifi_render_utils_Shape_h
 
 #include <render/Shape.h>
+#include <model/Material.h>
 
 class ShapeRender : public render::Shape {
     static model::MaterialPointer _collisionHullMaterial;
@@ -20,10 +21,9 @@ class ShapeRender : public render::Shape {
 public:
     ShapeRender();
     static void initPipeline();
-    const render::PipelinePointer pickPipeline(RenderArgs* args, Key& key) override;
+    const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const override;
 
     static model::MaterialPointer getCollisionHullMaterial();
 };
 
 #endif // hifi_render_utils_Shape_h
-

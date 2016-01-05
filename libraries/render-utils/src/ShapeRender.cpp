@@ -37,7 +37,7 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 
-void ShapeRender::ShapeRender() {
+ShapeRender::ShapeRender() {
     // TODO: There is probably a cleaner way to init the pipeline that in a derived class
     if (_pipelineLib.empty()) {
         initPipeline();
@@ -72,104 +72,105 @@ void ShapeRender::initPipeline() {
     // Fill the pipelineLib
 
     _pipelineLib.addPipeline(
-        RenderKey(0),
+        Key::Builder(),
         modelVertex, modelPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_TANGENTS),
+        Key::Builder().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_SPECULAR),
+        Key::Builder().withSpecular(),
         modelVertex, modelSpecularMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+        Key::Builder().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withTranslucent(),
         modelVertex, modelTranslucentPixel);
     // FIXME Ignore lightmap for translucents meshpart
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_TRANSLUCENT | RenderKey::HAS_LIGHTMAP),
+        Key::Builder().withTranslucent().withLightmap(),
         modelVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withTangents().withTranslucent(),
         modelNormalMapVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withSpecular().withTranslucent(),
         modelVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withTangents().withSpecular().withTranslucent(),
         modelNormalMapVertex, modelTranslucentPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_LIGHTMAP),
+        Key::Builder().withLightmap(),
         modelLightmapVertex, modelLightmapPixel);
+
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS),
+        Key::Builder().withLightmap().withTangents(),
         modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_SPECULAR),
+        Key::Builder().withLightmap().withSpecular(),
         modelLightmapVertex, modelLightmapSpecularMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::HAS_LIGHTMAP | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+        Key::Builder().withLightmap().withTangents().withSpecular(),
         modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED),
+        Key::Builder().withSkinned(),
         skinModelVertex, modelPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS),
+        Key::Builder().withSkinned().withTangents(),
         skinModelNormalMapVertex, modelNormalMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR),
+        Key::Builder().withSkinned().withSpecular(),
         skinModelVertex, modelSpecularMapPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR),
+        Key::Builder().withSkinned().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withSkinned().withTranslucent(),
         skinModelVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withSkinned().withTangents().withTranslucent(),
         skinModelNormalMapVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withSkinned().withSpecular().withTranslucent(),
         skinModelVertex, modelTranslucentPixel);
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::HAS_TANGENTS | RenderKey::HAS_SPECULAR | RenderKey::IS_TRANSLUCENT),
+        Key::Builder().withSkinned().withTangents().withSpecular().withTranslucent(),
         skinModelNormalMapVertex, modelTranslucentPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
+        Key::Builder().withDepthOnly().withShadow(),
         modelShadowVertex, modelShadowPixel);
 
 
     _pipelineLib.addPipeline(
-        RenderKey(RenderKey::IS_SKINNED | RenderKey::IS_DEPTH_ONLY | RenderKey::IS_SHADOW),
+        Key::Builder().withSkinned().withDepthOnly().withShadow(),
         skinModelShadowVertex, modelShadowPixel);
 }
 
-const render::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, Key& key) {
+const ShapeRender::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, const Key& key) const {
     PerformanceTimer perfTimer("ShapeRender::pickPipeline");
 
     auto pipeline = _pickPipeline(args, key);
@@ -178,9 +179,11 @@ const render::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, Key& k
     }
 
     if ((pipeline->locations->normalFittingMapUnit > -1)) {
-        batch.setResourceTexture(pipeline->locations->normalFittingMapUnit,
+        args->_batch->setResourceTexture(pipeline->locations->normalFittingMapUnit,
             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     }
+
+    return pipeline;
 }
 
 model::MaterialPointer ShapeRender::_collisionHullMaterial;

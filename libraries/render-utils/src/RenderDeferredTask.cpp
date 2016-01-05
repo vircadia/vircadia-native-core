@@ -177,7 +177,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -193,7 +193,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, _context, inItems, opaque.maxDrawn);
+        renderShapes(sceneContext, renderContext, _renderer, inItems, opaque.maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -203,7 +203,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -219,7 +219,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, _context, inItems, transparent.maxDrawn);
+        renderShapes(sceneContext, renderContext, _renderer, inItems, transparent.maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -276,7 +276,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
 
         // Render the items
-        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
 
@@ -292,7 +292,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderShapes(sceneContext, renderContext, _context, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
+            renderShapes(sceneContext, renderContext, _renderer, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();

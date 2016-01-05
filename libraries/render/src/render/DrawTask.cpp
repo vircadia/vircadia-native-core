@@ -209,41 +209,43 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
     depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
 }
 
-void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Job::ContextPointer& jobContext, const ItemIDsBounds& inItems) {
+void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
 
     for (const auto& itemDetails : inItems) {
-        const auto& item = scene->getItem(itemDetails.id);
+        // FIXME: Every item is copied because item.render cannot mutate a const
+        auto item = scene->getItem(itemDetails.id);
         item.render(args);
     }
 }
 
-void renderShape(RenderArgs* args, const Job::ContextPointer& jobContext, const Item& item) {
-    assert(item.isShape());
-    const auto& key = item._payload.getShapeKey();
-    args->_pipeline = jobContext->pickPipeline(args, key);
+void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
+    assert(item.getKey().isShape());
+    const auto& key = item.getShapeKey();
+    args->_pipeline = shapeContext.pickPipeline(args, key);
     // only render with a pipeline
     if (args->_pipeline) {
         item.render(args);
     }
 }
 
-void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Job::ContextPointer& jobContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
 
     if ((maxDrawnItems < 0) || (maxDrawnItems > (int)inItems.size())) {
         for (const auto& itemDetails : inItems) {
-            const auto& item = scene->getItem(itemDetails.id);
-            renderShape(args, jobContext, item);
+            // FIXME: Every item is copied because item.render cannot mutate a const
+            auto item = scene->getItem(itemDetails.id);
+            renderShape(args, shapeContext, item);
         }
     } else {
         int numItems = 0;
         for (const auto& itemDetails : inItems) {
             numItems++;
-            const auto& item = scene->getItem(itemDetails.id);
-            renderShape(args, jobContext, item);
+            auto item = scene->getItem(itemDetails.id);
+            renderShape(args, shapeContext, item);
             if (numItems >= maxDrawnItems) {
                 break;
             }

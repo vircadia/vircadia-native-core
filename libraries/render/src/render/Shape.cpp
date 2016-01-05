@@ -15,7 +15,7 @@
 
 using namespace render;
 
-Shape::PipelineLib _pipelineLip;
+Shape::PipelineLib Shape::_pipelineLib;
 
 const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& key) {
     assert(!_pipelineLib.empty());

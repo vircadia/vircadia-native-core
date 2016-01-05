@@ -129,7 +129,7 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locations* locations) const {
+void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     if (!_drawMaterial) {
         return;
     }
@@ -162,7 +162,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isNormalMap()) {
         auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
         if (normalMap && normalMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slots::::NORMAL_MAP, normalMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slots::NORMAL_MAP, normalMap->getTextureView());
 
             // texcoord are assumed to be the same has diffuse
         } else {
@@ -183,7 +183,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
             batch.setResourceTexture(ShapePipeline::Slots::SPECULAR_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slots::SPECULAR_MAP, nullptr);
     }
 
     // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
@@ -191,7 +191,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -200,10 +200,10 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -212,7 +212,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::Locations* locations) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -431,16 +431,16 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::Locations* locations) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     // Still relying on the raw data from the model
     const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
 
     Transform transform;
     if (state.clusterBuffer) {
         if (_model->_cauterizeBones) {
-            batch.setUniformBuffer(ShapePipeline::SKINNING_GPU, state.cauterizedClusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slots::SKINNING_GPU, state.cauterizedClusterBuffer);
         } else {
-            batch.setUniformBuffer(ShapePipeline::SKINNING_GPU, state.clusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slots::SKINNING_GPU, state.clusterBuffer);
         }
     } else {
         if (_model->_cauterizeBones) {
