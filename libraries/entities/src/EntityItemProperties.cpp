@@ -485,6 +485,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
 
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS_SET, jointRotationsSet);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_ROTATIONS, jointRotations);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_JOINT_TRANSLATIONS, jointTranslations);
+
     // FIXME - I don't think these properties are supported any more
     //COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     //COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
@@ -612,6 +617,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localPosition, glmVec3, setLocalPosition);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRotation, glmQuat, setLocalRotation);
+
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotationsSet, qVectorBool, setJointRotationsSet);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointRotations, qVectorQuat, setJointRotations);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslationsSet, qVectorBool, setJointTranslationsSet);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(jointTranslations, qVectorVec3, setJointTranslations);
 
     _lastEdited = usecTimestampNow();
 }
@@ -1486,6 +1496,11 @@ void EntityItemProperties::markAllChanged() {
 
     _parentIDChanged = true;
     _parentJointIndexChanged = true;
+
+    _jointRotationsSetChanged = true;
+    _jointRotationsChanged = true;
+    _jointTranslationsSetChanged = true;
+    _jointTranslationsChanged = true;
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.

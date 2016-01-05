@@ -888,7 +888,7 @@ bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUui
         if (result) {
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
-                // entity->setLastEdited(now);
+                entity->setLastEdited(now);
                 entity->setLastBroadcast(now);
                 properties = entity->getProperties();
             });
@@ -916,7 +916,7 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const Q
         if (result) {
             EntityItemProperties properties;
             _entityTree->withWriteLock([&] {
-                // entity->setLastEdited(now);
+                entity->setLastEdited(now);
                 entity->setLastBroadcast(now);
                 properties = entity->getProperties();
             });
