@@ -209,6 +209,8 @@ if (NOT DEFINED SERVER_ONLY)
   set(SERVER_ONLY 0)
 endif()
 
+set_packaging_parameters()
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
@@ -240,5 +242,4 @@ if (HIFI_MEMORY_DEBUGGING)
   endif (UNIX)
 endif ()
 
-set_packaging_parameters()
 generate_installers()
