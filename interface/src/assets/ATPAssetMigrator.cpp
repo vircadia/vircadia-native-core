@@ -25,6 +25,7 @@
 #include <AssetUpload.h>
 #include <ResourceManager.h>
 
+#include "OffscreenUi.h"
 #include "../ui/AssetUploadDialogFactory.h"
 
 Q_DECLARE_LOGGING_CATEGORY(asset_migrator);
@@ -52,7 +53,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             " continue?\n\nMake sure you are connected to the right domain."
         };
         
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         
         if (button == QMessageBox::No) {
@@ -212,7 +213,7 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
             "Select \"No\" to be prompted for each discovered asset."
         };
         
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
                               
         if (button == QMessageBox::Yes) {
@@ -226,7 +227,7 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
         return true;
     } else {
         // present a dialog asking the user if they want to migrate this specific resource
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE,
                                             "Would you like to migrate the following resource?\n" + url.toString(),
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         return button == QMessageBox::Yes;

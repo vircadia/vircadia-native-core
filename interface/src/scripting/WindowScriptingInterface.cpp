@@ -167,14 +167,9 @@ QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
     bool confirm = false;
-    bool waiting = true;
     OffscreenUi::question("", message, [&](QMessageBox::StandardButton response){
         confirm = (response == QMessageBox::Yes);
-        waiting = false;
     });
-    while (waiting) {
-        QCoreApplication::processEvents();
-    }
     return QScriptValue(confirm);
 }
 

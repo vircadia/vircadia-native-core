@@ -4373,7 +4373,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
     QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
-    reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
+    reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;

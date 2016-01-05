@@ -174,11 +174,36 @@ void OffscreenUi::information(const QString& title, const QString& text,
 }
 
 void OffscreenUi::question(const QString& title, const QString& text,
-    ButtonCallback callback,
-    QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback,
-            static_cast<QMessageBox::Icon>(MessageDialog::Question), buttons);
+                            ButtonCallback callback,
+                            QMessageBox::StandardButtons buttons) {
+
+    bool waiting = true;
+    ButtonCallback blockingCallback = [&](QMessageBox::StandardButton response){
+        callback(response); // call the actual callback
+        waiting = false;
+    };
+
+    messageBox(title, text, blockingCallback,
+        static_cast<QMessageBox::Icon>(MessageDialog::Question), buttons);
+
+    // block until the call back has been called   
+    while (waiting) {
+        QCoreApplication::processEvents();
+    }
 }
+
+QMessageBox::StandardButton OffscreenUi::question(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+
+    QMessageBox::StandardButton result = defaultButton;
+
+    OffscreenUi::question(title, text, [&](QMessageBox::StandardButton response){
+        result = response;
+    }, buttons);
+
+    return result;
+}
+
 
 void OffscreenUi::warning(const QString& title, const QString& text,
     ButtonCallback callback,
