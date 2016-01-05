@@ -59,7 +59,6 @@ var LINE_ENTITY_DIMENSIONS = {
 
 var LINE_LENGTH = 500;
 var PICK_MAX_DISTANCE = 500; // max length of pick-ray
-
 //
 // near grabbing
 //
@@ -132,6 +131,7 @@ var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 var USE_ENTITY_LINES_FOR_MOVING = false;
 var USE_OVERLAY_LINES_FOR_MOVING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = true;
+var TEMPORARY_PARTICLE_BEAM_LIFETIME = 30;
 
 var USE_SPOTLIGHT = false;
 var USE_POINTLIGHT = false;
@@ -578,6 +578,13 @@ function MyController(hand) {
         })
 
     };
+
+    this.renewParticleBeamLifetime = function(){
+        var props = Entities.getEntityProperties(this.particleBeam,"age");
+        Entities.editEntity(this.particleBeam,{
+            lifetime: TEMPORARY_PARTICLE_BEAM_LIFETIME + props.age // renew lifetime
+        })
+    }
 
     this.evalLightWorldTransform = function(modelPos, modelRot) {
 
@@ -1862,7 +1869,31 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
+    if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+        Script.update.disconnect(renewParticleBeamLifetimes);
+    }
 }
-
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+// particle systems can end up hanging around if a user crashes or something else causes controller cleanup not to get called. 
+// we can't create the search system on-demand since it takes some time for the particles to reach their entire length.  
+// thus the system cannot have a fixed lifetime.  this loop updates the lifetimes and will stop updating if a user crashes.
+
+if(USE_PARTICLE_BEAM_FOR_SEARCHING===true || USE_PARTICLE_BEAM_FOR_MOVING ===true){
+Script.update.connect(renewParticleBeamLifetimes)
+}
+
+var sinceLastParticleLifetimeUpdate = 0;
+
+function renewParticleBeamLifetimes(deltaTime) {
+    //debounce this call since we don't want it 60x a second
+    sinceLastParticleLifetimeUpdate = sinceLastParticleLifetimeUpdate + deltaTime;
+    if (sinceLastParticleLifetimeUpdate > TEMPORARY_PARTICLE_BEAM_LIFETIME - 2) {
+        sinceLastParticleLifetimeUpdate = 0;
+    } else {
+        return;
+    }
+    rightController.renewParticleBeamLifetime();
+    leftController.renewParticleBeamLifetime();
+}
