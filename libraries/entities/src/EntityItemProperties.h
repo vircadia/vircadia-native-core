@@ -84,8 +84,8 @@ public:
     EntityPropertyFlags getChangedProperties() const;
 
     bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
+    bool parentRelatedPropertyChanged() const; // parentDependentPropertyChanged or parentID or parentJointIndex
 
-    AACube getMaximumAACube() const;
     AABox getAABox() const;
 
     void debugDump() const;
@@ -192,7 +192,8 @@ public:
     DEFINE_PROPERTY_REF(PROP_Y_P_NEIGHBOR_ID, YPNeighborID, yPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_Z_P_NEIGHBOR_ID, ZPNeighborID, zPNeighborID, EntityItemID, UNKNOWN_ENTITY_ID);
     DEFINE_PROPERTY_REF(PROP_PARENT_ID, ParentID, parentID, QUuid, UNKNOWN_ENTITY_ID);
-    DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, 0);
+    DEFINE_PROPERTY_REF(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, quint16, -1);
+    DEFINE_PROPERTY_REF(PROP_QUERY_AA_CUBE, QueryAACube, queryAACube, AACube, AACube());
 
     // these are used when bouncing location data into and out of scripts
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
@@ -397,6 +398,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
 
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, QueryAACube, queryAACube, "");
 
     properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();

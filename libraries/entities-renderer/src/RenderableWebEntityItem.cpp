@@ -185,7 +185,11 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
 
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    batch.setModelTransform(getTransformToCenter());
+    bool success;
+    batch.setModelTransform(getTransformToCenter(success));
+    if (!success) {
+        return;
+    }
     bool textured = false, culled = false, emissive = false;
     if (_texture) {
         batch._glActiveBindTexture(GL_TEXTURE0, GL_TEXTURE_2D, _texture);

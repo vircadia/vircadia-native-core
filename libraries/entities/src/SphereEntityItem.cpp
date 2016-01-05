@@ -110,7 +110,11 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
         // then translate back to work coordinates
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
         distance = glm::distance(origin, hitAt);
-        surfaceNormal = glm::normalize(hitAt - getCenterPosition());
+        bool success;
+        surfaceNormal = glm::normalize(hitAt - getCenterPosition(success));
+        if (!success) {
+            return false;
+        }
         return true;
     }
     return false;

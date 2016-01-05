@@ -42,7 +42,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
-
+    qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
@@ -236,6 +236,26 @@ QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color) {
     object.setProperty("blue", color.blue());
     object.setProperty("alpha", color.alpha());
     return object;
+}
+
+QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube) {
+    QScriptValue obj = engine->newObject();
+    const glm::vec3& corner = aaCube.getCorner();
+    obj.setProperty("x", corner.x);
+    obj.setProperty("y", corner.y);
+    obj.setProperty("z", corner.z);
+    obj.setProperty("scale", aaCube.getScale());
+    return obj;
+}
+
+void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube) {
+    glm::vec3 corner;
+    corner.x = object.property("x").toVariant().toFloat();
+    corner.y = object.property("y").toVariant().toFloat();
+    corner.z = object.property("z").toVariant().toFloat();
+    float scale = object.property("scale").toVariant().toFloat();
+
+    aaCube.setBox(corner, scale);
 }
 
 void qColorFromScriptValue(const QScriptValue& object, QColor& color) {
