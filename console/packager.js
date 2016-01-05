@@ -8,6 +8,11 @@ if (osType == "Darwin" || osType == "Linux") {
     platform = "win32"
 }
 
+var argv = require('yargs').argv;
+
+// check which icon we should use, beta or regular
+var iconName = argv.beta ? "console-beta" : "console"
+
 // setup the common options for the packager
 var options = {
     dir: __dirname,
@@ -17,7 +22,7 @@ var options = {
     prune: true,
     arch: "x64",
     platform: platform,
-    icon: "resources/console"
+    icon: "resources/" + iconName
 }
 
 const EXEC_NAME = "server-console";
@@ -37,7 +42,6 @@ if (osType == "Darwin") {
 }
 
 // check if we were passed a custom out directory, pass it along if so
-var argv = require('yargs').argv;
 if (argv.out) {
     options.out = argv.out
 }

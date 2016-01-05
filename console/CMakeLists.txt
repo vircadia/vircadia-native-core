@@ -1,8 +1,12 @@
 set(TARGET_NAME package-console)
 
+if (BUILD_TAGGED_BETA)
+  set(BETA_OPTION "--beta")
+endif()
+
 # add a target that will package the console
 add_custom_target(${TARGET_NAME}
-  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR}
+  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${BETA_OPTION}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
