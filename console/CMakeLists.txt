@@ -10,6 +10,9 @@ add_custom_target(${TARGET_NAME} ALL
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# add a dependency from the package target to the server components
+add_dependencies(${TARGET_NAME} assignment-client domain-server)
+
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
   set(PACKAGED_CONSOLE_FOLDER "Server\\ Console-darwin-x64")
