@@ -1198,16 +1198,8 @@ void Avatar::updatePalms() {
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
 
     // update thread-safe caches
-    _leftPalmRotationCache.merge([&](const glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
-        return leftPalmRotation;
-    });
-    _rightPalmRotationCache.merge([&](const glm::quat& value, bool hasPending, const glm::quat& pendingValue) {
-        return rightPalmRotation;
-    });
-    _leftPalmPositionCache.merge([&](const glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        return leftPalmPosition;
-    });
-    _rightPalmPositionCache.merge([&](const glm::vec3& value, bool hasPending, const glm::vec3& pendingValue) {
-        return rightPalmPosition;
-    });
+    _leftPalmRotationCache.set(leftPalmRotation);
+    _rightPalmRotationCache.set(rightPalmRotation);
+    _leftPalmPositionCache.set(leftPalmPosition);
+    _rightPalmPositionCache.set(rightPalmPosition);
 }
