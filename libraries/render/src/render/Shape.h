@@ -95,18 +95,22 @@ public:
 };
 
 inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
-    debug << "[ShapeKey:"
-        << "hasLightmap:" << renderKey.hasLightmap()
-        << "hasTangents:" << renderKey.hasTangents()
-        << "hasSpecular:" << renderKey.hasSpecular()
-        << "hasEmissive:" << renderKey.hasEmissive()
-        << "isTranslucent:" << renderKey.isTranslucent()
-        << "isSkinned:" << renderKey.isSkinned()
-        << "isStereo:" << renderKey.isStereo()
-        << "isDepthOnly:" << renderKey.isDepthOnly()
-        << "isShadow:" << renderKey.isShadow()
-        << "isWireFrame:" << renderKey.isWireFrame()
-        << "]";
+    if (renderKey.isValid()) {
+        debug << "[ShapeKey:"
+            << "hasLightmap:" << renderKey.hasLightmap()
+            << "hasTangents:" << renderKey.hasTangents()
+            << "hasSpecular:" << renderKey.hasSpecular()
+            << "hasEmissive:" << renderKey.hasEmissive()
+            << "isTranslucent:" << renderKey.isTranslucent()
+            << "isSkinned:" << renderKey.isSkinned()
+            << "isStereo:" << renderKey.isStereo()
+            << "isDepthOnly:" << renderKey.isDepthOnly()
+            << "isShadow:" << renderKey.isShadow()
+            << "isWireFrame:" << renderKey.isWireFrame()
+            << "]";
+    } else {
+        debug << "[ShapeKey: INVALID]";
+    }
     return debug;
 }
 
@@ -157,7 +161,7 @@ public:
     using Slots = ShapePipeline::Slots;
     using Locations = ShapePipeline::Locations;
 
-    using PipelineMap = std::unordered_map<ShapeKey, Pipeline, ShapeKey::Hash, ShapeKey::KeyEqual>;
+    using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
     class PipelineLib : public PipelineMap {
     public:
         void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);

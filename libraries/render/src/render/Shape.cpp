@@ -30,7 +30,7 @@ const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& k
         return PipelinePointer(nullptr);
     }
 
-    PipelinePointer shapePipeline(&(pipelineIterator->second));
+    PipelinePointer shapePipeline(pipelineIterator->second);
     auto& batch = args->_batch;
 
     // Setup the one pipeline (to rule them all)
@@ -86,7 +86,7 @@ void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, 
 
     // Add the brand new pipeline and cache its location in the lib
     auto pipeline = gpu::Pipeline::create(program, state);
-    insert(value_type(key, Pipeline(pipeline, locations)));
+    insert(value_type(key, std::make_shared<Pipeline>(pipeline, locations)));
 
     // Add a wireframe version
     if (!key.isWireFrame()) {
@@ -96,6 +96,6 @@ void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, 
         wireframeState->setFillMode(gpu::State::FILL_LINE);
 
         auto wireframePipeline = gpu::Pipeline::create(program, wireframeState);
-        insert(value_type(wireframeKey, Pipeline(wireframePipeline, locations)));
+        insert(value_type(wireframeKey, std::make_shared<Pipeline>(wireframePipeline, locations)));
     }
 }
