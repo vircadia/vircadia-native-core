@@ -14,6 +14,7 @@
 
 #include "OctreeLogging.h"
 #include "OctreePacketData.h"
+#include "NumericalConstants.h"
 
 bool OctreePacketData::_debug = false;
 AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes { 0 };
@@ -430,11 +431,26 @@ bool OctreePacketData::appendValue(const QVector<float>& value) {
 bool OctreePacketData::appendValue(const QVector<bool>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
+
     if (success) {
-        success = append((const unsigned char*)value.constData(), qVecSize * sizeof(bool));
+        QByteArray dataByteArray(udt::MAX_PACKET_SIZE, 0);
+        unsigned char* start = reinterpret_cast<unsigned char*>(dataByteArray.data());
+        unsigned char* destinationBuffer = start;
+        int bit = 0;
+        for (int index = 0; index < value.size(); index++) {
+            if (value[index]) {
+                (*destinationBuffer) |= (1 << bit);
+            }
+            if (++bit == BITS_IN_BYTE) {
+                destinationBuffer++;
+                bit = 0;
+            }
+        }
+        int boolsSize = destinationBuffer - start;
+        success = append(start, boolsSize);
         if (success) {
-            _bytesOfValues += qVecSize * sizeof(bool);
-            _totalBytesOfValues += qVecSize * sizeof(bool);
+            _bytesOfValues += boolsSize;
+            _totalBytesOfValues += boolsSize;
         }
     }
     return success;
@@ -684,8 +700,19 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     memcpy(&length, dataBytes, sizeof(uint16_t));
     dataBytes += sizeof(length);
     result.resize(length);
-    memcpy(result.data(), dataBytes, length * sizeof(bool));
-    return sizeof(uint16_t) + length * sizeof(bool);
+
+    int bit = 0;
+    unsigned char current = 0;
+    const unsigned char *start = dataBytes;
+    for (int i = 0; i < length; i ++) {
+        if (bit == 0) {
+            current = *dataBytes++;
+        }
+        result[i] = (bool)(current & (1 << bit));
+        bit = (bit + 1) % BITS_IN_BYTE;
+    }
+
+    return (dataBytes - start) + sizeof(uint16_t);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) {
