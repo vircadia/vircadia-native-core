@@ -302,8 +302,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // simulation changing what's visible. consider the case where the entity contains an angular velocity
                     // the entity may not be in view and then in view a frame later, let the client side handle it's view
                     // frustum culling on rendering.
-                    AACube entityCube = entity->getMaximumAACube();
-                    if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
+                    bool success;
+                    AACube entityCube = entity->getQueryAACube(success);
+                    if (!success || params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                         includeThisEntity = false; // out of view, don't include it
                     }
                 }
@@ -413,19 +414,29 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 }
 
 bool EntityTreeElement::containsEntityBounds(EntityItemPointer entity) const {
-    return containsBounds(entity->getMaximumAACube());
+    bool success;
+    auto queryCube = entity->getQueryAACube(success);
+    if (!success) {
+        return false;
+    }
+    return containsBounds(queryCube);
 }
 
 bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
-    return bestFitBounds(entity->getMaximumAACube());
+    bool success;
+    auto queryCube = entity->getQueryAACube(success);
+    if (!success) {
+        return false;
+    }
+    return bestFitBounds(queryCube);
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMaximumAACube());
+    return containsBounds(properties.getQueryAACube());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMaximumAACube());
+    return bestFitBounds(properties.getQueryAACube());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
@@ -526,7 +537,12 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             return;
         }
 
-        AABox entityBox = entity->getAABox();
+        bool success;
+        AABox entityBox = entity->getAABox(success);
+        if (!success) {
+            return;
+        }
+
         float localDistance;
         BoxFace localFace;
         glm::vec3 localSurfaceNormal;
@@ -631,11 +647,12 @@ EntityItemPointer EntityTreeElement::getClosestEntity(glm::vec3 position) const 
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<EntityItemPointer>& foundEntities) const {
     forEachEntity([&](EntityItemPointer entity) {
 
-        AABox entityBox = entity->getAABox();
+        bool success;
+        AABox entityBox = entity->getAABox(success);
 
         // if the sphere doesn't intersect with our world frame AABox, we don't need to consider the more complex case
         glm::vec3 penetration;
-        if (entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
+        if (success && entityBox.findSpherePenetration(searchPosition, searchRadius, penetration)) {
 
             glm::vec3 dimensions = entity->getDimensions();
 
@@ -651,9 +668,12 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
                 //       maximum bounding sphere, which is actually larger than our actual radius
                 float entityTrueRadius = dimensions.x / 2.0f;
 
-                if (findSphereSpherePenetration(searchPosition, searchRadius, 
-                        entity->getCenterPosition(), entityTrueRadius, penetration)) {
-                    foundEntities.push_back(entity);
+                bool success;
+                if (findSphereSpherePenetration(searchPosition, searchRadius,
+                        entity->getCenterPosition(success), entityTrueRadius, penetration)) {
+                    if (success) {
+                        foundEntities.push_back(entity);
+                    }
                 }
             } else {
                 // determine the worldToEntityMatrix that doesn't include scale because
@@ -679,7 +699,8 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
 
 void EntityTreeElement::getEntities(const AACube& cube, QVector<EntityItemPointer>& foundEntities) {
     forEachEntity([&](EntityItemPointer entity) {
-        AABox entityBox = entity->getAABox();
+        bool success;
+        AABox entityBox = entity->getAABox(success);
         // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better
         // FIXME - consider allowing the entity to determine penetration so that
         //         entities could presumably dull actuall hull testing if they wanted to
@@ -693,10 +714,10 @@ void EntityTreeElement::getEntities(const AACube& cube, QVector<EntityItemPointe
         //                 test the triangles of the face against the box?
         //                 if translated search face triangle intersect target box
         //                     add to result
-        //                 
+        //
 
         // If the entities AABox touches the search cube then consider it to be found
-        if (entityBox.touches(cube)) {
+        if (success && entityBox.touches(cube)) {
             foundEntities.push_back(entity);
         }
     });
@@ -704,7 +725,8 @@ void EntityTreeElement::getEntities(const AACube& cube, QVector<EntityItemPointe
 
 void EntityTreeElement::getEntities(const AABox& box, QVector<EntityItemPointer>& foundEntities) {
     forEachEntity([&](EntityItemPointer entity) {
-        AABox entityBox = entity->getAABox();
+        bool success;
+        AABox entityBox = entity->getAABox(success);
         // FIXME - handle entity->getShapeType() == SHAPE_TYPE_SPHERE case better
         // FIXME - consider allowing the entity to determine penetration so that
         //         entities could presumably dull actuall hull testing if they wanted to
@@ -718,10 +740,10 @@ void EntityTreeElement::getEntities(const AABox& box, QVector<EntityItemPointer>
         //                 test the triangles of the face against the box?
         //                 if translated search face triangle intersect target box
         //                     add to result
-        //                 
+        //
 
         // If the entities AABox touches the search cube then consider it to be found
-        if (entityBox.touches(box)) {
+        if (success && entityBox.touches(box)) {
             foundEntities.push_back(entity);
         }
     });
@@ -940,7 +962,11 @@ bool EntityTreeElement::pruneChildren() {
 void EntityTreeElement::expandExtentsToContents(Extents& extents) {
     withReadLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
-            extents.add(entity->getAABox());
+            bool success;
+            AABox aaBox = entity->getAABox(success);
+            if (success) {
+                extents.add(aaBox);
+            }
         }
     });
 }

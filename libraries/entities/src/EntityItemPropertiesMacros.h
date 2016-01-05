@@ -122,6 +122,9 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const EntityItemID& v) { return QScriptValue(QUuid(v).toString()); }
 
+inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { return aaCubeToScriptValue(e, v); }
+
+
 
 #define COPY_GROUP_PROPERTY_TO_QSCRIPTVALUE(X,G,g,P,p) \
     if ((desiredProperties.isEmpty() || desiredProperties.getHasProperty(X)) && \
@@ -223,6 +226,13 @@ inline glmVec3 glmVec3_convertFromScriptValue(const QScriptValue& v, bool& isVal
         }
     }
     return glm::vec3(0);
+}
+
+inline AACube AACube_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    AACube result;
+    aaCubeFromScriptValue(v, result);
+    return result;
 }
 
 inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {

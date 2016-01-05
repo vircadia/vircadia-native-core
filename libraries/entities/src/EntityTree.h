@@ -307,6 +307,9 @@ protected:
     quint64 _totalEditDeltas = 0;
     quint64 _maxEditDelta = 0;
     quint64 _treeResetTime = 0;
+
+    void fixupMissingParents();
+    QVector<EntityItemWeakPointer> _missingParent;
 };
 
 #endif // hifi_EntityTree_h

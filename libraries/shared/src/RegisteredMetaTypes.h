@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "AACube.h"
 #include "SharedUtil.h"
 
 class QColor;
@@ -30,6 +31,7 @@ Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 Q_DECLARE_METATYPE(QVector<float>)
+Q_DECLARE_METATYPE(AACube)
 
 void registerMetaTypes(QScriptEngine* engine);
 
@@ -66,6 +68,9 @@ void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vect
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
+
+QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
+void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
 class PickRay {
 public:

@@ -159,7 +159,9 @@ public:
 
     AvatarMotionState* getMotionState() { return _motionState; }
 
+    using SpatiallyNestable::setPosition;
     virtual void setPosition(const glm::vec3& position) override;
+    using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
 public slots:
