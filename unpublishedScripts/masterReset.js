@@ -148,11 +148,13 @@ MasterReset = function() {
     }
 
     function createRaveStick(position) {
-        var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/rave/raveStick.fbx";
+        var modelURL = "http://hifi-content.s3.amazonaws.com/eric/models/raveStick.fbx";
+        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
         var stick = Entities.addEntity({
             type: "Model",
             name: "raveStick",
             modelURL: modelURL,
+            rotation: rotation,
             position: position,
             shapeType: 'box',
             collisionsWillMove: true,
@@ -173,10 +175,15 @@ MasterReset = function() {
                 },
                 grabbableKey: {
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
+                        rightRelativePosition: {
+                            x: 0.02,
                             y: 0,
-                            z: -0.1
+                            z: 0
+                        },
+                        leftRelativePosition: {
+                            x: -0.02,
+                            y: 0,
+                            z: 0
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                     },
@@ -184,30 +191,21 @@ MasterReset = function() {
                 }
             })
         });
-        var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0)
-        var forwardVec = Quat.getFront(Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(-90, 0, 0)));
-        forwardVec = Vec3.normalize(forwardVec);
-        var forwardQuat = orientationOf(forwardVec);
-        position = Vec3.sum(position, Vec3.multiply(Quat.getFront(rotation), 0.1));
-        position.z += 0.1;
-        position.x += -0.035;
+
+        var forwardVec = Quat.getFront(rotation);
+        var forwardQuat = Quat.rotationBetween(Vec3.UNIT_Z, forwardVec);
         var color = {
-            red: 0,
-            green: 200,
-            blue: 40
-        };
-        var props = {
+            red: 150,
+            green: 20,
+            blue: 100
+        }
+        var raveGlowEmitter = Entities.addEntity({
             type: "ParticleEffect",
+            name: "Rave Stick Glow Emitter",
             position: position,
             parentID: stick,
             isEmitting: true,
-            name: "raveBeam",
             colorStart: color,
-            colorSpread: {
-                red: 200,
-                green: 10,
-                blue: 10
-            },
             color: {
                 red: 200,
                 green: 200,
@@ -215,13 +213,18 @@ MasterReset = function() {
             },
             colorFinish: color,
             maxParticles: 100000,
-            lifespan: 1,
+            lifespan: 0.8,
             emitRate: 1000,
             emitOrientation: forwardQuat,
             emitSpeed: 0.2,
             speedSpread: 0.0,
+            emitDimensions: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
             polarStart: 0,
-            polarFinish: 0.0,
+            polarFinish: 0,
             azimuthStart: 0.1,
             azimuthFinish: 0.01,
             emitAcceleration: {
@@ -234,12 +237,12 @@ MasterReset = function() {
                 y: 0.00,
                 z: 0.00
             },
-            radiusStart: 0.03,
-            radiusFinish: 0.025,
+            radiusStart: 0.01,
+            radiusFinish: 0.005,
             alpha: 0.7,
             alphaSpread: 0.1,
-            alphaStart: 0.5,
-            alphaFinish: 0.5,
+            alphaStart: 0.1,
+            alphaFinish: 0.1,
             textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
             emitterShouldTrail: false,
             userData: JSON.stringify({
@@ -247,9 +250,7 @@ MasterReset = function() {
                     resetMe: true
                 }
             })
-        }
-        var beam = Entities.addEntity(props);
-
+        });
     }
 
     function createGun(position) {
@@ -283,10 +284,15 @@ MasterReset = function() {
             userData: JSON.stringify({
                 grabbableKey: {
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
+                        rightRelativePosition: {
+                            x: 0.02,
                             y: 0,
-                            z: -0.1
+                            z: -0.03
+                        },
+                        leftRelativePosition: {
+                            x: -0.02,
+                            y: 0,
+                            z: -0.03
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
                     },
@@ -1136,11 +1142,11 @@ MasterReset = function() {
                 grabbableKey: {
                     spatialKey: {
                         relativePosition: {
-                            x: -0.05,
+                            x: 0,
                             y: 0,
-                            z: 0.0
+                            z: 0.06
                         },
-                        relativeRotation: Quat.fromPitchYawRollDegrees(0,-90, -90)
+                        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
                     },
                     invertSolidWhileHeld: true
                 }

@@ -6,57 +6,18 @@ import "styles"
 
 Item {
     id: root
-    HifiConstants {
-        id: hifi
+    HifiConstants { 
+        id: hifi 
     }
 
+    // The model object
+    property alias text: label.text
     property var source
-    property var menuContainer
-    property var listView
-
-    MouseArea {
-        anchors.left: parent.left
-        anchors.right: tag.right
-        anchors.rightMargin: -4
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        acceptedButtons: Qt.LeftButton
-        hoverEnabled: true
-
-        Rectangle {
-            id: highlight
-            visible: false
-            anchors.fill: parent
-            color: "#7f0e7077"
-        }
-
-        onEntered: {
-            //if (source.type == 2 && enabled) {
-            //    timer.start()
-            //}
-            highlight.visible = source.enabled
-        }
-
-        onExited: {
-            timer.stop()
-            highlight.visible = false
-        }
-
-        onClicked: {
-            select()
-        }
-   }
 
     implicitHeight: source.visible ? label.implicitHeight * 1.5 : 0
-    implicitWidth: label.implicitWidth + label.height * 2.5
+    implicitWidth: label.width + label.height * 2.5
     visible: source.visible
-
-    Timer {
-        id: timer
-        interval: 1000
-        onTriggered: parent.select()
-    }
-
+    width: parent.width
 
     FontAwesome {
         clip: true
@@ -84,50 +45,23 @@ Item {
 
     Text {
         id: label
-        text: typedText()
         anchors.left: check.right
         anchors.leftMargin: 4
         anchors.verticalCenter: parent.verticalCenter
         verticalAlignment: Text.AlignVCenter
         color: source.enabled ? hifi.colors.text : hifi.colors.disabledText
-        enabled: source.enabled && source.visible
+        enabled: source.visible && (source.type !== 0 ? source.enabled : false)
         visible: source.visible
-        function typedText() {
-            if (source) {
-                switch (source.type) {
-                case 2:
-                    return source.title
-                case 1:
-                    return source.text
-                case 0:
-                    return "-----"
-                }
-            }
-            return ""
-        }
     }
 
     FontAwesome {
         id: tag
-        x: listView.width - width - 4
+        x: root.parent.width - width
         size: label.height
         width: implicitWidth
         visible: source.visible && (source.type == 2)
         text: "\uF0DA"
         anchors.verticalCenter: parent.verticalCenter
         color: label.color
-    }
-
-    function select() {
-        //timer.stop();
-        var popped = false
-        while (columns.length - 1 > listView.parent.menuDepth) {
-            popColumn()
-            popped = true
-        }
-
-        if (!popped || source.type != 1) {
-            root.menuContainer.selectItem(source)
-        }
     }
 }

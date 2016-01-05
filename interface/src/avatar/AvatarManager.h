@@ -45,7 +45,6 @@ public:
     void clearOtherAvatars();
    
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
-    PIDController& getRenderDistanceController()  { return _renderDistanceController; }
 
     class LocalLight {
     public:
@@ -67,19 +66,6 @@ public:
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
 
     void addAvatarToSimulation(Avatar* avatar);
-
-    // Expose results and parameter-tuning operations to other systems, such as stats and javascript.
-    Q_INVOKABLE float getRenderDistance() { return _renderDistance; }
-    Q_INVOKABLE float getRenderDistanceInverseLowLimit() { return _renderDistanceController.getControlledValueLowLimit(); }
-    Q_INVOKABLE float getRenderDistanceInverseHighLimit() { return _renderDistanceController.getControlledValueHighLimit(); }
-    Q_INVOKABLE int getNumberInRenderRange() { return _renderedAvatarCount; }
-    Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
-    Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
-    Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
-    Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
-    Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
-    Q_INVOKABLE void setRenderDistanceInverseLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
-    Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue);
 
 public slots:
     void setShouldShowReceiveStats(bool shouldShowReceiveStats) { _shouldShowReceiveStats = shouldShowReceiveStats; }
@@ -106,10 +92,6 @@ private:
     QVector<AvatarManager::LocalLight> _localLights;
 
     bool _shouldShowReceiveStats = false;
-    float _renderDistance { (float) TREE_SCALE };
-    int _renderedAvatarCount { 0 };
-    PIDController _renderDistanceController { };
-    SimpleMovingAverage _renderDistanceAverage { 10 };
 
     SetOfAvatarMotionStates _avatarMotionStates;
     SetOfMotionStates _motionStatesToAdd;
