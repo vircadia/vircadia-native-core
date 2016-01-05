@@ -49,7 +49,7 @@ if (WIN32)
   endif ()
 
   if (DEBUG_DISCOVERED_SDK_PATH)
-    message("The discovered Windows SDK path is ${WINDOW_SDK_PATH}")
+    message(STATUS "The discovered Windows SDK path is ${WINDOW_SDK_PATH}")
   endif ()
 
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
