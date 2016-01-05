@@ -406,6 +406,11 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
 
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotationsSet, jointRotationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotations, jointRotations, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslationsSet, jointTranslationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
+
     properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
