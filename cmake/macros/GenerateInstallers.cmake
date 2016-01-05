@@ -12,21 +12,26 @@
 macro(GENERATE_INSTALLERS)
   include(CPackComponent)
 
+  set(CPACK_PACKAGE_NAME "High Fidelity")
+  set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc.")
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity")
+
   if (APPLE)
     install(TARGETS ${CLIENT_TARGET} BUNDLE DESTINATION bin COMPONENT ${APP_COMPONENT})
   else ()
     install(TARGETS ${CLIENT_TARGET} RUNTIME DESTINATION bin COMPONENT ${APP_COMPONENT})
   endif ()
 
-  cpack_add_component(${APP_COMPONENT}
-    DISPLAY_NAME "Applications"
-    Description "The High Fidelity Applications"
-    GROUP "Runtime"
+  cpack_add_component(${CLIENT_COMPONENT}
+    DISPLAY_NAME "High Fidelity Client"
   )
 
-  cpack_add_component_group(Runtime)
+  cpack_add_component(${SERVER_COMPONENT}
+    DISPLAY_NAME "High Fidelity Server"
+  )
 
   include(CPack)
+
   # if (DEPLOY_PACKAGE AND WIN32)
   #   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/package-bundle")
   #   find_program(MAKENSIS_COMMAND makensis PATHS [HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\NSIS])

@@ -204,7 +204,7 @@ if (APPLE)
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
   # setup install of OS X interface bundle
-  install(TARGETS ${TARGET_NAME} BUNDLE DESTINATION bin COMPONENT ${APP_COMPONENT})
+  install(TARGETS ${TARGET_NAME} BUNDLE DESTINATION bin COMPONENT ${CLIENT_COMPONENT})
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -217,7 +217,7 @@ else (APPLE)
   )
 
   # setup install of interface target
-  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin COMPONENT ${APP_COMPONENT})
+  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin COMPONENT ${CLIENT_COMPONENT})
 
   # link target to external libraries
   if (WIN32)

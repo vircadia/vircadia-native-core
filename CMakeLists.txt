@@ -212,7 +212,8 @@ endif()
 set_packaging_parameters()
 
 # setup component categories for installer
-set(APP_COMPONENT Runtime)
+set(CLIENT_COMPONENT client)
+set(SERVER_COMPONENT server)
 
 # add subdirectories for all targets
 if (NOT ANDROID)
