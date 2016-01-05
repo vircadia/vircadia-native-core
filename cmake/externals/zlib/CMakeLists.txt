@@ -5,14 +5,14 @@ include(ExternalProject)
 
 ExternalProject_Add(
   ${EXTERNAL_NAME}
-  URL http://zlib.net/zlib128.zip
+  URL http://hifi-public.s3.amazonaws.com/dependencies/zlib128.zip
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   BINARY_DIR ${EXTERNAL_PROJECT_PREFIX}/build
   LOG_DOWNLOAD 1
   LOG_CONFIGURE 1
   LOG_BUILD 1
 )
-  
+
 # Hide this external target (for ide users)
 set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 
@@ -29,4 +29,4 @@ select_library_configurations(${EXTERNAL_NAME_UPPER})
 
 # Force selected libraries into the cache
 set(${EXTERNAL_NAME_UPPER}_LIBRARY ${${EXTERNAL_NAME_UPPER}_LIBRARY} CACHE FILEPATH "Location of zlib libraries")
-set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE FILEPATH "Location of zlib libraries") 
+set(${EXTERNAL_NAME_UPPER}_LIBRARIES ${${EXTERNAL_NAME_UPPER}_LIBRARIES} CACHE FILEPATH "Location of zlib libraries")
