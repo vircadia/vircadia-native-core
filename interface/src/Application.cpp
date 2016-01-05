@@ -88,6 +88,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
+#include <OffscreenUi.h>
 #include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -4380,7 +4381,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
     QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
-    reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
+    reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
@@ -4393,7 +4394,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
 bool Application::askToUploadAsset(const QString& filename) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
-        QMessageBox::warning(_window, "Failed Upload",
+        OffscreenUi::warning(_window, "Failed Upload",
                              QString("You don't have upload rights on that domain.\n\n"));
         return false;
     }
@@ -4437,7 +4438,7 @@ bool Application::askToUploadAsset(const QString& filename) {
     }
 
     // display a message box with the error
-    QMessageBox::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
+    OffscreenUi::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
     return false;
 }
 
@@ -4628,7 +4629,7 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
 // FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptLoadError(const QString& scriptFilename) {
     qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
-    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
+    OffscreenUi::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 QStringList Application::getRunningScripts() {

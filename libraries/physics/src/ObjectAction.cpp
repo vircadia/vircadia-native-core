@@ -23,15 +23,15 @@ ObjectAction::~ObjectAction() {
 }
 
 void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) {
-    bool ownerEntityExpired = false;
     quint64 expiresWhen = 0;
+    EntityItemPointer ownerEntity = nullptr;
 
     withReadLock([&]{
-        ownerEntityExpired = _ownerEntity.expired();
+        ownerEntity = _ownerEntity.lock();
         expiresWhen = _expires;
     });
 
-    if (ownerEntityExpired) {
+    if (!ownerEntity) {
         qDebug() << "warning -- action with no entity removing self from btCollisionWorld.";
         btDynamicsWorld* dynamicsWorld = static_cast<btDynamicsWorld*>(collisionWorld);
         if (dynamicsWorld) {
@@ -43,10 +43,8 @@ void ObjectAction::updateAction(btCollisionWorld* collisionWorld, btScalar delta
     if (expiresWhen > 0) {
         quint64 now = usecTimestampNow();
         if (now > expiresWhen) {
-            EntityItemPointer ownerEntity = nullptr;
             QUuid myID;
             withWriteLock([&]{
-                ownerEntity = _ownerEntity.lock();
                 _active = false;
                 myID = getID();
             });
