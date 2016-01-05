@@ -39,6 +39,12 @@ if (osType == "Darwin") {
     options["name"] = "server-console"
 }
 
+// check if we were passed a custom out directory, pass it along if so
+var argv = require('yargs').argv;
+if (argv.out) {
+    options.out = argv.out
+}
+
 // call the packager to produce the executable
 packager(options, function(error, appPath){
     console.log("Wrote new app to " + appPath);
