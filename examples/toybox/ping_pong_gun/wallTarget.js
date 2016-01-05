@@ -17,6 +17,7 @@
     }
 
     Target.prototype = {
+        hasBecomePhysical: false,
         hasPlayedSound: false,
         preload: function(entityID) {
             this.entityID = entityID;
@@ -24,19 +25,22 @@
             this.hitSound = SoundCache.getSound(SOUND_URL);
         },
         collisionWithEntity: function(me, otherEntity) {
-            var position = Entities.getEntityProperties(me, "position").position;
-            Entities.editEntity(me, {
-                gravity: {
-                    x: 0,
-                    y: -9.8,
-                    z: 0
-                },
-                velocity: {
-                    x: 0,
-                    y: -0.01,
-                    z: 0
-                }
-            });
+            if (this.hasBecomePhysical === false) {
+                var position = Entities.getEntityProperties(me, "position").position;
+                Entities.editEntity(me, {
+                    gravity: {
+                        x: 0,
+                        y: -9.8,
+                        z: 0
+                    },
+                    velocity: {
+                        x: 0,
+                        y: -0.01,
+                        z: 0
+                    }
+                });
+                this.hasBecomePhysical = true;
+            }
 
             if (this.hasPlayedSound === false) {
                 this.audioInjector = Audio.playSound(this.hitSound, {
