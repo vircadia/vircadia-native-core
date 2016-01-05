@@ -211,6 +211,9 @@ endif()
 
 set_packaging_parameters()
 
+# setup component categories for installer
+set(APP_COMPONENT Runtime)
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)

@@ -203,11 +203,8 @@ if (APPLE)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
-  # install command for OS X bundle
-  INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-  )
+  # setup install of OS X interface bundle
+  install(TARGETS ${TARGET_NAME} BUNDLE DESTINATION bin COMPONENT ${APP_COMPONENT})
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -219,11 +216,12 @@ else (APPLE)
     $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
+  # setup install of interface target
+  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin COMPONENT ${APP_COMPONENT})
+
   # link target to external libraries
   if (WIN32)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
-  else (WIN32)
-    # Nothing else required on linux apparently
   endif()
 endif (APPLE)
 

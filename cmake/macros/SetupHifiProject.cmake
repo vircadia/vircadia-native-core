@@ -22,11 +22,7 @@ macro(SETUP_HIFI_PROJECT)
     endif ()
   endforeach()
 
-  if (DEFINED BUILD_BUNDLE AND BUILD_BUNDLE AND APPLE)
-    add_executable(${TARGET_NAME} MACOSX_BUNDLE ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
-  else ()
-    add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
-  endif()
+  add_executable(${TARGET_NAME} ${TARGET_SRCS} ${AUTOMTC_SRC} ${AUTOSCRIBE_SHADER_LIB_SRC})
 
   # include the generated application version header
   target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
