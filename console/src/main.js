@@ -114,6 +114,7 @@ var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) 
 });
 
 if (shouldQuit) {
+    console.warn("Another instance of the Server Console is already running - this instance will quit.");
     app.quit();
     return;
 }
