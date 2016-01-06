@@ -1,6 +1,6 @@
 var fs = require('fs');
 
-exports.searchPaths = function(name, preferRelease) {
+exports.searchPaths = function(name, binaryType) {
     function platformExtension(name) {
         if (name == "Interface") {
             if (process.platform == "darwin") {
@@ -16,15 +16,41 @@ exports.searchPaths = function(name, preferRelease) {
     }
 
     var extension = platformExtension(name);
-    var basePath = "../build/" + name + "/";
+    var devBasePath = "../build/" + name + "/";
 
-    return [
-        basePath + name + extension,
-        basePath + (preferRelease ? "Release/" : "Debug/") + name + extension
-    ];
+    var paths = [];
+
+    if (binaryType == "local-release" ||  binaryType == "local-debug") {
+        // check in the developer build tree for binaries
+        paths = [
+            devBasePath + name + extension,
+            devBasePath + (binaryType == "local-release" ? "Release/" : "Debug/") + name + extension
+        ]
+    } else {
+        // check directly beside the binary
+        paths = [
+            __dirname + "/" + name + extension,
+        ];
+
+        // check if we're inside an app bundle on OS X
+        if (process.platform == "darwin") {
+            var contentPath = ".app/Contents/";
+            var contentEndIndex = __dirname.indexOf(contentPath);
+
+            if (contentEndIndex != -1) {
+                // this is an app bundle, check in Contents/MacOS for the binaries
+                var appPath = __dirname.substring(0, contentEndIndex);
+                appPath += ".app/Contents/MacOS/";
+
+                paths.push(appPath + name + extension);
+            }
+        }
+    }
+
+    return paths;
 }
 
-exports.discoveredPath = function (name, preferRelease) {
+exports.discoveredPath = function (name, binaryType) {
     function binaryFromPaths(name, paths) {
         for (var i = 0; i < paths.length; i++) {
             var path = paths[i];
@@ -37,7 +63,7 @@ exports.discoveredPath = function (name, preferRelease) {
                     return path;
                 }
             } catch (e) {
-                console.warn("Executable with name " + name + " not found at path " + path);
+                console.log("Executable with name " + name + " not found at path " + path);
             }
         }
 
@@ -45,5 +71,5 @@ exports.discoveredPath = function (name, preferRelease) {
     }
 
     // attempt to find a binary at the usual paths, return null if it doesn't exist
-    return binaryFromPaths(name, this.searchPaths(name, preferRelease));
+    return binaryFromPaths(name, this.searchPaths(name, binaryType));
 }

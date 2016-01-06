@@ -18,8 +18,8 @@
   },
   "main": "src/main.js",
   "scripts": {
-    "start": "electron . --local-debug-builds --debug",
-    "local-release": "electron . --local-release-builds --debug",
+    "start": "electron . --binary-type local-debug --debug",
+    "local-release": "electron . --binary-type local-release --debug",
     "packager": "node packager.js"
   },
   "dependencies": {
