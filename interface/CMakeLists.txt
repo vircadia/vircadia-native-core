@@ -100,6 +100,20 @@ endif()
 # create the executable, make it a bundle on OS X
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+
+  # change the target name to the right thing depending on the type of build this is
+  # set a global INTERFACE_BUNDLE_NAME property so that we can have plugins copied to the right place
+  if (PRODUCTION_BUILD)
+    set(_INTERFACE_BUNDLE_NAME "High Fidelity")
+  elseif (PR_BUILD)
+    set(_INTERFACE_BUNDLE_NAME "High Fidelity ${BUILD_SEQ}")
+  elseif (DEV_BUILD)
+    set(_INTERFACE_BUNDLE_NAME "Interface")
+  endif()
+
+  set_property(GLOBAL PROPERTY INTERFACE_BUNDLE_NAME ${_INTERFACE_BUNDLE_NAME})
+
+  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${_INTERFACE_BUNDLE_NAME})
 elseif(WIN32)
   add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
 else()
@@ -214,24 +228,6 @@ if (APPLE)
     BUNDLE DESTINATION "Applications/High Fidelity"
     COMPONENT ${CLIENT_COMPONENT}
   )
-
-  if (PRODUCTION_BUILD OR PR_BUILD)
-    # for a production or PR build, setup rename of produced bundle
-    # for production builds it becomes "High Fidelity" and PR builds are "High Fidelity" with the PR number
-    if (PRODUCTION_BUILD)
-      set(INTERFACE_BUNDLE_NAME "High Fidelity")
-    elseif (PR_BUILD)
-      set(INTERFACE_BUNDLE_NAME "High Fidelity ${BUILD_SEQ}")
-    endif ()
-
-    configure_file(
-      ${HIFI_CMAKE_DIR}/templates/RenameInterfaceBundle.cmake.in
-      ${CMAKE_CURRENT_BINARY_DIR}/RenameInterfaceBundle.cmake
-      @ONLY
-    )
-
-    set_target_properties(${TARGET_NAME} PROPERTIES POST_INSTALL_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/RenameInterfaceBundle.cmake")
-  endif ()
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
