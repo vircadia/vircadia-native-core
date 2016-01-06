@@ -154,14 +154,27 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 }
 
 
-void AmbientOcclusionEffect::setClipInfo(float nearZ, float farZ) {
-    _parametersBuffer.edit<Parameters>()._clipInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
+void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
+    _parametersBuffer.edit<Parameters>()._depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
 
 }
 
 void AmbientOcclusionEffect::setRadius(float radius) {
     radius = std::max(0.01f, radius);
-    _parametersBuffer.edit<Parameters>()._radius_radius2_InvRadius6_s2 = glm::vec4(radius, radius * radius, 1.0f / pow(radius, 6.0f), 0.0f);
+    if (radius != getRadius()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
+        current.x = radius;
+        current.y = radius * radius;
+        current.z = 1.0f / pow(radius, 6.0f);
+    }
+}
+
+void AmbientOcclusionEffect::setLevel(float level) {
+    level = std::max(0.01f, level);
+    if (level != getLevel()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
+        current.w = level;
+    }
 }
 
 void AmbientOcclusionEffect::updateDeferredTransformBuffer(const render::RenderContextPointer& renderContext) {
@@ -290,8 +303,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     mat4 monoProjMat;
     args->_viewFrustum->evalProjectionMatrix(monoProjMat);
 
-    setClipInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
-    _parametersBuffer.edit<Parameters>()._projection = monoProjMat;
+    setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
+    _parametersBuffer.edit<Parameters>()._projection[0] = monoProjMat;
     _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
 
     auto pyramidPipeline = getPyramidPipeline();

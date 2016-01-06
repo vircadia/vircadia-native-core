@@ -71,6 +71,7 @@ namespace RenderScripting {
         
     public:
         Q_PROPERTY(float radius MEMBER radius)
+        Q_PROPERTY(float level MEMBER level)
     };
     using AmbientOcclusionPointer = std::unique_ptr<AmbientOcclusion>;
 };

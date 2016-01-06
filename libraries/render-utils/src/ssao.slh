@@ -32,10 +32,10 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 <@func declareAmbientOcclusion()@>
 
 struct AmbientOcclusionParams {
+    vec4 _radiusInfo;
     vec4 _pixelInfo;
-    vec4 _clipInfo;
-    mat4 _projection;
-    vec4 _radius_radius2_InvRadius6_s2;
+    vec4 _depthInfo;
+    mat4 _projection[2];
 };
 
 uniform ambientOcclusionParamsBuffer {
@@ -46,28 +46,34 @@ vec2 getWidthHeight() {
     return params._pixelInfo.zw;
 }
 float getProjScale() {
-    return getWidthHeight().y * params._projection[1][1] * 0.5;
+    return getWidthHeight().y * params._projection[0][1][1] * 0.5;
+}
+mat4 getProjection(int side) {
+    return params._projection[side];
 }
 
 float getRadius() {
-    return params._radius_radius2_InvRadius6_s2.x;
+    return params._radiusInfo.x;
 }
 float getRadius2() {
-    return params._radius_radius2_InvRadius6_s2.y;
+    return params._radiusInfo.y;
 }
 float getInvRadius6() {
-    return params._radius_radius2_InvRadius6_s2.z;
+    return params._radiusInfo.z;
+}
+float getObscuranceScaling() {
+    return params._radiusInfo.z * params._radiusInfo.w;
 }
 
 float evalZeyeFromZdb(float depth) {
-    return params._clipInfo.x / (depth * params._clipInfo.y + params._clipInfo.z);
+    return params._depthInfo.x / (depth * params._depthInfo.y + params._depthInfo.z);
 }
 
 vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord) {
     // compute the view space position using the depth
     // basically manually pick the proj matrix components to do the inverse
-    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[2][0] - params._projection[3][0]) / params._projection[0][0];
-    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[2][1] - params._projection[3][1]) / params._projection[1][1];
+    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[0][2][0] - params._projection[0][3][0]) / params._projection[0][0][0];
+    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[0][2][1] - params._projection[0][3][1]) / params._projection[0][1][1];
     return vec3(Xe, Ye, Zeye);
 }
 
@@ -96,15 +102,14 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 
 
 const int BLUR_RADIUS = 4;
-const int RADIUS_SCALE = 2;
+const int RADIUS_SCALE = 3;
 const float EDGE_SHARPNESS = 1.0;
 
 const float gaussian[BLUR_RADIUS + 1] =
-//    float[](0.356642, 0.239400, 0.072410, 0.009869); // R = 2
-//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // R = 3
-float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // R = 4
-//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // R = 5.0
-
+//    float[](0.356642, 0.239400, 0.072410, 0.009869);
+//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
+float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
+//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
 vec3 getBlurredOcclusion(vec2 coord) {
     ivec2 ssC = ivec2(coord);
 

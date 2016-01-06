@@ -79,7 +79,8 @@ public:
    
     class AmbientOcclusion {
     public:
-        float radius = 0.5; // radius in meters of the AO effect
+        float radius = 0.5f; // radius in meters of the AO effect
+        float level = 0.5f; // Level of the obscrance value
     };
     
     RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);

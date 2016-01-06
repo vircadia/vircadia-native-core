@@ -52,7 +52,7 @@ var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
-previousMode = 4; // FIXME: just for debug purpose
+previousMode = 1; // FIXME: just for debug purpose
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
 Render.deferredDebugMode = previousMode;
 Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
@@ -102,6 +102,11 @@ panel.newSlider("Tone Mapping Exposure", -10, 10,
 panel.newSlider("Ambient Occlusion Radius", 0.0, 2.0,
     function (value) { Render.ambientOcclusion.radius = value; },
     function() { return Render.ambientOcclusion.radius; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Level", 0.0, 1.0,
+    function (value) { Render.ambientOcclusion.level = value; },
+    function() { return Render.ambientOcclusion.level; },
     function (value) { return (value); });
 
 var tickTackPeriod = 500;

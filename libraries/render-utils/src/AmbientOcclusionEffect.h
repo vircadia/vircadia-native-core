@@ -25,20 +25,28 @@ public:
     typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
 
     void setRadius(float radius);
-    float getRadius() const { return _parametersBuffer.get<Parameters>()._radius_radius2_InvRadius6_s2.x; }
+    float getRadius() const { return _parametersBuffer.get<Parameters>()._radiusInfo.x; }
+    
+    // Obscurance level which intensify or dim down the obscurance effect
+    void setLevel(float level);
+    float getLevel() const { return _parametersBuffer.get<Parameters>()._radiusInfo.w; }
     
 private:
 
-    void setClipInfo(float nearZ, float farZ);
+    void setDepthInfo(float nearZ, float farZ);
 
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class Parameters {
     public:
+        // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
+        glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
+        // Pixel info is { viemport width height and stereo on off}
         glm::vec4 _pixelInfo;
-        glm::vec4 _clipInfo;
-        glm::mat4 _projection;
-        glm::vec4 _radius_radius2_InvRadius6_s2{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 0.0 };
-
+        // Depth info is { n.f, f - n, -f}
+        glm::vec4 _depthInfo;
+        // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
+        glm::mat4 _projection[2];
+        
         Parameters() {}
     };
     typedef gpu::BufferView UniformBufferView;
