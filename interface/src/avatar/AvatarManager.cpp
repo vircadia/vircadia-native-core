@@ -113,21 +113,21 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
-    
+
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
         return;
     }
-    
+
     lock.unlock();
-    
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    
+
     // simulate avatars
     auto hashCopy = getHashCopy();
-    
+
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());

@@ -235,10 +235,15 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
     for (auto& particle : _particles) {
         particlePrimitives->emplace_back(particle.position, glm::vec2(particle.lifetime, particle.seed));
     }
-    
-    auto bounds = getAABox();
-    auto position = getPosition();
-    auto rotation = getRotation();
+
+    bool successb, successp, successr;
+    auto bounds = getAABox(successb);
+    auto position = getPosition(successp);
+    auto rotation = getOrientation(successr);
+    bool success = successb && successp && successr;
+    if (!success) {
+        return;
+    }
     Transform transform;
     if (!getEmitterShouldTrail()) {
         transform.setTranslation(position);

@@ -14,12 +14,11 @@
 UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
                         EntityTreeElementPointer containingElement,
                         EntityItemPointer existingEntity,
-                        const BoundingBoxRelatedProperties& newProperties) :
+                        const AACube newQueryAACube) :
     _tree(tree),
     _existingEntity(existingEntity),
     _containingElement(containingElement),
     _containingElementCube(containingElement->getAACube()),
-    _newProperties(newProperties),
     _entityItemID(existingEntity->getEntityItemID()),
     _foundOld(false),
     _foundNew(false),
@@ -41,13 +40,13 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTreePointer tree,
     // entity into the the element, or do we want to use the entities "relaxed" bounds
     // which can handle all potential rotations?
     // the getMaximumAACube is the relaxed form.
-    _oldEntityCube = _existingEntity->getMaximumAACube();
+    _oldEntityCube = _existingEntity->getQueryAACube();
     _oldEntityBox = _oldEntityCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE); // clamp to domain bounds
 
     // If our new properties don't have bounds details (no change to position, etc) or if this containing element would
     // be the best fit for our new properties, then just do the new portion of the store pass, since the change path will
     // be the same for both parts of the update
-    bool oldElementBestFit = _containingElement->bestFitBounds(newProperties.getMaximumAACube());
+    bool oldElementBestFit = _containingElement->bestFitBounds(newQueryAACube);
 
     // For some reason we've seen a case where the original containing element isn't a best fit for the old properties
     // in this case we want to move it, even if the properties haven't changed.

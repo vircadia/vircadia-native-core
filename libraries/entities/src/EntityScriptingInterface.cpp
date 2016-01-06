@@ -72,12 +72,15 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
     scriptSideProperties.setLocalPosition(entitySideProperties.getPosition());
     scriptSideProperties.setLocalRotation(entitySideProperties.getRotation());
 
+    bool success;
     glm::vec3 worldPosition = SpatiallyNestable::localToWorld(entitySideProperties.getPosition(),
                                                               entitySideProperties.getParentID(),
-                                                              entitySideProperties.getParentJointIndex());
+                                                              entitySideProperties.getParentJointIndex(),
+                                                              success);
     glm::quat worldRotation = SpatiallyNestable::localToWorld(entitySideProperties.getRotation(),
                                                               entitySideProperties.getParentID(),
-                                                              entitySideProperties.getParentJointIndex());
+                                                              entitySideProperties.getParentJointIndex(),
+                                                              success);
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
 
@@ -89,13 +92,15 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     // convert position and rotation properties from world-space to local, unless localPosition and localRotation
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
+    bool success;
 
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
     } else if (scriptSideProperties.positionChanged()) {
         glm::vec3 localPosition = SpatiallyNestable::worldToLocal(entitySideProperties.getPosition(),
                                                                   entitySideProperties.getParentID(),
-                                                                  entitySideProperties.getParentJointIndex());
+                                                                  entitySideProperties.getParentJointIndex(),
+                                                                  success);
         entitySideProperties.setPosition(localPosition);
     }
 
@@ -104,7 +109,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     } else if (scriptSideProperties.rotationChanged()) {
         glm::quat localRotation = SpatiallyNestable::worldToLocal(entitySideProperties.getRotation(),
                                                                   entitySideProperties.getParentID(),
-                                                                  entitySideProperties.getParentJointIndex());
+                                                                  entitySideProperties.getParentJointIndex(),
+                                                                  success);
         entitySideProperties.setRotation(localRotation);
     }
 
@@ -128,6 +134,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                if (propertiesWithSimID.parentRelatedPropertyChanged()) {
+                    // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+                    propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
+                }
 
                 // and make note of it now, so we can act on it right away.
                 entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
@@ -193,16 +203,15 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
     EntityItemID entityID(id);
-    // If we have a local entity tree set, then also update it.
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
         return id;
     }
+    // If we have a local entity tree set, then also update it.
 
     bool updatedEntity = false;
     _entityTree->withWriteLock([&] {
-        if (scriptSideProperties.parentDependentPropertyChanged() ||
-            scriptSideProperties.parentIDChanged() || scriptSideProperties.parentJointIndexChanged()) {
+        if (scriptSideProperties.parentRelatedPropertyChanged()) {
             // All of parentID, parentJointIndex, position, rotation are needed to make sense of any of them.
             // If any of these changed, pull any missing properties from the entity.
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
@@ -265,7 +274,24 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->flagForOwnership();
                 }
             }
+            if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {
+                properties.setQueryAACube(entity->getQueryAACube());
+            }
             entity->setLastBroadcast(usecTimestampNow());
+
+            // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
+            // if they've changed.
+            entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                if (descendant->getNestableType() == NestableType::Entity) {
+                    if (descendant->computePuffedQueryAACube()) {
+                        EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+                        EntityItemProperties newQueryCubeProperties;
+                        newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                        queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+                        entityDescendant->setLastBroadcast(usecTimestampNow());
+                    }
+                }
+            });
         }
     });
     queueEntityMessage(PacketType::EntityEdit, entityID, properties);
@@ -827,4 +853,114 @@ glm::quat EntityScriptingInterface::getAbsoluteJointRotationInObjectFrame(const 
     } else {
         return glm::quat();
     }
+}
+
+bool EntityScriptingInterface::setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID,
+                                                                        int jointIndex, glm::vec3 translation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        bool result = modelEntity->setAbsoluteJointTranslationInObjectFrame(jointIndex, translation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                properties = entity->getProperties();
+                entity->setLastBroadcast(now);
+            });
+
+            properties.setJointTranslationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool EntityScriptingInterface::setAbsoluteJointRotationInObjectFrame(const QUuid& entityID,
+                                                                     int jointIndex, glm::quat rotation) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+        bool result = modelEntity->setAbsoluteJointRotationInObjectFrame(jointIndex, rotation);
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                properties = entity->getProperties();
+                entity->setLastBroadcast(now);
+            });
+
+            properties.setJointRotationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+
+bool EntityScriptingInterface::setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
+                                                                      const QVector<glm::quat>& rotations) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+
+        bool result = false;
+        for (int index = 0; index < rotations.size(); index++) {
+            result |= modelEntity->setAbsoluteJointRotationInObjectFrame(index, rotations[index]);
+        }
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                entity->setLastEdited(now);
+                entity->setLastBroadcast(now);
+                properties = entity->getProperties();
+            });
+
+            properties.setJointRotationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
+                                                                         const QVector<glm::vec3>& translations) {
+    if (auto entity = checkForTreeEntityAndTypeMatch(entityID, EntityTypes::Model)) {
+        auto now = usecTimestampNow();
+        auto modelEntity = std::dynamic_pointer_cast<ModelEntityItem>(entity);
+
+        bool result = false;
+        for (int index = 0; index < translations.size(); index++) {
+            result |= modelEntity->setAbsoluteJointTranslationInObjectFrame(index, translations[index]);
+        }
+        if (result) {
+            EntityItemProperties properties;
+            _entityTree->withWriteLock([&] {
+                entity->setLastEdited(now);
+                entity->setLastBroadcast(now);
+                properties = entity->getProperties();
+            });
+
+            properties.setJointTranslationsDirty();
+            properties.setLastEdited(now);
+            queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
+                                                                  const QVector<glm::quat>& rotations,
+                                                                  const QVector<glm::vec3>& translations) {
+    // for a model with 80 joints, sending both these in one edit packet causes the packet to be too large.
+    return setAbsoluteJointRotationsInObjectFrame(entityID, rotations) ||
+        setAbsoluteJointTranslationsInObjectFrame(entityID, translations);
 }

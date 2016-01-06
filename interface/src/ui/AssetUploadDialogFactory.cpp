@@ -23,6 +23,7 @@
 #include <AssetUpload.h>
 #include <AssetUtils.h>
 #include <NodeList.h>
+#include <OffscreenUi.h>
 #include <ResourceManager.h>
 
 AssetUploadDialogFactory& AssetUploadDialogFactory::getInstance() {
@@ -146,5 +147,5 @@ void AssetUploadDialogFactory::showErrorDialog(AssetUpload* upload, QWidget* dia
     
     dialogMessage += errorMessage;
     
-    QMessageBox::warning(dialogParent, "Failed Upload", dialogMessage);
+    OffscreenUi::warning(dialogParent, "Failed Upload", dialogMessage);
 }

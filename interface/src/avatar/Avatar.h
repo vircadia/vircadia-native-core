@@ -27,6 +27,7 @@
 #include "SkeletonModel.h"
 #include "world.h"
 #include "Rig.h"
+#include <ThreadSafeValueCache.h>
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -112,6 +113,8 @@ public:
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
@@ -159,7 +162,9 @@ public:
 
     AvatarMotionState* getMotionState() { return _motionState; }
 
+    using SpatiallyNestable::setPosition;
     virtual void setPosition(const glm::vec3& position) override;
+    using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
 public slots:
@@ -225,7 +230,14 @@ protected:
 
     virtual void updateJointMappings() override;
 
+    virtual void updatePalms();
+
     render::ItemID _renderItemID;
+
+    ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
 private:
     bool _initialized;

@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "AACube.h"
 #include "SharedUtil.h"
 
 class QColor;
@@ -30,6 +31,7 @@ Q_DECLARE_METATYPE(glm::quat)
 Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 Q_DECLARE_METATYPE(QVector<float>)
+Q_DECLARE_METATYPE(AACube)
 
 void registerMetaTypes(QScriptEngine* engine);
 
@@ -61,11 +63,22 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
 void qVectorVec3FromScriptValue(const QScriptValue& array, QVector<glm::vec3>& vector);
 QVector<glm::vec3> qVectorVec3FromScriptValue(const QScriptValue& array);
 
+QScriptValue qVectorQuatToScriptValue(QScriptEngine* engine, const QVector<glm::quat>& vector);
+void qVectorQuatFromScriptValue(const QScriptValue& array, QVector<glm::quat>& vector);
+QVector<glm::quat> qVectorQuatFromScriptValue(const QScriptValue& array);
+
+QScriptValue qVectorBoolToScriptValue(QScriptEngine* engine, const QVector<bool>& vector);
+void qVectorBoolFromScriptValue(const QScriptValue& array, QVector<bool>& vector);
+QVector<bool> qVectorBoolFromScriptValue(const QScriptValue& array);
+
 QScriptValue qVectorFloatToScriptValue(QScriptEngine* engine, const QVector<float>& vector);
 void qVectorFloatFromScriptValue(const QScriptValue& array, QVector<float>& vector);
 QVector<float> qVectorFloatFromScriptValue(const QScriptValue& array);
 
 QVector<QUuid> qVectorQUuidFromScriptValue(const QScriptValue& array);
+
+QScriptValue aaCubeToScriptValue(QScriptEngine* engine, const AACube& aaCube);
+void aaCubeFromScriptValue(const QScriptValue &object, AACube& aaCube);
 
 class PickRay {
 public:

@@ -165,19 +165,25 @@ public:
 
     /// appends a non-position vector to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::vec3& value);
-    
-    //appends a QVector of vec3's to the end of the stream, may fail if new data stream is too long to fit in packet
+
+    /// appends a QVector of vec3s to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QVector<glm::vec3>& value);
-    
-    //appends a QVector of floats to the end of the stream, may fail if new data stream is too long to fit in packet
+
+    /// appends a QVector of quats to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QVector<glm::quat>& value);
+
+    /// appends a QVector of floats to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QVector<float>& value);
+
+    /// appends a QVector of bools to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const QVector<bool>& value);
 
     /// appends a packed quat to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const glm::quat& value);
 
     /// appends a bool value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(bool value);
-    
+
     /// appends a string value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QString& string);
 
@@ -186,6 +192,9 @@ public:
 
     /// appends a QByteArray value to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendValue(const QByteArray& bytes);
+
+    /// appends an AACube value to the end of the stream, may fail if new data stream is too long to fit in packet
+    bool appendValue(const AACube& aaCube);
 
     /// appends a position to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendPosition(const glm::vec3& value);
@@ -251,8 +260,11 @@ public:
     static int unpackDataFromBytes(const unsigned char* dataBytes, QUuid& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, xColor& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::vec3>& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<glm::quat>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, QVector<bool>& result);
     static int unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result);
+    static int unpackDataFromBytes(const unsigned char* dataBytes, AACube& result);
 
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
