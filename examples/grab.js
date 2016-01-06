@@ -309,7 +309,7 @@ Grabber.prototype.computeNewGrabPlane = function() {
 }
 
 Grabber.prototype.pressEvent = function(event) {
-    if (!event.isLeftButton) {
+    if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
         return;
     }
 
@@ -374,7 +374,11 @@ Grabber.prototype.pressEvent = function(event) {
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
 }
 
-Grabber.prototype.releaseEvent = function() {
+Grabber.prototype.releaseEvent = function(event) {
+        if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
+        return;
+    }
+
     if (this.isGrabbing) {
         this.deactivateEntity(this.entityID);
         this.isGrabbing = false
