@@ -169,7 +169,7 @@ bool AnimationPropertyGroup::appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
@@ -248,7 +248,7 @@ void AnimationPropertyGroup::markAllChanged() {
 
 EntityPropertyFlags AnimationPropertyGroup::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    
+
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, url);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, fps);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, currentFrame);
@@ -321,13 +321,13 @@ EntityPropertyFlags AnimationPropertyGroup::getEntityProperties(EncodeBitstreamP
 
     return requestedProperties;
 }
-    
-void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+
+void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                 EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                 EntityPropertyFlags& requestedProperties,
                                 EntityPropertyFlags& propertyFlags,
                                 EntityPropertyFlags& propertiesDidntFit,
-                                int& propertyCount, 
+                                int& propertyCount,
                                 OctreeElement::AppendState& appendState) const {
 
     bool successPropertyFits = true;
@@ -352,7 +352,7 @@ void AnimationPropertyGroup::appendSubclassData(OctreePacketData* packetData, En
     }
 }
 
-int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+int AnimationPropertyGroup::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                             ReadBitstreamToTreeParams& args,
                                             EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                             bool& somethingChanged) {

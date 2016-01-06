@@ -98,7 +98,7 @@ private:
 
     static const QString NAME;
     static const QString HYDRA_ID_STRING;
-    
+
     static bool _sixenseLoaded;
 };
 

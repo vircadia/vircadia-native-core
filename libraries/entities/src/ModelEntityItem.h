@@ -32,16 +32,16 @@ public:
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
 
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const;
 
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
@@ -92,20 +92,20 @@ public:
 
     void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
     bool getAnimationLoop() const { return _animationLoop.getLoop(); }
-    
+
     void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
     bool getAnimationHold() const { return _animationLoop.getHold(); }
-    
+
     void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
     float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
-    
+
     void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
-    
+
     void mapJoints(const QStringList& modelJointNames);
     void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
     bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
-    
+
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
@@ -115,9 +115,9 @@ public:
     void setTextures(const QString& textures) { _textures = textures; }
 
     virtual bool shouldBePhysical() const;
-    
+
     static void cleanupLoadedAnimations();
-    
+
     virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
     virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
 

@@ -349,7 +349,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
-    
+
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
@@ -380,7 +380,7 @@ PluginContainer* _pluginContainer;
 
 
 // FIXME hack access to the internal share context for the Chromium helper
-// Normally we'd want to use QWebEngine::initialize(), but we can't because 
+// Normally we'd want to use QWebEngine::initialize(), but we can't because
 // our primary context is a QGLWidget, which can't easily be initialized to share
 // from a QOpenGLContext.
 //
@@ -1037,7 +1037,7 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
-    
+
     // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
     // this will also stop any ongoing network injectors
     DependencyManager::destroy<AudioInjectorManager>();
@@ -1266,7 +1266,7 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
         return;
@@ -5085,7 +5085,7 @@ void Application::updateDisplayMode() {
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
             // This must be a queued connection to avoid a deadlock
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, 
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender,
                 this, &Application::paintGL, Qt::QueuedConnection);
 
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
