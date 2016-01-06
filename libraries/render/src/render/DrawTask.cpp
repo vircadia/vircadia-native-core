@@ -230,6 +230,8 @@ void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
         }
     } else if (!key.hasPipeline()) {
         item.render(args);
+    } else {
+        qDebug() << "Item could not be rendered: invalid key ?" << key;
     }
 }
 
