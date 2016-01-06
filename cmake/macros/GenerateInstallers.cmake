@@ -12,14 +12,12 @@
 macro(GENERATE_INSTALLERS)
   include(CPackComponent)
 
-  set(CPACK_PACKAGE_NAME "High Fidelity")
-  set(CPACK_PACKAGE_VENDOR "High Fidelity, Inc.")
-  set(CPACK_PACKAGE_INSTALL_DIRECTORY "High Fidelity")
+  set(CPACK_PACKAGE_NAME "HighFidelity")
+  set(CPACK_PACKAGE_VENDOR "HighFidelity")
 
   if (APPLE)
-    install(TARGETS ${CLIENT_TARGET} BUNDLE DESTINATION bin COMPONENT ${APP_COMPONENT})
-  else ()
-    install(TARGETS ${CLIENT_TARGET} RUNTIME DESTINATION bin COMPONENT ${APP_COMPONENT})
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "/")
+    set(CPACK_PACKAGING_INSTALL_PREFIX /)
   endif ()
 
   cpack_add_component(${CLIENT_COMPONENT}
@@ -29,6 +27,11 @@ macro(GENERATE_INSTALLERS)
   cpack_add_component(${SERVER_COMPONENT}
     DISPLAY_NAME "High Fidelity Server"
   )
+
+  if (APPLE)
+    # we don't want the OS X package to install anywhere but the main volume, so disable relocation
+    set(CPACK_PACKAGE_RELOCATABLE FALSE)
+  endif ()
 
   include(CPack)
 

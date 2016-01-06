@@ -62,15 +62,18 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
-  # configure CMake to use a custom Info.plist
-  SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
+  set(MACOSX_BUNDLE_BUNDLE_NAME "High Fidelity")
 
-  set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
-  set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
+  # configure CMake to use a custom Info.plist and to produce a .app with the correct name
+  set_target_properties(${this_target} PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in
+  )
 
-  if (UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE OR UPPER_CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
+  if (PRODUCTION_BUILD)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
     set(ICON_FILENAME "interface.icns")
   else ()
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
     set(ICON_FILENAME "interface-beta.icns")
   endif ()
 
@@ -190,7 +193,7 @@ target_link_libraries(
 # Issue causes build failure unless we add this directory.
 # See https://bugreports.qt.io/browse/QTBUG-43351
 if (WIN32)
-    add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
+  add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
 endif()
 
 # assume we are using a Qt build without bearer management
@@ -204,7 +207,11 @@ if (APPLE)
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
   # setup install of OS X interface bundle
-  install(TARGETS ${TARGET_NAME} BUNDLE DESTINATION bin COMPONENT ${CLIENT_COMPONENT})
+  install(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION "Applications/High Fidelity"
+    COMPONENT ${CLIENT_COMPONENT}
+    RENAME ${MACOSX_BUNDLE_BUNDLE_NAME}
+  )
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -217,7 +224,7 @@ else (APPLE)
   )
 
   # setup install of interface target
-  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin COMPONENT ${CLIENT_COMPONENT})
+  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION . COMPONENT ${CLIENT_COMPONENT})
 
   # link target to external libraries
   if (WIN32)

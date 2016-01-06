@@ -12,9 +12,9 @@
 macro(install_beside_console)
   # install this component beside the installed server-console executable
   if (APPLE)
-    set(COMPONENT_DESTINATION "bin/Server Console.app/Contents/MacOS/")
+    set(COMPONENT_DESTINATION "Applications/High Fidelity/Server Console.app/Contents/MacOS/")
   else ()
-    set(COMPONENT_DESTINATION bin)
+    set(COMPONENT_DESTINATION .)
   endif ()
 
   install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION ${COMPONENT_DESTINATION} COMPONENT ${SERVER_COMPONENT})
