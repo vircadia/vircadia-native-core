@@ -1,4 +1,5 @@
 Server\ Console-*/
 server-console-*/
+electron-packager/
 npm-debug.log
 logs/
