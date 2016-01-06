@@ -217,7 +217,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
 
 // virtual and protected
-bool EntityMotionState::isReadyToComputeShape() {
+bool EntityMotionState::isReadyToComputeShape() const {
     return _entity->isReadyToComputeShape();
 }
 
@@ -604,13 +604,13 @@ void EntityMotionState::setMotionType(MotionType motionType) {
 
 
 // virtual
-QString EntityMotionState::getName() {
+QString EntityMotionState::getName() const {
     assert(entityTreeIsLocked());
     return _entity->getName();
 }
 
 // virtual
-int16_t EntityMotionState::computeCollisionGroup() {
+int16_t EntityMotionState::computeCollisionGroup() const {
     if (_entity->getIgnoreForCollisions()) {
         return COLLISION_GROUP_COLLISIONLESS;
     }

@@ -215,6 +215,8 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
 
+    // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
+    // class in this context so we can call methods that don't exist at the base class.
     Avatar* avatar = static_cast<Avatar*>(removedAvatar.get());
     avatar->die();
 
