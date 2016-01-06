@@ -350,7 +350,10 @@ template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { 
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 // Shape type interface
-template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::noPipeline(); }
+// This allows shapes to characterize their pipeline via a ShapeKey, to be picked with a subclass of Shape.
+// When creating a new shape payload you need to create a specialized version, or the ShapeKey will be ownPipeline,
+// implying that the shape will setup its own pipeline without the use of the ShapeKey.
+template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::ownPipeline(); }
 
 template <class T> class Payload : public Item::PayloadInterface {
 public:

@@ -103,12 +103,6 @@ public:
     }
 
 public:
-    class Context {
-    public:
-        virtual const ShapePipeline pickPipeline(RenderArgs* args, const ShapeKey& key) = 0;
-    };
-    using ContextPointer = std::shared_ptr<Context>;
-
     class Concept {
         std::string _name;
         bool _isEnabled = true;
@@ -274,7 +268,7 @@ public:
     typedef Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
-class DrawLight : public Shape {
+class DrawLight {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 

@@ -223,12 +223,12 @@ void render::renderLights(const SceneContextPointer& sceneContext, const RenderC
 void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
     assert(item.getKey().isShape());
     const auto& key = item.getShapeKey();
-    if (key.isValid() && key.hasPipeline()) {
+    if (key.isValid() && !key.hasOwnPipeline()) {
         args->_pipeline = shapeContext.pickPipeline(args, key);
         if (args->_pipeline) {
             item.render(args);
         }
-    } else if (!key.hasPipeline()) {
+    } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
         qDebug() << "Item could not be rendered: invalid key ?" << key;

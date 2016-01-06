@@ -38,7 +38,8 @@
 #include "model_translucent_frag.h"
 
 ShapeRender::ShapeRender() {
-    // TODO: There is probably a cleaner way to init the pipeline that in a derived class
+    // TODO: Move pipeline initialization to those Jobs using ShapeRender
+    //       such that they own their own pipelines and it is done only once
     if (_pipelineLib.empty()) {
         initPipeline();
     }

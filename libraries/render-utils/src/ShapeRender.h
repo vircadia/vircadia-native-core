@@ -16,14 +16,15 @@
 #include <model/Material.h>
 
 class ShapeRender : public render::Shape {
-    static model::MaterialPointer _collisionHullMaterial;
-
 public:
     ShapeRender();
     static void initPipeline();
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const override;
 
     static model::MaterialPointer getCollisionHullMaterial();
+
+protected:
+    static model::MaterialPointer _collisionHullMaterial;
 };
 
 #endif // hifi_render_utils_Shape_h

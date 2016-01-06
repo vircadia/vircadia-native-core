@@ -31,7 +31,7 @@ public:
         SHADOW,
         WIREFRAME,
 
-        NO_PIPELINE,
+        OWN_PIPELINE,
         INVALID,
 
         NUM_FLAGS,        // Not a valid flag
@@ -62,10 +62,10 @@ public:
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withShadow() { _flags.set(SHADOW); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
-        Builder& withoutPipeline() { _flags.set(NO_PIPELINE); return (*this); }
+        Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
-        static const ShapeKey noPipeline() { return Builder().withoutPipeline(); }
+        static const ShapeKey ownPipeline() { return Builder().withOwnPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
     };
     ShapeKey(const Builder& builder) : ShapeKey(builder._flags) {}
@@ -81,7 +81,7 @@ public:
     bool isShadow() const { return _flags[SHADOW]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
 
-    bool hasPipeline() const { return !_flags[NO_PIPELINE]; }
+    bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
 
     // Hasher for use in unordered_maps
@@ -101,18 +101,22 @@ public:
 
 inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
     if (renderKey.isValid()) {
-        debug << "[ShapeKey:"
-            << "hasLightmap:" << renderKey.hasLightmap()
-            << "hasTangents:" << renderKey.hasTangents()
-            << "hasSpecular:" << renderKey.hasSpecular()
-            << "hasEmissive:" << renderKey.hasEmissive()
-            << "isTranslucent:" << renderKey.isTranslucent()
-            << "isSkinned:" << renderKey.isSkinned()
-            << "isStereo:" << renderKey.isStereo()
-            << "isDepthOnly:" << renderKey.isDepthOnly()
-            << "isShadow:" << renderKey.isShadow()
-            << "isWireFrame:" << renderKey.isWireFrame()
-            << "]";
+        if (renderKey.hasOwnPipeline()) {
+            debug << "[ShapeKey: OWN_PIPELINE]";
+        } else {
+            debug << "[ShapeKey:"
+                << "hasLightmap:" << renderKey.hasLightmap()
+                << "hasTangents:" << renderKey.hasTangents()
+                << "hasSpecular:" << renderKey.hasSpecular()
+                << "hasEmissive:" << renderKey.hasEmissive()
+                << "isTranslucent:" << renderKey.isTranslucent()
+                << "isSkinned:" << renderKey.isSkinned()
+                << "isStereo:" << renderKey.isStereo()
+                << "isDepthOnly:" << renderKey.isDepthOnly()
+                << "isShadow:" << renderKey.isShadow()
+                << "isWireFrame:" << renderKey.isWireFrame()
+                << "]";
+        }
     } else {
         debug << "[ShapeKey: INVALID]";
     }

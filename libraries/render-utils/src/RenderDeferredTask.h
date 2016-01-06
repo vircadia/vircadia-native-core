@@ -51,29 +51,35 @@ public:
 };
 
 class DrawOpaqueDeferred {
-    ShapeRender _renderer;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
+
+protected:
+    ShapeRender _renderer;
 };
 
 class DrawTransparentDeferred {
-    ShapeRender _renderer;
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
+
+protected:
+    ShapeRender _renderer;
 };
 
 class DrawStencilDeferred {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     typedef render::Job::Model<DrawStencilDeferred> JobModel;
+
+protected:
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 };
 
 class DrawBackgroundDeferred {
@@ -84,14 +90,16 @@ public:
 };
 
 class DrawOverlay3D {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
-    ShapeRender _renderer;
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     typedef render::Job::Model<DrawOverlay3D> JobModel;
+
+protected:
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    ShapeRender _renderer;
 };
 
 class Blit {
