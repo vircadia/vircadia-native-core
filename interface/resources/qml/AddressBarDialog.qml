@@ -16,6 +16,7 @@ import "styles"
 DialogContainer {
     id: root
     HifiConstants { id: hifi }
+    z: 1000
 
     objectName: "AddressBarDialog"
 

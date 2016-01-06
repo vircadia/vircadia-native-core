@@ -15,6 +15,8 @@
 #include <QtScript/QScriptEngine>
 
 #include <QtQuick/QQuickItem>
+#include <QtQml/QQmlContext>
+#include <QtQml/QQmlEngine>
 
 #include <QtWebSockets/QWebSocketServer>
 #include <QtWebSockets/QWebSocket>
@@ -141,6 +143,7 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
             setupServer();
             retVal = function(context, object);
+            context->engine()->setObjectOwnership(retVal->_qmlWindow, QQmlEngine::CppOwnership);
             registerObject(url.toLower(), retVal);
             if (!title.isEmpty()) {
                 retVal->setTitle(title);
@@ -274,7 +277,7 @@ void QmlWindowClass::hasClosed() {
 }
 
 void QmlWindowClass::raise() {
-    // FIXME
+    QMetaObject::invokeMethod(_qmlWindow, "raiseWindow", Qt::QueuedConnection);
 }
 
 #include "QmlWindowClass.moc"
