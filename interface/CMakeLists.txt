@@ -64,16 +64,19 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME "High Fidelity")
 
-  # configure CMake to use a custom Info.plist and to produce a .app with the correct name
-  set_target_properties(${this_target} PROPERTIES
-    MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in
-  )
+  # configure CMake to use a custom Info.plist
+  set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
   if (PRODUCTION_BUILD)
     set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
     set(ICON_FILENAME "interface.icns")
   else ()
-    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
+    if (DEV_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
+    elseif (PR_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-pr)
+    endif ()
+
     set(ICON_FILENAME "interface-beta.icns")
   endif ()
 
@@ -210,8 +213,25 @@ if (APPLE)
   install(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION "Applications/High Fidelity"
     COMPONENT ${CLIENT_COMPONENT}
-    RENAME ${MACOSX_BUNDLE_BUNDLE_NAME}
   )
+
+  if (PRODUCTION_BUILD OR PR_BUILD)
+    # for a production or PR build, setup rename of produced bundle
+    # for production builds it becomes "High Fidelity" and PR builds are "High Fidelity" with the PR number
+    if (PRODUCTION_BUILD)
+      set(INTERFACE_BUNDLE_NAME "High Fidelity")
+    elseif (PR_BUILD)
+      set(INTERFACE_BUNDLE_NAME "High Fidelity ${BUILD_SEQ}")
+    endif ()
+
+    configure_file(
+      ${HIFI_CMAKE_DIR}/templates/RenameInterfaceBundle.cmake.in
+      ${CMAKE_CURRENT_BINARY_DIR}/RenameInterfaceBundle.cmake
+      @ONLY
+    )
+
+    set_target_properties(${TARGET_NAME} PROPERTIES POST_INSTALL_SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/RenameInterfaceBundle.cmake")
+  endif ()
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD

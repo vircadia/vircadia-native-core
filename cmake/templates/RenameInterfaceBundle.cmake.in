@@ -1,0 +1,16 @@
+#
+#  RenameInterfaceBundle.cmake.in
+#  cmake/templates
+#
+#  Copyright 2016 High Fidelity, Inc.
+#  Created by Stephen Birarda on January 5, 2016
+#
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+#
+
+set(SOURCE_BUNDLE "@CMAKE_INSTALL_PREFIX@/Applications/High Fidelity/interface.app")
+set(DESTINATION_BUNDLE "@CMAKE_INSTALL_PREFIX@/Applications/High Fidelity/@INTERFACE_BUNDLE_NAME@.app")
+message(STATUS "Renaming ${SOURCE_BUNDLE} to ${DESTINATION_BUNDLE}")
+
+file(RENAME ${SOURCE_BUNDLE} ${DESTINATION_BUNDLE})
