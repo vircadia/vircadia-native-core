@@ -981,6 +981,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
 
+        /*
         // set leftHand grab vars
         _animVars.set("isLeftHandIdle", false);
         _animVars.set("isLeftHandPoint", false);
@@ -1019,6 +1020,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
         _rightHandOverlayAlpha = glm::clamp(_rightHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
         _animVars.set("rightHandOverlayAlpha", _rightHandOverlayAlpha);
         _animVars.set("rightHandGrabBlend", params.rightTrigger);
+        */
     }
 }
 

@@ -168,7 +168,7 @@
                                                     "interpDuration": 3,
                                                     "transitions": [
                                                         { "var": "isRightHandIdle", "state": "rightHandIdle" },
-                                                        { "var": "isRightHandPoint_DISABLED", "state": "rightHandPointHold" }
+                                                        { "var": "isRightHandPoint", "state": "rightHandPointHold" }
                                                     ]
                                                 }
                                             ]
@@ -264,7 +264,7 @@
                                         "data": {
                                             "alpha": 1.0,
                                             "boneSet": "leftHand",
-                                            "alphaVar" : "leftHandOverlay"
+                                            "alphaVar" : "leftHandOverlayAlpha"
                                         },
                                         "children": [
                                             {
@@ -317,7 +317,7 @@
                                                             "interpDuration": 3,
                                                             "transitions": [
                                                                 { "var": "isLeftHandIdle", "state": "leftHandIdle" },
-                                                                { "var": "isLeftHandPoint_DISABLED", "state": "leftHandPointHold" }
+                                                                { "var": "isLeftHandPoint", "state": "leftHandPointHold" }
                                                             ]
                                                         }
                                                     ]

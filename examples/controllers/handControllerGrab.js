@@ -18,6 +18,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
+var WANT_DEBUG_STATE = true;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -302,8 +303,83 @@ function MyController(hand) {
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
+    this.handIdleAlpha = 0;
+
+    var HAND_IDLE_RAMP_ON_RATE = 0.1;
+    var HAND_IDLE_RAMP_OFF_RATE = 0.02;
 
     var _this = this;
+
+    var farGrabStates = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
+    var pointStates = [STATE_SEARCHING, STATE_EQUIP_SEARCHING,
+                       STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER,
+                       STATE_FAR_TRIGGER, STATE_CONTINUE_FAR_TRIGGER];
+    var idleStates = [STATE_OFF];
+
+    var propList = ["isLeftHandFarGrab", "isLeftHandPoint", "isLeftHandIdle", "isLeftHandGrab",
+                    "isRightHandFarGrab", "isRightHandPoint", "isRightHandIdle", "isRightHandGrab"];
+
+    // hook up anim var handler
+    this.animHandlerId = MyAvatar.addAnimationStateHandler(function (props) {
+        var foundState = false;
+        var result = {};
+
+        var isHandPrefix = (_this.hand === RIGHT_HAND) ? "isRight" : "isLeft";
+        var handPrefix = (_this.hand === RIGHT_HAND) ? "right" : "left";
+
+        /*
+        // far grab check
+        if (farGrabStates.indexOf(_this.state) != -1) {
+            result[isHandPrefix + "HandFarGrab"] = true;
+            foundState = true;
+        } else {
+            result[isHandPrefix + "HandFarGrab"] = false;
+        }
+        */
+
+        result[handPrefix + "HandGrabBlend"] = _this.triggerValue;
+
+        // point check
+        if (pointStates.indexOf(_this.state) != -1) {
+            result[isHandPrefix + "HandPoint"] = true;
+            foundState = true;
+        } else {
+            result[isHandPrefix + "HandPoint"] = false;
+        }
+
+        // idle check
+        if (idleStates.indexOf(_this.state) != -1) {
+
+            // ramp down handIdleAlpha
+            if (_this.handIdleAlpha > HAND_IDLE_RAMP_OFF_RATE) {
+                _this.handIdleAlpha -= HAND_IDLE_RAMP_OFF_RATE;
+            } else {
+                _this.handIdleAlpha = 0;
+            }
+            result[isHandPrefix + "HandIdle"] = true;
+            foundState = true;
+        } else {
+
+            // ramp up handIdleAlpha
+            if (_this.handIdleAlpha < 1 - HAND_IDLE_RAMP_ON_RATE) {
+                _this.handIdleAlpha += HAND_IDLE_RAMP_ON_RATE;
+            } else {
+                _this.handIdleAlpha = 1;
+            }
+            result[isHandPrefix + "HandIdle"] = false;
+        }
+
+        result[handPrefix + "HandOverlayAlpha"] = _this.handIdleAlpha;
+
+        // grab check
+        if (!foundState) {
+            result[isHandPrefix + "HandGrab"] = true;
+        } else {
+            result[isHandPrefix + "HandGrab"] = false;
+        }
+
+        return result;
+    }, propList);
 
     this.update = function() {
 
@@ -360,7 +436,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState) {
-        if (WANT_DEBUG) {
+        if (WANT_DEBUG || WANT_DEBUG_STATE) {
             print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
@@ -1713,6 +1789,11 @@ function MyController(hand) {
         Entities.deleteEntity(this.particleBeam);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
+
+        if (this.animHandlerId) {
+            MyAvatar.removeAnimationStateHandler(this.animHandlerId);
+            this.animHandlerId = undefined;
+        }
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
