@@ -917,6 +917,7 @@ function MyController(hand) {
 
                             }
                             this.setState(STATE_EQUIP);
+                            this.turnOffVisualizations();
                             return;
                         } else if ((this.state == STATE_SEARCHING) && this.triggerSmoothedGrab()) {
                             this.setState(STATE_DISTANCE_HOLDING);
