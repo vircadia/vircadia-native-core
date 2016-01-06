@@ -40,7 +40,7 @@ var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
-FAR_TO_NEAR_GRAB_OFFSET_PADDING_FACTOR = 1.5;
+var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -854,12 +854,11 @@ function MyController(hand) {
 
                 // the ray is intersecting something we can move.
                 this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
-                this.intersectionPoint = intersection.intersection;
+
                 var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, intersection.entityID, DEFAULT_GRABBABLE_DATA);
                 var defaultDisableNearGrabData = {
                     disableNearGrab: false
                 };
-
                 //sometimes we want things to stay right where they are when we let go.
                 var disableNearGrabData = getEntityCustomData('handControllerKey', intersection.entityID, defaultDisableNearGrabData);
 
@@ -906,18 +905,20 @@ function MyController(hand) {
                     if (intersection.properties.collisionsWillMove && !intersection.properties.locked) {
                         // the hand is far from the intersected object.  go into distance-holding mode
                         this.grabbedEntity = intersection.entityID;
-                        if (typeof grabbableData.spatialKey !== 'undefined' && this.state == STATE_EQUIP_SEARCHING) {
+                        if (this.state == STATE_EQUIP_SEARCHING) {
                             // if a distance pick in equip mode hits something with a spatialKey, equip it
                             // TODO use STATE_EQUIP_SPRING here once it works right.
                             // this.setState(STATE_EQUIP_SPRING);
+                            if (typeof grabbableData.spatialKey === 'undefined') {
+                                // We want to give a temporary position offset to this object so it is pulled close to hand
+                                var intersectionPointToCenterDistance = Vec3.length(Vec3.subtract(intersection.intersection, intersection.properties.position));
+                                this.temporaryPositionOffset = Vec3.normalize(Vec3.subtract(intersection.properties.position, handPosition));
+                                this.temporaryPositionOffset = Vec3.multiply(this.temporaryPositionOffset, intersectionPointToCenterDistance * FAR_TO_NEAR_GRAB_PADDING_FACTOR);
+
+                            }
                             this.setState(STATE_EQUIP);
                             return;
                         } else if ((this.state == STATE_SEARCHING) && this.triggerSmoothedGrab()) {
-                            if (!grabbableData.spatialKey) {
-                                var position = Entities.getEntityProperties(this.grabbedEntity, "position").position;
-                                this.temporaryPositionOffset = Vec3.subtract(position, this.intersectionPoint);
-                                this.temporaryPositionOffset = Vec3.multiply(this.temporaryPositionOffset, FAR_TO_NEAR_GRAB_OFFSET_PADDING_FACTOR);
-                            }
                             this.setState(STATE_DISTANCE_HOLDING);
                             return;
                         }
@@ -1126,7 +1127,8 @@ function MyController(hand) {
         var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
-        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed()) {
+        if (this.state == STATE_CONTINUE_DISTANCE_HOLDING && this.bumperSqueezed() &&
+            typeof grabbableData.spatialKey !== 'undefined') {
             var saveGrabbedID = this.grabbedEntity;
             this.release();
             this.setState(STATE_EQUIP);
@@ -1367,12 +1369,12 @@ function MyController(hand) {
             var currentObjectPosition = grabbedProperties.position;
             var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
-            if (this.state != STATE_NEAR_GRABBING) {
+            if (this.temporaryPositionOffset) {
                 this.offsetPosition = this.temporaryPositionOffset;
             }
         }
 
-   
+
         if (!this.setupHoldAction()) {
             return;
         }
