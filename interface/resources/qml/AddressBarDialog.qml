@@ -151,6 +151,17 @@ DialogContainer {
             addressLine.forceActiveFocus()
         }
     }
+    
+    Timer {
+        running: root.enabled
+        interval: 500
+        repeat: true
+        onTriggered: {
+            if (root.enabled && !addressLine.activeFocus) {
+                addressLine.forceActiveFocus()
+            }
+        }
+    }
 
     onVisibleChanged: {
         if (!visible) {
