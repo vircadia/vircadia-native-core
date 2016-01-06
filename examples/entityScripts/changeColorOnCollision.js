@@ -16,5 +16,6 @@
 
     this.collisionWithEntity = function(myID, otherID, collisionInfo) { 
         Entities.editEntity(myID, { color: { red: getRandomInt(128,255), green: getRandomInt(128,255), blue: getRandomInt(128,255)} });
+        print("collisionWithEntity() myID:" + myID + ", otherID:" + otherID);
     }; 
 })
