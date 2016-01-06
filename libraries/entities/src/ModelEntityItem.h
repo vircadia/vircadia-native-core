@@ -103,7 +103,6 @@ public:
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
     void mapJoints(const QStringList& modelJointNames);
-    void getAnimationFrame(bool& newFrame, QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult);
     bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
 
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
@@ -121,14 +120,34 @@ public:
     virtual glm::vec3 getJointPosition(int jointIndex) const { return glm::vec3(); }
     virtual glm::quat getJointRotation(int jointIndex) const { return glm::quat(); }
 
+    void setJointRotations(const QVector<glm::quat>& rotations);
+    void setJointRotationsSet(const QVector<bool>& rotationsSet);
+    void setJointTranslations(const QVector<glm::vec3>& translations);
+    void setJointTranslationsSet(const QVector<bool>& translationsSet);
+    QVector<glm::quat> getJointRotations() const;
+    QVector<bool> getJointRotationsSet() const;
+    QVector<glm::vec3> getJointTranslations() const;
+    QVector<bool> getJointTranslationsSet() const;
+
 private:
     void setAnimationSettings(const QString& value); // only called for old bitstream format
 
 protected:
-    QVector<glm::quat> _lastKnownFrameDataRotations;
-    QVector<glm::vec3> _lastKnownFrameDataTranslations;
+    // these are used:
+    // - to bounce joint data from an animation into the model/rig.
+    // - to relay changes from scripts to model/rig.
+    // - to relay between network and model/rig
+    // they aren't currently updated from data in the model/rig, and they don't have a direct effect
+    // on what's rendered.
+    ReadWriteLockable _jointDataLock;
+    QVector<glm::quat> _absoluteJointRotationsInObjectFrame;
+    QVector<bool> _absoluteJointRotationsInObjectFrameSet; // ever set?
+    QVector<bool> _absoluteJointRotationsInObjectFrameDirty; // needs a relay to model/rig?
+    QVector<glm::vec3> _absoluteJointTranslationsInObjectFrame;
+    QVector<bool> _absoluteJointTranslationsInObjectFrameSet; // ever set?
+    QVector<bool> _absoluteJointTranslationsInObjectFrameDirty; // needs a relay to model/rig?
     int _lastKnownCurrentFrame;
-
+    virtual void resizeJointArrays(int newSize = -1);
 
     bool isAnimatingSomething() const;
 
@@ -145,7 +164,7 @@ protected:
 
     // used on client side
     bool _jointMappingCompleted;
-    QVector<int> _jointMapping;
+    QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
     QString _jointMappingURL;
 
     static AnimationPointer getAnimation(const QString& url);

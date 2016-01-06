@@ -104,6 +104,8 @@ public:
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const = 0;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const = 0;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) = 0;
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) = 0;
 
     SpatiallyNestablePointer getThisPointer() const;
 

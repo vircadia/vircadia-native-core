@@ -1853,14 +1853,6 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
     return result;
 }
 
-glm::quat EntityItem::getAbsoluteJointRotationInObjectFrame(int index) const {
-    return glm::quat();
-}
-
-glm::vec3 EntityItem::getAbsoluteJointTranslationInObjectFrame(int index) const {
-    return glm::vec3(0.0f);
-}
-
 void EntityItem::locationChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::locationChanged(); // tell all the children, also
