@@ -19,7 +19,7 @@
         print("collisionWithEntity() myID:" + myID + ", otherID:" + otherID);
         print("    collisionInfo.type:" + collisionInfo.type);
         print("    collisionInfo.idA:" + collisionInfo.idA);
-        print("    collisionInfo.idB:" + collisionInfo.idA);
+        print("    collisionInfo.idB:" + collisionInfo.idB);
         Vec3.print("    collisionInfo.penetration:", collisionInfo.penetration);
         Vec3.print("    collisionInfo.contactPoint:", collisionInfo.contactPoint);
         Vec3.print("    collisionInfo.velocityChange:", collisionInfo.velocityChange);
