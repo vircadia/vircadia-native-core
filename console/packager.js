@@ -11,7 +11,7 @@ if (osType == "Darwin" || osType == "Linux") {
 var argv = require('yargs').argv;
 
 // check which icon we should use, beta or regular
-var iconName = argv.beta ? "console-beta" : "console"
+var iconName = argv.production ? "console" : "console-beta";
 
 // setup the common options for the packager
 var options = {
@@ -32,6 +32,7 @@ const FULL_NAME = "High Fidelity Server Console";
 
 // setup per OS options
 if (osType == "Darwin") {
+    options["app-bundle-id"] = "com.highfidelity.server-console" + (argv.production ? "" : "-dev")
     options["name"] = SHORT_NAME
 } else if (osType == "Windows_NT") {
     options["version-string"] = {
