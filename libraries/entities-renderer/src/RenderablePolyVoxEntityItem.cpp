@@ -142,9 +142,11 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    glm::vec3 center = getCenterPosition();
-    glm::vec3 position = getPosition();
+    bool success; // TODO -- Does this actually have to happen in world space?
+    glm::vec3 center = getCenterPosition(success);
+    glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
+
     positionToCenter -= getDimensions() * Vectors::HALF - getSurfacePositionAdjustment();
     glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
     glm::mat4 scaled = glm::scale(centerToCorner, scale);
@@ -581,7 +583,12 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload) {
         if (payload && payload->_owner) {
             auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
-            return polyVoxEntity->getAABox();
+            bool success;
+            auto result = polyVoxEntity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }

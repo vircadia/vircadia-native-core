@@ -10,7 +10,6 @@ import "styles"
 
 VrDialog {
     id: root
-    objectName: "topLevelWindow"
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
@@ -42,10 +41,6 @@ VrDialog {
             anchors.fill: parent
             focus: true
             property var dialog: root
-            
-            onLoaded: {
-                forceActiveFocus()
-            }
             
             Keys.onPressed: {
                 console.log("QmlWindow pageLoader keypress")

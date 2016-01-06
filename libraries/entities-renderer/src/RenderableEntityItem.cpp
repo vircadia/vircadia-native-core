@@ -28,7 +28,12 @@ namespace render {
     
     template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload) { 
         if (payload && payload->entity) {
-            return payload->entity->getAABox();
+            bool success;
+            auto result = payload->entity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }

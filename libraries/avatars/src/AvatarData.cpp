@@ -90,10 +90,18 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
 // There are a number of possible strategies for this set of tools through endRender, below.
 void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
     avatarLock.lock();
-    Transform trans = getTransform();
+    bool success;
+    Transform trans = getTransform(success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+        return;
+    }
     trans.setTranslation(position);
     trans.setRotation(orientation);
-    SpatiallyNestable::setTransform(trans);
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::nextAttitude failed";
+    }
     avatarLock.unlock();
     updateAttitude();
 }
@@ -208,8 +216,9 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    SpatiallyNestablePointer parent = getParentPointer();
-    if (parent) {
+    bool success;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (parent && success) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
@@ -1446,7 +1455,11 @@ QJsonObject AvatarData::toJson() const {
     }
 
     auto recordingBasis = getRecordingBasis();
-    Transform avatarTransform = getTransform();
+    bool success;
+    Transform avatarTransform = getTransform(success);
+    if (!success) {
+        qDebug() << "Warning -- AvatarData::toJson couldn't get avatar transform";
+    }
     avatarTransform.setScale(getTargetScale());
     if (recordingBasis) {
         root[JSON_AVATAR_BASIS] = Transform::toJson(*recordingBasis);
@@ -1634,4 +1647,14 @@ void AvatarData::setPosition(const glm::vec3& position) {
 
 void AvatarData::setOrientation(const glm::quat& orientation) {
     SpatiallyNestable::setOrientation(orientation);
+}
+
+glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
+    assert(false);
+    return glm::quat();
+}
+
+glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const {
+    assert(false);
+    return glm::vec3();
 }

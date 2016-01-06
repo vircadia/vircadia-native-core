@@ -21,7 +21,7 @@ class InterfaceParentFinder : public SpatialParentFinder {
 public:
     InterfaceParentFinder() { }
     virtual ~InterfaceParentFinder() { }
-    virtual SpatiallyNestableWeakPointer find(QUuid parentID) const;
+    virtual SpatiallyNestableWeakPointer find(QUuid parentID, bool& success) const;
 };
 
 #endif // hifi_InterfaceParentFinder_h

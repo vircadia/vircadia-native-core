@@ -1372,6 +1372,7 @@ function MyController(hand) {
             }
         }
 
+   
         if (!this.setupHoldAction()) {
             return;
         }

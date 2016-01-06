@@ -96,6 +96,9 @@ DialogContainer {
     }
 
     Keys.onPressed: {
+        if (!enabled) {
+            return
+        }
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:

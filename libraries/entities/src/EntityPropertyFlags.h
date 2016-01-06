@@ -157,6 +157,8 @@ enum EntityPropertyList {
     PROP_LOCAL_POSITION, // only used to convert values to and from scripts
     PROP_LOCAL_ROTATION, // only used to convert values to and from scripts
 
+    PROP_QUERY_AA_CUBE, // how the EntityTree considers the size and position on an entity
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
