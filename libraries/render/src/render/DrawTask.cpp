@@ -235,26 +235,16 @@ void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
     }
 }
 
-void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const Shape& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+                          const Shape& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
-
-    if ((maxDrawnItems < 0) || (maxDrawnItems > (int)inItems.size())) {
-        for (const auto& itemDetails : inItems) {
-            // FIXME: Every item is copied because item.render cannot mutate a const
-            auto item = scene->getItem(itemDetails.id);
-            renderShape(args, shapeContext, item);
-        }
-    } else {
-        int numItems = 0;
-        for (const auto& itemDetails : inItems) {
-            numItems++;
-            auto item = scene->getItem(itemDetails.id);
-            renderShape(args, shapeContext, item);
-            if (numItems >= maxDrawnItems) {
-                break;
-            }
-        }
+    
+    auto numItemsToDraw = glm::max((int)inItems.size(), maxDrawnItems);
+    for (auto i = 0; i < numItemsToDraw; ++i) {
+        // FIXME: Every item is copied because item.render cannot mutate a const
+        auto item = scene->getItem(inItems[i].id);
+        renderShape(args, shapeContext, item);
     }
 }
 
