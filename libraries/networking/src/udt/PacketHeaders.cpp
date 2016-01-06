@@ -60,7 +60,7 @@ QDebug operator<<(QDebug debug, const PacketType& type) {
     QMetaObject metaObject = PacketTypeEnum::staticMetaObject;
     QMetaEnum metaEnum = metaObject.enumerator(metaObject.enumeratorOffset());
     QString typeName = metaEnum.valueToKey((int) type);
-    
+
     debug.nospace().noquote() << (uint8_t) type << " (" << typeName << ")";
     return debug.space();
 }
