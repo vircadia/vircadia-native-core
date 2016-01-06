@@ -14,9 +14,8 @@ macro(install_beside_console)
   if (APPLE)
     set(SHELL_APP_CONTENTS "Components.app/Contents")
     set(COMPONENT_DESTINATION "${SHELL_APP_CONTENTS}/MacOS")
-
   else ()
-    set(COMPONENT_DESTINATION .)
+    set(COMPONENT_DESTINATION ${CONSOLE_INSTALL_PATH})
   endif ()
 
   install(
@@ -24,6 +23,21 @@ macro(install_beside_console)
     RUNTIME DESTINATION ${COMPONENT_DESTINATION}
     COMPONENT ${SERVER_COMPONENT}
   )
+
+  if (TARGET_NAME STREQUAL domain-server)
+    if (APPLE)
+      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_PATH}/Contents/MacOS)
+    else ()
+      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_PATH})
+    endif ()
+
+    # install the resources folder for the domain-server where its executable will be
+    install(
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
+      DESTINATION ${RESOURCES_DESTINATION}
+      USE_SOURCE_PERMISSIONS
+    )
+  endif ()
 
   if (APPLE)
     # during the install phase, call fixup to drop the shared libraries for these components in the right place
@@ -34,7 +48,7 @@ macro(install_beside_console)
     " COMPONENT ${SERVER_COMPONENT})
 
     # once installed copy the contents of the shell Components.app to the console application
-    set(CONSOLE_INSTALL_PATH "Applications/High Fidelity/Server Console.app")
+
     set(INSTALLED_CONSOLE_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${CONSOLE_INSTALL_PATH}/Contents")
 
     set(INSTALLED_SHELL_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${SHELL_APP_CONTENTS}")

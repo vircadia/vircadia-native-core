@@ -13,6 +13,12 @@
 
 macro(SET_PACKAGING_PARAMETERS)
 
+  if (APPLE)
+    set(CONSOLE_INSTALL_PATH "Applications/High Fidelity/Server Console.app")
+  else ()
+    set(CONSOLE_INSTALL_PATH ".")
+  endif()
+
   if (DEFINED ENV{JOB_ID})
     set(DEPLOY_PACKAGE TRUE)
     set(BUILD_SEQ $ENV{JOB_ID})
