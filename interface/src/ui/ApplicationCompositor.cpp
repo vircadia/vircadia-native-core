@@ -202,7 +202,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     //Handle fading and deactivation/activation of UI
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -270,7 +270,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         geometryCache->useSimpleDrawPipeline(batch);
 
         batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));

@@ -70,7 +70,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         renderArgs->_batch = &batch;
 
         int width = _overlayFramebuffer->getWidth();
