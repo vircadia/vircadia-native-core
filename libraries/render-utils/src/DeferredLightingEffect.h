@@ -21,7 +21,7 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
-#include "ShapeRender.h"
+#include "render/Shape.h"
 
 class RenderArgs;
 class SimpleProgramKey;
@@ -32,7 +32,7 @@ class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    static const int NORMAL_FITTING_MAP_SLOT = ShapeRender::Slot::NORMAL_FITTING_MAP;
+    static const int NORMAL_FITTING_MAP_SLOT = render::Shape::Slot::NORMAL_FITTING_MAP;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
 
     void init();
