@@ -71,7 +71,7 @@
                 Entities.editEntity(particles, {
                     radiusSpread: 0.0,
                     radiusStart: 0.0,
-                    particleRadius: 2 * PARTICLE_RADIUS,  // Bezier interpolation used means that middle value isn't intersected
+                    particleRadius: PARTICLE_RADIUS,
                     radiusFinish: 0.0
                 });
                 break;
