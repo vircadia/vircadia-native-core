@@ -1,4 +1,4 @@
-set(TARGET_NAME package-console)
+set(TARGET_NAME packaged-console)
 
 if (PRODUCTION_BUILD)
   set(PRODUCTION_OPTION "--production")
