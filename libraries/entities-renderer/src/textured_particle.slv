@@ -64,11 +64,11 @@ float interpolate3Points(float y1, float y2, float y3, float u) {
         return y2;
     }
 
-	float halfSlope;
+    float halfSlope;
     if ((y2 >= y1 && y2 >= y3) || (y2 <= y1 && y2 <= y3)) {
         // U or inverted-U shape.
         // Make the slope at y2 = 0, which means that the control points half way between the value points have the value y2.
-		halfSlope = 0.0f;
+        halfSlope = 0.0f;
 
     } else {
         // L or inverted and/or mirrored L shape.
