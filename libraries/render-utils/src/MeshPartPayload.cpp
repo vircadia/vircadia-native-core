@@ -136,7 +136,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    batch.setUniformBuffer(ShapePipeline::Slots::MATERIAL_GPU, _drawMaterial->getSchemaBuffer());
+    batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_GPU, _drawMaterial->getSchemaBuffer());
 
     auto materialKey = _drawMaterial->getKey();
     auto textureMaps = _drawMaterial->getTextureMaps();
@@ -146,44 +146,44 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isDiffuseMap()) {
         auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
         if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slots::DIFFUSE_MAP, diffuseMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
 
             if (!diffuseMap->getTextureTransform().isIdentity()) {
                 diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slots::DIFFUSE_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slots::DIFFUSE_MAP, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map
     if (materialKey.isNormalMap()) {
         auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
         if (normalMap && normalMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slots::NORMAL_MAP, normalMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
             // texcoord are assumed to be the same has diffuse
         } else {
-            batch.setResourceTexture(ShapePipeline::Slots::NORMAL_MAP, textureCache->getBlueTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slots::NORMAL_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
     // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
     if (materialKey.isGlossMap()) {
         auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slots::SPECULAR_MAP, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
 
             // texcoord are assumed to be the same has diffuse
         } else {
-            batch.setResourceTexture(ShapePipeline::Slots::SPECULAR_MAP, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slots::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
     }
 
     // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
@@ -191,7 +191,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -200,10 +200,10 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slots::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -438,9 +438,9 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     Transform transform;
     if (state.clusterBuffer) {
         if (_model->_cauterizeBones) {
-            batch.setUniformBuffer(ShapePipeline::Slots::SKINNING_GPU, state.cauterizedClusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.cauterizedClusterBuffer);
         } else {
-            batch.setUniformBuffer(ShapePipeline::Slots::SKINNING_GPU, state.clusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.clusterBuffer);
         }
     } else {
         if (_model->_cauterizeBones) {

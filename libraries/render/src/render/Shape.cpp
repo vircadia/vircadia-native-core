@@ -41,14 +41,14 @@ const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& k
 
 void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slots::SKINNING_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slots::MATERIAL_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), Slots::DIFFUSE_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slots::NORMAL_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), Slots::SPECULAR_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slots::LIGHTMAP_MAP));
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slots::LIGHT_BUFFER));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slots::NORMAL_FITTING_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
+    slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), Slot::DIFFUSE_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::NORMAL_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), Slot::SPECULAR_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::LIGHTMAP_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::LIGHT_BUFFER));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING_MAP));
 
     gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
     gpu::Shader::makeProgram(*program, slotBindings);

@@ -122,7 +122,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
 // Rendering abstraction over gpu::Pipeline and map locations
 class ShapePipeline {
 public:
-    class Slots {
+    class Slot {
     public:
         static const int SKINNING_GPU = 2;
         static const int MATERIAL_GPU = 3;
@@ -163,7 +163,7 @@ public:
     using Key = ShapeKey;
     using Pipeline = ShapePipeline;
     using PipelinePointer = std::shared_ptr<Pipeline>;
-    using Slots = ShapePipeline::Slots;
+    using Slot = ShapePipeline::Slot;
     using Locations = ShapePipeline::Locations;
 
     using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
