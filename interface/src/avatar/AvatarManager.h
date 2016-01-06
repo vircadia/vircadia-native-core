@@ -41,9 +41,9 @@ public:
 
     void updateMyAvatar(float deltaTime);
     void updateOtherAvatars(float deltaTime);
-    
+
     void clearOtherAvatars();
-   
+
     bool shouldShowReceiveStats() const { return _shouldShowReceiveStats; }
 
     class LocalLight {

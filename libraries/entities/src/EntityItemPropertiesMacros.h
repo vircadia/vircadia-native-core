@@ -113,6 +113,8 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const xColor& v) { retu
 inline QScriptValue convertScriptValue(QScriptEngine* e, const glm::quat& v) { return quatToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QScriptValue& v) { return v; }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::vec3>& v) {return qVectorVec3ToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<glm::quat>& v) {return qVectorQuatToScriptValue(e, v); }
+inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<bool>& v) {return qVectorBoolToScriptValue(e, v); }
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QVector<float>& v) { return qVectorFloatToScriptValue(e, v); }
 
 inline QScriptValue convertScriptValue(QScriptEngine* e, const QByteArray& v) {
@@ -176,6 +178,8 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
 typedef glm::vec3 glmVec3;
 typedef glm::quat glmQuat;
 typedef QVector<glm::vec3> qVectorVec3;
+typedef QVector<glm::quat> qVectorQuat;
+typedef QVector<bool> qVectorBool;
 typedef QVector<float> qVectorFloat;
 inline float float_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toFloat(&isValid); }
 inline quint64 quint64_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toULongLong(&isValid); }
@@ -243,6 +247,16 @@ inline qVectorFloat qVectorFloat_convertFromScriptValue(const QScriptValue& v, b
 inline qVectorVec3 qVectorVec3_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
     isValid = true;
     return qVectorVec3FromScriptValue(v);
+}
+
+inline qVectorQuat qVectorQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    return qVectorQuatFromScriptValue(v);
+}
+
+inline qVectorBool qVectorBool_convertFromScriptValue(const QScriptValue& v, bool& isValid) {
+    isValid = true;
+    return qVectorBoolFromScriptValue(v);
 }
 
 inline glmQuat glmQuat_convertFromScriptValue(const QScriptValue& v, bool& isValid) { 

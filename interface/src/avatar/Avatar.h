@@ -113,6 +113,8 @@ public:
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;

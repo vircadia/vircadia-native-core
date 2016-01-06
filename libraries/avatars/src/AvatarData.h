@@ -267,9 +267,9 @@ public:
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
-    
+
     Q_INVOKABLE virtual void clearJointsData();
-    
+
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; }
 
@@ -288,42 +288,42 @@ public:
 
     bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
-    
+
     bool hasBillboardChangedAfterParsing(const QByteArray& data);
-    
+
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-    
+
     virtual void setDisplayName(const QString& displayName);
-    
+
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    
+
     Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
-    
+
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
-    
+
     virtual void setBillboard(const QByteArray& billboard);
     const QByteArray& getBillboard() const { return _billboard; }
-    
+
     void setBillboardFromURL(const QString& billboardURL);
     const QString& getBillboardURL() { return _billboardURL; }
-    
+
     QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
     void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
-    
+
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
-    
+
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
-    
+
     const AABox& getLocalAABox() const { return _localAABox; }
 
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
@@ -351,13 +351,15 @@ public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
     void sendBillboardPacket();
-    
+
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
     void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
 
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
 protected:
     glm::vec3 _handPosition;
@@ -392,14 +394,14 @@ protected:
 
     QByteArray _billboard;
     QString _billboardURL;
-    
+
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
-    
+
     QWeakPointer<Node> _owningAvatarMixer;
-    
+
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
 
@@ -411,7 +413,7 @@ protected:
     SimpleMovingAverage _averageBytesReceived;
 
     QMutex avatarLock; // Name is redundant, but it aids searches.
-    
+
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
     // During playback, it holds the origin from which to play the relative positions in the clip
     TransformPointer _recordingBasis;
@@ -468,19 +470,19 @@ class AttachmentDataObject : public QObject, protected QScriptable {
     Q_PROPERTY(float scale READ getScale WRITE setScale)
 
 public:
-    
+
     Q_INVOKABLE void setModelURL(const QString& modelURL) const;
     Q_INVOKABLE QString getModelURL() const;
-    
+
     Q_INVOKABLE void setJointName(const QString& jointName) const;
     Q_INVOKABLE QString getJointName() const;
-    
+
     Q_INVOKABLE void setTranslation(const glm::vec3& translation) const;
     Q_INVOKABLE glm::vec3 getTranslation() const;
-    
+
     Q_INVOKABLE void setRotation(const glm::quat& rotation) const;
     Q_INVOKABLE glm::quat getRotation() const;
-    
+
     Q_INVOKABLE void setScale(float scale) const;
     Q_INVOKABLE float getScale() const;
 };

@@ -39,11 +39,11 @@ public:
     virtual void debugDump() const;
     virtual void listChangedProperties(QList<QString>& out);
 
-    virtual bool appendToEditPacket(OctreePacketData* packetData,                                     
+    virtual bool appendToEditPacket(OctreePacketData* packetData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const;
 
     virtual bool decodeFromEditPacket(EntityPropertyFlags& propertyFlags, const unsigned char*& dataAt , int& processedBytes);
@@ -53,25 +53,25 @@ public:
     // EntityItem related helpers
     // methods for getting/setting all properties of an entity
     virtual void getProperties(EntityItemProperties& propertiesOut) const;
-    
+
     /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties);
 
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
-        
-    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params, 
+
+    virtual void appendSubclassData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData,
                                     EntityPropertyFlags& requestedProperties,
                                     EntityPropertyFlags& propertyFlags,
                                     EntityPropertyFlags& propertiesDidntFit,
-                                    int& propertyCount, 
+                                    int& propertyCount,
                                     OctreeElement::AppendState& appendState) const;
 
-    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
+    virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged);
-    
+
     DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, URL, url, QString, "");
     DEFINE_PROPERTY(PROP_ANIMATION_FPS, FPS, fps, float, 30.0f);
     DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, CurrentFrame, currentFrame, float, 0.0f);

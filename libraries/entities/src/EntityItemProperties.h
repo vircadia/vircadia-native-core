@@ -199,6 +199,11 @@ public:
     DEFINE_PROPERTY_REF(PROP_LOCAL_POSITION, LocalPosition, localPosition, glmVec3, ENTITY_ITEM_ZERO_VEC3);
     DEFINE_PROPERTY_REF(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glmQuat, ENTITY_ITEM_DEFAULT_ROTATION);
 
+    DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>, QVector<bool>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>, QVector<glm::quat>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>, QVector<bool>());
+    DEFINE_PROPERTY_REF(PROP_JOINT_TRANSLATIONS, JointTranslations, jointTranslations, QVector<glm::vec3>, QVector<glm::vec3>());
+
     static QString getBackgroundModeString(BackgroundMode mode);
 
 
@@ -261,10 +266,13 @@ public:
     void setActionDataDirty() { _actionDataChanged = true; }
 
     QList<QString> listChangedProperties();
-    
+
     bool getDimensionsInitialized() const { return _dimensionsInitialized; }
     void setDimensionsInitialized(bool dimensionsInitialized) { _dimensionsInitialized = dimensionsInitialized; }
-    
+
+    void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
+    void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
+
 private:
     QUuid _id;
     bool _idSet;
@@ -399,6 +407,11 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentID, parentID, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, ParentJointIndex, parentJointIndex, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, QueryAACube, queryAACube, "");
+
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotationsSet, jointRotationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointRotations, jointRotations, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslationsSet, jointTranslationsSet, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
 
     properties.getAnimation().debugDump();
     properties.getAtmosphere().debugDump();
