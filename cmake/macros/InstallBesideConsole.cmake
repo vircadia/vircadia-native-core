@@ -39,7 +39,6 @@ macro(install_beside_console)
 
     set(INSTALLED_SHELL_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${SHELL_APP_CONTENTS}")
     install(CODE "
-      message(STATUS \"CHECKING ${INSTALLED_SHELL_CONTENTS}/Frameworks/*\")
       file(GLOB FRAMEWORKS \"${INSTALLED_SHELL_CONTENTS}/Frameworks/*\")
       message(STATUS \"Copying \${FRAMEWORKS} to ${INSTALLED_CONSOLE_CONTENTS}/Frameworks\")
       file(COPY \${FRAMEWORKS} DESTINATION \"${INSTALLED_CONSOLE_CONTENTS}/Frameworks\")
