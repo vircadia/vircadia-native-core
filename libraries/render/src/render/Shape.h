@@ -87,7 +87,7 @@ public:
     // Hasher for use in unordered_maps
     class Hash {
     public:
-        size_t operator() (const ShapeKey& key) {
+        size_t operator() (const ShapeKey& key) const {
             return std::hash<ShapeKey::Flags>()(key._flags);
         }
     };
