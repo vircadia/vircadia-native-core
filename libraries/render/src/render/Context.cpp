@@ -17,7 +17,9 @@ RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool 
     : _deferredDebugMode{ deferredDebugMode }, _deferredDebugSize{ deferredDebugSize },
     _args{ nullptr },
     _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
-    _items{ items }, _tone{ tone } {}
+    _items{ items }, _tone{ tone }
+{
+}
 
 void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
     _occlusionStatus = occlusion;

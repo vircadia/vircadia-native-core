@@ -34,27 +34,24 @@ public:
     public:
         class Counter {
         public:
-            Counter() {};
-            Counter(const Counter& counter) {
-                numFeed = numDrawn = 0;
-                maxDrawn = counter.maxDrawn;
-            };
+            Counter() {}
+            Counter(const Counter& counter) : maxDrawn { counter.maxDrawn } {}
 
             void setCounts(const Counter& counter) {
                 numFeed = counter.numFeed;
                 numDrawn = counter.numDrawn;
             };
 
-            int numFeed = 0;
-            int numDrawn = 0;
-            int maxDrawn = -1;
+            int numFeed { 0 };
+            int numDrawn { 0 };
+            int maxDrawn { -1 };
         };
 
         class State : public Counter {
         public:
-            bool render = true;
-            bool cull = true;
-            bool sort = true;
+            bool render { true };
+            bool cull { true };
+            bool sort { true };
 
             Counter counter{};
         };
@@ -76,16 +73,16 @@ public:
     };
     
     RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
-    RenderContext() : RenderContext({}, {}, {}, {}, {}, {}) {};
+    RenderContext() {}
 
     void setArgs(RenderArgs* args) { _args = args; }
-    inline RenderArgs* getArgs() { return _args; }
-    inline ItemsConfig& getItemsConfig() { return _items; }
-    inline Tone& getTone() { return _tone; }
-    inline int getDrawStatus() { return _drawStatus; }
-    inline bool getDrawHitEffect() { return _drawHitEffect; }
-    inline bool getOcclusionStatus() { return _occlusionStatus; }
-    inline bool getFxaaStatus() { return _fxaaStatus; }
+    RenderArgs* getArgs() { return _args; }
+    ItemsConfig& getItemsConfig() { return _items; }
+    Tone& getTone() { return _tone; }
+    int getDrawStatus() { return _drawStatus; }
+    bool getDrawHitEffect() { return _drawHitEffect; }
+    bool getOcclusionStatus() { return _occlusionStatus; }
+    bool getFxaaStatus() { return _fxaaStatus; }
     void setOptions(bool occlusion, bool fxaa, bool showOwned);
 
     // Debugging
@@ -98,8 +95,8 @@ protected:
     // Options
     int _drawStatus; // bitflag
     bool _drawHitEffect;
-    bool _occlusionStatus = false;
-    bool _fxaaStatus = false;
+    bool _occlusionStatus { false };
+    bool _fxaaStatus = { false };
 
     ItemsConfig _items;
     Tone _tone;
