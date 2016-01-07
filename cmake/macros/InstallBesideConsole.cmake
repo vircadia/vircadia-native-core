@@ -12,8 +12,8 @@
 macro(install_beside_console)
   # install this component beside the installed server-console executable
   if (APPLE)
-    set(SHELL_APP_CONTENTS "Components.app/Contents")
-    set(COMPONENT_DESTINATION "${SHELL_APP_CONTENTS}/MacOS")
+    set(CONSOLE_APP_CONTENTS "${CONSOLE_INSTALL_APP_PATH}/Contents")
+    set(COMPONENT_DESTINATION "${CONSOLE_APP_CONTENTS}/MacOS/Components.app/Contents/MacOS")
   else ()
     set(COMPONENT_DESTINATION ${CONSOLE_INSTALL_DIR})
   endif ()
@@ -26,7 +26,7 @@ macro(install_beside_console)
 
   if (TARGET_NAME STREQUAL domain-server)
     if (APPLE)
-      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_APP_PATH}/Contents/MacOS)
+      set(RESOURCES_DESTINATION ${COMPONENT_DESTINATION})
     else ()
       set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_DIR})
     endif ()
@@ -36,6 +36,7 @@ macro(install_beside_console)
       DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources
       DESTINATION ${RESOURCES_DESTINATION}
       USE_SOURCE_PERMISSIONS
+      COMPONENT ${SERVER_COMPONENT}
     )
   endif ()
 
@@ -46,21 +47,6 @@ macro(install_beside_console)
       include(BundleUtilities)
       fixup_bundle(\"${EXECUTABLE_NEEDING_FIXUP}\" \"\" \"${FIXUP_LIBS}\")
     " COMPONENT ${SERVER_COMPONENT})
-
-    # once installed copy the contents of the shell Components.app to the console application
-
-    set(INSTALLED_CONSOLE_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${CONSOLE_INSTALL_APP_PATH}/Contents")
-
-    set(INSTALLED_SHELL_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${SHELL_APP_CONTENTS}")
-    install(CODE "
-      file(GLOB FRAMEWORKS \"${INSTALLED_SHELL_CONTENTS}/Frameworks/*\")
-      message(STATUS \"Copying \${FRAMEWORKS} to ${INSTALLED_CONSOLE_CONTENTS}/Frameworks\")
-      file(COPY \${FRAMEWORKS} DESTINATION \"${INSTALLED_CONSOLE_CONTENTS}/Frameworks\")
-      file(GLOB BINARIES \"${INSTALLED_SHELL_CONTENTS}/MacOS/*\")
-      message(STATUS \"Copying \${BINARIES} to ${INSTALLED_CONSOLE_CONTENTS}/Frameworks\")
-      file(COPY \${BINARIES} DESTINATION \"${INSTALLED_CONSOLE_CONTENTS}/MacOS\")
-    " COMPONENT ${SERVER_COMPONENT})
-
   endif ()
 
 endmacro()

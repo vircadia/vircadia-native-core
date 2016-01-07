@@ -40,7 +40,7 @@ exports.searchPaths = function(name, binaryType) {
             if (contentEndIndex != -1) {
                 // this is an app bundle, check in Contents/MacOS for the binaries
                 var appPath = __dirname.substring(0, contentEndIndex);
-                appPath += ".app/Contents/MacOS/";
+                appPath += ".app/Contents/MacOS/Components.app/Contents/MacOS/";
 
                 paths.push(appPath + name + extension);
             }

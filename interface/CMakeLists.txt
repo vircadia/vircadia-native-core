@@ -239,10 +239,11 @@ fixup_interface()
 
 # if present, add an install of the DDE components
 # which will be presented as an option during install
-if (APPLE AND DDE_APP_PATH)
+if (APPLE AND DEFINED ENV{DDE_APP_PATH})
   install(
-    PROGRAMS ${DDE_APP_PATH}
-    DESTINATION ${INTERFACE_INSTALL_PATH}/Contents/MacOS
+    DIRECTORY $ENV{DDE_APP_PATH}
+    DIRECTORY_PERMISSIONS
+    DESTINATION ${INTERFACE_INSTALL_APP_PATH}/Contents/MacOS
     COMPONENT ${DDE_COMPONENT}
   )
 endif ()
