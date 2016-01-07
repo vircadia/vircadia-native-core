@@ -214,13 +214,12 @@ void render::renderLights(const SceneContextPointer& sceneContext, const RenderC
     RenderArgs* args = renderContext->getArgs();
 
     for (const auto& itemDetails : inItems) {
-        // FIXME: Every item is copied because item.render cannot mutate a const
-        auto item = scene->getItem(itemDetails.id);
+        auto& item = scene->getItem(itemDetails.id);
         item.render(args);
     }
 }
 
-void renderShape(RenderArgs* args, const ShapePipelineLib& shapeContext, Item& item) {
+void renderShape(RenderArgs* args, const ShapePipelineLib& shapeContext, const Item& item) {
     assert(item.getKey().isShape());
     const auto& key = item.getShapeKey();
     if (key.isValid() && !key.hasOwnPipeline()) {
@@ -242,8 +241,7 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     
     auto numItemsToDraw = glm::max((int)inItems.size(), maxDrawnItems);
     for (auto i = 0; i < numItemsToDraw; ++i) {
-        // FIXME: Every item is copied because item.render cannot mutate a const
-        auto item = scene->getItem(inItems[i].id);
+        auto& item = scene->getItem(inItems[i].id);
         renderShape(args, shapeContext, item);
     }
 }

@@ -305,7 +305,7 @@ public:
     int getLayer() const { return _payload->getLayer(); }
 
     // Render call for the item
-    void render(RenderArgs* args) { _payload->render(args); }
+    void render(RenderArgs* args) const { _payload->render(args); }
 
     // Shape Type Interface
     const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
