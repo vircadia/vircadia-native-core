@@ -172,7 +172,10 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
             } else if (!_anchorPositionBindEntity.isNull()) {
                 EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
                 entityTree->withReadLock([&] {
-                    transform.setTranslation(entityTree->findEntityByID(_anchorPositionBindEntity)->getPosition());
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorPositionBindEntity);
+                    if (foundEntity != NULL) {
+                        transform.setTranslation(foundEntity->getPosition());
+                    }
                 });
             } else {
                 transform.setTranslation(getAnchorPosition());
@@ -184,7 +187,10 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
             } else if (!_anchorRotationBindEntity.isNull()) {
                 EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
                 entityTree->withReadLock([&] {
-                    transform.setRotation(entityTree->findEntityByID(_anchorRotationBindEntity)->getRotation());
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorRotationBindEntity);
+                    if (foundEntity != NULL) {
+                        transform.setRotation(foundEntity->getRotation());
+                    }
                 });
             } else {
                 transform.setRotation(getAnchorRotation());
