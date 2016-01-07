@@ -72,13 +72,15 @@ Menu::Menu() {
     }
 
     // File > Update -- FIXME: needs implementation
-    addActionToQMenuAndActionHash(fileMenu, "Update");
+    auto updateAction = addActionToQMenuAndActionHash(fileMenu, "Update");
+    updateAction->setDisabled(true);
 
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
 
     // File > Crash Reporter...-- FIXME: needs implementation
-    addActionToQMenuAndActionHash(fileMenu, "Crash Reporter...");
+    auto crashReporterAction = addActionToQMenuAndActionHash(fileMenu, "Crash Reporter...");
+    crashReporterAction->setDisabled(true);
 
     // File > About
     addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
@@ -93,7 +95,8 @@ Menu::Menu() {
         audioIO.data(), SLOT(toggleMute()));
 
     // Audio > Level Meter  [advanced] -- FIXME: needs implementation
-    addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+    auto levelMeterAction = addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+    levelMeterAction->setDisabled(true);
 
 
     // Avatar menu ----------------------------------
@@ -246,7 +249,8 @@ Menu::Menu() {
     MenuWrapper* navigateMenu = addMenu("Navigate");
 
     // Navigate > Home -- FIXME: needs implementation
-    addActionToQMenuAndActionHash(navigateMenu, "Home");
+    auto homeAction = addActionToQMenuAndActionHash(navigateMenu, "Home");
+    homeAction->setDisabled(true);
 
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
         dialogsManager.data(), SLOT(toggleAddressBar()));
@@ -273,7 +277,8 @@ Menu::Menu() {
     MenuWrapper* marketMenu = addMenu("Market");
 
     // Market > Marketplace... -- FIXME: needs implementation
-    addActionToQMenuAndActionHash(marketMenu, "Marketplace...");
+    auto marketplaceAction = addActionToQMenuAndActionHash(marketMenu, "Marketplace...");
+    marketplaceAction->setDisabled(true);
 
 
     // Settings menu ----------------------------------
@@ -290,13 +295,16 @@ Menu::Menu() {
         dialogsManager.data(), SLOT(editPreferences()), QAction::PreferencesRole);
 
     // Settings > Avatar...-- FIXME: needs implementation
-    addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
+    auto avatarAction = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
+    avatarAction->setDisabled(true);
 
     // Settings > Audio...-- FIXME: needs implementation
-    addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    auto audioAction = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    audioAction->setDisabled(true);
 
     // Settings > LOD...-- FIXME: needs implementation
-    addActionToQMenuAndActionHash(settingsMenu, "LOD...");
+    auto lodAction = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
+    lodAction->setDisabled(true);
 
     // Settings > Control with Speech [advanced]
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
