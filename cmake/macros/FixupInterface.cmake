@@ -16,8 +16,6 @@ macro(fixup_interface)
     string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
     set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
 
-    message(${_INTERFACE_INSTALL_PATH})
-
     # install QtWebProcess from Qt to the application bundle
     # since it is missed by macdeployqt
     # https://bugreports.qt.io/browse/QTBUG-35211
