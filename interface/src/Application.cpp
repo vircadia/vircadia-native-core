@@ -1338,7 +1338,7 @@ void Application::paintGL() {
         renderArgs._context->syncCache();
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
         PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
@@ -1985,7 +1985,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_H:
                 if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                    Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
                 } else {
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {

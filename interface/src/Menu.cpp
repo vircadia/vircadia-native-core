@@ -144,32 +144,43 @@ Menu::Menu() {
 
 
     // View menu ----------------------------------
-    // FIXME - this is not yet matching Alan's spec because it bundles the camera mode
-    // into a sub menu. I need to double check that cameraMenuChanged() is updated
-    // to handle not being in a sub-menu
     MenuWrapper* viewMenu = addMenu("View");
-    MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
-    QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
+    QActionGroup* cameraModeGroup = new QActionGroup(viewMenu);
+
+    // View > [camera group]
     cameraModeGroup->setExclusive(true);
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+
+    // View > First Person
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::FirstPerson, 0, // QML Qt:: Key_P
         false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+
+    // View > Third Person
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::ThirdPerson, 0,
         true, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-        MenuOption::IndependentMode, 0,
-        false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-        MenuOption::CameraEntityMode, 0,
-        false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
+
+    // View > Mirror
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
         MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
         false, qApp, SLOT(cameraMenuChanged())));
 
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
+    // View > Independent [advanced]
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::IndependentMode, 0,
+        false, qApp, SLOT(cameraMenuChanged()),
+        UNSPECIFIED_POSITION, "Advanced"));
+
+    // View > Entity Camera [advanced]
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::CameraEntityMode, 0,
+        false, qApp, SLOT(cameraMenuChanged()),
+        UNSPECIFIED_POSITION, "Advanced"));
+
+    // View > Mini Mirror [advanced]
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror,
         0, //QML Qt::SHIFT | Qt::Key_H,
-        true);
+        false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
 
 
     // Edit menu ----------------------------------

@@ -218,7 +218,7 @@ namespace MenuOption {
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString FullscreenMirror = "Fullscreen Mirror";
+    const QString FullscreenMirror = "Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
@@ -234,7 +234,7 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString Mirror = "Mirror";
+    const QString MiniMirror = "Mini Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
