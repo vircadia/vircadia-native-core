@@ -203,16 +203,14 @@ public:
     using Jobs = std::vector<Job>;
 
 public:
-    using VaryingPointer = std::shared_ptr<Varying>;
-
-    Task() {}
-    ~Task() {}
+    Task() = default;
+    virtual ~Task() = default;
 
     // Queue a new job to the task; returns the job's index
-    template <class T> size_t addJob(std::string name, std::shared_ptr<T> jobConcept)
-    { size_t size = _jobs.size(); _jobs.emplace_back(name, jobConcept); return size; }
-    template <class T> size_t addJob(std::shared_ptr<T> jobConcept)
-    { size_t size = _jobs.size(); _jobs.emplace_back(jobConcept); return size; }
+    template <class T, class... A> size_t addJob(std::string name, A&&... args) {
+        _jobs.emplace_back(name, std::make_shared<T::JobModel>(args...));
+        return _jobs.size() - 1;
+    }
 
     const Job& getJob(size_t i) const { return _jobs.at(i); }
 
