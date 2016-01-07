@@ -24,6 +24,7 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 
+#include "render/DrawTask.h"
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -128,9 +129,6 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
 
     addJob("Blit", std::make_shared<Blit::JobModel>());
-}
-
-RenderDeferredTask::~RenderDeferredTask() {
 }
 
 void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

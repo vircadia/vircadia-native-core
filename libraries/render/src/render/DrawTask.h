@@ -73,41 +73,6 @@ public:
     using JobModel = Task::Job::Model<DrawLight>;
 };
 
-class DrawBackground {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-
-    typedef Job::Model<DrawBackground> JobModel;
-};
-
-
-class DrawSceneTask : public Task {
-public:
-
-    DrawSceneTask();
-    ~DrawSceneTask();
-
-    Jobs _jobs;
-
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-};
-
-// A map of ItemIDs allowing to create bucket lists of SHAPE type items which are filtered by their
-// Material 
-class ItemMaterialBucketMap : public std::map<model::MaterialFilter, ItemIDs, model::MaterialFilter::Less> {
-public:
-
-    ItemMaterialBucketMap() {}
-
-    void insert(const ItemID& id, const model::MaterialKey& key);
-
-    // standard builders allocating the main buckets
-    void allocateStandardMaterialBuckets();
-};
-void materialSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-
 }
 
 #endif // hifi_render_DrawTask_h

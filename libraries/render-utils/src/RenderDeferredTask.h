@@ -12,7 +12,7 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "render/DrawTask.h"
+#include "render/Engine.h"
 
 #include "gpu/Pipeline.h"
 
@@ -101,10 +101,8 @@ class RenderDeferredTask : public render::Task {
 public:
 
     RenderDeferredTask();
-    ~RenderDeferredTask();
+    ~RenderDeferredTask() = default;
 
-    render::Task::Jobs _jobs;
-    
     int _drawDebugDeferredBufferIndex = -1;
     int _drawStatusJobIndex = -1;
     int _drawHitEffectJobIndex = -1;

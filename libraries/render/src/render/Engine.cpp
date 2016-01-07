@@ -11,8 +11,6 @@
 
 #include "Engine.h"
 
-#include "DrawTask.h"
-
 using namespace render;
 
 Engine::Engine() :
@@ -41,12 +39,3 @@ void Engine::run() {
         task->run(_sceneContext, _renderContext);
     }
 }
-
-void Engine::buildStandardTaskPipeline() {
-    if (!_tasks.empty()) {
-        _tasks.clear();
-    }
-
-    addTask(std::make_shared<DrawSceneTask>());
-}
-
