@@ -241,9 +241,7 @@ void ObjectAction::activateBody(bool forceActivation) {
     auto rigidBody = getRigidBody();
     if (rigidBody) {
         rigidBody->activate(forceActivation);
-        if (! rigidBody->isActive()) {
-            qDebug() << "ObjectAction::activateBody -- rigidBody->activate() failed" << (void*)rigidBody;
-        }
+        assert(rigidBody->isActive());
     } else {
         qDebug() << "ObjectAction::activateBody -- no rigid body" << (void*)rigidBody;
     }
