@@ -221,7 +221,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
 
     gpu::Batch& batch = *(args->_batch);
-    auto mode = args->_renderMode;
 
     ShapeKey key = getShapeKey();
 
@@ -359,9 +358,6 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
         return ShapeKey::Builder::invalid();
     }
 
-    // Back to model to update the cluster matrices right now
-    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
-
     const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
 
     // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
@@ -463,7 +459,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto mode = args->_renderMode;
 
     ShapeKey key = getShapeKey();
     if (!key.isValid()) {
@@ -497,6 +492,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
+    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations);
     
     //Bind the index buffer and vertex buffer and Blend shapes if needed
