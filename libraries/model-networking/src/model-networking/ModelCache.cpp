@@ -72,7 +72,7 @@ void GeometryReader::run() {
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxgeo = OBJReader().readOBJ(_data, _mapping, _url);
             } else {
-                QString errorStr("usupported format");
+                QString errorStr("unsupported format");
                 emit onError(NetworkGeometry::ModelParseError, errorStr);
             }
             emit onSuccess(fbxgeo);
@@ -149,7 +149,6 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
     if (_meshes.size() > 0) {
         auto textureCache = DependencyManager::get<TextureCache>();
         for (auto&& material : _materials) {
-            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
             if (material->diffuseTextureName == name) {
                 material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
             } else if (material->normalTextureName == name) {
