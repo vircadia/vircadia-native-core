@@ -737,6 +737,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 case Action::UI_NAV_SELECT:
                     key = Qt::Key_Return;
                     break;
+                default:
+                    break;
             }
 
             if (navAxis) {
