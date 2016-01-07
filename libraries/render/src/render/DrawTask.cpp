@@ -22,11 +22,9 @@
 
 using namespace render;
 
-DrawSceneTask::DrawSceneTask() : Task() {
-}
+DrawSceneTask::DrawSceneTask() : Task() {}
 
-DrawSceneTask::~DrawSceneTask() {
-}
+DrawSceneTask::~DrawSceneTask() {}
 
 void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     // sanity checks
@@ -34,7 +32,6 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
     if (!sceneContext->_scene) {
         return;
     }
-
 
     // Is it possible that we render without a viewFrustum ?
     if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
@@ -45,13 +42,6 @@ void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderCon
         job.run(sceneContext, renderContext);
     }
 };
-
-Job::~Job() {
-}
-
-
-
-
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     assert(renderContext->getArgs());
@@ -296,17 +286,4 @@ void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderCo
         renderItems(sceneContext, renderContext, inItems);
     });
     args->_batch = nullptr;
-}
-
-void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {
-    // Insert the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.push_back(id);
-        }
-    }
-}
-
-void ItemMaterialBucketMap::allocateStandardMaterialBuckets() {
-    (*this)[model::MaterialFilter::Builder::opaqueDiffuse()];
 }

@@ -51,63 +51,63 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
     // CPU only, create the list of renderedOpaques items
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
+    addJob("FetchOpaque", std::make_shared<FetchItems::JobModel>(
         FetchItems([](const RenderContextPointer& context, int count) {
             context->getItemsConfig().opaque.numFeed = count;
         })
-    )));
-    _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
+    ));
+    addJob("CullOpaque", std::make_shared<CullItemsOpaque::JobModel>(_jobs.back().getOutput()));
+    addJob("DepthSortOpaque", std::make_shared<DepthSortItems::JobModel>(_jobs.back().getOutput()));
     auto& renderedOpaques = _jobs.back().getOutput();
 
     // CPU only, create the list of renderedTransparents items
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
+    addJob("FetchTransparent", std::make_shared<FetchItems::JobModel>(
         FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
             [](const RenderContextPointer& context, int count) {
                 context->getItemsConfig().transparent.numFeed = count;
         })
-     )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
+     ));
+    addJob("CullTransparent", std::make_shared<CullItemsTransparent::JobModel>(_jobs.back().getOutput()));
+    addJob("DepthSortTransparent", std::make_shared<DepthSortItems::JobModel>(_jobs.back().getOutput(), DepthSortItems(false)));
     auto& renderedTransparents = _jobs.back().getOutput();
 
     // GPU Jobs: Start preparing the deferred and lighting buffer
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    addJob("PrepareDeferred", std::make_shared<PrepareDeferred::JobModel>());
 
     // Render opaque objects in DeferredBuffer
-    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", renderedOpaques)));
+    addJob("DrawOpaqueDeferred", std::make_shared<DrawOpaqueDeferred::JobModel>(renderedOpaques));
 
     // Once opaque is all rendered create stencil background
-    _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
+    addJob("DrawOpaqueStencil", std::make_shared<DrawStencilDeferred::JobModel>());
 
     // Use Stencil and start drawing background in Lighting buffer
-    _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
+    addJob("DrawBackgroundDeferred", std::make_shared<DrawBackgroundDeferred::JobModel>());
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
+    addJob("DrawLight", std::make_shared<DrawLight::JobModel>());
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+    addJob("RenderDeferred", std::make_shared<RenderDeferred::JobModel>());
 
     // AO job, to be revisited
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
+    addJob("AmbientOcclusion", std::make_shared<AmbientOcclusion::JobModel>());
     _jobs.back().setEnabled(false);
     _occlusionJobIndex = (int)_jobs.size() - 1;
 
     // AA job to be revisited
-    _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
+    addJob("Antialiasing", std::make_shared<Antialiasing::JobModel>());
     _jobs.back().setEnabled(false);
     _antialiasingJobIndex = (int)_jobs.size() - 1;
 
     // Render transparent objects forward in LigthingBuffer
-    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", renderedTransparents)));
+    addJob("TransparentDeferred", std::make_shared<DrawTransparentDeferred::JobModel>(renderedTransparents));
     
     // Lighting Buffer ready for tone mapping
-    _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
+    addJob("ToneMapping", std::make_shared<ToneMappingDeferred::JobModel>());
     _toneMappingJobIndex = (int)_jobs.size() - 1;
 
     // Debugging Deferred buffer job
-    _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
+    addJob("DebugDeferredBuffer", std::make_shared<DebugDeferredBuffer::JobModel>());
     _jobs.back().setEnabled(false);
     _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
 
@@ -116,18 +116,18 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
         // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
         auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
         auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-        _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
+        addJob("DrawStatus", std::make_shared<DrawStatus::JobModel>(renderedOpaques, DrawStatus(statusIconMap)));
         _jobs.back().setEnabled(false);
         _drawStatusJobIndex = (int)_jobs.size() - 1;
     }
 
-    _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    addJob("DrawOverlay3D", std::make_shared<DrawOverlay3D::JobModel>());
 
-    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
+    addJob("HitEffect", std::make_shared<HitEffect::JobModel>());
     _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
 
-    _jobs.push_back(Job(new Blit::JobModel("Blit")));
+    addJob("Blit", std::make_shared<Blit::JobModel>());
 }
 
 RenderDeferredTask::~RenderDeferredTask() {
