@@ -177,6 +177,8 @@ Menu::Menu() {
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
 
+    viewMenu->addSeparator();
+
     // View > Mini Mirror
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
