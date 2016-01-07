@@ -696,7 +696,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         if (offscreenUi->navigationFocused()) {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -836,7 +836,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
     }));
     _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         return offscreenUi->navigationFocused() ? 1.0 : 0.0;
     }));
 
@@ -1051,6 +1051,8 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::destroy<EyeTracker>();
 #endif
+
+    DependencyManager::destroy<OffscreenUi>();
 }
 
 void Application::emptyLocalCache() {
