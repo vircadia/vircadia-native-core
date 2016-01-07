@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITITES_HAVE_QUERY_BOX;
+            return VERSION_ENTITITES_HAVE_COLLISION_MASK;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
