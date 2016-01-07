@@ -177,10 +177,8 @@ Menu::Menu() {
         false, qApp, SLOT(cameraMenuChanged()),
         UNSPECIFIED_POSITION, "Advanced"));
 
-    // View > Mini Mirror [advanced]
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror,
-        0, //QML Qt::SHIFT | Qt::Key_H,
-        false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+    // View > Mini Mirror
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror);
 
 
     // Edit menu ----------------------------------
