@@ -90,7 +90,6 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
     QString url;
     QString title;
     int width = 100, height = 100;
-    bool isToolWindow = false;
     bool visible = true;
     if (argumentCount > 1) {
 
