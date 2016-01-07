@@ -173,7 +173,7 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
                 entityTree->withReadLock([&] {
                     EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorPositionBindEntity);
-                    if (foundEntity != NULL) {
+                    if (foundEntity) {
                         transform.setTranslation(foundEntity->getPosition());
                     }
                 });
@@ -188,7 +188,7 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
                 entityTree->withReadLock([&] {
                     EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorRotationBindEntity);
-                    if (foundEntity != NULL) {
+                    if (foundEntity) {
                         transform.setRotation(foundEntity->getRotation());
                     }
                 });
