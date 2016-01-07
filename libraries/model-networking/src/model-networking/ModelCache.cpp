@@ -171,22 +171,22 @@ QStringList NetworkGeometry::getTextureNames() const {
     for (auto&& material : _materials) {
         if (!material->diffuseTextureName.isEmpty() && material->diffuseTexture) {
             QString textureURL = material->diffuseTexture->getURL().toString();
-            result << material->diffuseTextureName + ":" + textureURL;
+            result << material->diffuseTextureName + ":\"" + textureURL + "\"";
         }
 
         if (!material->normalTextureName.isEmpty() && material->normalTexture) {
             QString textureURL = material->normalTexture->getURL().toString();
-            result << material->normalTextureName + ":" + textureURL;
+            result << material->normalTextureName + ":\"" + textureURL + "\"";
         }
 
         if (!material->specularTextureName.isEmpty() && material->specularTexture) {
             QString textureURL = material->specularTexture->getURL().toString();
-            result << material->specularTextureName + ":" + textureURL;
+            result << material->specularTextureName + ":\"" + textureURL + "\"";
         }
 
         if (!material->emissiveTextureName.isEmpty() && material->emissiveTexture) {
             QString textureURL = material->emissiveTexture->getURL().toString();
-            result << material->emissiveTextureName + ":" + textureURL;
+            result << material->emissiveTextureName + ":\"" + textureURL + "\"";
         }
     }
 
