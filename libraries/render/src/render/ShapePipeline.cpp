@@ -1,5 +1,5 @@
 //
-//  Shape.cpp
+//  ShapePipeline.cpp
 //  render/src/render
 //
 //  Created by Zach Pomerantz on 12/31/15.
@@ -9,20 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Shape.h"
+#include "ShapePipeline.h"
 
 #include <PerfStat.h>
 
 using namespace render;
 
-Shape::PipelineLib Shape::_pipelineLib;
+ShapePipelineLib::PipelineLib ShapePipelineLib::_pipelineLib;
 
-const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& key) {
+void ShapePipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
+    _pipelineLib.addPipeline(key, vertexShader, pixelShader);
+}
+
+const ShapePipelineLib::PipelinePointer ShapePipelineLib::_pickPipeline(RenderArgs* args, const Key& key) {
     assert(!_pipelineLib.empty());
     assert(args);
     assert(args->_batch);
 
-    PerformanceTimer perfTimer("Shape::getPipeline");
+    PerformanceTimer perfTimer("ShapePipelineLib::getPipeline");
 
     const auto& pipelineIterator = _pipelineLib.find(key);
     if (pipelineIterator == _pipelineLib.end()) {
@@ -39,7 +43,7 @@ const Shape::PipelinePointer Shape::_pickPipeline(RenderArgs* args, const Key& k
     return shapePipeline;
 }
 
-void Shape::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
+void ShapePipelineLib::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));

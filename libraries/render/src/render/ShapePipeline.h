@@ -1,5 +1,5 @@
 //
-//  Shape.h
+//  ShapePipeline.h
 //  render/src/render
 //
 //  Created by Zach Pomerantz on 12/31/15.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_render_Shape_h
-#define hifi_render_Shape_h
+#ifndef hifi_render_ShapePipeline_h
+#define hifi_render_ShapePipeline_h
 
 #include <gpu/Batch.h>
 #include <RenderArgs.h>
@@ -160,36 +160,35 @@ public:
     ShapePipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
         pipeline(pipeline), locations(locations) {}
 };
+using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
 // Meta-information (pipeline and locations) to render a shape
-class Shape {
+class ShapePipelineLib {
 public:
     using Key = ShapeKey;
     using Pipeline = ShapePipeline;
-    using PipelinePointer = std::shared_ptr<Pipeline>;
+    using PipelinePointer = ShapePipelinePointer;
     using Slot = ShapePipeline::Slot;
     using Locations = ShapePipeline::Locations;
 
+    virtual ~ShapePipelineLib() = default;
+
+    static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key)  const {
+        return ShapePipelineLib::_pickPipeline(args, key);
+    }
+
+protected:
     using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
     class PipelineLib : public PipelineMap {
     public:
         void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
     };
 
-    static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
-        _pipelineLib.addPipeline(key, vertexShader, pixelShader);
-    }
-    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key)  const {
-        return Shape::_pickPipeline(args, key);
-    }
-
-    virtual ~Shape() {};
-
-protected:
-    static const PipelinePointer _pickPipeline(RenderArgs* args, const Key& key);
     static PipelineLib _pipelineLib;
+    static const PipelinePointer _pickPipeline(RenderArgs* args, const Key& key);
 };
 
 }
 
-#endif // hifi_render_Shape_h
+#endif // hifi_render_ShapePipeline_h

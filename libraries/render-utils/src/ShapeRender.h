@@ -12,10 +12,10 @@
 #ifndef hifi_render_utils_Shape_h
 #define hifi_render_utils_Shape_h
 
-#include <render/Shape.h>
+#include <render/ShapePipeline.h>
 #include <model/Material.h>
 
-class ShapeRender : public render::Shape {
+class ShapeRender : public render::ShapePipelineLib {
 public:
     ShapeRender();
     static void initPipeline();

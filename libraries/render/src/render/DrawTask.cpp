@@ -220,7 +220,7 @@ void render::renderLights(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
-void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
+void renderShape(RenderArgs* args, const ShapePipelineLib& shapeContext, Item& item) {
     assert(item.getKey().isShape());
     const auto& key = item.getShapeKey();
     if (key.isValid() && !key.hasOwnPipeline()) {
@@ -236,7 +236,7 @@ void renderShape(RenderArgs* args, const Shape& shapeContext, Item& item) {
 }
 
 void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-                          const Shape& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+                          const ShapePipelineLib& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
     
