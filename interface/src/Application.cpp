@@ -1627,7 +1627,7 @@ void Application::aboutApp() {
     InfoView::show(INFO_HELP_PATH);
 }
 
-void Application::showEditEntitiesHelp() {
+void Application::showHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 

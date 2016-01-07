@@ -176,20 +176,6 @@ void DialogsManager::showScriptEditor() {
     _scriptEditor->raise();
 }
 
-void DialogsManager::showIRCLink() {
-    if (!_ircInfoBox) {
-        _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
-                                      "High Fidelity IRC",
-                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>here</a>.",
-                                      QMessageBox::Ok);
-        _ircInfoBox->setTextFormat(Qt::RichText);
-        _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
-        _ircInfoBox->show();
-    }
-
-    _ircInfoBox->raise();
-}
-
 void DialogsManager::showDomainConnectionDialog() {
     // if the dialog already exists we delete it so the connection data is refreshed
     if (_domainConnectionDialog) {
