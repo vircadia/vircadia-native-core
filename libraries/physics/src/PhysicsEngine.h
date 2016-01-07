@@ -115,7 +115,6 @@ private:
 
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
-    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
     CharacterController* _myAvatarController;
