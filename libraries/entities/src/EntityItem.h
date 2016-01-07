@@ -21,6 +21,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <PhysicsCollisionGroups.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -273,6 +274,9 @@ public:
     bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
+    uint8_t getCollisionMask() const { return _collisionMask; }
+    void setCollisionMask(uint8_t value);
+
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
 
@@ -327,6 +331,7 @@ public:
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
+    void updateCollisionMask(uint8_t value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
@@ -440,6 +445,7 @@ protected:
     float _angularDamping;
     bool _visible;
     bool _ignoreForCollisions;
+    uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;

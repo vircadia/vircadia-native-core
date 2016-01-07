@@ -610,19 +610,28 @@ QString EntityMotionState::getName() const {
 }
 
 // virtual
-int16_t EntityMotionState::computeCollisionGroup() const {
-    if (_entity->getIgnoreForCollisions()) {
-        return COLLISION_GROUP_COLLISIONLESS;
+void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+    group = BULLET_COLLISION_GROUP_STATIC;
+    if (_entity) {
+        if (_entity->getIgnoreForCollisions()) {
+            group = BULLET_COLLISION_GROUP_COLLISIONLESS;
+        }
+        switch (computeObjectMotionType()){
+            case MOTION_TYPE_STATIC:
+                group =  BULLET_COLLISION_GROUP_STATIC;
+                break;
+            case MOTION_TYPE_KINEMATIC:
+                group = BULLET_COLLISION_GROUP_KINEMATIC;
+                break;
+            default:
+                break;
+        }
     }
-    switch (computeObjectMotionType()){
-        case MOTION_TYPE_STATIC:
-            return COLLISION_GROUP_STATIC;
-        case MOTION_TYPE_KINEMATIC:
-            return COLLISION_GROUP_KINEMATIC;
-        default:
-            break;
+
+    mask = PhysicsEngine::getCollisionMask(group);
+    if (_entity) {
+        mask &= (int16_t)(_entity->getCollisionMask());
     }
-    return COLLISION_GROUP_DEFAULT;
 }
 
 void EntityMotionState::setOutgoingPriority(quint8 priority) {

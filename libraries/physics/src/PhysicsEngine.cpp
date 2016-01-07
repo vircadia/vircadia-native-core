@@ -22,20 +22,30 @@ uint32_t PhysicsEngine::getNumSubsteps() {
     return _numSubsteps;
 }
 
+btHashMap<btHashInt, int16_t> _collisionMasks;
+
+void initCollisionMaskTable() {
+    if (_collisionMasks.size() == 0) {
+        // build table of masks with their group as the key
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_DYNAMIC), BULLET_COLLISION_MASK_DYNAMIC);
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_STATIC), BULLET_COLLISION_MASK_STATIC);
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_KINEMATIC), BULLET_COLLISION_MASK_KINEMATIC);
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_MY_AVATAR), BULLET_COLLISION_MASK_MY_AVATAR);
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_OTHER_AVATAR), BULLET_COLLISION_MASK_OTHER_AVATAR);
+        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_COLLISIONLESS), BULLET_COLLISION_MASK_COLLISIONLESS);
+    }
+}
+
+// static
+int16_t PhysicsEngine::getCollisionMask(int16_t group) {
+    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
+    return mask ? *mask : BULLET_COLLISION_MASK_DEFAULT;
+}
+
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
         _myAvatarController(nullptr) {
-    // build table of masks with their group as the key
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEFAULT), COLLISION_MASK_DEFAULT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_STATIC), COLLISION_MASK_STATIC);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_KINEMATIC), COLLISION_MASK_KINEMATIC);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_DEBRIS), COLLISION_MASK_DEBRIS);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_TRIGGER), COLLISION_MASK_TRIGGER);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_AVATAR), COLLISION_MASK_MY_AVATAR);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_MY_ATTACHMENT), COLLISION_MASK_MY_ATTACHMENT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_AVATAR), COLLISION_MASK_OTHER_AVATAR);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_OTHER_ATTACHMENT), COLLISION_MASK_OTHER_ATTACHMENT);
-    _collisionMasks.insert(btHashInt((int)COLLISION_GROUP_COLLISIONLESS), COLLISION_MASK_COLLISIONLESS);
+    initCollisionMaskTable();
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -139,8 +149,9 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     body->setFlags(BT_DISABLE_WORLD_GRAVITY);
     motionState->updateBodyMaterialProperties();
 
-    int16_t group = motionState->computeCollisionGroup();
-    _dynamicsWorld->addRigidBody(body, group, getCollisionMask(group));
+    int16_t group, mask;
+    motionState->computeCollisionGroupAndMask(group, mask);
+    _dynamicsWorld->addRigidBody(body, group, mask);
 
     motionState->clearIncomingDirtyFlags();
 }
@@ -455,11 +466,6 @@ void PhysicsEngine::setCharacterController(CharacterController* character) {
         // the character will be added to the DynamicsWorld later
         _myAvatarController = character;
     }
-}
-
-int16_t PhysicsEngine::getCollisionMask(int16_t group) const {
-    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
-    return mask ? *mask : COLLISION_MASK_DEFAULT;
 }
 
 EntityActionPointer PhysicsEngine::getActionByID(const QUuid& actionID) const {

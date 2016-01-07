@@ -80,7 +80,7 @@ public:
 
     virtual QString getName() const override;
 
-    virtual int16_t computeCollisionGroup() const override;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
 
     // eternal logic can suggest a simuator priority bid for the next outgoing update
     void setOutgoingPriority(quint8 priority);

@@ -45,6 +45,8 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
+    static int16_t getCollisionMask(int16_t group);
+
     uint32_t getNumSubsteps();
 
     PhysicsEngine(const glm::vec3& offset);
@@ -88,8 +90,6 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    int16_t getCollisionMask(int16_t group) const;
-
     EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
@@ -127,7 +127,6 @@ private:
 
     QHash<QUuid, EntityActionPointer> _objectActions;
 
-    btHashMap<btHashInt, int16_t> _collisionMasks;
 
     uint32_t _numSubsteps;
 };

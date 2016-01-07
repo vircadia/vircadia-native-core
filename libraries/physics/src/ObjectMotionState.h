@@ -136,7 +136,7 @@ public:
 
     virtual QString getName() const { return ""; }
 
-    virtual int16_t computeCollisionGroup() const = 0;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
 

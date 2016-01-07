@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PhysicsHelpers.h>
 #include <PhysicsCollisionGroups.h>
+#include <PhysicsEngine.h>
+#include <PhysicsHelpers.h>
 
 #include "Avatar.h"
 #include "AvatarMotionState.h"
@@ -143,7 +144,8 @@ QUuid AvatarMotionState::getSimulatorID() const {
 }
 
 // virtual
-int16_t AvatarMotionState::computeCollisionGroup() const {
-    return COLLISION_GROUP_OTHER_AVATAR;
+void AvatarMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
+    group = BULLET_COLLISION_GROUP_OTHER_AVATAR;
+    mask = PhysicsEngine::getCollisionMask(group);
 }
 

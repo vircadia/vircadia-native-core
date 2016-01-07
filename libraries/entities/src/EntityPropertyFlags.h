@@ -165,6 +165,8 @@ enum EntityPropertyList {
     PROP_JOINT_TRANSLATIONS_SET,
     PROP_JOINT_TRANSLATIONS,
 
+    PROP_COLLISION_MASK, // one byte of collision group flags
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line
     PROP_AFTER_LAST_ITEM,
