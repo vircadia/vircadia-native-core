@@ -620,11 +620,11 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
             case MOTION_TYPE_STATIC:
                 group =  BULLET_COLLISION_GROUP_STATIC;
                 break;
-            case MOTION_TYPE_KINEMATIC:
-                group = BULLET_COLLISION_GROUP_KINEMATIC;
-                break;
             case MOTION_TYPE_DYNAMIC:
                 group = BULLET_COLLISION_GROUP_DYNAMIC;
+                break;
+            case MOTION_TYPE_KINEMATIC:
+                group = BULLET_COLLISION_GROUP_KINEMATIC;
                 break;
             default:
                 break;
