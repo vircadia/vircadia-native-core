@@ -25,7 +25,7 @@ endif ()
 # install the packaged Server Console
 install(
   PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/Server Console.app"
-  DESTINATION "Applications/High Fidelity"
+  DESTINATION ${CONSOLE_INSTALL_DIR}
   COMPONENT ${SERVER_COMPONENT}
 )
 

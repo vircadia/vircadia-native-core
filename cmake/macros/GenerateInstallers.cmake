@@ -18,6 +18,7 @@ macro(GENERATE_INSTALLERS)
   if (APPLE)
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "/")
     set(CPACK_PACKAGING_INSTALL_PREFIX /)
+    set(CPACK_OSX_PACKAGE_VERSION ${CMAKE_OSX_DEPLOYMENT_TARGET})
   endif ()
 
   # setup downloads
@@ -29,25 +30,23 @@ macro(GENERATE_INSTALLERS)
   set(CLIENT_GROUP client)
 
   # add a component group for the client
-  cpack_add_component_group(
-    ${CLIENT_GROUP}
-    DISPLAY_NAME "Client"
-    EXPANDED
-  )
+  # cpack_add_component_group(
+  #   ${CLIENT_GROUP}
+  #   DISPLAY_NAME "Client"
+  #   EXPANDED
+  # )
 
   cpack_add_component(
     ${CLIENT_COMPONENT}
     DISPLAY_NAME "High Fidelity Client"
-    GROUP ${CLIENT_GROUP}
   )
 
-  if (DDE_APP_PATH)
+  if (WIN32 AND DDE_APP_PATH)
     # add a download component for DDE
     cpack_add_component(
       ${DDE_COMPONENT}
       DISPLAY_NAME "Webcam Body Movement"
       DEPENDS ${CLIENT_COMPONENT}
-      GROUP ${CLIENT_GROUP}
       DOWNLOADED
       ARCHIVE_FILE "DDE"
     )
