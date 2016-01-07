@@ -129,7 +129,11 @@ void RenderableModelEntityItem::remapTextures() {
     QJsonObject currentTexturesAsJsonObject = currentTexturesAsJson.object();
     QVariantMap currentTextureMap = currentTexturesAsJsonObject.toVariantMap();
 
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8());
+    QJsonParseError error;
+    QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property:" << _textures;
+    }
     QJsonObject texturesAsJsonObject = texturesAsJson.object();
     QVariantMap textureMap = texturesAsJsonObject.toVariantMap();
 
