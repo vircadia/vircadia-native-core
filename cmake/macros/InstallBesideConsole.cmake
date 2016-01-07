@@ -15,7 +15,7 @@ macro(install_beside_console)
     set(SHELL_APP_CONTENTS "Components.app/Contents")
     set(COMPONENT_DESTINATION "${SHELL_APP_CONTENTS}/MacOS")
   else ()
-    set(COMPONENT_DESTINATION ${CONSOLE_INSTALL_PATH})
+    set(COMPONENT_DESTINATION ${CONSOLE_INSTALL_DIR})
   endif ()
 
   install(
@@ -26,9 +26,9 @@ macro(install_beside_console)
 
   if (TARGET_NAME STREQUAL domain-server)
     if (APPLE)
-      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_PATH}/Contents/MacOS)
+      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_APP_PATH}/Contents/MacOS)
     else ()
-      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_PATH})
+      set(RESOURCES_DESTINATION ${CONSOLE_INSTALL_DIR})
     endif ()
 
     # install the resources folder for the domain-server where its executable will be
@@ -49,7 +49,7 @@ macro(install_beside_console)
 
     # once installed copy the contents of the shell Components.app to the console application
 
-    set(INSTALLED_CONSOLE_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${CONSOLE_INSTALL_PATH}/Contents")
+    set(INSTALLED_CONSOLE_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${CONSOLE_INSTALL_APP_PATH}/Contents")
 
     set(INSTALLED_SHELL_CONTENTS "\${CMAKE_INSTALL_PREFIX}/${SHELL_APP_CONTENTS}")
     install(CODE "

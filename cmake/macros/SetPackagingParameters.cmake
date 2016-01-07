@@ -12,13 +12,6 @@
 # and decides how targets should be packaged.
 
 macro(SET_PACKAGING_PARAMETERS)
-
-  if (APPLE)
-    set(CONSOLE_INSTALL_PATH "Applications/High Fidelity/Server Console.app")
-  else ()
-    set(CONSOLE_INSTALL_PATH ".")
-  endif()
-
   if (DEFINED ENV{JOB_ID})
     set(DEPLOY_PACKAGE TRUE)
     set(BUILD_SEQ $ENV{JOB_ID})
@@ -26,6 +19,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INSTALLER_COMPANY "High Fidelity")
     set(INSTALLER_DIRECTORY "${INSTALLER_COMPANY}")
     set(INSTALLER_NAME "interface-win64-${BUILD_SEQ}.exe")
+    set(INTERFACE_BUNDLE_NAME "High Fidelity")
     set(INTERFACE_ICON "interface.ico")
     set(CONSOLE_ICON "console.ico")
   elseif (DEFINED ENV{ghprbPullId})
@@ -35,6 +29,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INSTALLER_COMPANY "High Fidelity - PR")
     set(INSTALLER_DIRECTORY "${INSTALLER_COMPANY}\\${BUILD_SEQ}")
     set(INSTALLER_NAME "pr-interface-win64-${BUILD_SEQ}.exe")
+    set(INTERFACE_BUNDLE_NAME "High Fidelity ${BUILD_SEQ}")
     set(INTERFACE_ICON "interface-beta.ico")
     set(CONSOLE_ICON "console-beta.ico")
   else ()
@@ -43,9 +38,27 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INSTALLER_COMPANY "High Fidelity - Dev")
     set(INSTALLER_DIRECTORY "${INSTALLER_COMPANY}")
     set(INSTALLER_NAME "dev-interface-win64.exe")
+    set(INTERFACE_BUNDLE_NAME "Interface")
     set(INTERFACE_ICON "interface-beta.ico")
     set(CONSOLE_ICON "console-beta.ico")
   endif ()
+
+  if (APPLE)
+    set(CONSOLE_INSTALL_DIR "Applications/High Fidelity")
+    set(CONSOLE_APPLICATION_NAME "Server Console.app")
+    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_APPLICATION_NAME}")
+
+    set(INTERFACE_INSTALL_DIR "Applications/High Fidelity")
+    set(INTERFACE_INSTALL_APP_PATH "${INTERFACE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
+  else ()
+    set(CONSOLE_INSTALL_DIR ".")
+    set(INTERFACE_INSTALL_DIR ".")
+  endif()
+
+  # setup component categories for installer
+  set(DDE_COMPONENT dde)
+  set(CLIENT_COMPONENT client)
+  set(SERVER_COMPONENT server)
 
   # create a header file our targets can use to find out the application version
   file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/includes")

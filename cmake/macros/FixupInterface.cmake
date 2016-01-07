@@ -12,13 +12,16 @@
 macro(fixup_interface)
   if (APPLE)
 
-    string(REPLACE " " "\\" ESCAPED_BUNDLE_NAME ${_INTERFACE_BUNDLE_NAME})
-    set(INTERFACE_INSTALL_PATH "Applications/High\\ Fidelity/${ESCAPED_BUNDLE_NAME}.app")
+    string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${INTERFACE_BUNDLE_NAME})
+    string(REPLACE " " "\\ " ESCAPED_INSTALL_PATH ${INTERFACE_INSTALL_DIR})
+    set(_INTERFACE_INSTALL_PATH "${ESCAPED_INSTALL_PATH}/${ESCAPED_BUNDLE_NAME}.app")
+
+    message(${_INTERFACE_INSTALL_PATH})
 
     # install QtWebProcess from Qt to the application bundle
     # since it is missed by macdeployqt
     # https://bugreports.qt.io/browse/QTBUG-35211
-    set(LIBEXEC_PATH "${INTERFACE_INSTALL_PATH}/Contents/libexec")
+    set(LIBEXEC_PATH "${_INTERFACE_INSTALL_PATH}/Contents/libexec")
     install(
       PROGRAMS "${QT_DIR}/libexec/QtWebProcess"
       DESTINATION ${LIBEXEC_PATH}
@@ -46,9 +49,9 @@ macro(fixup_interface)
 
     install(CODE "
       execute_process(COMMAND ${MACDEPLOYQT_COMMAND}\
-        \${CMAKE_INSTALL_PREFIX}/${INTERFACE_INSTALL_PATH}/\
+        \${CMAKE_INSTALL_PREFIX}/${_INTERFACE_INSTALL_PATH}/\
         -verbose=2 -qmldir=${CMAKE_SOURCE_DIR}/interface/resources/qml/\
-        -executable=\${CMAKE_INSTALL_PREFIX}/${INTERFACE_INSTALL_PATH}/Contents/libexec/QtWebProcess\
+        -executable=\${CMAKE_INSTALL_PREFIX}/${_INTERFACE_INSTALL_PATH}/Contents/libexec/QtWebProcess\
       )"
       COMPONENT ${CLIENT_COMPONENT}
     )

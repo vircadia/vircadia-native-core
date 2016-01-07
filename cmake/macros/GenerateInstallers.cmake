@@ -20,9 +20,38 @@ macro(GENERATE_INSTALLERS)
     set(CPACK_PACKAGING_INSTALL_PREFIX /)
   endif ()
 
-  cpack_add_component(${CLIENT_COMPONENT}
-    DISPLAY_NAME "High Fidelity Client"
+  # setup downloads
+  cpack_configure_downloads(
+    http://hifi-production.s3.amazonaws.com/optionals/
+    ADD_REMOVE
   )
+
+  set(CLIENT_GROUP client)
+
+  # add a component group for the client
+  cpack_add_component_group(
+    ${CLIENT_GROUP}
+    DISPLAY_NAME "Client"
+    EXPANDED
+  )
+
+  cpack_add_component(
+    ${CLIENT_COMPONENT}
+    DISPLAY_NAME "High Fidelity Client"
+    GROUP ${CLIENT_GROUP}
+  )
+
+  if (DDE_APP_PATH)
+    # add a download component for DDE
+    cpack_add_component(
+      ${DDE_COMPONENT}
+      DISPLAY_NAME "Webcam Body Movement"
+      DEPENDS ${CLIENT_COMPONENT}
+      GROUP ${CLIENT_GROUP}
+      DOWNLOADED
+      ARCHIVE_FILE "DDE"
+    )
+  endif ()
 
   cpack_add_component(${SERVER_COMPONENT}
     DISPLAY_NAME "High Fidelity Server"

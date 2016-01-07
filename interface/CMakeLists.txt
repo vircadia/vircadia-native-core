@@ -101,19 +101,8 @@ endif()
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
-  # change the target name to the right thing depending on the type of build this is
-  # set a global INTERFACE_BUNDLE_NAME property so that we can have plugins copied to the right place
-  if (PRODUCTION_BUILD)
-    set(_INTERFACE_BUNDLE_NAME "High Fidelity")
-  elseif (PR_BUILD)
-    set(_INTERFACE_BUNDLE_NAME "High Fidelity ${BUILD_SEQ}")
-  elseif (DEV_BUILD)
-    set(_INTERFACE_BUNDLE_NAME "Interface")
-  endif()
-
-  set_property(GLOBAL PROPERTY INTERFACE_BUNDLE_NAME ${_INTERFACE_BUNDLE_NAME})
-
-  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${_INTERFACE_BUNDLE_NAME})
+  # make sure the output name for the .app bundle is correct
+  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
 elseif(WIN32)
   add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
 else()
@@ -221,7 +210,7 @@ if (APPLE)
 
   # setup install of OS X interface bundle
   install(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "Applications/High Fidelity"
+    BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
     COMPONENT ${CLIENT_COMPONENT}
   )
 
@@ -247,6 +236,16 @@ endif (APPLE)
 
 # call the fixup_interface macro to add required bundling commands for installation
 fixup_interface()
+
+# if present, add an install of the DDE components
+# which will be presented as an option during install
+if (APPLE AND DDE_APP_PATH)
+  install(
+    PROGRAMS ${DDE_APP_PATH}
+    DESTINATION ${INTERFACE_INSTALL_PATH}/Contents/MacOS
+    COMPONENT ${DDE_COMPONENT}
+  )
+endif ()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
