@@ -616,34 +616,6 @@ Menu::Menu() {
     forwardAction->setDisabled(true);
 
     MenuWrapper* toolsMenu = addMenu("Tools");
-
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
-                                  qApp, SLOT(showFriendsWindow()));
-
-    MenuWrapper* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
-    {
-        QActionGroup* visibilityGroup = new QActionGroup(toolsMenu);
-        auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-
-        QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToEveryone);
-
-        QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToFriends);
-
-        QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToNoOne);
-
-        connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
-            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
-    }
-
     addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::ToolWindow,
                                   Qt::CTRL | Qt::ALT | Qt::Key_T,
@@ -654,14 +626,10 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
                 NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-
-
     
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
                                            0, false, qApp, SLOT(rotationModeChanged()),
                                            UNSPECIFIED_POSITION, "Advanced");
-
-
 
 #endif
 }
