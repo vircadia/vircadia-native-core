@@ -101,7 +101,6 @@ class RenderDeferredTask : public render::Task {
 public:
 
     RenderDeferredTask();
-    ~RenderDeferredTask() = default;
 
     int _drawDebugDeferredBufferIndex = -1;
     int _drawStatusJobIndex = -1;

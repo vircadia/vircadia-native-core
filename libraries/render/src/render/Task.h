@@ -170,7 +170,7 @@ public:
         };
 
         Job(ConceptPointer concept) : _concept(concept) {}
-        Job(std::string name, ConceptPointer concept) : _name(name), _concept(concept) {}
+        Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
 
         bool isEnabled() const { return _concept->isEnabled(); }
         void setEnabled(bool isEnabled) { _concept->setEnabled(isEnabled); }
