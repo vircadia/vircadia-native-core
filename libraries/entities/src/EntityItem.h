@@ -302,7 +302,7 @@ public:
 
     virtual bool contains(const glm::vec3& point) const;
 
-    virtual bool isReadyToComputeShape() { return true; }
+    virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
     virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
 
@@ -336,6 +336,8 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+
+    bool isSimulated() const { return _simulated; }
 
     void* getPhysicsInfo() const { return _physicsInfo; }
 
@@ -390,6 +392,8 @@ public:
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
 protected:
+
+    void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);

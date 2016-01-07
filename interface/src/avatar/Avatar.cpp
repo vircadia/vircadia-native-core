@@ -108,7 +108,11 @@ Avatar::Avatar(RigPointer rig) :
 }
 
 Avatar::~Avatar() {
-    assert(_motionState == nullptr);
+    assert(isDead()); // mark dead before calling the dtor
+    if (_motionState) {
+        delete _motionState;
+        _motionState = nullptr;
+    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;

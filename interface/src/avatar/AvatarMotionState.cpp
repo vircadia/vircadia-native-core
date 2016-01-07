@@ -25,20 +25,17 @@ AvatarMotionState::AvatarMotionState(Avatar* avatar, btCollisionShape* shape) : 
 }
 
 AvatarMotionState::~AvatarMotionState() {
+    assert(_avatar);
     _avatar = nullptr;
 }
 
 // virtual
 uint32_t AvatarMotionState::getIncomingDirtyFlags() {
-    uint32_t dirtyFlags = 0;
-    if (_body && _avatar) {
-        dirtyFlags = _dirtyFlags;
-    }
-    return dirtyFlags;
+    return _body ? _dirtyFlags : 0;
 }
 
 void AvatarMotionState::clearIncomingDirtyFlags() {
-    if (_body && _avatar) {
+    if (_body) {
         _dirtyFlags = 0;
     }
 }
@@ -50,12 +47,9 @@ MotionType AvatarMotionState::computeObjectMotionType() const {
 
 // virtual and protected
 btCollisionShape* AvatarMotionState::computeNewShape() {
-    if (_avatar) {
-        ShapeInfo shapeInfo;
-        _avatar->computeShapeInfo(shapeInfo);
-        return getShapeManager()->getShape(shapeInfo);
-    }
-    return nullptr;
+    ShapeInfo shapeInfo;
+    _avatar->computeShapeInfo(shapeInfo);
+    return getShapeManager()->getShape(shapeInfo);
 }
 
 // virtual
@@ -65,9 +59,6 @@ bool AvatarMotionState::isMoving() const {
 
 // virtual
 void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
-    if (!_avatar) {
-        return;
-    }
     worldTrans.setOrigin(glmToBullet(getObjectPosition()));
     worldTrans.setRotation(glmToBullet(getObjectRotation()));
     if (_body) {
@@ -76,11 +67,8 @@ void AvatarMotionState::getWorldTransform(btTransform& worldTrans) const {
     }
 }
 
-// virtual 
+// virtual
 void AvatarMotionState::setWorldTransform(const btTransform& worldTrans) {
-    if (!_avatar) {
-        return;
-    }
     // HACK: The PhysicsEngine does not actually move OTHER avatars -- instead it slaves their local RigidBody to the transform
     // as specified by a remote simulation.  However, to give the remote simulation time to respond to our own objects we tie
     // the other avatar's body to its true position with a simple spring. This is a HACK that will have to be improved later.
@@ -154,15 +142,8 @@ QUuid AvatarMotionState::getSimulatorID() const {
     return _avatar->getSessionUUID();
 }
 
-// virtual 
-int16_t AvatarMotionState::computeCollisionGroup() {
+// virtual
+int16_t AvatarMotionState::computeCollisionGroup() const {
     return COLLISION_GROUP_OTHER_AVATAR;
 }
-
-// virtual 
-void AvatarMotionState::clearObjectBackPointer() {
-    ObjectMotionState::clearObjectBackPointer();
-    _avatar = nullptr;
-}
-
 

@@ -1084,8 +1084,8 @@ Application::~Application() {
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToDelete(motionStates);
-    _physicsEngine->deleteObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -3085,11 +3085,11 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
+        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
 
         getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAdd(motionStates);
+            _entitySimulation.getObjectsToAddToPhysics(motionStates);
             _physicsEngine->addObjects(motionStates);
 
         });
@@ -3102,9 +3102,9 @@ void Application::update(float deltaTime) {
         _entitySimulation.applyActionChanges();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
-        avatarManager->getObjectsToAdd(motionStates);
+        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
+        avatarManager->getObjectsToAddToPhysics(motionStates);
         _physicsEngine->addObjects(motionStates);
         avatarManager->getObjectsToChange(motionStates);
         _physicsEngine->changeObjects(motionStates);
@@ -4083,7 +4083,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     });
 
     foreach (EntityItemPointer entity, entities) {
-        if (!entity->isReadyToComputeShape()) {
+        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
             static QString repeatedMessage =
                 LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
             qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();

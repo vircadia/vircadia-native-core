@@ -54,11 +54,9 @@ public:
     void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
     const QUuid& getSessionID() const { return _sessionID; }
 
-    void addObject(ObjectMotionState* motionState);
-    void removeObject(ObjectMotionState* motionState);
+    void removeObjects(const VectorOfMotionStates& objects);
+    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
 
-    void deleteObjects(const VectorOfMotionStates& objects);
-    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
@@ -86,8 +84,6 @@ public:
     /// \brief call bump on any objects that touch the object corresponding to motionState
     void bump(ObjectMotionState* motionState);
 
-    void removeRigidBody(btRigidBody* body);
-
     void setCharacterController(CharacterController* character);
 
     void dumpNextStats() { _dumpNextStats = true; }
@@ -100,6 +96,9 @@ public:
     void forEachAction(std::function<void(EntityActionPointer)> actor);
 
 private:
+    void addObjectToDynamicsWorld(ObjectMotionState* motionState);
+    void removeObjectFromDynamicsWorld(ObjectMotionState* motionState);
+
     void removeContacts(ObjectMotionState* motionState);
 
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
@@ -116,7 +115,6 @@ private:
 
     ContactMap _contactMap;
     uint32_t _numContactFrames = 0;
-    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
 
     /// character collisions
     CharacterController* _myAvatarController;
