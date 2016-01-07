@@ -64,7 +64,7 @@ const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
-float MAX_AVATAR_SPEED = 300.0f;
+float MAX_AVATAR_SPEED = 30.0f;
 float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
