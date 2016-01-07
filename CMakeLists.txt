@@ -115,6 +115,8 @@ else ()
   endif ()
 endif ()
 
+set(QT_DIR $ENV{QT_DIR})
+
 if (WIN32)
     if (NOT EXISTS ${QT_CMAKE_PREFIX_PATH})
         message(FATAL_ERROR "Could not determine QT_CMAKE_PREFIX_PATH.")

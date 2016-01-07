@@ -228,6 +228,7 @@ if (APPLE)
     BUNDLE DESTINATION "Applications/High Fidelity"
     COMPONENT ${CLIENT_COMPONENT}
   )
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -247,6 +248,9 @@ else (APPLE)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
   endif()
 endif (APPLE)
+
+# call the fixup_interface macro to add required bundling commands for installation
+fixup_interface()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
