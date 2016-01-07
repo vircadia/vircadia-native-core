@@ -178,7 +178,7 @@ Menu::Menu() {
         UNSPECIFIED_POSITION, "Advanced"));
 
     // View > Mini Mirror
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
 
     // Edit menu ----------------------------------
