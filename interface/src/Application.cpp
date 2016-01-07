@@ -3741,7 +3741,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
-        pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
+        pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     } else {
 
     }
