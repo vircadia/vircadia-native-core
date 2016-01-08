@@ -15,7 +15,7 @@ add_dependencies(${TARGET_NAME} assignment-client domain-server)
 
 # set the packaged console folder depending on platform, so we can copy it
 if (APPLE)
-  set(PACKAGED_CONSOLE_FOLDER "Server\\ Console-darwin-x64")
+  set(PACKAGED_CONSOLE_FOLDER "Server\\ Console-darwin-x64/Server Console.app")
 elseif (WIN32)
   set(PACKAGED_CONSOLE_FOLDER "server-console-win32-x64")
 elseif (UNIX)
@@ -24,7 +24,7 @@ endif ()
 
 # install the packaged Server Console
 install(
-  PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/Server Console.app"
+  DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
   DESTINATION ${CONSOLE_INSTALL_DIR}
   COMPONENT ${SERVER_COMPONENT}
 )
