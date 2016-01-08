@@ -94,6 +94,7 @@ var acPath = null;
 
 var debug = argv.debug;
 
+
 if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     interfacePath = pathFinder.discoveredPath("Interface", argv.localReleaseBuilds);
     dsPath = pathFinder.discoveredPath("domain-server", argv.localReleaseBuilds);
@@ -104,8 +105,11 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
 // TODO: show an error for the binaries that couldn't be found
 
 function openFileBrowser(path) {
+    // Add quotes around path
+    path = '"' + path + '"';
     if (osType == "Windows_NT") {
-        childProcess.exec('start ' + path);
+        console.log('start "" ' + path);
+        childProcess.exec('start "" ' + path);
     } else if (osType == "Darwin") {
         childProcess.exec('open ' + path);
     } else if (osType == "Linux") {
