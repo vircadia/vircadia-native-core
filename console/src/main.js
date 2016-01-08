@@ -4,7 +4,7 @@ var electron = require('electron');
 var app = electron.app;  // Module to control application life.
 var BrowserWindow = electron.BrowserWindow;
 
-
+var dialog = electron.dialog;
 var Menu = require('menu');
 var Tray = require('tray');
 var shell = require('shell');
@@ -44,19 +44,26 @@ const osType = os.type();
 var isShuttingDown = false;
 function shutdown() {
     if (!isShuttingDown) {
-        isShuttingDown = true;
-        logWindow.close();
-        homeServer.stop();
-
-        var timeoutID = setTimeout(app.quit, 5000);
-        homeServer.on('state-update', function(processGroup) {
-            if (processGroup.state == ProcessGroupStates.STOPPED) {
-                clearTimeout(timeoutID);
-                app.quit();
-            }
+        var idx = dialog.showMessageBox({
+            type: 'question',
+            buttons: ['Yes', 'No'],
+            message: 'Are you sure you want to quit?'
         });
+        if (idx == 0) {
+            isShuttingDown = true;
+            logWindow.close();
+            homeServer.stop();
 
-        updateTrayMenu(null);
+            var timeoutID = setTimeout(app.quit, 5000);
+            homeServer.on('state-update', function(processGroup) {
+                if (processGroup.state == ProcessGroupStates.STOPPED) {
+                    clearTimeout(timeoutID);
+                    app.quit();
+                }
+            });
+
+            updateTrayMenu(null);
+        }
     }
 }
 
