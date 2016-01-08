@@ -696,7 +696,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         if (offscreenUi->navigationFocused()) {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -736,6 +736,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
                 case Action::UI_NAV_SELECT:
                     key = Qt::Key_Return;
+                    break;
+                default:
                     break;
             }
 
@@ -834,7 +836,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
     }));
     _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         return offscreenUi->navigationFocused() ? 1.0 : 0.0;
     }));
 
@@ -1049,6 +1051,8 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::destroy<EyeTracker>();
 #endif
+
+    DependencyManager::destroy<OffscreenUi>();
 }
 
 void Application::emptyLocalCache() {
@@ -1082,8 +1086,8 @@ Application::~Application() {
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToDelete(motionStates);
-    _physicsEngine->deleteObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -1336,7 +1340,7 @@ void Application::paintGL() {
         renderArgs._context->syncCache();
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
         PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
@@ -1625,7 +1629,7 @@ void Application::aboutApp() {
     InfoView::show(INFO_HELP_PATH);
 }
 
-void Application::showEditEntitiesHelp() {
+void Application::showHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
@@ -1983,7 +1987,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_H:
                 if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                    Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
                 } else {
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -3083,11 +3087,11 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
+        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
 
         getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAdd(motionStates);
+            _entitySimulation.getObjectsToAddToPhysics(motionStates);
             _physicsEngine->addObjects(motionStates);
 
         });
@@ -3100,9 +3104,9 @@ void Application::update(float deltaTime) {
         _entitySimulation.applyActionChanges();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
-        avatarManager->getObjectsToAdd(motionStates);
+        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
+        avatarManager->getObjectsToAddToPhysics(motionStates);
         _physicsEngine->addObjects(motionStates);
         avatarManager->getObjectsToChange(motionStates);
         _physicsEngine->changeObjects(motionStates);
@@ -3739,7 +3743,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
-        pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
+        pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     } else {
 
     }
@@ -4081,7 +4085,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     });
 
     foreach (EntityItemPointer entity, entities) {
-        if (!entity->isReadyToComputeShape()) {
+        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
             static QString repeatedMessage =
                 LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
             qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();

@@ -295,7 +295,7 @@ public slots:
 #endif
 
     void aboutApp();
-    void showEditEntitiesHelp();
+    void showHelp();
 
     void cycleCamera();
     void cameraMenuChanged();

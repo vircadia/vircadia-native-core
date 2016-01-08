@@ -442,6 +442,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+        theEntity->die();
 
         if (getIsServer()) {
             // set up the deleted entities ID
@@ -453,8 +454,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         }
 
         if (_simulation) {
-            theEntity->clearActions(_simulation);
-            _simulation->removeEntity(theEntity);
+            _simulation->prepareEntityForDelete(theEntity);
         }
     }
 }
@@ -1006,7 +1006,7 @@ void EntityTree::update() {
         withWriteLock([&] {
             _simulation->updateEntities();
             VectorOfEntities pendingDeletes;
-            _simulation->getEntitiesToDelete(pendingDeletes);
+            _simulation->takeEntitiesToDelete(pendingDeletes);
 
             if (pendingDeletes.size() > 0) {
                 // translate into list of ID's

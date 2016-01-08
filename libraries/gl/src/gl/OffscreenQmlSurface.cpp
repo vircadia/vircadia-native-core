@@ -254,7 +254,7 @@ private:
         _quit = true;
     }
 
-    static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 5;
+    static const uint64_t MAX_SHUTDOWN_WAIT_SECS = 2;
     void stop() {
         if (_thread.isRunning()) {
             qDebug() << "Stopping QML render thread " << _thread.currentThreadId();

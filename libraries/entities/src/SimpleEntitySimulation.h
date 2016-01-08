@@ -22,11 +22,11 @@ public:
     virtual ~SimpleEntitySimulation() { clearEntitiesInternal(); }
 
 protected:
-    virtual void updateEntitiesInternal(const quint64& now);
-    virtual void addEntityInternal(EntityItemPointer entity);
-    virtual void removeEntityInternal(EntityItemPointer entity);
-    virtual void changeEntityInternal(EntityItemPointer entity);
-    virtual void clearEntitiesInternal();
+    virtual void updateEntitiesInternal(const quint64& now) override;
+    virtual void addEntityInternal(EntityItemPointer entity) override;
+    virtual void removeEntityInternal(EntityItemPointer entity) override;
+    virtual void changeEntityInternal(EntityItemPointer entity) override;
+    virtual void clearEntitiesInternal() override;
 
     SetOfEntities _entitiesWithSimulator;
 };
