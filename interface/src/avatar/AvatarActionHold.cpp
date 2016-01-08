@@ -90,7 +90,7 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         // _palmRotationFromRigidBody = avatarRotationInverse * palmRotation;
     });
 
-    activateBody();
+    activateBody(true);
 }
 
 std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {

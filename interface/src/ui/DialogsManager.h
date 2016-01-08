@@ -57,7 +57,6 @@ public slots:
     void lodTools();
     void hmdTools(bool showTools);
     void showScriptEditor();
-    void showIRCLink();
     void showDomainConnectionDialog();
     
     // Application Update

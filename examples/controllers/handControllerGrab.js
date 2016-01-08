@@ -40,6 +40,7 @@ var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
+var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
 
 var NO_INTERSECT_COLOR = {
     red: 10,
@@ -579,9 +580,9 @@ function MyController(hand) {
 
     };
 
-    this.renewParticleBeamLifetime = function(){
-        var props = Entities.getEntityProperties(this.particleBeam,"age");
-        Entities.editEntity(this.particleBeam,{
+    this.renewParticleBeamLifetime = function() {
+        var props = Entities.getEntityProperties(this.particleBeam, "age");
+        Entities.editEntity(this.particleBeam, {
             lifetime: TEMPORARY_PARTICLE_BEAM_LIFETIME + props.age // renew lifetime
         })
     }
@@ -904,11 +905,19 @@ function MyController(hand) {
                     if (intersection.properties.collisionsWillMove && !intersection.properties.locked) {
                         // the hand is far from the intersected object.  go into distance-holding mode
                         this.grabbedEntity = intersection.entityID;
-                        if (typeof grabbableData.spatialKey !== 'undefined' && this.state == STATE_EQUIP_SEARCHING) {
+                        if (this.state == STATE_EQUIP_SEARCHING) {
                             // if a distance pick in equip mode hits something with a spatialKey, equip it
                             // TODO use STATE_EQUIP_SPRING here once it works right.
                             // this.setState(STATE_EQUIP_SPRING);
+                            if (typeof grabbableData.spatialKey === 'undefined') {
+                                // We want to give a temporary position offset to this object so it is pulled close to hand
+                                var intersectionPointToCenterDistance = Vec3.length(Vec3.subtract(intersection.intersection, intersection.properties.position));
+                                this.temporaryPositionOffset = Vec3.normalize(Vec3.subtract(intersection.properties.position, handPosition));
+                                this.temporaryPositionOffset = Vec3.multiply(this.temporaryPositionOffset, intersectionPointToCenterDistance * FAR_TO_NEAR_GRAB_PADDING_FACTOR);
+
+                            }
                             this.setState(STATE_EQUIP);
+                            this.turnOffVisualizations();
                             return;
                         } else if ((this.state == STATE_SEARCHING) && this.triggerSmoothedGrab()) {
                             this.setState(STATE_DISTANCE_HOLDING);
@@ -1294,103 +1303,107 @@ function MyController(hand) {
 
     this.projectVectorAlongAxis = function(position, axisStart, axisEnd) {
 
-            var aPrime = Vec3.subtract(position, axisStart);
+        var aPrime = Vec3.subtract(position, axisStart);
 
 
-            var bPrime = Vec3.subtract(axisEnd, axisStart);
+        var bPrime = Vec3.subtract(axisEnd, axisStart);
 
 
-            var bPrimeMagnitude = Vec3.length(bPrime);
+        var bPrimeMagnitude = Vec3.length(bPrime);
 
-            var dotProduct = Vec3.dot(aPrime, bPrime);
+        var dotProduct = Vec3.dot(aPrime, bPrime);
 
 
-            var scalar = dotProduct / bPrimeMagnitude;
+        var scalar = dotProduct / bPrimeMagnitude;
 
-            if (scalar < 0) {
-                scalar = 0;
+        if (scalar < 0) {
+            scalar = 0;
+        }
+
+        if (scalar > 1) {
+            scalar = 1;
+        }
+
+        var projection = Vec3.sum(axisStart, Vec3.multiply(scalar, Vec3.normalize(bPrime)));
+
+        return projection
+
+    };
+
+    this.nearGrabbing = function() {
+        var now = Date.now();
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+
+        if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
+            this.setState(STATE_RELEASE);
+            Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
+            return;
+        }
+
+        this.lineOff();
+        this.overlayLineOff();
+
+        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
+        this.activateEntity(this.grabbedEntity, grabbedProperties);
+        if (grabbedProperties.collisionsWillMove && NEAR_GRABBING_KINEMATIC) {
+            Entities.editEntity(this.grabbedEntity, {
+                collisionsWillMove: false
+            });
+        }
+
+        var handRotation = this.getHandRotation();
+        var handPosition = this.getHandPosition();
+
+        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+
+        if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
+            // if an object is "equipped" and has a spatialKey, use it.
+            this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
+            this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
+            this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
+        } else {
+            this.ignoreIK = false;
+
+            var objectRotation = grabbedProperties.rotation;
+            this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
+
+            var currentObjectPosition = grabbedProperties.position;
+            var offset = Vec3.subtract(currentObjectPosition, handPosition);
+            this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
+            if (this.temporaryPositionOffset && this.state != STATE_NEAR_GRABBING) {
+                this.offsetPosition = this.temporaryPositionOffset;
             }
+        }
 
-            if (scalar > 1) {
-                scalar = 1;
-            }
 
-            var projection = Vec3.sum(axisStart, Vec3.multiply(scalar, Vec3.normalize(bPrime)));
+        if (!this.setupHoldAction()) {
+            return;
+        }
 
-            return projection
+        if (this.state == STATE_NEAR_GRABBING) {
+            this.setState(STATE_CONTINUE_NEAR_GRABBING);
+        } else {
+            // equipping
+            Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
+            this.startHandGrasp();
 
-        };
+            this.setState(STATE_CONTINUE_EQUIP_BD);
+        }
 
-        this.nearGrabbing = function() {
-            var now = Date.now();
-            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+        if (this.hand === RIGHT_HAND) {
+            Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
+        } else {
+            Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
+        }
 
-            if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
-                this.setState(STATE_RELEASE);
-                Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
-                return;
-            }
+        Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
+        Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
 
-            this.lineOff();
-            this.overlayLineOff();
+        this.currentHandControllerTipPosition =
+            (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
 
-            var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-            this.activateEntity(this.grabbedEntity, grabbedProperties);
-            if (grabbedProperties.collisionsWillMove && NEAR_GRABBING_KINEMATIC) {
-                Entities.editEntity(this.grabbedEntity, {
-                    collisionsWillMove: false
-                });
-            }
-
-            var handRotation = this.getHandRotation();
-            var handPosition = this.getHandPosition();
-
-            var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
-            if (this.state != STATE_NEAR_GRABBING && grabbableData.spatialKey) {
-                // if an object is "equipped" and has a spatialKey, use it.
-                this.ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-                this.offsetPosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
-                this.offsetRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
-            } else {
-                this.ignoreIK = false;
-
-                var objectRotation = grabbedProperties.rotation;
-                this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
-
-                var currentObjectPosition = grabbedProperties.position;
-                var offset = Vec3.subtract(currentObjectPosition, handPosition);
-                this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
-            }
-
-            if (!this.setupHoldAction()) {
-                return;
-            }
-
-            if (this.state == STATE_NEAR_GRABBING) {
-                this.setState(STATE_CONTINUE_NEAR_GRABBING);
-            } else {
-                // equipping
-                Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
-                this.startHandGrasp();
-
-                this.setState(STATE_CONTINUE_EQUIP_BD);
-            }
-
-            if (this.hand === RIGHT_HAND) {
-                Entities.callEntityMethod(this.grabbedEntity, "setRightHand");
-            } else {
-                Entities.callEntityMethod(this.grabbedEntity, "setLeftHand");
-            }
-
-            Entities.callEntityMethod(this.grabbedEntity, "setHand", [this.hand]);
-            Entities.callEntityMethod(this.grabbedEntity, "startNearGrab");
-
-            this.currentHandControllerTipPosition =
-                (this.hand === RIGHT_HAND) ? MyAvatar.rightHandTipPosition : MyAvatar.leftHandTipPosition;
-
-            this.currentObjectTime = Date.now();
-        };
+        this.currentObjectTime = Date.now();
+    };
 
     this.continueNearGrabbing = function() {
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
@@ -1898,8 +1911,8 @@ Script.update.connect(update);
 // we can't create the search system on-demand since it takes some time for the particles to reach their entire length.  
 // thus the system cannot have a fixed lifetime.  this loop updates the lifetimes and will stop updating if a user crashes.
 
-if(USE_PARTICLE_BEAM_FOR_SEARCHING===true || USE_PARTICLE_BEAM_FOR_MOVING ===true){
-Script.update.connect(renewParticleBeamLifetimes)
+if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+    Script.update.connect(renewParticleBeamLifetimes)
 }
 
 var sinceLastParticleLifetimeUpdate = 0;

@@ -62,7 +62,7 @@ protected:
     virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
     virtual glm::vec3 getAngularVelocity() override;
     virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
-    virtual void activateBody();
+    virtual void activateBody(bool forceActivation = false);
     virtual void forceBodyNonStatic();
 
     EntityItemWeakPointer _ownerEntity;

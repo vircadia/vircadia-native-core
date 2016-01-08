@@ -377,7 +377,7 @@ void ModelEntityItem::setAnimationFPS(float value) {
 
 // virtual
 bool ModelEntityItem::shouldBePhysical() const {
-    return getShapeType() != SHAPE_TYPE_NONE;
+    return !isDead() && getShapeType() != SHAPE_TYPE_NONE;
 }
 
 void ModelEntityItem::resizeJointArrays(int newSize) {

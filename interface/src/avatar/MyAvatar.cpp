@@ -64,7 +64,7 @@ const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
-float MAX_AVATAR_SPEED = 300.0f;
+float MAX_AVATAR_SPEED = 30.0f;
 float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
@@ -1022,12 +1022,12 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
-    Avatar::setAttachmentData(attachmentData);
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
+    Avatar::setAttachmentData(attachmentData);
     _billboardValid = false;
 }
 
@@ -1165,21 +1165,25 @@ void MyAvatar::setCollisionSoundURL(const QString& url) {
     }
 }
 
-void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
-        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+void MyAvatar::attach(const QString& modelURL, const QString& jointName,
+                      const glm::vec3& translation, const glm::quat& rotation,
+                      float scale, bool isSoft,
+                      bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
-        Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+        Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
         return;
     }
     if (useSaved) {
         AttachmentData attachment = loadAttachmentData(modelURL, jointName);
         if (attachment.isValid()) {
-            Avatar::attach(modelURL, attachment.jointName, attachment.translation,
-                attachment.rotation, attachment.scale, allowDuplicates, useSaved);
+            Avatar::attach(modelURL, attachment.jointName,
+                           attachment.translation, attachment.rotation,
+                           attachment.scale, attachment.isSoft,
+                           allowDuplicates, useSaved);
             return;
         }
     }
-    Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+    Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {

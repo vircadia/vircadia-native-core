@@ -699,7 +699,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
         dataBytes += unpackOrientationQuatFromBytes(dataBytes, result[i]);
     }
 
-    return (dataBytes - start) + sizeof(uint16_t);
+    return (dataBytes - start) + (int)sizeof(uint16_t);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result) {
@@ -728,7 +728,7 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
         bit = (bit + 1) % BITS_IN_BYTE;
     }
 
-    return (dataBytes - start) + sizeof(uint16_t);
+    return (dataBytes - start) + (int)sizeof(uint16_t);
 }
 
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) {

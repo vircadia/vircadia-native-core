@@ -1085,12 +1085,15 @@ void AvatarData::setAttachmentData(const QVector<AttachmentData>& attachmentData
     _attachmentData = attachmentData;
 }
 
-void AvatarData::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
-        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+void AvatarData::attach(const QString& modelURL, const QString& jointName,
+                        const glm::vec3& translation, const glm::quat& rotation,
+                        float scale, bool isSoft,
+                        bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "attach", Q_ARG(const QString&, modelURL), Q_ARG(const QString&, jointName),
-            Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
-            Q_ARG(float, scale), Q_ARG(bool, allowDuplicates), Q_ARG(bool, useSaved));
+                                  Q_ARG(const glm::vec3&, translation), Q_ARG(const glm::quat&, rotation),
+                                  Q_ARG(float, scale), Q_ARG(bool, isSoft),
+                                  Q_ARG(bool, allowDuplicates), Q_ARG(bool, useSaved));
         return;
     }
     QVector<AttachmentData> attachmentData = getAttachmentData();
@@ -1107,6 +1110,7 @@ void AvatarData::attach(const QString& modelURL, const QString& jointName, const
     data.translation = translation;
     data.rotation = rotation;
     data.scale = scale;
+    data.isSoft = isSoft;
     attachmentData.append(data);
     setAttachmentData(attachmentData);
 }
@@ -1334,7 +1338,7 @@ QDataStream& operator>>(QDataStream& in, AttachmentData& attachment) {
         attachment.translation >> attachment.rotation >> attachment.scale >> attachment.isSoft;
 }
 
-void AttachmentDataObject::setModelURL(const QString& modelURL) const {
+void AttachmentDataObject::setModelURL(const QString& modelURL) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.modelURL = modelURL;
     thisObject() = engine()->toScriptValue(data);
@@ -1344,7 +1348,7 @@ QString AttachmentDataObject::getModelURL() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).modelURL.toString();
 }
 
-void AttachmentDataObject::setJointName(const QString& jointName) const {
+void AttachmentDataObject::setJointName(const QString& jointName) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.jointName = jointName;
     thisObject() = engine()->toScriptValue(data);
@@ -1354,7 +1358,7 @@ QString AttachmentDataObject::getJointName() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).jointName;
 }
 
-void AttachmentDataObject::setTranslation(const glm::vec3& translation) const {
+void AttachmentDataObject::setTranslation(const glm::vec3& translation) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.translation = translation;
     thisObject() = engine()->toScriptValue(data);
@@ -1364,7 +1368,7 @@ glm::vec3 AttachmentDataObject::getTranslation() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).translation;
 }
 
-void AttachmentDataObject::setRotation(const glm::quat& rotation) const {
+void AttachmentDataObject::setRotation(const glm::quat& rotation) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.rotation = rotation;
     thisObject() = engine()->toScriptValue(data);
@@ -1374,7 +1378,7 @@ glm::quat AttachmentDataObject::getRotation() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).rotation;
 }
 
-void AttachmentDataObject::setScale(float scale) const {
+void AttachmentDataObject::setScale(float scale) {
     AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
     data.scale = scale;
     thisObject() = engine()->toScriptValue(data);
@@ -1382,6 +1386,16 @@ void AttachmentDataObject::setScale(float scale) const {
 
 float AttachmentDataObject::getScale() const {
     return qscriptvalue_cast<AttachmentData>(thisObject()).scale;
+}
+
+void AttachmentDataObject::setIsSoft(bool isSoft) {
+    AttachmentData data = qscriptvalue_cast<AttachmentData>(thisObject());
+    data.isSoft = isSoft;
+    thisObject() = engine()->toScriptValue(data);
+}
+
+bool AttachmentDataObject::getIsSoft() const {
+    return qscriptvalue_cast<AttachmentData>(thisObject()).isSoft;
 }
 
 void registerAvatarTypes(QScriptEngine* engine) {

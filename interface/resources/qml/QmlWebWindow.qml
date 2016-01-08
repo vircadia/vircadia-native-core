@@ -47,10 +47,20 @@ VrDialog {
             anchors.fill: parent
             focus: true
 
+            property var originalUrl
+            property var lastFixupTime: 0
+
             onUrlChanged: {
                 var currentUrl = url.toString();
                 var newUrl = urlHandler.fixupUrl(currentUrl).toString();
                 if (newUrl != currentUrl) {
+                    var now = new Date().valueOf();
+                    if (url === originalUrl && (now - lastFixupTime < 100))  {
+                        console.warn("URL fixup loop detected")
+                        return;
+                    }
+                    originalUrl = url
+                    lastFixupTime = now
                     url = newUrl;
                 }
             }

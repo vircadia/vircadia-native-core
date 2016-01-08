@@ -115,6 +115,9 @@ public:
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
+    void die() { _isDead = true; }
+    bool isDead() const { return _isDead; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
@@ -141,7 +144,8 @@ protected:
 private:
     mutable ReadWriteLockable _transformLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
-    mutable bool _parentKnowsMe = false;
+    mutable bool _parentKnowsMe { false };
+    bool _isDead { false };
 };
 
 

@@ -53,7 +53,7 @@ public:
     }
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-    virtual bool shouldBePhysical() const { return true; }
+    virtual bool shouldBePhysical() const { return !isDead(); }
 
     virtual void debugDump() const;
 

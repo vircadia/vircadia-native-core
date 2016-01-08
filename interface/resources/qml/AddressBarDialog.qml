@@ -16,6 +16,7 @@ import "styles"
 DialogContainer {
     id: root
     HifiConstants { id: hifi }
+    z: 1000
 
     objectName: "AddressBarDialog"
 
@@ -148,6 +149,17 @@ DialogContainer {
     onEnabledChanged: {
         if (enabled) {
             addressLine.forceActiveFocus()
+        }
+    }
+    
+    Timer {
+        running: root.enabled
+        interval: 500
+        repeat: true
+        onTriggered: {
+            if (root.enabled && !addressLine.activeFocus) {
+                addressLine.forceActiveFocus()
+            }
         }
     }
 
