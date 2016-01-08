@@ -99,16 +99,19 @@ ShapeKey MeshPartPayload::getShapeKey() const {
         drawMaterialKey = _drawMaterial->getKey();
     }
 
-    bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
-    bool hasTangents = drawMaterialKey.isNormalMap();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
-
     ShapeKey::Builder builder;
-    if (isTranslucent) { builder.withTranslucent(); }
-    if (hasTangents) { builder.withTangents(); }
-    if (hasSpecular) { builder.withSpecular(); }
-    if (hasLightmap) { builder.withLightmap(); }
+    if (drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap()) {
+        builder.withTranslucent();
+    }
+    if (drawMaterialKey.isNormalMap()) {
+        builder.withTangents();
+    }
+    if (drawMaterialKey.isGlossMap()) {
+        builder.withSpecular();
+    }
+    if (drawMaterialKey.isLightmapMap()) {
+        builder.withLightmap();
+    }
     return builder.build();
 }
 
@@ -395,12 +398,24 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
 
     ShapeKey::Builder builder;
-    if (isTranslucent) { builder.withTranslucent(); }
-    if (hasTangents) { builder.withTangents(); }
-    if (hasSpecular) { builder.withSpecular(); }
-    if (hasLightmap) { builder.withLightmap(); }
-    if (isSkinned) { builder.withSkinned(); }
-    if (wireframe) { builder.withWireframe(); }
+    if (isTranslucent) {
+        builder.withTranslucent();
+    }
+    if (hasTangents) {
+        builder.withTangents();
+    }
+    if (hasSpecular) {
+        builder.withSpecular();
+    }
+    if (hasLightmap) {
+        builder.withLightmap();
+    }
+    if (isSkinned) {
+        builder.withSkinned();
+    }
+    if (wireframe) {
+        builder.withWireframe();
+    }
     return builder.build();
 }
 
