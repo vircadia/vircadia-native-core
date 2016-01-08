@@ -56,7 +56,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
             context->getItemsConfig().opaque.numFeed = count;
         })
     )));
-    _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new CullItems<RenderDetails::OPAQUE_ITEM>::JobModel("CullOpaque", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
     auto& renderedOpaques = _jobs.back().getOutput();
 
@@ -67,7 +67,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
                 context->getItemsConfig().transparent.numFeed = count;
         })
      )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
+    _jobs.push_back(Job(new CullItems<RenderDetails::TRANSLUCENT_ITEM>::JobModel("CullTransparent", _jobs.back().getOutput())));
     _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
     auto& renderedTransparents = _jobs.back().getOutput();
 

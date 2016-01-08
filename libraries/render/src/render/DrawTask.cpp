@@ -111,34 +111,6 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
     }
 }
 
-void CullItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::OTHER_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
-void CullItemsOpaque::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::OPAQUE_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
-void CullItemsTransparent::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::TRANSLUCENT_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
-
 struct ItemBound {
     float _centerDepth = 0.0f;
     float _nearDepth = 0.0f;
@@ -261,9 +233,10 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
         inItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
     }
 
+    RenderArgs* args = renderContext->getArgs();
+
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
