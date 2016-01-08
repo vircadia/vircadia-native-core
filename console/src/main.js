@@ -134,7 +134,9 @@ function startInterface(url) {
 }
 
 var tray = null;
-var homeServer = null;
+global.homeServer = null;
+global.domainServer = null;
+global.acMonitor = null;
 
 const GO_HOME_INDEX = 0;
 const SERVER_LABEL_INDEX = 2;
@@ -283,7 +285,7 @@ function updateTrayMenu(serverState) {
     }
 }
 
-var hiddenWindow = null;
+const httpStatusPort = 60332;
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
@@ -301,10 +303,12 @@ app.on('ready', function() {
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     if (interfacePath && dsPath && acPath) {
-        homeServer = new ProcessGroup('home', [
-            new Process('domain-server', dsPath),
-            new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])
-        ]);
+        domainServer = new Process('domain-server', dsPath, [], logPath);
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n4',
+                                                                    '--log-directory', logPath,
+                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+        homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
+        logWindow = new LogWindow(acMonitor, domainServer);
 
         // make sure we stop child processes on app quit
         app.on('quit', function(){
@@ -316,7 +320,6 @@ app.on('ready', function() {
         };
 
         // handle process updates
-        // homeServer.on('process-update', sendProcessUpdate);
         homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
 
         // start the home server
