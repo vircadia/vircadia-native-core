@@ -204,18 +204,39 @@ Process.prototype = extend(Process.prototype, {
         this.updateState(ProcessStates.STARTED);
         this.emit('logs-updated');
     },
-    stop: function() {
-        if (this.state != ProcessStates.STARTED) {
-            console.warn("Can't stop process that is not started.");
+    stop: function(force) {
+        if (this.state == ProcessStates.STOPPED) {
+            console.warn("Can't stop process that is not started or stopping.");
             return;
         }
         if (os.type() == "Windows_NT") {
-            childProcess.spawn("taskkill", ["/pid", this.child.pid, '/f', '/t']);
+            var command = "taskkill /pid " + this.child.pid;
+            if (force) {
+                command += " /f /t";
+            }
+            childProcess.exec(command, {}, function(error) {
+                if (error) {
+                    console.error('Error executing taskkill:', error);
+                }
+            });
         } else {
-            this.child.kill();
+            var signal = force ? 'SIGKILL' : null;
+            this.child.kill(signal);
         }
-        this.state = ProcessStates.STOPPING;
 
+        console.log("Stopping child process:", this.child.pid, this.name);
+
+        if (!force) {
+            this.stoppingTimeoutID = setTimeout(function() {
+                if (this.state == ProcessStates.STOPPING) {
+                    console.log("Force killling", this.name, this.child.pid);
+                    this.stop(true);
+                }
+            }.bind(this), 2500);
+        }
+
+        this.updateState(ProcessStates.STOPPING);
+    },
     updateState: function(newState) {
         if (this.state != newState) {
             this.state = newState;
