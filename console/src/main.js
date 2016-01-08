@@ -1,8 +1,9 @@
-'use strict'
+'use strict';
 
 var electron = require('electron');
 var app = electron.app;  // Module to control application life.
 var BrowserWindow = electron.BrowserWindow;
+
 
 var Menu = require('menu');
 var Tray = require('tray');
@@ -10,15 +11,28 @@ var shell = require('shell');
 var os = require('os');
 var childProcess = require('child_process');
 var path = require('path');
+var fs = require('fs');
+var Tail = require('always-tail');
+var http = require('http');
+var path = require('path');
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
+var ACMonitorProcess = hfprocess.ACMonitorProcess;
+var ProcessStates = hfprocess.ProcessStates;
 var ProcessGroup = hfprocess.ProcessGroup;
 var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 function getApplicationDataDirectory() {
-    // Taken from http://stackoverflow.com/questions/19275776/node-js-how-to-get-the-os-platforms-user-data-folder
-    var rootDirectory = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local')
+    var osType = os.type();
+    var rootDirectory;
+    if (osType == 'Windows_NT') {
+        rootDirectory = process.env.APPDATA;
+    } else if (osType == 'Darwin') {
+        rootDirecotry = process.env.HOME + 'Library/Application Support';
+    } else {
+        rootDirectory = '/usr/local/share';
+    }
     return path.join(rootDirectory, '/High Fidelity/Console');
 }
 
