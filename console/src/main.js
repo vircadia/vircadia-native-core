@@ -27,7 +27,10 @@ const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
 const APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // print out uncaught exceptions in the console
-process.on('uncaughtException', console.log.bind(console));
+process.on('uncaughtException', function(err) {
+    console.error(err);
+    console.error(err.stack);
+});
 
 var shouldQuit = app.makeSingleInstance(function(commandLine, workingDirectory) {
     // Someone tried to run a second instance, focus the window (if there is one)
