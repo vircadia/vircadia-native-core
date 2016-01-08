@@ -117,6 +117,9 @@ function openFileBrowser(path) {
     }
 }
 
+app.on('window-all-closed', function() {
+});
+
 function startInterface(url) {
     var argArray = [];
 
