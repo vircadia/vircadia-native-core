@@ -41,7 +41,25 @@ const ipcMain = electron.ipcMain;
 
 const osType = os.type();
 
-var path = require('path');
+var isShuttingDown = false;
+function shutdown() {
+    if (!isShuttingDown) {
+        isShuttingDown = true;
+        logWindow.close();
+        homeServer.stop();
+
+        var timeoutID = setTimeout(app.quit, 5000);
+        homeServer.on('state-update', function(processGroup) {
+            if (processGroup.state == ProcessGroupStates.STOPPED) {
+                clearTimeout(timeoutID);
+                app.quit();
+            }
+        });
+
+        updateTrayMenu(null);
+    }
+}
+
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
 console.log("Log directory:", logPath);
@@ -157,9 +175,64 @@ function buildMenuArray(serverState) {
             accelerator: 'Command+Q',
             click: function() { app.quit(); }
         }
-    ];
+function buildMenuArray(serverState) {
+    var menuArray = null;
+    if (isShuttingDown) {
+        menuArray = [
+            {
+                label: "Shutting down...",
+                enabled: false
+            }
+        ];
+    } else {
+        menuArray = [
+            {
+                label: 'Go Home',
+                click: function() { startInterface('hifi://localhost'); },
+                enabled: false
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: "Server - Stopped",
+                enabled: false
+            },
+            {
+                label: "Start",
+                click: function() { homeServer.restart(); }
+            },
+            {
+                label: "Stop",
+                visible: false,
+                click: function() { homeServer.stop(); }
+            },
+            {
+                label: "Settings",
+                click: function() { shell.openExternal('http://localhost:40100/settings'); },
+                enabled: false
+            },
+            {
+                label: "View Logs",
+                click: function() { logWindow.open(); }
+            },
+            {
+                label: "Open Log Directory",
+                click: function() { openFileBrowser(logPath); }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Quit',
+                accelerator: 'Command+Q',
+                click: function() { shutdown(); }
+            }
+        ];
 
-    updateMenuArray(menuArray, serverState);
+        updateMenuArray(menuArray, serverState);
+    }
+
 
     return menuArray;
 }
@@ -189,6 +262,7 @@ function updateMenuArray(menuArray, serverState) {
     } else if (serverState == ProcessGroupStates.STOPPING) {
         serverLabelItem.label = "Server - Stopping";
         restartItem.label = "Restart";
+        restartItem.enabled = false;
     }
 }
 
@@ -196,6 +270,9 @@ function updateTrayMenu(serverState) {
     if (tray) {
         var menuArray = buildMenuArray(serverState);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
+        if (isShuttingDown) {
+            tray.setToolTip('High Fidelity - Shutting Down');
+        }
     }
 }
 
