@@ -109,13 +109,18 @@ else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
+<<<<<<< HEAD
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
 
+=======
+>>>>>>> ebdd430... use external project hack on win only
 if (WIN32)
-    add_dependency_external_projects(OpenVR)
-endif()
-if(WIN32 OR APPLE)
-    add_dependency_external_projects(neuron)
+  # These are external plugins, but we need to do the 'add dependency' here so that their
+  # binary directories get added to the fixup path
+  add_dependency_external_projects(sixense)
+  add_dependency_external_projects(sdl2)
+  add_dependency_external_projects(OpenVR)
+  add_dependency_external_projects(neuron)
 endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
@@ -141,7 +146,7 @@ target_glew()
 target_opengl()
 
 if (WIN32 OR APPLE)
-    target_faceshift()
+  target_faceshift()
 endif()
 
 # perform standard include and linking for found externals
@@ -208,10 +213,17 @@ if (APPLE)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
+<<<<<<< HEAD
   # setup install of OS X interface bundle
   install(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
     COMPONENT ${CLIENT_COMPONENT}
+=======
+  # install command for OS X bundle
+  INSTALL(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+>>>>>>> ebdd430... use external project hack on win only
   )
 
 else (APPLE)
