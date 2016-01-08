@@ -30,7 +30,7 @@ exports.searchPaths = function(name, binaryType) {
     } else {
         // check directly beside the binary
         paths = [
-            path.join(process.execPath, name + extension)
+            path.join(path.dirname(process.execPath), name + extension)
         ];
 
         // check if we're inside an app bundle on OS X
