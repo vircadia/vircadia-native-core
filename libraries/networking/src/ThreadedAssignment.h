@@ -38,17 +38,15 @@ signals:
     void finished();
 
 protected:
-    void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
+    void commonInit(const QString& targetName, NodeType_t nodeType);
     bool _isFinished;
-    QTimer* _domainServerTimer = nullptr;
-    QTimer* _statsTimer = nullptr;
+    QTimer _domainServerTimer;
+    QTimer _statsTimer;
     
 protected slots:
     void domainSettingsRequestFailed();
     
 private slots:
-    void startSendingStats();
-    void stopSendingStats();
     void checkInWithDomainServerOrExit();
 };
 

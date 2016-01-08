@@ -34,6 +34,8 @@ public:
     /// Registers the script types associated with the avatar manager.
     static void registerMetaTypes(QScriptEngine* engine);
 
+    virtual ~AvatarManager();
+
     void init();
 
     MyAvatar* getMyAvatar() { return _myAvatar.get(); }
@@ -59,8 +61,8 @@ public:
     Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
 
 
-    void getObjectsToDelete(VectorOfMotionStates& motionStates);
-    void getObjectsToAdd(VectorOfMotionStates& motionStates);
+    void getObjectsToRemoveFromPhysics(VectorOfMotionStates& motionStates);
+    void getObjectsToAddToPhysics(VectorOfMotionStates& motionStates);
     void getObjectsToChange(VectorOfMotionStates& motionStates);
     void handleOutgoingChanges(const VectorOfMotionStates& motionStates);
     void handleCollisionEvents(const CollisionEvents& collisionEvents);
@@ -80,7 +82,6 @@ private:
     // virtual overrides
     virtual AvatarSharedPointer newSharedAvatar();
     virtual AvatarSharedPointer addAvatar(const QUuid& sessionUUID, const QWeakPointer<Node>& mixerWeakPointer);
-    void removeAvatarMotionState(AvatarSharedPointer avatar);
 
     virtual void removeAvatar(const QUuid& sessionUUID);
     virtual void handleRemovedAvatar(const AvatarSharedPointer& removedAvatar);
@@ -93,9 +94,9 @@ private:
 
     bool _shouldShowReceiveStats = false;
 
-    SetOfAvatarMotionStates _avatarMotionStates;
-    SetOfMotionStates _motionStatesToAdd;
-    VectorOfMotionStates _motionStatesToDelete;
+    SetOfAvatarMotionStates _motionStatesThatMightUpdate;
+    SetOfMotionStates _motionStatesToAddToPhysics;
+    VectorOfMotionStates _motionStatesToRemoveFromPhysics;
 };
 
 Q_DECLARE_METATYPE(AvatarManager::LocalLight)

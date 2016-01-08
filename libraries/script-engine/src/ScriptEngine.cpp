@@ -51,6 +51,8 @@
 
 #include "MIDIEvent.h"
 
+static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+
 Q_DECLARE_METATYPE(QScriptEngine::FunctionSignature)
 static int functionSignatureMetaID = qRegisterMetaType<QScriptEngine::FunctionSignature>();
 
@@ -112,7 +114,7 @@ static bool hadUncaughtExceptions(QScriptEngine& engine, const QString& fileName
         const auto line = QString::number(engine.uncaughtExceptionLineNumber());
         engine.clearExceptions();
 
-        auto message = QString("[UncaughtException] %1 in %2:%3").arg(exception, fileName, line);
+        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
         if (!backtrace.empty()) {
             static const auto lineSeparator = "\n    ";
             message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
@@ -133,6 +135,10 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _allScriptsMutex.lock();
     _allKnownScriptEngines.insert(this);
     _allScriptsMutex.unlock();
+
+    connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
+        hadUncaughtExceptions(*this, _fileNameString);
+    });
 }
 
 ScriptEngine::~ScriptEngine() {

@@ -67,7 +67,8 @@ void PhysicsEngine::init() {
     }
 }
 
-void PhysicsEngine::addObject(ObjectMotionState* motionState) {
+// private
+void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     assert(motionState);
 
     btVector3 inertia(0.0f, 0.0f, 0.0f);
@@ -144,7 +145,8 @@ void PhysicsEngine::addObject(ObjectMotionState* motionState) {
     motionState->clearIncomingDirtyFlags();
 }
 
-void PhysicsEngine::removeObject(ObjectMotionState* object) {
+// private
+void PhysicsEngine::removeObjectFromDynamicsWorld(ObjectMotionState* object) {
     // wake up anything touching this object
     bump(object);
     removeContacts(object);
@@ -154,38 +156,34 @@ void PhysicsEngine::removeObject(ObjectMotionState* object) {
     _dynamicsWorld->removeRigidBody(body);
 }
 
-void PhysicsEngine::deleteObjects(const VectorOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
-        removeObject(object);
+        removeObjectFromDynamicsWorld(object);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         btRigidBody* body = object->getRigidBody();
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
         delete body;
-        object->releaseShape();
-        delete object;
     }
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::deleteObjects(const SetOfMotionStates& objects) {
+void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        removeObject(object);
+        removeObjectFromDynamicsWorld(object);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
         delete body;
-        object->releaseShape();
-        delete object;
     }
 }
 
 void PhysicsEngine::addObjects(const VectorOfMotionStates& objects) {
     for (auto object : objects) {
-        addObject(object);
+        addObjectToDynamicsWorld(object);
     }
 }
 
@@ -211,8 +209,8 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
 }
 
 void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
-    removeObject(object);
-    addObject(object);
+    removeObjectFromDynamicsWorld(object);
+    addObjectToDynamicsWorld(object);
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
