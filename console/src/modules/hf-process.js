@@ -126,7 +126,7 @@ Process.prototype = extend(Process.prototype, {
             var logDirectoryCreated = false;
 
             try {
-                fs.mkdirSync('logs');
+                fs.mkdirSync(this.logDirectory);
                 logDirectoryCreated = true;
             } catch (e) {
                 if (e.code == 'EEXIST') {
