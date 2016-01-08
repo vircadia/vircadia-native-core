@@ -29,7 +29,7 @@ exports.searchPaths = function(name, binaryType) {
     } else {
         // check directly beside the binary
         paths = [
-            __dirname + "/" + name + extension,
+            process.execPath + "/" + name + extension,
         ];
 
         // check if we're inside an app bundle on OS X
