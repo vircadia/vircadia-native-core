@@ -57,9 +57,6 @@ Menu::Menu() {
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
 
-    // File > Quit
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp,SLOT(quit()), QAction::QuitRole);
-
     // File > Login menu items
     {
         addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
@@ -84,6 +81,68 @@ Menu::Menu() {
 
     // File > About
     addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
+
+    // File > Quit
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
+
+
+    // Edit menu ----------------------------------
+    MenuWrapper* editMenu = addMenu("Edit");
+
+    // Edit > Undo
+    QUndoStack* undoStack = qApp->getUndoStack();
+    QAction* undoAction = undoStack->createUndoAction(editMenu);
+    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, undoAction);
+
+    // Edit > Redo
+    QAction* redoAction = undoStack->createRedoAction(editMenu);
+    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, redoAction);
+
+    // Edit > Running Sccripts
+    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
+        qApp, SLOT(toggleRunningScriptsWidget()));
+
+    // Edit > Open and Run Script from File... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
+        qApp, SLOT(loadDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Open and Run Script from Url... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScriptURL,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Stop All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
+        qApp, SLOT(reloadAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Scripts Editor... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
+        dialogsManager.data(), SLOT(showScriptEditor()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Console... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
+        DependencyManager::get<StandAloneJSConsole>().data(),
+        SLOT(toggleConsole()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Content [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    // Edit > Package Model... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
+        qApp, SLOT(packageModel()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
 
     // Audio menu ----------------------------------
@@ -186,65 +245,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
 
-    // Edit menu ----------------------------------
-    MenuWrapper* editMenu = addMenu("Edit");
-
-    // Edit > Undo
-    QUndoStack* undoStack = qApp->getUndoStack();
-    QAction* undoAction = undoStack->createUndoAction(editMenu);
-    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, undoAction);
-
-    // Edit > Redo
-    QAction* redoAction = undoStack->createRedoAction(editMenu);
-    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, redoAction);
-
-    // Edit > Running Sccripts
-    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-        qApp, SLOT(toggleRunningScriptsWidget()));
-
-    // Edit > Open and Run Script from File... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-        qApp, SLOT(loadDialog()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Open and Run Script from Url... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScriptURL,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Stop All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Reload All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-        qApp, SLOT(reloadAllScripts()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Scripts Editor... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
-        dialogsManager.data(), SLOT(showScriptEditor()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Console... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
-        DependencyManager::get<StandAloneJSConsole>().data(),
-        SLOT(toggleConsole()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Reload All Content [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
-    // Edit > Package Model... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
-        qApp, SLOT(packageModel()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
 
@@ -271,14 +271,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
         addressManager.data(), SLOT(copyPath()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
-    // Market menu ----------------------------------
-    MenuWrapper* marketMenu = addMenu("Market");
-
-    // Market > Marketplace... -- FIXME: needs implementation
-    auto marketplaceAction = addActionToQMenuAndActionHash(marketMenu, "Marketplace...");
-    marketplaceAction->setDisabled(true);
 
 
     // Settings menu ----------------------------------
