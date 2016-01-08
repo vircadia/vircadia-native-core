@@ -245,13 +245,19 @@ Process.prototype = extend(Process.prototype, {
         }
         return false;
     },
+    getLogs: function() {
+        var logs = {};
+        logs[this.child.pid] = {
+            stdout: this.logStdout == 'ignore' ? null : this.logStdout,
+            stderr: this.logStderr == 'ignore' ? null : this.logStderr
+        };
+        return logs;
     },
 
     // Events
     onChildStartError: function(error) {
         console.log("Child process error ", error);
-        this.state = ProcessStates.STOPPED;
-        this.emit('state-update', this);
+        this.updateState(ProcessStates.STOPPED);
     },
     onChildClose: function(code) {
         console.log("Child process closed with code ", code, this.name);
