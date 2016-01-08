@@ -16,11 +16,21 @@ var Process = hfprocess.Process;
 var ProcessGroup = hfprocess.ProcessGroup;
 var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
+function getApplicationDataDirectory() {
+    // Taken from http://stackoverflow.com/questions/19275776/node-js-how-to-get-the-os-platforms-user-data-folder
+    var rootDirectory = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + 'Library/Preferences' : '/var/local')
+    return path.join(rootDirectory, '/High Fidelity/Console');
+}
+
+
 const ipcMain = electron.ipcMain;
 
 const osType = os.type();
 
 var path = require('path');
+
+var logPath = path.join(getApplicationDataDirectory(), '/logs');
+console.log("Log directory:", logPath);
 
 const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
@@ -185,8 +195,6 @@ app.on('ready', function() {
         // hide the dock icon on OS X
         app.dock.hide()
     }
-
-    var logPath = path.join(app.getAppPath(), 'logs');
 
     // Create tray icon
     tray = new Tray(TRAY_ICON);
