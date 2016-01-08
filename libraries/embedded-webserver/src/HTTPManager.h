@@ -33,7 +33,7 @@ class HTTPManager : public QTcpServer, public HTTPRequestHandler {
    Q_OBJECT
 public:
     /// Initializes the manager.
-    HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler = NULL, QObject* parent = 0);
+    HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler = NULL, QObject* parent = 0);
     
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
 
@@ -49,6 +49,7 @@ protected:
     virtual void incomingConnection(qintptr socketDescriptor);
     virtual bool requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url);
     
+    QHostAddress _listenAddress;
     QString _documentRoot;
     HTTPRequestHandler* _requestHandler;
     QTimer* _isListeningTimer;
