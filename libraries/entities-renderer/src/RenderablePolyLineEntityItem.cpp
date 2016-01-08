@@ -122,13 +122,19 @@ void RenderablePolyLineEntityItem::updateVertices() {
     glm::vec3 v1, v2, tangent, binormal, point;
 
     int finalIndex = minVectorSize - 1;
+
+    // Guard against an empty polyline
+    if (finalIndex < 0) {
+        return;
+    }
+
     for (int i = 0; i < finalIndex; i++) {
         float width = _strokeWidths.at(i);
         point = _points.at(i);
 
         tangent = _points.at(i);
 
-        tangent = _points.at(i + 1) - point; 
+        tangent = _points.at(i + 1) - point;
         glm::vec3 normal = _normals.at(i);
         binormal = glm::normalize(glm::cross(tangent, normal)) * width;
 
@@ -139,11 +145,6 @@ void RenderablePolyLineEntityItem::updateVertices() {
         v1 = point + binormal;
         v2 = point - binormal;
         _vertices << v1 << v2;
-    }
-
-    // Guard against an empty polyline
-    if (finalIndex < 0) {
-        return;
     }
 
     // For last point we can assume binormals are the same since it represents the last two vertices of quad

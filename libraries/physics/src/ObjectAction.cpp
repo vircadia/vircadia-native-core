@@ -237,10 +237,13 @@ void ObjectAction::setAngularVelocity(glm::vec3 angularVelocity) {
     rigidBody->activate();
 }
 
-void ObjectAction::activateBody() {
+void ObjectAction::activateBody(bool forceActivation) {
     auto rigidBody = getRigidBody();
     if (rigidBody) {
-        rigidBody->activate();
+        rigidBody->activate(forceActivation);
+        assert(rigidBody->isActive());
+    } else {
+        qDebug() << "ObjectAction::activateBody -- no rigid body" << (void*)rigidBody;
     }
 }
 

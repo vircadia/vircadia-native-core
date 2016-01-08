@@ -304,8 +304,9 @@ public:
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
 
     Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
-        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
-        bool allowDuplicates = false, bool useSaved = true);
+                                    const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
+                                    float scale = 1.0f, bool isSoft = false,
+                                    bool allowDuplicates = false, bool useSaved = true);
 
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
@@ -343,9 +344,6 @@ public:
     void fromJson(const QJsonObject& json);
 
     glm::vec3 getClientGlobalPosition() { return _globalPosition; }
-
-    void die() { _isDead = true; }
-    bool isDead() const { return _isDead; }
 
 public slots:
     void sendAvatarDataPacket();
@@ -423,8 +421,6 @@ protected:
     // updates about one avatar to another.
     glm::vec3 _globalPosition;
 
-    bool _isDead { false };
-
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
     static QUrl _defaultFullAvatarModelUrl;
@@ -468,23 +464,27 @@ class AttachmentDataObject : public QObject, protected QScriptable {
     Q_PROPERTY(glm::vec3 translation READ getTranslation WRITE setTranslation)
     Q_PROPERTY(glm::quat rotation READ getRotation WRITE setRotation)
     Q_PROPERTY(float scale READ getScale WRITE setScale)
+    Q_PROPERTY(bool isSoft READ getIsSoft WRITE setIsSoft)
 
 public:
 
-    Q_INVOKABLE void setModelURL(const QString& modelURL) const;
+    Q_INVOKABLE void setModelURL(const QString& modelURL);
     Q_INVOKABLE QString getModelURL() const;
 
-    Q_INVOKABLE void setJointName(const QString& jointName) const;
+    Q_INVOKABLE void setJointName(const QString& jointName);
     Q_INVOKABLE QString getJointName() const;
 
-    Q_INVOKABLE void setTranslation(const glm::vec3& translation) const;
+    Q_INVOKABLE void setTranslation(const glm::vec3& translation);
     Q_INVOKABLE glm::vec3 getTranslation() const;
 
-    Q_INVOKABLE void setRotation(const glm::quat& rotation) const;
+    Q_INVOKABLE void setRotation(const glm::quat& rotation);
     Q_INVOKABLE glm::quat getRotation() const;
 
-    Q_INVOKABLE void setScale(float scale) const;
+    Q_INVOKABLE void setScale(float scale);
     Q_INVOKABLE float getScale() const;
+
+    Q_INVOKABLE void setIsSoft(bool scale);
+    Q_INVOKABLE bool getIsSoft() const;
 };
 
 void registerAvatarTypes(QScriptEngine* engine);
