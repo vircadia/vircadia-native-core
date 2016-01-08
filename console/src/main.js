@@ -288,7 +288,7 @@ app.on('ready', function() {
 
     if (app.dock) {
         // hide the dock icon on OS X
-        app.dock.hide()
+        app.dock.hide();
     }
 
     // Create tray icon
