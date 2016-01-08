@@ -1,5 +1,6 @@
 'use strict'
 
+var request = require('request');
 var extend = require('extend');
 var util = require('util');
 var events = require('events');
@@ -18,6 +19,8 @@ const ProcessStates = {
     STARTED: 'started',
     STOPPING: 'stopping'
 };
+
+
 
 function ProcessGroup(name, processes) {
     events.EventEmitter.call(this);
@@ -230,13 +233,92 @@ Process.prototype = extend(Process.prototype, {
         this.emit('state-update', this);
     },
     onChildClose: function(code) {
-        console.log("Child process closed with code ", code);
-        this.state = ProcessStates.STOPPED;
-        this.emit('state-update', this);
+        console.log("Child process closed with code ", code, this.name);
+        if (this.stoppingTimeoutID) {
+            clearTimeout(this.stoppingTimeoutID);
+            this.stoppingTimeoutID = null;
+        }
+        this.updateState(ProcessStates.STOPPED);
+    }
+});
+
+// ACMonitorProcess is an extension of Process that keeps track of the AC Montior's
+// children status and log locations.
+const CHECK_AC_STATUS_INTERVAL = 5000;
+function ACMonitorProcess(name, path, args, httpStatusPort, logPath) {
+    Process.call(this, name, path, args, logPath);
+
+    this.httpStatusPort = httpStatusPort;
+
+    this.requestTimeoutID = null;
+    this.pendingRequest = null;
+    this.childServers = {};
+};
+util.inherits(ACMonitorProcess, Process);
+ACMonitorProcess.prototype = extend(ACMonitorProcess.prototype, {
+    updateState: function(newState) {
+        if (ACMonitorProcess.super_.prototype.updateState.call(this, newState)) {
+            if (this.state == ProcessStates.STARTED) {
+                this._updateACMonitorStatus();
+            } else {
+                if (this.requestTimeoutID) {
+                    clearTimeout(this.requestTimeoutID);
+                    this.requestTimeoutID = null;
+                }
+                if (this.pendingRequest) {
+                    this.pendingRequest.destroy();
+                    this.pendingRequest = null;
+                }
+            }
+        }
+    },
+    getLogs: function() {
+        var logs = {};
+        logs[this.child.pid] = {
+            stdout: this.logStdout == 'ignore' ? null : this.logStdout,
+            stderr: this.logStderr == 'ignore' ? null : this.logStderr
+        };
+        for (var pid in this.childServers) {
+            logs[pid] = {
+                stdout: this.childServers[pid].logStdout,
+                stderr: this.childServers[pid].logStderr
+            }
+        }
+        console.log(logs);
+        return logs;
+    },
+    _updateACMonitorStatus: function() {
+        if (this.state != ProcessStates.STARTED) {
+            return;
+        }
+
+        // If there is a pending request, return
+        if (this.pendingRequest) {
+            return;
+        }
+
+        console.log("Checking AC Monitor status");
+        var options = {
+            url: "http://localhost:" + this.httpStatusPort + "/status",
+            json: true
+        };
+        this.pendingRequest = request(options, function(error, response, body) {
+            if (error) {
+                console.error('ERROR Getting AC Monitor status', error);
+            } else {
+                this.childServers = body.servers;
+            }
+            console.log(body);
+
+            this.emit('logs-updated');
+
+            this.requestTimeoutID = setTimeout(this._updateACMonitorStatus.bind(this), CHECK_AC_STATUS_INTERVAL);
+        }.bind(this));
     }
 });
 
 module.exports.Process = Process;
+module.exports.ACMonitorProcess = ACMonitorProcess;
 module.exports.ProcessGroup = ProcessGroup;
 module.exports.ProcessGroupStates = ProcessGroupStates;
 module.exports.ProcessStates = ProcessStates;
