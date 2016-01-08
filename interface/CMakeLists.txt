@@ -231,7 +231,7 @@ else (APPLE)
 
     # setup install of executable and things copied by fixup/windeployqt
     install(
-      FILES $<TARGET_FILE_DIR:${TARGET_NAME}>
+      FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
       DESTINATION ${INTERFACE_INSTALL_DIR}
       COMPONENT ${CLIENT_COMPONENT}
     )

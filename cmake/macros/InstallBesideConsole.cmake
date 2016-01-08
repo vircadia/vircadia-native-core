@@ -28,7 +28,7 @@ macro(install_beside_console)
     else ()
       # setup install of executable and things copied by fixup/windeployqt
       install(
-        FILES $<TARGET_FILE_DIR:${TARGET_NAME}>
+        FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
         DESTINATION ${COMPONENT_DESTINATION}
         COMPONENT ${SERVER_COMPONENT}
       )
