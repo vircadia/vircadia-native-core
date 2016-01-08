@@ -144,46 +144,41 @@ const RESTART_INDEX = 3;
 const STOP_INDEX = 4;
 const SETTINGS_INDEX = 5;
 
-function buildMenuArray(serverState) {
-    var menuArray = [
-        {
-            label: 'Go Home',
-            click: function() { startInterface('hifi://localhost'); },
-            enabled: false
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: "Server - Stopped",
-            enabled: false
-        },
-        {
-            label: "Start",
-            click: function() { homeServer.restart(); }
-        },
-        {
-            label: "Stop",
-            visible: false,
-            click: function() { homeServer.stop(); }
-        },
-        {
-            label: "Settings",
-            click: function() { shell.openExternal('http://localhost:40100/settings'); },
-            enabled: false
-        },
-        {
-            label: "View Logs",
-            click: function() { openFileBrowser(logPath); }
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Quit',
-            accelerator: 'Command+Q',
-            click: function() { app.quit(); }
+var LogWindow = function(ac, ds) {
+    this.ac = ac;
+    this.ds = ds;
+    this.window = null;
+    this.acMonitor = null;
+    this.dsMonitor = null;
+}
+LogWindow.prototype = {
+    open: function() {
+        if (this.window) {
+            this.window.show();
+            this.window.restore();
+            return;
         }
+        // Create the browser window.
+        this.window = new BrowserWindow({ width: 700, height: 500, icon: APP_ICON });
+        this.window.loadURL('file://' + __dirname + '/log.html');
+
+        if (!debug) {
+            logWindow.setMenu(null);
+        }
+
+        this.window.on('closed', function() {
+            this.window = null;
+        }.bind(this));
+    },
+    close: function() {
+        if (this.window) {
+            this.window.close();
+        }
+    }
+};
+
+var logWindow = null;
+
 function buildMenuArray(serverState) {
     var menuArray = null;
     if (isShuttingDown) {
@@ -312,6 +307,8 @@ app.on('ready', function() {
 
         // make sure we stop child processes on app quit
         app.on('quit', function(){
+            console.log('App quitting');
+            logWindow.close();
             homeServer.stop();
         });
 
