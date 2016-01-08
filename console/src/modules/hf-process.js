@@ -167,7 +167,8 @@ Process.prototype = extend(Process.prototype, {
         } catch (e) {
             console.log("Got error starting child process for " + this.name, e);
             this.child = null;
-            this.state = ProcessStates.STOPPED;
+            this.updateState(ProcessStates.STOPPED);
+            return;
         }
 
         if (logStdout != 'ignore') {
@@ -195,10 +196,10 @@ Process.prototype = extend(Process.prototype, {
 
         this.child.on('error', this.onChildStartError.bind(this));
         this.child.on('close', this.onChildClose.bind(this));
-        this.state = ProcessStates.STARTED;
-        console.log("Child process started");
 
-        this.emit('state-update', this);
+        console.log("Child process started");
+        this.updateState(ProcessStates.STARTED);
+        this.emit('logs-updated');
     },
     stop: function() {
         if (this.state != ProcessStates.STARTED) {
@@ -212,7 +213,14 @@ Process.prototype = extend(Process.prototype, {
         }
         this.state = ProcessStates.STOPPING;
 
-        this.emit('state-update', this);
+    updateState: function(newState) {
+        if (this.state != newState) {
+            this.state = newState;
+            this.emit('state-update', this);
+            return true;
+        }
+        return false;
+    },
     },
 
     // Events
