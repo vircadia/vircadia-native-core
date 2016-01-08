@@ -41,7 +41,7 @@ macro(GENERATE_INSTALLERS)
     DISPLAY_NAME "High Fidelity Client"
   )
 
-  if (WIN32 AND DDE_APP_PATH)
+  if (WIN32 AND DEFINED ENV{DDE_ARCHIVE_DIR})
     # add a download component for DDE
     cpack_add_component(
       ${DDE_COMPONENT}

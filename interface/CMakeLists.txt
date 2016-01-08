@@ -245,9 +245,16 @@ fixup_interface()
 # which will be presented as an option during install
 if (APPLE AND DEFINED ENV{DDE_APP_PATH})
   install(
-    DIRECTORY $ENV{DDE_APP_PATH}
-    DIRECTORY_PERMISSIONS
+    DIRECTORY ENV{DDE_APP_PATH}
     DESTINATION ${INTERFACE_INSTALL_APP_PATH}/Contents/MacOS
+    COMPONENT ${DDE_COMPONENT}
+  )
+endif ()
+
+if (WIN32 AND DEFINED ENV{DDE_ARCHIVE_DIR})
+  install(
+    DIRECTORY $ENV{DDE_APP_PATH}
+    DESTINATION ${INTERFACE_INSTALL_DIR}/dde
     COMPONENT ${DDE_COMPONENT}
   )
 endif ()
