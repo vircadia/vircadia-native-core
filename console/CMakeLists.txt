@@ -22,14 +22,14 @@ elseif (UNIX)
   set(PACKAGED_CONSOLE_FOLDER "server-console-linux-x64")
 endif ()
 
-# install the packaged Server Console
+# install the packaged Server Console in our install directory
 if (APPLE)
   install(
     PROGRAMS "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}"
     DESTINATION ${CONSOLE_INSTALL_DIR}
     COMPONENT ${SERVER_COMPONENT}
   )
-else ()
+elseif (WIN32)
   install(
     DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${PACKAGED_CONSOLE_FOLDER}/"
     DESTINATION ${CONSOLE_INSTALL_DIR}

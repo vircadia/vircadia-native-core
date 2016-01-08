@@ -225,12 +225,16 @@ else (APPLE)
     $<TARGET_FILE_DIR:${TARGET_NAME}>/scripts
   )
 
-  # setup install of interface target
-  install(TARGETS ${TARGET_NAME} RUNTIME DESTINATION . COMPONENT ${CLIENT_COMPONENT})
-
   # link target to external libraries
   if (WIN32)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
+
+    # setup install of executable and things copied by fixup/windeployqt
+    install(
+      FILES $<TARGET_FILE_DIR:${TARGET_NAME}>
+      DESTINATION ${INTERFACE_INSTALL_DIR}
+      COMPONENT ${CLIENT_COMPONENT}
+    )
   endif()
 endif (APPLE)
 
