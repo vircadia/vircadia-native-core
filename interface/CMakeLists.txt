@@ -208,17 +208,10 @@ if (APPLE)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
-<<<<<<< HEAD
   # setup install of OS X interface bundle
   install(TARGETS ${TARGET_NAME}
     BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
     COMPONENT ${CLIENT_COMPONENT}
-=======
-  # install command for OS X bundle
-  INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
->>>>>>> ebdd430... use external project hack on win only
   )
 
 else (APPLE)
