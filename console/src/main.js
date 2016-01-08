@@ -47,6 +47,7 @@ function shutdown() {
         var idx = dialog.showMessageBox({
             type: 'question',
             buttons: ['Yes', 'No'],
+            title: 'High Fidelity',
             message: 'Are you sure you want to quit?'
         });
         if (idx == 0) {
