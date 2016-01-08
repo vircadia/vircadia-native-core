@@ -1481,8 +1481,6 @@ function MyController(hand) {
         } else {
             // equipping
             Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
-            this.startHandGrasp();
-
             this.setState(STATE_CONTINUE_EQUIP_BD);
         }
 
@@ -1569,7 +1567,6 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
-            this.endHandGrasp();
         }
     };
 
@@ -1818,7 +1815,6 @@ function MyController(hand) {
 
     this.cleanup = function() {
         this.release();
-        this.endHandGrasp();
         Entities.deleteEntity(this.particleBeam);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
@@ -1871,45 +1867,6 @@ function MyController(hand) {
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
-
-
-    //this is our handler, where we do the actual work of changing animation settings
-    this.graspHand = function(animationProperties) {
-        var result = {};
-        //full alpha on overlay for this hand
-        //set grab to true
-        //set idle to false
-        //full alpha on the blend btw open and grab
-        if (_this.hand === RIGHT_HAND) {
-            result['rightHandOverlayAlpha'] = 1.0;
-            result['isRightHandGrab'] = true;
-            result['isRightHandIdle'] = false;
-            result['rightHandGrabBlend'] = 1.0;
-        } else if (_this.hand === LEFT_HAND) {
-            result['leftHandOverlayAlpha'] = 1.0;
-            result['isLeftHandGrab'] = true;
-            result['isLeftHandIdle'] = false;
-            result['leftHandGrabBlend'] = 1.0;
-        }
-        //return an object with our updated settings
-        return result;
-    };
-
-    this.graspHandler = null
-
-    this.startHandGrasp = function() {
-        if (this.hand === RIGHT_HAND) {
-            this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isRightHandGrab']);
-        } else if (this.hand === LEFT_HAND) {
-            this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isLeftHandGrab']);
-        }
-    };
-
-    this.endHandGrasp = function() {
-        // Tell the animation system we don't need any more callbacks.
-        MyAvatar.removeAnimationStateHandler(this.graspHandler);
-    };
-
 };
 
 var rightController = new MyController(RIGHT_HAND);
