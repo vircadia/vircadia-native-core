@@ -204,11 +204,11 @@ global.domainServer = null;
 global.acMonitor = null;
 global.userConfig = userConfig;
 
-const GO_HOME_INDEX = 0;
-const SERVER_LABEL_INDEX = 2;
-const RESTART_INDEX = 3;
-const STOP_INDEX = 4;
-const SETTINGS_INDEX = 5;
+const GO_HOME_INDEX = 2;
+const SERVER_LABEL_INDEX = 0;
+const RESTART_INDEX = 4;
+const STOP_INDEX = 5;
+const SETTINGS_INDEX = 6;
 
 var LogWindow = function(ac, ds) {
     this.ac = ac;
@@ -255,6 +255,7 @@ function goHomeClicked() {
 var logWindow = null;
 
 function buildMenuArray(serverState) {
+<<<<<<< HEAD
     var menuArray = null;
     if (isShuttingDown) {
         menuArray = [
@@ -311,6 +312,51 @@ function buildMenuArray(serverState) {
 
         updateMenuArray(menuArray, serverState);
     }
+=======
+    var menuArray = [
+        {
+            label: "Server - Stopped",
+            enabled: false
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Go Home',
+            click: function() { startInterface('hifi://localhost'); },
+            enabled: false
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: "Start Server",
+            click: function() { homeServer.restart(); }
+        },
+        {
+            label: "Stop Server",
+            visible: false,
+            click: function() { homeServer.stop(); }
+        },
+        {
+            label: "Settings",
+            click: function() { shell.openExternal('http://localhost:40100/settings'); },
+            enabled: false
+        },
+        {
+            label: "View Logs",
+            click: function() { openFileBrowser(logPath); }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Quit',
+            accelerator: 'Command+Q',
+            click: function() { app.quit(); }
+        }
+    ];
+>>>>>>> shuffling and renaming of menu options
 
 
     return menuArray;
@@ -334,13 +380,14 @@ function updateMenuArray(menuArray, serverState) {
 
     if (serverState == ProcessGroupStates.STARTED) {
         serverLabelItem.label = "Server - Started";
-        restartItem.label = "Restart";
+        restartItem.label = "Restart Server";
     } else if (serverState == ProcessGroupStates.STOPPED) {
         serverLabelItem.label = "Server - Stopped";
-        restartItem.label = "Start";
+        restartItem.label = "Start Server";
     } else if (serverState == ProcessGroupStates.STOPPING) {
         serverLabelItem.label = "Server - Stopping";
-        restartItem.label = "Restart";
+
+        restartItem.label = "Restart Server";
         restartItem.enabled = false;
     }
 }
