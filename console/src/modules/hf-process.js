@@ -107,6 +107,8 @@ function Process(name, command, commandArgs, logDirectory) {
     this.commandArgs = commandArgs ? commandArgs : [];
     this.child = null;
     this.logDirectory = logDirectory;
+    this.logStdout = null;
+    this.logStderr = null;
 
     this.state = ProcessStates.STOPPED;
 };
@@ -175,6 +177,8 @@ Process.prototype = extend(Process.prototype, {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
+            this.logStdout = pidLogStdout;
+            fs.closeSync(logStdout);
         }
 
         if (logStderr != 'ignore') {
@@ -184,6 +188,9 @@ Process.prototype = extend(Process.prototype, {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
+            this.logStderr = pidLogStderr;
+
+            fs.closeSync(logStderr);
         }
 
         this.child.on('error', this.onChildStartError.bind(this));
