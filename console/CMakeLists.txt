@@ -29,4 +29,6 @@ install(
   COMPONENT ${SERVER_COMPONENT}
 )
 
-consolidate_installer_components()
+if (NOT PR_BUILD AND NOT PRODUCTION_BUILD)
+  set_target_properties(${PACKAGING_TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL)
+endif ()

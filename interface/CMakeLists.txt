@@ -62,8 +62,6 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 # qt5_create_translation_custom(${QM} ${INTERFACE_SRCS} ${QT_UI_FILES} ${TS})
 
 if (APPLE)
-  set(MACOSX_BUNDLE_BUNDLE_NAME "High Fidelity")
-
   # configure CMake to use a custom Info.plist
   set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
