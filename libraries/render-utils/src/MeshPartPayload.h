@@ -15,10 +15,9 @@
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
+#include <render/ShapePipeline.h>
 
 #include <model/Geometry.h>
-
-#include "ShapeRender.h"
 
 class Model;
 

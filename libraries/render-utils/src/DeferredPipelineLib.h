@@ -1,5 +1,5 @@
 //
-//  ShapeRender.h
+//  DeferredPipelineLib.h
 //  render-utils/src
 //
 //  Created by Zach Pomerantz on 1/4/2015.
@@ -9,15 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_render_utils_Shape_h
-#define hifi_render_utils_Shape_h
+#ifndef hifi_render_utils_DeferredPipelineLib_h
+#define hifi_render_utils_DeferredPipelineLib_h
 
 #include <render/ShapePipeline.h>
 #include <model/Material.h>
 
-class ShapeRender : public render::ShapePipelineLib {
+class DeferredPipelineLib : public render::ShapePipelineLib {
 public:
-    ShapeRender();
+    DeferredPipelineLib();
     static void initPipeline();
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const override;
 
@@ -27,4 +27,4 @@ protected:
     static model::MaterialPointer _collisionHullMaterial;
 };
 
-#endif // hifi_render_utils_Shape_h
+#endif // hifi_render_utils_DeferredPipelineLib_h

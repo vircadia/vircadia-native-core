@@ -1,5 +1,5 @@
 //
-//  ShapeRender.cpp
+//  DeferredPipelineLib.cpp
 //  render-utils/src
 //
 //  Created by Zach Pomerantz on 1/4/2015.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "ShapeRender.h"
+#include "DeferredPipelineLib.h"
 
 #include <model-networking/TextureCache.h>
 
@@ -37,15 +37,15 @@
 #include "model_lightmap_specular_map_frag.h"
 #include "model_translucent_frag.h"
 
-ShapeRender::ShapeRender() {
-    // TODO: Move pipeline initialization to those Jobs using ShapeRender
+DeferredPipelineLib::DeferredPipelineLib() {
+    // TODO: Move pipeline initialization to those Jobs using DeferredPipelineLib
     //       such that they own their own pipelines and it is done only once
     if (_pipelineLib.empty()) {
         initPipeline();
     }
 }
 
-void ShapeRender::initPipeline() {
+void DeferredPipelineLib::initPipeline() {
     assert(_pipelineLib.empty());
 
     // Vertex shaders
@@ -171,8 +171,8 @@ void ShapeRender::initPipeline() {
         skinModelShadowVertex, modelShadowPixel);
 }
 
-const ShapeRender::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, const Key& key) const {
-    PerformanceTimer perfTimer("ShapeRender::pickPipeline");
+const DeferredPipelineLib::PipelinePointer DeferredPipelineLib::pickPipeline(RenderArgs* args, const Key& key) const {
+    PerformanceTimer perfTimer("DeferredPipelineLib::pickPipeline");
 
     auto pipeline = _pickPipeline(args, key);
     if (!pipeline) {
@@ -187,9 +187,9 @@ const ShapeRender::PipelinePointer ShapeRender::pickPipeline(RenderArgs* args, c
     return pipeline;
 }
 
-model::MaterialPointer ShapeRender::_collisionHullMaterial;
+model::MaterialPointer DeferredPipelineLib::_collisionHullMaterial;
 
-model::MaterialPointer ShapeRender::getCollisionHullMaterial() {
+model::MaterialPointer DeferredPipelineLib::getCollisionHullMaterial() {
     if (!_collisionHullMaterial) {
         _collisionHullMaterial = std::make_shared<model::Material>();
         _collisionHullMaterial->setDiffuse(glm::vec3(1.0f, 0.5f, 0.0f));

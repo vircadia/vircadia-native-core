@@ -16,7 +16,7 @@
 
 #include "gpu/Pipeline.h"
 
-#include "ShapeRender.h"
+#include "DeferredPipelineLib.h"
 #include "ToneMappingEffect.h"
 
 class SetupDeferred {
@@ -57,7 +57,7 @@ public:
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 
 protected:
-    ShapeRender _renderer;
+    DeferredPipelineLib _deferredPipelineLib;
 };
 
 class DrawTransparentDeferred {
@@ -67,7 +67,7 @@ public:
     typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
 
 protected:
-    ShapeRender _renderer;
+    DeferredPipelineLib _deferredPipelineLib;
 };
 
 class DrawStencilDeferred {
@@ -99,7 +99,7 @@ public:
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
-    ShapeRender _renderer;
+    DeferredPipelineLib _deferredPipelineLib;
 };
 
 class Blit {
