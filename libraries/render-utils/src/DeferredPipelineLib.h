@@ -18,12 +18,14 @@
 class DeferredPipelineLib : public render::ShapePipelineLib {
 public:
     DeferredPipelineLib();
-    static void initPipeline();
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const override;
 
     static model::MaterialPointer getCollisionHullMaterial();
 
 protected:
+    static bool _isInitPipeline;
+    static void initPipeline();
+
     static model::MaterialPointer _collisionHullMaterial;
 };
 
