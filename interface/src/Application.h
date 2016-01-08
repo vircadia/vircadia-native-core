@@ -298,7 +298,7 @@ public slots:
 #endif
 
     void aboutApp();
-    void showEditEntitiesHelp();
+    void showHelp();
 
     void cycleCamera();
     void cameraMenuChanged();
@@ -343,7 +343,11 @@ private slots:
     bool askToLoadScript(const QString& scriptFilenameOrURL);
     bool askToUploadAsset(const QString& asset);
     void modelUploadFinished(AssetUpload* upload, const QString& hash);
-    
+
+    bool askToWearAvatarAttachmentUrl(const QString& url);
+    void displayAvatarAttachmentWarning(const QString& message) const;
+    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
+
     void setSessionUUID(const QUuid& sessionUUID);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
@@ -553,6 +557,8 @@ private:
     bool _physicsEnabled { false };
 
     bool _reticleClickPressed { false };
+
+    int _avatarAttachmentRequest = 0;
 };
 
 #endif // hifi_Application_h

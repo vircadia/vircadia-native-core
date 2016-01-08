@@ -5,12 +5,13 @@ import QtWebChannel 1.0
 import QtWebSockets 1.0
 import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
+import "Global.js" as Global
+
 import "controls"
 import "styles"
 
 VrDialog {
     id: root
-    objectName: "topLevelWindow"
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
@@ -24,6 +25,10 @@ VrDialog {
     contentImplicitWidth: clientArea.implicitWidth
     contentImplicitHeight: clientArea.implicitHeight
     property alias source: pageLoader.source 
+    
+    function raiseWindow() {
+        Global.raiseWindow(root)
+    }
 
     Item {
         id: clientArea
@@ -42,10 +47,6 @@ VrDialog {
             anchors.fill: parent
             focus: true
             property var dialog: root
-            
-            onLoaded: {
-                forceActiveFocus()
-            }
             
             Keys.onPressed: {
                 console.log("QmlWindow pageLoader keypress")

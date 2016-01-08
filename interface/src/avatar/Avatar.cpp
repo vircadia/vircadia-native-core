@@ -108,7 +108,11 @@ Avatar::Avatar(RigPointer rig) :
 }
 
 Avatar::~Avatar() {
-    assert(_motionState == nullptr);
+    assert(isDead()); // mark dead before calling the dtor
+    if (_motionState) {
+        delete _motionState;
+        _motionState = nullptr;
+    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;
@@ -237,6 +241,7 @@ void Avatar::simulate(float deltaTime) {
     measureMotionDerivatives(deltaTime);
 
     simulateAttachments(deltaTime);
+    updatePalms();
 }
 
 bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
@@ -584,7 +589,7 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
-    for (int i = 0; i < _attachmentModels.size(); i++) {
+    for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
         int jointIndex = getJointIndex(attachment.jointName);
@@ -948,14 +953,14 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
 
     // if number of attachments has been reduced, remove excess models.
-    while (_attachmentModels.size() > attachmentData.size()) {
+    while ((int)_attachmentModels.size() > attachmentData.size()) {
         auto attachmentModel = _attachmentModels.back();
         _attachmentModels.pop_back();
         _attachmentsToRemove.push_back(attachmentModel);
     }
 
     for (int i = 0; i < attachmentData.size(); i++) {
-        if (i == _attachmentModels.size()) {
+        if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
             _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel.getRig()));
         }
@@ -1020,6 +1025,9 @@ int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     _moving = glm::distance(oldPosition, getPosition()) > MOVE_DISTANCE_THRESHOLD;
     if (_moving && _motionState) {
         _motionState->addDirtyFlags(Simulation::DIRTY_POSITION);
+    }
+    if (_moving || _hasNewJointRotations || _hasNewJointTranslations) {
+        locationChanged();
     }
     endUpdate();
 
@@ -1152,34 +1160,24 @@ void Avatar::rebuildCollisionShape() {
     }
 }
 
+// thread-safe
 glm::vec3 Avatar::getLeftPalmPosition() {
-    glm::vec3 leftHandPosition;
-    getSkeletonModel().getLeftHandPosition(leftHandPosition);
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    leftHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftRotation);
-    return leftHandPosition;
+    return _leftPalmPositionCache.get();
 }
 
+// thread-safe
 glm::quat Avatar::getLeftPalmRotation() {
-    glm::quat leftRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftRotation);
-    return leftRotation;
+    return _leftPalmRotationCache.get();
 }
 
+// thread-safe
 glm::vec3 Avatar::getRightPalmPosition() {
-    glm::vec3 rightHandPosition;
-    getSkeletonModel().getRightHandPosition(rightHandPosition);
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    rightHandPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightRotation);
-    return rightHandPosition;
+    return _rightPalmPositionCache.get();
 }
 
+// thread-safe
 glm::quat Avatar::getRightPalmRotation() {
-    glm::quat rightRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightRotation);
-    return rightRotation;
+    return _rightPalmRotationCache.get();
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
@@ -1190,4 +1188,25 @@ void Avatar::setPosition(const glm::vec3& position) {
 void Avatar::setOrientation(const glm::quat& orientation) {
     AvatarData::setOrientation(orientation);
     updateAttitude();
+}
+
+void Avatar::updatePalms() {
+
+    // get palm rotations
+    glm::quat leftPalmRotation, rightPalmRotation;
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightPalmRotation);
+
+    // get palm positions
+    glm::vec3 leftPalmPosition, rightPalmPosition;
+    getSkeletonModel().getLeftHandPosition(leftPalmPosition);
+    getSkeletonModel().getRightHandPosition(rightPalmPosition);
+    leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
+    rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
+
+    // update thread-safe caches
+    _leftPalmRotationCache.set(leftPalmRotation);
+    _rightPalmRotationCache.set(rightPalmRotation);
+    _leftPalmPositionCache.set(leftPalmPosition);
+    _rightPalmPositionCache.set(rightPalmPosition);
 }

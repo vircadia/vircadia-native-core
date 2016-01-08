@@ -20,6 +20,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <QtCore/QDebug>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 #include <QtCore/QTimer>
@@ -89,6 +91,7 @@
 #include <ObjectMotionState.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
+#include <OffscreenUi.h>
 #include <gl/OffscreenGLCanvas.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -187,6 +190,7 @@ static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
 static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
+static const QString AVA_JSON_EXTENSION = ".ava.json";
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
@@ -222,7 +226,8 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl }
 };
 
 #ifdef Q_OS_WIN
@@ -347,7 +352,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
-    
+
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     DependencyManager::set<SpeechRecognizer>();
@@ -378,7 +383,7 @@ PluginContainer* _pluginContainer;
 
 
 // FIXME hack access to the internal share context for the Chromium helper
-// Normally we'd want to use QWebEngine::initialize(), but we can't because 
+// Normally we'd want to use QWebEngine::initialize(), but we can't because
 // our primary context is a QGLWidget, which can't easily be initialized to share
 // from a QOpenGLContext.
 //
@@ -694,7 +699,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     connect(userInputMapper.data(), &UserInputMapper::actionEvent, [this](int action, float state) {
         using namespace controller;
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         if (offscreenUi->navigationFocused()) {
             auto actionEnum = static_cast<Action>(action);
             int key = Qt::Key_unknown;
@@ -734,6 +739,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
                 case Action::UI_NAV_SELECT:
                     key = Qt::Key_Return;
+                    break;
+                default:
                     break;
             }
 
@@ -832,7 +839,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
     }));
     _applicationStateDevice->addInputVariant(QString("NavigationFocused"), controller::StateController::ReadLambda([]() -> float {
-        static auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         return offscreenUi->navigationFocused() ? 1.0 : 0.0;
     }));
 
@@ -1035,7 +1042,7 @@ void Application::cleanupBeforeQuit() {
 
     // destroy the AudioClient so it and its thread have a chance to go down safely
     DependencyManager::destroy<AudioClient>();
-    
+
     // destroy the AudioInjectorManager so it and its thread have a chance to go down safely
     // this will also stop any ongoing network injectors
     DependencyManager::destroy<AudioInjectorManager>();
@@ -1047,6 +1054,8 @@ void Application::cleanupBeforeQuit() {
 #ifdef HAVE_IVIEWHMD
     DependencyManager::destroy<EyeTracker>();
 #endif
+
+    DependencyManager::destroy<OffscreenUi>();
 }
 
 void Application::emptyLocalCache() {
@@ -1080,8 +1089,8 @@ Application::~Application() {
     // remove avatars from physics engine
     DependencyManager::get<AvatarManager>()->clearOtherAvatars();
     VectorOfMotionStates motionStates;
-    DependencyManager::get<AvatarManager>()->getObjectsToDelete(motionStates);
-    _physicsEngine->deleteObjects(motionStates);
+    DependencyManager::get<AvatarManager>()->getObjectsToRemoveFromPhysics(motionStates);
+    _physicsEngine->removeObjects(motionStates);
 
     DependencyManager::destroy<OffscreenUi>();
     DependencyManager::destroy<AvatarManager>();
@@ -1176,7 +1185,6 @@ void Application::initializeUi() {
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     offscreenUi->load("Root.qml");
-    offscreenUi->load("RootMenu.qml");
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -1265,7 +1273,7 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit 
+    // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
         return;
@@ -1335,7 +1343,7 @@ void Application::paintGL() {
         renderArgs._context->syncCache();
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
         PerformanceTimer perfTimer("Mirror");
         auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
 
@@ -1624,7 +1632,7 @@ void Application::aboutApp() {
     InfoView::show(INFO_HELP_PATH);
 }
 
-void Application::showEditEntitiesHelp() {
+void Application::showHelp() {
     InfoView::show(INFO_EDIT_ENTITIES_PATH);
 }
 
@@ -1982,7 +1990,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_H:
                 if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                    Menu::getInstance()->triggerOption(MenuOption::MiniMirror);
                 } else {
                     Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror));
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -3082,11 +3090,11 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
 
         static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
+        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
 
         getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAdd(motionStates);
+            _entitySimulation.getObjectsToAddToPhysics(motionStates);
             _physicsEngine->addObjects(motionStates);
 
         });
@@ -3099,9 +3107,9 @@ void Application::update(float deltaTime) {
         _entitySimulation.applyActionChanges();
 
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToDelete(motionStates);
-        _physicsEngine->deleteObjects(motionStates);
-        avatarManager->getObjectsToAdd(motionStates);
+        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+        _physicsEngine->removeObjects(motionStates);
+        avatarManager->getObjectsToAddToPhysics(motionStates);
         _physicsEngine->addObjects(motionStates);
         avatarManager->getObjectsToChange(motionStates);
         _physicsEngine->changeObjects(motionStates);
@@ -3738,7 +3746,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
-        pendingChanges.resetItem(WorldBoxRenderData::_item, backgroundRenderPayload);
+        pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     } else {
 
     }
@@ -4080,7 +4088,7 @@ bool Application::nearbyEntitiesAreReadyForPhysics() {
     });
 
     foreach (EntityItemPointer entity, entities) {
-        if (!entity->isReadyToComputeShape()) {
+        if (entity->shouldBePhysical() && !entity->isReadyToComputeShape()) {
             static QString repeatedMessage =
                 LogHandler::getInstance().addRepeatedMessageRegex("Physics disabled until entity loads: .*");
             qCDebug(interfaceapp) << "Physics disabled until entity loads: " << entity->getID() << entity->getName();
@@ -4380,7 +4388,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
     QMessageBox::StandardButton reply;
     QString message = "Would you like to run this script:\n" + scriptFilenameOrURL;
-    reply = QMessageBox::question(getWindow(), "Run Script", message, QMessageBox::Yes|QMessageBox::No);
+    reply = OffscreenUi::question(getWindow(), "Run Script", message, QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
@@ -4393,7 +4401,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
 bool Application::askToUploadAsset(const QString& filename) {
     if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
-        QMessageBox::warning(_window, "Failed Upload",
+        OffscreenUi::warning(_window, "Failed Upload",
                              QString("You don't have upload rights on that domain.\n\n"));
         return false;
     }
@@ -4437,7 +4445,7 @@ bool Application::askToUploadAsset(const QString& filename) {
     }
 
     // display a message box with the error
-    QMessageBox::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
+    OffscreenUi::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
     return false;
 }
 
@@ -4461,6 +4469,99 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
         upload->deleteLater();
     } else {
         AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
+    }
+}
+
+bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
+
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkRequest networkRequest = QNetworkRequest(url);
+    networkRequest.setHeader(QNetworkRequest::UserAgentHeader, HIGH_FIDELITY_USER_AGENT);
+    QNetworkReply* reply = networkAccessManager.get(networkRequest);
+    int requestNumber = ++_avatarAttachmentRequest;
+    connect(reply, &QNetworkReply::finished, [this, reply, url, requestNumber]() {
+
+        if (requestNumber != _avatarAttachmentRequest) {
+            // this request has been superseded by another more recent request
+            reply->deleteLater();
+            return;
+        }
+
+        QNetworkReply::NetworkError networkError = reply->error();
+        if (networkError == QNetworkReply::NoError) {
+            // download success
+            QByteArray contents = reply->readAll();
+
+            QJsonParseError jsonError;
+            auto doc = QJsonDocument::fromJson(contents, &jsonError);
+            if (jsonError.error == QJsonParseError::NoError) {
+
+                auto jsonObject = doc.object();
+
+                // retrieve optional name field from JSON
+                QString name = tr("Unnamed Attachment");
+                auto nameValue = jsonObject.value("name");
+                if (nameValue.isString()) {
+                    name = nameValue.toString();
+                }
+
+                // display confirmation dialog
+                if (displayAvatarAttachmentConfirmationDialog(name)) {
+
+                    // add attachment to avatar
+                    auto myAvatar = getMyAvatar();
+                    assert(myAvatar);
+                    auto attachmentDataVec = myAvatar->getAttachmentData();
+                    AttachmentData attachmentData;
+                    attachmentData.fromJson(jsonObject);
+                    attachmentDataVec.push_back(attachmentData);
+                    myAvatar->setAttachmentData(attachmentDataVec);
+
+                } else {
+                    qCDebug(interfaceapp) << "User declined to wear the avatar attachment: " << url;
+                }
+
+            } else {
+                // json parse error
+                auto avatarAttachmentParseErrorString = tr("Error parsing attachment JSON from url: \"%1\"");
+                displayAvatarAttachmentWarning(avatarAttachmentParseErrorString.arg(url));
+            }
+        } else {
+            // download failure
+            auto avatarAttachmentDownloadErrorString = tr("Error downloading attachment JSON from url: \"%1\"");
+            displayAvatarAttachmentWarning(avatarAttachmentDownloadErrorString.arg(url));
+        }
+        reply->deleteLater();
+    });
+    return true;
+}
+
+void Application::displayAvatarAttachmentWarning(const QString& message) const {
+    auto avatarAttachmentWarningTitle = tr("Avatar Attachment Failure");
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Warning);
+    msgBox.setWindowTitle(avatarAttachmentWarningTitle);
+    msgBox.setText(message);
+    msgBox.exec();
+    msgBox.addButton(QMessageBox::Ok);
+    msgBox.exec();
+}
+
+bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name) const {
+    auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
+    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?");
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle(avatarAttachmentConfirmationTitle);
+    QPushButton* button = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+    QString message = avatarAttachmentConfirmationMessage.arg(name);
+    msgBox.setText(message);
+    msgBox.addButton(QMessageBox::Cancel);
+    msgBox.exec();
+    if (msgBox.clickedButton() == button) {
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -4535,7 +4636,7 @@ void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
 // FIXME - change to new version of ScriptCache loading notification
 void Application::handleScriptLoadError(const QString& scriptFilename) {
     qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
-    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
+    OffscreenUi::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 QStringList Application::getRunningScripts() {
@@ -4991,7 +5092,7 @@ void Application::updateDisplayMode() {
         foreach(auto displayPlugin, displayPlugins) {
             addDisplayPluginToMenu(displayPlugin, first);
             // This must be a queued connection to avoid a deadlock
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, 
+            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender,
                 this, &Application::paintGL, Qt::QueuedConnection);
 
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {

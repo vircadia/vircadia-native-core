@@ -250,14 +250,14 @@ int LODManager::getRenderedCount() {
     return lastRenderedCount;
 }
 QString LODManager::getLODStatsRenderText() {
-    QString label = getUseAcuity() ? "Renderable avatars: " : "Rendered objects: ";
+    const QString label = "Rendered objects: ";
     return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
 }
 // compare audoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
     float distance;
     if (!isThrottled) {
-        _renderDistanceController.setMeasuredValueSetpoint(targetFps / 2.0f); // No problem updating in flight.
+        _renderDistanceController.setMeasuredValueSetpoint(targetFps); // No problem updating in flight.
         // The PID controller raises the controlled value when the measured value goes up.
         // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
         // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
@@ -279,7 +279,7 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
     if (!getUseAcuity()) {
         const float scenerySize = 300; // meters
         bool isRendered = (largestDimension > scenerySize) || // render scenery regardless of distance
-            (fabsf(distanceToCamera - largestDimension) < renderDistance);
+            (distanceToCamera < renderDistance + largestDimension);
         renderedCount += isRendered ? 1 : 0;
         return isRendered;
     }

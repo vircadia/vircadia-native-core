@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP;
+            return VERSION_ENTITITES_HAVE_QUERY_BOX;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
@@ -60,7 +60,7 @@ QDebug operator<<(QDebug debug, const PacketType& type) {
     QMetaObject metaObject = PacketTypeEnum::staticMetaObject;
     QMetaEnum metaEnum = metaObject.enumerator(metaObject.enumeratorOffset());
     QString typeName = metaEnum.valueToKey((int) type);
-    
+
     debug.nospace().noquote() << (uint8_t) type << " (" << typeName << ")";
     return debug.space();
 }

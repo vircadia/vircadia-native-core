@@ -343,8 +343,10 @@ DialogContainer {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                enabled = false
-                event.accepted = true
+                if (enabled) {
+                    enabled = false
+                    event.accepted = true
+                }
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:

@@ -77,7 +77,7 @@ public:
     glm::mat4 localToVoxelMatrix() const;
 
     virtual ShapeType getShapeType() const;
-    virtual bool shouldBePhysical() const { return true; }
+    virtual bool shouldBePhysical() const { return !isDead(); }
     virtual bool isReadyToComputeShape();
     virtual void computeShapeInfo(ShapeInfo& info);
 

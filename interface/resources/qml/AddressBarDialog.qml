@@ -16,6 +16,7 @@ import "styles"
 DialogContainer {
     id: root
     HifiConstants { id: hifi }
+    z: 1000
 
     objectName: "AddressBarDialog"
 
@@ -150,6 +151,17 @@ DialogContainer {
             addressLine.forceActiveFocus()
         }
     }
+    
+    Timer {
+        running: root.enabled
+        interval: 500
+        repeat: true
+        onTriggered: {
+            if (root.enabled && !addressLine.activeFocus) {
+                addressLine.forceActiveFocus()
+            }
+        }
+    }
 
     onVisibleChanged: {
         if (!visible) {
@@ -169,8 +181,10 @@ DialogContainer {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                enabled = false
-                event.accepted = true
+                if (enabled) {
+                    enabled = false
+                    event.accepted = true
+                }
                 break
             case Qt.Key_Enter:
             case Qt.Key_Return:

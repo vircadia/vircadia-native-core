@@ -58,7 +58,7 @@ bool SixenseManager::_sixenseLoaded = false;
 const QString SixenseManager::NAME = "Sixense";
 const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
 
-const QString MENU_PARENT = "Avatar";
+const QString MENU_PARENT = "Developer";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";
@@ -73,7 +73,7 @@ bool SixenseManager::isSupported() const {
 #else
     return true;
 #endif
-    
+
 #else
     return false;
 #endif
@@ -81,7 +81,7 @@ bool SixenseManager::isSupported() const {
 
 void SixenseManager::activate() {
     InputPlugin::activate();
-    
+
 #ifdef HAVE_SIXENSE
     _container->addMenu(MENU_PATH);
     _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, TOGGLE_SMOOTH,
@@ -307,7 +307,7 @@ void SixenseManager::InputDevice::updateCalibration(SixenseControllerData* contr
         switch (_calibrationState) {
             case CALIBRATION_STATE_IDLE:
                 return;
-                
+
             case CALIBRATION_STATE_COMPLETE: {
                     // compute calibration results
                     _avatarPosition = -0.5f * (_reachLeft + _reachRight); // neck is midway between right and left hands

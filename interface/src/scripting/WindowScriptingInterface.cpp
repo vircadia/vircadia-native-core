@@ -21,6 +21,7 @@
 #include "DomainHandler.h"
 #include "MainWindow.h"
 #include "Menu.h"
+#include "OffscreenUi.h"
 #include "ui/ModelsBrowser.h"
 
 #include "WindowScriptingInterface.h"
@@ -153,12 +154,11 @@ QScriptValue WindowScriptingInterface::peekNonBlockingFormResult(QScriptValue fo
     return retVal;
 }
 
-
 /// Display an alert box
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
 QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
-    QMessageBox::warning(qApp->getWindow(), "", message);
+    OffscreenUi::warning("", message);
     return QScriptValue::UndefinedValue;
 }
 
@@ -166,8 +166,11 @@ QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
 /// \param const QString& message message to display
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
-    QMessageBox::StandardButton response = QMessageBox::question(qApp->getWindow(), "", message);
-    return QScriptValue(response == QMessageBox::Yes);
+    bool confirm = false;
+    OffscreenUi::question("", message, [&](QMessageBox::StandardButton response){
+        confirm = (response == QMessageBox::Yes);
+    });
+    return QScriptValue(confirm);
 }
 
 void WindowScriptingInterface::chooseDirectory() {
@@ -185,7 +188,7 @@ void WindowScriptingInterface::chooseDirectory() {
     }
 
     if (!validateAs.exactMatch(directory)) {
-        QMessageBox::warning(NULL, "Invalid Directory", errorMessage);
+        OffscreenUi::warning(NULL, "Invalid Directory", errorMessage);
         return;
     }
 
@@ -597,7 +600,6 @@ QScriptValue WindowScriptingInterface::showPrompt(const QString& message, const 
     if (promptDialog.exec() == QDialog::Accepted) {
         return QScriptValue(promptDialog.textValue());
     }
-    
     return QScriptValue::NullValue;
 }
 

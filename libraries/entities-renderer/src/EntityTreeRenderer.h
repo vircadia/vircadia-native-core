@@ -148,6 +148,9 @@ private:
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
 
+    bool isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
+                          const EntityItemID& id, const Collision& collision);
+
     void playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
                                   const EntityItemID& id, const Collision& collision);
 
