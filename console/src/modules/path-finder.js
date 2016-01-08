@@ -1,4 +1,5 @@
 var fs = require('fs');
+var path = require('path');
 
 exports.searchPaths = function(name, binaryType) {
     function platformExtension(name) {
@@ -29,7 +30,7 @@ exports.searchPaths = function(name, binaryType) {
     } else {
         // check directly beside the binary
         paths = [
-            process.execPath + "/" + name + extension,
+            path.join(process.execPath, name + extension)
         ];
 
         // check if we're inside an app bundle on OS X
@@ -53,17 +54,17 @@ exports.searchPaths = function(name, binaryType) {
 exports.discoveredPath = function (name, binaryType) {
     function binaryFromPaths(name, paths) {
         for (var i = 0; i < paths.length; i++) {
-            var path = paths[i];
+            var testPath = paths[i];
 
             try {
-                var stats = fs.lstatSync(path);
+                var stats = fs.lstatSync(testPath);
 
                 if (stats.isFile() || (stats.isDirectory() && extension == ".app")) {
-                    console.log("Found " + name + " at " + path);
-                    return path;
+                    console.log("Found " + name + " at " + testPath);
+                    return testPath;
                 }
             } catch (e) {
-                console.log("Executable with name " + name + " not found at path " + path);
+                console.log("Executable with name " + name + " not found at path " + testPath);
             }
         }
 
