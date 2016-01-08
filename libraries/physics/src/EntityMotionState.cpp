@@ -80,9 +80,9 @@ EntityMotionState::~EntityMotionState() {
     _entity = nullptr;
 }
 
-void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
+void EntityMotionState::updateServerPhysicsVariables() {
     assert(entityTreeIsLocked());
-    if (_entity->getSimulatorID() == sessionID) {
+    if (_entity->getSimulatorID() == PhysicsEngine::getSessionID()) {
         // don't slam these values if we are the simulation owner
         return;
     }
@@ -96,10 +96,10 @@ void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
 }
 
 // virtual
-bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
     assert(entityTreeIsLocked());
-    updateServerPhysicsVariables(engine->getSessionID());
-    ObjectMotionState::handleEasyChanges(flags, engine);
+    updateServerPhysicsVariables();
+    ObjectMotionState::handleEasyChanges(flags);
 
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
@@ -113,7 +113,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine
             _outgoingPriority = NO_PRORITY;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (engine->getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
+            if (PhysicsEngine::getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
                 // we own the simulation or our priority looses to (or ties with) remote
                 _outgoingPriority = NO_PRORITY;
             }
@@ -135,7 +135,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
-    updateServerPhysicsVariables(engine->getSessionID());
+    updateServerPhysicsVariables();
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
@@ -523,6 +523,17 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
     uint32_t dirtyFlags = 0;
     if (_body && _entity) {
         dirtyFlags = _entity->getDirtyFlags();
+
+        if (dirtyFlags | Simulation::DIRTY_SIMULATOR_ID) {
+            // when SIMULATOR_ID changes we must check for reinterpretation of asymmetric collision mask
+            // bits for the avatar groups (e.g. MY_AVATAR vs OTHER_AVATAR)
+            uint8_t entityCollisionMask = _entity->getCollisionMask();
+            if ((bool)(entityCollisionMask & USER_COLLISION_GROUP_MY_AVATAR) !=
+                    (bool)(entityCollisionMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
+                // bits are asymmetric --> flag for reinsertion in physics simulation
+                dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+            }
+        }
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
         bool isMoving = _entity->isMoving();
@@ -633,7 +644,16 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
 
     mask = PhysicsEngine::getCollisionMask(group);
     if (_entity) {
-        mask &= (int16_t)(_entity->getCollisionMask());
+        uint8_t entityCollisionMask = _entity->getCollisionMask();
+        if ((bool)(entityCollisionMask & USER_COLLISION_GROUP_MY_AVATAR) !=
+                (bool)(entityCollisionMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
+            // asymmetric avatar collision mask bits
+            if (!_entity->getSimulatorID().isNull() && _entity->getSimulatorID() != PhysicsEngine::getSessionID()) {
+                // someone else owns the simulation, so we swap the interpretation of the bits
+                entityCollisionMask ^= USER_COLLISION_MASK_AVATARS | ~entityCollisionMask;
+            }
+        }
+        mask &= (int16_t)(entityCollisionMask);
     }
 }
 

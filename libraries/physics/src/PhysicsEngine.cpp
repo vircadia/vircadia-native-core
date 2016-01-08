@@ -42,6 +42,19 @@ int16_t PhysicsEngine::getCollisionMask(int16_t group) {
     return mask ? *mask : BULLET_COLLISION_MASK_DEFAULT;
 }
 
+QUuid _sessionID;
+
+// static
+void PhysicsEngine::setSessionUUID(const QUuid& sessionID) {
+    _sessionID = sessionID;
+}
+
+// static
+const QUuid& PhysicsEngine::getSessionID() {
+    return _sessionID;
+}
+
+
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
         _myAvatarController(nullptr) {
@@ -209,7 +222,7 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
                 stillNeedChange.push_back(object);
             }
         } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-            if (object->handleEasyChanges(flags, this)) {
+            if (object->handleEasyChanges(flags)) {
                 object->clearIncomingDirtyFlags();
             } else {
                 stillNeedChange.push_back(object);

@@ -275,7 +275,7 @@ public:
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
     uint8_t getCollisionMask() const { return _collisionMask; }
-    void setCollisionMask(uint8_t value);
+    void setCollisionMask(uint8_t value) { _collisionMask = value; }
 
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
