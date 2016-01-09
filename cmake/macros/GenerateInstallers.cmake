@@ -12,6 +12,8 @@
 macro(GENERATE_INSTALLERS)
   include(CPackComponent)
 
+  set(CPACK_MODULE_PATH ${CPACK_MODULE_PATH} "${HF_CMAKE_DIR}/templates")
+
   set(CPACK_PACKAGE_NAME "High Fidelity")
   set(CPACK_PACKAGE_VENDOR "High Fidelity")
 

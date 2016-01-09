@@ -180,9 +180,9 @@ else ()
   set(UPPER_CMAKE_BUILD_TYPE DEBUG)
 endif ()
 
-set(HIFI_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(MACRO_DIR "${HIFI_CMAKE_DIR}/macros")
-set(EXTERNAL_PROJECT_DIR "${HIFI_CMAKE_DIR}/externals")
+set(HF_CMAKE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(MACRO_DIR "${HF_CMAKE_DIR}/macros")
+set(EXTERNAL_PROJECT_DIR "${HF_CMAKE_DIR}/externals")
 
 file(GLOB HIFI_CUSTOM_MACROS "cmake/macros/*.cmake")
 foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
