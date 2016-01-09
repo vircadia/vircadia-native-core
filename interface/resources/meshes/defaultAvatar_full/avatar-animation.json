@@ -198,9 +198,9 @@
                                                 "id": "rightHandOpen",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/grab/force_grab_right.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 0.0,
+                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/open_variations.fbx",
+                                                    "startFrame": 95.0,
+                                                    "endFrame": 95.0,
                                                     "timeScale": 1.0,
                                                     "loopFlag": true
                                                 },
