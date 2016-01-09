@@ -27,18 +27,19 @@ macro(GENERATE_INSTALLERS)
     ADD_REMOVE
   )
 
-  set(CLIENT_GROUP client)
+  set(CLIENT_GROUP client-group)
 
   # add a component group for the client
-  # cpack_add_component_group(
-  #   ${CLIENT_GROUP}
-  #   DISPLAY_NAME "Client"
-  #   EXPANDED
-  # )
+  cpack_add_component_group(
+    ${CLIENT_GROUP}
+    DISPLAY_NAME "Client"
+    EXPANDED
+  )
 
   cpack_add_component(
     ${CLIENT_COMPONENT}
     DISPLAY_NAME "High Fidelity Client"
+    GROUP ${CLIENT_GROUP}
   )
 
   if (WIN32 AND DEFINED ENV{DDE_ARCHIVE_DIR})
@@ -48,6 +49,8 @@ macro(GENERATE_INSTALLERS)
       DISPLAY_NAME "Webcam Body Movement"
       DEPENDS ${CLIENT_COMPONENT}
       DOWNLOADED
+      DISABLE
+      GROUP ${CLIENT_GROUP}
       ARCHIVE_FILE "DDE"
     )
   endif ()
