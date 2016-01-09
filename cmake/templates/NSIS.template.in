@@ -7,6 +7,9 @@
   !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
   !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
 
+  !define INTERFACE_SHORTCUT_NAME "High Fidelity"
+  !define INTERFACE_EXEC_NAME "interface.exe"
+
 ;--------------------------------
 ;Variables
 
@@ -698,7 +701,7 @@ Section "-Core installation"
 
   ; Conditional handling for interface shortcut
   ${If} ${SectionIsSelected} ${client}
-    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\High Fidelity.lnk" "$INSTDIR\interface.exe"
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\$INTERFACE_SHORTCUT_NAME.lnk" "$INSTDIR\$INTERFACE_EXEC_NAME"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
@@ -855,6 +858,7 @@ Section "Uninstall"
   !insertmacro MUI_STARTMENU_GETFOLDER Application $MUI_TEMP
 
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\$INTERFACE_SHORTCUT_NAME.lnk"
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
