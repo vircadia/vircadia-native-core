@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <Transform.h>
@@ -63,7 +62,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     
     batch.setModelTransform(transformToTopLeft);
     
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false, false, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();

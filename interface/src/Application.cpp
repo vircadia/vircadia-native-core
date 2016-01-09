@@ -3611,7 +3611,7 @@ namespace render {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
             renderWorldBox(batch);
         }
     }

@@ -17,7 +17,6 @@
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <NetworkAccessManager.h>
 #include <PerfStat.h>

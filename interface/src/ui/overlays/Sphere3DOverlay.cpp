@@ -12,7 +12,6 @@
 
 #include <DependencyManager.h>
 #include <GeometryCache.h>
-#include <DeferredLightingEffect.h>
 #include <gpu/Batch.h>
 #include <SharedUtil.h>
 
@@ -45,12 +44,11 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         Transform transform = _transform;
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
         if (_isSolid) {
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(*batch, transform, sphereColor);
         } else {
-            DependencyManager::get<DeferredLightingEffect>()->renderWireSphereInstance(*batch, transform, sphereColor);
+            DependencyManager::get<GeometryCache>()->renderWireSphereInstance(*batch, transform, sphereColor);
         }
     }
-
 }
 
 Sphere3DOverlay* Sphere3DOverlay::createClone() const {

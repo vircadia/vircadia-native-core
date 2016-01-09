@@ -16,8 +16,6 @@
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 
-
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
@@ -103,7 +101,7 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true, false, false, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, true, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }

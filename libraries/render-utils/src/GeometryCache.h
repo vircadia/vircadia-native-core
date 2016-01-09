@@ -16,7 +16,6 @@
 
 #include <array>
 
-
 #include <QMap>
 #include <QRunnable>
 
@@ -25,9 +24,12 @@
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
+#include <render/ShapePipeline.h>
 
 #include <model/Material.h>
 #include <model/Asset.h>
+
+class SimpleProgramKey;
 
 typedef glm::vec3 Vec3Key;
 
@@ -146,6 +148,32 @@ public:
 
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
+    
+    
+    /// Sets up the state necessary to render static untextured geometry with the simple program.
+    gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+                                           bool emissive = false, bool depthBias = false);
+    
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
 
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
@@ -335,6 +363,75 @@ private:
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    gpu::PipelinePointer getPipeline(SimpleProgramKey config);
+    
+    gpu::ShaderPointer _simpleShader;
+    gpu::ShaderPointer _emissiveShader;
+    QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 };
+
+class SimpleProgramKey {
+public:
+    enum FlagBit {
+        IS_TEXTURED_FLAG = 0,
+        IS_CULLED_FLAG,
+        IS_EMISSIVE_FLAG,
+        HAS_DEPTH_BIAS_FLAG,
+        
+        NUM_FLAGS,
+    };
+    
+    enum Flag {
+        IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
+        IS_CULLED = (1 << IS_CULLED_FLAG),
+        IS_EMISSIVE = (1 << IS_EMISSIVE_FLAG),
+        HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
+    };
+    typedef unsigned short Flags;
+    
+    bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
+    
+    bool isTextured() const { return isFlag(IS_TEXTURED); }
+    bool isCulled() const { return isFlag(IS_CULLED); }
+    bool isEmissive() const { return isFlag(IS_EMISSIVE); }
+    bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
+    
+    Flags _flags = 0;
+    short _spare = 0;
+    
+    int getRaw() const { return *reinterpret_cast<const int*>(this); }
+    
+    
+    SimpleProgramKey(bool textured = false, bool culled = true,
+                     bool emissive = false, bool depthBias = false) {
+        _flags = (textured ? IS_TEXTURED : 0) | (culled ? IS_CULLED : 0) |
+        (emissive ? IS_EMISSIVE : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
+    }
+    
+    SimpleProgramKey(int bitmask) : _flags(bitmask) {}
+};
+
+inline uint qHash(const SimpleProgramKey& key, uint seed) {
+    return qHash(key.getRaw(), seed);
+}
+
+inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
+    return a.getRaw() == b.getRaw();
+}
 
 #endif // hifi_GeometryCache_h

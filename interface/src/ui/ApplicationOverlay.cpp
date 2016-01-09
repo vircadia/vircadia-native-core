@@ -12,7 +12,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
