@@ -30,7 +30,6 @@
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
-#include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>

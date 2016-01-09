@@ -1841,9 +1841,8 @@ void renderInstances(const std::string& name, gpu::Batch& batch, const Transform
         instanceColorBuffer->append(compactColor);
     }
     
-    auto that = DependencyManager::get<GeometryCache>();
-    batch.setupNamedCalls(name, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        auto pipeline = that->bindSimpleProgram(batch);
+    batch.setupNamedCalls(name, [f](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        auto pipeline = DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
         auto location = pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         batch._glUniform1i(location, 1);

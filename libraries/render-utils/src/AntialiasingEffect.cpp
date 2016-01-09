@@ -16,7 +16,6 @@
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 
-#include "gpu/StandardShaderLib.h"
 #include "AntialiasingEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"

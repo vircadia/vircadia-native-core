@@ -16,7 +16,6 @@
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 
-#include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
