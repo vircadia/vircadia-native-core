@@ -163,12 +163,9 @@ var POINT_HAND_STATES = [STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER, STATE_
 var FAR_GRASP_HAND_STATES = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
 // otherwise grasp
 
-var COLLISION_GROUP_STATIC = 0x01; // bit 0
-var COLLISION_GROUP_DYNAMIC = 0x02; // bit 1
-var COLLISION_GROUP_KINEMATIC = 0x04; // bit 2
-var COLLISION_GROUP_MY_AVATAR = 0x08; // bit 3
-var COLLISION_GROUP_OTHER_AVATAR = 0x10; // bit 4
-var COLLISION_MASK_WHILE_GRABBED = COLLISION_GROUP_DYNAMIC | COLLISION_GROUP_OTHER_AVATAR;
+// collision masks are specified by comma-separated list of group names
+// the possible list of names is:  static, dynamic, kinematic, myAvatar, otherAvatar
+var COLLISION_MASK_WHILE_GRABBED = "dynamic,otherAvatar";
 
 
 function stateToName(state) {
@@ -1845,7 +1842,7 @@ function MyController(hand) {
                     y: 0,
                     z: 0
                 },
-                collisionMask: COLLISION_MASK_WHILE_GRABBED & grabbedProperties.collisionMask
+                "collisionMask": COLLISION_MASK_WHILE_GRABBED
             };
             Entities.editEntity(entityID, whileHeldProperties);
         }

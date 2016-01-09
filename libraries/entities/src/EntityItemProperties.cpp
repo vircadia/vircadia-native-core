@@ -116,6 +116,59 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_CYLINDER_Z);
 }
 
+QString getCollisionGroupAsString(uint8_t group) {
+    switch (group) {
+        case USER_COLLISION_GROUP_DYNAMIC:
+            return "dynamic";
+        case USER_COLLISION_GROUP_STATIC:
+            return "static";
+        case USER_COLLISION_GROUP_KINEMATIC:
+            return "kinematic";
+        case USER_COLLISION_GROUP_MY_AVATAR:
+            return "myAvatar";
+        case USER_COLLISION_GROUP_OTHER_AVATAR:
+            return "otherAvatar";
+    };
+    return "";
+}
+
+uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
+    if (0 == name.compare("dynamic")) {
+        return USER_COLLISION_GROUP_DYNAMIC;
+    } else if (0 == name.compare("static")) {
+        return USER_COLLISION_GROUP_STATIC;
+    } else if (0 == name.compare("kinematic")) {
+        return USER_COLLISION_GROUP_KINEMATIC;
+    } else if (0 == name.compare("myAvatar")) {
+        return USER_COLLISION_GROUP_MY_AVATAR;
+    } else if (0 == name.compare("otherAvatar")) {
+        return USER_COLLISION_GROUP_OTHER_AVATAR;
+    }
+    return 0;
+}
+
+QString EntityItemProperties::getCollisionMaskAsString() const {
+    QString maskString("");
+    for (int i = 0; i < NUM_USER_COLLISION_GROUPS; ++i) {
+        uint8_t group = 0x01 << i;
+        if (group & _collisionMask) {
+            maskString.append(getCollisionGroupAsString(group));
+            maskString.append(',');
+        }
+    }
+    return maskString;
+}
+
+void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
+    QVector<QStringRef> groups = maskString.splitRef(',');
+    uint8_t mask = 0x00;
+    for (auto group : groups) {
+        mask |= getCollisionGroupAsBitMask(group);
+    }
+    _collisionMask = mask;
+    _collisionMaskChanged = true;
+}
+
 QString EntityItemProperties::getShapeTypeAsString() const {
     if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
         return QString(shapeTypeNames[_shapeType]);
@@ -318,7 +371,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISION_MASK, collisionMask, getCollisionMaskAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
@@ -540,7 +593,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collisionMask, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionsWillMove, bool, setCollisionsWillMove);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(intensity, float, setIntensity);

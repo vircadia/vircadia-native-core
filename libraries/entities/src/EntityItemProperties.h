@@ -274,6 +274,10 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+protected:
+    QString getCollisionMaskAsString() const;
+    void setCollisionMaskFromString(const QString& maskString);
+
 private:
     QUuid _id;
     bool _idSet;
