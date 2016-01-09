@@ -30,6 +30,7 @@ Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 #endif
 
 const QString NeuronPlugin::NAME = "Neuron";
+const QString NeuronPlugin::GROUPING = "Standard";
 const QString NeuronPlugin::NEURON_ID_STRING = "Perception Neuron";
 
 // indices of joints of the Neuron standard skeleton.

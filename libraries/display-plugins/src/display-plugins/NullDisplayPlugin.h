@@ -24,4 +24,5 @@ public:
     virtual QImage getScreenshot() const override;
 private:
     static const QString NAME;
+    static const QString GROUPING;
 };

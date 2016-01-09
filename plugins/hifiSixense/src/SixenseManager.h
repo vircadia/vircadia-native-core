@@ -29,8 +29,9 @@ public:
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
-    const QString& getName() const override { return NAME; }
-    const QString& getID() const override { return HYDRA_ID_STRING; }
+    virtual const QString& getName() const override { return NAME; }
+    virtual const QString& getGrouping() const override { return GROUPING; }
+    virtual const QString& getID() const override { return HYDRA_ID_STRING; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -97,6 +98,7 @@ private:
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
     static const QString NAME;
+    static const QString GROUPING;
     static const QString HYDRA_ID_STRING;
 
     static bool _sixenseLoaded;

@@ -137,10 +137,7 @@ private:
 #endif
 
 const QString OculusDisplayPlugin::NAME("Oculus Rift");
-
-const QString & OculusDisplayPlugin::getName() const {
-    return NAME;
-}
+const QString OculusDisplayPlugin::GROUPING("Standard");
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";

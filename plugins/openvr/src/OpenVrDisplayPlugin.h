@@ -18,7 +18,8 @@ const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device p
 class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     virtual bool isSupported() const override;
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual const QString& getGrouping() const override { return GROUPING; }
     virtual bool isHmd() const override { return true; }
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_OpenVr; }
@@ -45,5 +46,6 @@ protected:
 private:
     vr::IVRSystem* _hmd { nullptr };
     static const QString NAME;
+    static const QString GROUPING;
 };
 

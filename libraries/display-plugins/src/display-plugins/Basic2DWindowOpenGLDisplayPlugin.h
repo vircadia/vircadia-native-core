@@ -18,7 +18,8 @@ class Basic2DWindowOpenGLDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
 
 public:
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual const QString& getGrouping() const override { return GROUPING; }
 
     virtual float getTargetFrameRate() override { return  _framerateTarget ? (float) _framerateTarget : TARGET_FRAMERATE_Basic2DWindowOpenGL; }
 
@@ -37,6 +38,7 @@ protected:
 private:
     void updateFramerate();
     static const QString NAME;
+    static const QString GROUPING;
     QScreen* getFullscreenTarget();
     std::vector<QAction*> _framerateActions;
     QAction* _vsyncAction { nullptr };

@@ -19,6 +19,9 @@ public:
     /// \return human-readable name
     virtual const QString& getName() const = 0;
 
+    /// \return human-readable grouping for the plugin, Standard, Advanced, or Developer
+    virtual const QString& getGrouping() const = 0;
+
     /// \return string ID (not necessarily human-readable)
     virtual const QString& getID() const { assert(false); return UNKNOWN_PLUGIN_ID; }
 

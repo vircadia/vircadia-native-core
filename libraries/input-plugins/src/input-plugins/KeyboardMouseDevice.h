@@ -67,7 +67,8 @@ public:
     // Plugin functions
     virtual bool isSupported() const override { return true; }
     virtual bool isJointController() const override { return false; }
-    const QString& getName() const override { return NAME; }
+    virtual const QString& getName() const override { return NAME; }
+    virtual const QString& getGrouping() const override { return GROUPING; }
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
@@ -87,6 +88,7 @@ public:
     void wheelEvent(QWheelEvent* event);
     
     static const QString NAME;
+    static const QString GROUPING;
 
 protected:
 

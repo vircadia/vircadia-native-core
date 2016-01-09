@@ -44,11 +44,8 @@ void main() {
 
 )FS";
 
-const QString InterleavedStereoDisplayPlugin::NAME("Interleaved Stereo Display");
-
-const QString & InterleavedStereoDisplayPlugin::getName() const {
-    return NAME;
-}
+const QString InterleavedStereoDisplayPlugin::NAME("3D TV - Interleaved");
+const QString InterleavedStereoDisplayPlugin::GROUPING("Advanced");
 
 InterleavedStereoDisplayPlugin::InterleavedStereoDisplayPlugin() {
 }
