@@ -27,10 +27,8 @@
 using namespace oglplus;
 
 const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Simulated)");
+const QString OculusLegacyDisplayPlugin::GROUPING("Standard");
 
-const QString & OculusLegacyDisplayPlugin::getName() const {
-    return NAME;
-}
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
