@@ -43,6 +43,10 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_ICON "console-beta.ico")
   endif ()
 
+  if (WIN32)
+    set(INTERFACE_EXEC_NAME "interface")
+  endif ()
+
   if (APPLE)
     set(CONSOLE_INSTALL_DIR ".")
     set(CONSOLE_APPLICATION_NAME "Server Console.app")

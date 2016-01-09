@@ -15,6 +15,10 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_NAME "HighFidelity")
   set(CPACK_PACKAGE_VENDOR "HighFidelity")
 
+  if (WIN32)
+    set(INTERFACE_STARTMENU_NAME "High Fidelity")
+  endif ()
+
   if (APPLE)
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "/")
     set(CPACK_PACKAGING_INSTALL_PREFIX /)
