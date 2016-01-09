@@ -56,6 +56,7 @@ namespace render {
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -301,7 +302,7 @@ public:
 
     virtual bool contains(const glm::vec3& point) const;
 
-    virtual bool isReadyToComputeShape() { return true; }
+    virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
     virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
 
@@ -335,6 +336,8 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+
+    bool isSimulated() const { return _simulated; }
 
     void* getPhysicsInfo() const { return _physicsInfo; }
 
@@ -381,12 +384,16 @@ public:
     QList<EntityActionPointer> getActionsOfType(EntityActionType typeToGet);
 
     // these are in the frame of this object
-    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
-    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
 protected:
+
+    void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);

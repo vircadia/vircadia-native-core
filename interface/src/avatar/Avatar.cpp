@@ -108,7 +108,11 @@ Avatar::Avatar(RigPointer rig) :
 }
 
 Avatar::~Avatar() {
-    assert(_motionState == nullptr);
+    assert(isDead()); // mark dead before calling the dtor
+    if (_motionState) {
+        delete _motionState;
+        _motionState = nullptr;
+    }
 }
 
 const float BILLBOARD_LOD_DISTANCE = 40.0f;
@@ -585,7 +589,7 @@ bool Avatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 // virtual
 void Avatar::simulateAttachments(float deltaTime) {
-    for (int i = 0; i < _attachmentModels.size(); i++) {
+    for (int i = 0; i < (int)_attachmentModels.size(); i++) {
         const AttachmentData& attachment = _attachmentData.at(i);
         auto& model = _attachmentModels.at(i);
         int jointIndex = getJointIndex(attachment.jointName);
@@ -940,7 +944,7 @@ static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer ri
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
@@ -949,14 +953,14 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
 
     // if number of attachments has been reduced, remove excess models.
-    while (_attachmentModels.size() > attachmentData.size()) {
+    while ((int)_attachmentModels.size() > attachmentData.size()) {
         auto attachmentModel = _attachmentModels.back();
         _attachmentModels.pop_back();
         _attachmentsToRemove.push_back(attachmentModel);
     }
 
     for (int i = 0; i < attachmentData.size(); i++) {
-        if (i == _attachmentModels.size()) {
+        if (i == (int)_attachmentModels.size()) {
             // if number of attachments has been increased, we need to allocate a new model
             _attachmentModels.push_back(allocateAttachmentModel(attachmentData[i].isSoft, _skeletonModel.getRig()));
         }

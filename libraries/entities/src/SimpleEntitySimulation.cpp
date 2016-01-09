@@ -53,6 +53,7 @@ void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
 }
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    EntitySimulation::removeEntityInternal(entity);
     _entitiesWithSimulator.remove(entity);
 }
 

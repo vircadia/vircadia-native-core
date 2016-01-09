@@ -598,7 +598,8 @@ AACube SpatiallyNestable::getQueryAACube(bool& success) const {
         return _queryAACube;
     }
     success = false;
-    return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
+    bool getPositionSuccess;
+    return AACube(getPosition(getPositionSuccess) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
 AACube SpatiallyNestable::getQueryAACube() const {

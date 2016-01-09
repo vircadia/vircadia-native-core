@@ -27,8 +27,8 @@ void MenuScriptingInterface::menuItemTriggered() {
     }
 }
 
-void MenuScriptingInterface::addMenu(const QString& menu) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenu", Q_ARG(const QString&, menu));
+void MenuScriptingInterface::addMenu(const QString& menu, const QString& grouping) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenu", Q_ARG(const QString&, menu), Q_ARG(const QString&, grouping));
 }
 
 void MenuScriptingInterface::removeMenu(const QString& menu) {

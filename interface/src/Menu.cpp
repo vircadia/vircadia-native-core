@@ -51,13 +51,13 @@ Menu* Menu::getInstance() {
 }
 
 Menu::Menu() {
-    MenuWrapper * fileMenu = addMenu("File");
-#ifdef Q_OS_MAC
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
-#endif
     auto dialogsManager = DependencyManager::get<DialogsManager>();
     AccountManager& accountManager = AccountManager::getInstance();
 
+    // File/Application menu ----------------------------------
+    MenuWrapper* fileMenu = addMenu("File");
+
+    // File > Login menu items
     {
         addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
 
@@ -68,256 +68,264 @@ Menu::Menu() {
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
 
-    // File Menu > Scripts section -- "Advanced" grouping
-    addDisabledActionAndSeparator(fileMenu, "Scripts", UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-                                  qApp, SLOT(loadDialog()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
-                                    Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
-                                    QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-                                  qApp, SLOT(reloadAllScripts()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-                                  qApp, SLOT(toggleRunningScriptsWidget()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    // File > Update -- FIXME: needs implementation
+    auto updateAction = addActionToQMenuAndActionHash(fileMenu, "Update");
+    updateAction->setDisabled(true);
 
-    auto addressManager = DependencyManager::get<AddressManager>();
+    // File > Help
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
 
-    addDisabledActionAndSeparator(fileMenu, "History");
+    // File > Crash Reporter...-- FIXME: needs implementation
+    auto crashReporterAction = addActionToQMenuAndActionHash(fileMenu, "Crash Reporter...");
+    crashReporterAction->setDisabled(true);
 
-    QAction* backAction = addActionToQMenuAndActionHash(fileMenu,
-                                                        MenuOption::Back,
-                                                        0,
-                                                        addressManager.data(),
-                                                        SLOT(goBack()));
+    // File > About
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
 
-    QAction* forwardAction = addActionToQMenuAndActionHash(fileMenu,
-                                                           MenuOption::Forward,
-                                                           0,
-                                                           addressManager.data(),
-                                                           SLOT(goForward()));
-
-    // connect to the AddressManager signal to enable and disable the back and forward menu items
-    connect(addressManager.data(), &AddressManager::goBackPossible, backAction, &QAction::setEnabled);
-    connect(addressManager.data(), &AddressManager::goForwardPossible, forwardAction, &QAction::setEnabled);
-
-    // set the two actions to start disabled since the stacks are clear on startup
-    backAction->setDisabled(true);
-    forwardAction->setDisabled(true);
-
-    addDisabledActionAndSeparator(fileMenu, "Location");
-    qApp->getBookmarks()->setupMenus(this, fileMenu);
-
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::AddressBar,
-                                  Qt::CTRL | Qt::Key_L,
-                                  dialogsManager.data(),
-                                  SLOT(toggleAddressBar()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyAddress, 0,
-                                  addressManager.data(), SLOT(copyAddress()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::CopyPath, 0,
-                                  addressManager.data(), SLOT(copyPath()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::Quit,
-                                  Qt::CTRL | Qt::Key_Q,
-                                  qApp,
-                                  SLOT(quit()),
-                                  QAction::QuitRole);
+    // File > Quit
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
 
 
+    // Edit menu ----------------------------------
     MenuWrapper* editMenu = addMenu("Edit");
 
+    // Edit > Undo
     QUndoStack* undoStack = qApp->getUndoStack();
     QAction* undoAction = undoStack->createUndoAction(editMenu);
     undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, undoAction);
 
+    // Edit > Redo
     QAction* redoAction = undoStack->createRedoAction(editMenu);
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
-    addActionToQMenuAndActionHash(editMenu,
-                                  MenuOption::Preferences,
-                                  Qt::CTRL | Qt::Key_Comma,
-                                  dialogsManager.data(),
-                                  SLOT(editPreferences()),
-                                  QAction::PreferencesRole);
+    // Edit > Running Sccripts
+    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
+        qApp, SLOT(toggleRunningScriptsWidget()));
 
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Attachments, 0,
-                                  dialogsManager.data(), SLOT(editAttachments()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    // Edit > Open and Run Script from File... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
+        qApp, SLOT(loadDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
-    MenuWrapper* toolsMenu = addMenu("Tools");
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S,
-                                  dialogsManager.data(), SLOT(showScriptEditor()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    // Edit > Open and Run Script from Url... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScriptURL,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
+    // Edit > Stop All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
+        qApp, SLOT(reloadAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Scripts Editor... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
+        dialogsManager.data(), SLOT(showScriptEditor()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Console... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
+        DependencyManager::get<StandAloneJSConsole>().data(),
+        SLOT(toggleConsole()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Content [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    // Edit > Package Model... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
+        qApp, SLOT(packageModel()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    // Audio menu ----------------------------------
+    MenuWrapper* audioMenu = addMenu("Audio");
+    auto audioIO = DependencyManager::get<AudioClient>();
+
+    // Audio > Mute
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false, 
+        audioIO.data(), SLOT(toggleMute()));
+
+    // Audio > Level Meter  [advanced] -- FIXME: needs implementation
+    auto levelMeterAction = addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+    levelMeterAction->setDisabled(true);
+
+
+    // Avatar menu ----------------------------------
+    MenuWrapper* avatarMenu = addMenu("Avatar");
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    QObject* avatar = avatarManager->getMyAvatar();
+
+    // Avatar > Attachments...
+    addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments, 0,
+        dialogsManager.data(), SLOT(editAttachments()));
+
+    // Avatar > Size
+    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
+
+    // Avatar > Size > Increase
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::IncreaseAvatarSize,
+        0, // QML Qt::Key_Plus,
+        avatar, SLOT(increaseSize()));
+
+    // Avatar > Size > Decrease
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::DecreaseAvatarSize,
+        0, // QML Qt::Key_Minus,
+        avatar, SLOT(decreaseSize()));
+
+    // Avatar > Size > Reset
+    addActionToQMenuAndActionHash(avatarSizeMenu,
+        MenuOption::ResetAvatarSize,
+        0, // QML Qt::Key_Equal,
+        avatar, SLOT(resetSize()));
+
+    // Avatar > Reset Sensors
+    addActionToQMenuAndActionHash(avatarMenu,
+        MenuOption::ResetSensors,
+        0, // QML Qt::Key_Apostrophe,
+        qApp, SLOT(resetSensors()));
+
+
+    // Display menu ----------------------------------
+    // FIXME - this is not yet matching Alan's spec because it doesn't have
+    // menus for "2D"/"3D" - we need to add support for detecting the appropriate
+    // default 3D display mode
+    addMenu(DisplayPlugin::MENU_PATH());
+    MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
+    QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
+    displayModeGroup->setExclusive(true);
+
+
+    // View menu ----------------------------------
+    MenuWrapper* viewMenu = addMenu("View");
+    QActionGroup* cameraModeGroup = new QActionGroup(viewMenu);
+
+    // View > [camera group]
+    cameraModeGroup->setExclusive(true);
+
+    // View > First Person
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::FirstPerson, 0, // QML Qt:: Key_P
+        false, qApp, SLOT(cameraMenuChanged())));
+
+    // View > Third Person
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::ThirdPerson, 0,
+        true, qApp, SLOT(cameraMenuChanged())));
+
+    // View > Mirror
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
+        false, qApp, SLOT(cameraMenuChanged())));
+
+    // View > Independent [advanced]
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::IndependentMode, 0,
+        false, qApp, SLOT(cameraMenuChanged()),
+        UNSPECIFIED_POSITION, "Advanced"));
+
+    // View > Entity Camera [advanced]
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
+        MenuOption::CameraEntityMode, 0,
+        false, qApp, SLOT(cameraMenuChanged()),
+        UNSPECIFIED_POSITION, "Advanced"));
+
+    viewMenu->addSeparator();
+
+    // View > Mini Mirror
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
+
+
+    // Navigate menu ----------------------------------
+    MenuWrapper* navigateMenu = addMenu("Navigate");
+
+    // Navigate > Home -- FIXME: needs implementation
+    auto homeAction = addActionToQMenuAndActionHash(navigateMenu, "Home");
+    homeAction->setDisabled(true);
+
+    addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
+        dialogsManager.data(), SLOT(toggleAddressBar()));
+
+    // Navigate > Directory -- FIXME: needs implementation
+    addActionToQMenuAndActionHash(navigateMenu, "Directory");
+
+    // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
+    qApp->getBookmarks()->setupMenus(this, navigateMenu);
+
+    // Navigate > Copy Address [advanced]
+    auto addressManager = DependencyManager::get<AddressManager>();
+    addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyAddress, 0,
+        addressManager.data(), SLOT(copyAddress()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Navigate > Copy Path [advanced]
+    addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
+        addressManager.data(), SLOT(copyPath()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    // Settings menu ----------------------------------
+    MenuWrapper* settingsMenu = addMenu("Settings");
+
+    // Settings > Advance Menus
+    addCheckableActionToQMenuAndActionHash(settingsMenu, "Advanced Menus", 0, false, this, SLOT(toggleAdvancedMenus()));
+
+    // Settings > Developer Menus
+    addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
+
+    // Settings > General...
+    addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma,
+        dialogsManager.data(), SLOT(editPreferences()), QAction::PreferencesRole);
+
+    // Settings > Avatar...-- FIXME: needs implementation
+    auto avatarAction = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
+    avatarAction->setDisabled(true);
+
+    // Settings > Audio...-- FIXME: needs implementation
+    auto audioAction = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    audioAction->setDisabled(true);
+
+    // Settings > LOD...-- FIXME: needs implementation
+    auto lodAction = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
+    lodAction->setDisabled(true);
+
+    // Settings > Control with Speech [advanced]
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     auto speechRecognizer = DependencyManager::get<SpeechRecognizer>();
-    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
-                                                                             Qt::CTRL | Qt::SHIFT | Qt::Key_C,
-                                                                             speechRecognizer->getEnabled(),
-                                                                             speechRecognizer.data(),
-                                                                             SLOT(setEnabled(bool)),
-                                                                             UNSPECIFIED_POSITION, "Advanced");
+    QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::ControlWithSpeech,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_C,
+        speechRecognizer->getEnabled(),
+        speechRecognizer.data(),
+        SLOT(setEnabled(bool)),
+        UNSPECIFIED_POSITION, "Advanced");
     connect(speechRecognizer.data(), SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
 #endif
 
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::Chat,
-                                  0, // QML Qt::Key_Backslash,
-                                  dialogsManager.data(), SLOT(showIRCLink()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::AddRemoveFriends, 0,
-                                  qApp, SLOT(showFriendsWindow()));
-
-    MenuWrapper* visibilityMenu = toolsMenu->addMenu("I Am Visible To");
-    {
-        QActionGroup* visibilityGroup = new QActionGroup(toolsMenu);
-        auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
-
-        QAction* visibleToEveryone = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToEveryone,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::All,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToEveryone);
-
-        QAction* visibleToFriends = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToFriends,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::Friends,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToFriends);
-
-        QAction* visibleToNoOne = addCheckableActionToQMenuAndActionHash(visibilityMenu, MenuOption::VisibleToNoOne,
-            0, discoverabilityManager->getDiscoverabilityMode() == Discoverability::None,
-            discoverabilityManager.data(), SLOT(setVisibility()));
-        visibilityGroup->addAction(visibleToNoOne);
-
-        connect(discoverabilityManager.data(), &DiscoverabilityManager::discoverabilityModeChanged,
-            discoverabilityManager.data(), &DiscoverabilityManager::visibilityChanged);
-    }
-
-    addActionToQMenuAndActionHash(toolsMenu,
-                                  MenuOption::ToolWindow,
-                                  Qt::CTRL | Qt::ALT | Qt::Key_T,
-                                  dialogsManager.data(),
-                                  SLOT(toggleToolWindow()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addActionToQMenuAndActionHash(toolsMenu,
-                                  MenuOption::Console,
-                                  Qt::CTRL | Qt::ALT | Qt::Key_J,
-                                  DependencyManager::get<StandAloneJSConsole>().data(),
-                                  SLOT(toggleConsole()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addActionToQMenuAndActionHash(toolsMenu,
-                                  MenuOption::ResetSensors,
-                                  0, // QML Qt::Key_Apostrophe,
-                                  qApp,
-                                  SLOT(resetSensors()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::PackageModel, 0,
-                                  qApp, SLOT(packageModel()),
-                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    addMenu(DisplayPlugin::MENU_PATH());
-    {
-        MenuWrapper* displayModeMenu = addMenu(MenuOption::OutputMenu);
-        QActionGroup* displayModeGroup = new QActionGroup(displayModeMenu);
-        displayModeGroup->setExclusive(true);
-    }
-
-    MenuWrapper* avatarMenu = addMenu("Avatar");
-    QObject* avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
+    // Settings > Input Devices
     MenuWrapper* inputModeMenu = addMenu(MenuOption::InputMenu, "Advanced");
     QActionGroup* inputModeGroup = new QActionGroup(inputModeMenu);
     inputModeGroup->setExclusive(false);
-    
-    MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::IncreaseAvatarSize,
-                                  0, // QML Qt::Key_Plus,
-                                  avatar,
-                                  SLOT(increaseSize()));
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::DecreaseAvatarSize,
-                                  0, // QML Qt::Key_Minus,
-                                  avatar,
-                                  SLOT(decreaseSize()));
-    addActionToQMenuAndActionHash(avatarSizeMenu,
-                                  MenuOption::ResetAvatarSize,
-                                  0, // QML Qt::Key_Equal,
-                                  avatar,
-                                  SLOT(resetSize()));
 
-    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
-                NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
 
-    MenuWrapper* viewMenu = addMenu("View");
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()), 
-                QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    MenuWrapper* cameraModeMenu = viewMenu->addMenu("Camera Mode");
-    QActionGroup* cameraModeGroup = new QActionGroup(cameraModeMenu);
-    cameraModeGroup->setExclusive(true);
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-                                                                      MenuOption::FirstPerson, 0, // QML Qt:: Key_P
-                                                                      false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-                                                                      MenuOption::ThirdPerson, 0,
-                                                                      true, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-                                                                      MenuOption::IndependentMode, 0,
-                                                                      false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-                                                                      MenuOption::CameraEntityMode, 0,
-                                                                      false, qApp, SLOT(cameraMenuChanged())));
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(cameraModeMenu,
-                                                                      MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
-                                                                      false, qApp, SLOT(cameraMenuChanged())));
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror,
-        0, //QML Qt::SHIFT | Qt::Key_H,
-        true);
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
-                                           0, false, qApp, SLOT(rotationModeChanged()),
-                                           UNSPECIFIED_POSITION, "Advanced");
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::WorldAxes, 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Developer");
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Developer");
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::Log,
-                Qt::CTRL | Qt::SHIFT | Qt::Key_L, 
-                qApp, SLOT(toggleLogDialog()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
-
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::AudioNetworkStats, 0,
-                dialogsManager.data(), SLOT(audioStatsDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
-
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0,
-                dialogsManager.data(), SLOT(bandwidthDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0,
-                dialogsManager.data(), SLOT(octreeStatsDetails()), QAction::NoRole, UNSPECIFIED_POSITION, "Developer");
-
-    addCheckableActionToQMenuAndActionHash(viewMenu, "Advanced Menus", 0, false, this, SLOT(toggleAdvancedMenus()));
-    addCheckableActionToQMenuAndActionHash(viewMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
-
+    // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
+    // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere,
-        0, // QML Qt::SHIFT | Qt::Key_A,
-        true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
 
+    // Developer > Render > Ambient Light
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
     QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
     ambientLightGroup->setExclusive(true);
@@ -333,8 +341,10 @@ Menu::Menu() {
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
     ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
 
+    // Developer > Render > Throttle FPS If Not Focus
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true);
 
+    // Developer > Render > Resolution
     MenuWrapper* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
     resolutionGroup->setExclusive(true);
@@ -344,37 +354,40 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
+    // Developer > Render > Stars
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars,
         0, // QML Qt::Key_Asterisk,
         true);
 
+    // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
         0, // QML Qt::SHIFT | Qt::Key_L,
         dialogsManager.data(), SLOT(lodTools()));
-    
+
+    // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
-    
     auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
     assetDialogFactory.setDialogParent(this);
-    
     QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
-                                                         MenuOption::UploadAsset,
-                                                         0,
-                                                         &assetDialogFactory,
-                                                         SLOT(showDialog()));
-    
+        MenuOption::UploadAsset,
+        0,
+        &assetDialogFactory,
+        SLOT(showDialog()));
+
     // disable the asset upload action by default - it gets enabled only if asset server becomes present
     assetUpload->setEnabled(false);
-    
+
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
-    
+
     addActionToQMenuAndActionHash(assetDeveloperMenu, MenuOption::AssetMigration,
-                                                            0, &atpMigrator,
-                                                            SLOT(loadEntityServerFile()));
-    
+        0, &atpMigrator,
+        SLOT(loadEntityServerFile()));
+
+    // Developer > Avatar >>>
     MenuWrapper* avatarDebugMenu = developerMenu->addMenu("Avatar");
 
+    // Developer > Avatar > Face Tracking
     MenuWrapper* faceTrackingMenu = avatarDebugMenu->addMenu("Face Tracking");
     {
         QActionGroup* faceTrackerGroup = new QActionGroup(avatarDebugMenu);
@@ -423,6 +436,7 @@ Menu::Menu() {
 #endif
 
 #ifdef HAVE_IVIEWHMD
+    // Developer > Avatar > Eye Tracking
     MenuWrapper* eyeTrackingMenu = avatarDebugMenu->addMenu("Eye Tracking");
     addCheckableActionToQMenuAndActionHash(eyeTrackingMenu, MenuOption::SMIEyeTracking, 0, false,
         qApp, SLOT(setActiveEyeTracker()));
@@ -439,9 +453,8 @@ Menu::Menu() {
         qApp, SLOT(setActiveEyeTracker()));
 #endif
 
-    auto avatarManager = DependencyManager::get<AvatarManager>();
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AvatarReceiveStats, 0, false,
-                                           avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
+        avatarManager.data(), SLOT(setShouldShowReceiveStats(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
@@ -450,13 +463,13 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ShowWhosLookingAtMe, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::FixGaze, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawDefaultPose, 0, false,
-                                           avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
+        avatar, SLOT(setEnableDebugDrawDefaultPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawAnimPose, 0, false,
-                                           avatar, SLOT(setEnableDebugDrawAnimPose(bool)));
+        avatar, SLOT(setEnableDebugDrawAnimPose(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::AnimDebugDrawPosition, 0, false,
-                                           avatar, SLOT(setEnableDebugDrawPosition(bool)));
+        avatar, SLOT(setEnableDebugDrawPosition(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::MeshVisible, 0, true,
-                                           avatar, SLOT(setEnableMeshVisible(bool)));
+        avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
@@ -473,37 +486,37 @@ Menu::Menu() {
         avatar, SLOT(updateMotionBehaviorFromMenu()),
         UNSPECIFIED_POSITION, "Developer");
 
-
-
+    // Developer > Hands >>>
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false);
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::LowVelocityFilter, 0, true,
-                                           qApp, SLOT(setLowVelocityFilter(bool)));
+        qApp, SLOT(setLowVelocityFilter(bool)));
 
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
+    // Developer > Network >>>
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false,
-                                           qApp->getEntityEditPacketSender(),
-                                           SLOT(toggleNackPackets()));
+        qApp->getEntityEditPacketSender(),
+        SLOT(toggleNackPackets()));
     addCheckableActionToQMenuAndActionHash(networkMenu,
-                                           MenuOption::DisableActivityLogger,
-                                           0,
-                                           false,
-                                           &UserActivityLogger::getInstance(),
-                                           SLOT(disable(bool)));
+        MenuOption::DisableActivityLogger,
+        0,
+        false,
+        &UserActivityLogger::getInstance(),
+        SLOT(disable(bool)));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::CachesSize, 0,
-                                  dialogsManager.data(), SLOT(cachesSizeDialog()));
+        dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
-                                  dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
+        dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
 
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
-                                  dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+        dialogsManager.data(), SLOT(showDomainConnectionDialog()));
 
+    // Developer > Timing and Stats >>>
     MenuWrapper* timingMenu = developerMenu->addMenu("Timing and Stats");
-
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayDebugTimingDetails, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
@@ -520,60 +533,34 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::ShowRealtimeEntityStats);
 
-    auto audioIO = DependencyManager::get<AudioClient>();
+    // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction,
-                                           0,
-                                           true,
-                                           audioIO.data(),
-                                           SLOT(toggleAudioNoiseReduction()));
-
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNoiseReduction, 0, true, 
+        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
-                                           audioIO.data(), SLOT(toggleServerEcho()));
+        audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,
-                                           audioIO.data(), SLOT(toggleLocalEcho()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteAudio,
-                                           Qt::CTRL | Qt::Key_M,
-                                           false,
-                                           audioIO.data(),
-                                           SLOT(toggleMute()));
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::MuteEnvironment,
-                                  0,
-                                  audioIO.data(),
-                                  SLOT(sendMuteEnvironmentPacket()));
+        audioIO.data(), SLOT(toggleLocalEcho()));
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::MuteEnvironment, 0,
+        audioIO.data(), SLOT(sendMuteEnvironmentPacket()));
 
     auto scope = DependencyManager::get<AudioScope>();
-
     MenuWrapper* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
-                                           Qt::CTRL | Qt::Key_P, false,
-                                           scope.data(),
-                                           SLOT(toggle()));
-    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
-                                           false,
-                                           scope.data(),
-                                           SLOT(togglePause()));
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope, Qt::CTRL | Qt::Key_P, false,
+        scope.data(), SLOT(toggle()));
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause, Qt::CTRL | Qt::SHIFT | Qt::Key_P, false,
+        scope.data(), SLOT(togglePause()));
+
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
-        QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
-                                               0,
-                                               true,
-                                               scope.data(),
-                                               SLOT(selectAudioScopeFiveFrames()));
+        QAction* fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
+            0, true, scope.data(), SLOT(selectAudioScopeFiveFrames()));
 
-        QAction *twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
-                                               0,
-                                               false,
-                                               scope.data(),
-                                               SLOT(selectAudioScopeTwentyFrames()));
+        QAction* twentyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeTwentyFrames,
+            0, false, scope.data(), SLOT(selectAudioScopeTwentyFrames()));
 
-        QAction *fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
-                                               0,
-                                               false,
-                                               scope.data(),
-                                               SLOT(selectAudioScopeFiftyFrames()));
+        QAction* fiftyFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiftyFrames,
+            0, false, scope.data(), SLOT(selectAudioScopeFiftyFrames()));
 
         QActionGroup* audioScopeFramesGroup = new QActionGroup(audioScopeMenu);
         audioScopeFramesGroup->addAction(fiveFrames);
@@ -581,19 +568,69 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
+    // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
+    // Developer > Display Crash Options
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
+    // Developer > Crash Application
     addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
 
-    MenuWrapper* helpMenu = addMenu("Help");
-    addActionToQMenuAndActionHash(helpMenu, MenuOption::EditEntitiesHelp, 0, qApp, SLOT(showEditEntitiesHelp()));
+    // Developer > Log...
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,
+         qApp, SLOT(toggleLogDialog()));
 
-#ifndef Q_OS_MAC
-    QAction* aboutAction = helpMenu->addAction(MenuOption::AboutApp);
-    connect(aboutAction, SIGNAL(triggered()), qApp, SLOT(aboutApp()));
+    // Developer > Stats
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
+
+    // Developer > Audio Stats...
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::AudioNetworkStats, 0,
+        dialogsManager.data(), SLOT(audioStatsDetails()));
+
+    // Developer > Bandwidth Stats...
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::BandwidthDetails, 0,
+        dialogsManager.data(), SLOT(bandwidthDetails()));
+
+    // Developer > Entity Stats...
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::OctreeStats, 0,
+        dialogsManager.data(), SLOT(octreeStatsDetails()));
+
+    // Developer > World Axes
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::WorldAxes);
+
+
+
+#if 0 ///  -------------- REMOVED FOR NOW --------------
+    addDisabledActionAndSeparator(navigateMenu, "History");
+    QAction* backAction = addActionToQMenuAndActionHash(navigateMenu, MenuOption::Back, 0, addressManager.data(), SLOT(goBack()));
+    QAction* forwardAction = addActionToQMenuAndActionHash(navigateMenu, MenuOption::Forward, 0, addressManager.data(), SLOT(goForward()));
+
+    // connect to the AddressManager signal to enable and disable the back and forward menu items
+    connect(addressManager.data(), &AddressManager::goBackPossible, backAction, &QAction::setEnabled);
+    connect(addressManager.data(), &AddressManager::goForwardPossible, forwardAction, &QAction::setEnabled);
+
+    // set the two actions to start disabled since the stacks are clear on startup
+    backAction->setDisabled(true);
+    forwardAction->setDisabled(true);
+
+    MenuWrapper* toolsMenu = addMenu("Tools");
+    addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ToolWindow,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_T,
+                                  dialogsManager.data(),
+                                  SLOT(toggleToolWindow()),
+                                  QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
+                NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
+    
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
+                                           0, false, qApp, SLOT(rotationModeChanged()),
+                                           UNSPECIFIED_POSITION, "Advanced");
+
 #endif
 }
 

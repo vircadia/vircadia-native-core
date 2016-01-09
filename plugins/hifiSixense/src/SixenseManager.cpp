@@ -58,7 +58,7 @@ bool SixenseManager::_sixenseLoaded = false;
 const QString SixenseManager::NAME = "Sixense";
 const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
 
-const QString MENU_PARENT = "Avatar";
+const QString MENU_PARENT = "Developer";
 const QString MENU_NAME = "Sixense";
 const QString MENU_PATH = MENU_PARENT + ">" + MENU_NAME;
 const QString TOGGLE_SMOOTH = "Smooth Sixense Movement";

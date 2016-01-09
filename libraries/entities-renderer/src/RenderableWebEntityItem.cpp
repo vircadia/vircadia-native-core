@@ -54,6 +54,11 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
             webSurface->deleteLater();
         });
     }
+
+    QObject::disconnect(_mousePressConnection);
+    QObject::disconnect(_mouseReleaseConnection);
+    QObject::disconnect(_mouseMoveConnection);
+    QObject::disconnect(_hoverLeaveConnection);
     qDebug() << "Destroyed web entity " << getID();
 }
 
@@ -156,10 +161,10 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         };
 
         EntityTreeRenderer* renderer = static_cast<EntityTreeRenderer*>(args->_renderer);
-        QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
-        QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
-        QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
-        QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
+        _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
+        _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
+        _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
+        _hoverLeaveConnection = QObject::connect(renderer, &EntityTreeRenderer::hoverLeaveEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
             if (this->_pressed && this->getID() == entityItemID) {
                 // If the user mouses off the entity while the button is down, simulate a mouse release
                 QMouseEvent mappedEvent(QEvent::MouseButtonRelease, 

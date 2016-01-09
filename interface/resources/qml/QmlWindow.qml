@@ -5,6 +5,8 @@ import QtWebChannel 1.0
 import QtWebSockets 1.0
 import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
+import "Global.js" as Global
+
 import "controls"
 import "styles"
 
@@ -23,6 +25,10 @@ VrDialog {
     contentImplicitWidth: clientArea.implicitWidth
     contentImplicitHeight: clientArea.implicitHeight
     property alias source: pageLoader.source 
+    
+    function raiseWindow() {
+        Global.raiseWindow(root)
+    }
 
     Item {
         id: clientArea

@@ -442,6 +442,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+        theEntity->die();
 
         if (getIsServer()) {
             // set up the deleted entities ID
@@ -453,8 +454,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         }
 
         if (_simulation) {
-            theEntity->clearActions(_simulation);
-            _simulation->removeEntity(theEntity);
+            _simulation->prepareEntityForDelete(theEntity);
         }
     }
 }
@@ -773,12 +773,40 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("parentJointIndex:") + QString::number((int)value);
         }
     }
-
     if (properties.parentIDChanged()) {
         int index = changedProperties.indexOf("parentID");
         if (index >= 0) {
             QUuid value = properties.getParentID();
             changedProperties[index] = QString("parentID:") + value.toString();
+        }
+    }
+
+    if (properties.jointRotationsSetChanged()) {
+        int index = changedProperties.indexOf("jointRotationsSet");
+        if (index >= 0) {
+            auto value = properties.getJointRotationsSet().size();
+            changedProperties[index] = QString("jointRotationsSet:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointRotationsChanged()) {
+        int index = changedProperties.indexOf("jointRotations");
+        if (index >= 0) {
+            auto value = properties.getJointRotations().size();
+            changedProperties[index] = QString("jointRotations:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointTranslationsSetChanged()) {
+        int index = changedProperties.indexOf("jointTranslationsSet");
+        if (index >= 0) {
+            auto value = properties.getJointTranslationsSet().size();
+            changedProperties[index] = QString("jointTranslationsSet:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointTranslationsChanged()) {
+        int index = changedProperties.indexOf("jointTranslations");
+        if (index >= 0) {
+            auto value = properties.getJointTranslations().size();
+            changedProperties[index] = QString("jointTranslations:") + QString::number((int)value);
         }
     }
 }
@@ -978,7 +1006,7 @@ void EntityTree::update() {
         withWriteLock([&] {
             _simulation->updateEntities();
             VectorOfEntities pendingDeletes;
-            _simulation->getEntitiesToDelete(pendingDeletes);
+            _simulation->takeEntitiesToDelete(pendingDeletes);
 
             if (pendingDeletes.size() > 0) {
                 // translate into list of ID's

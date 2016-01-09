@@ -40,6 +40,11 @@ private:
     ivec2  _lastPress{ INT_MIN };
     bool _pressed{ false };
     ivec2 _lastMove{ INT_MIN };
+
+    QMetaObject::Connection _mousePressConnection;
+    QMetaObject::Connection _mouseReleaseConnection;
+    QMetaObject::Connection _mouseMoveConnection;
+    QMetaObject::Connection _hoverLeaveConnection;
 };
 
 

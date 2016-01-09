@@ -104,6 +104,8 @@ public:
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const = 0;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const = 0;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) = 0;
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) = 0;
 
     SpatiallyNestablePointer getThisPointer() const;
 
@@ -112,6 +114,9 @@ public:
 
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+
+    void die() { _isDead = true; }
+    bool isDead() const { return _isDead; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
@@ -139,7 +144,8 @@ protected:
 private:
     mutable ReadWriteLockable _transformLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
-    mutable bool _parentKnowsMe = false;
+    mutable bool _parentKnowsMe { false };
+    bool _isDead { false };
 };
 
 
