@@ -97,13 +97,17 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(_filter);
 
     outItems.clear();
-    outItems.reserve(items.size());
-    for (auto id : items) {
-        auto& item = scene->getItem(id);
-        outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+
+    const auto& bucket = scene->getMasterBucket();
+    const auto& items = bucket.find(_filter);
+    if (items != bucket.end()) {
+        outItems.reserve(items->second.size());
+        for (auto& id : items->second) {
+            auto& item = scene->getItem(id);
+            outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+        }
     }
 
     if (_probeNumItems) {
