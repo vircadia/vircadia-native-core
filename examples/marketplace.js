@@ -1,3 +1,14 @@
+//
+//  marketplace.js
+//  examples
+//
+//  Created by Eric Levin on 8 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 Script.include([
     "libraries/toolBars.js",
 ]);
@@ -26,7 +37,6 @@ function showMarketplace(marketplaceID) {
     print("setting marketplace URL to " + url);
     marketplaceWindow.setURL(url);
     marketplaceWindow.setVisible(true);
-    marketplaceWindow.raise();
 }
 
 function hideMarketplace() {
@@ -48,7 +58,7 @@ var toolBar = (function() {
         browseMarketplaceButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.marketplace.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,
                 y: 150
@@ -67,7 +77,6 @@ var toolBar = (function() {
 
     var browseMarketplaceButtonDown = false;
     that.mousePressEvent = function(event) {
-        print("CLICKED")
         var clickedOverlay,
             url,
             file;
