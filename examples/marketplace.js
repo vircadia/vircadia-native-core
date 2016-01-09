@@ -48,10 +48,10 @@ var toolBar = (function() {
         browseMarketplaceButton;
 
     function initialize() {
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "", function(windowDimensions, toolbar) {
             return {
-                x: windowDimensions.x - 100 - toolbar.width,
-                y: (windowDimensions.y - toolbar.height) / 2
+                x: windowDimensions.x - 8 - toolbar.width,
+                y: 150
             };
         });
         browseMarketplaceButton = toolBar.addTool({
