@@ -12,8 +12,8 @@
 macro(GENERATE_INSTALLERS)
   include(CPackComponent)
 
-  set(CPACK_PACKAGE_NAME "HighFidelity")
-  set(CPACK_PACKAGE_VENDOR "HighFidelity")
+  set(CPACK_PACKAGE_NAME "High Fidelity")
+  set(CPACK_PACKAGE_VENDOR "High Fidelity")
 
   if (WIN32)
     set(INTERFACE_STARTMENU_NAME "High Fidelity")
