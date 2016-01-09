@@ -25,6 +25,7 @@
 #include <QTimer>
 #include <QWidget>
 
+#include <ScriptEngines.h>
 #include <NetworkAccessManager.h>
 #include <OffscreenUi.h>
 
@@ -101,17 +102,18 @@ bool ScriptEditorWidget::setRunning(bool run) {
         disconnect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     }
 
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
         // Reload script so that an out of date copy is not retrieved from the cache
-        _scriptEngine = qApp->loadScript(scriptURLString, true, true, false, true);
+        _scriptEngine = scriptEngines->loadScript(scriptURLString, true, true, false, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
     } else {
         connect(_scriptEngine, &ScriptEngine::finished, this, &ScriptEditorWidget::onScriptFinished);
         const QString& scriptURLString = QUrl(_currentScript).toString();
-        qApp->stopScript(scriptURLString);
+        scriptEngines->stopScript(scriptURLString);
         _scriptEngine = NULL;
     }
     _console->setScriptEngine(_scriptEngine);
@@ -173,7 +175,7 @@ void ScriptEditorWidget::loadFile(const QString& scriptPath) {
         }
     }
     const QString& scriptURLString = QUrl(_currentScript).toString();
-    _scriptEngine = qApp->getScriptEngine(scriptURLString);
+    _scriptEngine = DependencyManager::get<ScriptEngines>()->getScriptEngine(scriptURLString);
     if (_scriptEngine != NULL) {
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::update, this, &ScriptEditorWidget::onScriptModified);
@@ -187,11 +189,12 @@ bool ScriptEditorWidget::save() {
 }
 
 bool ScriptEditorWidget::saveAs() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
-                                                    qApp->getPreviousScriptLocation(),
+                                                    scriptEngines->getPreviousScriptLocation(),
                                                     tr("JavaScript Files (*.js)"));
     if (!fileName.isEmpty()) {
-        qApp->setPreviousScriptLocation(fileName);
+        scriptEngines->setPreviousScriptLocation(fileName);
         return saveFile(fileName);
     } else {
         return false;
