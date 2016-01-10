@@ -28,7 +28,7 @@ private slots:
     void menuItemTriggered();
 
 public slots:
-    void addMenu(const QString& menuName);
+    void addMenu(const QString& menuName, const QString& grouping = QString());
     void removeMenu(const QString& menuName);
     bool menuExists(const QString& menuName);
 
