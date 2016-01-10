@@ -25,8 +25,9 @@
 #include "ZoneEntityItem.h"
 
 
-EntityScriptingInterface::EntityScriptingInterface() :
-    _entityTree(NULL)
+EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
+    _entityTree(NULL),
+    _bidOnSimulationOwnership(bidOnSimulationOwnership)
 {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
@@ -255,7 +256,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             properties.setType(entity->getType());
             bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
             bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-            if (hasPhysicsChanges) {
+            if (_bidOnSimulationOwnership && hasPhysicsChanges) {
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
 

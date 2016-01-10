@@ -58,7 +58,7 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
 public:
-    EntityScriptingInterface();
+    EntityScriptingInterface(bool bidOnSimulationOwnership);
 
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
@@ -204,7 +204,8 @@ private:
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     EntityTreePointer _entityTree;
-    EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
+    EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
+    bool _bidOnSimulationOwnership { false };
 };
 
 #endif // hifi_EntityScriptingInterface_h
