@@ -876,8 +876,10 @@ Section "Uninstall"
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
-  ;Delete High Fidelity protocol handling
-  DeleteRegKey HKCR '@HIGH_FIDELITY_PROTOCOL@'
+  ;Delete High Fidelity protocol handling, if installed
+  ${If} "@PRODUCTION_BUILD@" == "1"
+    DeleteRegKey HKCR '@HIGH_FIDELITY_PROTOCOL@'
+  ${EndIf}
 
   ;Delete empty start menu parent diretories
   StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
