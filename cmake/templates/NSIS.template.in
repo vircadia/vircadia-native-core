@@ -8,6 +8,7 @@
   !define CONSOLE_SHORTCUT_NAME "Server Console"
   !define CONSOLE_EXEC_NAME "server-console.exe"
   !define HIGH_FIDELITY_PROTOCOL "hifi"
+  !define PRODUCTION_BUILD "@PRODUCTION_BUILD@"
 
 ;--------------------------------
 ; You must define these values
@@ -710,11 +711,14 @@ Section "-Core installation"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${INTERFACE_SHORTCUT_NAME}.lnk" \
       "$INSTDIR\${INTERFACE_EXEC_NAME}"
 
-    ; hifi:// protocol handler registry entries
-    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' '' 'URL:High Fidelity Protocol'
-    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' 'URL Protocol' ''
-    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
-    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
+    ${If} $PRODUCTION_BUILD == "1"
+      ; hifi:// protocol handler registry entries
+      WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' '' 'URL:High Fidelity Protocol'
+      WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' 'URL Protocol' ''
+      WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
+      WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
+    ${EndIf}
+
   ${EndIf}
 
   ; Conditional handling for server console shortcut
