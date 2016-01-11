@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>High Fidelity</title>
+        <script src="splash.js"></script>
+        <link rel="stylesheet" type="text/css" href="splash.css"></link>
+    </head>
+    <body onload="ready()">
+        <div class="top content">
+            <div class="header-title">
+                <h1>Install complete</h1>
+            </div>
+            <div class="header-right">
+                <img src="images/console-hf-logo.png" width=300px />
+            </div>
+        </div>
+        <div class="middle content">
+            <div class="column left">
+                <p>
+                    <h2>What now?</h2>
+                    Console is your personal domain server in High Fidelity.
+                    It allows your local machine to manage 4000 cubic kilometers of space,
+                    ready for you to build, explore, and share however you like. To start
+                    you off, we've put a few things in your space to play around with and
+                    to learn the ropes.
+                </p>
+
+                <p>
+                    To learn more about uploading your own models and scripts, and how to add
+                    items from the Market, <a target="_blank" href="https://docs.highfidelity.com/docs/the-basics">check out 'The Basics'</a>.
+                </p>
+            </div>
+            <div class="column center">
+                <p>
+                    <h2>How do I use it?</h2>
+                    Console is your personal domain server in High Fidelity.
+                    It allows your local machine to manage your server by clicking on the
+                    High Fidelity icon in your ... In the menu that opens, you can:
+                </p>
+
+                <p>
+                    <ul>
+                        <li>go to your 'Home,' automatically launching High Fidelity</li>
+                        <li>administer basic function like starting and stopping your server</li>
+                        <li>access your server's settings and logs</li>
+                    </ul>
+                </p>
+
+                <p>
+                    For more information on managing your server, <a target="_blank" href="https://docs.highfidelity.com/">visit our documentation</a>
+                </p>
+            </div>
+            <div class="column right">
+                <script>
+                    var osType = require('os').type();
+                    menuBarImageURL = '';
+                    if (osType = 'Windows_NT') {
+                      menuBarImageURL = "images/menubar-osx.png";
+                    } else {
+                      menuBarImageURL = "images/menubar-osx.png";
+                    }
+                    document.write('<img src="' + menuBarImageURL + '" width=320px/>');
+                </script>
+            </div>
+        </div>
+        <div class="bottom">
+            <div class="content footer">
+                <label>
+                    <input type="checkbox" id="suppress-splash" >
+                    Don't show this screen next time
+                </label>
+                </input>
+                </div>
+        </div>
+    </body>
+</html>
