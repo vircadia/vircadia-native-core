@@ -16,6 +16,8 @@ var Tail = require('always-tail');
 var http = require('http');
 var path = require('path');
 
+var Config = require('./modules/config').Config;
+
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
 var ACMonitorProcess = hfprocess.ACMonitorProcess;
@@ -71,6 +73,10 @@ function shutdown() {
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
 console.log("Log directory:", logPath);
+
+const configPath = path.join(getApplicationDataDirectory(), 'config.json');
+var userConfig = new Config();
+userConfig.load(configPath);
 
 const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
@@ -145,6 +151,7 @@ var tray = null;
 global.homeServer = null;
 global.domainServer = null;
 global.acMonitor = null;
+global.userConfig = userConfig;
 
 const GO_HOME_INDEX = 0;
 const SERVER_LABEL_INDEX = 2;
@@ -290,6 +297,31 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
+function maybeShowSplash() {
+    var suppressSplash = userConfig.get('doNotShowSplash', false);
+    console.log("Suppress?", suppressSplash)
+
+    if (!suppressSplash) {
+        var window = new BrowserWindow({
+            icon: APP_ICON,
+            width: 1600,
+            height: 587,
+            center: true,
+            frame: true,
+            useContentSize: true,
+            resizable: false
+        });
+        window.loadURL('file://' + __dirname + '/splash.html');
+        window.setMenu(null);
+        window.show();
+
+        window.webContents.on('new-window', function(e, url) {
+            e.preventDefault();
+            require('shell').openExternal(url);
+        });
+    }
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -304,6 +336,7 @@ app.on('ready', function() {
     tray.setToolTip('High Fidelity');
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
+    maybeShowSplash();
 
     if (interfacePath && dsPath && acPath) {
         domainServer = new Process('domain-server', dsPath, [], logPath);
@@ -316,6 +349,7 @@ app.on('ready', function() {
         // make sure we stop child processes on app quit
         app.on('quit', function(){
             console.log('App quitting');
+            userConfig.save(configPath);
             logWindow.close();
             homeServer.stop();
         });
