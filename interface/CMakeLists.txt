@@ -105,9 +105,7 @@ elseif(WIN32)
   configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
 
   # add an executable that also has the icon itself and the configured rc file as resources
-  add_executable(${TARGET_NAME} WIN32
-    ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}"
-  )
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT})
 else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
