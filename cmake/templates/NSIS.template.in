@@ -714,7 +714,7 @@ Section "-Core installation"
   ; Conditional handling for server console shortcut
   ${If} ${SectionIsSelected} ${server}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
-      "$INSTDIR\@CONSOLE_EXEC_NAME@"
+      "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
