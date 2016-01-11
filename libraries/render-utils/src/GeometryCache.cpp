@@ -1854,16 +1854,18 @@ void renderInstances(const std::string& name, gpu::Batch& batch, const Transform
 void GeometryCache::renderSolidSphereInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
     renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, GeometryCache::Sphere, data._count,
-                                                                      data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, GeometryCache::Sphere, data.count,
+                                                                      data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                      data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
 
 void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
     renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, GeometryCache::Sphere, data._count,
-                                                                          data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, GeometryCache::Sphere, data.count,
+                                                                          data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                          data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
 
@@ -1901,17 +1903,20 @@ void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const Transform& 
         
         // For the first half second for a given shape, show the wireframe, for the second half, show the solid.
         if (fractionalSeconds > 0.5f) {
-            DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data._count,
-                                                                          data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+            DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, shape, data.count,
+                                                                          data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                          data.buffers[INSTANCE_COLOR_BUFFER]);
         } else {
-            DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data._count,
-                                                                              data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+            DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count,
+                                                                              data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                              data.buffers[INSTANCE_COLOR_BUFFER]);
         }
     });
 #else
     renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->renderCubeInstances(batch, data._count,
-                                                                     data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        DependencyManager::get<GeometryCache>()->renderCubeInstances(batch, data.count,
+                                                                     data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                     data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 #endif
 }
@@ -1919,8 +1924,9 @@ void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const Transform& 
 void GeometryCache::renderWireCubeInstance(gpu::Batch& batch, const Transform& transform, const glm::vec4& color) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
     renderInstances(INSTANCE_NAME, batch, transform, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->renderWireCubeInstances(batch, data._count,
-                                                                         data._buffers[INSTANCE_TRANSFORM_BUFFER], data._buffers[INSTANCE_COLOR_BUFFER]);
+        DependencyManager::get<GeometryCache>()->renderWireCubeInstances(batch, data.count,
+                                                                         data.buffers[INSTANCE_TRANSFORM_BUFFER],
+                                                                         data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
 

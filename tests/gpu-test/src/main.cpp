@@ -246,7 +246,7 @@ public:
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
                 batch._glUniform1i(_instanceLocation, 1);
-                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, transformBuffer, colorBuffer);
+                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count, transformBuffer, colorBuffer);
                 batch._glUniform1i(_instanceLocation, 0);
             });
         }
