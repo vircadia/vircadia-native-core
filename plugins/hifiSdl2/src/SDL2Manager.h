@@ -30,7 +30,6 @@ public:
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return false; }
     virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getGrouping() const override { return GROUPING; }
 
     virtual void init() override;
     virtual void deinit() override;
@@ -85,7 +84,6 @@ private:
 #endif
     bool _isInitialized;
     static const QString NAME;
-    static const QString GROUPING;
 };
 
 #endif // hifi__SDL2Manager_h

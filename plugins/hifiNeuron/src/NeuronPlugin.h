@@ -29,7 +29,6 @@ public:
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
     virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getGrouping() const override { return GROUPING; }
     const QString& getID() const override { return NEURON_ID_STRING; }
 
     virtual void activate() override;
@@ -66,7 +65,6 @@ protected:
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
     static const QString NAME;
-    static const QString GROUPING;
     static const QString NEURON_ID_STRING;
 
     std::string _serverAddress;

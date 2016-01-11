@@ -18,7 +18,6 @@ class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual void activate() override;
     virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getGrouping() const override { return GROUPING; }
     virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }
@@ -31,7 +30,6 @@ protected:
 private:
     using EyePoses = std::pair<ovrPosef, ovrPosef>;
     static const QString NAME;
-    static const QString GROUPING;
     bool _enablePreview{ false };
     bool _monoPreview { true };
     QMap<uint32_t, EyePoses> _frameEyePoses;

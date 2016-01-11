@@ -20,7 +20,6 @@ public:
     OculusLegacyDisplayPlugin();
     virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getGrouping() const override { return GROUPING; }
 
     virtual void activate() override;
     virtual void deactivate() override;
@@ -47,7 +46,6 @@ protected:
     
 private:
     static const QString NAME;
-    static const QString GROUPING;
 
     ovrHmd _hmd;
     mutable ovrTrackingState _trackingState;

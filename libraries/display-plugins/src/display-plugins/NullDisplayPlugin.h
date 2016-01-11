@@ -14,6 +14,7 @@ public:
 
     virtual ~NullDisplayPlugin() final {}
     virtual const QString & getName() const override;
+    virtual grouping getGrouping() const override { return DEVELOPER; }
 
     void stop() override;
 

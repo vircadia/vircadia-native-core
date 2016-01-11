@@ -16,9 +16,8 @@ class SideBySideStereoDisplayPlugin : public StereoDisplayPlugin {
 public:
     SideBySideStereoDisplayPlugin();
     virtual const QString& getName() const override { return NAME; }
-    virtual const QString& getGrouping() const override { return GROUPING; }
+    virtual grouping getGrouping() const override { return ADVANCED; }
     virtual glm::uvec2 getRecommendedRenderSize() const override;
 private:
     static const QString NAME;
-    static const QString GROUPING;
 };

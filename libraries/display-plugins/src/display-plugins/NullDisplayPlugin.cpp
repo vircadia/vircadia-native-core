@@ -13,7 +13,6 @@
 #include <plugins/PluginContainer.h>
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
-const QString NullDisplayPlugin::GROUPING("Developer");
 
 const QString & NullDisplayPlugin::getName() const {
     return NAME;

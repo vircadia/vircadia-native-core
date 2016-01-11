@@ -28,10 +28,8 @@ Q_DECLARE_LOGGING_CATEGORY(displayplugins)
 Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
-const QString OpenVrDisplayPlugin::GROUPING("Standard");
 
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
-
 
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];

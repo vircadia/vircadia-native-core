@@ -19,7 +19,6 @@
 #include <NumericalConstants.h>
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
-const QString KeyboardMouseDevice::GROUPING = "Standard";
 
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) { 
     _inputDevice->update(deltaTime, jointsCaptured); 

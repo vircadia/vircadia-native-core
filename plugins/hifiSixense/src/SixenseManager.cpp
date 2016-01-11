@@ -56,7 +56,6 @@ bool SixenseManager::_sixenseLoaded = false;
 
 
 const QString SixenseManager::NAME = "Sixense";
-const QString SixenseManager::GROUPING = "Standard";
 const QString SixenseManager::HYDRA_ID_STRING = "Razer Hydra";
 
 const QString MENU_PARENT = "Developer";

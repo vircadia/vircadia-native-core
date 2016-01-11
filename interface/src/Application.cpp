@@ -5062,8 +5062,22 @@ const DisplayPlugin* Application::getActiveDisplayPlugin() const {
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
-    QString grouping = displayPlugin->getGrouping();
+    auto grouping = displayPlugin->getGrouping();
+    QString groupingMenu { "" };
     Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+
+    // assign the meny grouping based on plugin grouping
+    switch (grouping) {
+        case Plugin::ADVANCED:
+            groupingMenu = "Advanced";
+            break;
+        case Plugin::DEVELOPER:
+            groupingMenu = "Developer";
+            break;
+        default:
+            groupingMenu = "Standard"; 
+            break;
+    }
 
     static QActionGroup* displayPluginGroup = nullptr;
     if (!displayPluginGroup) {
@@ -5074,7 +5088,8 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     auto action = menu->addActionToQMenuAndActionHash(parent,
         name, 0, qApp,
         SLOT(updateDisplayMode()),
-        QAction::NoRole, UNSPECIFIED_POSITION, grouping);
+        QAction::NoRole, UNSPECIFIED_POSITION, groupingMenu);
+
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
@@ -5094,13 +5109,17 @@ void Application::updateDisplayMode() {
         DisplayPluginList advanced;
         DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
-            QString grouping = displayPlugin->getGrouping();
-            if (grouping == "Advanced") {
-                advanced.push_back(displayPlugin);
-            } else if (grouping == "Developer") {
-                developer.push_back(displayPlugin);
-            } else {
-                standard.push_back(displayPlugin);
+            auto grouping = displayPlugin->getGrouping();
+            switch (grouping) {
+                case Plugin::ADVANCED:
+                    advanced.push_back(displayPlugin);
+                    break;
+                case Plugin::DEVELOPER:
+                    developer.push_back(displayPlugin);
+                    break;
+                default:
+                    standard.push_back(displayPlugin);
+                    break;
             }
         }
 

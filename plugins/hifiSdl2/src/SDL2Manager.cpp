@@ -44,7 +44,6 @@ static_assert(
 
 
 const QString SDL2Manager::NAME = "SDL2";
-const QString SDL2Manager::GROUPING = "Standard";
 
 #ifdef HAVE_SDL2
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
