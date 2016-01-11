@@ -701,7 +701,7 @@ Section "-Core installation"
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
-    ${If} @PRODUCTION_BUILD@ == "1"
+    ${If} "@PRODUCTION_BUILD@" == "1"
       ; hifi:// protocol handler registry entries
       WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' '' 'URL:High Fidelity Protocol'
       WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' 'URL Protocol' ''
