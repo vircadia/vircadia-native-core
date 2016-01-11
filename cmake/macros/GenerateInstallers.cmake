@@ -14,8 +14,13 @@ macro(GENERATE_INSTALLERS)
 
   set(CPACK_MODULE_PATH ${CPACK_MODULE_PATH} "${HF_CMAKE_DIR}/templates")
 
-  set(CPACK_PACKAGE_NAME "High Fidelity")
-  set(CPACK_PACKAGE_VENDOR "High Fidelity")
+  set(_DISPLAY_NAME "High Fidelity")
+
+  set(CPACK_PACKAGE_NAME _DISPLAY_NAME)
+  set(CPACK_PACKAGE_VENDOR _DISPLAY_NAME)
+  set(CPACK_NSIS_DISPLAY_NAME _DISPLAY_NAME)
+  set(CPACK_NSIS_PACKAGE_NAME _DISPLAY_NAME)
+  set(CPACK_PACKAGE_INSTALL_DIRECTORY _DISPLAY_NAME)
 
   # configure a cpack properties file for custom installation options
   set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
