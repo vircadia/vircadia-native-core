@@ -183,8 +183,7 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newPolyVoxButton,
-        browseMarketplaceButton;
+        newPolyVoxButton;
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
@@ -194,13 +193,7 @@ var toolBar = (function() {
             };
         });
 
-        browseMarketplaceButton = toolBar.addTool({
-            imageURL: toolIconUrl + "marketplace.svg",
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: true,
-        });
+  
 
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
@@ -415,7 +408,6 @@ var toolBar = (function() {
     }
 
     var newModelButtonDown = false;
-    var browseMarketplaceButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -443,11 +435,7 @@ var toolBar = (function() {
             return true;
         }
         
-        if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-            toggleMarketplace();
-            return true;
-        }
-
+     
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Box",
@@ -652,22 +640,10 @@ var toolBar = (function() {
                 }
                 handled = true;
             }
-        } else if (browseMarketplaceButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-            if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.s3Browse(".*(fbx|FBX|obj|OBJ)");
-                if (url !== null && url !== "") {
-                    addModel(url);
-                }
-                handled = true;
-            }
         }
 
         newModelButtonDown = false;
-        browseMarketplaceButtonDown = false;
+     
 
         return handled;
     }

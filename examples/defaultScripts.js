@@ -11,6 +11,7 @@
 Script.load("away.js");
 Script.load("progress.js");
 Script.load("edit.js");
+Script.load("marketplace.js");
 Script.load("selectAudioDevice.js");
 Script.load("inspect.js");
 Script.load("notifications.js");
