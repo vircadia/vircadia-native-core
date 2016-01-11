@@ -6,7 +6,6 @@ function Config() {
 }
 Config.prototype = {
     load: function(filePath) {
-        // open file
         var rawData = null;
         try {
             rawData = fs.readFileSync(filePath);
@@ -15,7 +14,6 @@ Config.prototype = {
         }
         var configData = {};
 
-        // read file and json parse
         try {
             if (rawData) {
                 configData = JSON.parse(rawData);

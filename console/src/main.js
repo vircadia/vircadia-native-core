@@ -291,7 +291,6 @@ const httpStatusPort = 60332;
 
 function maybeShowSplash() {
     var suppressSplash = userConfig.get('doNotShowSplash', false);
-    console.log("Suppress?", suppressSplash)
 
     if (!suppressSplash) {
         var window = new BrowserWindow({
