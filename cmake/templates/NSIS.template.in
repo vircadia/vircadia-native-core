@@ -710,7 +710,7 @@ Section "-Core installation"
       "$INSTDIR\${INTERFACE_EXEC_NAME}"
 
     ; hifi:// protocol handler registry entries
-    WriteRegStr HKCR 'hifi' '' 'URL:Alert Protocol'
+    WriteRegStr HKCR 'hifi' '' 'URL:High Fidelity Protocol'
     WriteRegStr HKCR 'hifi' 'URL Protocol' ''
     WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
     WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
