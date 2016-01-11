@@ -18,7 +18,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
