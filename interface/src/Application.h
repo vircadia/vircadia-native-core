@@ -106,10 +106,6 @@ public:
 
     void postLambdaEvent(std::function<void()> f);
 
-    void loadScripts();
-    QString getPreviousScriptLocation();
-    void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void clearScriptsBeforeRunning();
     void initializeGL();
     void initializeUi();
     void paintGL();
@@ -197,9 +193,6 @@ public:
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
 
-    QStringList getRunningScripts();
-    ScriptEngine* getScriptEngine(const QString& scriptHash);
-
     float getRenderResolutionScale() const;
 
     bool isAboutToQuit() const { return _aboutToQuit; }
@@ -213,12 +206,7 @@ public:
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
-    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
-
     Bookmarks* getBookmarks() const { return _bookmarks; }
-
-    QString getScriptsLocation();
-    void setScriptsLocation(const QString& scriptsLocation);
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
@@ -241,8 +229,6 @@ public:
     float getAverageSimsPerSecond();
 
 signals:
-    void scriptLocationChanged(const QString& newPath);
-
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
@@ -263,14 +249,6 @@ public slots:
     void loadDialog();
     void loadScriptURLDialog();
     void toggleLogDialog();
-
-    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
-        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
-    void stopAllScripts(bool restart = false);
-    bool stopScript(const QString& scriptHash, bool restart = false);
-    void reloadAllScripts();
-    void reloadOneScript(const QString& scriptName);
-    void loadDefaultScripts();
     void toggleRunningScriptsWidget();
 
     void showFriendsWindow();
@@ -313,9 +291,6 @@ private slots:
     void idle(uint64_t now);
     void aboutToQuit();
 
-    void handleScriptEngineLoaded(const QString& scriptFilename);
-    void handleScriptLoadError(const QString& scriptFilename);
-
     void connectedToDomain(const QString& hostname);
 
     void audioMuteToggled();
@@ -330,10 +305,6 @@ private slots:
     
     void loadSettings();
     void saveSettings();
-    
-    void scriptFinished(const QString& scriptName, ScriptEngine* engine);
-    void saveScripts();
-    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
     
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
@@ -468,9 +439,6 @@ private:
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
-    Setting::Handle<bool> _firstRun;
-    Setting::Handle<QString> _previousScriptLocation;
-    Setting::Handle<QString> _scriptsLocationHandle;
     Setting::Handle<float> _fieldOfView;
 
     float _scaleMirror;
@@ -499,12 +467,7 @@ private:
 
     TouchEvent _lastTouchEvent;
 
-    QReadWriteLock _scriptEnginesHashLock;
-    RunningScriptsWidget* _runningScriptsWidget;
-    QHash<QString, ScriptEngine*> _scriptEnginesHash;
-    bool _runningScriptsWidgetWasVisible;
-    QString _scriptsLocation;
-
+    RunningScriptsWidget* _runningScriptsWidget { nullptr };
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
     
