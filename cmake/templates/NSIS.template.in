@@ -5,7 +5,7 @@
 
   !define INTERFACE_SHORTCUT_NAME "High Fidelity"
   !define INTERFACE_EXEC_NAME "interface.exe"
-  !define INTERFACE_ICON_NAME "interface.ico"
+  !define INTERFACE_ICON_INDEX "0"
   !define CONSOLE_SHORTCUT_NAME "Server Console"
   !define CONSOLE_EXEC_NAME "server-console.exe"
   !define CONSOLE_ICON_INDEX "1"
