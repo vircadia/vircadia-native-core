@@ -19,6 +19,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INSTALLER_COMPANY "High Fidelity")
     set(INSTALLER_DIRECTORY "${INSTALLER_COMPANY}")
     set(INSTALLER_NAME "interface-win64-${BUILD_SEQ}.exe")
+    set(HIGH_FIDELITY_PROTOCOL "hifi")
     set(INTERFACE_BUNDLE_NAME "High Fidelity")
     set(INTERFACE_ICON_PREFIX "interface")
     set(CONSOLE_ICON "console.ico")
@@ -43,23 +44,27 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_ICON "console-beta.ico")
   endif ()
 
+  set(CONSOLE_INSTALL_DIR ".")
+  set(INTERFACE_INSTALL_DIR ".")
+
   if (WIN32)
-    set(INTERFACE_EXEC_NAME "interface")
+    set(INTERFACE_EXEC_PREFIX "interface")
     set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.ico")
+
+    set(CONSOLE_EXEC_NAME "server-console.exe")
+
+    # start menu shortcuts
+    set(INTERFACE_SM_SHORTCUT_NAME "High Fidelity")
+    set(CONSOLE_SM_SHORTCUT_NAME "Server Console")
   endif ()
 
   if (APPLE)
-    set(CONSOLE_INSTALL_DIR ".")
-    set(CONSOLE_APPLICATION_NAME "Server Console.app")
-    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_APPLICATION_NAME}")
+    set(CONSOLE_EXEC_NAME "Server Console.app")
+    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_EXEC_NAME}")
 
-    set(INTERFACE_INSTALL_DIR ".")
     set(INTERFACE_INSTALL_APP_PATH "${INTERFACE_BUNDLE_NAME}.app")
 
     set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.icns")
-  else ()
-    set(CONSOLE_INSTALL_DIR ".")
-    set(INTERFACE_INSTALL_DIR ".")
   endif()
 
   # setup component categories for installer

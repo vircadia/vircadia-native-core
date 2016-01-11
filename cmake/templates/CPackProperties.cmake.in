@@ -1,0 +1,17 @@
+#
+#  CPackProperties.cmake.in
+#  cmake/templates
+#
+#  Copyright 2016 High Fidelity, Inc.
+#  Created by Stephen Birarda on January 11, 2016
+#
+#  Distributed under the Apache License, Version 2.0.
+#  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+#
+
+set(INTERFACE_SHORTCUT_NAME "@INTERFACE_SM_SHORTCUT_NAME@")
+set(INTERFACE_WIN_EXEC_NAME "@INTERFACE_EXEC_PREFIX@.exe")
+set(CONSOLE_SHORTCUT_NAME "@CONSOLE_SM_SHORTCUT_NAME@")
+set(CONSOLE_WIN_EXEC_NAME "@CONSOLE_EXEC_NAME@")
+set(HIGH_FIDELITY_PROTOCOL "@HIGH_FIDELITY_PROTOCOL@")
+set(PRODUCTION_BUILD "@PRODUCTION_BUILD@")
