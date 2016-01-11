@@ -1,14 +1,17 @@
 ; CPack install script designed for a nmake build
 
 ;--------------------------------
+; Variables that drive High Fidelity custom behaviour
+
+  StrCpy $INTERFACE_SHORTCUT_NAME "High Fidelity"
+  StrCpy $INTERFACE_EXEC_NAME "interface.exe"
+
+;--------------------------------
 ; You must define these values
 
   !define VERSION "@CPACK_PACKAGE_VERSION@"
   !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
   !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
-
-  !define INTERFACE_SHORTCUT_NAME "High Fidelity"
-  !define INTERFACE_EXEC_NAME "interface.exe"
 
 ;--------------------------------
 ;Variables
