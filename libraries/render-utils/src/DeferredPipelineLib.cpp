@@ -38,12 +38,28 @@
 #include "model_translucent_frag.h"
 
 DeferredPipelineLib::DeferredPipelineLib() {
-    // TODO: Move pipeline initialization to those Jobs using DeferredPipelineLib
-    //       such that they own their own pipelines and it is done only once
-    if (_pipelineLib.empty()) {
+    if (!_isInitPipeline) {
         initPipeline();
     }
 }
+
+const DeferredPipelineLib::PipelinePointer DeferredPipelineLib::pickPipeline(RenderArgs* args, const Key& key) const {
+    PerformanceTimer perfTimer("DeferredPipelineLib::pickPipeline");
+
+    auto pipeline = _pickPipeline(args, key);
+    if (!pipeline) {
+        return pipeline;
+    }
+
+    if ((pipeline->locations->normalFittingMapUnit > -1)) {
+        args->_batch->setResourceTexture(pipeline->locations->normalFittingMapUnit,
+            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+    }
+
+    return pipeline;
+}
+
+bool DeferredPipelineLib::_isInitPipeline { false };
 
 void DeferredPipelineLib::initPipeline() {
     assert(_pipelineLib.empty());
@@ -169,22 +185,8 @@ void DeferredPipelineLib::initPipeline() {
     _pipelineLib.addPipeline(
         Key::Builder().withSkinned().withDepthOnly().withShadow(),
         skinModelShadowVertex, modelShadowPixel);
-}
 
-const DeferredPipelineLib::PipelinePointer DeferredPipelineLib::pickPipeline(RenderArgs* args, const Key& key) const {
-    PerformanceTimer perfTimer("DeferredPipelineLib::pickPipeline");
-
-    auto pipeline = _pickPipeline(args, key);
-    if (!pipeline) {
-        return pipeline;
-    }
-
-    if ((pipeline->locations->normalFittingMapUnit > -1)) {
-        args->_batch->setResourceTexture(pipeline->locations->normalFittingMapUnit,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
-
-    return pipeline;
+    _isInitPipeline = true;
 }
 
 model::MaterialPointer DeferredPipelineLib::_collisionHullMaterial;

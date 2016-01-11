@@ -239,22 +239,16 @@ public:
     typedef Job::ModelO<FetchItems, ItemIDsBounds> JobModel;
 };
 
+template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
 class CullItems {
 public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+        outItems.clear();
+        outItems.reserve(inItems.size());
+        renderContext->getArgs()->_details.pointTo(T);
+        render::cullItems(sceneContext, renderContext, inItems, outItems);
+    }
     typedef Job::ModelIO<CullItems, ItemIDsBounds, ItemIDsBounds> JobModel;
-};
-
-class CullItemsOpaque {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    typedef Job::ModelIO<CullItemsOpaque, ItemIDsBounds, ItemIDsBounds> JobModel;
-};
-
-class CullItemsTransparent {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    typedef Job::ModelIO<CullItemsTransparent, ItemIDsBounds, ItemIDsBounds> JobModel;
 };
 
 class DepthSortItems {
