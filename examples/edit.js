@@ -1026,9 +1026,8 @@ function setupModelMenus() {
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Models",
+        menuItemName: "Entities",
         isSeparator: true,
-        beforeItem: "Physics",
         grouping: "Advanced"
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
@@ -1039,7 +1038,7 @@ function setupModelMenus() {
             shortcutKeyEvent: {
                 text: "backspace"
             },
-            afterItem: "Models",
+            afterItem: "Entities",
             grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
@@ -1051,7 +1050,7 @@ function setupModelMenus() {
         menuName: "Edit",
         menuItemName: "Entity List...",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Models",
+        afterItem: "Entities",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
@@ -1096,28 +1095,21 @@ function setupModelMenus() {
     });
 
     Menu.addMenuItem({
-        menuName: "File",
-        menuItemName: "Models",
-        isSeparator: true,
-        beforeItem: "Settings",
-        grouping: "Advanced"
-    });
-    Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Export Entities",
         shortcutKey: "CTRL+META+E",
-        afterItem: "Models",
+        afterItem: "Entities",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Import Entities",
         shortcutKey: "CTRL+META+I",
         afterItem: "Export Entities",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Import Entities from URL",
         shortcutKey: "CTRL+META+U",
         afterItem: "Import Entities",
@@ -1162,7 +1154,7 @@ function setupModelMenus() {
 setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
-    Menu.removeSeparator("Edit", "Models");
+    Menu.removeSeparator("Edit", "Entities");
     if (modelMenuAddedDelete) {
         // delete our menuitems
         Menu.removeMenuItem("Edit", "Delete");
@@ -1175,10 +1167,9 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", "Select All Entities In Box");
     Menu.removeMenuItem("Edit", "Select All Entities Touching Box");
 
-    Menu.removeSeparator("File", "Models");
-    Menu.removeMenuItem("File", "Export Entities");
-    Menu.removeMenuItem("File", "Import Entities");
-    Menu.removeMenuItem("File", "Import Entities from URL");
+    Menu.removeMenuItem("Edit", "Export Entities");
+    Menu.removeMenuItem("Edit", "Import Entities");
+    Menu.removeMenuItem("Edit", "Import Entities from URL");
 
     Menu.removeMenuItem("Edit", MENU_AUTO_FOCUS_ON_SELECT);
     Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
