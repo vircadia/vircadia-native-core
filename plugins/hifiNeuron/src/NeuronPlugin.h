@@ -28,7 +28,7 @@ public:
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return true; }
-    const QString& getName() const override { return NAME; }
+    virtual const QString& getName() const override { return NAME; }
     const QString& getID() const override { return NEURON_ID_STRING; }
 
     virtual void activate() override;

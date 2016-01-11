@@ -5062,7 +5062,22 @@ const DisplayPlugin* Application::getActiveDisplayPlugin() const {
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
+    auto grouping = displayPlugin->getGrouping();
+    QString groupingMenu { "" };
     Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+
+    // assign the meny grouping based on plugin grouping
+    switch (grouping) {
+        case Plugin::ADVANCED:
+            groupingMenu = "Advanced";
+            break;
+        case Plugin::DEVELOPER:
+            groupingMenu = "Developer";
+            break;
+        default:
+            groupingMenu = "Standard"; 
+            break;
+    }
 
     static QActionGroup* displayPluginGroup = nullptr;
     if (!displayPluginGroup) {
@@ -5072,7 +5087,9 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     auto parent = menu->getMenu(MenuOption::OutputMenu);
     auto action = menu->addActionToQMenuAndActionHash(parent,
         name, 0, qApp,
-        SLOT(updateDisplayMode()));
+        SLOT(updateDisplayMode()),
+        QAction::NoRole, UNSPECIFIED_POSITION, groupingMenu);
+
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
@@ -5086,7 +5103,31 @@ void Application::updateDisplayMode() {
     static std::once_flag once;
     std::call_once(once, [&] {
         bool first = true;
+
+        // first sort the plugins into groupings: standard, advanced, developer
+        DisplayPluginList standard;
+        DisplayPluginList advanced;
+        DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
+            auto grouping = displayPlugin->getGrouping();
+            switch (grouping) {
+                case Plugin::ADVANCED:
+                    advanced.push_back(displayPlugin);
+                    break;
+                case Plugin::DEVELOPER:
+                    developer.push_back(displayPlugin);
+                    break;
+                default:
+                    standard.push_back(displayPlugin);
+                    break;
+            }
+        }
+
+        // concactonate the groupings into a single list in the order: standard, advanced, developer
+        standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
+        standard.insert(std::end(standard), std::begin(developer), std::end(developer));
+
+        foreach(auto displayPlugin, standard) {
             addDisplayPluginToMenu(displayPlugin, first);
             // This must be a queued connection to avoid a deadlock
             QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender,
@@ -5098,6 +5139,11 @@ void Application::updateDisplayMode() {
 
             first = false;
         }
+
+        // after all plugins have been added to the menu, add a seperator to the menu
+        auto menu = Menu::getInstance();
+        auto parent = menu->getMenu(MenuOption::OutputMenu);
+        parent->addSeparator();
     });
 
 

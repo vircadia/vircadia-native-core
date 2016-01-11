@@ -31,10 +31,6 @@ const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
 
-const QString & OpenVrDisplayPlugin::getName() const {
-    return NAME;
-}
-
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
