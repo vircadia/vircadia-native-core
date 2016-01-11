@@ -5,10 +5,8 @@
 
   !define INTERFACE_SHORTCUT_NAME "High Fidelity"
   !define INTERFACE_EXEC_NAME "interface.exe"
-  !define INTERFACE_ICON_INDEX "0"
   !define CONSOLE_SHORTCUT_NAME "Server Console"
   !define CONSOLE_EXEC_NAME "server-console.exe"
-  !define CONSOLE_ICON_INDEX "1"
 
 ;--------------------------------
 ; You must define these values
@@ -709,17 +707,13 @@ Section "-Core installation"
   ; Conditional handling for interface shortcut
   ${If} ${SectionIsSelected} ${client}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${INTERFACE_SHORTCUT_NAME}.lnk" \
-      "$INSTDIR\${INTERFACE_EXEC_NAME}" \
-      "" \
-      "$INSTDIR\${INTERFACE_EXEC_NAME}" ${INTERFACE_ICON_INDEX}
+      "$INSTDIR\${INTERFACE_EXEC_NAME}"
   ${EndIf}
 
   ; Conditional handling for server console shortcut
   ${If} ${SectionIsSelected} ${server}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${CONSOLE_SHORTCUT_NAME}.lnk" \
-      "$INSTDIR\${CONSOLE_EXEC_NAME}" \
-      "" \
-      "$INSTDIR\${CONSOLE_EXEC_NAME}" ${CONSOLE_ICON_INDEX}\
+      "$INSTDIR\${CONSOLE_EXEC_NAME}"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
