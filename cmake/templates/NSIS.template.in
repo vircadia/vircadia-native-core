@@ -7,6 +7,7 @@
   !define INTERFACE_EXEC_NAME "interface.exe"
   !define CONSOLE_SHORTCUT_NAME "Server Console"
   !define CONSOLE_EXEC_NAME "server-console.exe"
+  !define HIGH_FIDELITY_PROTOCOL "hifi"
 
 ;--------------------------------
 ; You must define these values
@@ -710,10 +711,10 @@ Section "-Core installation"
       "$INSTDIR\${INTERFACE_EXEC_NAME}"
 
     ; hifi:// protocol handler registry entries
-    WriteRegStr HKCR 'hifi' '' 'URL:High Fidelity Protocol'
-    WriteRegStr HKCR 'hifi' 'URL Protocol' ''
-    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
-    WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
+    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' '' 'URL:High Fidelity Protocol'
+    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}' 'URL Protocol' ''
+    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
+    WriteRegStr HKCR '${HIGH_FIDELITY_PROTOCOL}\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
   ${EndIf}
 
   ; Conditional handling for server console shortcut
@@ -880,6 +881,9 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\${CONSOLE_SHORTCUT_NAME}.lnk"
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
+
+  ;Delete High Fidelity protocol handling
+  DeleteRegKey HKCR '${HIGH_FIDELITY_PROTOCOL}'
 
   ;Delete empty start menu parent diretories
   StrCpy $MUI_TEMP "$SMPROGRAMS\$MUI_TEMP"
