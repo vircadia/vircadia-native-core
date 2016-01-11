@@ -710,6 +710,7 @@ Section "-Core installation"
   ${If} ${SectionIsSelected} ${client}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${INTERFACE_SHORTCUT_NAME}.lnk" \
       "$INSTDIR\${INTERFACE_EXEC_NAME}" \
+      "" \
       "$INSTDIR\${INTERFACE_EXEC_NAME}" ${INTERFACE_ICON_INDEX}
   ${EndIf}
 
@@ -717,6 +718,7 @@ Section "-Core installation"
   ${If} ${SectionIsSelected} ${server}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${CONSOLE_SHORTCUT_NAME}.lnk" \
       "$INSTDIR\${CONSOLE_EXEC_NAME}" \
+      "" \
       "$INSTDIR\${CONSOLE_EXEC_NAME}" ${CONSOLE_ICON_INDEX}\
   ${EndIf}
 
