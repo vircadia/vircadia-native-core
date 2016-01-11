@@ -30,7 +30,7 @@ protected:
 private:
     using EyePoses = std::pair<ovrPosef, ovrPosef>;
     static const QString NAME;
-    bool _enablePreview{ false };
+    bool _enablePreview { false };
     bool _monoPreview { true };
     QMap<uint32_t, EyePoses> _frameEyePoses;
 
