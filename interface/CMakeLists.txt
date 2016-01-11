@@ -102,7 +102,7 @@ elseif(WIN32)
   # configure an rc file for the chosen icon
   set(CONFIGURE_ICON_FILENAME ${INTERFACE_ICON_FILENAME})
   set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
-  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
+  configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
 
   # add an executable that also has the icon itself and the configured rc file as resources
   add_executable(${TARGET_NAME} WIN32
