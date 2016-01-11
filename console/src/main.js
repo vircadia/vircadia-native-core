@@ -26,15 +26,7 @@ var ProcessGroup = hfprocess.ProcessGroup;
 var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 function getApplicationDataDirectory() {
-    var osType = os.type();
-    var rootDirectory;
-    if (osType == 'Windows_NT') {
-        rootDirectory = process.env.APPDATA;
-    } else if (osType == 'Darwin') {
-        rootDirecotry = process.env.HOME + 'Library/Application Support';
-    } else {
-        rootDirectory = '/usr/local/share';
-    }
+    var rootDirectory = app.getPath('appData');
     return path.join(rootDirectory, '/High Fidelity/Console');
 }
 
