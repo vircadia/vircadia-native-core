@@ -35,7 +35,8 @@ ScriptsModel& getScriptsModel() {
 
 ScriptEngines::ScriptEngines()
     : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
-      _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION){
+      _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION)
+{
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
     _scriptsModelFilter.setDynamicSortFilter(true);

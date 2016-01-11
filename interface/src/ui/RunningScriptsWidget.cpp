@@ -172,7 +172,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    QRect parentGeometry = qApp->getWindow()->geometry();
+    QRect parentGeometry = qApp->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
     int topMargin = titleBarHeight;
 

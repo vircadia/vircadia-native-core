@@ -205,6 +205,7 @@ public:
     glm::mat4 getEyeOffset(int eye) const;
     glm::mat4 getEyeProjection(int eye) const;
 
+    QRect getDesirableApplicationGeometry();
     Bookmarks* getBookmarks() const { return _bookmarks; }
 
     virtual bool canAcceptURL(const QString& url) const override;
@@ -466,7 +467,7 @@ private:
 
     TouchEvent _lastTouchEvent;
 
-    RunningScriptsWidget* _runningScriptsWidget{ nullptr };
+    RunningScriptsWidget* _runningScriptsWidget { nullptr };
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
     
