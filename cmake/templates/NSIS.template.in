@@ -704,10 +704,16 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
-  ; Conditional handling for interface shortcut
+  ; Conditional handling for Interface specific options
   ${If} ${SectionIsSelected} ${client}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\${INTERFACE_SHORTCUT_NAME}.lnk" \
       "$INSTDIR\${INTERFACE_EXEC_NAME}"
+
+    ; hifi:// protocol handler registry entries
+    WriteRegStr HKCR 'hifi' '' 'URL:Alert Protocol'
+    WriteRegStr HKCR 'hifi' 'URL Protocol' ''
+    WriteRegStr HKCR 'hifi\DefaultIcon' '' '$INSTDIR\${INTERFACE_EXEC_NAME},1'
+    WriteRegStr HKCR 'hifi\shell\open\command' '' '$INSTDIR\${INTERFACE_EXEC_NAME} --url "%1"'
   ${EndIf}
 
   ; Conditional handling for server console shortcut
