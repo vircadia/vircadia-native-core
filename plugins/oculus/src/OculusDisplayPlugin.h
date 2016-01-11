@@ -17,7 +17,7 @@ const float TARGET_RATE_Oculus = 75.0f;
 class OculusDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
     virtual void activate() override;
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
     virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) override final;
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_Oculus; }

@@ -22,15 +22,16 @@ public:
     AmbientOcclusionEffect();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<AmbientOcclusionEffect> JobModel;
-
+    
     void setRadius(float radius);
     float getRadius() const { return _parametersBuffer.get<Parameters>()._radiusInfo.x; }
     
     // Obscurance level which intensify or dim down the obscurance effect
     void setLevel(float level);
     float getLevel() const { return _parametersBuffer.get<Parameters>()._radiusInfo.w; }
-    
+
+    using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
+
 private:
 
     void setDepthInfo(float nearZ, float farZ);

@@ -18,7 +18,7 @@
 
 class DebugDeferredBuffer {
 public:
-    using JobModel = render::Job::Model<DebugDeferredBuffer>;
+    using JobModel = render::Task::Job::Model<DebugDeferredBuffer>;
     
     DebugDeferredBuffer();
     

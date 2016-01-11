@@ -15,43 +15,11 @@
 #include <assert.h>
 
 #include <PerfStat.h>
-#include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 
 
 using namespace render;
-
-DrawSceneTask::DrawSceneTask() : Task() {
-}
-
-DrawSceneTask::~DrawSceneTask() {
-}
-
-void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
-        return;
-    }
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-};
-
-Job::~Job() {
-}
-
-
-
-
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     assert(renderContext->getArgs());
@@ -262,51 +230,4 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
         renderItems(sceneContext, renderContext, culledItems);
     });
     args->_batch = nullptr;
-}
-
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
-
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(id);
-    }
-    RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
-        args->_batch = &batch;
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(sceneContext, renderContext, inItems);
-    });
-    args->_batch = nullptr;
-}
-
-void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {
-    // Insert the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.push_back(id);
-        }
-    }
-}
-
-void ItemMaterialBucketMap::allocateStandardMaterialBuckets() {
-    (*this)[model::MaterialFilter::Builder::opaqueDiffuse()];
 }

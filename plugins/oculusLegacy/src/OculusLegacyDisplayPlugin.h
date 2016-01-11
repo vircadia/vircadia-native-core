@@ -19,7 +19,7 @@ class OculusLegacyDisplayPlugin : public WindowOpenGLDisplayPlugin {
 public:
     OculusLegacyDisplayPlugin();
     virtual bool isSupported() const override;
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
 
     virtual void activate() override;
     virtual void deactivate() override;
