@@ -67,22 +67,19 @@ if (APPLE)
 
   if (PRODUCTION_BUILD)
     set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
-    set(ICON_FILENAME "interface.icns")
   else ()
     if (DEV_BUILD)
       set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
     elseif (PR_BUILD)
       set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-pr)
     endif ()
-
-    set(ICON_FILENAME "interface-beta.icns")
   endif ()
 
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE "${ICON_FILENAME}")
+  set(MACOSX_BUNDLE_ICON_FILE "${INTERfACE_ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
   set(DISCOVERED_RESOURCES "")
 
@@ -92,7 +89,7 @@ if (APPLE)
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
 
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
@@ -102,7 +99,15 @@ if (APPLE)
   # make sure the output name for the .app bundle is correct
   set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
 elseif(WIN32)
-  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
+  # configure an rc file for the chosen icon
+  set(CONFIGURE_ICON_FILENAME ${INTERFACE_ICON_FILENAME})
+  set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
+  configure_file("${CMAKE_CURRENT_SOURCE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
+
+  # add an executable that also has the icon itself and the configured rc file as resources
+  add_executable(${TARGET_NAME} WIN32
+    ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}"
+  )
 else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
