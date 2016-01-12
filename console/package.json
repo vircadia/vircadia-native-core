@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "extend": "^3.0.0",
-    "yargs": "^3.30.0"
+    "yargs": "^3.30.0",
+    "request": "2.67.0",
+    "tail": "0.4.0"
   }
 }
