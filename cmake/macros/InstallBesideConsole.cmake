@@ -32,6 +32,10 @@ macro(install_beside_console)
         DESTINATION ${COMPONENT_DESTINATION}
         COMPONENT ${SERVER_COMPONENT}
       )
+
+      # on windows for PR and production builds, sign the executable
+      set(EXECUTABLE_COMPONENT ${SERVER_COMPONENT})
+      optional_win_executable_signing()
     endif ()
 
     if (TARGET_NAME STREQUAL domain-server)
