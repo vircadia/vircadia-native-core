@@ -615,8 +615,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
 
-    _runningScriptsWidget = new RunningScriptsWidget(_window);
-
 
 #ifdef _WIN32
     WSADATA WsaData;
@@ -980,6 +978,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
+
+    // FIXME -- NOTE: This will call ProcessEvents() which can cause authentication signals to fire, which
+    // if not logged in can cause the login dialog to appear. As currently implemented, the login requires
+    // the offscreen UI to render, so this needs to be well after OffscreenUi is available
+    _runningScriptsWidget = new RunningScriptsWidget(_window);
 
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 }
