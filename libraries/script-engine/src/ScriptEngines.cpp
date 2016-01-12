@@ -112,6 +112,8 @@ void ScriptEngines::shutdownScripting() {
             scriptEngine->waitTillDoneRunning();
             qCDebug(scriptengine) << "done waiting on script:" << scriptName;
 
+            scriptEngine->deleteLater();
+
             // If the script is stopped, we can remove it from our set
             i.remove();
         }
@@ -343,6 +345,10 @@ ScriptEngine* ScriptEngines::loadScript(const QString& scriptFilename, bool isUs
 
     scriptEngine = new ScriptEngine(NO_SCRIPT, "", true);
     scriptEngine->setUserLoaded(isUserLoaded);
+    connect(scriptEngine, &ScriptEngine::doneRunning, this, [scriptEngine] {
+        scriptEngine->deleteLater();
+    }, Qt::QueuedConnection);
+
 
     if (scriptFilename.isNull()) {
         launchScriptEngine(scriptEngine);
@@ -431,5 +437,8 @@ QString ScriptEngines::getPreviousScriptLocation() const {
 }
 
 void ScriptEngines::setPreviousScriptLocation(const QString& previousScriptLocation) {
-    _previousScriptLocation.set(previousScriptLocation);
+    if (_previousScriptLocation.get() != previousScriptLocation) {
+        _previousScriptLocation.set(previousScriptLocation);
+        emit previousScriptLocationChanged();
+    }
 }

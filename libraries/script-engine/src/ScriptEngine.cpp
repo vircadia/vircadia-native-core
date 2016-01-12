@@ -171,9 +171,6 @@ void ScriptEngine::runInThread() {
     // when the thread is finished, add thread to the deleteLater queue
     connect(workerThread, &QThread::finished, workerThread, &QThread::deleteLater);
 
-    // when the thread is finished, add scriptEngine to the deleteLater queue
-    connect(workerThread, &QThread::finished, this, &ScriptEngine::deleteLater);
-
     moveToThread(workerThread);
 
     // Starts an event loop, and emits workerThread->started()
