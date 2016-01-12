@@ -40,17 +40,6 @@ const int GeometryCache::UNKNOWN_ID = -1;
 
 static const int VERTICES_PER_TRIANGLE = 3;
 
-//static const uint FLOATS_PER_VERTEX = 3;
-//static const uint TRIANGLES_PER_QUAD = 2;
-//static const uint CUBE_FACES = 6;
-//static const uint CUBE_VERTICES_PER_FACE = 4;
-//static const uint CUBE_VERTICES = CUBE_FACES * CUBE_VERTICES_PER_FACE;
-//static const uint CUBE_VERTEX_POINTS = CUBE_VERTICES * FLOATS_PER_VERTEX;
-//static const uint CUBE_INDICES = CUBE_FACES * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
-//static const uint SPHERE_LATITUDES = 24;
-//static const uint SPHERE_MERIDIANS = SPHERE_LATITUDES * 2;
-//static const uint SPHERE_INDICES = SPHERE_MERIDIANS * (SPHERE_LATITUDES - 1) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
-
 static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
