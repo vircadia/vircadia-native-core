@@ -261,23 +261,23 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     auto sceneLocation = sceneStage->getLocation();
     auto sceneTime = sceneStage->getTime();
     auto backgroundMode = BACKGROUND_MODE_INHERIT; // Default
-
-    if (!_hasPreviousZone) {
-        _previousKeyLightColor = sceneKeyLight->getColor();
-        _previousKeyLightIntensity = sceneKeyLight->getIntensity();
-        _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
-        _previousKeyLightDirection = sceneKeyLight->getDirection();
-        _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
-        _previousStageLongitude = sceneLocation->getLongitude();
-        _previousStageLatitude = sceneLocation->getLatitude();
-        _previousStageAltitude = sceneLocation->getAltitude();
-        _previousStageHour = sceneTime->getHour();
-        _previousStageDay = sceneTime->getDay();
-        _hasPreviousZone = true;
-    }
     
     if (zone) {
         backgroundMode = zone->getBackgroundMode();
+
+        if (!_hasPreviousZone) {
+            _previousKeyLightColor = sceneKeyLight->getColor();
+            _previousKeyLightIntensity = sceneKeyLight->getIntensity();
+            _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
+            _previousKeyLightDirection = sceneKeyLight->getDirection();
+            _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
+            _previousStageLongitude = sceneLocation->getLongitude();
+            _previousStageLatitude = sceneLocation->getLatitude();
+            _previousStageAltitude = sceneLocation->getAltitude();
+            _previousStageHour = sceneTime->getHour();
+            _previousStageDay = sceneTime->getDay();
+            _hasPreviousZone = true;
+        }
 
         sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
         sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
