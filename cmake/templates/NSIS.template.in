@@ -699,7 +699,7 @@ Section "-Core installation"
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
   ; Conditional handling for Interface specific options
-  ${If} ${SectionIsSelected} ${client}
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
@@ -714,7 +714,7 @@ Section "-Core installation"
   ${EndIf}
 
   ; Conditional handling for server console shortcut
-  ${If} ${SectionIsSelected} ${server}
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
@@ -790,14 +790,14 @@ Function PostInstallOptionsPage
 
   StrCpy $CURRENT_OFFSET "15u"
 
-  ${If} ${SectionIsSelected} ${client}
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 15u 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
     Pop $DESKTOP_CLIENT_CHECKBOX
     StrCpy $CURRENT_OFFSET "30u"
     ${NSD_SetState} $DESKTOP_CLIENT_CHECKBOX ${BST_CHECKED}
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${server}
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
     Pop $DESKTOP_SERVER_CHECKBOX
 
@@ -825,17 +825,34 @@ Function PostInstallOptionsPage
   nsDialogs::Show
 FunctionEnd
 
-Var DESKTOP_CLIENT_CHECKBOX_STATE
+Var DESKTOP_CLIENT_STATE
+Var DESKTOP_SERVER_STATE
 
 Function HandlePostInstallOptions
-  ${If} ${SectionIsSelected} ${client}
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
-    ${NSD_GetState} $DESKTOP_CLIENT_CHECKBOX $DESKTOP_CLIENT_CHECKBOX_STATE
+    ${NSD_GetState} $DESKTOP_CLIENT_CHECKBOX $DESKTOP_CLIENT_STATE
 
-    ${If} $DESKTOP_CLIENT_CHECKBOX_STATE == ${BST_CHECKED}
+    ${If} $DESKTOP_CLIENT_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
     ${EndIf}
 
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to Server Console
+    ${NSD_GetState} $DESKTOP_SERVER_CHECKBOX $DESKTOP_SERVER_STATE
+
+    ${If} $DESKTOP_SERVER_STATE == ${BST_CHECKED}
+      CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+    ${EndIf}
+
+    ; check if the user asked to have Server Console launched every startup
+    ${NSD_GetState} $SERVER_STARTUP_CHECKBOX $SERVER_STARTUP_STATE
+
+    ${If} $SERVER_STARTUP_STATE == ${BST_CHECKED}
+      CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+    ${EndIf}
   ${EndIf}
 FunctionEnd
 
@@ -949,6 +966,8 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
