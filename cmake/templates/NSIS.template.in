@@ -563,7 +563,7 @@ FunctionEnd
   @CPACK_NSIS_PAGE_COMPONENTS@
 
   !insertmacro MUI_PAGE_INSTFILES
-  Page custom PostInstallOptionsPage
+  Page custom PostInstallOptionsPage HandlePostInstallOptions
 
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
@@ -783,6 +783,9 @@ Function PostInstallOptionsPage
     Abort
   ${EndIf}
 
+  ; Set the text on the dialog button to match finish
+  SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
+
   StrCpy $CURRENT_OFFSET "0"
 
   ${If} ${SectionIsSelected} ${client}
@@ -818,6 +821,20 @@ Function PostInstallOptionsPage
   ${NSD_SetState} $LAUNCH_NOW_CHECKBOX ${BST_CHECKED}
 
   nsDialogs::Show
+FunctionEnd
+
+Var DESKTOP_CLIENT_CHECKBOX_STATE
+
+Function HandlePostInstallOptions
+  ${If} ${SectionIsSelected} ${client}
+    ; check if the user asked for a desktop shortcut to High Fidelity
+    ${NSD_GetState} $DESKTOP_CLIENT_CHECKBOX $DESKTOP_CLIENT_CHECKBOX_STATE
+
+    ${If} $DESKTOP_CLIENT_CHECKBOX_STATE == ${BST_CHECKED}
+      CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
+    ${EndIf}
+
+  ${EndIf}
 FunctionEnd
 
 ;--------------------------------
