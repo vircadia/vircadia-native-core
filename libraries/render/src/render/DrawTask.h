@@ -13,6 +13,7 @@
 #define hifi_render_DrawTask_h
 
 #include "Engine.h"
+#include "ShapePipeline.h"
 #include "gpu/Batch.h"
 
 
@@ -20,7 +21,8 @@ namespace render {
 
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {
@@ -37,22 +39,17 @@ public:
     using JobModel = Task::Job::ModelO<FetchItems, ItemIDsBounds>;
 };
 
+template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
 class CullItems {
 public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    using JobModel = Task::Job::ModelIO<CullItems, ItemIDsBounds, ItemIDsBounds>;
-};
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+        outItems.clear();
+        outItems.reserve(inItems.size());
+        renderContext->getArgs()->_details.pointTo(T);
+        render::cullItems(sceneContext, renderContext, inItems, outItems);
+    }
 
-class CullItemsOpaque {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    using JobModel = Task::Job::ModelIO<CullItemsOpaque, ItemIDsBounds, ItemIDsBounds>;
-};
-
-class CullItemsTransparent {
-public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    using JobModel = Task::Job::ModelIO<CullItemsTransparent, ItemIDsBounds, ItemIDsBounds>;
+    using JobModel = Task::Job::ModelIO<CullItems<T>, ItemIDsBounds, ItemIDsBounds>;
 };
 
 class DepthSortItems {

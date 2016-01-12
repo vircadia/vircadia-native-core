@@ -448,8 +448,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
-    _renderEngine->addTask(make_shared<RenderDeferredTask>());
-    _renderEngine->registerScene(_main3DScene);
+    _runningScriptsWidget = new RunningScriptsWidget(_window);
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -615,7 +614,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
 
-
 #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2, 2), &WsaData);
@@ -678,6 +676,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _offscreenContext->makeCurrent();
     initializeGL();
 
+    // Start rendering
+    _renderEngine->addTask(make_shared<RenderDeferredTask>());
+    _renderEngine->registerScene(_main3DScene);
 
     _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
