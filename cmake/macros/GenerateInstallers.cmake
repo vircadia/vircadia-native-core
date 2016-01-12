@@ -25,7 +25,7 @@ macro(GENERATE_INSTALLERS)
   # configure the post install options file for custom installation options
   if (WIN32)
     set(POST_INSTALL_OPTIONS_PATH "${CMAKE_CURRENT_BINARY_DIR}/NSIS.PostInstallOptions.ini")
-    configure_file("${HF_CMAKE_DIR}/template/NSIS.PostInstallOptions.ini.in" ${POST_INSTALL_OPTIONS_PATH})
+    configure_file("${HF_CMAKE_DIR}/templates/NSIS.PostInstallOptions.ini.in" ${POST_INSTALL_OPTIONS_PATH})
   endif ()
 
   # configure a cpack properties file for custom variables in NSIS template
