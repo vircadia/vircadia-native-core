@@ -785,7 +785,8 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ; Set the text on the dialog button to match finish
-  SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 1 "STR:$(^CloseBtn)"
+  GetDlgItem $0 $hwndparent 1
+  SendMessage $0 ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
 
   ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
   Pop $OPTIONS_LABEL
