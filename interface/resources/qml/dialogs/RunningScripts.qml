@@ -229,6 +229,7 @@ Window {
                 anchors.right: parent.right
                 text: "Load"
                 enabled: selectedScript.text != ""
+                onClicked: root.loadScript(selectedScript.text)
             }
         }
     }
