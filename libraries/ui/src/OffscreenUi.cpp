@@ -16,19 +16,14 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
+
 #include "ErrorDialog.h"
 #include "MessageDialog.h"
 
-class OffscreenUiRoot : public QQuickItem {
-    Q_OBJECT
-public:
-
-    OffscreenUiRoot(QQuickItem* parent = 0);
-    Q_INVOKABLE void information(const QString& title, const QString& text);
-    Q_INVOKABLE void loadChild(const QUrl& url) {
-        DependencyManager::get<OffscreenUi>()->load(url);
-    }
-};
+// Needs to match the constants in resources/qml/Global.js
+static const QString OFFSCREEN_ROOT_OBJECT_NAME = "desktopRoot";
+static const QString OFFSCREEN_WINDOW_OBJECT_NAME = "topLevelWindow";
+static QQuickItem* _desktop { nullptr };
 
 class OffscreenFlags : public QObject {
     Q_OBJECT
@@ -105,15 +100,7 @@ bool OffscreenUi::shouldSwallowShortcut(QEvent* event) {
     return false;
 }
 
-OffscreenUiRoot::OffscreenUiRoot(QQuickItem* parent) : QQuickItem(parent) {
-}
-
-void OffscreenUiRoot::information(const QString& title, const QString& text) {
-    OffscreenUi::information(title, text);
-}
-
 OffscreenUi::OffscreenUi() {
-    ::qmlRegisterType<OffscreenUiRoot>("Hifi", 1, 0, "Root");
 }
 
 void OffscreenUi::create(QOpenGLContext* context) {
@@ -256,6 +243,15 @@ bool OffscreenUi::navigationFocused() {
 
 void OffscreenUi::setNavigationFocused(bool focused) {
     offscreenFlags->setNavigationFocused(focused);
+}
+
+void OffscreenUi::createDesktop() {
+    if (_desktop) {
+        qDebug() << "Desktop already created";
+    }
+    _desktop = dynamic_cast<QQuickItem*>(load("Root.qml"));
+    Q_ASSERT(_desktop);
+    getRootContext()->setContextProperty("Desktop", _desktop);
 }
 
 #include "OffscreenUi.moc"
