@@ -54,12 +54,9 @@ function setEnergy(energy) {
 function avatarAccelerationEnergy() {
     var AVATAR_MOVEMENT_ENERGY_CONSTANT = 0.001;
     var velocity = MyAvatar.getVelocity(); 
-    var dV = Vec3.subtract(velocity, lastAvatarVelocity);
-    var dE = Vec3.length(lastAvatarVelocity) * Vec3.length(dV) * AVATAR_MOVEMENT_ENERGY_CONSTANT;
+    var dV = Math.abs(Vec3.length(velocity) - Vec3.length(lastAvatarVelocity));
+    var dE = Vec3.length(lastAvatarVelocity) * dV * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     lastAvatarVelocity = velocity;  
-    if (dE > 0.01) {
-        print("de " + dE);
-    }
     return dE;
 }
 
