@@ -25,12 +25,11 @@ ShapeKey::Filter::Builder::Builder() {
 void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) {
     // Iterate over all keys
     if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {
-        ++bit;
-        addPipelineHelper(filter, key, bit, pipeline);
-        if (filter._mask[bit]) {
-            // Toggle bits set as significant in filter._mask 
+        addPipelineHelper(filter, key, bit + 1, pipeline);
+        if (!filter._mask[bit]) {
+            // Toggle bits set as insignificant in filter._mask 
             key._flags.flip(bit);
-            addPipelineHelper(filter, key, bit, pipeline);
+            addPipelineHelper(filter, key, bit + 1, pipeline);
         }
     } else {
         // Add the brand new pipeline and cache its location in the lib
