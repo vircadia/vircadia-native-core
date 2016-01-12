@@ -792,7 +792,7 @@ Function PostInstallOptionsPage
   Pop $OPTIONS_LABEL
 
   ; Set label to bold
-  CreateFont $R2 "Arial" 12 700
+  CreateFont $R2 "Arial" 10 700
   SendMessage $OPTIONS_LABEL ${WM_SETFONT} $R2 0
 
   ; Force label redraw
