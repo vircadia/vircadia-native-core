@@ -238,6 +238,11 @@ else (APPLE)
       DESTINATION ${INTERFACE_INSTALL_DIR}
       COMPONENT ${CLIENT_COMPONENT}
     )
+
+    set(EXECUTABLE_NAME "${INTERFACE_EXEC_PREFIX}.exe")
+    set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
+
+    optional_win_executable_signing()
   endif()
 endif (APPLE)
 
