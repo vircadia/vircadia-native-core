@@ -95,7 +95,7 @@ ready = function() {
 
                 var stats = fs.statSync(cleanFilePath);
                 var size = stats.size;
-                var start = Math.max(0, size - (2500 * 50));
+                var start = Math.max(0, size - (25000));
                 console.log(cleanFilePath, size, start, maxLogLines);
 
                 var logTail = new Tail(cleanFilePath, '\n', { start: start, interval: 500 });
