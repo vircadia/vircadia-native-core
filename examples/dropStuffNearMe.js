@@ -61,26 +61,25 @@ Script.setInterval(function () {
     } 
     
     var numToCreate = RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0);
-    for (var i = 0; i < numToCreate; i++) {
+    for (var i = 0; (i < numToCreate) && (totalCreated < NUMBER_TO_CREATE); i++) {
         var position = Vec3.sum(center, randomVector({ x: RANGE, y: RANGE, z: RANGE }));
-        if (totalCreated < NUMBER_TO_CREATE) {
-            Vec3.print("Position: ", position);
-            Entities.addEntity({ 
-                type: TYPE,
-                modelURL: MODEL_URL,
-                name: "gridTest",
-                position: position,
-                dimensions: (TYPE == "Model") ? MODEL_DIMENSION : { x: SIZE, y: SIZE, z: SIZE },       
-                color: { red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },
-                velocity: VELOCITY,
-                angularVelocity: Vec3.multiply(Math.random(), ANGULAR_VELOCITY),
-                damping: DAMPING,
-                angularDamping: ANGULAR_DAMPING,
-                gravity: (gravity ? GRAVITY : { x: 0, y: 0, z: 0}),
-                collisionsWillMove: collidable,
-                lifetime: LIFETIME
-            });
-        }
+
+        Vec3.print("Position: ", position);
+        Entities.addEntity({ 
+            type: TYPE,
+            modelURL: MODEL_URL,
+            name: "gridTest",
+            position: position,
+            dimensions: (TYPE == "Model") ? MODEL_DIMENSION : { x: SIZE, y: SIZE, z: SIZE },       
+            color: { red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255 },
+            velocity: VELOCITY,
+            angularVelocity: Vec3.multiply(Math.random(), ANGULAR_VELOCITY),
+            damping: DAMPING,
+            angularDamping: ANGULAR_DAMPING,
+            gravity: (gravity ? GRAVITY : { x: 0, y: 0, z: 0}),
+            collisionsWillMove: collidable,
+            lifetime: LIFETIME
+        });
 
         totalCreated++;
     } 
