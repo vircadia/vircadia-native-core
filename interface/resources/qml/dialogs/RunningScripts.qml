@@ -38,6 +38,7 @@ Window {
                 // unescape html codes like '%23' for '#'
                 var cleanPath = decodeURIComponent(chosenFolder);
                 scripts.previousScriptLocation = cleanPath;
+                scripts.loadOneScript(chosen);
             }
             onRejected: {
                 console.log("Canceled")
