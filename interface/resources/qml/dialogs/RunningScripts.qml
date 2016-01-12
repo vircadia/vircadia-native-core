@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
 import "../styles" as Hifi
@@ -18,6 +19,34 @@ Window {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+
+
+    Component {
+        id: fileDialogCreator
+        OriginalDialogs.FileDialog {
+            id: fileDialog
+            modality: Qt.ApplicationModal
+            title: "Please choose a file"
+            nameFilters: [ "JavaScript files (*.js)" ]
+            folder: "file:///" + scripts.previousScriptLocation
+            onAccepted: {
+                var chosen = fileDialog.fileUrl;
+                console.log("You chose: " + chosen);
+                var chosenFolder = fileDialog.folder.toString();
+                // remove prefixed "file:///"
+                chosenFolder = chosenFolder.replace(/^(file:\/{3})/,"");
+                // unescape html codes like '%23' for '#'
+                var cleanPath = decodeURIComponent(chosenFolder);
+                scripts.previousScriptLocation = cleanPath;
+            }
+            onRejected: {
+                console.log("Canceled")
+            }
+            Component.onCompleted: visible = true
+        }
+    }
+
+
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -158,7 +187,10 @@ Window {
                 anchors.bottomMargin: 8
                 anchors.right: parent.right
                 Button { text: "from URL" }
-                Button { text: "from Disk" }
+                Button {
+                    text: "from Disk"
+                    onClicked: fileDialogCreator.createObject(root);
+                }
             }
 
             TextField {
