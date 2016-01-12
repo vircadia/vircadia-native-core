@@ -883,6 +883,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
     }
 
     // set the local loopback interface for local sounds from audio scripts
