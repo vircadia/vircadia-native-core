@@ -72,11 +72,12 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
             data[3*i+0] = permutation[i];
             data[3*i+1] = permutation[i];
             data[3*i+2] = permutation[i];
+        }
 #else
         for (int i = 0; i < 256 * 3; i++) {
             data[i] = rand() % 256;
-#endif
         }
+#endif
 
         for (int i = 256 * 3; i < 256 * 3 * 2; i += 3) {
             glm::vec3 randvec = glm::sphericalRand(1.0f);
