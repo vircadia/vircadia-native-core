@@ -74,7 +74,7 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
     // Prepare the ShapePipelines
-    ShapePlumberPointer shapePlumber;
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
     
     // CPU only, create the list of renderedOpaques items
