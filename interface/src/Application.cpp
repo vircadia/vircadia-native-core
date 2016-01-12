@@ -982,12 +982,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
-
-    // FIXME -- NOTE: This will call ProcessEvents() which can cause authentication signals to fire, which
-    // if not logged in can cause the login dialog to appear. As currently implemented, the login requires
-    // the offscreen UI to render, so this needs to be well after OffscreenUi is available
-    _runningScriptsWidget = new RunningScriptsWidget(_window);
-
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 }
 
@@ -1199,7 +1193,10 @@ void Application::initializeUi() {
     offscreenUi->create(_offscreenContext->getContext());
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-    offscreenUi->load("Root.qml");
+    // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
+    // support the window management and scripting proxies for VR use
+    offscreenUi->createDesktop();
+    
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -1210,6 +1207,9 @@ void Application::initializeUi() {
         qApp->quit();
     });
 
+    // For some reason there is already an "Application" object in the QML context, 
+    // though I can't find it. Hence, "ApplicationInterface"
+    rootContext->setContextProperty("ApplicationInterface", this); 
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
@@ -1232,8 +1232,6 @@ void Application::initializeUi() {
 #endif
 
     rootContext->setContextProperty("Overlays", &_overlays);
-    rootContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-
     rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
     rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
     rootContext->setContextProperty("Stats", Stats::getInstance());
@@ -4535,18 +4533,20 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidget->isVisible()) {
-        if (_runningScriptsWidget->hasFocus()) {
-            _runningScriptsWidget->hide();
-        } else {
-            _runningScriptsWidget->raise();
-            setActiveWindow(_runningScriptsWidget);
-            _runningScriptsWidget->setFocus();
-        }
-    } else {
-        _runningScriptsWidget->show();
-        _runningScriptsWidget->setFocus();
-    }
+    static const QUrl url("dialogs/RunningScripts.qml");
+    DependencyManager::get<OffscreenUi>()->toggle(url, "RunningScripts");
+    //if (_runningScriptsWidget->isVisible()) {
+    //    if (_runningScriptsWidget->hasFocus()) {
+    //        _runningScriptsWidget->hide();
+    //    } else {
+    //        _runningScriptsWidget->raise();
+    //        setActiveWindow(_runningScriptsWidget);
+    //        _runningScriptsWidget->setFocus();
+    //    }
+    //} else {
+    //    _runningScriptsWidget->show();
+    //    _runningScriptsWidget->setFocus();
+    //}
 }
 
 void Application::packageModel() {

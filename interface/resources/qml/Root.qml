@@ -1,13 +1,12 @@
-import Hifi 1.0
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 import "Global.js" as Global
 
-// This is our primary 'window' object to which all dialogs and controls will 
-// be childed. 
-Root {
-    id: root
+// This is our primary 'desktop' object to which all VR dialogs and 
+// windows will be childed. 
+Item {
+    id: desktop
     objectName: Global.OFFSCREEN_ROOT_OBJECT_NAME
     anchors.fill: parent;
     property var windows: [];
@@ -16,11 +15,14 @@ Root {
     }
 
     onChildrenChanged:  {
-        windows = Global.getTopLevelWindows(root);
+        windows = Global.getTopLevelWindows(desktop);
     }
 
     onParentChanged: {
         forceActiveFocus();
     }
-}
 
+    function raise(item) {
+        Global.raiseWindow(item);
+    }
+}
