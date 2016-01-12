@@ -790,12 +790,12 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 0 100% 10u "&Create a desktop shortcut for High Fidelity"
     Pop $DESKTOP_CLIENT_CHECKBOX
     StrCpy $CURRENT_OFFSET "15u"
+    ${NSD_SetState} $DESKTOP_CLIENT_CHECKBOX ${BST_CHECKED}
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${server}
-    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for the High Fidelity Server Console"
+    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity Server Console"
     Pop $DESKTOP_SERVER_CHECKBOX
-    ${NSD_SetState} $DESKTOP_SERVER_CHECKBOX ${BST_UNCHECKED}
 
     ${If} $CURRENT_OFFSET == "0"
       StrCpy $CURRENT_OFFSET "15u"
@@ -805,6 +805,7 @@ Function PostInstallOptionsPage
 
     ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Server Console on startup"
     Pop $SERVER_STARTUP_CHECKBOX
+    ${NSD_SetState} $SERVER_STARTUP_CHECKBOX ${BST_CHECKED}
 
     ${If} $CURRENT_OFFSET == "15u"
       StrCpy $CURRENT_OFFSET "30u"
@@ -815,6 +816,7 @@ Function PostInstallOptionsPage
 
   ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Now"
   Pop $LAUNCH_NOW_CHECKBOX
+  ${NSD_SetState} $LAUNCH_NOW_CHECKBOX ${BST_CHECKED}
 
   nsDialogs::Show
 FunctionEnd
