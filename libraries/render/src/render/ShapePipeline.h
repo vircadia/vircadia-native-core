@@ -28,29 +28,26 @@ public:
         SKINNED,
         STEREO,
         DEPTH_ONLY,
-        SHADOW,
         WIREFRAME,
 
         OWN_PIPELINE,
         INVALID,
 
-        NUM_FLAGS,        // Not a valid flag
+        NUM_FLAGS, // Not a valid flag
     };
     using Flags = std::bitset<NUM_FLAGS>;
 
     Flags _flags;
 
-    ShapeKey() : _flags{ 0 } {}
-    ShapeKey(const Flags& flags) : _flags(flags) {}
+    ShapeKey() : _flags{0} {}
+    ShapeKey(const Flags& flags) : _flags{flags} {}
 
     class Builder {
-        friend class ShapeKey;
-        Flags _flags{ 0 };
     public:
         Builder() {}
-        Builder(ShapeKey key) : _flags{ key._flags } {}
+        Builder(ShapeKey key) : _flags{key._flags} {}
 
-        ShapeKey build() const { return ShapeKey(_flags); }
+        ShapeKey build() const { return ShapeKey{_flags}; }
 
         Builder& withTranslucent() { _flags.set(TRANSLUCENT); return (*this); }
         Builder& withLightmap() { _flags.set(LIGHTMAP); return (*this); }
@@ -60,15 +57,70 @@ public:
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withStereo() { _flags.set(STEREO); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
-        Builder& withShadow() { _flags.set(SHADOW); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
+
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
         static const ShapeKey ownPipeline() { return Builder().withOwnPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
+
+    protected:
+        friend class ShapeKey;
+        Flags _flags{0};
     };
-    ShapeKey(const Builder& builder) : ShapeKey(builder._flags) {}
+    ShapeKey(const Builder& builder) : ShapeKey{builder._flags} {}
+
+    class Filter {
+    public:
+        Filter(Flags flags, Flags mask) : _flags{flags}, _mask{mask} {}
+        Filter(const ShapeKey& key) : _flags{ key._flags } { _mask.set(); }
+
+        // Build a standard filter (will always exclude OWN_PIPELINE, INVALID)
+        class Builder {
+        public:
+            Builder();
+
+            Filter build() const { return Filter(_flags, _mask); }
+
+            Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
+            Builder& withTranslucent() { _flags.set(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
+
+            Builder& withLightmap() { _flags.reset(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+            Builder& withoutLightmap() { _flags.set(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+
+            Builder& withTangents() { _flags.reset(TANGENTS); _mask.set(TANGENTS); return (*this); }
+            Builder& withoutTangents() { _flags.set(TANGENTS); _mask.set(TANGENTS); return (*this); }
+
+            Builder& withSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
+            Builder& withoutSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
+
+            Builder& withEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
+            Builder& withoutEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
+
+            Builder& withSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withoutSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
+
+            Builder& withStereo() { _flags.reset(STEREO); _mask.set(STEREO); return (*this); }
+            Builder& withoutStereo() { _flags.set(STEREO); _mask.set(STEREO); return (*this); }
+
+            Builder& withDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
+            Builder& withoutDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
+
+            Builder& withWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
+            Builder& withoutWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
+
+        protected:
+            friend class Filter;
+            Flags _flags{0};
+            Flags _mask{0};
+        };
+        Filter(const Filter::Builder& builder) : Filter(builder._flags, builder._mask) {}
+    protected:
+        friend class ShapePlumber;
+        Flags _flags{0};
+        Flags _mask{0};
+    };
 
     bool hasLightmap() const { return _flags[LIGHTMAP]; }
     bool hasTangents() const { return _flags[TANGENTS]; }
@@ -78,7 +130,6 @@ public:
     bool isSkinned() const { return _flags[SKINNED]; }
     bool isStereo() const { return _flags[STEREO]; }
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
-    bool isShadow() const { return _flags[SHADOW]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
@@ -113,7 +164,6 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
                 << "isSkinned:" << renderKey.isSkinned()
                 << "isStereo:" << renderKey.isStereo()
                 << "isDepthOnly:" << renderKey.isDepthOnly()
-                << "isShadow:" << renderKey.isShadow()
                 << "isWireFrame:" << renderKey.isWireFrame()
                 << "]";
         }
@@ -124,6 +174,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
 }
 
 // Rendering abstraction over gpu::Pipeline and map locations
+// Meta-information (pipeline and locations) to render a shape
 class ShapePipeline {
 public:
     class Slot {
@@ -162,32 +213,33 @@ public:
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
-// Meta-information (pipeline and locations) to render a shape
-class ShapePipelineLib {
+class ShapePlumber {
 public:
     using Key = ShapeKey;
+    using Filter = Key::Filter;
     using Pipeline = ShapePipeline;
     using PipelinePointer = ShapePipelinePointer;
-    using Slot = ShapePipeline::Slot;
-    using Locations = ShapePipeline::Locations;
+    using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
+    using Slot = Pipeline::Slot;
+    using Locations = Pipeline::Locations;
+    using LocationsPointer = Pipeline::LocationsPointer;
+    using StateSetter = std::function<void(Key, gpu::State&)>;
+    using BatchSetter = std::function<void(gpu::Batch&, PipelinePointer)>;
 
-    virtual ~ShapePipelineLib() = default;
+    ShapePlumber();
+    explicit ShapePlumber(BatchSetter batchSetter);
 
-    static void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
-    virtual const PipelinePointer pickPipeline(RenderArgs* args, const Key& key)  const {
-        return ShapePipelineLib::_pickPipeline(args, key);
-    }
+    void addPipeline(const Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+    void addPipeline(const Filter& filter, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
+    const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
 protected:
-    using PipelineMap = std::unordered_map<ShapeKey, PipelinePointer, ShapeKey::Hash, ShapeKey::KeyEqual>;
-    class PipelineLib : public PipelineMap {
-    public:
-        void addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
-    };
-
-    static PipelineLib _pipelineLib;
-    static const PipelinePointer _pickPipeline(RenderArgs* args, const Key& key);
+    void addPipelineHelper(const Filter& filter, Key key, int bit, gpu::ShaderPointer pipeline, LocationsPointer locations);
+    PipelineMap _pipelineMap;
+    StateSetter _stateSetter;
+    BatchSetter _batchSetter;
 };
+using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 
 }
 

@@ -134,7 +134,7 @@ public:
         Model() {}
         Model(const std::string& name): Concept(name) {}
         Model(Data data): _data(data) {}
-        Model(Data data, const std::string& name): Concept(name), _data(data) {}
+        Model(const std::string& name, Data data): Concept(name), _data(data) {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             if (isEnabled()) {
@@ -222,7 +222,7 @@ typedef std::vector<Job> Jobs;
 void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
 void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePipelineLib& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
 
 class FetchItems {

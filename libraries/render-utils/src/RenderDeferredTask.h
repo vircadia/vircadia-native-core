@@ -13,10 +13,10 @@
 #define hifi_RenderDeferredTask_h
 
 #include "render/DrawTask.h"
+#include "render/ShapePipeline.h"
 
 #include "gpu/Pipeline.h"
 
-#include "DeferredPipelineLib.h"
 #include "ToneMappingEffect.h"
 
 class SetupDeferred {
@@ -52,22 +52,24 @@ public:
 
 class DrawOpaqueDeferred {
 public:
+    DrawOpaqueDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
 
 protected:
-    DeferredPipelineLib _deferredPipelineLib;
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawTransparentDeferred {
 public:
+    DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
 
 protected:
-    DeferredPipelineLib _deferredPipelineLib;
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawStencilDeferred {
@@ -91,6 +93,7 @@ public:
 
 class DrawOverlay3D {
 public:
+    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     static const gpu::PipelinePointer& getOpaquePipeline();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -99,7 +102,7 @@ public:
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
-    DeferredPipelineLib _deferredPipelineLib;
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class Blit {

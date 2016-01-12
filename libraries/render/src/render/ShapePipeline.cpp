@@ -9,41 +9,67 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "DependencyManager.h"
+
 #include "ShapePipeline.h"
 
 #include <PerfStat.h>
 
 using namespace render;
 
-ShapePipelineLib::PipelineLib ShapePipelineLib::_pipelineLib;
-
-void ShapePipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
-    _pipelineLib.addPipeline(key, vertexShader, pixelShader);
+ShapeKey::Filter::Builder::Builder() {
+    _mask.set(OWN_PIPELINE);
+    _mask.set(INVALID);
 }
 
-const ShapePipelineLib::PipelinePointer ShapePipelineLib::_pickPipeline(RenderArgs* args, const Key& key) {
-    assert(!_pipelineLib.empty());
-    assert(args);
-    assert(args->_batch);
+void defaultStateSetter(ShapeKey key, gpu::State& state) {
+    // Cull backface
+    state.setCullMode(gpu::State::CULL_BACK);
 
-    PerformanceTimer perfTimer("ShapePipelineLib::getPipeline");
+    // Z test depends on transparency
+    state.setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
 
-    const auto& pipelineIterator = _pipelineLib.find(key);
-    if (pipelineIterator == _pipelineLib.end()) {
-        qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
-        return PipelinePointer(nullptr);
+    // Blend if transparent
+    state.setBlendFunction(key.isTranslucent(),
+        // For transparency, keep the highlight intensity
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    // Add a wireframe version
+    if (!key.isWireFrame()) {
+        state.setFillMode(gpu::State::FILL_LINE);
     }
-
-    PipelinePointer shapePipeline(pipelineIterator->second);
-    auto& batch = args->_batch;
-
-    // Setup the one pipeline (to rule them all)
-    batch->setPipeline(shapePipeline->pipeline);
-
-    return shapePipeline;
 }
 
-void ShapePipelineLib::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
+void defaultBatchSetter(gpu::Batch& batch, ShapePipelinePointer pipeline) {
+}
+
+ShapePlumber::ShapePlumber() : _stateSetter{ defaultStateSetter }, _batchSetter{ defaultBatchSetter } {}
+ShapePlumber::ShapePlumber(BatchSetter batchSetter) : _stateSetter{ defaultStateSetter }, _batchSetter{ batchSetter } {}
+
+void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, gpu::ShaderPointer program, LocationsPointer locations) {
+    // Iterate over all keys, toggling only bits set as significant in filter._mask
+    if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {
+        addPipelineHelper(filter, key, ++bit, program, locations);
+        if (filter._mask[bit]) {
+            key._flags.flip(bit);
+            addPipelineHelper(filter, key, ++bit, program, locations);
+        }
+    } else {
+        auto state = std::make_shared<gpu::State>();
+        _stateSetter(key, *state);
+    
+        // Add the brand new pipeline and cache its location in the lib
+        auto pipeline = gpu::Pipeline::create(program, state);
+        _pipelineMap.insert(PipelineMap::value_type(key, std::make_shared<Pipeline>(pipeline, locations)));
+    }
+}
+
+void ShapePlumber::addPipeline(const Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
+    addPipeline(Filter{key}, vertexShader, pixelShader);
+}
+
+void ShapePlumber::addPipeline(const Filter& filter, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
@@ -69,37 +95,29 @@ void ShapePipelineLib::PipelineLib::addPipeline(Key key, gpu::ShaderPointer& ver
     locations->materialBufferUnit = program->getBuffers().findLocation("materialBuffer");
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 
-    auto state = std::make_shared<gpu::State>();
+    ShapeKey key{filter._flags};
+    addPipelineHelper(filter, key, 0, program, locations);
+}
 
-    // Backface on shadow
-    if (key.isShadow()) {
-        state->setCullMode(gpu::State::CULL_FRONT);
-        state->setDepthBias(1.0f);
-        state->setDepthBiasSlopeScale(4.0f);
-    } else {
-        state->setCullMode(gpu::State::CULL_BACK);
+const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Key& key) const {
+    assert(!_pipelineMap.empty());
+    assert(args);
+    assert(args->_batch);
+
+    PerformanceTimer perfTimer("ShapePlumber::pickPipeline");
+
+    const auto& pipelineIterator = _pipelineMap.find(key);
+    if (pipelineIterator == _pipelineMap.end()) {
+        qDebug() << "Couldn't find a pipeline from ShapeKey ?" << key;
+        return PipelinePointer(nullptr);
     }
 
-    // Z test depends on transparency
-    state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
+    PipelinePointer shapePipeline(pipelineIterator->second);
+    auto& batch = args->_batch;
+    _batchSetter(*batch, shapePipeline);
 
-    // Blend if transparent
-    state->setBlendFunction(key.isTranslucent(),
-        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA, // For transparent only, this keep the highlight intensity
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    // Setup the one pipeline (to rule them all)
+    batch->setPipeline(shapePipeline->pipeline);
 
-    // Add the brand new pipeline and cache its location in the lib
-    auto pipeline = gpu::Pipeline::create(program, state);
-    insert(value_type(key, std::make_shared<Pipeline>(pipeline, locations)));
-
-    // Add a wireframe version
-    if (!key.isWireFrame()) {
-        ShapeKey wireframeKey(ShapeKey::Builder(key).withWireframe());
-
-        auto wireframeState = std::make_shared<gpu::State>(state->getValues());
-        wireframeState->setFillMode(gpu::State::FILL_LINE);
-
-        auto wireframePipeline = gpu::Pipeline::create(program, wireframeState);
-        insert(value_type(wireframeKey, std::make_shared<Pipeline>(wireframePipeline, locations)));
-    }
+    return shapePipeline;
 }
