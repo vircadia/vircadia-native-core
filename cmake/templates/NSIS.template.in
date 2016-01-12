@@ -779,7 +779,7 @@ Var CURRENT_OFFSET
 Function PostInstallOptionsPage
   ; Set the text on the dialog button to match finish, hide the back and cancel buttons
   GetDlgItem $R1 $hwndparent 1
-  SendMessage $R1 ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
+  SendMessage $R1 ${WM_SETTEXT} 0 "STR:&Finish"
 
   GetDlgItem $R2 $hwndparent 2
   ShowWindow $R2 0
