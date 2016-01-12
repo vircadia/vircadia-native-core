@@ -785,13 +785,13 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ; Set the text on the dialog button to match finish
-  SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 0 "STR:&Finish"
+  SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 1 "STR:$(^CloseBtn)"
 
-  ${NSD_CreateLabel} 0 0 100% 14u "Setup Options"
+  ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
   Pop $OPTIONS_LABEL
 
   ; Set label to bold
-  CreateFont $R2 "MS Shell Dlg" 14 700
+  CreateFont $R2 "Arial" 12 700
   SendMessage $OPTIONS_LABEL ${WM_SETFONT} $R2 0
 
   ; Force label redraw
