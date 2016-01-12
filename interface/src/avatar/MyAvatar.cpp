@@ -1538,9 +1538,7 @@ void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
-
-    bool isHovering = _characterController.isHovering();
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering());
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
@@ -1634,6 +1632,10 @@ void MyAvatar::doUpdateBillboard() {
     _billboardValid = true;
 
     sendBillboardPacket();
+}
+
+bool MyAvatar::isHovering() const {
+    return _characterController.isHovering();
 }
 
 void MyAvatar::increaseSize() {
