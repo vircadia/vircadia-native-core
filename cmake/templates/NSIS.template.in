@@ -781,9 +781,6 @@ Function PostInstallOptionsPage
   GetDlgItem $R1 $hwndparent 1
   SendMessage $R1 ${WM_SETTEXT} 0 "STR:&Finish"
 
-  GetDlgItem $R2 $hwndparent 2
-  ShowWindow $R2 0
-
   GetDlgItem $R3 $hwndparent 3
   ShowWindow $R3 0
 
