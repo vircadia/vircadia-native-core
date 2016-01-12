@@ -839,6 +839,7 @@ FunctionEnd
 Var DESKTOP_CLIENT_STATE
 Var DESKTOP_SERVER_STATE
 Var SERVER_STARTUP_STATE
+VAR LAUNCH_NOW_STATE
 
 Function HandlePostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
@@ -866,6 +867,20 @@ Function HandlePostInstallOptions
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
     ${EndIf}
   ${EndIf}
+
+  ; check if we need to launch an application post-install
+  ${NSD_GetState} $LAUNCH_NOW_CHECKBOX $LAUNCH_NOW_STATE
+
+  ${If} $LAUNCH_NOW_STATE == ${BST_CHECKED}
+    ; both launches use the explorer trick in case the user has elevated permissions for the installer
+    ; it won't be possible to use this approach if either application should be launched with a command line param
+    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"'
+    ${Else}
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
+    ${EndIf}
+  ${EndIf}
+
 FunctionEnd
 
 ;--------------------------------
