@@ -260,37 +260,55 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     auto sceneKeyLight = sceneStage->getKeyLight();
     auto sceneLocation = sceneStage->getLocation();
     auto sceneTime = sceneStage->getTime();
-    auto backgroundMode = BACKGROUND_MODE_INHERIT; // Default
     
-    if (zone) {
-        backgroundMode = zone->getBackgroundMode();
+    if (!zone) {
+        _pendingSkyboxTexture = false;
+        _skyboxTexture.clear();
 
-        if (!_hasPreviousZone) {
-            _previousKeyLightColor = sceneKeyLight->getColor();
-            _previousKeyLightIntensity = sceneKeyLight->getIntensity();
-            _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
-            _previousKeyLightDirection = sceneKeyLight->getDirection();
-            _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
-            _previousStageLongitude = sceneLocation->getLongitude();
-            _previousStageLatitude = sceneLocation->getLatitude();
-            _previousStageAltitude = sceneLocation->getAltitude();
-            _previousStageHour = sceneTime->getHour();
-            _previousStageDay = sceneTime->getDay();
-            _hasPreviousZone = true;
+        if (_hasPreviousZone) {
+            sceneKeyLight->setColor(_previousKeyLightColor);
+            sceneKeyLight->setIntensity(_previousKeyLightIntensity);
+            sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
+            sceneKeyLight->setDirection(_previousKeyLightDirection);
+            sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
+            sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
+                                    _previousStageAltitude);
+            sceneTime->setHour(_previousStageHour);
+            sceneTime->setDay(_previousStageDay);
+            _hasPreviousZone = false;
         }
 
-        sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
-        sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
-        sceneKeyLight->setAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
-        sceneKeyLight->setDirection(zone->getKeyLightProperties().getDirection());
-        sceneStage->setSunModelEnable(zone->getStageProperties().getSunModelEnabled());
-        sceneStage->setLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
-                                zone->getStageProperties().getAltitude());
-        sceneTime->setHour(zone->getStageProperties().calculateHour());
-        sceneTime->setDay(zone->getStageProperties().calculateDay());
+        _viewState->endOverrideEnvironmentData();
+        skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+
+        return; // Early exit
     }
 
-    switch (backgroundMode) {
+    if (!_hasPreviousZone) {
+        _previousKeyLightColor = sceneKeyLight->getColor();
+        _previousKeyLightIntensity = sceneKeyLight->getIntensity();
+        _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
+        _previousKeyLightDirection = sceneKeyLight->getDirection();
+        _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
+        _previousStageLongitude = sceneLocation->getLongitude();
+        _previousStageLatitude = sceneLocation->getLatitude();
+        _previousStageAltitude = sceneLocation->getAltitude();
+        _previousStageHour = sceneTime->getHour();
+        _previousStageDay = sceneTime->getDay();
+        _hasPreviousZone = true;
+    }
+
+    sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
+    sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
+    sceneKeyLight->setAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
+    sceneKeyLight->setDirection(zone->getKeyLightProperties().getDirection());
+    sceneStage->setSunModelEnable(zone->getStageProperties().getSunModelEnabled());
+    sceneStage->setLocation(zone->getStageProperties().getLongitude(), zone->getStageProperties().getLatitude(),
+                            zone->getStageProperties().getAltitude());
+    sceneTime->setHour(zone->getStageProperties().calculateHour());
+    sceneTime->setDay(zone->getStageProperties().calculateDay());
+
+    switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_ATMOSPHERE: {
             EnvironmentData data = zone->getEnvironmentData();
             glm::vec3 keyLightDirection = sceneKeyLight->getDirection();
@@ -348,18 +366,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             break;
         }
         case BACKGROUND_MODE_INHERIT:
-            if (_hasPreviousZone) {
-                sceneKeyLight->setColor(_previousKeyLightColor);
-                sceneKeyLight->setIntensity(_previousKeyLightIntensity);
-                sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
-                sceneKeyLight->setDirection(_previousKeyLightDirection);
-                sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
-                sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
-                                        _previousStageAltitude);
-                sceneTime->setHour(_previousStageHour);
-                sceneTime->setDay(_previousStageDay);
-                _hasPreviousZone = false;
-            }
             _viewState->endOverrideEnvironmentData();
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
             _pendingSkyboxTexture = false;
