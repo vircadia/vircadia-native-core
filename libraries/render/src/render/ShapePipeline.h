@@ -204,12 +204,18 @@ public:
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
+    using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&)>;
+
+    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
+        pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
+
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
 
-    ShapePipeline() : ShapePipeline(nullptr, nullptr) {}
-    ShapePipeline(gpu::PipelinePointer pipeline, std::shared_ptr<Locations> locations) :
-        pipeline(pipeline), locations(locations) {}
+protected:
+    friend class ShapePlumber;
+
+    BatchSetter batchSetter;
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
@@ -223,21 +229,18 @@ public:
     using Slot = Pipeline::Slot;
     using Locations = Pipeline::Locations;
     using LocationsPointer = Pipeline::LocationsPointer;
-    using StateSetter = std::function<void(Key, gpu::State&)>;
-    using BatchSetter = std::function<void(gpu::Batch&, PipelinePointer)>;
+    using BatchSetter = Pipeline::BatchSetter;
 
-    ShapePlumber();
-    explicit ShapePlumber(BatchSetter batchSetter);
+    void addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
+        BatchSetter batchSetter = nullptr);
+    void addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
+        BatchSetter batchSetter = nullptr);
 
-    void addPipeline(const Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
-    void addPipeline(const Filter& filter, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader);
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
 protected:
-    void addPipelineHelper(const Filter& filter, Key key, int bit, gpu::ShaderPointer pipeline, LocationsPointer locations);
+    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
     PipelineMap _pipelineMap;
-    StateSetter _stateSetter;
-    BatchSetter _batchSetter;
 };
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 

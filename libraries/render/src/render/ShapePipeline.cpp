@@ -22,54 +22,29 @@ ShapeKey::Filter::Builder::Builder() {
     _mask.set(INVALID);
 }
 
-void defaultStateSetter(ShapeKey key, gpu::State& state) {
-    // Cull backface
-    state.setCullMode(gpu::State::CULL_BACK);
-
-    // Z test depends on transparency
-    state.setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
-
-    // Blend if transparent
-    state.setBlendFunction(key.isTranslucent(),
-        // For transparency, keep the highlight intensity
-        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-    // Add a wireframe version
-    if (!key.isWireFrame()) {
-        state.setFillMode(gpu::State::FILL_LINE);
-    }
-}
-
-void defaultBatchSetter(gpu::Batch& batch, ShapePipelinePointer pipeline) {
-}
-
-ShapePlumber::ShapePlumber() : _stateSetter{ defaultStateSetter }, _batchSetter{ defaultBatchSetter } {}
-ShapePlumber::ShapePlumber(BatchSetter batchSetter) : _stateSetter{ defaultStateSetter }, _batchSetter{ batchSetter } {}
-
-void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, gpu::ShaderPointer program, LocationsPointer locations) {
-    // Iterate over all keys, toggling only bits set as significant in filter._mask
+void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) {
+    // Iterate over all keys
     if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {
-        addPipelineHelper(filter, key, ++bit, program, locations);
+        ++bit;
+        addPipelineHelper(filter, key, bit, pipeline);
         if (filter._mask[bit]) {
+            // Toggle bits set as significant in filter._mask 
             key._flags.flip(bit);
-            addPipelineHelper(filter, key, ++bit, program, locations);
+            addPipelineHelper(filter, key, bit, pipeline);
         }
     } else {
-        auto state = std::make_shared<gpu::State>();
-        _stateSetter(key, *state);
-    
         // Add the brand new pipeline and cache its location in the lib
-        auto pipeline = gpu::Pipeline::create(program, state);
-        _pipelineMap.insert(PipelineMap::value_type(key, std::make_shared<Pipeline>(pipeline, locations)));
+        _pipelineMap.insert(PipelineMap::value_type(key, pipeline));
     }
 }
 
-void ShapePlumber::addPipeline(const Key& key, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
-    addPipeline(Filter{key}, vertexShader, pixelShader);
+void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
+        BatchSetter batchSetter) {
+    addPipeline(Filter{key}, program, state, batchSetter);
 }
 
-void ShapePlumber::addPipeline(const Filter& filter, gpu::ShaderPointer& vertexShader, gpu::ShaderPointer& pixelShader) {
+void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
+        BatchSetter batchSetter) {
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
@@ -80,7 +55,6 @@ void ShapePlumber::addPipeline(const Filter& filter, gpu::ShaderPointer& vertexS
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::LIGHT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalFittingMap"), Slot::NORMAL_FITTING_MAP));
 
-    gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
     gpu::Shader::makeProgram(*program, slotBindings);
 
     auto locations = std::make_shared<Locations>();
@@ -96,7 +70,9 @@ void ShapePlumber::addPipeline(const Filter& filter, gpu::ShaderPointer& vertexS
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
 
     ShapeKey key{filter._flags};
-    addPipelineHelper(filter, key, 0, program, locations);
+    auto gpuPipeline = gpu::Pipeline::create(program, state);
+    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter);
+    addPipelineHelper(filter, key, 0, shapePipeline);
 }
 
 const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Key& key) const {
@@ -114,7 +90,9 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     PipelinePointer shapePipeline(pipelineIterator->second);
     auto& batch = args->_batch;
-    _batchSetter(*batch, shapePipeline);
+
+    // Run the pipeline's BatchSetter on the passed in batch
+    shapePipeline->batchSetter(*shapePipeline, *batch);
 
     // Setup the one pipeline (to rule them all)
     batch->setPipeline(shapePipeline->pipeline);
