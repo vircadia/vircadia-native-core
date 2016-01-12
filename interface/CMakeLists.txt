@@ -267,4 +267,3 @@ if (WIN32)
 endif()
 
 package_libraries_for_deployment()
-consolidate_installer_components()
