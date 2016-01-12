@@ -61,7 +61,6 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
-    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
     reloadLocalFiles();
     reloadRemoteFiles();
