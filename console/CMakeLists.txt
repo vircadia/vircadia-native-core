@@ -35,6 +35,10 @@ elseif (WIN32)
     DESTINATION ${CONSOLE_INSTALL_DIR}
     COMPONENT ${SERVER_COMPONENT}
   )
+
+  # sign the copied server console executable after install
+  set(EXECUTABLE_NAME ${CONSOLE_EXEC_NAME})
+  optional_win_executable_signing()
 endif()
 
 if (NOT PR_BUILD AND NOT PRODUCTION_BUILD)

@@ -20,9 +20,13 @@ macro(optional_win_executable_signing)
           message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
         endif ()
 
+        if (NOT EXECUTABLE_NAME)
+          set(EXECUTABLE_NAME $<TARGET_FILE_NAME:${TARGET_NAME}>)
+        endif ()
+
         # setup the post install command to sign the executable
         set(SIGN_COMMAND "${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE} /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\
-          /td SHA256 \${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:${TARGET_NAME}>"
+          /td SHA256 \${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_NAME}"
         )
 
         install(CODE "execute_process(COMMAND ${SIGN_COMMAND})" COMPONENT ${EXECUTABLE_COMPONENT})
