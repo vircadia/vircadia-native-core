@@ -827,6 +827,7 @@ FunctionEnd
 
 Var DESKTOP_CLIENT_STATE
 Var DESKTOP_SERVER_STATE
+Var SERVER_STARTUP_STATE
 
 Function HandlePostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
