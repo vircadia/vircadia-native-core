@@ -448,8 +448,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
 
-    _runningScriptsWidget = new RunningScriptsWidget(_window);
-
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
     nodeThread->setObjectName("NodeList Thread");
