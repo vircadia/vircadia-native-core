@@ -564,7 +564,6 @@ FunctionEnd
 
   !insertmacro MUI_PAGE_INSTFILES
   Page custom PostInstallOptionsPage
-  !insertmacro MUI_PAGE_FINISH
 
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
