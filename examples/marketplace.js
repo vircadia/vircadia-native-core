@@ -1,9 +1,9 @@
 //
-//  directory.js
+//  marketplace.js
 //  examples
 //
-//  Created by David Rowe on 8 Jun 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Eric Levin on 8 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,9 +16,9 @@ Script.include([
 HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 
-var DIRECTORY_WINDOW_URL = "https://metaverse.highfidelity.com/directory";
-var directoryWindow = new OverlayWebWindow({
-    title: 'directory',
+var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
+var marketplaceWindow = new OverlayWebWindow({
+    title: 'Marketplace',
     source: "about:blank",
     width: 900,
     height: 700,
@@ -29,49 +29,54 @@ var toolHeight = 50;
 var toolWidth = 50;
 
 
-function showDirectory() {
-    directoryWindow.setURL(DIRECTORY_WINDOW_URL);
-    directoryWindow.setVisible(true);
+function showMarketplace(marketplaceID) {
+    var url = MARKETPLACE_URL;
+    if (marketplaceID) {
+        url = url + "/items/" + marketplaceID;
+    }
+    print("setting marketplace URL to " + url);
+    marketplaceWindow.setURL(url);
+    marketplaceWindow.setVisible(true);
 }
 
-function hideDirectory() {
-    directoryWindow.setVisible(false);
-    directoryWindow.setURL("about:blank");
+function hideMarketplace() {
+    marketplaceWindow.setVisible(false);
+    marketplaceWindow.setURL("about:blank");
 }
 
-function toggleDirectory() {
-    if (directoryWindow.visible) {
-        hideDirectory();
+function toggleMarketplace() {
+    if (marketplaceWindow.visible) {
+        hideMarketplace();
     } else {
-        showDirectory();
+        showMarketplace();
     }
 }
 
 var toolBar = (function() {
     var that = {},
         toolBar,
-        browseDirectoryButton;
+        browseMarketplaceButton;
 
     function initialize() {
         ToolBar.SPACING = 16;
-        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.marketplace.toolbar", function(windowDimensions, toolbar) {
             return {
                 x: windowDimensions.x - 8 - toolbar.width,
-                y: 50
+                y: 135
             };
         });
-        browseDirectoryButton = toolBar.addTool({
-            imageURL: toolIconUrl + "directory.svg",
+        browseMarketplaceButton = toolBar.addTool({
+            imageURL: toolIconUrl + "marketplace.svg",
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
             visible: true,
         });
 
-        toolBar.showTool(browseDirectoryButton, true);
+        toolBar.showTool(browseMarketplaceButton, true);
     }
 
-    var browseDirectoryButtonDown = false;
+    var browseMarketplaceButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
@@ -89,8 +94,8 @@ var toolBar = (function() {
 
 
 
-        if (browseDirectoryButton === toolBar.clicked(clickedOverlay)) {
-            toggleDirectory();
+        if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
+            toggleMarketplace();
             return true;
         }
 
@@ -101,7 +106,7 @@ var toolBar = (function() {
         var handled = false;
 
 
-        if (browseDirectoryButtonDown) {
+        if (browseMarketplaceButtonDown) {
             var clickedOverlay = Overlays.getOverlayAtPoint({
                 x: event.x,
                 y: event.y
@@ -109,7 +114,7 @@ var toolBar = (function() {
         }
 
         newModelButtonDown = false;
-        browseDirectoryButtonDown = false;
+        browseMarketplaceButtonDown = false;
 
         return handled;
     }

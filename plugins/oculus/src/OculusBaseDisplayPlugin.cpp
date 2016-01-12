@@ -78,7 +78,6 @@ void OculusBaseDisplayPlugin::deinit() {
 }
 
 void OculusBaseDisplayPlugin::activate() {
-    WindowOpenGLDisplayPlugin::activate();
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
         qFatal("Could not init OVR");
     }
@@ -86,6 +85,8 @@ void OculusBaseDisplayPlugin::activate() {
     if (!OVR_SUCCESS(ovr_Create(&_session, &_luid))) {
         qFatal("Failed to acquire HMD");
     }
+
+    WindowOpenGLDisplayPlugin::activate();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 

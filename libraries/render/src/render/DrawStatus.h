@@ -38,7 +38,7 @@ namespace render {
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 
-        typedef Job::ModelI<DrawStatus, ItemIDsBounds> JobModel;
+        using JobModel = Task::Job::ModelI<DrawStatus, ItemIDsBounds>;
 
         const gpu::PipelinePointer getDrawItemBoundsPipeline();
         const gpu::PipelinePointer getDrawItemStatusPipeline();

@@ -12,8 +12,7 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "render/DrawTask.h"
-#include "render/ShapePipeline.h"
+#include "render/Engine.h"
 
 #include "gpu/Pipeline.h"
 
@@ -23,14 +22,14 @@ class SetupDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<SetupDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<SetupDeferred>;
 };
 
 class PrepareDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<PrepareDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<PrepareDeferred>;
 };
 
 
@@ -38,7 +37,7 @@ class RenderDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<RenderDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<RenderDeferred>;
 };
 
 class ToneMappingDeferred {
@@ -47,7 +46,7 @@ public:
 
     ToneMappingEffect _toneMappingEffect;
 
-    typedef render::Job::Model<ToneMappingDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<ToneMappingDeferred>;
 };
 
 class DrawOpaqueDeferred {
@@ -55,7 +54,7 @@ public:
     DrawOpaqueDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
-    typedef render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds> JobModel;
+    using JobModel = render::Task::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds>;
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -66,7 +65,7 @@ public:
     DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
-    typedef render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds> JobModel;
+    using JobModel = render::Task::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds>;
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -78,7 +77,7 @@ public:
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<DrawStencilDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<DrawStencilDeferred>;
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
@@ -88,7 +87,7 @@ class DrawBackgroundDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<DrawBackgroundDeferred> JobModel;
+    using JobModel = render::Task::Job::Model<DrawBackgroundDeferred>;
 };
 
 class DrawOverlay3D {
@@ -98,7 +97,7 @@ public:
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<DrawOverlay3D> JobModel;
+    using JobModel = render::Task::Job::Model<DrawOverlay3D>;
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
@@ -109,17 +108,14 @@ class Blit {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    typedef render::Job::Model<Blit> JobModel;
+    using JobModel = render::Task::Job::Model<Blit>;
 };
 
 class RenderDeferredTask : public render::Task {
 public:
 
     RenderDeferredTask();
-    ~RenderDeferredTask();
 
-    render::Jobs _jobs;
-    
     int _drawDebugDeferredBufferIndex = -1;
     int _drawStatusJobIndex = -1;
     int _drawHitEffectJobIndex = -1;

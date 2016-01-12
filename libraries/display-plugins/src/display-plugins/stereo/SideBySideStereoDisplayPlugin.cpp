@@ -11,10 +11,6 @@
 
 const QString SideBySideStereoDisplayPlugin::NAME("3D TV - Side by Side Stereo");
 
-const QString & SideBySideStereoDisplayPlugin::getName() const {
-    return NAME;
-}
-
 SideBySideStereoDisplayPlugin::SideBySideStereoDisplayPlugin() {
 }
 

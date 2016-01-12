@@ -22,7 +22,7 @@ public:
     AmbientOcclusion();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<AmbientOcclusion> JobModel;
+    using JobModel = render::Task::Job::Model<AmbientOcclusion>;
 
     const gpu::PipelinePointer& getOcclusionPipeline();
     const gpu::PipelinePointer& getHBlurPipeline();

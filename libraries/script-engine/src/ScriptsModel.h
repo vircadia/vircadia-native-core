@@ -92,6 +92,7 @@ protected:
     void rebuildTree();
 
 private:
+    friend class ScriptEngines;
     bool _loadingScripts;
     QDir _localDirectory;
     QFileSystemWatcher _fsWatcher;

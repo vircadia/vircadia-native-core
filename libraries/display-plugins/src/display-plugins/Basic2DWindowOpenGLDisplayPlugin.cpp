@@ -15,13 +15,9 @@
 
 #include <plugins/PluginContainer.h>
 
-const QString Basic2DWindowOpenGLDisplayPlugin::NAME("2D Display");
+const QString Basic2DWindowOpenGLDisplayPlugin::NAME("Desktop");
 
 static const QString FULLSCREEN = "Fullscreen";
-
-const QString& Basic2DWindowOpenGLDisplayPlugin::getName() const {
-    return NAME;
-}
 
 void Basic2DWindowOpenGLDisplayPlugin::activate() {
     WindowOpenGLDisplayPlugin::activate();
