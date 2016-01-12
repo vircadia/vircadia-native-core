@@ -632,6 +632,7 @@ FunctionEnd
   ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
 
   ReserveFile "NSIS.InstallOptions.ini"
+  ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
   !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
 
 ;--------------------------------
@@ -765,7 +766,7 @@ Function InstallOptionsPage
 FunctionEnd
 
 Function PostInstallOptionsPage
-  ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
+  !insertmacro MUI_HEADER_TEXT "Post-Install Options"
   !insertmacro MUI_INSTALLOPTIONS_EXTRACT "@POST_INSTALL_OPTIONS_PATH@"
   !insertmacro MUI_INSTALLOPTIONS_DISPLAY "@POST_INSTALL_OPTIONS_PATH@"
 FunctionEnd
