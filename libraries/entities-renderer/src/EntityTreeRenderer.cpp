@@ -24,7 +24,6 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 #include <procedural/ProceduralSkybox.h>
-#include <TextureCache.h>
 
 #include "EntityTreeRenderer.h"
 
@@ -142,7 +141,7 @@ void EntityTreeRenderer::update() {
         // even if we haven't changed positions, if we previously attempted to set the skybox, but
         // have a pending download of the skybox texture, then we should attempt to reapply to 
         // get the correct texture.
-        if (_pendingSkyboxTextureDownload) {
+        if (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -255,26 +254,31 @@ void EntityTreeRenderer::forceRecheckEntities() {
 
 
 void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
-    QSharedPointer<SceneScriptingInterface> scene = DependencyManager::get<SceneScriptingInterface>();
+    auto scene = DependencyManager::get<SceneScriptingInterface>();
     auto sceneStage = scene->getStage();
+    auto skyStage = scene->getSkyStage();
     auto sceneKeyLight = sceneStage->getKeyLight();
     auto sceneLocation = sceneStage->getLocation();
     auto sceneTime = sceneStage->getTime();
+    auto backgroundMode = BACKGROUND_MODE_INHERIT; // Default
 
+    if (!_hasPreviousZone) {
+        _previousKeyLightColor = sceneKeyLight->getColor();
+        _previousKeyLightIntensity = sceneKeyLight->getIntensity();
+        _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
+        _previousKeyLightDirection = sceneKeyLight->getDirection();
+        _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
+        _previousStageLongitude = sceneLocation->getLongitude();
+        _previousStageLatitude = sceneLocation->getLatitude();
+        _previousStageAltitude = sceneLocation->getAltitude();
+        _previousStageHour = sceneTime->getHour();
+        _previousStageDay = sceneTime->getDay();
+        _hasPreviousZone = true;
+    }
+    
     if (zone) {
-        if (!_hasPreviousZone) {
-            _previousKeyLightColor = sceneKeyLight->getColor();
-            _previousKeyLightIntensity = sceneKeyLight->getIntensity();
-            _previousKeyLightAmbientIntensity = sceneKeyLight->getAmbientIntensity();
-            _previousKeyLightDirection = sceneKeyLight->getDirection();
-            _previousStageSunModelEnabled = sceneStage->isSunModelEnabled();
-            _previousStageLongitude = sceneLocation->getLongitude();
-            _previousStageLatitude = sceneLocation->getLatitude();
-            _previousStageAltitude = sceneLocation->getAltitude();
-            _previousStageHour = sceneTime->getHour();
-            _previousStageDay = sceneTime->getDay();
-            _hasPreviousZone = true;
-        }
+        backgroundMode = zone->getBackgroundMode();
+
         sceneKeyLight->setColor(ColorUtils::toVec3(zone->getKeyLightProperties().getColor()));
         sceneKeyLight->setIntensity(zone->getKeyLightProperties().getIntensity());
         sceneKeyLight->setAmbientIntensity(zone->getKeyLightProperties().getAmbientIntensity());
@@ -284,85 +288,89 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                                 zone->getStageProperties().getAltitude());
         sceneTime->setHour(zone->getStageProperties().calculateHour());
         sceneTime->setDay(zone->getStageProperties().calculateDay());
-        
-        if (zone->getBackgroundMode() == BACKGROUND_MODE_ATMOSPHERE) {
+    }
+
+    switch (backgroundMode) {
+        case BACKGROUND_MODE_ATMOSPHERE: {
             EnvironmentData data = zone->getEnvironmentData();
             glm::vec3 keyLightDirection = sceneKeyLight->getDirection();
             glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
-            
+
             // NOTE: is this right? It seems like the "sun" should be based on the center of the
             //       atmosphere, not where the camera is.
             glm::vec3 keyLightLocation = _viewState->getAvatarPosition()
             + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
-            
+
             data.setSunLocation(keyLightLocation);
-            
+
             const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
             float sunBrightness = sceneKeyLight->getIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
             data.setSunBrightness(sunBrightness);
-            
+
             _viewState->overrideEnvironmentData(data);
-            scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);
-            _pendingSkyboxTextureDownload = false;
-
-        } else {
-            _viewState->endOverrideEnvironmentData();
-            auto stage = scene->getSkyStage();
-            if (zone->getBackgroundMode() == BACKGROUND_MODE_SKYBOX) {
-                auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(stage->getSkybox());
-                skybox->setColor(zone->getSkyboxProperties().getColorVec3());
-                static QString userData;
-                if (userData != zone->getUserData()) {
-                    userData = zone->getUserData();
-                    ProceduralPointer procedural(new Procedural(userData));
-                    if (procedural->_enabled) {
-                        skybox->setProcedural(procedural);
-                    } else {
-                        skybox->setProcedural(ProceduralPointer());
-                    }
-                }
-                if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                    skybox->setCubemap(gpu::TexturePointer());
-                    _pendingSkyboxTextureDownload = false;
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
+            _pendingSkyboxTexture = false;
+            _skyboxTexture.clear();
+            break;
+        }
+        case BACKGROUND_MODE_SKYBOX: {
+            auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
+            skybox->setColor(zone->getSkyboxProperties().getColorVec3());
+            static QString userData;
+            if (userData != zone->getUserData()) {
+                userData = zone->getUserData();
+                auto procedural = std::make_shared<Procedural>(userData);
+                if (procedural->_enabled) {
+                    skybox->setProcedural(procedural);
                 } else {
-                    // Update the Texture of the Skybox with the one pointed by this zone
-                    auto cubeMap = DependencyManager::get<TextureCache>()->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
-
-                    if (cubeMap->getGPUTexture()) {
-                        skybox->setCubemap(cubeMap->getGPUTexture());
-                        _pendingSkyboxTextureDownload = false;
-                    } else {
-                        _pendingSkyboxTextureDownload = true;
-                    }
+                    skybox->setProcedural(ProceduralPointer());
                 }
-                stage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
-            } else {
-                stage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
-                _pendingSkyboxTextureDownload = false;
             }
+            if (zone->getSkyboxProperties().getURL().isEmpty()) {
+                skybox->setCubemap(gpu::TexturePointer());
+                _pendingSkyboxTexture = false;
+                _skyboxTexture.clear();
+            } else {
+                // Update the Texture of the Skybox with the one pointed by this zone
+                auto textureCache = DependencyManager::get<TextureCache>();
+                _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+
+                if (_skyboxTexture->getGPUTexture()) {
+                    skybox->setCubemap(_skyboxTexture->getGPUTexture());
+                    _pendingSkyboxTexture = false;
+                } else {
+                    _pendingSkyboxTexture = true;
+                }
+            }
+
+            _viewState->endOverrideEnvironmentData();
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+            break;
         }
-    } else {
-        _pendingSkyboxTextureDownload = false;
-        if (_hasPreviousZone) {
-            sceneKeyLight->setColor(_previousKeyLightColor);
-            sceneKeyLight->setIntensity(_previousKeyLightIntensity);
-            sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
-            sceneKeyLight->setDirection(_previousKeyLightDirection);
-            sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
-            sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
-                                    _previousStageAltitude);
-            sceneTime->setHour(_previousStageHour);
-            sceneTime->setDay(_previousStageDay);
-            _hasPreviousZone = false;
-        }
-        _viewState->endOverrideEnvironmentData();
-        scene->getSkyStage()->setBackgroundMode(model::SunSkyStage::SKY_DOME);  // let the application atmosphere through
+        case BACKGROUND_MODE_INHERIT:
+            if (_hasPreviousZone) {
+                sceneKeyLight->setColor(_previousKeyLightColor);
+                sceneKeyLight->setIntensity(_previousKeyLightIntensity);
+                sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
+                sceneKeyLight->setDirection(_previousKeyLightDirection);
+                sceneStage->setSunModelEnable(_previousStageSunModelEnabled);
+                sceneStage->setLocation(_previousStageLongitude, _previousStageLatitude,
+                                        _previousStageAltitude);
+                sceneTime->setHour(_previousStageHour);
+                sceneTime->setDay(_previousStageDay);
+                _hasPreviousZone = false;
+            }
+            _viewState->endOverrideEnvironmentData();
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+            _pendingSkyboxTexture = false;
+            _skyboxTexture.clear();
+            break;
     }
 }
 
 const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
     const FBXGeometry* result = NULL;
-    
+
     if (entityItem->getType() == EntityTypes::Model) {
         std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
                                                         std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
