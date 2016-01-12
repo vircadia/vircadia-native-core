@@ -15,10 +15,9 @@
 #include <gpu/Batch.h>
 
 #include <render/Scene.h>
+#include <render/ShapePipeline.h>
 
 #include <model/Geometry.h>
-
-#include "ModelRender.h"
 
 class Model;
 
@@ -40,13 +39,14 @@ public:
     // Render Item interface
     virtual render::ItemKey getKey() const;
     virtual render::Item::Bound getBound() const;
+    virtual render::ShapeKey getShapeKey() const; // shape interface
     virtual void render(RenderArgs* args) const;
 
     // ModelMeshPartPayload functions to perform render
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
-    virtual void bindMaterial(gpu::Batch& batch, const ModelRender::Locations* locations) const;
-    virtual void bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const;
+    virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
+    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
 
     // Payload resource cached values
     model::MeshPointer _drawMesh;
@@ -67,9 +67,9 @@ public:
 namespace render {
     template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload);
     template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload);
+    template <> const ShapeKey shapeGetShapeKey(const MeshPartPayload::Pointer& payload);
     template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args);
 }
-
 
 class ModelMeshPartPayload : public MeshPartPayload {
 public:
@@ -83,11 +83,12 @@ public:
     // Render Item interface
     render::ItemKey getKey() const override;
     render::Item::Bound getBound() const override;
+    render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) const override;
-    
+
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
-    void bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const override;
+    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const override;
 
 
     void initCache();
