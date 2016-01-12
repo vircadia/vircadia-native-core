@@ -768,6 +768,9 @@ Function InstallOptionsPage
 
 FunctionEnd
 
+; Make sure nsDialogs is included before we use it
+!include "nsdialogs.nsh"
+
 Function PostInstallOptionsPage
   nsDialogs::Create 1018
   Pop $POST_INSTALL_DIALOG
