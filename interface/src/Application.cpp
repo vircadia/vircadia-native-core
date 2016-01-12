@@ -4591,7 +4591,7 @@ void Application::loadDialog() {
     QString fileNameString = QFileDialog::getOpenFileName(
         _glWidget, tr("Open Script"), "", tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
-        DependencyManager::get<ScriptEngines>()->loadScript(fileNameString);
+        DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
     }
 }
 
