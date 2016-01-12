@@ -562,6 +562,7 @@ FunctionEnd
   @CPACK_NSIS_PAGE_COMPONENTS@
 
   !insertmacro MUI_PAGE_INSTFILES
+  Page custom PostInstallOptionsPage
   !insertmacro MUI_PAGE_FINISH
 
   !insertmacro MUI_UNPAGE_CONFIRM
@@ -761,6 +762,12 @@ Function InstallOptionsPage
   !insertmacro MUI_HEADER_TEXT "Install Options" "Choose options for installing @CPACK_NSIS_PACKAGE_NAME@"
   !insertmacro MUI_INSTALLOPTIONS_DISPLAY "NSIS.InstallOptions.ini"
 
+FunctionEnd
+
+Function PostInstallOptionsPage
+  ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
+  !insertmacro MUI_INSTALLOPTIONS_EXTRACT "@POST_INSTALL_OPTIONS_PATH@"
+  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "@POST_INSTALL_OPTIONS_PATH@"
 FunctionEnd
 
 ;--------------------------------
