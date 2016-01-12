@@ -20,33 +20,6 @@ Window {
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
 
-
-    Component {
-        id: fileDialogCreator
-        OriginalDialogs.FileDialog {
-            id: fileDialog
-            modality: Qt.ApplicationModal
-            title: "Please choose a file"
-            nameFilters: [ "JavaScript files (*.js)" ]
-            folder: "file:///" + scripts.previousScriptLocation
-            onAccepted: {
-                var chosen = fileDialog.fileUrl;
-                console.log("You chose: " + chosen);
-                var chosenFolder = fileDialog.folder.toString();
-                // remove prefixed "file:///"
-                chosenFolder = chosenFolder.replace(/^(file:\/{3})/,"");
-                // unescape html codes like '%23' for '#'
-                var cleanPath = decodeURIComponent(chosenFolder);
-                scripts.previousScriptLocation = cleanPath;
-                scripts.loadOneScript(chosen);
-            }
-            onRejected: {
-                console.log("Canceled")
-            }
-            Component.onCompleted: visible = true
-        }
-    }
-
     Settings {
         category: "Overlay.RunningScripts"
         property alias x: root.x
@@ -214,23 +187,15 @@ Window {
                 anchors.right: parent.right
                 headerVisible: false
                 focus: true
-                onClicked: {
-                    console.log("treeview clicked " + scriptsModel.data(index, 0x100))
-                }
-
-                onDoubleClicked: {
-                    console.log("treeview double clicked"  + scriptsModel.data(index, 0x100))
-                    isExpanded(index) ? collapse(index) : expand(index)
-                }
-
+                // FIXME doesn't work?
+                onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
+                // FIXME not triggered by double click?
                 onActivated: {
-                    console.log("treeview activated!" + index)
                     var path = scriptsModel.data(index, 0x100)
                     if (path) {
                         loadScript(path)
                     }
                 }
-
                 model: scriptsModel
                 TableViewColumn { title: "Name"; role: "display"; }
             }
