@@ -786,33 +786,35 @@ Function PostInstallOptionsPage
   ; Set the text on the dialog button to match finish
   SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
 
-  StrCpy $CURRENT_OFFSET "0"
+  ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
+
+  StrCpy $CURRENT_OFFSET "15u"
 
   ${If} ${SectionIsSelected} ${client}
-    ${NSD_CreateCheckbox} 0 0 100% 10u "&Create a desktop shortcut for High Fidelity"
+    ${NSD_CreateCheckbox} 0 15u 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
     Pop $DESKTOP_CLIENT_CHECKBOX
-    StrCpy $CURRENT_OFFSET "15u"
+    StrCpy $CURRENT_OFFSET "30u"
     ${NSD_SetState} $DESKTOP_CLIENT_CHECKBOX ${BST_CHECKED}
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${server}
-    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity Server Console"
+    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
     Pop $DESKTOP_SERVER_CHECKBOX
-
-    ${If} $CURRENT_OFFSET == "0"
-      StrCpy $CURRENT_OFFSET "15u"
-    ${Else}
-      StrCpy $CURRENT_OFFSET "30u"
-    ${EndIf}
-
-    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Server Console on startup"
-    Pop $SERVER_STARTUP_CHECKBOX
-    ${NSD_SetState} $SERVER_STARTUP_CHECKBOX ${BST_CHECKED}
 
     ${If} $CURRENT_OFFSET == "15u"
       StrCpy $CURRENT_OFFSET "30u"
     ${Else}
       StrCpy $CURRENT_OFFSET "45u"
+    ${EndIf}
+
+    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
+    Pop $SERVER_STARTUP_CHECKBOX
+    ${NSD_SetState} $SERVER_STARTUP_CHECKBOX ${BST_CHECKED}
+
+    ${If} $CURRENT_OFFSET == "30u"
+      StrCpy $CURRENT_OFFSET "45u"
+    ${Else}
+      StrCpy $CURRENT_OFFSET "60u"
     ${EndIf}
   ${EndIf}
 
