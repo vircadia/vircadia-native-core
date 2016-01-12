@@ -51,26 +51,36 @@ public:
 
 class DrawOpaqueDeferred {
 public:
+    DrawOpaqueDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     using JobModel = render::Task::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds>;
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawTransparentDeferred {
 public:
+    DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
     using JobModel = render::Task::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds>;
+
+protected:
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawStencilDeferred {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
     static const gpu::PipelinePointer& getOpaquePipeline();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = render::Task::Job::Model<DrawStencilDeferred>;
+
+protected:
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 };
 
 class DrawBackgroundDeferred {
@@ -81,13 +91,17 @@ public:
 };
 
 class DrawOverlay3D {
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
 public:
+    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     static const gpu::PipelinePointer& getOpaquePipeline();
-    
+
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = render::Task::Job::Model<DrawOverlay3D>;
+
+protected:
+    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class Blit {

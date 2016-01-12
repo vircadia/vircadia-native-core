@@ -46,10 +46,12 @@
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
 #include "WebSocketClass.h"
-
 #include "RecordingScriptingInterface.h"
+#include "ScriptEngines.h"
 
 #include "MIDIEvent.h"
+
+std::atomic<bool> ScriptEngine::_stoppingAllScripts { false };
 
 static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
 
@@ -132,9 +134,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _fileNameString(fileNameString),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
-    _allScriptsMutex.lock();
-    _allKnownScriptEngines.insert(this);
-    _allScriptsMutex.unlock();
+    DependencyManager::get<ScriptEngines>()->addScriptEngine(this);
 
     connect(this, &QScriptEngine::signalHandlerException, this, [this](const QScriptValue& exception) {
         hadUncaughtExceptions(*this, _fileNameString);
@@ -144,14 +144,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
 
-    // If we're not already in the middle of stopping all scripts, then we should remove ourselves
-    // from the list of running scripts. We don't do this if we're in the process of stopping all scripts
-    // because that method removes scripts from its list as it iterates them
-    if (!_stoppingAllScripts) {
-        _allScriptsMutex.lock();
-        _allKnownScriptEngines.remove(this);
-        _allScriptsMutex.unlock();
-    }
+    DependencyManager::get<ScriptEngines>()->removeScriptEngine(this);
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
@@ -186,67 +179,6 @@ void ScriptEngine::runInThread() {
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
 }
-
-QSet<ScriptEngine*> ScriptEngine::_allKnownScriptEngines;
-QMutex ScriptEngine::_allScriptsMutex;
-std::atomic<bool> ScriptEngine::_stoppingAllScripts { false };
-
-void ScriptEngine::stopAllScripts(QObject* application) {
-    _allScriptsMutex.lock();
-    _stoppingAllScripts = true;
-
-    qCDebug(scriptengine) << "Stopping all scripts.... currently known scripts:" << _allKnownScriptEngines.size();
-
-    QMutableSetIterator<ScriptEngine*> i(_allKnownScriptEngines);
-    while (i.hasNext()) {
-        ScriptEngine* scriptEngine = i.next();
-
-        QString scriptName = scriptEngine->getFilename();
-
-        // NOTE: typically all script engines are running. But there's at least one known exception to this, the
-        // "entities sandbox" which is only used to evaluate entities scripts to test their validity before using
-        // them. We don't need to stop scripts that aren't running.
-        if (scriptEngine->isRunning()) {
-
-            // If the script is running, but still evaluating then we need to wait for its evaluation step to
-            // complete. After that we can handle the stop process appropriately
-            if (scriptEngine->evaluatePending()) {
-                while (scriptEngine->evaluatePending()) {
-
-                    // This event loop allows any started, but not yet finished evaluate() calls to complete
-                    // we need to let these complete so that we can be guaranteed that the script engine isn't
-                    // in a partially setup state, which can confuse our shutdown unwinding.
-                    QEventLoop loop;
-                    QObject::connect(scriptEngine, &ScriptEngine::evaluationFinished, &loop, &QEventLoop::quit);
-                    loop.exec();
-                }
-            }
-
-            // We disconnect any script engine signals from the application because we don't want to do any
-            // extra stopScript/loadScript processing that the Application normally does when scripts start
-            // and stop. We can safely short circuit this because we know we're in the "quitting" process
-            scriptEngine->disconnect(application);
-
-            // Calling stop on the script engine will set it's internal _isFinished state to true, and result
-            // in the ScriptEngine gracefully ending it's run() method.
-            scriptEngine->stop();
-
-            // We need to wait for the engine to be done running before we proceed, because we don't
-            // want any of the scripts final "scriptEnding()" or pending "update()" methods from accessing
-            // any application state after we leave this stopAllScripts() method
-            qCDebug(scriptengine) << "waiting on script:" << scriptName;
-            scriptEngine->waitTillDoneRunning();
-            qCDebug(scriptengine) << "done waiting on script:" << scriptName;
-
-            // If the script is stopped, we can remove it from our set
-            i.remove();
-        }
-    }
-    _stoppingAllScripts = false;
-    _allScriptsMutex.unlock();
-    qCDebug(scriptengine) << "DONE Stopping all scripts....";
-}
-
 
 void ScriptEngine::waitTillDoneRunning() {
     // If the script never started running or finished running before we got here, we don't need to wait for it

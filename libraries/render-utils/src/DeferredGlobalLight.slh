@@ -70,7 +70,7 @@ uniform SphericalHarmonics ambientSphere;
 <@include model/Light.slh@>
 
 <@func declareEvalAmbientGlobalColor()@>
-vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
 
     // Need the light now
     Light light = getLight();
@@ -93,7 +93,7 @@ vec3 evalAmbienGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
 
 <$declareSphericalHarmonics()$>
 
-vec3 evalAmbienSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
     

@@ -16,6 +16,7 @@
 #include "ScriptEditorWidget.h"
 
 #include <QGridLayout>
+#include <QtCore/QSignalMapper>
 #include <QFrame>
 #include <QLayoutItem>
 #include <QMainWindow>
@@ -27,6 +28,7 @@
 #include <QTimer>
 #include <QWidget>
 
+#include <ScriptEngines.h>
 #include "Application.h"
 #include "PathUtils.h"
 
@@ -85,11 +87,12 @@ void ScriptEditorWindow::loadScriptMenu(const QString& scriptName) {
 }
 
 void ScriptEditorWindow::loadScriptClicked() {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QString scriptName = QFileDialog::getOpenFileName(this, tr("Interface"),
-                                                      qApp->getPreviousScriptLocation(),
+                                                      scriptEngines->getPreviousScriptLocation(),
                                                       tr("JavaScript Files (*.js)"));
     if (!scriptName.isEmpty()) {
-        qApp->setPreviousScriptLocation(scriptName);
+        scriptEngines->setPreviousScriptLocation(scriptName);
         addScriptEditorWidget("loading...")->loadFile(scriptName);
         updateButtons();
     }
@@ -97,7 +100,7 @@ void ScriptEditorWindow::loadScriptClicked() {
 
 void ScriptEditorWindow::loadMenuAboutToShow() {
     _loadMenu->clear();
-    QStringList runningScripts = qApp->getRunningScripts();
+    QStringList runningScripts = DependencyManager::get<ScriptEngines>()->getRunningScripts();;
     if (runningScripts.count() > 0) {
         QSignalMapper* signalMapper = new QSignalMapper(this);
         foreach (const QString& runningScript, runningScripts) {
