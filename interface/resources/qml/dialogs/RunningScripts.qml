@@ -47,8 +47,6 @@ Window {
         }
     }
 
-
-
     Settings {
         category: "Overlay.RunningScripts"
         property alias x: root.x
@@ -187,10 +185,13 @@ Window {
                 anchors.bottom: filterEdit.top
                 anchors.bottomMargin: 8
                 anchors.right: parent.right
-                Button { text: "from URL" }
+                Button {
+                    text: "from URL";
+                    onClicked: ApplicationInterface.loadScriptURLDialog();
+                }
                 Button {
                     text: "from Disk"
-                    onClicked: fileDialogCreator.createObject(root);
+                    onClicked: ApplicationInterface.loadDialog();
                 }
             }
 
@@ -207,7 +208,8 @@ Window {
             TreeView {
                 id: treeView
                 height: 128
-                anchors.bottom: parent.bottom
+                anchors.bottom: loadButton.top
+                anchors.bottomMargin: 8
                 anchors.left: parent.left
                 anchors.right: parent.right
                 headerVisible: false
@@ -231,6 +233,37 @@ Window {
 
                 model: scriptsModel
                 TableViewColumn { title: "Name"; role: "display"; }
+            }
+
+            TextField {
+                id: selectedScript
+                enabled: true
+                readOnly: true
+                anchors.left: parent.left
+                anchors.right: loadButton.left
+                anchors.rightMargin: 8
+                anchors.bottom: loadButton.bottom
+                anchors.top: loadButton.top
+                Connections {
+                    target: treeView
+                    onCurrentIndexChanged: {
+                        var path = scriptsModel.data(treeView.currentIndex, 0x100)
+                        if (path) {
+                            selectedScript.text = path
+                        } else {
+                            selectedScript.text = ""
+                        }
+
+                    }
+                }
+            }
+
+            Button {
+                id: loadButton
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                text: "Load"
+                enabled: selectedScript.text != ""
             }
         }
     }

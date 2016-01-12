@@ -245,8 +245,8 @@ public slots:
     bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
-    void loadDialog();
-    void loadScriptURLDialog();
+    Q_INVOKABLE void loadDialog();
+    Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
 
