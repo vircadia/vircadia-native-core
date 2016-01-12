@@ -198,9 +198,9 @@
                                                 "id": "rightHandOpen",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/open_variations.fbx",
-                                                    "startFrame": 95.0,
-                                                    "endFrame": 95.0,
+                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hand_variations.fbx",
+                                                    "startFrame": 17.0,
+                                                    "endFrame": 17.0,
                                                     "timeScale": 1.0,
                                                     "loopFlag": true
                                                 },
@@ -210,9 +210,9 @@
                                                 "id": "rightHandGrasp",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/grab/grab_right.fbx",
-                                                    "startFrame": 10.0,
-                                                    "endFrame": 10.0,
+                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hand_variations.fbx",
+                                                    "startFrame": 59.0,
+                                                    "endFrame": 59.0,
                                                     "timeScale": 1.0,
                                                     "loopFlag": true
                                                 },
@@ -234,9 +234,9 @@
                                                 "id": "rightHandFarGrasp",
                                                 "type": "clip",
                                                 "data": {
-                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/grab/force_grab_right.fbx",
-                                                    "startFrame": 12.0,
-                                                    "endFrame": 35.0,
+                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hand_variations.fbx",
+                                                    "startFrame": 49.0,
+                                                    "endFrame": 49.0,
                                                     "timeScale": 1.0,
                                                     "loopFlag": true
                                                 },
