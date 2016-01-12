@@ -149,7 +149,6 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
     if (_meshes.size() > 0) {
         auto textureCache = DependencyManager::get<TextureCache>();
         for (auto&& material : _materials) {
-            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
             if (material->diffuseTextureName == name) {
                 material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
             } else if (material->normalTextureName == name) {

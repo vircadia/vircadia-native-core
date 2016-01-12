@@ -3635,10 +3635,15 @@ public:
 render::ItemID BackgroundRenderData::_item = 0;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) { return ItemKey::Builder::background(); }
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+        return ItemKey::Builder::background();
+    }
 
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+        return Item::Bound();
+    }
+
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
         Q_ASSERT(args->_batch);
         gpu::Batch& batch = *args->_batch;
 
@@ -3646,20 +3651,18 @@ namespace render {
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto backgroundMode = skyStage->getBackgroundMode();
 
-        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
-            // this line intentionally left blank
-        } else {
-            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+        switch (backgroundMode) {
+            case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, *(args->_viewFrustum));
-                } else {
-                    // If no skybox texture is available, render the SKY_DOME while it loads
-                    backgroundMode = model::SunSkyStage::SKY_DOME;
+                    break;
                 }
+                // If no skybox texture is available, render the SKY_DOME while it loads
             }
-            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                // fall through to next case
+            case model::SunSkyStage::SKY_DOME:  {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -3725,6 +3728,11 @@ namespace render {
 
                 }
             }
+                break;
+            case model::SunSkyStage::NO_BACKGROUND:
+            default:
+                // this line intentionally left blank
+                break;
         }
     }
 }
