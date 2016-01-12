@@ -875,7 +875,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
     }
