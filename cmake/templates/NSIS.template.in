@@ -777,9 +777,15 @@ Var LAUNCH_NOW_CHECKBOX
 Var CURRENT_OFFSET
 
 Function PostInstallOptionsPage
-  ; Set the text on the dialog button to match finish
-  GetDlgItem $0 $hwndparent 1
-  SendMessage $0 ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
+  ; Set the text on the dialog button to match finish, hide the back and cancel buttons
+  GetDlgItem $R1 $hwndparent 1
+  SendMessage $R1 ${WM_SETTEXT} 0 "STR:$(^CloseBtn)"
+
+  GetDlgItem $R2 $hwndparent 2
+  ShowWindow $R2 0
+
+  GetDlgItem $R3 $hwndparent 3
+  ShowWindow $R3 0
 
   nsDialogs::Create 1018
   Pop $POST_INSTALL_DIALOG
