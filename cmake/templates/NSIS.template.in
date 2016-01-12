@@ -20,8 +20,6 @@
   Var INSTALL_DESKTOP
   Var IS_DEFAULT_INSTALLDIR
 
-  Var POST_INSTALL_DIALOG
-  Var DESKTOP_CHECKBOX
 ;--------------------------------
 ;Include Modern UI
 
@@ -771,6 +769,13 @@ FunctionEnd
 ; Make sure nsDialogs is included before we use it
 !include "nsdialogs.nsh"
 
+Var POST_INSTALL_DIALOG
+Var DESKTOP_CLIENT_CHECKBOX
+Var DESKTOP_SERVER_CHECKBOX
+Var SERVER_STARTUP_CHECKBOX
+Var LAUNCH_NOW_CHECKBOX
+Var CURRENT_OFFSET
+
 Function PostInstallOptionsPage
   nsDialogs::Create 1018
   Pop $POST_INSTALL_DIALOG
@@ -779,8 +784,37 @@ Function PostInstallOptionsPage
     Abort
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 0 100% 10u "&Create High Fidelity Desktop Shortcut"
-  Pop $DESKTOP_CHECKBOX
+  StrCpy $CURRENT_OFFSET "0"
+
+  ${If} ${SectionIsSelected} ${client}
+    ${NSD_CreateCheckbox} 0 0 100% 10u "&Create a desktop shortcut for High Fidelity"
+    Pop $DESKTOP_CLIENT_CHECKBOX
+    StrCpy $CURRENT_OFFSET "15u"
+  ${EndIf}
+
+  ${If} ${SectionIsSelected} ${server}
+    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for the High Fidelity Server Console"
+    Pop $DESKTOP_SERVER_CHECKBOX
+    ${NSD_SetState} $DESKTOP_SERVER_CHECKBOX ${BST_UNCHECKED}
+
+    ${If} $CURRENT_OFFSET == "0"
+      StrCpy $CURRENT_OFFSET "15u"
+    ${Else}
+      StrCpy $CURRENT_OFFSET "30u"
+    ${EndIf}
+
+    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Server Console on startup"
+    Pop $SERVER_STARTUP_CHECKBOX
+
+    ${If} $CURRENT_OFFSET == "15u"
+      StrCpy $CURRENT_OFFSET "30u"
+    ${Else}
+      StrCpy $CURRENT_OFFSET "45u"
+    ${EndIf}
+  ${EndIf}
+
+  ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Now"
+  Pop $LAUNCH_NOW_CHECKBOX
 
   nsDialogs::Show
 FunctionEnd
