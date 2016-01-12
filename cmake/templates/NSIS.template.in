@@ -769,6 +769,7 @@ FunctionEnd
 !include "nsdialogs.nsh"
 
 Var POST_INSTALL_DIALOG
+Var OPTIONS_LABEL
 Var DESKTOP_CLIENT_CHECKBOX
 Var DESKTOP_SERVER_CHECKBOX
 Var SERVER_STARTUP_CHECKBOX
@@ -786,7 +787,16 @@ Function PostInstallOptionsPage
   ; Set the text on the dialog button to match finish
   SendMessage $POST_INSTALL_DIALOG ${WM_SETTEXT} 0 "STR:&Finish"
 
-  ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
+  ${NSD_CreateLabel} 0 0 100% 14u "Setup Options"
+  Pop $OPTIONS_LABEL
+
+  ; Set label to bold
+  CreateFont $R2 "MS Shell Dlg" 14 700
+  SendMessage $OPTIONS_LABEL ${WM_SETFONT} $R2 0
+
+  ; Force label redraw
+  ShowWindow $OPTIONS_LABEL ${SW_HIDE}
+  ShowWindow $OPTIONS_LABEL ${SW_SHOW}
 
   StrCpy $CURRENT_OFFSET "15u"
 
