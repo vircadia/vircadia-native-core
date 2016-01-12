@@ -22,12 +22,6 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
-  # configure the post install options file for custom installation options
-  if (WIN32)
-    set(POST_INSTALL_OPTIONS_PATH "${CMAKE_CURRENT_BINARY_DIR}/NSIS.PostInstallOptions.ini")
-    configure_file("${HF_CMAKE_DIR}/templates/NSIS.PostInstallOptions.ini.in" ${POST_INSTALL_OPTIONS_PATH})
-  endif ()
-
   # configure a cpack properties file for custom variables in NSIS template
   set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
   configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})

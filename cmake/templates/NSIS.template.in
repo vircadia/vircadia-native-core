@@ -19,6 +19,9 @@
   Var ADD_TO_PATH_CURRENT_USER
   Var INSTALL_DESKTOP
   Var IS_DEFAULT_INSTALLDIR
+
+  Var POST_INSTALL_DIALOG
+  Var DESKTOP_CHECKBOX
 ;--------------------------------
 ;Include Modern UI
 
@@ -766,9 +769,17 @@ Function InstallOptionsPage
 FunctionEnd
 
 Function PostInstallOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Post-Install Options"
-  !insertmacro MUI_INSTALLOPTIONS_EXTRACT "@POST_INSTALL_OPTIONS_PATH@"
-  !insertmacro MUI_INSTALLOPTIONS_DISPLAY "@POST_INSTALL_OPTIONS_PATH@"
+  nsDialogs::Create 1018
+  Pop $POST_INSTALL_DIALOG
+
+  ${If} $POST_INSTALL_DIALOG == error
+    Abort
+  ${EndIf}
+
+  ${NSD_CreateCheckbox} 0 0 100% 10u "&Create High Fidelity Desktop Shortcut"
+  Pop $DESKTOP_CHECKBOX
+
+  nsDialogs::Show
 FunctionEnd
 
 ;--------------------------------
