@@ -1,18 +1,17 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
 import QtWebEngine 1.1
+
 import "controls"
 import "styles"
+import "windows"
 
-VrDialog {
+Window {
     id: root
     HifiConstants { id: hifi }
     title: "Browser"
     resizable: true
-    contentImplicitWidth: clientArea.implicitWidth
-    contentImplicitHeight: clientArea.implicitHeight
-    backgroundColor: "#7f000000"
-
+    destroyOnInvisible: true
 
     Component.onCompleted: {
         enabled = true
@@ -27,13 +26,8 @@ VrDialog {
     }
 
     Item {
-        id: clientArea
-        implicitHeight: 600
-        implicitWidth: 800
-        x: root.clientX
-        y: root.clientY
-        width: root.clientWidth
-        height: root.clientHeight
+        width: 800
+        height: 600
         
         Rectangle {
             anchors.left: parent.left

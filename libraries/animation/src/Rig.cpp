@@ -960,7 +960,6 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 }
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
-
     if (_animSkeleton && _animNode) {
         if (params.isLeftEnabled) {
             _animVars.set("leftHandPosition", params.leftPosition);
@@ -980,45 +979,6 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.unset("rightHandRotation");
             _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
-
-        // set leftHand grab vars
-        _animVars.set("isLeftHandIdle", false);
-        _animVars.set("isLeftHandPoint", false);
-        _animVars.set("isLeftHandGrab", false);
-
-        // Split the trigger range into three zones.
-        bool rampOut = false;
-        if (params.leftTrigger > 0.6666f) {
-            _animVars.set("isLeftHandGrab", true);
-        } else if (params.leftTrigger > 0.3333f) {
-            _animVars.set("isLeftHandPoint", true);
-        } else {
-            _animVars.set("isLeftHandIdle", true);
-            rampOut = true;
-        }
-        const float OVERLAY_RAMP_OUT_SPEED = 6.0f;  // ramp in and out over 1/6th of a sec
-        _leftHandOverlayAlpha = glm::clamp(_leftHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
-        _animVars.set("leftHandOverlayAlpha", _leftHandOverlayAlpha);
-        _animVars.set("leftHandGrabBlend", params.leftTrigger);
-
-        // set leftHand grab vars
-        _animVars.set("isRightHandIdle", false);
-        _animVars.set("isRightHandPoint", false);
-        _animVars.set("isRightHandGrab", false);
-
-        // Split the trigger range into three zones
-        rampOut = false;
-        if (params.rightTrigger > 0.6666f) {
-            _animVars.set("isRightHandGrab", true);
-        } else if (params.rightTrigger > 0.3333f) {
-            _animVars.set("isRightHandPoint", true);
-        } else {
-            _animVars.set("isRightHandIdle", true);
-            rampOut = true;
-        }
-        _rightHandOverlayAlpha = glm::clamp(_rightHandOverlayAlpha + (rampOut ? -1.0f : 1.0f) * OVERLAY_RAMP_OUT_SPEED * dt, 0.0f, 1.0f);
-        _animVars.set("rightHandOverlayAlpha", _rightHandOverlayAlpha);
-        _animVars.set("rightHandGrabBlend", params.rightTrigger);
     }
 }
 

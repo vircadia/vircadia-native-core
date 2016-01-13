@@ -30,6 +30,7 @@ class ScriptEngines : public QObject, public Dependency {
 
     Q_PROPERTY(ScriptsModel* scriptsModel READ scriptsModel CONSTANT)
     Q_PROPERTY(ScriptsModelFilter* scriptsModelFilter READ scriptsModelFilter CONSTANT)
+    Q_PROPERTY(QString previousScriptLocation READ getPreviousScriptLocation WRITE setPreviousScriptLocation NOTIFY previousScriptLocationChanged)
 
 public:
     using ScriptInitializer = std::function<void(ScriptEngine*)>;
@@ -72,6 +73,7 @@ signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
+    void previousScriptLocationChanged();
 
 protected slots: 
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);

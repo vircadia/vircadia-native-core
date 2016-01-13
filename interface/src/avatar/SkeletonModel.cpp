@@ -119,7 +119,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isLeftEnabled = true;
             handParams.leftPosition = Quaternions::Y_180 * leftPalm.getRawPosition();
             handParams.leftOrientation = Quaternions::Y_180 * leftPalm.getRawRotation();
-            handParams.leftTrigger = leftPalm.getTrigger();
         } else {
             handParams.isLeftEnabled = false;
         }
@@ -129,7 +128,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isRightEnabled = true;
             handParams.rightPosition = Quaternions::Y_180 * rightPalm.getRawPosition();
             handParams.rightOrientation = Quaternions::Y_180 * rightPalm.getRawRotation();
-            handParams.rightTrigger = rightPalm.getTrigger();
         } else {
             handParams.isRightEnabled = false;
         }
