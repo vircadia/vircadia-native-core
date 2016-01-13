@@ -301,15 +301,15 @@
                         spatialKey: {
                             rightRelativePosition: {
                                 x: 0.03,
-                                y: 0,
+                                y: 0.0,
                                 z: -0.085
                             },
                             leftRelativePosition: {
                                 x: -0.03,
-                                y: 0,
+                                y: 0.00,
                                 z: -0.085
                             },
-                            relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
+                            relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                         },
                         invertSolidWhileHeld: true
                     },
@@ -1160,9 +1160,14 @@
                     },
                     grabbableKey: {
                         spatialKey: {
-                            relativePosition: {
-                                x: 0.01,
-                                y: 0,
+                            rightRelativePosition: {
+                                x: -0.05,
+                                y: .06,
+                                z: 0.1
+                            },
+                            leftRelativePosition: {
+                                x: 0.05,
+                                y: 0.06,
                                 z: 0.1
                             },
                             relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
