@@ -49,13 +49,6 @@
 
     !system "$%TEMP%\tempinstaller.exe" = 2
 
-    ; That will have written an uninstaller binary for us.  Now we sign it with your
-    ; favourite code signing tool, if it's a production build.
-
-    ${If} "@PRODUCTION_BUILD@" == "1"
-      !system "signcode <signing options> $%TEMP%\uninstaller.exe" = 0
-    ${EndIf}
-
     ; Good.  Now we can carry on writing the real installer.
 
     ;Name and file
@@ -1109,6 +1102,13 @@ Function .onInit
     ; just bail out quickly when running the "inner" installer
     Quit
   !endif
+
+  ; The Inner invocation has written an uninstaller binary for us.
+  ; We need to sign it if it's a production build.
+
+  ${If} "@PRODUCTION_BUILD@" == "1"
+    !system "signcode <signing options> $%TEMP%\uninstaller.exe" = 0
+  ${EndIf}
 
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
 
