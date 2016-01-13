@@ -61,7 +61,7 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
-    virtual int16_t computeCollisionGroup() const override;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
 
     friend class AvatarManager;
     friend class Avatar;

@@ -80,7 +80,7 @@ public:
     ObjectMotionState(btCollisionShape* shape);
     ~ObjectMotionState();
 
-    virtual bool handleEasyChanges(uint32_t& flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t& flags);
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
 
     void updateBodyMaterialProperties();
@@ -136,7 +136,7 @@ public:
 
     virtual QString getName() const { return ""; }
 
-    virtual int16_t computeCollisionGroup() const = 0;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const = 0;
 
     bool isActive() const { return _body ? _body->isActive() : false; }
 

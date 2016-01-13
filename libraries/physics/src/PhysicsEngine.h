@@ -45,14 +45,16 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
+    static int16_t getCollisionMask(int16_t group);
+
     uint32_t getNumSubsteps();
 
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
 
-    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
-    const QUuid& getSessionID() const { return _sessionID; }
+    static void setSessionUUID(const QUuid& sessionID);
+    static const QUuid& getSessionID();
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -88,8 +90,6 @@ public:
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    int16_t getCollisionMask(int16_t group) const;
-
     EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
@@ -122,12 +122,10 @@ private:
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
 
-    QUuid _sessionID;
     CollisionEvents _collisionEvents;
 
     QHash<QUuid, EntityActionPointer> _objectActions;
 
-    btHashMap<btHashInt, int16_t> _collisionMasks;
 
     uint32_t _numSubsteps;
 };
