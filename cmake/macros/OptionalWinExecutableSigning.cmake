@@ -21,7 +21,7 @@ macro(optional_win_executable_signing)
         endif ()
 
         if (NOT EXECUTABLE_PATH)
-          set(EXECUTABLE_PATH "$<TARGET_FILE_NAME:${TARGET_NAME}>")
+          set(EXECUTABLE_PATH "$<TARGET_FILE:${TARGET_NAME}>")
         endif ()
 
         # setup a post build command to sign the executable
