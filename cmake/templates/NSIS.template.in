@@ -687,7 +687,7 @@ Section "-Core installation"
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
     ; this packages the signed uninstaller
-    File $%TEMP%\Uninstaller.exe
+    File $%TEMP%\Uninstall.exe
   !endif
 
   Push "DisplayName"
