@@ -316,8 +316,8 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
             // NOTE: is this right? It seems like the "sun" should be based on the center of the
             //       atmosphere, not where the camera is.
-            glm::vec3 keyLightLocation = _viewState->getAvatarPosition()
-            + (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
+            glm::vec3 keyLightLocation = _viewState->getAvatarPosition() +
+                                        (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
 
             data.setSunLocation(keyLightLocation);
 

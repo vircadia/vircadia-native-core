@@ -145,7 +145,7 @@ private:
     glm::vec3 _lastAvatarPosition;
     QVector<EntityItemID> _currentEntitiesInside;
 
-    bool _pendingSkyboxTexture = false;
+    bool _pendingSkyboxTexture { false };
     NetworkTexturePointer _skyboxTexture;
 
     bool _wantScripts;
@@ -164,11 +164,11 @@ private:
     bool _displayModelBounds;
     bool _dontDoPrecisionPicking;
     
-    bool _shuttingDown = false;
+    bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    bool _hasPreviousZone = false;
+    bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
 
