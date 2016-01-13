@@ -932,6 +932,19 @@ FunctionEnd
 ; determine admin versus local install
 Function un.onInit
 
+  ; In order for the uninstaller to be able to remove itself, we have to do some trickery here.
+  ; If the $EXEPATH does not contain the $TEMP dir, this instance is not the copied one
+  ; so we move it to the $TEMP dir and then execute the copied uninstaller.
+
+  ${StrContains} $0 $TEMP $EXEPATH
+
+  ${If} $0 == "notfound"
+    CopyFiles /SILENT $EXEPATH $TEMP\Uninstall.exe
+    ExecWait '"$Temp\Uninstall.exe" _?=$INSTDIR' $0
+    SetErrorLevel $0
+    Quit
+  ${EndIf}
+
   ; attempt to elevate the uninstaller to admin status
   uac_tryagain:
   !insertmacro UAC_RunElevated
