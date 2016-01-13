@@ -24,8 +24,12 @@ macro(optional_win_executable_signing)
           set(EXECUTABLE_NAME $<TARGET_FILE_NAME:${TARGET_NAME}>)
         endif ()
 
-        # setup the post install command to sign the executable
+        add_custom_command(
+          TARGET ${TARGET_NAME} POST_BUILD
+          COMMAND ${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE} /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\ /td SHA256 $<TARGET_FILE_NAME:${TARGET_NAME}>
+        )
 
+        # setup the post install command to sign the executable
         install(CODE "\
           message(STATUS \"Signing ${TARGET_NAME} with signtool.\")
           execute_process(COMMAND ${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE}\
