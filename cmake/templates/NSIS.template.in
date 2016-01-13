@@ -49,6 +49,9 @@
 
     !system "$%TEMP%\tempinstaller.exe" = 2
 
+    ;Require administrator access
+    RequestExecutionLevel admin
+
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
@@ -63,9 +66,6 @@
 
     ;Set compression
     SetCompressor @CPACK_NSIS_COMPRESSOR@
-
-    ;Require administrator access
-    RequestExecutionLevel admin
   !endif
 
 @CPACK_NSIS_DEFINES@
@@ -677,8 +677,6 @@ Section "-Core installation"
 
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
-    SetOutPath $INSTDIR
-
     ; this packages the signed uninstaller
     File $%TEMP%\uninstaller.exe
   !endif
