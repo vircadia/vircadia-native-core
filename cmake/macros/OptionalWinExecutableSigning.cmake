@@ -20,6 +20,8 @@ macro(optional_win_executable_signing)
           message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
         endif ()
 
+        message(STATUS "Executable for ${TARGET_NAME} will be signed with SignTool.")
+
         if (NOT EXECUTABLE_PATH)
           set(EXECUTABLE_PATH "$<TARGET_FILE:${TARGET_NAME}>")
         endif ()
