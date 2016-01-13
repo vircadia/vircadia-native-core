@@ -38,6 +38,9 @@
   !else
     !echo "Outer invocation"
 
+    ; make sure that makensis itself is not run elevated
+    !system "set __COMPAT_LAYER=RunAsInvoker&makensis ..."
+
     ; Call makensis again, defining INNER.  This writes an installer for us which, when
     ; it is invoked, will just write the uninstaller to some location, and then exit.
     ; Be sure to substitute the name of this script here.
@@ -55,12 +58,7 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      ExecWait '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' $0
-
-      !if $0 != 0
-        DetailPrint "Failed to sign uninstaller. Will not continue generation of installer."
-        Quit
-      !endif
+      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' = 0
     !endif
 
     ; Good.  Now we can carry on writing the real installer.
