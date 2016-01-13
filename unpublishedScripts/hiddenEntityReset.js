@@ -302,12 +302,12 @@
                             rightRelativePosition: {
                                 x: 0.03,
                                 y: 0.0,
-                                z: -0.085
+                                z: -0.065
                             },
                             leftRelativePosition: {
                                 x: -0.03,
                                 y: 0.00,
-                                z: -0.085
+                                z: -0.065
                             },
                             relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                         },
@@ -1163,12 +1163,12 @@
                             rightRelativePosition: {
                                 x: -0.05,
                                 y: .06,
-                                z: 0.1
+                                z: 0.05
                             },
                             leftRelativePosition: {
                                 x: 0.05,
                                 y: 0.06,
-                                z: 0.1
+                                z: 0.05
                             },
                             relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
                         },
