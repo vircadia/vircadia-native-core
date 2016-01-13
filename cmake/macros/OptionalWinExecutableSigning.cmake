@@ -13,13 +13,6 @@ macro(optional_win_executable_signing)
   if (WIN32 AND (PRODUCTION_BUILD OR PR_BUILD))
     if (DEFINED ENV{HF_PFX_FILE})
       if (DEFINED ENV{HF_PFX_PASSPHRASE})
-        # find signtool
-        find_program(SIGNTOOL_EXEC signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
-
-        if (NOT SIGNTOOL_EXEC)
-          message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
-        endif ()
-
         message(STATUS "Executable for ${TARGET_NAME} will be signed with SignTool.")
 
         if (NOT EXECUTABLE_PATH)
@@ -29,7 +22,7 @@ macro(optional_win_executable_signing)
         # setup a post build command to sign the executable
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND ${SIGNTOOL_EXEC} sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 ${EXECUTABLE_PATH}
+          COMMAND ${SIGNTOOL_EXECUTABLE} sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 ${EXECUTABLE_PATH}
         )
       else ()
         message(FATAL_ERROR "HF_PFX_PASSPHRASE must be set for executables to be signed.")

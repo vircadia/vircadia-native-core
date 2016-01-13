@@ -674,7 +674,6 @@ Section "-Core installation"
     SetOutPath $INSTDIR
 
     ; this packages the signed uninstaller
-
     File $%TEMP%\uninstaller.exe
   !endif
 
@@ -1101,14 +1100,14 @@ Function .onInit
 
     ; just bail out quickly when running the "inner" installer
     Quit
+  !else
+    ; The Inner invocation has written an uninstaller binary for us.
+    ; We need to sign it if it's a production build.
+
+    ${If} "@PRODUCTION_BUILD@" == "1"
+      !system "@SIGNTOOL_EXECUTABLE@ sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe" = 0
+    ${EndIf}
   !endif
-
-  ; The Inner invocation has written an uninstaller binary for us.
-  ; We need to sign it if it's a production build.
-
-  ${If} "@PRODUCTION_BUILD@" == "1"
-    !system "signcode <signing options> $%TEMP%\uninstaller.exe" = 0
-  ${EndIf}
 
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
 
