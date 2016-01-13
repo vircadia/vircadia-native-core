@@ -27,6 +27,9 @@ class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
 public:
     ClosestNotMe(btRigidBody* me) : btCollisionWorld::ClosestRayResultCallback(btVector3(0.0f, 0.0f, 0.0f), btVector3(0.0f, 0.0f, 0.0f)) {
         _me = me;
+        // the RayResultCallback's group and mask must match MY_AVATAR
+        m_collisionFilterGroup = BULLET_COLLISION_GROUP_MY_AVATAR;
+        m_collisionFilterMask = BULLET_COLLISION_MASK_MY_AVATAR;
     }
     virtual btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult,bool normalInWorldSpace) {
         if (rayResult.m_collisionObject == _me) {
@@ -84,7 +87,7 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
             // Before adding the RigidBody to the world we must save its oldGravity to the side
             // because adding an object to the world will overwrite it with the default gravity.
             btVector3 oldGravity = _rigidBody->getGravity();
-            _dynamicsWorld->addRigidBody(_rigidBody, COLLISION_GROUP_MY_AVATAR, COLLISION_MASK_MY_AVATAR);
+            _dynamicsWorld->addRigidBody(_rigidBody, BULLET_COLLISION_GROUP_MY_AVATAR, BULLET_COLLISION_MASK_MY_AVATAR);
             _dynamicsWorld->addAction(this);
             // restore gravity settings
             _rigidBody->setGravity(oldGravity);

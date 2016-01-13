@@ -106,7 +106,7 @@ var GRABBABLE_PROPERTIES = [
     "position",
     "rotation",
     "gravity",
-    "ignoreForCollisions",
+    "collisionMask",
     "collisionsWillMove",
     "locked",
     "name"
@@ -117,7 +117,6 @@ var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
-    invertSolidWhileHeld: false
 };
 
 
@@ -163,6 +162,11 @@ var OPEN_HAND_STATES = [STATE_SEARCHING, STATE_EQUIP_SEARCHING];
 var POINT_HAND_STATES = [STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER, STATE_FAR_TRIGGER, STATE_CONTINUE_FAR_TRIGGER];
 var FAR_GRASP_HAND_STATES = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
 // otherwise grasp
+
+// collision masks are specified by comma-separated list of group names
+// the possible list of names is:  static, dynamic, kinematic, myAvatar, otherAvatar
+var COLLISION_MASK_WHILE_GRABBED = "dynamic,otherAvatar";
+
 
 function stateToName(state) {
     switch (state) {
@@ -1823,7 +1827,6 @@ function MyController(hand) {
 
     this.activateEntity = function(entityID, grabbedProperties) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
-        var invertSolidWhileHeld = grabbableData["invertSolidWhileHeld"];
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         data["activated"] = true;
         data["avatarId"] = MyAvatar.sessionUUID;
@@ -1831,18 +1834,16 @@ function MyController(hand) {
         // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
-            data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+            data["collisionMask"] = grabbedProperties.collisionMask;
             data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
             var whileHeldProperties = {
                 gravity: {
                     x: 0,
                     y: 0,
                     z: 0
-                }
+                },
+                "collisionMask": COLLISION_MASK_WHILE_GRABBED
             };
-            if (invertSolidWhileHeld) {
-                whileHeldProperties["ignoreForCollisions"] = !grabbedProperties.ignoreForCollisions;
-            }
             Entities.editEntity(entityID, whileHeldProperties);
         }
 
@@ -1857,7 +1858,7 @@ function MyController(hand) {
             if (data["refCount"] < 1) {
                 Entities.editEntity(entityID, {
                     gravity: data["gravity"],
-                    ignoreForCollisions: data["ignoreForCollisions"],
+                    collisionMask: data["collisionMask"],
                     collisionsWillMove: data["collisionsWillMove"]
                 });
                 data = null;
