@@ -31,10 +31,14 @@
 ;--------------------------------
 ;General
 
+  ; Require administrator access
+  RequestExecutionLevel admin
+
   !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
     OutFile "$%TEMP%\tempinstaller.exe"       ; not really important where this is
     SetCompress off                           ; for speed
+
   !else
     !echo "Outer invocation"
 
@@ -42,7 +46,7 @@
     ; it is invoked, will just write the uninstaller to some location, and then exit.
     ; Be sure to substitute the name of this script here.
 
-    !system "set __COMPAT_LAYER=RunAsInvoker && $\"${NSISDIR}\makensis$\" /DINNER project.nsi" = 0
+    !system "$\"${NSISDIR}\makensis$\" /DINNER project.nsi" = 0
 
     ; Require administrator access
     RequestExecutionLevel admin
@@ -51,6 +55,12 @@
     ; calls quit the return value isn't zero.
 
     !system "$%TEMP%\tempinstaller.exe" = 2
+
+    ; The Inner invocation has written an uninstaller binary for us.
+    ; We need to sign it if it's a production or PR build.
+    !if @PRODUCTION_BUILD@ == 1
+      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' = 0
+    !endif
 
     ; Good.  Now we can carry on writing the real installer.
 
@@ -1095,12 +1105,6 @@ Function .onInit
     ; this entire code path is not present in the final (real) installer.
 
     WriteUninstaller "$%TEMP%\uninstaller.exe"
-
-    ; We've written the uninstaller binary.
-    ; We need to sign it if it's a production or PR build.
-    !if @PRODUCTION_BUILD@ == 1
-      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' = 0
-    !endif
 
     ; just bail out quickly when running the "inner" installer
     Quit
