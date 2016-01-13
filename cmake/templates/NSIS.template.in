@@ -55,7 +55,12 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' = 0
+      ExecWait '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe' $0
+
+      !if $0 != 0
+        DetailPrint "Failed to sign uninstaller. Will not continue generation of installer."
+        Quit
+      !endif
     !endif
 
     ; Good.  Now we can carry on writing the real installer.
