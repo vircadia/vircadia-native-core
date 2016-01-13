@@ -26,6 +26,7 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
 public:
     OffscreenUi();
     virtual void create(QOpenGLContext* context) override;
+    void createDesktop();
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);

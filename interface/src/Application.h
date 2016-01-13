@@ -61,7 +61,6 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/RunningScriptsWidget.h"
 #include "ui/SnapshotShareDialog.h"
 #include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
@@ -246,8 +245,8 @@ public slots:
     bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
-    void loadDialog();
-    void loadScriptURLDialog();
+    Q_INVOKABLE void loadDialog();
+    Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
 
@@ -467,7 +466,6 @@ private:
 
     TouchEvent _lastTouchEvent;
 
-    RunningScriptsWidget* _runningScriptsWidget { nullptr };
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
     

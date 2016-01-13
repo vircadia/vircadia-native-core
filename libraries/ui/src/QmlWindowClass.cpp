@@ -91,7 +91,7 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
     const auto argumentCount = context->argumentCount();
     QString url;
     QString title;
-    int width = 100, height = 100;
+    int width = -1, height = -1;
     bool visible = true;
     if (argumentCount > 1) {
 
@@ -131,13 +131,19 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         url = QUrl::fromLocalFile(url).toString();
     }
 
-    width = std::max(100, std::min(1280, width));
-    height = std::max(100, std::min(720, height));
+    if (width != -1 || height != -1) {
+        width = std::max(100, std::min(1280, width));
+        height = std::max(100, std::min(720, height));
+    }
 
     QmlWindowClass* retVal{ nullptr };
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    qDebug() << "Clearing component cache";
+    offscreenUi->getRootContext()->engine()->clearComponentCache();
+
     // Build the event bridge and wrapper on the main thread
-    QMetaObject::invokeMethod(DependencyManager::get<OffscreenUi>().data(), "load", Qt::BlockingQueuedConnection,
+    QMetaObject::invokeMethod(offscreenUi.data(), "load", Qt::BlockingQueuedConnection,
         Q_ARG(const QString&, qmlSource),
         Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
             setupServer();
@@ -147,7 +153,9 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
             if (!title.isEmpty()) {
                 retVal->setTitle(title);
             }
-            retVal->setSize(width, height);
+            if (width != -1 && height != -1) {
+                retVal->setSize(width, height);
+            }
             object->setProperty(SOURCE_PROPERTY, url);
             if (visible) {
                 object->setProperty("enabled", true);
