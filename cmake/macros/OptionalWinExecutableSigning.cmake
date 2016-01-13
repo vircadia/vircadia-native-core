@@ -29,7 +29,12 @@ macro(optional_win_executable_signing)
           /td SHA256 \${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_NAME}"
         )
 
-        install(CODE "execute_process(COMMAND ${SIGN_COMMAND})" COMPONENT ${EXECUTABLE_COMPONENT})
+        install(CODE "\
+          message(STATUS \"Signing ${EXECUTABLE_NAME} with signtool.\")
+          execute_process(COMMAND ${SIGN_COMMAND})
+          "
+          COMPONENT ${EXECUTABLE_COMPONENT}
+        )
       else ()
         message(FATAL_ERROR "HF_PFX_PASSPHRASE must be set for executables to be signed.")
       endif ()
