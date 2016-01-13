@@ -39,7 +39,7 @@ class WebWindowClass : public QObject {
     Q_PROPERTY(QSizeF size READ getSize WRITE setSize);
 
 public:
-    WebWindowClass(const QString& title, const QString& url, int width, int height, bool isToolWindow = false);
+    WebWindowClass(const QString& title, const QString& url, int width, int height);
     ~WebWindowClass();
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
@@ -75,7 +75,6 @@ private:
     QWidget* _windowWidget;
     QWebView* _webView;
     ScriptEventBridge* _eventBridge;
-    bool _isToolWindow;
 };
 
 #endif

@@ -8,6 +8,8 @@
 //    void scriptEventReceived(const QString& data);
 //
 
+var EventBridge;
+
 EventBridgeConnectionProxy = function(parent) {
     this.parent = parent;
     this.realSignal = this.parent.realBridge.scriptEventReceived
@@ -46,12 +48,10 @@ openEventBridge = function(callback) {
     socket.onopen = function() {
         channel = new QWebChannel(socket, function(channel) {
             console.log("Document url is " + document.URL);
-            for(var key in channel.objects){
-                console.log("registered object: " + key);
-             }
             var webWindow = channel.objects[document.URL.toLowerCase()];
             console.log("WebWindow is " + webWindow)
             eventBridgeProxy = new EventBridgeProxy(webWindow);
+            EventBridge = eventBridgeProxy; 
             if (callback) {  callback(eventBridgeProxy); }
         });
     }

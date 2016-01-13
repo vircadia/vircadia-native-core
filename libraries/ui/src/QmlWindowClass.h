@@ -51,6 +51,7 @@ class QmlWindowClass : public QObject {
 public:
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
     QmlWindowClass(QObject* qmlWindow);
+    ~QmlWindowClass();
 
 public slots:
     bool isVisible() const;
@@ -84,7 +85,7 @@ protected slots:
 protected:
     static QScriptValue internalConstructor(const QString& qmlSource, 
         QScriptContext* context, QScriptEngine* engine, 
-        std::function<QmlWindowClass*(QQmlContext*, QObject*)> function);
+        std::function<QmlWindowClass*(QObject*)> function);
     static void setupServer();
     static void registerObject(const QString& name, QObject* object);
     static void deregisterObject(QObject* object);
@@ -95,9 +96,10 @@ protected:
 
     // FIXME needs to be initialized in the ctor once we have support
     // for tool window panes in QML
-    const bool _isToolWindow { false };
+    bool _toolWindow { false };
     const int _windowId;
-    QObject* const _qmlWindow;
+    QObject* _qmlWindow;
+    QString _source;
 };
 
 #endif

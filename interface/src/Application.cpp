@@ -395,7 +395,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
     _dependencyManagerIsSetup(setupEssentials(argc, argv)),
     _window(new MainWindow(desktop())),
-    _toolWindow(NULL),
     _undoStackScriptingInterface(&_undoStack),
     _frameCount(0),
     _fps(60.0f),
@@ -677,10 +676,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // Start rendering
     _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
-
-    _toolWindow = new ToolWindow();
-    _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
-    _toolWindow->setWindowTitle("Tools");
 
     _offscreenContext->makeCurrent();
 
@@ -4751,7 +4746,7 @@ void Application::showFriendsWindow() {
     auto webWindowClass = _window->findChildren<WebWindowClass>(FRIENDS_WINDOW_OBJECT_NAME);
     if (webWindowClass.empty()) {
         auto friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
-                                                FRIENDS_WINDOW_HEIGHT, false);
+                                                FRIENDS_WINDOW_HEIGHT);
         friendsWindow->setParent(_window);
         friendsWindow->setObjectName(FRIENDS_WINDOW_OBJECT_NAME);
         connect(friendsWindow, &WebWindowClass::closed, &WebWindowClass::deleteLater);
