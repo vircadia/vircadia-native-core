@@ -3102,63 +3102,70 @@ void Application::update(float deltaTime) {
 
     if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
-
-        static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAddToPhysics(motionStates);
-            _physicsEngine->addObjects(motionStates);
-
-        });
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToChange(motionStates);
-            VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-            _entitySimulation.setObjectsToChange(stillNeedChange);
-        });
-
-        _entitySimulation.applyActionChanges();
-
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-        avatarManager->getObjectsToAddToPhysics(motionStates);
-        _physicsEngine->addObjects(motionStates);
-        avatarManager->getObjectsToChange(motionStates);
-        _physicsEngine->changeObjects(motionStates);
 
-        myAvatar->prepareForPhysicsSimulation();
-        _physicsEngine->forEachAction([&](EntityActionPointer action) {
-            action->prepareForPhysicsSimulation();
-        });
+        {
+            PerformanceTimer perfTimer("updateStates)");
+            static VectorOfMotionStates motionStates;
+            _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
 
-        getEntities()->getTree()->withWriteLock([&] {
-            _physicsEngine->stepSimulation();
-        });
-
-        if (_physicsEngine->hasOutgoingChanges()) {
             getEntities()->getTree()->withWriteLock([&] {
-                _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
-                avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                _entitySimulation.getObjectsToAddToPhysics(motionStates);
+                _physicsEngine->addObjects(motionStates);
+
+            });
+            getEntities()->getTree()->withWriteLock([&] {
+                _entitySimulation.getObjectsToChange(motionStates);
+                VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+                _entitySimulation.setObjectsToChange(stillNeedChange);
             });
 
-            auto collisionEvents = _physicsEngine->getCollisionEvents();
-            avatarManager->handleCollisionEvents(collisionEvents);
+            _entitySimulation.applyActionChanges();
 
-            _physicsEngine->dumpStatsIfNecessary();
+             avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
+            avatarManager->getObjectsToAddToPhysics(motionStates);
+            _physicsEngine->addObjects(motionStates);
+            avatarManager->getObjectsToChange(motionStates);
+            _physicsEngine->changeObjects(motionStates);
 
-            if (!_aboutToQuit) {
-                PerformanceTimer perfTimer("entities");
-                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                // deadlock.)
-                _entitySimulation.handleCollisionEvents(collisionEvents);
-                // NOTE: the getEntities()->update() call below will wait for lock
-                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                getEntities()->update(); // update the models...
+            myAvatar->prepareForPhysicsSimulation();
+            _physicsEngine->forEachAction([&](EntityActionPointer action) {
+                action->prepareForPhysicsSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("stepSimulation");
+            getEntities()->getTree()->withWriteLock([&] {
+                _physicsEngine->stepSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("havestChanges");
+            if (_physicsEngine->hasOutgoingChanges()) {
+                getEntities()->getTree()->withWriteLock([&] {
+                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
+                    avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                });
+
+                auto collisionEvents = _physicsEngine->getCollisionEvents();
+                avatarManager->handleCollisionEvents(collisionEvents);
+
+                _physicsEngine->dumpStatsIfNecessary();
+
+                if (!_aboutToQuit) {
+                    PerformanceTimer perfTimer("entities");
+                    // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                    // deadlock.)
+                    _entitySimulation.handleCollisionEvents(collisionEvents);
+                    // NOTE: the getEntities()->update() call below will wait for lock
+                    // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                    getEntities()->update(); // update the models...
+                }
+
+                myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
             }
-
-            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
         }
     }
 
