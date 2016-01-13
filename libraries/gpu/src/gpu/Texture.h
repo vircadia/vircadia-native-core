@@ -136,7 +136,7 @@ protected:
     Desc _desc;
 };
 
-class Texture : public Resource {
+class Texture : public Resource, public GPUObjectWrapper {
 public:
 
     class Pixels {
@@ -386,13 +386,6 @@ protected:
     static Texture* create(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices, const Sampler& sampler);
 
     Size resize(Type type, const Element& texelFormat, uint16 width, uint16 height, uint16 depth, uint16 numSamples, uint16 numSlices);
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-
-    friend class Backend;
 };
 
 typedef std::shared_ptr<Texture> TexturePointer;

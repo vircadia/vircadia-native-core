@@ -36,7 +36,7 @@ namespace gpu {
 
 class GPUObject;
 
-class State {
+class State : public GPUObjectWrapper {
 public:
     State();
     virtual ~State();
@@ -392,12 +392,6 @@ protected:
     Data _values;
     Signature _signature{0};
     Stamp _stamp{0};
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = nullptr;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 
 typedef std::shared_ptr< State > StatePointer;

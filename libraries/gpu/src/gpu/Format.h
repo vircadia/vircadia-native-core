@@ -16,10 +16,25 @@
 
 namespace gpu {
 
+class Backend;
+
 class GPUObject {
 public:
-    GPUObject() {}
-    virtual ~GPUObject() {}
+    virtual ~GPUObject() = default;
+};
+
+class GPUObjectWrapper {
+public:
+    virtual ~GPUObjectWrapper() { delete _gpuObject; }
+
+private:
+    // This shouldn't be used by anything else than the Backend class with the proper casting.
+    // TODO: Consider using std::unique_ptr to get rid of dtor and ensure correct destruction of GPU objects
+    mutable GPUObject* _gpuObject { nullptr };
+    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
+    GPUObject* getGPUObject() const { return _gpuObject; }
+
+    friend class Backend;
 };
 
 typedef int  Stamp;
