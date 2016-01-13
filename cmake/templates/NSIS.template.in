@@ -50,9 +50,11 @@
     !system "$%TEMP%\tempinstaller.exe" = 2
 
     ; That will have written an uninstaller binary for us.  Now we sign it with your
-    ; favourite code signing tool.
+    ; favourite code signing tool, if it's a production build.
 
-    !system "signcode <signing options> $%TEMP%\uninstaller.exe" = 0
+    ${If} "@PRODUCTION_BUILD@" == "1"
+      !system "signcode <signing options> $%TEMP%\uninstaller.exe" = 0
+    ${EndIf}
 
     ; Good.  Now we can carry on writing the real installer.
 
