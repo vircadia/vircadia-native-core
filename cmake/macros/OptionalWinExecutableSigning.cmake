@@ -20,23 +20,14 @@ macro(optional_win_executable_signing)
           message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
         endif ()
 
-        if (NOT EXECUTABLE_NAME)
-          set(EXECUTABLE_NAME $<TARGET_FILE_NAME:${TARGET_NAME}>)
+        if (NOT EXECUTABLE_PATH)
+          set(EXECUTABLE_PATH $<TARGET_FILE_NAME:${TARGET_NAME}>)
         endif ()
 
+        # setup a post build command to sign the executable
         add_custom_command(
           TARGET ${TARGET_NAME} POST_BUILD
-          COMMAND ${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE} /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\ /td SHA256 $<TARGET_FILE_NAME:${TARGET_NAME}>
-        )
-
-        # setup the post install command to sign the executable
-        install(CODE "\
-          message(STATUS \"Signing ${TARGET_NAME} with signtool.\")
-          execute_process(COMMAND ${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE}\
-            /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\
-            /td SHA256 \${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_NAME})
-          "
-          COMPONENT ${EXECUTABLE_COMPONENT}
+          COMMAND ${SIGNTOOL_EXEC} sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com\ /td SHA256 ${EXECUTABLE_PATH}
         )
       else ()
         message(FATAL_ERROR "HF_PFX_PASSPHRASE must be set for executables to be signed.")
