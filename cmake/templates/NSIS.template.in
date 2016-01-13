@@ -38,14 +38,11 @@
   !else
     !echo "Outer invocation"
 
-    ; make sure that makensis itself is not run elevated
-    !system "set __COMPAT_LAYER=RunAsInvoker&makensis ..."
-
     ; Call makensis again, defining INNER.  This writes an installer for us which, when
     ; it is invoked, will just write the uninstaller to some location, and then exit.
     ; Be sure to substitute the name of this script here.
 
-    !system "$\"${NSISDIR}\makensis$\" /DINNER project.nsi" = 0
+    !system "set __COMPAT_LAYER=RunAsInvoker&$\"${NSISDIR}\makensis$\" /DINNER project.nsi" = 0
 
     ; Require administrator access
     RequestExecutionLevel admin
