@@ -25,13 +25,12 @@ macro(optional_win_executable_signing)
         endif ()
 
         # setup the post install command to sign the executable
-        set(SIGN_COMMAND "${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE} /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\
-          /td SHA256 \${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_NAME}"
-        )
 
         install(CODE "\
-          message(STATUS \"Signing ${EXECUTABLE_NAME} with signtool.\")
-          execute_process(COMMAND ${SIGN_COMMAND})
+          message(STATUS \"Signing ${TARGET_NAME} with signtool.\")
+          execute_process(COMMAND ${SIGNTOOL_EXEC} sign /f $ENV{HF_PFX_FILE}\
+            /p $ENV{HF_PFX_PASSPHRASE} /tr http://tsa.starfieldtech.com\
+            /td SHA256 \${CMAKE_INSTALL_PREFIX}/${EXECUTABLE_NAME})
           "
           COMPONENT ${EXECUTABLE_COMPONENT}
         )
