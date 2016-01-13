@@ -33,6 +33,9 @@
   ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
   !include UAC.nsh
 
+  ; Set name prior to inner loop so uninstaller has correct values
+  Name "@CPACK_NSIS_PACKAGE_NAME@"
+
   !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
 
@@ -69,8 +72,7 @@
 
     ; Good.  Now we can carry on writing the real installer.
 
-    ;Name and file
-    Name "@CPACK_NSIS_PACKAGE_NAME@"
+    ;Output file
     OutFile "@CPACK_TOPLEVEL_DIRECTORY@/@CPACK_OUTPUT_FILE_NAME@"
 
     ;Set compression
