@@ -285,14 +285,14 @@ MasterReset = function() {
                 grabbableKey: {
                     spatialKey: {
                         rightRelativePosition: {
-                            x: 0.02,
+                            x: 0.03,
                             y: 0,
-                            z: -0.03
+                            z: -0.085
                         },
                         leftRelativePosition: {
-                            x: -0.02,
+                            x: -0.03,
                             y: 0,
-                            z: -0.03
+                            z: -0.085
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
                     },
@@ -348,9 +348,14 @@ MasterReset = function() {
                 grabbableKey: {
                     invertSolidWhileHeld: true,
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
-                            y: 0.06,
+                        rightRelativePosition: {
+                            x: -0.03,
+                            y: 0,
+                            z: 0.11
+                        },
+                        leftRelativePosition: {
+                            x: 0.03,
+                            y: 0,
                             z: 0.11
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
@@ -1142,9 +1147,9 @@ MasterReset = function() {
                 grabbableKey: {
                     spatialKey: {
                         relativePosition: {
-                            x: 0,
+                            x: 0.01,
                             y: 0,
-                            z: 0.06
+                            z: 0.1
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
                     },
