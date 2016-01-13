@@ -98,13 +98,13 @@ public:
     };
 
 
-    template<typename T>
-    static void setGPUObject(const GPUObjectWrapper& wrapper, T* object) {
-        wrapper.setGPUObject(object);
+    template<typename T, typename U>
+    static void setGPUObject(const U& object, T* gpuObject) {
+        object.gpuObject.setGPUObject(gpuObject);
     }
-    template<typename T>
-    static T* getGPUObject(const GPUObjectWrapper& wrapper) {
-        return reinterpret_cast<T*>(wrapper.getGPUObject());
+    template<typename T, typename U>
+    static T* getGPUObject(const U& object) {
+        return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
     }
 
 

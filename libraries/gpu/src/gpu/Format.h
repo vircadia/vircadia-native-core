@@ -25,15 +25,12 @@ public:
     virtual ~GPUObject() = default;
 };
 
-class GPUObjectWrapper {
-public:
-    virtual ~GPUObjectWrapper() = default;
-
+class GPUObjectPointer {
 private:
-    using GPUObjectPointer = std::unique_ptr<GPUObject>;
+    using GPUObjectUniquePointer = std::unique_ptr<GPUObject>;
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObjectPointer _gpuObject;
+    mutable GPUObjectUniquePointer _gpuObject;
     void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
     GPUObject* getGPUObject() const { return _gpuObject.get(); }
 

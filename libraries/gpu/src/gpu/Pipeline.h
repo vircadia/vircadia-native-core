@@ -20,7 +20,7 @@
  
 namespace gpu {
 
-class Pipeline : public GPUObjectWrapper {
+class Pipeline {
 public:
     using Pointer = std::shared_ptr< Pipeline >;
 
@@ -31,6 +31,8 @@ public:
 
     const StatePointer& getState() const { return _state; }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     ShaderPointer _program;
     StatePointer _state;

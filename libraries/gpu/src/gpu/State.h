@@ -36,7 +36,7 @@ namespace gpu {
 
 class GPUObject;
 
-class State : public GPUObjectWrapper {
+class State {
 public:
     State();
     virtual ~State();
@@ -384,6 +384,8 @@ public:
     // For convenience, create a State from the values directly
     State(const Data& values);
     const Data& getValues() const { return _values; }
+
+    const GPUObjectPointer gpuObject {};
 
 protected:
     State(const State& state);

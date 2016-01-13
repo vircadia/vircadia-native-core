@@ -136,7 +136,7 @@ protected:
     Desc _desc;
 };
 
-class Texture : public Resource, public GPUObjectWrapper {
+class Texture : public Resource {
 public:
 
     class Pixels {
@@ -355,6 +355,8 @@ public:
 
     // Only callable by the Backend
     void notifyMipFaceGPULoaded(uint16 level, uint8 face) const { return _storage->notifyMipFaceGPULoaded(level, face); }
+
+    const GPUObjectPointer gpuObject {};
 
 protected:
     std::unique_ptr< Storage > _storage;

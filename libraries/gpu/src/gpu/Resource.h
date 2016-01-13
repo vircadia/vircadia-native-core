@@ -108,7 +108,7 @@ protected:
 
 };
 
-class Buffer : public Resource, public GPUObjectWrapper  {
+class Buffer : public Resource {
 public:
 
     Buffer();
@@ -153,6 +153,8 @@ public:
     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
     Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
 
     Sysmem* _sysmem = NULL;

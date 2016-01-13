@@ -20,7 +20,7 @@
  
 namespace gpu {
 
-class Shader : public GPUObjectWrapper {
+class Shader {
 public:
 
     typedef std::shared_ptr< Shader > Pointer;
@@ -155,6 +155,8 @@ public:
     // independant of the graphics api in use underneath (looking at you opengl & vulkan).
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, const Pointer& vertex, const Pointer& pixel);

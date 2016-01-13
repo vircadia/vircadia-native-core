@@ -64,7 +64,7 @@ protected:
 typedef std::shared_ptr<Swapchain> SwapchainPointer;
 
 
-class Framebuffer : public GPUObjectWrapper {
+class Framebuffer {
 public:
     enum BufferMask {
         BUFFER_COLOR0 = 1,
@@ -134,6 +134,8 @@ public:
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     SwapchainPointer _swapchain;
 

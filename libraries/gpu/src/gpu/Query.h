@@ -19,7 +19,7 @@
 
 namespace gpu {
 
-    class Query : public GPUObjectWrapper {
+    class Query {
     public:
         Query();
         ~Query();
@@ -27,6 +27,8 @@ namespace gpu {
         uint32 queryResult;
 
         double getElapsedTime();
+
+        const GPUObjectPointer gpuObject {};
     };
     
     typedef std::shared_ptr<Query> QueryPointer;
