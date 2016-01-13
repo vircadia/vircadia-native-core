@@ -113,7 +113,6 @@
                 z: 504.5
             });
 
-
             createCombinedArmChair({
                 x: 549.29,
                 y: 494.9,
@@ -365,16 +364,16 @@
                         invertSolidWhileHeld: true,
                         spatialKey: {
                             rightRelativePosition: {
-                                x: -0.03,
-                                y: 0,
+                                x: 0.03,
+                                y: 0.08,
                                 z: 0.11
                             },
                             leftRelativePosition: {
-                                x: 0.03,
-                                y: 0,
+                                x: -0.03,
+                                y: 0.08,
                                 z: 0.11
                             },
-                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                            relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 90)
                         }
                     }
                 })
