@@ -68,10 +68,6 @@ macro(SET_PACKAGING_PARAMETERS)
       if (NOT SIGNTOOL_EXECUTABLE)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
       endif ()
-
-      # perform a string replacement on the produced path so it is ready for NSIS
-      string(REPLACE "/" "\\\\" _SIGNTOOL_EXECUTABLE_BACKSLASH ${SIGNTOOL_EXECUTABLE})
-      string(REPLACE " " "\\ " SIGNTOOL_EXECUTABLE_ESCAPED ${_SIGNTOOL_EXECUTABLE_BACKSLASH})
     endif ()
   endif ()
 
