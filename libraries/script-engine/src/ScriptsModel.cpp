@@ -1,7 +1,4 @@
 //
-//  ScriptsModel.cpp
-//  interface/src
-//
 //  Created by Ryan Huffman on 05/12/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
@@ -11,17 +8,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ScriptsModel.h"
+
 #include <QUrl>
 #include <QUrlQuery>
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>
 
-#include "Application.h"
-#include "Menu.h"
-#include "InterfaceLogging.h"
+#include "ScriptEngine.h"
+#include "ScriptEngines.h"
+#include "ScriptEngineLogging.h"
+#define __STR2__(x) #x
+#define __STR1__(x) __STR2__(x)
+#define __LOC__ __FILE__ "("__STR1__(__LINE__)") : Warning Msg: "
 
-#include "ScriptsModel.h"
 
 static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
@@ -60,11 +61,7 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
-    updateScriptsLocation(qApp->getScriptsLocation());
-    
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
-    connect(qApp, &Application::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
-
     reloadLocalFiles();
     reloadRemoteFiles();
 }
@@ -182,7 +179,7 @@ void ScriptsModel::downloadFinished() {
         if (!data.isEmpty()) {
             finished = parseXML(data);
         } else {
-            qCDebug(interfaceapp) << "Error: Received no data when loading remote scripts";
+            qCDebug(scriptengine) << "Error: Received no data when loading remote scripts";
         }
     }
 
@@ -231,7 +228,7 @@ bool ScriptsModel::parseXML(QByteArray xmlFile) {
 
     // Error handling
     if (xml.hasError()) {
-        qCDebug(interfaceapp) << "Error loading remote scripts: " << xml.errorString();
+        qCDebug(scriptengine) << "Error loading remote scripts: " << xml.errorString();
         return true;
     }
 

@@ -11,7 +11,8 @@
 
 class OculusDebugDisplayPlugin : public OculusBaseDisplayPlugin {
 public:
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual grouping getGrouping() const override { return DEVELOPER; }
     virtual bool isSupported() const override;
 
 protected:

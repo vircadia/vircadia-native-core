@@ -71,8 +71,6 @@ public:
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space
         glm::quat rightOrientation = glm::quat(); // rig space (z forward)
-        float leftTrigger = 0.0f;
-        float rightTrigger = 0.0f;
     };
 
     virtual ~Rig() {}

@@ -164,7 +164,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-bool ObjectMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans = _body->getWorldTransform();
         btVector3 newPosition = glmToBullet(getObjectPosition());
@@ -251,7 +251,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags, engine);
+                    handleEasyChanges(flags);
                 }
                 return true;
             }
@@ -268,7 +268,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags, engine);
+        handleEasyChanges(flags);
     }
     // it is possible there are no HARD flags at this point (if DIRTY_SHAPE was removed)
     // so we check again before we reinsert:

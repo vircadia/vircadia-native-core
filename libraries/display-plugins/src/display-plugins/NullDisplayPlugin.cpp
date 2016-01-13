@@ -14,10 +14,6 @@
 
 const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
-const QString & NullDisplayPlugin::getName() const {
-    return NAME;
-}
-
 glm::uvec2 NullDisplayPlugin::getRecommendedRenderSize() const {
     return glm::uvec2(100, 100);
 }

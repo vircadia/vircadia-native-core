@@ -13,7 +13,8 @@ class NullDisplayPlugin : public DisplayPlugin {
 public:
 
     virtual ~NullDisplayPlugin() final {}
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual grouping getGrouping() const override { return DEVELOPER; }
 
     void stop() override;
 

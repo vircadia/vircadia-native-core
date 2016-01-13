@@ -40,7 +40,8 @@ function getTopLevelWindows(item) {
 
     for (var i = 0; i < desktop.children.length; ++i) {
         var child = desktop.children[i];
-        if (Global.OFFSCREEN_WINDOW_OBJECT_NAME === child.objectName) {
+        if ((Global.OFFSCREEN_WINDOW_OBJECT_NAME === child.objectName) || 
+                child[Global.OFFSCREEN_WINDOW_OBJECT_NAME]) {
             var windowId = child.toString();
             currentWindows.push(child)
         }

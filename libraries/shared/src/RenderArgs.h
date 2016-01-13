@@ -20,11 +20,16 @@
 class AABox;
 class OctreeRenderer;
 class ViewFrustum;
+
 namespace gpu {
 class Batch;
 class Context;
 class Texture;
 class Framebuffer;
+}
+
+namespace render {
+class ShapePipeline;
 }
 
 class RenderDetails {
@@ -103,6 +108,7 @@ public:
 
     std::shared_ptr<gpu::Context> _context = nullptr;
     std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
+    std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
     glm::ivec4 _viewport{ 0, 0, 1, 1 };

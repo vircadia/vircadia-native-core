@@ -944,7 +944,7 @@ static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer ri
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }

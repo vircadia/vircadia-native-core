@@ -191,6 +191,7 @@ inline quint16 quint16_convertFromScriptValue(const QScriptValue& v, bool& isVal
 inline uint16_t uint16_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline int int_convertFromScriptValue(const QScriptValue& v, bool& isValid) { return v.toVariant().toInt(&isValid); }
 inline bool bool_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toBool(); }
+inline uint8_t uint8_t_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return (uint8_t)(0xff & v.toVariant().toInt(&isValid)); }
 inline QString QString_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toString().trimmed(); }
 inline QUuid QUuid_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }
 inline EntityItemID EntityItemID_convertFromScriptValue(const QScriptValue& v, bool& isValid) { isValid = true; return v.toVariant().toUuid(); }

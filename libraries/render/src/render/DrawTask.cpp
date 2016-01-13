@@ -15,43 +15,11 @@
 #include <assert.h>
 
 #include <PerfStat.h>
-#include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 
 
 using namespace render;
-
-DrawSceneTask::DrawSceneTask() : Task() {
-}
-
-DrawSceneTask::~DrawSceneTask() {
-}
-
-void DrawSceneTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    // sanity checks
-    assert(sceneContext);
-    if (!sceneContext->_scene) {
-        return;
-    }
-
-
-    // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
-        return;
-    }
-
-    for (auto job : _jobs) {
-        job.run(sceneContext, renderContext);
-    }
-};
-
-Job::~Job() {
-}
-
-
-
-
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     assert(renderContext->getArgs());
@@ -97,47 +65,23 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
 
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(_filter);
 
     outItems.clear();
-    outItems.reserve(items.size());
-    for (auto id : items) {
-        auto& item = scene->getItem(id);
-        outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+
+    const auto& bucket = scene->getMasterBucket();
+    const auto& items = bucket.find(_filter);
+    if (items != bucket.end()) {
+        outItems.reserve(items->second.size());
+        for (auto& id : items->second) {
+            auto& item = scene->getItem(id);
+            outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+        }
     }
 
     if (_probeNumItems) {
         _probeNumItems(renderContext, (int)outItems.size());
     }
 }
-
-void CullItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::OTHER_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
-void CullItemsOpaque::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::OPAQUE_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
-void CullItemsTransparent::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
-    args->_details.pointTo(RenderDetails::TRANSLUCENT_ITEM);
-    cullItems(sceneContext, renderContext, inItems, outItems);
-}
-
 
 struct ItemBound {
     float _centerDepth = 0.0f;
@@ -209,29 +153,40 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
     depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
 }
 
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
-    // render
-    if ((maxDrawnItems < 0) || (maxDrawnItems > (int) inItems.size())) {
-        for (auto itemDetails : inItems) {
-            auto item = scene->getItem(itemDetails.id);
+
+    for (const auto& itemDetails : inItems) {
+        auto& item = scene->getItem(itemDetails.id);
+        item.render(args);
+    }
+}
+
+void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item) {
+    assert(item.getKey().isShape());
+    const auto& key = item.getShapeKey();
+    if (key.isValid() && !key.hasOwnPipeline()) {
+        args->_pipeline = shapeContext->pickPipeline(args, key);
+        if (args->_pipeline) {
             item.render(args);
         }
+    } else if (key.hasOwnPipeline()) {
+        item.render(args);
     } else {
-        int numItems = 0;
-        for (auto itemDetails : inItems) {
-            auto item = scene->getItem(itemDetails.id);
-            if (numItems + 1 >= maxDrawnItems) {
-                item.render(args);
-                return;
-            }
-            item.render(args);
-            numItems++;
-            if (numItems >= maxDrawnItems) {
-                return;
-            }
-        }
+        qDebug() << "Item could not be rendered: invalid key ?" << key;
+    }
+}
+
+void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+                          const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+    auto& scene = sceneContext->_scene;
+    RenderArgs* args = renderContext->getArgs();
+    
+    auto numItemsToDraw = glm::max((int)inItems.size(), maxDrawnItems);
+    for (auto i = 0; i < numItemsToDraw; ++i) {
+        auto& item = scene->getItem(inItems[i].id);
+        renderShape(args, shapeContext, item);
     }
 }
 
@@ -243,7 +198,6 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
 
-
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
@@ -251,62 +205,16 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
         inItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
     }
 
+    RenderArgs* args = renderContext->getArgs();
+
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
-    RenderArgs* args = renderContext->getArgs();
     args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, culledItems);
+        renderLights(sceneContext, renderContext, culledItems);
+        args->_batch = nullptr;
     });
-    args->_batch = nullptr;
-}
-
-void DrawBackground::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
-
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(id);
-    }
-    RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
-        args->_batch = &batch;
-        batch.enableSkybox(true);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(sceneContext, renderContext, inItems);
-    });
-    args->_batch = nullptr;
-}
-
-void ItemMaterialBucketMap::insert(const ItemID& id, const model::MaterialKey& key) {
-    // Insert the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.push_back(id);
-        }
-    }
-}
-
-void ItemMaterialBucketMap::allocateStandardMaterialBuckets() {
-    (*this)[model::MaterialFilter::Builder::opaqueDiffuse()];
 }

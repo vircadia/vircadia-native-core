@@ -18,6 +18,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
+var WANT_DEBUG_STATE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -105,7 +106,7 @@ var GRABBABLE_PROPERTIES = [
     "position",
     "rotation",
     "gravity",
-    "ignoreForCollisions",
+    "collisionMask",
     "collisionsWillMove",
     "locked",
     "name"
@@ -116,7 +117,6 @@ var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
 var DEFAULT_GRABBABLE_DATA = {
     grabbable: true,
-    invertSolidWhileHeld: false
 };
 
 
@@ -156,6 +156,16 @@ var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var STATE_EQUIP_SPRING = 16;
 
+// Used by the HandAnimaitonBuddy to play hand animations
+var IDLE_HAND_STATES = [STATE_OFF, STATE_RELEASE];
+var OPEN_HAND_STATES = [STATE_SEARCHING, STATE_EQUIP_SEARCHING];
+var POINT_HAND_STATES = [STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER, STATE_FAR_TRIGGER, STATE_CONTINUE_FAR_TRIGGER];
+var FAR_GRASP_HAND_STATES = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
+// otherwise grasp
+
+// collision masks are specified by comma-separated list of group names
+// the possible list of names is:  static, dynamic, kinematic, myAvatar, otherAvatar
+var COLLISION_MASK_WHILE_GRABBED = "dynamic,otherAvatar";
 
 
 function stateToName(state) {
@@ -264,6 +274,94 @@ function getSpatialOffsetRotation(hand, spatialKey) {
     return rotation;
 }
 
+var HAND_IDLE_RAMP_ON_RATE = 0.1;
+var HAND_IDLE_RAMP_OFF_RATE = 0.02;
+
+// ctor
+function HandAnimationBuddy(handController) {
+
+    this.handController = handController;
+    this.hand = handController.hand;
+    this.handIdleAlpha = 0;
+
+    var handPrefix = (this.hand === RIGHT_HAND) ? "right" : "left";
+    this.animVarKeys = {
+        idle: handPrefix + "HandIdle",
+        overlayAlpha: handPrefix + "HandOverlayAlpha",
+        open: handPrefix + "HandOpen",
+        point: handPrefix + "HandPoint",
+        farGrasp: handPrefix + "HandFarGrasp",
+        grasp: handPrefix + "HandGrasp"
+    };
+
+    // hook up anim var handler
+    var self = this;
+    this.animHandlerId = MyAvatar.addAnimationStateHandler(function (props) {
+        return self.animStateHandler(props);
+    }, []);
+}
+
+HandAnimationBuddy.prototype.animStateHandler = function (props) {
+    var foundState = false;
+    var result = {};
+
+    var state = this.handController.state;
+    var keys = this.animVarKeys;
+
+    // idle check & process
+    if (IDLE_HAND_STATES.indexOf(state) != -1) {
+        // ramp down handIdleAlpha
+        this.handIdleAlpha = Math.max(0, this.handIdleAlpha - HAND_IDLE_RAMP_OFF_RATE);
+        result[keys.idle] = true;
+        foundState = true;
+    } else {
+        // ramp up handIdleAlpha
+        this.handIdleAlpha = Math.min(1, this.handIdleAlpha + HAND_IDLE_RAMP_ON_RATE);
+        result[keys.idle] = false;
+    }
+    result[keys.overlayAlpha] = this.handIdleAlpha;
+
+    // open check
+    if (OPEN_HAND_STATES.indexOf(state) != -1) {
+        result[keys.open] = true;
+        foundState = true;
+    } else {
+        result[keys.open] = false;
+    }
+
+    // point check
+    if (POINT_HAND_STATES.indexOf(state) != -1) {
+        result[keys.point] = true;
+        foundState = true;
+    } else {
+        result[keys.point] = false;
+    }
+
+    // far grasp check
+    if (FAR_GRASP_HAND_STATES.indexOf(state) != -1) {
+        result[keys.farGrasp] = true;
+        foundState = true;
+    } else {
+        result[keys.farGrasp] = false;
+    }
+
+    // grasp check
+    if (!foundState) {
+        result[keys.grasp] = true;
+    } else {
+        result[keys.grasp] = false;
+    }
+
+    return result;
+};
+
+HandAnimationBuddy.prototype.cleanup = function () {
+    if (this.animHandlerId) {
+        MyAvatar.removeAnimationStateHandler(this.animHandlerId);
+        this.animHandlerId = undefined;
+    }
+};
+
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -303,6 +401,8 @@ function MyController(hand) {
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
+
+    this.handAnimationBuddy = new HandAnimationBuddy(this);
 
     var _this = this;
 
@@ -361,7 +461,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState) {
-        if (WANT_DEBUG) {
+        if (WANT_DEBUG || WANT_DEBUG_STATE) {
             print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
@@ -1385,8 +1485,6 @@ function MyController(hand) {
         } else {
             // equipping
             Entities.callEntityMethod(this.grabbedEntity, "startEquip", [JSON.stringify(this.hand)]);
-            this.startHandGrasp();
-
             this.setState(STATE_CONTINUE_EQUIP_BD);
         }
 
@@ -1473,7 +1571,6 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
-            this.endHandGrasp();
         }
     };
 
@@ -1722,15 +1819,14 @@ function MyController(hand) {
 
     this.cleanup = function() {
         this.release();
-        this.endHandGrasp();
         Entities.deleteEntity(this.particleBeam);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
+        this.handAnimationBuddy.cleanup();
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
-        var invertSolidWhileHeld = grabbableData["invertSolidWhileHeld"];
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         data["activated"] = true;
         data["avatarId"] = MyAvatar.sessionUUID;
@@ -1738,18 +1834,16 @@ function MyController(hand) {
         // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
-            data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+            data["collisionMask"] = grabbedProperties.collisionMask;
             data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
             var whileHeldProperties = {
                 gravity: {
                     x: 0,
                     y: 0,
                     z: 0
-                }
+                },
+                "collisionMask": COLLISION_MASK_WHILE_GRABBED
             };
-            if (invertSolidWhileHeld) {
-                whileHeldProperties["ignoreForCollisions"] = !grabbedProperties.ignoreForCollisions;
-            }
             Entities.editEntity(entityID, whileHeldProperties);
         }
 
@@ -1764,7 +1858,7 @@ function MyController(hand) {
             if (data["refCount"] < 1) {
                 Entities.editEntity(entityID, {
                     gravity: data["gravity"],
-                    ignoreForCollisions: data["ignoreForCollisions"],
+                    collisionMask: data["collisionMask"],
                     collisionsWillMove: data["collisionsWillMove"]
                 });
                 data = null;
@@ -1774,45 +1868,6 @@ function MyController(hand) {
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
-
-
-    //this is our handler, where we do the actual work of changing animation settings
-    this.graspHand = function(animationProperties) {
-        var result = {};
-        //full alpha on overlay for this hand
-        //set grab to true
-        //set idle to false
-        //full alpha on the blend btw open and grab
-        if (_this.hand === RIGHT_HAND) {
-            result['rightHandOverlayAlpha'] = 1.0;
-            result['isRightHandGrab'] = true;
-            result['isRightHandIdle'] = false;
-            result['rightHandGrabBlend'] = 1.0;
-        } else if (_this.hand === LEFT_HAND) {
-            result['leftHandOverlayAlpha'] = 1.0;
-            result['isLeftHandGrab'] = true;
-            result['isLeftHandIdle'] = false;
-            result['leftHandGrabBlend'] = 1.0;
-        }
-        //return an object with our updated settings
-        return result;
-    };
-
-    this.graspHandler = null
-
-    this.startHandGrasp = function() {
-        if (this.hand === RIGHT_HAND) {
-            this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isRightHandGrab']);
-        } else if (this.hand === LEFT_HAND) {
-            this.graspHandler = MyAvatar.addAnimationStateHandler(this.graspHand, ['isLeftHandGrab']);
-        }
-    };
-
-    this.endHandGrasp = function() {
-        // Tell the animation system we don't need any more callbacks.
-        MyAvatar.removeAnimationStateHandler(this.graspHandler);
-    };
-
 };
 
 var rightController = new MyController(RIGHT_HAND);
