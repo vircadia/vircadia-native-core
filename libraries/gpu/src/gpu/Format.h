@@ -11,8 +11,10 @@
 #ifndef hifi_gpu_Format_h
 #define hifi_gpu_Format_h
 
-#include <glm/glm.hpp>
 #include <assert.h>
+#include <memory>
+
+#include <glm/glm.hpp>
 
 namespace gpu {
 
@@ -25,14 +27,15 @@ public:
 
 class GPUObjectWrapper {
 public:
-    virtual ~GPUObjectWrapper() { delete _gpuObject; }
+    virtual ~GPUObjectWrapper() = default;
 
 private:
+    using GPUObjectPointer = std::unique_ptr<GPUObject>;
+
     // This shouldn't be used by anything else than the Backend class with the proper casting.
-    // TODO: Consider using std::unique_ptr to get rid of dtor and ensure correct destruction of GPU objects
-    mutable GPUObject* _gpuObject { nullptr };
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
+    mutable GPUObjectPointer _gpuObject;
+    void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
+    GPUObject* getGPUObject() const { return _gpuObject.get(); }
 
     friend class Backend;
 };
