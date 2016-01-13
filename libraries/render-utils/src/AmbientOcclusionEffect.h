@@ -30,6 +30,10 @@ public:
     void setLevel(float level);
     float getLevel() const { return _parametersBuffer.get<Parameters>()._radiusInfo.w; }
 
+    void setDithering(bool enabled);
+    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._performanceCaps.x; }
+
+
     using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
 
 private:
@@ -41,6 +45,8 @@ private:
     public:
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
+        // Performance parameters to adjust the effect
+        glm::vec4 _performanceCaps{ 1.0, 1.0, 1.0, 1.0 };
         // Pixel info is { viemport width height and stereo on off}
         glm::vec4 _pixelInfo;
         // Depth info is { n.f, f - n, -f}

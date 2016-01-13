@@ -72,6 +72,7 @@ namespace RenderScripting {
     public:
         Q_PROPERTY(float radius MEMBER radius)
         Q_PROPERTY(float level MEMBER level)
+        Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled)
     };
     using AmbientOcclusionPointer = std::unique_ptr<AmbientOcclusion>;
 };

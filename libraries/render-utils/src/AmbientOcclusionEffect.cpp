@@ -177,6 +177,14 @@ void AmbientOcclusionEffect::setLevel(float level) {
     }
 }
 
+
+void AmbientOcclusionEffect::setDithering(bool enabled) {
+    if (enabled != isDitheringEnabled()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._performanceCaps;
+        current.x = (float)enabled;
+    }
+}
+
 void AmbientOcclusionEffect::updateDeferredTransformBuffer(const render::RenderContextPointer& renderContext) {
     // Allocate the parameters buffer used by all the deferred shaders
     if (!_deferredTransformBuffer[0]._buffer) {

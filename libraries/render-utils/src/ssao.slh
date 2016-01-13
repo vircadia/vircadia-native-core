@@ -33,6 +33,7 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 
 struct AmbientOcclusionParams {
     vec4 _radiusInfo;
+    vec4 _performanceCaps;
     vec4 _pixelInfo;
     vec4 _depthInfo;
     mat4 _projection[2];
@@ -63,6 +64,10 @@ float getInvRadius6() {
 }
 float getObscuranceScaling() {
     return params._radiusInfo.z * params._radiusInfo.w;
+}
+
+float isDitheringEnabled() {
+    return params._performanceCaps.x;
 }
 
 float evalZeyeFromZdb(float depth) {
@@ -102,7 +107,7 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 
 
 const int BLUR_RADIUS = 4;
-const int RADIUS_SCALE = 3;
+const int RADIUS_SCALE = 2;
 const float EDGE_SHARPNESS = 1.0;
 
 const float gaussian[BLUR_RADIUS + 1] =

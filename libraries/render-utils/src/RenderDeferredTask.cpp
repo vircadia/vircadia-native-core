@@ -183,6 +183,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (_occlusionJobIndex >= 0) {
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setDithering(renderContext->getAmbientOcclusion().ditheringEnabled);
     }
     
     setAntialiasingStatus(renderContext->getFxaaStatus());
