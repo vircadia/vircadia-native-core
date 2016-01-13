@@ -30,10 +30,10 @@
 
 ;--------------------------------
 ;General
-  !ifdef INNER
-    ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
-    !include UAC.nsh
+  ; leverage the UAC NSIS plugin to promote uninstaller to elevated privileges
+  !include UAC.nsh
 
+  !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
 
     ; Require user only for temp installer
