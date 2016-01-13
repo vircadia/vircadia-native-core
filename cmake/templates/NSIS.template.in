@@ -31,16 +31,19 @@
 ;--------------------------------
 ;General
 
-  ; Require administrator access
-  RequestExecutionLevel admin
-
   !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
+
+    ; Require user only for temp installer
+    RequestExecutionLevel user
+
     OutFile "$%TEMP%\tempinstaller.exe"       ; not really important where this is
     SetCompress off                           ; for speed
-
   !else
     !echo "Outer invocation"
+
+    ; Require administrator access
+    RequestExecutionLevel admin
 
     ; Call makensis again, defining INNER.  This writes an installer for us which, when
     ; it is invoked, will just write the uninstaller to some location, and then exit.
