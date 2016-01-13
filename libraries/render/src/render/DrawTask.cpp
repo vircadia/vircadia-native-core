@@ -212,7 +212,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
     args->_details.pointTo(RenderDetails::OTHER_ITEM);
     cullItems(sceneContext, renderContext, inItems, culledItems);
 
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         renderLights(sceneContext, renderContext, culledItems);
         args->_batch = nullptr;

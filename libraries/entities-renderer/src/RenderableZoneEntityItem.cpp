@@ -14,7 +14,6 @@
 #include <gpu/Batch.h>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
@@ -140,12 +139,12 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 if (!success) {
                     break;
                 }
-                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                auto geometryCache = DependencyManager::get<GeometryCache>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
-                    deferredLightingEffect->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    geometryCache->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
                 } else {
-                    deferredLightingEffect->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    geometryCache->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
                 }
                 break;
             }

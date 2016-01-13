@@ -25,7 +25,6 @@
 #include <QThread>
 
 #include <ByteCountCoding.h>
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <OctreeConstants.h>
 #include <SharedUtil.h>
@@ -96,28 +95,27 @@ void renderWorldBox(gpu::Batch& batch) {
     geometryCache->renderLine(batch, glm::vec3(-HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE),
                               glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
 
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-
-    deferredLighting->renderWireCubeInstance(batch, Transform(), GREY4);
+    
+    geometryCache->renderWireCubeInstance(batch, Transform(), GREY4);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
 
     transform = Transform().setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
+    geometryCache->renderSolidSphereInstance(batch, transform, RED);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, RED);
+    geometryCache->renderSolidSphereInstance(batch, transform, RED);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, GREEN);
+    geometryCache->renderSolidSphereInstance(batch, transform, GREEN);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, BLUE);
+    geometryCache->renderSolidSphereInstance(batch, transform, BLUE);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    deferredLighting->renderSolidSphereInstance(batch, transform, GREY);
+    geometryCache->renderSolidSphereInstance(batch, transform, GREY);
 }
 
 //  Return a random vector of average length 1

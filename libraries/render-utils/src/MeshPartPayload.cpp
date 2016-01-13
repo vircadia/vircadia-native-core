@@ -499,7 +499,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         transform.setTranslation(partBounds.calcCenter());
         transform.setScale(partBounds.getDimensions());
         batch.setModelTransform(transform);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
 #endif //def DEBUG_BOUNDING_PARTS
     

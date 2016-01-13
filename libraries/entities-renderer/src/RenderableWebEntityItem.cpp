@@ -15,7 +15,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <gl/OffscreenQmlSurface.h>
@@ -69,7 +68,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         gpu::Batch& batch = *args->_batch;
         batch.setModelTransform(getTransformToCenter()); // we want to include the scale as well
         glm::vec4 cubeColor{ 1.0f, 0.0f, 0.0f, 1.0f};
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
     #endif
 
@@ -201,7 +200,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
         textured = emissive = true;
     }
     
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, textured, culled, emissive);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, textured, culled, emissive);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texMin, texMax, glm::vec4(1.0f));
 }
 
