@@ -1600,7 +1600,7 @@ void Application::paintGL() {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -3618,7 +3618,7 @@ namespace render {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
             renderWorldBox(batch);
         }
     }

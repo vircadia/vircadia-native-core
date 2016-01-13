@@ -12,7 +12,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
@@ -70,7 +69,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         renderArgs->_batch = &batch;
 
         int width = _overlayFramebuffer->getWidth();

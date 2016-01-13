@@ -16,7 +16,6 @@
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 
-#include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
@@ -179,7 +178,7 @@ void AmbientOcclusion::run(const render::SceneContextPointer& sceneContext, cons
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
         float fbWidth = framebufferSize.width();

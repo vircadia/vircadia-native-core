@@ -22,8 +22,6 @@
 #include "TextureCache.h"
 #include "ModelNetworkingLogging.h"
 
-#include "gpu/StandardShaderLib.h"
-
 #include "model/TextureMap.h"
 
 //#define WANT_DEBUG

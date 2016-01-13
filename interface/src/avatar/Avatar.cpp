@@ -331,7 +331,6 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
 
     if (glm::distance(DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), getPosition()) < 10.0f) {
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
 
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
@@ -359,7 +358,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
-                deferredLighting->bindSimpleProgram(batch);
+                geometryCache->bindSimpleProgram(batch);
                 geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
@@ -383,7 +382,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                 pointerTransform.setTranslation(position);
                 pointerTransform.setRotation(rotation);
                 batch.setModelTransform(pointerTransform);
-                deferredLighting->bindSimpleProgram(batch);
+                geometryCache->bindSimpleProgram(batch);
                 geometryCache->renderLine(batch, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, laserLength, 0.0f), laserColor);
             }
         }
@@ -457,7 +456,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             Transform transform;
             transform.setTranslation(position);
             transform.postScale(INDICATOR_RADIUS);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, LOOK_AT_INDICATOR_COLOR);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, LOOK_AT_INDICATOR_COLOR);
         }
 
         // If the avatar is looking at me, indicate that they are
@@ -485,7 +484,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
 
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
+                    DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
                         Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT),
                         glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
@@ -495,7 +494,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
-                    DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch,
+                    DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
                         Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT),
                         glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
@@ -655,7 +654,7 @@ void Avatar::renderBillboard(RenderArgs* renderArgs) {
     gpu::Batch& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
     batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
                                                         glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
@@ -791,7 +790,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
 
         {
             PROFILE_RANGE_BATCH(batch, __FUNCTION__":renderBevelCornersRect");
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, true, true);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, true, true, true);
             DependencyManager::get<GeometryCache>()->renderBevelCornersRect(batch, left, bottom, width, height,
                 bevelDistance, backgroundColor);
         }

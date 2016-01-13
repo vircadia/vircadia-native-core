@@ -27,7 +27,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>

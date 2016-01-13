@@ -14,7 +14,6 @@
 #include <GeometryCache.h>
 #include <TextureCache.h>
 #include <PathUtils.h>
-#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
 #include "RenderablePolyLineEntityItem.h"
