@@ -6,6 +6,7 @@
   !define VERSION "@CPACK_PACKAGE_VERSION@"
   !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
   !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
+  !define PRODUCTION_BUILD "@PRODUCTION_BUILD@"
 
 ;--------------------------------
 ;Variables
@@ -48,6 +49,12 @@
     ; calls quit the return value isn't zero.
 
     !system "$%TEMP%\tempinstaller.exe" = 2
+
+    ; The Inner invocation has written an uninstaller binary for us.
+    ; We need to sign it if it's a production or PR build.
+    !ifdef PRODUCTION_BUILD
+      !system "@SIGNTOOL_EXECUTABLE@ sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe" = 0
+    !endif
 
     ; Good.  Now we can carry on writing the real installer.
 
@@ -1100,13 +1107,6 @@ Function .onInit
 
     ; just bail out quickly when running the "inner" installer
     Quit
-  !else
-    ; The Inner invocation has written an uninstaller binary for us.
-    ; We need to sign it if it's a production build.
-
-    ${If} "@PRODUCTION_BUILD@" == "1"
-      !system "@SIGNTOOL_EXECUTABLE@ sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe" = 0
-    ${EndIf}
   !endif
 
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
