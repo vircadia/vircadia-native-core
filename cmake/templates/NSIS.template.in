@@ -6,7 +6,6 @@
   !define VERSION "@CPACK_PACKAGE_VERSION@"
   !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
   !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
-  !define PRODUCTION_BUILD "@PRODUCTION_BUILD@"
 
 ;--------------------------------
 ;Variables
@@ -52,7 +51,7 @@
 
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
-    !ifdef PRODUCTION_BUILD
+    !if @PRODUCTION_BUILD@ == 1
       !system "@SIGNTOOL_EXECUTABLE@ sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\uninstaller.exe" = 0
     !endif
 
