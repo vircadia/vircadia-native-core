@@ -63,11 +63,15 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # check if we need to find signtool
     if (PRODUCTION_BUILD OR PR_BUILD)
-      find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:\\Program\ Files\ (x86)\\Windows\ Kits\\8.1" PATH_SUFFIXES "bin/x64")
+      find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
 
       if (NOT SIGNTOOL_EXECUTABLE)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
       endif ()
+
+      # perform a string replacement on the produced path so it is ready for NSIS
+      string(REPLACE "/" "\\\\" _SIGNTOOL_EXECUTABLE_BACKSLASH ${SIGNTOOL_EXECUTABLE})
+      string(REPLACE " " "\\ " SIGNTOOL_EXECUTABLE_ESCAPED ${_SIGNTOOL_EXECUTABLE_BACKSLASH})
     endif ()
   endif ()
 
