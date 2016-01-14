@@ -147,10 +147,14 @@ Var AR_RegFlags
   IntOp $AR_SecFlags $AR_SecFlags & ${SF_SELECTED}
   IntCmp $AR_SecFlags 1 "leave_${SecName}"
     ;Section is not selected:
-    ;Calling Section uninstall macro and writing zero installed flag
-    !insertmacro "Remove_${${SecName}}"
-    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
-  "Installed" 0
+
+    ; NOTE: The default CPack template calls Section uninstall macro and writes zero installed flag
+    ; We do not do that here because it would absolutely cause issues with shared dependencies
+
+    ;!insertmacro "Remove_${${SecName}}"
+    ;WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
+    ;  "Installed" 0
+
     Goto "exit_${SecName}"
 
  "leave_${SecName}:"
