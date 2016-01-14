@@ -6,7 +6,6 @@
   !define VERSION "@CPACK_PACKAGE_VERSION@"
   !define PATCH  "@CPACK_PACKAGE_VERSION_PATCH@"
   !define INST_DIR "@CPACK_TEMPORARY_DIRECTORY@"
-  !define UNINSTALLER_NAME "Uninstall.exe"
 
 ;--------------------------------
 ;Variables
@@ -68,7 +67,7 @@
     ; The Inner invocation has written an uninstaller binary for us.
     ; We need to sign it if it's a production or PR build.
     !if @PRODUCTION_BUILD@ == 1
-      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\$UNINSTALLER_NAME' = 0
+      !system '"@SIGNTOOL_EXECUTABLE@" sign /f %HF_PFX_FILE% /p %HF_PFX_PASSPHRASE% /tr http://tsa.starfieldtech.com /td SHA256 $%TEMP%\@UNINSTALLER_NAME@' = 0
     !endif
 
     ; Good.  Now we can carry on writing the real installer.
@@ -690,7 +689,7 @@ Section "-Core installation"
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
     ; this packages the signed uninstaller
-    File $%TEMP%\$UNINSTALLER_NAME
+    File $%TEMP%\@UNINSTALLER_NAME@
   !endif
 
   Push "DisplayName"
@@ -703,7 +702,7 @@ Section "-Core installation"
   Push "@CPACK_PACKAGE_VENDOR@"
   Call ConditionalAddToRegisty
   Push "UninstallString"
-  Push "$INSTDIR\$UNINSTALLER_NAME"
+  Push "$INSTDIR\@UNINSTALLER_NAME@"
   Call ConditionalAddToRegisty
   Push "NoRepair"
   Push "1"
@@ -762,7 +761,7 @@ Section "-Core installation"
       "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
 
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\$UNINSTALLER_NAME"
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
 
   ;Read a value from an InstallOptions INI file
   !insertmacro MUI_INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
@@ -938,8 +937,8 @@ Function un.onInit
   ; so we move it to the $TEMP dir and then execute the copied uninstaller.
 
   ${If} $EXEDIR != $TEMP
-    CopyFiles /SILENT $EXEPATH $TEMP\$UNINSTALLER_NAME
-    ExecWait '"$Temp\$UNINSTALLER_NAME" _?=$INSTDIR' $0
+    CopyFiles /SILENT $EXEPATH $TEMP\@UNINSTALLER_NAME@
+    ExecWait '"$Temp\@UNINSTALLER_NAME@" _?=$INSTDIR' $0
     SetErrorLevel $0
     Quit
   ${EndIf}
@@ -1061,7 +1060,7 @@ Section "Uninstall"
 !endif
 
   ;Remove the uninstaller itself.
-  Delete "$INSTDIR\$UNINSTALLER_NAME"
+  Delete "$INSTDIR\@UNINSTALLER_NAME@"
   DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
 
   ;Remove the installation directory if it is empty.
@@ -1147,7 +1146,7 @@ Function .onInit
     ; the installer.  This is better than processing a command line option as it means
     ; this entire code path is not present in the final (real) installer.
 
-    WriteUninstaller "$%TEMP%\$UNINSTALLER_NAME"
+    WriteUninstaller "$%TEMP%\@UNINSTALLER_NAME@"
 
     ; just bail out quickly when running the "inner" installer
     Quit

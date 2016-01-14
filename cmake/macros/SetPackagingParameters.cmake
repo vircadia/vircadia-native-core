@@ -69,6 +69,8 @@ macro(SET_PACKAGING_PARAMETERS)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
       endif ()
     endif ()
+
+    set(GENERATED_UNINSTALLER_EXEC_NAME "Uninstall.exe")
   endif ()
 
   if (APPLE)
