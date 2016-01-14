@@ -173,6 +173,8 @@ void GLBackend::renderPassTransfer(Batch& batch) {
                     captureDrawCallInfo();
                     break;
 
+                case Batch::COMMAND_startNamedCall:
+                case Batch::COMMAND_stopNamedCall:
                 case Batch::COMMAND_setModelTransform:
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
@@ -256,6 +258,20 @@ void GLBackend::render(Batch& batch) {
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
+}
+
+
+GLBackend::DrawCallInfoBuffer& GLBackend::getDrawCallInfoBuffer() {
+    if (_currentNamedCall.empty()) {
+        return _drawCallInfos;
+    } else {
+        return _namedDrawCallInfos[_currentNamedCall];
+    }
+}
+
+void GLBackend::captureDrawCallInfo() {
+    auto& drawCallInfos = getDrawCallInfoBuffer();
+    drawCallInfos.push_back(_transform._objects.size() - 1);
 }
 
 bool GLBackend::checkGLError(const char* name) {

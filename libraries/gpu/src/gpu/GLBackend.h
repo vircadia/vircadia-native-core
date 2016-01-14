@@ -265,18 +265,8 @@ protected:
 
     std::string _currentNamedCall;
 
-    DrawCallInfoBuffer& getDrawCallInfoBuffer() {
-        if (_currentNamedCall.empty()) {
-            return _drawCallInfos;
-        } else {
-            return _namedDrawCallInfos[_currentNamedCall];
-        }
-    }
-
-    void captureDrawCallInfo() {
-        auto& drawCallInfos = getDrawCallInfoBuffer();
-        drawCallInfos.push_back(_transform._objects.size() - 1);
-    }
+    DrawCallInfoBuffer& getDrawCallInfoBuffer();
+    void captureDrawCallInfo();
 
     Stats _stats;
 
