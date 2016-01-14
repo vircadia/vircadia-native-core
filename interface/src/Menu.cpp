@@ -156,9 +156,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false, 
         audioIO.data(), SLOT(toggleMute()));
 
-    // Audio > Level Meter  [advanced] -- FIXME: needs implementation
-    auto levelMeterAction = addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-    levelMeterAction->setDisabled(true);
+    // Audio > Show Level Meter
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, true);
 
 
     // Avatar menu ----------------------------------

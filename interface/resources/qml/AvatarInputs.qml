@@ -86,7 +86,7 @@ Hifi.AvatarInputs {
         id: controls
         width: root.mirrorWidth
         height: 44
-        visible: !root.isHMD
+        visible: root.showAudioTools
         anchors.top: mirror.bottom
 
         Rectangle {
