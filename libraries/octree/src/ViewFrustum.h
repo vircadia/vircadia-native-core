@@ -162,6 +162,7 @@ private:
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
 };
+using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
 
 #endif // hifi_ViewFrustum_h

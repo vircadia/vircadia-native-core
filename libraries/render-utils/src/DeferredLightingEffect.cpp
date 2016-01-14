@@ -69,6 +69,8 @@ void DeferredLightingEffect::init() {
     _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
+    // Add the global light to the light stage (for later shadow rendering)
+    _lightStage.addLight(lp);
 
     lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
     lp->setColor(glm::vec3(1.0f));
@@ -539,10 +541,6 @@ void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const gl
     light->setColor(diffuse);
     light->setIntensity(intensity);
     light->setAmbientIntensity(ambientIntensity);
-}
-
-model::LightPointer DeferredLightingEffect::getGlobalLight() {
-    return _allocatedLights[_globalLights.front()];
 }
 
 void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {

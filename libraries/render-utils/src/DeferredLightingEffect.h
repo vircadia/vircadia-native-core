@@ -21,6 +21,8 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
+#include "LightStage.h"
+
 class RenderArgs;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
@@ -50,9 +52,11 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
-    model::LightPointer getGlobalLight();
+    const LightStage& getLightStage() { return _lightStage; }
 
 private:
+    LightStage _lightStage;
+
     DeferredLightingEffect() = default;
 
     model::MeshPointer _spotLightMesh;
@@ -72,26 +76,7 @@ private:
     gpu::PipelinePointer _spotLight;
     LightLocationsPtr _spotLightLocations;
 
-    class PointLight {
-    public:
-        glm::vec4 position;
-        float radius;
-        glm::vec4 ambient;
-        glm::vec4 diffuse;
-        glm::vec4 specular;
-        float constantAttenuation;
-        float linearAttenuation;
-        float quadraticAttenuation;
-    };
-    
-    class SpotLight : public PointLight {
-    public:
-        glm::vec3 direction;
-        float exponent;
-        float cutoff;
-    };
-
-    typedef std::vector< model::LightPointer > Lights;
+    using Lights = std::vector<model::LightPointer>;
 
     Lights _allocatedLights;
     std::vector<int> _globalLights;
