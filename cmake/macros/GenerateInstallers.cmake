@@ -25,7 +25,7 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
   set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/Installer.ico")
 
-  set(CPACK_RESOURCE_FILE_LICENSE "${HF_CMAKE_DIR}/installer/InstallerLicense.txt")
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
   # configure a cpack properties file for custom variables in NSIS template
   set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
