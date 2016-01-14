@@ -78,8 +78,11 @@ int main(int argc, const char* argv[]) {
             if (parser.isSet(urlOption)) {
                 QUrl url = QUrl(parser.value(urlOption));
                 if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
+                    qDebug() << "Writing URL to local socket";
                     socket.write(url.toString().toUtf8());
-                    socket.waitForBytesWritten(5000);
+                    if (!socket.waitForBytesWritten(5000)) {
+                        qDebug() << "Error writing URL to local socket";
+                    }
                 }
             }
 
@@ -95,12 +98,6 @@ int main(int argc, const char* argv[]) {
 #endif
     }
 
-    // Setup local server
-    QLocalServer server;
-
-    // We failed to connect to a local server, so we remove any existing servers.
-    server.removeServer(applicationName);
-    server.listen(applicationName);
 
     QElapsedTimer startupTime;
     startupTime.start();
@@ -124,6 +121,13 @@ int main(int argc, const char* argv[]) {
     {
         QSettings::setDefaultFormat(QSettings::IniFormat);
         Application app(argc, const_cast<char**>(argv), startupTime);
+
+        // Setup local server
+        QLocalServer server { &app };
+
+        // We failed to connect to a local server, so we remove any existing servers.
+        server.removeServer(applicationName);
+        server.listen(applicationName);
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
 
