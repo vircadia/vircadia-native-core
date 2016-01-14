@@ -48,9 +48,6 @@ public:
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
-    /// Set a batch to the simple pipeline, returning the previous pipeline
-    void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
-
 private:
     ModelCache();
     virtual ~ModelCache();

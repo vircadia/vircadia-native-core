@@ -16,7 +16,6 @@
 
 #include <array>
 
-
 #include <QMap>
 #include <QRunnable>
 
@@ -25,9 +24,12 @@
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
+#include <render/ShapePipeline.h>
 
 #include <model/Material.h>
 #include <model/Asset.h>
+
+class SimpleProgramKey;
 
 typedef glm::vec3 Vec3Key;
 
@@ -146,6 +148,32 @@ public:
 
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
+    
+    
+    /// Sets up the state necessary to render static untextured geometry with the simple program.
+    gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+                                           bool emissive = false, bool depthBias = false);
+    
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
+        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    }
+    
 
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
@@ -335,6 +363,13 @@ private:
     QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
+    
+
+    gpu::PipelinePointer getPipeline(SimpleProgramKey config);
+    
+    gpu::ShaderPointer _simpleShader;
+    gpu::ShaderPointer _emissiveShader;
+    QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 };
 
 #endif // hifi_GeometryCache_h

@@ -362,8 +362,8 @@ bool Batch::isSkyboxEnabled() const {
 
 void Batch::setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function) {
     NamedBatchData& instance = _namedData[instanceName];
-    instance._count += count;
-    instance._function = function;
+    instance.count += count;
+    instance.function = function;
 }
 
 void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function) {
@@ -372,13 +372,13 @@ void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Fun
 
 BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
     NamedBatchData& instance = _namedData[instanceName];
-    if (instance._buffers.size() <= index) {
-        instance._buffers.resize(index + 1);
+    if (instance.buffers.size() <= index) {
+        instance.buffers.resize(index + 1);
     }
-    if (!instance._buffers[index]) {
-        instance._buffers[index].reset(new Buffer());
+    if (!instance.buffers[index]) {
+        instance.buffers[index].reset(new Buffer());
     }
-    return instance._buffers[index];
+    return instance.buffers[index];
 }
 
 void Batch::preExecute() {

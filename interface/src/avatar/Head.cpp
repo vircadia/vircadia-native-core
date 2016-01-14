@@ -11,8 +11,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include <gpu/Batch.h>
 
-#include <DependencyManager.h>
-#include <DeferredLightingEffect.h>
 #include <NodeList.h>
 #include <recording/Deck.h>
 
@@ -451,12 +449,11 @@ void Head::renderLookatVectors(RenderArgs* renderArgs, glm::vec3 leftEyePosition
     batch.setModelTransform(transform);
     // FIXME: THe line width of 2.0f is not supported anymore, we ll need a workaround
 
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
-    deferredLighting->bindSimpleProgram(batch);
-
-    auto geometryCache = DependencyManager::get<GeometryCache>();
     glm::vec4 startColor(0.2f, 0.2f, 0.2f, 1.0f);
     glm::vec4 endColor(1.0f, 1.0f, 1.0f, 0.0f);
+    
+    auto geometryCache = DependencyManager::get<GeometryCache>();
+    geometryCache->bindSimpleProgram(batch);
     geometryCache->renderLine(batch, leftEyePosition, lookatPosition, startColor, endColor, _leftEyeLookAtID);
     geometryCache->renderLine(batch, rightEyePosition, lookatPosition, startColor, endColor, _rightEyeLookAtID);
 }
@@ -466,9 +463,9 @@ void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) 
     auto transform = Transform{};
     transform.setTranslation(lookatPosition);
 
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
+    auto geometryCache = DependencyManager::get<GeometryCache>();
     const float LOOK_AT_TARGET_RADIUS = 0.075f;
     transform.postScale(LOOK_AT_TARGET_RADIUS);
     const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    deferredLighting->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
+    geometryCache->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
 }

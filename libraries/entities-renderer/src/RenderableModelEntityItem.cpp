@@ -16,7 +16,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -442,7 +441,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
             batch.setModelTransform(Transform()); // we want to include the scale as well
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
         }
     }
 }

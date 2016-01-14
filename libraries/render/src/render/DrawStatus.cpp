@@ -160,7 +160,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
     }
 
     // Allright, something to render let's do it
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);

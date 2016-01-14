@@ -14,7 +14,6 @@
 #include <gpu/Batch.h>
 #include <GeometryCache.h>
 
-#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 
 #include "RenderableLineEntityItem.h"
@@ -53,7 +52,7 @@ void RenderableLineEntityItem::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     if (getLinePoints().size() > 1) {
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
         DependencyManager::get<GeometryCache>()->renderVertices(batch, gpu::LINE_STRIP, _lineVerticesID);
     }
 };

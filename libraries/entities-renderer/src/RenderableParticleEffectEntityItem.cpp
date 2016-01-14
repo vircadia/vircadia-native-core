@@ -11,7 +11,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <DependencyManager.h>
-#include <DeferredLightingEffect.h>
 #include <PerfStat.h>
 #include <GeometryCache.h>
 #include <AbstractViewStateInterface.h>

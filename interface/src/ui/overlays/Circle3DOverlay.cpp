@@ -10,7 +10,6 @@
 
 #include "Circle3DOverlay.h"
 
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
@@ -106,7 +105,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
     auto transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false);
     
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...

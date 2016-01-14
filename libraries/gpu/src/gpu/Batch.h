@@ -49,14 +49,13 @@ public:
         using BufferPointers = std::vector<BufferPointer>;
         using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
 
-        std::once_flag _once;
-        BufferPointers _buffers;
-        size_t _count{ 0 };
-        Function _function;
+        BufferPointers buffers;
+        size_t count { 0 };
+        Function function;
 
         void process(Batch& batch) {
-            if (_function) {
-                _function(batch, *this);
+            if (function) {
+                function(batch, *this);
             }
         }
     };

@@ -153,16 +153,11 @@ public:
     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
     Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
 
     Sysmem* _sysmem = NULL;
-
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 
 typedef std::shared_ptr<Buffer> BufferPointer;

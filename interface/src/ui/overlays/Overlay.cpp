@@ -222,10 +222,8 @@ float Overlay::updatePulse() {
 }
 
 bool Overlay::addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
-    auto overlayPayload = new Overlay::Payload(overlay);
-    auto overlayPayloadPointer = Overlay::PayloadPointer(overlayPayload);
     _renderItemID = scene->allocateID();
-    pendingChanges.resetItem(_renderItemID, overlayPayloadPointer);
+    pendingChanges.resetItem(_renderItemID, std::make_shared<Overlay::Payload>(overlay));
     return true;
 }
 

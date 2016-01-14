@@ -12,7 +12,6 @@
 
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
-#include <DeferredLightingEffect.h>
 
 
 QString const Line3DOverlay::TYPE = "line3d";
@@ -54,7 +53,7 @@ void Line3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
     if (batch) {
         batch->setModelTransform(_transform);
-        DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch);
+        DependencyManager::get<GeometryCache>()->bindSimpleProgram(*batch);
 
         if (getIsDashedLine()) {
             // TODO: add support for color to renderDashedLine()

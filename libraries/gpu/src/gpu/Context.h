@@ -97,68 +97,16 @@ public:
         TransformCamera getEyeCamera(int eye, const StereoState& stereo) const;
     };
 
-    template< typename T >
-    static void setGPUObject(const Buffer& buffer, T* object) {
-        buffer.setGPUObject(object);
+
+    template<typename T, typename U>
+    static void setGPUObject(const U& object, T* gpuObject) {
+        object.gpuObject.setGPUObject(gpuObject);
     }
-    template< typename T >
-    static T* getGPUObject(const Buffer& buffer) {
-        return reinterpret_cast<T*>(buffer.getGPUObject());
+    template<typename T, typename U>
+    static T* getGPUObject(const U& object) {
+        return reinterpret_cast<T*>(object.gpuObject.getGPUObject());
     }
 
-    template< typename T >
-    static void setGPUObject(const Texture& texture, T* object) {
-        texture.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const Texture& texture) {
-        return reinterpret_cast<T*>(texture.getGPUObject());
-    }
-    
-    template< typename T >
-    static void setGPUObject(const Shader& shader, T* object) {
-        shader.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const Shader& shader) {
-        return reinterpret_cast<T*>(shader.getGPUObject());
-    }
-
-    template< typename T >
-    static void setGPUObject(const Pipeline& pipeline, T* object) {
-        pipeline.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const Pipeline& pipeline) {
-        return reinterpret_cast<T*>(pipeline.getGPUObject());
-    }
-
-    template< typename T >
-    static void setGPUObject(const State& state, T* object) {
-        state.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const State& state) {
-        return reinterpret_cast<T*>(state.getGPUObject());
-    }
-
-    template< typename T >
-    static void setGPUObject(const Framebuffer& framebuffer, T* object) {
-        framebuffer.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const Framebuffer& framebuffer) {
-        return reinterpret_cast<T*>(framebuffer.getGPUObject());
-    }
-
-    template< typename T >
-    static void setGPUObject(const Query& query, T* object) {
-        query.setGPUObject(object);
-    }
-    template< typename T >
-    static T* getGPUObject(const Query& query) {
-        return reinterpret_cast<T*>(query.getGPUObject());
-    }
 
 protected:
     StereoState  _stereo;
