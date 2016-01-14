@@ -71,6 +71,7 @@ macro(SET_PACKAGING_PARAMETERS)
     endif ()
 
     set(GENERATED_UNINSTALLER_EXEC_NAME "Uninstall.exe")
+    set(REGISTRY_HKLM_INSTALL_ROOT "Software\\Microsoft\\Windows\\CurrentVersion\\Install\\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@")
     set(POST_INSTALL_OPTIONS_REG_GROUP "PostInstallOptions")
     set(CLIENT_DESKTOP_SHORTCUT_REG_KEY "ClientDesktopShortcut")
     set(CONSOLE_DESKTOP_SHORTCUT_REG_KEY "ConsoleDesktopShortcut")
