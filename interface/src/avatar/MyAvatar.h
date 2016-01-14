@@ -214,10 +214,6 @@ public:
 
     void clearScriptableSettings();
 
-    /// Renders a laser pointer for UI picking
-
-    glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
-
     float getBoomLength() const { return _boomLength; }
     void setBoomLength(float boomLength) { _boomLength = boomLength; }
 
