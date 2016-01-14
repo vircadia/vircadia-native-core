@@ -17,7 +17,7 @@
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
-    
+
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
@@ -33,7 +33,7 @@ enum EntityPropertyList {
 
     // these properties are supported by some derived classes
     PROP_COLOR,
-    
+
     // these are used by models only
     PROP_MODEL_URL,
     PROP_ANIMATION_URL,
@@ -46,7 +46,7 @@ enum EntityPropertyList {
     PROP_ANGULAR_VELOCITY,
     PROP_ANGULAR_DAMPING,
     PROP_IGNORE_FOR_COLLISIONS,
-    PROP_COLLISIONS_WILL_MOVE,
+    PROP_DYNAMIC,
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,

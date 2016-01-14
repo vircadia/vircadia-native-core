@@ -278,8 +278,8 @@ public:
     uint8_t getFinalCollisionMask() const { return _ignoreForCollisions ? 0 : _collisionMask; }
     void setCollisionMask(uint8_t value) { _collisionMask = value; }
 
-    bool getCollisionsWillMove() const { return _collisionsWillMove; }
-    void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
+    bool getDynamic() const { return _dynamic; }
+    void setDynamic(bool value) { _dynamic = value; }
 
     virtual bool shouldBePhysical() const { return false; }
 
@@ -333,7 +333,7 @@ public:
     void updateAngularDamping(float value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionMask(uint8_t value);
-    void updateCollisionsWillMove(bool value);
+    void updateDynamic(bool value);
     void updateLifetime(float value);
     void updateCreated(uint64_t value);
     virtual void updateShapeType(ShapeType type) { /* do nothing */ }
@@ -447,8 +447,7 @@ protected:
     bool _visible;
     bool _ignoreForCollisions;
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
-    uint8_t _collisionGroupOverride;
-    bool _collisionsWillMove;
+    bool _dynamic;
     bool _locked;
     QString _userData;
     SimulationOwner _simulationOwner;

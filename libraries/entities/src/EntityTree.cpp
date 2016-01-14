@@ -734,15 +734,15 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         }
     }
 
-    if (properties.collisionsWillMoveChanged()) {
-        int index = changedProperties.indexOf("collisionsWillMove");
+    if (properties.dynamicChanged()) {
+        int index = changedProperties.indexOf("dynamic");
         if (index >= 0) {
-            bool value = properties.getCollisionsWillMove();
+            bool value = properties.getDynamic();
             QString changeHint = "0";
             if (value) {
                 changeHint = "1";
             }
-            changedProperties[index] = QString("collisionsWillMove:") + changeHint;
+            changedProperties[index] = QString("dynamic:") + changeHint;
         }
     }
 
