@@ -76,7 +76,7 @@ if (APPLE)
   endif ()
 
   # set how the icon shows up in the Info.plist file
-  set(MACOSX_BUNDLE_ICON_FILE "${INTERfACE_ICON_FILENAME}")
+  set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
   set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
