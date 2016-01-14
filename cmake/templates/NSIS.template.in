@@ -818,6 +818,23 @@ Var SERVER_STARTUP_CHECKBOX
 Var LAUNCH_NOW_CHECKBOX
 Var CURRENT_OFFSET
 
+!macro SetPostInstallOption Checkbox OptionName Default
+  ; reads the value for the given post install option to the registry
+  ReadRegDWORD $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
+
+  ${If} $0 == "0"
+    ; the value in the registry says it should not be checked
+    ${NSD_SetState} ${Checkbox} ${BST_UNCHECKED}
+  ${ElseIf} $0 == "1"
+    ; the value in the registry says it should be checked
+    ${NSD_SetState} ${Checkbox} ${BST_CHECKED}
+  ${Else}
+    ; there was no value in the registry or it's not in the expected format, use default
+    ${NSD_SetState} ${Checkbox} Default
+  ${EndIf}
+
+!macroend
+
 Function PostInstallOptionsPage
   ; Set the text on the dialog button to match finish, hide the back and cancel buttons
   GetDlgItem $R1 $hwndparent 1
@@ -851,14 +868,17 @@ Function PostInstallOptionsPage
     Pop $DESKTOP_CLIENT_CHECKBOX
     StrCpy $CURRENT_OFFSET "30u"
 
-    ; check if we have a chosen option for this in the registry already
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $DESKTOP_CLIENT_CHECKBOX @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
 
-    ${NSD_SetState} $DESKTOP_CLIENT_CHECKBOX ${BST_CHECKED}
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
     Pop $DESKTOP_SERVER_CHECKBOX
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $DESKTOP_SERVER_CHECKBOX @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
 
     ${If} $CURRENT_OFFSET == "15u"
       StrCpy $CURRENT_OFFSET "30u"
@@ -868,7 +888,9 @@ Function PostInstallOptionsPage
 
     ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
     Pop $SERVER_STARTUP_CHECKBOX
-    ${NSD_SetState} $SERVER_STARTUP_CHECKBOX ${BST_CHECKED}
+
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $SERVER_STARTUP_CHECKBOX @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
 
     ${If} $CURRENT_OFFSET == "30u"
       StrCpy $CURRENT_OFFSET "45u"
@@ -879,7 +901,9 @@ Function PostInstallOptionsPage
 
   ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Now"
   Pop $LAUNCH_NOW_CHECKBOX
-  ${NSD_SetState} $LAUNCH_NOW_CHECKBOX ${BST_CHECKED}
+
+  ; set the checkbox state depending on what is present in the registry
+  !insertmacro SetPostInstallOption $LAUNCH_NOW_CHECKBOX @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
 
   nsDialogs::Show
 FunctionEnd
