@@ -1109,6 +1109,9 @@ Section "Uninstall"
   Delete "$INSTDIR\AddRemove.exe"
 !endif
 
+  ;Remove the Add/Remove icon
+  Delete "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"
+
   ;Remove the uninstaller itself.
   Delete "$INSTDIR\@UNINSTALLER_NAME@"
   DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
