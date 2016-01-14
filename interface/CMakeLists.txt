@@ -217,6 +217,8 @@ if (APPLE)
     COMPONENT ${CLIENT_COMPONENT}
   )
 
+  set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -239,11 +241,22 @@ else (APPLE)
       COMPONENT ${CLIENT_COMPONENT}
     )
 
+    set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
+
     set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
 
     optional_win_executable_signing()
   endif()
 endif (APPLE)
+
+if (SCRIPTS_INSTALL_DIR)
+  # setup install of scripts beside interface executable
+  install(
+    DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+    DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
+    COMPONENT ${CLIENT_COMPONENT}
+  )
+endif()
 
 # call the fixup_interface macro to add required bundling commands for installation
 fixup_interface()
