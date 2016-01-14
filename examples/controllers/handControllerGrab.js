@@ -156,13 +156,6 @@ var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var STATE_EQUIP_SPRING = 16;
 
-// Used by the HandAnimaitonBuddy to play hand animations
-var IDLE_HAND_STATES = [STATE_OFF, STATE_RELEASE];
-var OPEN_HAND_STATES = [STATE_SEARCHING, STATE_EQUIP_SEARCHING];
-var POINT_HAND_STATES = [STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER, STATE_FAR_TRIGGER, STATE_CONTINUE_FAR_TRIGGER];
-var FAR_GRASP_HAND_STATES = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
-// otherwise grasp
-
 // collision masks are specified by comma-separated list of group names
 // the possible list of names is:  static, dynamic, kinematic, myAvatar, otherAvatar
 var COLLISION_MASK_WHILE_GRABBED = "dynamic,otherAvatar";
@@ -274,94 +267,6 @@ function getSpatialOffsetRotation(hand, spatialKey) {
     return rotation;
 }
 
-var HAND_IDLE_RAMP_ON_RATE = 0.1;
-var HAND_IDLE_RAMP_OFF_RATE = 0.02;
-
-// ctor
-function HandAnimationBuddy(handController) {
-
-    this.handController = handController;
-    this.hand = handController.hand;
-    this.handIdleAlpha = 0;
-
-    var handPrefix = (this.hand === RIGHT_HAND) ? "right" : "left";
-    this.animVarKeys = {
-        idle: handPrefix + "HandIdle",
-        overlayAlpha: handPrefix + "HandOverlayAlpha",
-        open: handPrefix + "HandOpen",
-        point: handPrefix + "HandPoint",
-        farGrasp: handPrefix + "HandFarGrasp",
-        grasp: handPrefix + "HandGrasp"
-    };
-
-    // hook up anim var handler
-    var self = this;
-    this.animHandlerId = MyAvatar.addAnimationStateHandler(function (props) {
-        return self.animStateHandler(props);
-    }, []);
-}
-
-HandAnimationBuddy.prototype.animStateHandler = function (props) {
-    var foundState = false;
-    var result = {};
-
-    var state = this.handController.state;
-    var keys = this.animVarKeys;
-
-    // idle check & process
-    if (IDLE_HAND_STATES.indexOf(state) != -1) {
-        // ramp down handIdleAlpha
-        this.handIdleAlpha = Math.max(0, this.handIdleAlpha - HAND_IDLE_RAMP_OFF_RATE);
-        result[keys.idle] = true;
-        foundState = true;
-    } else {
-        // ramp up handIdleAlpha
-        this.handIdleAlpha = Math.min(1, this.handIdleAlpha + HAND_IDLE_RAMP_ON_RATE);
-        result[keys.idle] = false;
-    }
-    result[keys.overlayAlpha] = this.handIdleAlpha;
-
-    // open check
-    if (OPEN_HAND_STATES.indexOf(state) != -1) {
-        result[keys.open] = true;
-        foundState = true;
-    } else {
-        result[keys.open] = false;
-    }
-
-    // point check
-    if (POINT_HAND_STATES.indexOf(state) != -1) {
-        result[keys.point] = true;
-        foundState = true;
-    } else {
-        result[keys.point] = false;
-    }
-
-    // far grasp check
-    if (FAR_GRASP_HAND_STATES.indexOf(state) != -1) {
-        result[keys.farGrasp] = true;
-        foundState = true;
-    } else {
-        result[keys.farGrasp] = false;
-    }
-
-    // grasp check
-    if (!foundState) {
-        result[keys.grasp] = true;
-    } else {
-        result[keys.grasp] = false;
-    }
-
-    return result;
-};
-
-HandAnimationBuddy.prototype.cleanup = function () {
-    if (this.animHandlerId) {
-        MyAvatar.removeAnimationStateHandler(this.animHandlerId);
-        this.animHandlerId = undefined;
-    }
-};
-
 function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
@@ -401,8 +306,6 @@ function MyController(hand) {
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
     this.offsetRotation = Quat.IDENTITY;
-
-    this.handAnimationBuddy = new HandAnimationBuddy(this);
 
     var _this = this;
 
@@ -1822,7 +1725,6 @@ function MyController(hand) {
         Entities.deleteEntity(this.particleBeam);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
-        this.handAnimationBuddy.cleanup();
     };
 
     this.activateEntity = function(entityID, grabbedProperties) {
