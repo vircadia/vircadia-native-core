@@ -12,9 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// Everything about deferred buffer
+<@include Shadow.slh@>
 <@include DeferredBuffer.slh@>
-
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
@@ -27,11 +26,14 @@ void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
+    vec4 worldPos = deferredTransform.viewInverse * vec4(frag.position.xyz, 1.0);
+	float shadowAttenuation = evalShadowAttenuation(worldPos);
+
     // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
          vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
-                        1.0,
+                        shadowAttenuation,
                         frag.normal,
                         frag.diffuse,
                         frag.specularVal.xyz);
@@ -39,7 +41,7 @@ void main(void) {
     } else {
         vec3 color =  evalAmbientGlobalColor(
                         deferredTransform.viewInverse,
-                        1.0,
+						shadowAttenuation,
                         frag.position.xyz,
                         frag.normal,
                         frag.diffuse,
