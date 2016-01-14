@@ -53,7 +53,7 @@ public:
     using LightPointer = std::shared_ptr<Light>;
     using Lights = std::vector<LightPointer>;
 
-    const LightPointer& addLight(model::LightPointer light);
+    const LightPointer addLight(model::LightPointer light);
     // TODO: removeLight
 
     Lights lights;

@@ -71,7 +71,7 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float zBac
     _projection = ortho;
 }
 
-const LightStage::LightPointer& LightStage::addLight(model::LightPointer light) {
+const LightStage::LightPointer LightStage::addLight(model::LightPointer light) {
     Shadow stageShadow{light};
     LightPointer stageLight = std::make_shared<Light>(std::move(stageShadow));
     lights.push_back(stageLight);
