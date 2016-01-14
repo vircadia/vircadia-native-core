@@ -285,16 +285,16 @@ MasterReset = function() {
                 grabbableKey: {
                     spatialKey: {
                         rightRelativePosition: {
-                            x: 0.02,
-                            y: 0,
-                            z: -0.03
+                            x: 0.03,
+                            y: 0.0,
+                            z: -0.065
                         },
                         leftRelativePosition: {
-                            x: -0.02,
-                            y: 0,
-                            z: -0.03
+                            x: -0.03,
+                            y: 0.00,
+                            z: -0.065
                         },
-                        relativeRotation: Quat.fromPitchYawRollDegrees(100, 90, 0)
+                        relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                     },
                     invertSolidWhileHeld: true
                 },
@@ -348,12 +348,17 @@ MasterReset = function() {
                 grabbableKey: {
                     invertSolidWhileHeld: true,
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
-                            y: 0.06,
+                        rightRelativePosition: {
+                            x: 0.03,
+                            y: 0.08,
                             z: 0.11
                         },
-                        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                        leftRelativePosition: {
+                            x: -0.03,
+                            y: 0.08,
+                            z: 0.11
+                        },
+                        relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 90)
                     }
                 }
             })
@@ -1141,10 +1146,15 @@ MasterReset = function() {
                 },
                 grabbableKey: {
                     spatialKey: {
-                        relativePosition: {
-                            x: 0,
-                            y: 0,
-                            z: 0.06
+                        rightRelativePosition: {
+                            x: -0.05,
+                            y: .06,
+                            z: 0.05
+                        },
+                        leftRelativePosition: {
+                            x: 0.05,
+                            y: 0.06,
+                            z: 0.05
                         },
                         relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
                     },
