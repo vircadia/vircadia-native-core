@@ -134,6 +134,8 @@ public:
     static const uint32 MAX_NUM_RENDER_BUFFERS = 8; 
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     SwapchainPointer _swapchain;
 
@@ -153,12 +155,6 @@ protected:
     // Non exposed
     Framebuffer(const Framebuffer& framebuffer) = delete;
     Framebuffer() {}
-    
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 typedef std::shared_ptr<Framebuffer> FramebufferPointer;
 
