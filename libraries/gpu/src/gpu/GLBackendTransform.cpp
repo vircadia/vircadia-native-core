@@ -143,6 +143,7 @@ void GLBackend::TransformStageState::transfer() const {
         }
         glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
     if (!_objects.empty()) {
@@ -150,12 +151,9 @@ void GLBackend::TransformStageState::transfer() const {
         bufferData.resize(byteSize);
         memcpy(bufferData.data(), _objects.data(), byteSize);
 
-        glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
-        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
-    }
-
-    if (!_objects.empty() || !_cameras.empty()) {
-        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
     CHECK_GL_ERROR();
@@ -177,8 +175,7 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
             _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
 
-    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
-
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
 
     (void)CHECK_GL_ERROR();
 }

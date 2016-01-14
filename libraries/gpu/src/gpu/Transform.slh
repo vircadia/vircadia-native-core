@@ -25,12 +25,10 @@ struct TransformCamera {
     vec4 _viewport;
 };
 
-const int MAX_OBJECTS = 512; // NEEDS to match GLBackend::TransformStageState::update's MAX_OBJECT
-
 in ivec2 _drawCallInfo;
 
-layout(std140) uniform transformObjectBuffer {
-    TransformObject _object[MAX_OBJECTS];
+layout(std430, binding=6) buffer transformObjectBuffer {
+    TransformObject _object[];
 };
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
