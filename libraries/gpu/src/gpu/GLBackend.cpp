@@ -200,6 +200,7 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
+    _currentDraw = -1;
     _transform._camerasItr = _transform._cameraOffsets.begin();
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
@@ -220,6 +221,7 @@ void GLBackend::renderPassDraw(Batch& batch) {
             case Batch::COMMAND_drawInstanced:
             case Batch::COMMAND_drawIndexedInstanced:
                 // updates for draw calls
+                ++_currentDraw;
                 updateInput();
                 updateTransform();
                 updatePipeline();
@@ -438,6 +440,7 @@ void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
     _currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+    _currentDraw = 0;
 }
 
 void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
