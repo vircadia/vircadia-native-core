@@ -23,6 +23,7 @@ class LightStage {
 public:
     class Shadow {
     public:
+        using UniformBufferView = gpu::BufferView;
         const int MAP_SIZE = 2048;
 
         Shadow(model::LightPointer light);
@@ -30,16 +31,27 @@ public:
         void setKeylightFrustum(ViewFrustum* viewFrustum, float nearDepth, float farDepth);
 
         const std::shared_ptr<ViewFrustum> getFrustum() const { return _frustum; }
-        const glm::mat4& getProjection() const { return _projection; }
-        const Transform& getView() const { return _view; }
+
+        const glm::mat4& getView() const;
+        const glm::mat4& getProjection() const;
+
+        const UniformBufferView& getBuffer() const { return _schemaBuffer; }
 
         gpu::FramebufferPointer framebuffer;
         gpu::TexturePointer map;
     protected:
         model::LightPointer _light;
         std::shared_ptr<ViewFrustum> _frustum;
-        glm::mat4 _projection;
-        Transform _view;
+
+        class Schema {
+        public:
+            glm::mat4 projection;
+            glm::mat4 view;
+
+            glm::float32 bias;
+            glm::float32 scale;
+        };
+        UniformBufferView _schemaBuffer = nullptr;
     };
     using ShadowPointer = std::shared_ptr<Shadow>;
 

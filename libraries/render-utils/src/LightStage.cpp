@@ -16,6 +16,8 @@
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
+    Schema schema{glm::mat4(), glm::mat4(), 0, MAP_SIZE};
+    _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
 }
 
 void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float nearDepth, float farDepth) {
@@ -36,8 +38,8 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
     // Position the keylight frustum
     _frustum->setPosition(viewFrustum->getPosition() - (nearDepth + farDepth)*direction);
 
-    _view = _frustum->getView();
-    const Transform viewInverse{ _view.getInverseMatrix() };
+    const Transform view{ _frustum->getView()};
+    const Transform viewInverse{ view.getInverseMatrix() };
 
     viewFrustum->calculate();
     auto nearCorners = viewFrustum->getCorners(nearDepth);
@@ -67,7 +69,18 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
 
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, -max.z, -min.z);
     _frustum->setProjection(ortho);
-    _projection = ortho;
+
+    // Update the buffer
+    _schemaBuffer.edit<Schema>().projection = ortho;
+    _schemaBuffer.edit<Schema>().view = view.getMatrix();
+}
+
+const glm::mat4& LightStage::Shadow::getView() const {
+    return _frustum->getView();
+}
+
+const glm::mat4& LightStage::Shadow::getProjection() const {
+    return _frustum->getProjection();
 }
 
 const LightStage::LightPointer LightStage::addLight(model::LightPointer light) {
