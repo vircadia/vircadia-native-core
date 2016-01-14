@@ -33,6 +33,8 @@ var BUMPER_ON_VALUE = 0.5;
 
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
+var PICK_WITH_HAND_RAY = true;
+
 //
 // distant manipulation
 //
@@ -903,8 +905,9 @@ function MyController(hand) {
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var distantPickRay = {
-            origin: Camera.position,
-            direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : 
+                Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -1143,10 +1146,6 @@ function MyController(hand) {
             this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
         }
 
-        if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-            this.overlayLineOn(searchVisualizationPickRay.origin, Vec3.sum(searchVisualizationPickRay.origin, Vec3.multiply(searchVisualizationPickRay.direction, LINE_LENGTH)), NO_INTERSECT_COLOR);
-        }
-
         if (this.intersectionDistance > 0) {
             var SPHERE_INTERSECTION_SIZE = 0.011;
             var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
@@ -1155,7 +1154,7 @@ function MyController(hand) {
             var searchSphereLocation = Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
             searchSphereLocation.y -= ((this.intersectionDistance - this.searchSphereDistance) / this.intersectionDistance) * SEARCH_SPHERE_CHASE_DROP;
             this.searchSphereOn(searchSphereLocation, SPHERE_INTERSECTION_SIZE * this.intersectionDistance, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
-            if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
+            if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
                 this.overlayLineOn(handPosition, searchSphereLocation, this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
             }
         }
