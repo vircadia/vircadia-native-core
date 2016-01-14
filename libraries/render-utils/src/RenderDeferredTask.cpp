@@ -186,8 +186,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
 
-    renderContext->getArgs()->_context->syncCache();
-
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
