@@ -819,8 +819,14 @@ Var LAUNCH_NOW_CHECKBOX
 Var CURRENT_OFFSET
 
 !macro SetPostInstallOption Checkbox OptionName Default
+  ; clear errors so we can detect if registry value is not present
+  ClearErrors
+
   ; reads the value for the given post install option to the registry
   ReadRegDWORD $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
+
+  ; jump to UseDefault if no value found in the registry
+  IfErrors UseDefault 0
 
   ${If} $0 == "0"
     ; the value in the registry says it should not be checked
@@ -829,10 +835,17 @@ Var CURRENT_OFFSET
     ; the value in the registry says it should be checked
     ${NSD_SetState} ${Checkbox} ${BST_CHECKED}
   ${Else}
-    ; there was no value in the registry or it's not in the expected format, use default
+    ; the value in the registry was not in the expected format, use default
     ${NSD_SetState} ${Checkbox} Default
   ${EndIf}
 
+  Goto End
+
+  UseDefault:
+    ; there was no value in the registry, use default
+    ${NSD_SetState} ${Checkbox} Default
+
+  End:
 !macroend
 
 Function PostInstallOptionsPage
