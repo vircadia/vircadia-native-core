@@ -11,5 +11,5 @@
 
 namespace BuildInfo {
     const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
-    const QString VERSION = "@BUILD_SEQ@";
+    const QString VERSION = "@BUILD_VERSION@";
 }
