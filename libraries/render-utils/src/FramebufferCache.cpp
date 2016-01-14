@@ -183,14 +183,6 @@ void FramebufferCache::releaseFramebuffer(const gpu::FramebufferPointer& framebu
     }
 }
 
-gpu::FramebufferPointer FramebufferCache::getShadowFramebuffer() {
-    if (!_shadowFramebuffer) {
-        const int SHADOW_MAP_SIZE = 2048;
-        _shadowFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(SHADOW_MAP_SIZE));
-    }
-    return _shadowFramebuffer;
-}
-
 gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
     if (!_selfieFramebuffer) {
         createPrimaryFramebuffer();
