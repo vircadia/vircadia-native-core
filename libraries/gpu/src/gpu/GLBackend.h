@@ -245,7 +245,38 @@ protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 
+    class DrawCallInfo {
+    public:
+        using Index = uint16_t;
+
+        DrawCallInfo(Index idx) : index(idx) {}
+
+        Index index;
+        uint16_t unused; // Reserved space for later
+    };
+    // Make sure DrawCallInfo has no extra padding
+    static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
+
+    using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
+    using NamedDrawCallInfoBuffer = std::map<std::string, DrawCallInfoBuffer>;
+
+    DrawCallInfoBuffer _drawCallInfos;
+    NamedDrawCallInfoBuffer _namedDrawCallInfos;
+
     std::string _currentNamedCall;
+
+    DrawCallInfoBuffer& getDrawCallInfoBuffer() {
+        if (_currentNamedCall.empty()) {
+            return _drawCallInfos;
+        } else {
+            return _namedDrawCallInfos[_currentNamedCall];
+        }
+    }
+
+    void captureDrawCallInfo() {
+        auto& drawCallInfos = getDrawCallInfoBuffer();
+        drawCallInfos.push_back(_transform._objects.size() - 1);
+    }
 
     Stats _stats;
 

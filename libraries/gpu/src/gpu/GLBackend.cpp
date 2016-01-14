@@ -165,24 +165,25 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
-            case Batch::COMMAND_draw:
-            case Batch::COMMAND_drawIndexed:
-            case Batch::COMMAND_drawInstanced:
-            case Batch::COMMAND_drawIndexedInstanced:
-                _transform.preUpdate(_commandIndex, _stereo);
-                break;
+                case Batch::COMMAND_draw:
+                case Batch::COMMAND_drawIndexed:
+                case Batch::COMMAND_drawInstanced:
+                case Batch::COMMAND_drawIndexedInstanced:
+                    _transform.preUpdate(_commandIndex, _stereo);
+                    captureDrawCallInfo();
+                    break;
 
-            case Batch::COMMAND_setModelTransform:
-            case Batch::COMMAND_setViewportTransform:
-            case Batch::COMMAND_setViewTransform:
-            case Batch::COMMAND_setProjectionTransform: {
-                CommandCall call = _commandCalls[(*command)];
-                (this->*(call))(batch, *offset);
-                break;
-            }
+                case Batch::COMMAND_setModelTransform:
+                case Batch::COMMAND_setViewportTransform:
+                case Batch::COMMAND_setViewTransform:
+                case Batch::COMMAND_setProjectionTransform: {
+                    CommandCall call = _commandCalls[(*command)];
+                    (this->*(call))(batch, *offset);
+                    break;
+                }
 
-            default:
-                break;
+                default:
+                    break;
             }
             command++;
             offset++;
