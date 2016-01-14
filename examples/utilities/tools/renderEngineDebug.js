@@ -109,6 +109,21 @@ panel.newSlider("Ambient Occlusion Level", 0.0, 1.0,
     function() { return Render.ambientOcclusion.level; },
     function (value) { return (value); });
 
+panel.newSlider("Ambient Occlusion Num Samples", 1, 32,
+    function (value) { Render.ambientOcclusion.numSamples = value; },
+    function() { return Render.ambientOcclusion.numSamples; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Num Spiral Turns", 0.0, 30.0,
+    function (value) { Render.ambientOcclusion.numSpiralTurns = value; },
+    function() { return Render.ambientOcclusion.numSpiralTurns; },
+    function (value) { return (value); });
+
+panel.newCheckbox("Ambient Occlusion Dithering",
+    function (value) { Render.ambientOcclusion.ditheringEnabled = value; },
+    function() { return Render.ambientOcclusion.ditheringEnabled; },
+    function (value) { return (value); });
+
 var tickTackPeriod = 500;
 
 function updateCounters() {

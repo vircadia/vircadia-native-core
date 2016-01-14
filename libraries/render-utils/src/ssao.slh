@@ -33,7 +33,9 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 
 struct AmbientOcclusionParams {
     vec4 _radiusInfo;
-    vec4 _performanceCaps;
+    vec4 _ditheringInfo;
+    vec4 _sampleInfo;
+    vec4 _blurInfo;
     vec4 _pixelInfo;
     vec4 _depthInfo;
     mat4 _projection[2];
@@ -67,7 +69,25 @@ float getObscuranceScaling() {
 }
 
 float isDitheringEnabled() {
-    return params._performanceCaps.x;
+    return params._ditheringInfo.x;
+}
+float getFrameDithering() {
+    return params._ditheringInfo.y;
+}
+
+
+float getNumSamples() {
+    return params._sampleInfo.x;
+}
+float getInvNumSamples() {
+    return params._sampleInfo.y;
+}
+float getNumSpiralTurns() {
+    return params._sampleInfo.z;
+}
+
+float getBlurEdgeSharpness() {
+    return params._blurInfo.x;
 }
 
 float evalZeyeFromZdb(float depth) {
@@ -92,6 +112,7 @@ vec3 evalEyeNormal(vec3 C) {
 <@func declareBlurPass(axis)@>
 
 <$declarePackOcclusionDepth()$>
+<$declareAmbientOcclusion()$>
 
 // the source occlusion texture
 uniform sampler2D occlusionMap;
@@ -108,7 +129,6 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 
 const int BLUR_RADIUS = 4;
 const int RADIUS_SCALE = 2;
-const float EDGE_SHARPNESS = 1.0;
 
 const float gaussian[BLUR_RADIUS + 1] =
 //    float[](0.356642, 0.239400, 0.072410, 0.009869);
@@ -139,7 +159,7 @@ vec3 getBlurredOcclusion(vec2 coord) {
             float weight = 0.3 + gaussian[abs(r)];
 
             // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-            weight *= max(0.0, 1.0 - (EDGE_SHARPNESS * 2000.0) * abs(tapOZ.y - key));
+            weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * 2000.0) * abs(tapOZ.y - key));
 
             sum += tapOZ.x * weight;
             totalWeight += weight;

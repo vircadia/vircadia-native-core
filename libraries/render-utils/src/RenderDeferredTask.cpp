@@ -183,7 +183,10 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     if (_occlusionJobIndex >= 0) {
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSamples(renderContext->getAmbientOcclusion().numSamples);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSpiralTurns(renderContext->getAmbientOcclusion().numSpiralTurns);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setDithering(renderContext->getAmbientOcclusion().ditheringEnabled);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setEdgeSharpness(renderContext->getAmbientOcclusion().edgeSharpness);
     }
     
     setAntialiasingStatus(renderContext->getFxaaStatus());

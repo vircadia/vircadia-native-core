@@ -31,8 +31,19 @@ public:
     float getLevel() const { return _parametersBuffer.get<Parameters>()._radiusInfo.w; }
 
     void setDithering(bool enabled);
-    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._performanceCaps.x; }
+    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._ditheringInfo.w; }
 
+    // Number of samples per pixel to evaluate the Obscurance
+    void setNumSamples(int numSamples);
+    int getNumSamples() const { return (int)_parametersBuffer.get<Parameters>()._sampleInfo.x; }
+
+    // Number of spiral turns defining an angle span to distribute the samples ray directions
+    void setNumSpiralTurns(float numTurns);
+    float getNumSpiralTurns() const { return _parametersBuffer.get<Parameters>()._sampleInfo.z; }
+
+    // Edge blurring setting
+    void setEdgeSharpness(float sharpness);
+    int getEdgeSharpness() const { return (int)_parametersBuffer.get<Parameters>()._blurInfo.x; }
 
     using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
 
@@ -45,8 +56,12 @@ private:
     public:
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
-        // Performance parameters to adjust the effect
-        glm::vec4 _performanceCaps{ 1.0, 1.0, 1.0, 1.0 };
+        // Dithering info
+        glm::vec4 _ditheringInfo{ 1.0, 0.0, 0.0, 0.0 };
+        // Sampling info
+        glm::vec4 _sampleInfo{ 11.0, 1.0/11.0, 7.0, 1.0 };
+        // Blurring info
+        glm::vec4 _blurInfo{ 1.0, 0.0, 0.0, 0.0 };
         // Pixel info is { viemport width height and stereo on off}
         glm::vec4 _pixelInfo;
         // Depth info is { n.f, f - n, -f}

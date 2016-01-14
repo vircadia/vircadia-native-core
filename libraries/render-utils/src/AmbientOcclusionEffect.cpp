@@ -177,11 +177,35 @@ void AmbientOcclusionEffect::setLevel(float level) {
     }
 }
 
-
 void AmbientOcclusionEffect::setDithering(bool enabled) {
     if (enabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._performanceCaps;
-        current.x = (float)enabled;
+        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
+        current.w = (float)enabled;
+    }
+}
+
+void AmbientOcclusionEffect::setNumSamples(int numSamples) {
+    numSamples = std::max(1.f, (float) numSamples);
+    if (numSamples != getNumSamples()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
+        current.x = numSamples;
+        current.y = 1.0 / numSamples;
+    }
+}
+
+void AmbientOcclusionEffect::setNumSpiralTurns(float numTurns) {
+    numTurns = std::max(0.f, (float)numTurns);
+    if (numTurns != getNumSpiralTurns()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
+        current.z = numTurns;
+    }
+}
+
+void AmbientOcclusionEffect::setEdgeSharpness(float sharpness) {
+    sharpness = std::max(0.f, (float)sharpness);
+    if (sharpness != getEdgeSharpness()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        current.x = sharpness;
     }
 }
 
@@ -314,6 +338,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
     _parametersBuffer.edit<Parameters>()._projection[0] = monoProjMat;
     _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
+    _parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
+
 
     auto pyramidPipeline = getPyramidPipeline();
     auto occlusionPipeline = getOcclusionPipeline();

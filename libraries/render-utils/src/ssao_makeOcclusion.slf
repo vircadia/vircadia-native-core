@@ -13,9 +13,7 @@
 <$declareAmbientOcclusion()$>
 <$declarePackOcclusionDepth()$>
 
-const int NUM_SAMPLES = 11;
-const float INV_NUM_SAMPLES = 1.0 / float(NUM_SAMPLES);
-const int NUM_SPIRAL_TURNS= 7;
+
 const int LOG_MAX_OFFSET = 3;
 const int MAX_MIP_LEVEL = 5;
 
@@ -32,10 +30,15 @@ out vec4 outFragColor;
 
 uniform sampler2D normalMap;
 
+float getAngleDithering(in ivec2 pixelPos) {
+    // Hash function used in the AlchemyAO paper
+    return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
+}
+
 vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
     // Radius relative to ssR
-    float alpha = float(sampleNumber + 0.5) * INV_NUM_SAMPLES;
-    float angle = alpha * (NUM_SPIRAL_TURNS * 6.28) + spinAngle;
+    float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
+    float angle = alpha * (getNumSpiralTurns() * 6.28) + spinAngle;
 
     ssR = alpha;
     return vec2(cos(angle), sin(angle));
@@ -53,8 +56,8 @@ vec3 getOffsetPosition(ivec2 ssC, vec2 unitOffset, float ssR) {
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
     ivec2 mipP = clamp(ssP >> mipLevel, ivec2(0), textureSize(pyramidMap, mipLevel) - ivec2(1));
-//    P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
-    P.z = -texelFetch(pyramidMap, ssP, 0).r;
+    P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
+//    P.z = -texelFetch(pyramidMap, ssP, 0).r;
 
     // Offset to pixel center
     //P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
@@ -104,8 +107,7 @@ void main(void) {
 
     vec3 Cp = evalEyePosition(varTexCoord0);
 
-    // Hash function used in the HPG12 AlchemyAO paper
-    float randomPatternRotationAngle = isDitheringEnabled() * (3 * ssC.x ^ ssC.y + ssC.x * ssC.y) * 10;
+    float randomPatternRotationAngle = getAngleDithering(ssC);
 
     vec3 Cn = evalEyeNormal(Cp);
 
@@ -114,11 +116,11 @@ void main(void) {
     float ssDiskRadius = -getProjScale() * getRadius() / Cp.z;
 
     float sum = 0.0;
-    for (int i = 0; i < NUM_SAMPLES; ++i) {
+    for (int i = 0; i < getNumSamples(); ++i) {
         sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
     }
 
-    float A = max(0.0, 1.0 - sum * getObscuranceScaling() * 5.0 * INV_NUM_SAMPLES);
+    float A = max(0.0, 1.0 - sum * getObscuranceScaling() * 5.0 * getInvNumSamples());
 
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
