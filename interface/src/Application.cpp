@@ -3514,7 +3514,7 @@ int Application::getBoundaryLevelAdjust() const {
 }
 
 PickRay Application::computePickRay(float x, float y) const {
-    vec2 pickPoint{ x, y };
+    vec2 pickPoint { x, y };
     PickRay result;
     if (isHMDMode()) {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);

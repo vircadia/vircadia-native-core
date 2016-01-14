@@ -1708,24 +1708,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
 }
 
-//Gets the tip position for the laser pointer
-glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
-
-    glm::vec3 position = palm->getPosition();
-    //scale the position with the avatar
-    scaleVectorRelativeToPosition(position);
-
-
-    glm::vec3 result;
-    const auto& compositor = qApp->getApplicationCompositor();
-    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
-        return result;
-    }
-
-    return palm->getPosition();
-}
-
 void MyAvatar::clearDriveKeys() {
     for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
         _driveKeys[i] = 0.0f;
