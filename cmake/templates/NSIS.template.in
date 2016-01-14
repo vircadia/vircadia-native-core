@@ -721,6 +721,9 @@ Section "-Core installation"
   Call ConditionalAddToRegisty
   !endif
 
+  ; Package the add/remove icon file
+  File "@ADD_REMOVE_ICON_PATH@"
+
   ; Optional registration
   Push "DisplayIcon"
   Push "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"

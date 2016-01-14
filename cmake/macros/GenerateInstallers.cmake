@@ -29,10 +29,7 @@ macro(GENERATE_INSTALLERS)
 
     # install the uninstaller icon and reference it for Add/Remove icon
     set(ADD_REMOVE_ICON_NAME "add-remove.ico")
-    install(
-      FILES "${HF_CMAKE_DIR}/installer/${ADD_REMOVE_ICON_NAME}"
-      DESTINATION "."
-    )
+    set(ADD_REMOVE_ICON_PATH "${HF_CMAKE_DIR}/installer/${ADD_REMOVE_ICON_NAME}")
     set(CPACK_NSIS_INSTALLED_ICON_NAME ${ADD_REMOVE_ICON_NAME})
 
     # use macro to put backslashes in header image path since nsis requires them
