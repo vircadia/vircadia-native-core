@@ -10,6 +10,7 @@ var shell = require('shell');
 var os = require('os');
 var childProcess = require('child_process');
 var path = require('path');
+const dialog = require('electron').dialog;
 
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
@@ -24,7 +25,6 @@ var path = require('path');
 
 const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
-const APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', console.log.bind(console));
@@ -55,8 +55,40 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
 }
 
+function binaryMissingMessage(displayName, executableName, required) {
+    var message = "The " + displayName + " executable was not found.\n";
+
+    if (required) {
+        message += "It is required for the Server Console to run.\n\n";
+    } else {
+        message += "\n";
+    }
+
+    if (debug) {
+        message += "Please ensure there is a compiled " + displayName + " in a folder named build in this checkout.\n\n";
+        message += "It was expected to be found at one of the following paths:\n";
+
+        var paths = pathFinder.searchPaths(executableName, argv.localReleaseBuilds);
+        message += paths.join("\n");
+    } else {
+        message += "It is expected to be found beside this executable.\n"
+        message += "You may need to re-install the Server Console.";
+    }
+
+    return message;
+}
+
 // if at this point any of the paths are null, we're missing something we wanted to find
-// TODO: show an error for the binaries that couldn't be found
+
+if (!dsPath) {
+    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
+    app.quit();
+}
+
+if (!acPath) {
+    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true))
+    app.quit();
+}
 
 function openFileBrowser(path) {
     if (osType == "Windows_NT") {
@@ -82,6 +114,7 @@ function startInterface(url) {
 }
 
 var tray = null;
+var logPath = null;
 var homeServer = null;
 
 const GO_HOME_INDEX = 0;
@@ -90,11 +123,20 @@ const RESTART_INDEX = 3;
 const STOP_INDEX = 4;
 const SETTINGS_INDEX = 5;
 
+function goHomeClicked() {
+    if (interfacePath) {
+        startInterface('hifi://localhost');
+    } else {
+        // show an error to say that we can't go home without an interface instance
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity Client", "Interface", false));
+    }
+}
+
 function buildMenuArray(serverState) {
     var menuArray = [
         {
             label: 'Go Home',
-            click: function() { startInterface('hifi://localhost'); },
+            click: goHomeClicked,
             enabled: false
         },
         {
@@ -183,15 +225,19 @@ app.on('ready', function() {
         app.dock.hide()
     }
 
-    var logPath = path.join(app.getAppPath(), 'logs');
+    logPath = path.join(app.getAppPath(), 'logs');
 
     // Create tray icon
     tray = new Tray(TRAY_ICON);
-    tray.setToolTip('High Fidelity');
+    tray.setToolTip('High Fidelity Server Console');
+
+    tray.on('click', function() {
+        tray.popUpContextMenu(tray.menu);
+    });
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
-    if (interfacePath && dsPath && acPath) {
+    if (dsPath && acPath) {
         homeServer = new ProcessGroup('home', [
             new Process('domain-server', dsPath),
             new Process('ac-monitor', acPath, ['-n6', '--log-directory', logPath])

@@ -36,6 +36,5 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
-include_application_version()
 package_libraries_for_deployment()
-consolidate_stack_components()
+consolidate_installer_components()
