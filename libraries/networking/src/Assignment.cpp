@@ -16,7 +16,7 @@
 
 #include <QtCore/QDataStream>
 
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include "Assignment.h"
 #include <QtCore/QStandardPaths>
 
@@ -66,7 +66,7 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     } else if (_command == Assignment::RequestCommand) {
-        _nodeVersion = BUILD_VERSION;
+        _nodeVersion = BuildInfo::VERSION;
     }
 }
 

@@ -24,7 +24,7 @@
 #include <QUrlQuery>
 
 #include <AccountManager.h>
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 #include <LogUtils.h>
@@ -72,10 +72,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     connect(this, &QCoreApplication::aboutToQuit, this, &DomainServer::aboutToQuit);
 
-    setOrganizationName("High Fidelity");
+    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
-    setApplicationVersion(BUILD_VERSION);
+    setApplicationVersion(BuildInfo::VERSION);
     QSettings::setDefaultFormat(QSettings::IniFormat);
 
     // make sure we have a fresh AccountManager instance

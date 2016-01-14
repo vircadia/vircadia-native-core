@@ -12,7 +12,7 @@
 #include <QCommandLineParser>
 #include <QThread>
 
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include <LogHandler.h>
 #include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
@@ -44,10 +44,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     ShutdownEventListener::getInstance();
 #   endif
 
-    setOrganizationName("High Fidelity");
+    setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
-    setApplicationName(BUILD_VERSION);
+    setApplicationName(BuildInfo::VERSION);
 
     // use the verbose message handler in Logging
     qInstallMessageHandler(LogHandler::verboseMessageHandler);

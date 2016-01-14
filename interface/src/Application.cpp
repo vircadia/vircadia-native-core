@@ -60,7 +60,7 @@
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
@@ -306,7 +306,7 @@ bool setupEssentials(int& argc, char** argv) {
         listenPort = atoi(portStr);
     }
     // Set build version
-    QCoreApplication::setApplicationVersion(BUILD_VERSION);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
     Setting::preInit();
 
