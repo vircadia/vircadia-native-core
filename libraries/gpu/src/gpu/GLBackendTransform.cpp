@@ -67,10 +67,6 @@ void GLBackend::initTransform() {
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
     }
-    size_t objectSize = sizeof(TransformObject);
-    while (_transform._objectUboSize < objectSize) {
-        _transform._objectUboSize += _uboAlignment;
-    }
 }
 
 void GLBackend::killTransform() {
@@ -116,6 +112,8 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
         //_model.getInverseMatrix(_object._modelInverse);
         _object._modelInverse = glm::inverse(_object._model);
+
+        _objects.push_back(_object);
     }
 
     if (_invalidView || _invalidProj || _invalidViewport) {
@@ -131,12 +129,6 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         }
     }
 
-    if (_invalidModel) {
-        size_t offset = _objectUboSize * _objects.size();
-        _objectOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-        _objects.push_back(_object);
-    }
-
     // Flags are clean
     _invalidView = _invalidProj = _invalidModel = _invalidViewport = false;
 }
@@ -145,42 +137,33 @@ void GLBackend::TransformStageState::transfer() const {
     // FIXME not thread safe
     static std::vector<uint8_t> bufferData;
     if (!_cameras.empty()) {
-        glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         bufferData.resize(_cameraUboSize * _cameras.size());
         for (size_t i = 0; i < _cameras.size(); ++i) {
             memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
         }
+        glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
     }
 
     if (!_objects.empty()) {
+        auto byteSize = _objects.size() * sizeof(TransformObject);
+        bufferData.resize(byteSize);
+        memcpy(bufferData.data(), _objects.data(), byteSize);
+
         glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
-        bufferData.resize(_objectUboSize * _objects.size());
-        for (size_t i = 0; i < _objects.size(); ++i) {
-            memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
-        }
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
     }
 
-    if (!_cameras.empty() || !_objects.empty()) {
+    if (!_objects.empty() || !_cameras.empty()) {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
+
     CHECK_GL_ERROR();
 }
 
 void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
     static const size_t INVALID_OFFSET = (size_t)-1;
     size_t offset = INVALID_OFFSET;
-    while ((_objectsItr != _objectOffsets.end()) && (commandIndex >= (*_objectsItr).first)) {
-        offset = (*_objectsItr).second;
-        ++_objectsItr;
-    }
-    if (offset != INVALID_OFFSET) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT,
-            _objectBuffer, offset, sizeof(Backend::TransformObject));
-    }
-
-    offset = INVALID_OFFSET;
     while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
         offset = (*_camerasItr).second;
         ++_camerasItr;
@@ -193,6 +176,9 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
             _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
+
+    glBindBufferBase(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+
 
     (void)CHECK_GL_ERROR();
 }

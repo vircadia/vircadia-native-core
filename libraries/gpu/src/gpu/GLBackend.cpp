@@ -158,10 +158,9 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync all the buffers
         PROFILE_RANGE("syncCPUTransform");
-        _transform._cameras.resize(0);
+        _transform._cameras.clear();
         _transform._cameraOffsets.clear();
-        _transform._objects.resize(0);
-        _transform._objectOffsets.clear();
+        _transform._objects.clear();
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
@@ -196,10 +195,11 @@ void GLBackend::renderPassTransfer(Batch& batch) {
         PROFILE_RANGE("syncGPUTransform");
         _transform.transfer();
     }
+
+
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
-    _transform._objectsItr = _transform._objectOffsets.begin();
     _transform._camerasItr = _transform._cameraOffsets.begin();
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
