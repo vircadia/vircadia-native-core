@@ -69,9 +69,7 @@ function binaryMissingMessage(displayName, executableName, required) {
         message += "It was expected to be found at one of the following paths:\n";
 
         var paths = pathFinder.searchPaths(executableName, argv.localReleaseBuilds);
-        for (var i = 0; i < paths.length; i++) {
-            message += paths[i] + "\n";
-        }
+        message += paths.join("\n");
     } else {
         message += "It is expected to be found beside this executable.\n"
         message += "You may need to re-install the Server Console.";
