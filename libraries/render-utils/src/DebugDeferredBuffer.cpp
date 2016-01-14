@@ -182,6 +182,14 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
     RenderArgs* args = renderContext->getArgs();
+
+    // Guard against unspecified modes
+    auto mode = renderContext->_deferredDebugMode;
+    if (mode > (int)CustomMode) {
+        renderContext->_deferredDebugMode = -1;
+        return;
+    }
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
