@@ -24,6 +24,7 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
   set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
+  set(CPACK_NSIS_INSTALLED_ICON_NAME "${HF_CMAKE_DIR}/installer/uninstaller.ico")
 
   if (WIN32)
     # use macro to put backslashes in header image path since nsis requires them
