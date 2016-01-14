@@ -260,7 +260,7 @@ protected:
     using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
     using NamedDrawCallInfoBuffer = std::map<std::string, DrawCallInfoBuffer>;
 
-    int _currentDraw = 0;
+    int _currentDraw{ -1 };
     DrawCallInfoBuffer _drawCallInfos;
     NamedDrawCallInfoBuffer _namedDrawCallInfos;
 
