@@ -275,6 +275,7 @@ public:
     void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
 
     uint8_t getCollisionMask() const { return _collisionMask; }
+    uint8_t getFinalCollisionMask() const { return _ignoreForCollisions ? 0 : _collisionMask; }
     void setCollisionMask(uint8_t value) { _collisionMask = value; }
 
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
@@ -446,6 +447,7 @@ protected:
     bool _visible;
     bool _ignoreForCollisions;
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
+    uint8_t _collisionGroupOverride;
     bool _collisionsWillMove;
     bool _locked;
     QString _userData;
