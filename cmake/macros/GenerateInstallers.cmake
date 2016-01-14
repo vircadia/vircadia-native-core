@@ -24,7 +24,13 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
   set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
-  set(INSTALLER_HEADER_IMAGE "${HF_CMAKE_DIR}/installer/installer-header.bmp")
+
+  if (WIN32)
+    # use macro to put backslashes in header image path since nsis requires them
+    set(_INSTALLER_HEADER_BAD_PATH "${HF_CMAKE_DIR}/installer/installer-header.bmp")
+    set(INSTALLER_HEADER_IMAGE "")
+    fix_path_for_nsis(${_INSTALLER_HEADER_BAD_PATH} INSTALLER_HEADER_IMAGE)
+  endif()
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
