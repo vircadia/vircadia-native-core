@@ -232,7 +232,7 @@ app.on('ready', function() {
     tray.setToolTip('High Fidelity Server Console');
 
     tray.on('click', function() {
-      tray.popUpContextMenu(tray.menu);
+        tray.popUpContextMenu(tray.menu);
     });
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
