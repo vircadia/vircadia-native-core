@@ -29,11 +29,26 @@ var ProcessStates = hfprocess.ProcessStates;
 var ProcessGroup = hfprocess.ProcessGroup;
 var ProcessGroupStates = hfprocess.ProcessGroupStates;
 
-function getApplicationDataDirectory() {
+
+function getRootHifiDataDirectory() {
     var rootDirectory = app.getPath('appData');
-    return path.join(rootDirectory, '/High Fidelity/Console');
+    return path.join(rootDirectory, '/High Fidelity');
 }
 
+function getStackManagerDataDirectory() {
+    return path.join(getRootHifiDataDirectory(), "../../Local/High Fidelity");
+}
+
+function getAssignmentClientResourcesDirectory() {
+    return path.join(getRootHifiDataDirectory(), '/assignment-client/resources');
+}
+
+function getApplicationDataDirectory() {
+    return path.join(getRootHifiDataDirectory(), '/Console');
+}
+
+
+console.log("Root directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
 
@@ -300,6 +315,19 @@ function maybeInstallDefaultContentSet() {
         return;
     }
 
+    // Check for existing Stack Manager data
+    const stackManagerDataPath = getStackManagerDataDirectory();
+    console.log("Checking for existence of " + stackManagerDataPath);
+    var userHasExistingServerData = true;
+    try {
+        fs.accessSync(stackManagerDataPath);
+    } catch (e) {
+        console.log(e);
+        userHasExistingServerData = false;
+    }
+
+    console.log("Existing data?", userHasExistingServerData);
+
     // Show popup
     var window = new BrowserWindow({
         icon: APP_ICON,
@@ -319,7 +347,10 @@ function maybeInstallDefaultContentSet() {
         window.webContents.send('update', { state: state, args: args });
     }
 
-    var unzipper = unzip.Extract({ path: 'download2', verbose: true });
+    var unzipper = unzip.Extract({
+        path: getAssignmentClientResourcesDirectory(),
+        verbose: true
+    });
     unzipper.on('close', function() {
         console.log("Done", arguments);
         sendStateUpdate('complete');
@@ -336,8 +367,8 @@ function maybeInstallDefaultContentSet() {
 
     // Start downloading content set
     progress(request.get({
-        url: "http://localhost:8000/contentSet.zip",
-        // url: "http://builds.highfidelity.com/interface-win64-3908.xe"
+        // url: "http://localhost:8000/contentSet.zip",
+        url: "http://builds.highfidelity.com/interface-win64-3914.exe"
     }, function(error, responseMessage, responseData) {
         if (error || responseMessage.statusCode != 200) {
             var message = '';
