@@ -124,7 +124,6 @@ class QTestWindow : public QWindow {
     glm::mat4 _projectionMatrix;
     RateCounter fps;
     QTime _time;
-    int _instanceLocation{ -1 };
 
 protected:
     void renderText();
@@ -164,7 +163,6 @@ public:
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
         _pipeline = gpu::Pipeline::create(shader, state);
-        _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         // Clear screen
         gpu::Batch batch;
@@ -245,9 +243,7 @@ public:
                 batch.setViewTransform(camera);
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
                 geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count, transformBuffer, colorBuffer);
-                batch._glUniform1i(_instanceLocation, 0);
             });
         }
 
@@ -316,14 +312,12 @@ public:
                 batch.setViewTransform(camera);
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
                 batch.setInputFormat(getInstancedSolidStreamFormat());
                 batch.setInputBuffer(gpu::Stream::COLOR, colorView);
                 batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
                 batch.setIndirectBuffer(indirectBuffer);
                 shapeData.setupBatch(batch);
                 batch.multiDrawIndexedIndirect(TYPE_COUNT, gpu::TRIANGLES);
-                batch._glUniform1i(_instanceLocation, 0);
             }
 #else
             batch.setViewTransform(camera);

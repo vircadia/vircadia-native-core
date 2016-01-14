@@ -43,7 +43,6 @@ static const int VERTICES_PER_TRIANGLE = 3;
 static const gpu::Element POSITION_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT{ gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT{ gpu::VEC4, gpu::NUINT8, gpu::RGBA };
-static const gpu::Element TRANSFORM_ELEMENT{ gpu::MAT4, gpu::FLOAT, gpu::XYZW };
 
 static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
@@ -491,7 +490,6 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::COLOR, gpu::Stream::COLOR, COLOR_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
-        INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::INSTANCE_XFM, gpu::Stream::INSTANCE_XFM, TRANSFORM_ELEMENT, 0, gpu::Stream::PER_INSTANCE);
     }
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
@@ -511,11 +509,9 @@ GeometryCache::~GeometryCache() {
     #endif //def WANT_DEBUG
 }
 
-void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer) {
+void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-    gpu::BufferView instanceXfmView(transformBuffer, 0, transformBuffer->getSize(), TRANSFORM_ELEMENT);
-    batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
 }
 
 void GeometryCache::renderShape(gpu::Batch& batch, Shape shape) {
@@ -530,13 +526,13 @@ void GeometryCache::renderWireShape(gpu::Batch& batch, Shape shape) {
 
 void GeometryCache::renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
-    setupBatchInstance(batch, transformBuffer, colorBuffer);
+    setupBatchInstance(batch, colorBuffer);
     _shapes[shape].drawInstances(batch, count);
 }
 
 void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer) {
     batch.setInputFormat(getInstancedSolidStreamFormat());
-    setupBatchInstance(batch, transformBuffer, colorBuffer);
+    setupBatchInstance(batch, colorBuffer);
     _shapes[shape].drawWireInstances(batch, count);
 }
 
@@ -1871,11 +1867,7 @@ void renderInstances(const std::string& name, gpu::Batch& batch, const Transform
     
     batch.setupNamedCalls(name, [f](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         auto pipeline = DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-        auto location = pipeline->getProgram()->getUniforms().findLocation("Instanced");
-        
-        batch._glUniform1i(location, 1);
         f(batch, data);
-        batch._glUniform1i(location, 0);
     });
 }
 

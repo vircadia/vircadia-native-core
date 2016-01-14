@@ -185,6 +185,9 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 
 void GLBackend::updateTransform() const {
     _transform.update(_commandIndex, _stereo);
+
+    auto& drawCallInfo = _drawCallInfos[_currentDraw];
+    glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
 }
 
 void GLBackend::resetTransformStage() {

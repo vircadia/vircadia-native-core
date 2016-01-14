@@ -75,9 +75,9 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
     }
 
-    loc = glGetAttribLocation(glprogram, "inInstanceTransform");
-    if (loc >= 0 && loc != gpu::Stream::INSTANCE_XFM) {
-        glBindAttribLocation(glprogram, gpu::Stream::INSTANCE_XFM, "inInstanceTransform");
+    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
+    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
+        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
     }
 
     // Link again to take into account the assigned attrib location
