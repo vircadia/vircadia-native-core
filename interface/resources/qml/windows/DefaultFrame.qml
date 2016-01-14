@@ -27,7 +27,8 @@ Frame {
     Rectangle {
         id: decoration
         anchors { margins: -iconSize; topMargin: -iconSize * (window.closable ? 2 : 1); }
-        visible: window.activator.containsMouse
+        // FIXME doesn't work
+        // visible: window.activator.containsMouse
         anchors.fill: parent;
         color: "#7f7f7f7f";
         radius: 3;

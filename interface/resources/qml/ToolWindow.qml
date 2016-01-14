@@ -13,6 +13,7 @@ Windows.Window {
     objectName: "ToolWindow"
     destroyOnCloseButton: false
     destroyOnInvisible: false
+    closable: false
     visible: false
     property string newTabSource
     property alias tabView: tabView
