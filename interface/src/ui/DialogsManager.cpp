@@ -147,10 +147,6 @@ void DialogsManager::lodTools() {
     _lodToolsDialog->raise();
 }
 
-void DialogsManager::toggleToolWindow() {
-    DependencyManager::get<OffscreenUi>()->toggleToolWindow();
-}
-
 void DialogsManager::hmdTools(bool showTools) {
     if (showTools) {
         if (!_hmdToolsDialog) {

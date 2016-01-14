@@ -66,7 +66,6 @@ signals:
     void addressBarToggled();
 
 private slots:
-    void toggleToolWindow();
     void hmdToolsClosed();
 
 private:

@@ -40,45 +40,46 @@ public:
     Q_INVOKABLE void executeOnUiThread(std::function<void()> function);
     Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
 
-    // Messagebox replacement functions
-    using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
-    static ButtonCallback NO_OP_CALLBACK;
-
-    static void messageBox(const QString& title, const QString& text,
-        ButtonCallback f,
-        QMessageBox::Icon icon,
-        QMessageBox::StandardButtons buttons);
-
-    static void information(const QString& title, const QString& text,
-        ButtonCallback callback = NO_OP_CALLBACK,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
-
-    /// Note: will block until user clicks a response to the question
-    static void question(const QString& title, const QString& text,
-        ButtonCallback callback = NO_OP_CALLBACK,
-        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
-
+    /// Same design as QMessageBox::critical(), will block, returns result
+    static QMessageBox::StandardButton critical(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return critical(title, text, buttons, defaultButton);
+    }
+    /// Same design as QMessageBox::information(), will block, returns result
+    static QMessageBox::StandardButton information(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return information(title, text, buttons, defaultButton);
+    }
     /// Same design as QMessageBox::question(), will block, returns result
-    static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text, 
-        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No), 
-        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
-
-    static void warning(const QString& title, const QString& text,
-        ButtonCallback callback = NO_OP_CALLBACK,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
-
+    static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return question(title, text, buttons, defaultButton);
+    }
     /// Same design as QMessageBox::warning(), will block, returns result
     static QMessageBox::StandardButton warning(void* ignored, const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return warning(title, text, buttons, defaultButton);
+    }
+
+    static QMessageBox::StandardButton critical(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    static QMessageBox::StandardButton information(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    static QMessageBox::StandardButton question(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    static QMessageBox::StandardButton warning(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
-    static void critical(const QString& title, const QString& text,
-        ButtonCallback callback = NO_OP_CALLBACK,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok);
+    QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
 
-    static void error(const QString& text);  // Interim dialog in new style
-
-    void toggleToolWindow();
 private:
     QQuickItem* _desktop { nullptr };
     QQuickItem* _toolWindow { nullptr };

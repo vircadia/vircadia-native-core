@@ -13,7 +13,6 @@ Window {
     title: "Running Scripts"
     resizable: true
     destroyOnInvisible: true
-    enabled: false
     x: 40; y: 40
 
     property var scripts: ScriptDiscoveryService;
@@ -202,7 +201,6 @@ Window {
 
             TextField {
                 id: selectedScript
-                enabled: true
                 readOnly: true
                 anchors.left: parent.left
                 anchors.right: loadButton.left
