@@ -18,14 +18,13 @@
 #include <PathUtils.h>
 #include <SharedUtil.h>
 #include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
 
-#include "gpu/StandardShaderLib.h"
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
-#include "GeometryCache.h"
 
 #include "ssao_makePyramid_frag.h"
 #include "ssao_makeOcclusion_frag.h"
@@ -314,6 +313,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
+
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
     auto normalBuffer = framebufferCache->getDeferredNormalTexture();
@@ -395,5 +395,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setPipeline(lastVBlurPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+
     });
 }

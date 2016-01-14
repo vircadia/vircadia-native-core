@@ -16,7 +16,6 @@
 #include <gpu/Batch.h>
 
 #include <DependencyManager.h>
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
@@ -73,7 +72,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
         DependencyManager::get<GeometryCache>()->renderSphere(batch);
     } else {
         batch.setModelTransform(Transform());
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
+        DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
     }
     static const auto triCount = DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
     args->_details._trianglesRendered += (int)triCount;

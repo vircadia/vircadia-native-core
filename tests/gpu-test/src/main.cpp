@@ -30,7 +30,6 @@
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
-#include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
 #include <gl/QOpenGLContextWrapper.h>
@@ -247,7 +246,7 @@ public:
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
                 batch._glUniform1i(_instanceLocation, 1);
-                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, transformBuffer, colorBuffer);
+                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count, transformBuffer, colorBuffer);
                 batch._glUniform1i(_instanceLocation, 0);
             });
         }

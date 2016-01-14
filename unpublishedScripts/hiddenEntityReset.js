@@ -113,7 +113,6 @@
                 z: 504.5
             });
 
-
             createCombinedArmChair({
                 x: 549.29,
                 y: 494.9,
@@ -300,12 +299,17 @@
                 userData: JSON.stringify({
                     grabbableKey: {
                         spatialKey: {
-                            relativePosition: {
-                                x: 0,
-                                y: 0,
-                                z: 0
+                            rightRelativePosition: {
+                                x: 0.03,
+                                y: 0.0,
+                                z: -0.065
                             },
-                            relativeRotation: Quat.fromPitchYawRollDegrees(45, 90, 0)
+                            leftRelativePosition: {
+                                x: -0.03,
+                                y: 0.00,
+                                z: -0.065
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(90, 90, 0)
                         },
                         invertSolidWhileHeld: true
                     },
@@ -359,12 +363,17 @@
                     grabbableKey: {
                         invertSolidWhileHeld: true,
                         spatialKey: {
-                            relativePosition: {
-                                x: 0,
-                                y: 0.06,
+                            rightRelativePosition: {
+                                x: 0.03,
+                                y: 0.08,
                                 z: 0.11
                             },
-                            relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
+                            leftRelativePosition: {
+                                x: -0.03,
+                                y: 0.08,
+                                z: 0.11
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 90)
                         }
                     }
                 })
@@ -1151,10 +1160,15 @@
                     },
                     grabbableKey: {
                         spatialKey: {
-                            relativePosition: {
+                            rightRelativePosition: {
                                 x: -0.05,
-                                y: 0,
-                                z: 0.0
+                                y: .06,
+                                z: 0.05
+                            },
+                            leftRelativePosition: {
+                                x: 0.05,
+                                y: 0.06,
+                                z: 0.05
                             },
                             relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
                         },

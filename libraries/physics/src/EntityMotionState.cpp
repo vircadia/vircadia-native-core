@@ -644,7 +644,7 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
 
     mask = PhysicsEngine::getCollisionMask(group);
     if (_entity) {
-        uint8_t entityCollisionMask = _entity->getCollisionMask();
+        uint8_t entityCollisionMask = _entity->getFinalCollisionMask();
         if ((bool)(entityCollisionMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                 (bool)(entityCollisionMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
             // asymmetric avatar collision mask bits

@@ -1600,7 +1600,7 @@ void Application::paintGL() {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -3102,63 +3102,70 @@ void Application::update(float deltaTime) {
 
     if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
-
-        static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAddToPhysics(motionStates);
-            _physicsEngine->addObjects(motionStates);
-
-        });
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToChange(motionStates);
-            VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-            _entitySimulation.setObjectsToChange(stillNeedChange);
-        });
-
-        _entitySimulation.applyActionChanges();
-
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-        avatarManager->getObjectsToAddToPhysics(motionStates);
-        _physicsEngine->addObjects(motionStates);
-        avatarManager->getObjectsToChange(motionStates);
-        _physicsEngine->changeObjects(motionStates);
 
-        myAvatar->prepareForPhysicsSimulation();
-        _physicsEngine->forEachAction([&](EntityActionPointer action) {
-            action->prepareForPhysicsSimulation();
-        });
+        {
+            PerformanceTimer perfTimer("updateStates)");
+            static VectorOfMotionStates motionStates;
+            _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
 
-        getEntities()->getTree()->withWriteLock([&] {
-            _physicsEngine->stepSimulation();
-        });
-
-        if (_physicsEngine->hasOutgoingChanges()) {
             getEntities()->getTree()->withWriteLock([&] {
-                _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
-                avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                _entitySimulation.getObjectsToAddToPhysics(motionStates);
+                _physicsEngine->addObjects(motionStates);
+
+            });
+            getEntities()->getTree()->withWriteLock([&] {
+                _entitySimulation.getObjectsToChange(motionStates);
+                VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+                _entitySimulation.setObjectsToChange(stillNeedChange);
             });
 
-            auto collisionEvents = _physicsEngine->getCollisionEvents();
-            avatarManager->handleCollisionEvents(collisionEvents);
+            _entitySimulation.applyActionChanges();
 
-            _physicsEngine->dumpStatsIfNecessary();
+             avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
+            avatarManager->getObjectsToAddToPhysics(motionStates);
+            _physicsEngine->addObjects(motionStates);
+            avatarManager->getObjectsToChange(motionStates);
+            _physicsEngine->changeObjects(motionStates);
 
-            if (!_aboutToQuit) {
-                PerformanceTimer perfTimer("entities");
-                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                // deadlock.)
-                _entitySimulation.handleCollisionEvents(collisionEvents);
-                // NOTE: the getEntities()->update() call below will wait for lock
-                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                getEntities()->update(); // update the models...
+            myAvatar->prepareForPhysicsSimulation();
+            _physicsEngine->forEachAction([&](EntityActionPointer action) {
+                action->prepareForPhysicsSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("stepSimulation");
+            getEntities()->getTree()->withWriteLock([&] {
+                _physicsEngine->stepSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("havestChanges");
+            if (_physicsEngine->hasOutgoingChanges()) {
+                getEntities()->getTree()->withWriteLock([&] {
+                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
+                    avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                });
+
+                auto collisionEvents = _physicsEngine->getCollisionEvents();
+                avatarManager->handleCollisionEvents(collisionEvents);
+
+                _physicsEngine->dumpStatsIfNecessary();
+
+                if (!_aboutToQuit) {
+                    PerformanceTimer perfTimer("entities");
+                    // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                    // deadlock.)
+                    _entitySimulation.handleCollisionEvents(collisionEvents);
+                    // NOTE: the getEntities()->update() call below will wait for lock
+                    // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                    getEntities()->update(); // update the models...
+                }
+
+                myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
             }
-
-            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
         }
     }
 
@@ -3514,7 +3521,7 @@ int Application::getBoundaryLevelAdjust() const {
 }
 
 PickRay Application::computePickRay(float x, float y) const {
-    vec2 pickPoint{ x, y };
+    vec2 pickPoint { x, y };
     PickRay result;
     if (isHMDMode()) {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
@@ -3611,7 +3618,7 @@ namespace render {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
             renderWorldBox(batch);
         }
     }
@@ -3635,10 +3642,15 @@ public:
 render::ItemID BackgroundRenderData::_item = 0;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) { return ItemKey::Builder::background(); }
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+        return ItemKey::Builder::background();
+    }
 
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+        return Item::Bound();
+    }
+
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
         Q_ASSERT(args->_batch);
         gpu::Batch& batch = *args->_batch;
 
@@ -3646,20 +3658,18 @@ namespace render {
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto backgroundMode = skyStage->getBackgroundMode();
 
-        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
-            // this line intentionally left blank
-        } else {
-            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+        switch (backgroundMode) {
+            case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, *(args->_viewFrustum));
-                } else {
-                    // If no skybox texture is available, render the SKY_DOME while it loads
-                    backgroundMode = model::SunSkyStage::SKY_DOME;
+                    break;
                 }
+                // If no skybox texture is available, render the SKY_DOME while it loads
             }
-            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                // fall through to next case
+            case model::SunSkyStage::SKY_DOME:  {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -3725,6 +3735,11 @@ namespace render {
 
                 }
             }
+                break;
+            case model::SunSkyStage::NO_BACKGROUND:
+            default:
+                // this line intentionally left blank
+                break;
         }
     }
 }

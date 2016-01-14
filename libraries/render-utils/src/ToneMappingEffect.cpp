@@ -115,7 +115,7 @@ void ToneMappingEffect::render(RenderArgs* args) {
         init();
     }
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
 

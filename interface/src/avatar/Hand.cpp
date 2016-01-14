@@ -14,7 +14,6 @@
 
 #include <GeometryUtil.h>
 #include <RenderArgs.h>
-#include <DeferredLightingEffect.h>
 
 #include "Avatar.h"
 #include "AvatarManager.h"
@@ -61,7 +60,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             transform.setTranslation(position);
             transform.setRotation(palm.getRotation());
             transform.postScale(SPHERE_RADIUS);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, grayColor);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, grayColor);
 
             // draw a green sphere at the old "finger tip"
             transform = Transform();
@@ -69,7 +68,7 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             transform.setTranslation(position);
             transform.setRotation(palm.getRotation());
             transform.postScale(SPHERE_RADIUS);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, transform, greenColor);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, greenColor);
         }
     }
 

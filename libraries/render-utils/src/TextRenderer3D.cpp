@@ -29,7 +29,6 @@
 #include "sdf_text3D_frag.h"
 
 #include "GeometryCache.h"
-#include "DeferredLightingEffect.h"
 
 const float TextRenderer3D::DEFAULT_POINT_SIZE = 12;
 

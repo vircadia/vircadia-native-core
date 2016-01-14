@@ -358,7 +358,7 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
     // from the touched pixel generate the stencil buffer 
     RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
@@ -393,7 +393,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         inItems.emplace_back(id);
     }
     RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
@@ -437,7 +437,7 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
 
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {

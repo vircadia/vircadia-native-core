@@ -23,7 +23,6 @@ class QScriptEngine;
 
 class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Dependency {
     Q_OBJECT
-    Q_PROPERTY(bool magnifier READ getMagnifier)
     Q_PROPERTY(glm::vec3 position READ getPosition)
     Q_PROPERTY(glm::quat orientation READ getOrientation)
 public:
@@ -31,11 +30,8 @@ public:
     static QScriptValue getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue getHUDLookAtPosition3D(QScriptContext* context, QScriptEngine* engine);
 
-public slots:
-    void toggleMagnifier();
 
 private:
-    bool getMagnifier() const; 
     // Get the position of the HMD
     glm::vec3 getPosition() const;
     
