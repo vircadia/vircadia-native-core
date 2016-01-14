@@ -51,7 +51,7 @@ void GLBackend::do_setViewportTransform(Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
 
-    Vec2 depthRange(batch._params[paramOffset + 0]._float, batch._params[paramOffset + 1]._float);
+    Vec2 depthRange(batch._params[paramOffset + 1]._float, batch._params[paramOffset + 0]._float);
 
     if ((depthRange.x != _transform._depthRange.x) || (depthRange.y != _transform._depthRange.y)) {
         _transform._depthRange = depthRange;
