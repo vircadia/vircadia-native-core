@@ -63,8 +63,8 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
             btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
 
             float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+            targetVelocity = (-speed / offsetLength) * offset;
             if (speed > rigidBody->getLinearSleepingThreshold()) {
-                targetVelocity = (-speed / offsetLength) * offset;
                 rigidBody->activate();
             }
 
@@ -92,8 +92,8 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
                 //      dQ = Q1 * Q0^
                 btQuaternion deltaQ = target * bodyRotation.inverse();
                 float speed = deltaQ.getAngle() / _angularTimeScale;
+                targetVelocity = speed * deltaQ.getAxis();
                 if (speed > rigidBody->getAngularSleepingThreshold()) {
-                    targetVelocity = speed * deltaQ.getAxis();
                     rigidBody->activate();
                 }
             }
