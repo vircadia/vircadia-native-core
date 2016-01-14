@@ -245,6 +245,8 @@ protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 
+    std::string _currentNamedCall;
+
     Stats _stats;
 
     // Draw Stage
@@ -464,6 +466,9 @@ protected:
     void do_resetStages(Batch& batch, size_t paramOffset);
 
     void do_runLambda(Batch& batch, size_t paramOffset);
+
+    void do_startNamedCall(Batch& batch, size_t paramOffset);
+    void do_stopNamedCall(Batch& batch, size_t paramOffset);
 
     void resetStages();
 

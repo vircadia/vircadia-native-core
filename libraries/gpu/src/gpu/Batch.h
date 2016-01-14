@@ -304,6 +304,9 @@ public:
 
         COMMAND_runLambda,
 
+        COMMAND_startNamedCall,
+        COMMAND_stopNamedCall,
+
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
         // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
@@ -395,7 +398,7 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
-    typedef Cache<std::string>::Vector ProfileRangeCaches;
+    typedef Cache<std::string>::Vector StringCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
@@ -423,7 +426,8 @@ public:
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
     LambdaCache _lambdas;
-    ProfileRangeCaches _profileRanges;
+    StringCaches _profileRanges;
+    StringCaches _names;
 
     NamedBatchDataMap _namedData;
 
@@ -431,6 +435,9 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    void startNamedCall(const std::string& name);
+    void stopNamedCall();
+
     // Maybe useful but shoudln't be public. Please convince me otherwise
     void runLambda(std::function<void()> f);
 };

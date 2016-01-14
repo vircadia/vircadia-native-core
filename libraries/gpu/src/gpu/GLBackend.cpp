@@ -62,6 +62,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_runLambda),
 
+    (&::gpu::GLBackend::do_startNamedCall),
+    (&::gpu::GLBackend::do_stopNamedCall),
+
     (&::gpu::GLBackend::do_glActiveBindTexture),
 
     (&::gpu::GLBackend::do_glUniform1i),
@@ -421,6 +424,14 @@ void GLBackend::do_resetStages(Batch& batch, size_t paramOffset) {
 void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
     std::function<void()> f = batch._lambdas.get(batch._params[paramOffset]._uint);
     f();
+}
+
+void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
+    _currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+}
+
+void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
+    _currentNamedCall.clear();
 }
 
 void GLBackend::resetStages() {

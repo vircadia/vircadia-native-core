@@ -344,6 +344,15 @@ void Batch::runLambda(std::function<void()> f) {
     _params.push_back(_lambdas.cache(f));
 }
 
+void Batch::startNamedCall(const std::string& name) {
+    ADD_COMMAND(startNamedCall);
+    _params.push_back(_names.cache(name));
+}
+
+void Batch::stopNamedCall() {
+    ADD_COMMAND(stopNamedCall);
+}
+
 void Batch::enableStereo(bool enable) {
     _enableStereo = enable;
 }
@@ -383,8 +392,14 @@ BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t ind
 
 void Batch::preExecute() {
     for (auto& mapItem : _namedData) {
-        mapItem.second.process(*this);
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        startNamedCall(name);
+        instance.process(*this);
+        stopNamedCall();
     }
+
     _namedData.clear();
 }
 
