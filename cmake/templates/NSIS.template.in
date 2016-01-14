@@ -1076,6 +1076,16 @@ SectionEnd
 ; Component dependencies
 Function .onSelChange
   !insertmacro SectionList MaybeSelectionChanged
+
+  ; if neither component is selected, disable the install button
+  ${IfNot} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${AndIfNot} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    GetDlgItem $0 $HWNDPARENT 1
+    EnableWindow $0 0
+  ${Else}
+    GetDlgItem $0 $HWNDPARENT 1
+    EnableWindow $0 1
+  ${EndIf}
 FunctionEnd
 
 ;--------------------------------
