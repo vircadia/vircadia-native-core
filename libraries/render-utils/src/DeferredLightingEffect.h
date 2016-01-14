@@ -48,8 +48,9 @@ public:
     void setAmbientLightMode(int preset);
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
-
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
+
+    model::LightPointer getGlobalLight();
 
 private:
     DeferredLightingEffect() = default;

@@ -541,6 +541,10 @@ void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const gl
     light->setAmbientIntensity(ambientIntensity);
 }
 
+model::LightPointer DeferredLightingEffect::getGlobalLight() {
+    return _allocatedLights[_globalLights.front()];
+}
+
 void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
     _skybox = skybox;
 }
