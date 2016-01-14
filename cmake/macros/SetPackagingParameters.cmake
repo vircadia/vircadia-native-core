@@ -71,6 +71,11 @@ macro(SET_PACKAGING_PARAMETERS)
     endif ()
 
     set(GENERATED_UNINSTALLER_EXEC_NAME "Uninstall.exe")
+    set(POST_INSTALL_OPTIONS_REG_GROUP "PostInstallOptions")
+    set(CLIENT_DESKTOP_SHORTCUT_REG_KEY "ClientDesktopShortcut")
+    set(CONSOLE_DESKTOP_SHORTCUT_REG_KEY "ConsoleDesktopShortcut")
+    set(CONSOLE_STARTUP_REG_KEY "ConsoleStartupShortcut")
+    set(LAUNCH_NOW_REG_KEY "LaunchAfterInstall")
   endif ()
 
   if (APPLE)

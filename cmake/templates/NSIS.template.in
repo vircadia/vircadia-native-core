@@ -893,6 +893,8 @@ Function HandlePostInstallOptions
 
     ${If} $DESKTOP_CLIENT_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
+      WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Install\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" \
+        "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" 1
     ${EndIf}
 
   ${EndIf}
@@ -903,6 +905,8 @@ Function HandlePostInstallOptions
 
     ${If} $DESKTOP_SERVER_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+      WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Install\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" \
+        "@CONSOLE_DESKTOP_SHORTCUT_REG_KEY@" 1
     ${EndIf}
 
     ; check if the user asked to have Server Console launched every startup
@@ -910,6 +914,9 @@ Function HandlePostInstallOptions
 
     ${If} $SERVER_STARTUP_STATE == ${BST_CHECKED}
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+
+      WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Install\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" \
+        "@CONSOLE_STARTUP_REG_KEY@" 1
     ${EndIf}
   ${EndIf}
 
@@ -917,6 +924,9 @@ Function HandlePostInstallOptions
   ${NSD_GetState} $LAUNCH_NOW_CHECKBOX $LAUNCH_NOW_STATE
 
   ${If} $LAUNCH_NOW_STATE == ${BST_CHECKED}
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Install\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" \
+      "@LAUNCH_NOW_REG_KEY@" 1
+
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
     ; it won't be possible to use this approach if either application should be launched with a command line param
     ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
