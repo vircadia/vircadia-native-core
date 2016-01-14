@@ -47,7 +47,7 @@ function createDoll() {
             y: 0,
             z: 0
         },
-        collisionsWillMove: true,
+        dynamic: true,
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true

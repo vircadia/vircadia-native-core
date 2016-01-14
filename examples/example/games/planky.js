@@ -289,7 +289,7 @@ PlankyStack = function() {
         }
         if (!editMode) {
             _this.planks.forEach(function(plank, index, object) {
-                Entities.editEntity(plank.entity, {ignoreForCollisions: false, collisionsWillMove: true});
+                Entities.editEntity(plank.entity, {ignoreForCollisions: false, dynamic: true});
             });
         }
     };

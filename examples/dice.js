@@ -110,7 +110,7 @@ function shootDice(position, velocity) {
         },
         lifetime: LIFETIME,
         shapeType: "box",
-        collisionsWillMove: true,
+        dynamic: true,
         collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav"
       }));
       position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));

@@ -93,7 +93,7 @@
                         type: 'Model',
                         modelURL: MODEL_URL,
                         shapeType: 'compound',
-                        collisionsWillMove: true,
+                        dynamic: true,
                         dimensions: TARGET_DIMENSIONS,
                         compoundShapeURL: COLLISION_HULL_URL,
                         position: position,

@@ -55,7 +55,7 @@ CreateSimulation = function() {
         damping: DAMPING,
         ignoreCollisions: false,
         lifetime: LIFETIME,
-        collisionsWillMove: false
+        dynamic: false
     });
 
 
@@ -187,7 +187,7 @@ CreateSimulation = function() {
             damping: DAMPING,
             ignoreCollisions: false,
             lifetime: LIFETIME,
-            collisionsWillMove: false,
+            dynamic: false,
         });
 
         this.computeAcceleration = function() {

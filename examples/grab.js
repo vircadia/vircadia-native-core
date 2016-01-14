@@ -320,7 +320,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (!pickResults.properties.collisionsWillMove) {
+    if (!pickResults.properties.dynamic) {
         // only grab dynamic objects
         return;
     }
@@ -510,7 +510,7 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
         data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-        data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
+        data["dynamic"] = grabbedProperties.dynamic;
         var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
         if (invertSolidWhileHeld) {
             whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
@@ -528,7 +528,7 @@ Grabber.prototype.deactivateEntity = function(entityID) {
             Entities.editEntity(entityID, {
                 gravity: data["gravity"],
                 ignoreForCollisions: data["ignoreForCollisions"],
-                collisionsWillMove: data["collisionsWillMove"]
+                dynamic: data["dynamic"]
             });
             data = null;
         }
