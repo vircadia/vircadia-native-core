@@ -1,0 +1,19 @@
+@font-face {
+    font-family: 'Proxima Nova';
+    src: url('vendor/ProximaNova/ProximaNova-Regular.otf');
+}
+
+* {
+    font-family: "Proxima Nova", "Open Sans", Arial, Helvetica, sans-serif;
+    font-size: 1.022em;
+    line-height: 130%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+}
+
+progress {
+    margin: 0 auto;
+}

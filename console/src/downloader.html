@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>High Fidelity</title>
+        <script src="downloader.js"></script>
+        <link rel="stylesheet" type="text/css" href="downloader.css"></link>
+    </head>
+    <body onload="ready()">
+      <div id="state-downloading" class="state">
+        <progress max="100" value="80" id="download-progress"></progress>
+      </div>
+      <div id="state-installing" class="state">
+        Installing!
+      </div>
+      <div id="state-error" class="state">
+        Error :(
+        <div id='error-message'></div>
+        <button>OK</button>
+      </div>
+      <div id="state-complete" class="state">
+        Complete
+        <button>OK</button>
+      </div>
+    </body>
+</html>

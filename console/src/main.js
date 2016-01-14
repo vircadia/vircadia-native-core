@@ -15,6 +15,10 @@ var fs = require('fs');
 var Tail = require('always-tail');
 var http = require('http');
 var path = require('path');
+var unzip = require('unzip');
+
+var request = require('request');
+var progress = require('request-progress');
 
 var Config = require('./modules/config').Config;
 
@@ -289,6 +293,77 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
+function maybeInstallDefaultContentSet() {
+    var hasRun = userConfig.get('hasRun', false);
+
+    if (false && hasRun) {
+        return;
+    }
+
+    // Show popup
+    var window = new BrowserWindow({
+        icon: APP_ICON,
+        width: 400,
+        height: 160,
+        center: true,
+        frame: true,
+        useContentSize: true,
+        resizable: false
+    });
+    window.loadURL('file://' + __dirname + '/downloader.html');
+    // window.setMenu(null);
+    window.show();
+
+    function sendStateUpdate(state, args) {
+        console.log(state, args);
+        window.webContents.send('update', { state: state, args: args });
+    }
+
+    var unzipper = unzip.Extract({ path: 'download2', verbose: true });
+    unzipper.on('close', function() {
+        console.log("Done", arguments);
+        sendStateUpdate('complete');
+    })
+    unzipper.on('error', function (err) {
+        console.log("ERROR");
+        sendStateUpdate('error', {
+            message: "Error installing resources."
+        });
+    });
+    // responseMessage.pipe(unzipper);
+    // responseData.pipe(process.stdout);
+    // console.log("UNZIPPING");
+
+    // Start downloading content set
+    progress(request.get({
+        url: "http://localhost:8000/contentSet.zip",
+        // url: "http://builds.highfidelity.com/interface-win64-3908.xe"
+    }, function(error, responseMessage, responseData) {
+        if (error || responseMessage.statusCode != 200) {
+            var message = '';
+            if (error) {
+                message = "Error contacting resource server.";
+            } else {
+                message = "Error downloading resources from server.";
+            }
+            sendStateUpdate('error', {
+                message: message
+            });
+        } else {
+            sendStateUpdate('installing');
+        }
+    }), { throttle: 250 }).on('progress', function(state) {
+        // Update progress popup
+        console.log("progress", state);
+        sendStateUpdate('downloading', { progress: state.percentage });
+    }).pipe(unzipper);
+
+
+
+
+    userConfig.set('hasRun', true);
+}
+
 function maybeShowSplash() {
     var suppressSplash = userConfig.get('doNotShowSplash', false);
 
@@ -313,6 +388,10 @@ function maybeShowSplash() {
     }
 }
 
+function detectExistingStackManagerResources() {
+    return false;
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -327,6 +406,8 @@ app.on('ready', function() {
     tray.setToolTip('High Fidelity');
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
+
+    maybeInstallDefaultContentSet();
     maybeShowSplash();
 
     if (interfacePath && dsPath && acPath) {
