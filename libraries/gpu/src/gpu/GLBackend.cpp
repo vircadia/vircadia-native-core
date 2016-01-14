@@ -215,6 +215,15 @@ void GLBackend::renderPassDraw(Batch& batch) {
             case Batch::COMMAND_setProjectionTransform:
                 break;
 
+            case Batch::COMMAND_draw:
+            case Batch::COMMAND_drawIndexed:
+            case Batch::COMMAND_drawInstanced:
+            case Batch::COMMAND_drawIndexedInstanced:
+                // updates for draw calls
+                updateInput();
+                updateTransform();
+                updatePipeline();
+                // Fallthrough to next case
             default: {
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
@@ -326,10 +335,6 @@ void GLBackend::syncCache() {
 }
 
 void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
@@ -339,10 +344,6 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
@@ -358,10 +359,6 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -373,10 +370,6 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 3]._uint];
     uint32 numIndices = batch._params[paramOffset + 2]._uint;
