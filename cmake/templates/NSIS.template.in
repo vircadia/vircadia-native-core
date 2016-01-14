@@ -819,33 +819,19 @@ Var LAUNCH_NOW_CHECKBOX
 Var CURRENT_OFFSET
 
 !macro SetPostInstallOption Checkbox OptionName Default
-  ; clear errors so we can detect if registry value is not present
-  ClearErrors
-
   ; reads the value for the given post install option to the registry
-  ReadRegDWORD $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
+  ReadRegStr $0 HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}"
 
-  ; jump to UseDefault if no value found in the registry
-  IfErrors UseDefault 0
-
-  ${If} $0 == "0"
+  ${If} $0 == "NO"
     ; the value in the registry says it should not be checked
     ${NSD_SetState} ${Checkbox} ${BST_UNCHECKED}
-  ${ElseIf} $0 == "1"
+  ${ElseIf} $0 == "YES"
     ; the value in the registry says it should be checked
     ${NSD_SetState} ${Checkbox} ${BST_CHECKED}
   ${Else}
     ; the value in the registry was not in the expected format, use default
-    ${NSD_SetState} ${Checkbox} Default
+    ${NSD_SetState} ${Checkbox} ${Default}
   ${EndIf}
-
-  Goto End
-
-  UseDefault:
-    ; there was no value in the registry, use default
-    ${NSD_SetState} ${Checkbox} Default
-
-  End:
 !macroend
 
 Function PostInstallOptionsPage
@@ -923,7 +909,7 @@ FunctionEnd
 
 !macro WritePostInstallOption OptionName Option
   ; writes the value for the given post install option to the registry
-  WriteRegDWORD HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}" ${Option}
+  WriteRegStr HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}" ${Option}
 !macroend
 
 Var DESKTOP_CLIENT_STATE
@@ -938,9 +924,9 @@ Function HandlePostInstallOptions
 
     ${If} $DESKTOP_CLIENT_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
-      !insertmacro WritePostInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" 1
+      !insertmacro WritePostInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
     ${Else}
-      !insertmacro WritePostInstallOption @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ 0
+      !insertmacro WritePostInstallOption @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
 
   ${EndIf}
@@ -951,9 +937,9 @@ Function HandlePostInstallOptions
 
     ${If} $DESKTOP_SERVER_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
-      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ 1
+      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
     ${Else}
-      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ 0
+      !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
 
     ; check if the user asked to have Server Console launched every startup
@@ -962,9 +948,9 @@ Function HandlePostInstallOptions
     ${If} $SERVER_STARTUP_STATE == ${BST_CHECKED}
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
 
-      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ 1
+      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
     ${Else}
-      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ 0
+      !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ NO
     ${EndIf}
   ${EndIf}
 
@@ -972,7 +958,7 @@ Function HandlePostInstallOptions
   ${NSD_GetState} $LAUNCH_NOW_CHECKBOX $LAUNCH_NOW_STATE
 
   ${If} $LAUNCH_NOW_STATE == ${BST_CHECKED}
-    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ 1
+    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
     ; it won't be possible to use this approach if either application should be launched with a command line param
@@ -982,7 +968,7 @@ Function HandlePostInstallOptions
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
     ${EndIf}
   ${Else}
-    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ 0
+    !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ NO
   ${EndIf}
 
 FunctionEnd
