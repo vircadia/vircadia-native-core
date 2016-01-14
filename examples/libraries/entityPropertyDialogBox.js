@@ -201,7 +201,7 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Ignore for Collisions:", type: "checkbox", value: properties.ignoreForCollisions });
         index++;
-        array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.dynamic });
+        array.push({ label: "Dynamic:", type: "checkbox", value: properties.dynamic });
         index++;
         array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
         index++;
