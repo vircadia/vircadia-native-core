@@ -24,6 +24,7 @@
 #include "NodeType.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
+#include <ServerPathUtils.h>
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
@@ -49,8 +50,19 @@ void AssetServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    _resourcesDirectory = QDir(QCoreApplication::applicationDirPath()).filePath("resources/assets");
+    const QString RESOURCES_PATH = "resources/assets";
+
+    _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
     if (!_resourcesDirectory.exists()) {
+        qDebug() << "Asset resources directory not found, searching for existing asset resources";
+        QString oldDataDirectory = QCoreApplication::applicationDirPath();
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath(RESOURCES_PATH);
+
+        if (QDir(oldResourcesDirectory).exists()) {
+            qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
+            QFile::copy(oldResourcesDirectory, _resourcesDirectory.absolutePath());
+        }
+
         qDebug() << "Creating resources directory";
         _resourcesDirectory.mkpath(".");
     }
