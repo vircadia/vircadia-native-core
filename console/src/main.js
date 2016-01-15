@@ -315,7 +315,7 @@ function buildMenuArray(serverState) {
 =======
     var menuArray = [
         {
-            label: "Server - Stopped",
+            label: 'Server - Stopped',
             enabled: false
         },
         {
@@ -330,22 +330,29 @@ function buildMenuArray(serverState) {
             type: 'separator'
         },
         {
-            label: "Start Server",
+            label: 'Start Server',
             click: function() { homeServer.restart(); }
         },
         {
-            label: "Stop Server",
+            label: 'Stop Server',
             visible: false,
             click: function() { homeServer.stop(); }
         },
         {
-            label: "Settings",
+            label: 'Settings',
             click: function() { shell.openExternal('http://localhost:40100/settings'); },
             enabled: false
         },
         {
-            label: "View Logs",
+            label: 'View Logs',
             click: function() { openFileBrowser(logPath); }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Share',
+            click: function() { }
         },
         {
             type: 'separator'
