@@ -183,8 +183,14 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 void GLBackend::updateTransform() {
     _transform.update(_commandIndex, _stereo);
 
-    auto& drawCallInfo = getDrawCallInfoBuffer()[_currentDraw];
-    glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+    auto& drawCallInfoBuffer = getDrawCallInfoBuffer();
+    if (_currentNamedCall.empty()) {
+        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
+        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, (GLint)drawCallInfo.index, (GLint)drawCallInfo.unused);
+    } else {
+        glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_SHORT, 4, drawCallInfoBuffer.data());
+    }
 }
 
 void GLBackend::resetTransformStage() {

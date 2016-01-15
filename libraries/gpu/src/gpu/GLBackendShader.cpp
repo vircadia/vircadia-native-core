@@ -92,9 +92,9 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-    loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
+    loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
         shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
     }
 

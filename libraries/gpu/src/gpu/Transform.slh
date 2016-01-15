@@ -27,7 +27,7 @@ struct TransformCamera {
 
 in ivec2 _drawCallInfo;
 
-layout(std430, binding=6) buffer transformObjectBuffer {
+layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
 };
 TransformObject getTransformObject() {
