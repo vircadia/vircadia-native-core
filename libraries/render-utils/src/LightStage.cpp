@@ -21,7 +21,7 @@ LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum
 }
 
 void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float nearDepth, float farDepth) {
-    assert(nearDepth >= 0 && farDepth > 0);
+    assert(nearDepth < farDepth);
 
     // Orient the keylight frustum
     const auto& direction = glm::normalize(_light->getDirection());
