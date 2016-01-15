@@ -677,7 +677,7 @@ FunctionEnd
 
   ReserveFile "NSIS.InstallOptions.ini"
   ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
-  !insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
+  ReserveFile "${NSISDIR}\Plugins\InstallOptions.dll"
 
 ;--------------------------------
 ;Installer Sections
