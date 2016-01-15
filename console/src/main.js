@@ -1,35 +1,33 @@
 'use strict';
 
-var electron = require('electron');
-var app = electron.app;  // Module to control application life.
-var BrowserWindow = electron.BrowserWindow;
+const electron = require('electron');
+const app = electron.app;  // Module to control application life.
+const BrowserWindow = electron.BrowserWindow;
 
-var dialog = electron.dialog;
-var Menu = require('menu');
-var Tray = require('tray');
-var shell = require('shell');
-var os = require('os');
-var childProcess = require('child_process');
-var path = require('path');
-var fs = require('fs');
-var Tail = require('always-tail');
-var http = require('http');
-var path = require('path');
-var unzip = require('unzip');
+const dialog = electron.dialog;
+const Menu = require('menu');
+const Tray = require('tray');
+const shell = require('shell');
+const os = require('os');
+const childProcess = require('child_process');
+const path = require('path');
+const fs = require('fs');
+const Tail = require('always-tail');
+const http = require('http');
+const path = require('path');
+const unzip = require('unzip');
 
-var request = require('request');
-var progress = require('request-progress');
+const request = require('request');
+const progress = require('request-progress');
 
-var Config = require('./modules/config').Config;
+const Config = require('./modules/config').Config;
 
-const dialog = require('electron').dialog;
-
-var hfprocess = require('./modules/hf-process.js');
-var Process = hfprocess.Process;
-var ACMonitorProcess = hfprocess.ACMonitorProcess;
-var ProcessStates = hfprocess.ProcessStates;
-var ProcessGroup = hfprocess.ProcessGroup;
-var ProcessGroupStates = hfprocess.ProcessGroupStates;
+const hfprocess = require('./modules/hf-process.js');
+const Process = hfprocess.Process;
+const ACMonitorProcess = hfprocess.ACMonitorProcess;
+const ProcessStates = hfprocess.ProcessStates;
+const ProcessGroup = hfprocess.ProcessGroup;
+const ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 
 function getRootHifiDataDirectory() {
