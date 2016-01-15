@@ -163,13 +163,6 @@ var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var STATE_EQUIP_SPRING = 16;
 
-// Used by the HandAnimaitonBuddy to play hand animations
-var IDLE_HAND_STATES = [STATE_OFF, STATE_RELEASE];
-var OPEN_HAND_STATES = [STATE_SEARCHING, STATE_EQUIP_SEARCHING];
-var POINT_HAND_STATES = [STATE_NEAR_TRIGGER, STATE_CONTINUE_NEAR_TRIGGER, STATE_FAR_TRIGGER, STATE_CONTINUE_FAR_TRIGGER];
-var FAR_GRASP_HAND_STATES = [STATE_DISTANCE_HOLDING, STATE_CONTINUE_DISTANCE_HOLDING];
-// otherwise grasp
-
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
 var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
