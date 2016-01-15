@@ -38,10 +38,7 @@ const ElementArray& getDefaultElements() {
         //INSTANCE_SCALE = 8,
         Element::VEC3F_XYZ,
         //INSTANCE_TRANSLATE = 9,
-        Element::VEC3F_XYZ,
-        //INSTANCE_XFM = 10, 
-        // FIXME make a matrix element
-        Element::VEC4F_XYZW
+        Element::VEC3F_XYZ
     }};
     return defaultElements;
 }

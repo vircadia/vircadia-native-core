@@ -193,7 +193,7 @@ public:
 
 
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
-    static const int MAX_NUM_INPUT_BUFFERS = 16;
+    static const int MAX_NUM_INPUT_BUFFERS = Stream::NUM_INPUT_SLOTS;
 
     size_t getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 

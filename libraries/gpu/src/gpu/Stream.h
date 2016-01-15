@@ -40,8 +40,9 @@ public:
         INSTANCE_SCALE = 8,
         INSTANCE_TRANSLATE = 9,
 
+
         DRAW_CALL_INFO = 15, // Reserve last input slot for draw call infos
-        NUM_INPUT_SLOTS = DRAW_CALL_INFO + 1,
+        NUM_INPUT_SLOTS = DRAW_CALL_INFO
     };
 
     typedef uint8 Slot;
