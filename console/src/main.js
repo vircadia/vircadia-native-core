@@ -248,7 +248,7 @@ function goHomeClicked() {
         startInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
-        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity Client", "Interface", false));
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity client", "Interface", false));
     }
 }
 
@@ -323,7 +323,7 @@ function buildMenuArray(serverState) {
         },
         {
             label: 'Go Home',
-            click: function() { startInterface('hifi://localhost'); },
+            click: goHomeClicked,
             enabled: false
         },
         {
