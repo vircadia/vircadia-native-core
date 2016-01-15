@@ -67,5 +67,6 @@ macro(install_beside_console)
   # set variables used by manual ssleay library copy
   set(TARGET_INSTALL_DIR ${COMPONENT_DESTINATION})
   set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
+  manually_install_ssl_eay()
 
 endmacro()

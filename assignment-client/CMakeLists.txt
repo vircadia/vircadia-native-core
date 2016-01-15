@@ -14,4 +14,3 @@ if (WIN32)
 endif()
 
 install_beside_console()
-manually_install_ssl_eay()
