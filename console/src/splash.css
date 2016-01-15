@@ -11,6 +11,7 @@ body {
     color: #414141;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+    cursor: default;
 }
 
 * {
@@ -74,8 +75,9 @@ p {}
 }
 
 .column.right {
+    z-index: -1;
     float: right;
-    padding-top: 67px;
+    padding-top: 16px;
     padding-left: 60px;
     position: absolute;
     right: -30px;
@@ -103,6 +105,15 @@ p {}
     background-color: #F5F6F6;
     bottom: 0;
     /* padding-top: 34px; */
+}
+
+#main-content {
+    height: 350px;
+    border-bottom: 2px solid #F5F6F6;
+}
+
+#existing-resources-area {
+    padding-top: 20px;
 }
 
 .footer {
