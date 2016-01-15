@@ -33,17 +33,21 @@ exports.searchPaths = function(name, binaryType) {
             path.join(path.dirname(process.execPath), name + extension)
         ];
 
-        // check if we're inside an app bundle on OS X
+        // assume we're inside an app bundle on OS X
         if (process.platform == "darwin") {
             var contentPath = ".app/Contents/";
             var contentEndIndex = __dirname.indexOf(contentPath);
 
             if (contentEndIndex != -1) {
-                // this is an app bundle, check in Contents/MacOS for the binaries
-                var appPath = __dirname.substring(0, contentEndIndex);
-                appPath += ".app/Contents/MacOS/Components.app/Contents/MacOS/";
+                // this is an app bundle
+                var appPath = __dirname.substring(0, contentEndIndex) + ".app";
 
-                paths.push(appPath + name + extension);
+                // check in Contents/MacOS for the binaries
+                var componentsPath = appPath + "/Contents/MacOS/Components.app/Contents/MacOS/";
+                paths.push(componentsPath + name + extension);
+
+                // check beside the app bundle for the binaries
+                paths.push(path.join(path.dirname(appPath), name + extension));
             }
         }
     }
