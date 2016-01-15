@@ -27,7 +27,7 @@ public:
 
         Shadow(model::LightPointer light);
 
-        void setKeylightFrustum(ViewFrustum* viewFrustum, float near, float far);
+        void setKeylightFrustum(ViewFrustum* viewFrustum, float nearDepth, float farDepth);
 
         const std::shared_ptr<ViewFrustum> getFrustum() const { return _frustum; }
         const glm::mat4& getProjection() const { return _projection; }
