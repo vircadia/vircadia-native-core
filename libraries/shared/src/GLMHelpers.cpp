@@ -425,3 +425,23 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 
+glm::vec2 getFacingDir2D(const glm::quat& rot) {
+    glm::vec3 facing3D = rot * Vectors::UNIT_NEG_Z;
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    if (glm::length(facing2D) <= 0.0001f) {
+        return glm::vec2(1, 0);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+glm::vec2 getFacingDir2D(const glm::mat4& m) {
+    glm::vec3 facing3D = transformVector(m, Vectors::UNIT_NEG_Z);
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    if (glm::length(facing2D) <= 0.0001f) {
+        return glm::vec2(1, 0);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
