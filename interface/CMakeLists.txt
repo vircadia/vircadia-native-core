@@ -265,4 +265,5 @@ if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
 endif()
 
+set(MANUAL_SSLEAY_COPY TRUE)
 package_libraries_for_deployment()

@@ -9,5 +9,7 @@ link_hifi_libraries(
   controllers physics
 )
 
+set(MANUAL_SSLEAY_COPY TRUE)
 package_libraries_for_deployment()
+
 install_beside_console()

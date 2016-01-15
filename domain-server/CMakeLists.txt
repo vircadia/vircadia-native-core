@@ -36,6 +36,7 @@ if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
 endif (UNIX)
 
+set(MANUAL_SSLEAY_COPY TRUE)
 package_libraries_for_deployment()
 
 install_beside_console()
