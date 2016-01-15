@@ -65,8 +65,12 @@ function shutdown() {
         });
         if (idx == 0) {
             isShuttingDown = true;
-            logWindow.close();
-            homeServer.stop();
+            if (logWindow) {
+                logWindow.close();
+            }
+            if (homeServer) {
+                homeServer.stop();
+            }
 
             var timeoutID = setTimeout(app.quit, 5000);
             homeServer.on('state-update', function(processGroup) {
@@ -308,7 +312,7 @@ function updateTrayMenu(serverState) {
 
 const httpStatusPort = 60332;
 
-function maybeInstallDefaultContentSet() {
+function maybeInstallDefaultContentSet(onComplete) {
     var hasRun = userConfig.get('hasRun', false);
 
     if (false && hasRun) {
@@ -331,68 +335,77 @@ function maybeInstallDefaultContentSet() {
     // Show popup
     var window = new BrowserWindow({
         icon: APP_ICON,
-        width: 400,
-        height: 160,
+        width: 640,
+        height: 480,
         center: true,
         frame: true,
         useContentSize: true,
         resizable: false
     });
     window.loadURL('file://' + __dirname + '/downloader.html');
-    // window.setMenu(null);
+    window.setMenu(null);
     window.show();
 
-    function sendStateUpdate(state, args) {
-        console.log(state, args);
-        window.webContents.send('update', { state: state, args: args });
-    }
+    window.on('closed', onComplete);
 
-    var unzipper = unzip.Extract({
-        path: getAssignmentClientResourcesDirectory(),
-        verbose: true
-    });
-    unzipper.on('close', function() {
-        console.log("Done", arguments);
-        sendStateUpdate('complete');
-    })
-    unzipper.on('error', function (err) {
-        console.log("ERROR");
-        sendStateUpdate('error', {
-            message: "Error installing resources."
-        });
-    });
-    // responseMessage.pipe(unzipper);
-    // responseData.pipe(process.stdout);
-    // console.log("UNZIPPING");
-
-    // Start downloading content set
-    progress(request.get({
-        // url: "http://localhost:8000/contentSet.zip",
-        url: "http://builds.highfidelity.com/interface-win64-3914.exe"
-    }, function(error, responseMessage, responseData) {
-        if (error || responseMessage.statusCode != 200) {
-            var message = '';
-            if (error) {
-                message = "Error contacting resource server.";
-            } else {
-                message = "Error downloading resources from server.";
-            }
-            sendStateUpdate('error', {
-                message: message
-            });
-        } else {
-            sendStateUpdate('installing');
+    electron.ipcMain.on('ready', function() {
+        console.log("got ready");
+        function sendStateUpdate(state, args) {
+            console.log(state, window, args);
+            window.webContents.send('update', { state: state, args: args });
         }
-    }), { throttle: 250 }).on('progress', function(state) {
-        // Update progress popup
-        console.log("progress", state);
-        sendStateUpdate('downloading', { progress: state.percentage });
-    }).pipe(unzipper);
+
+        var aborted = false;
+
+        // Start downloading content set
+        var req = progress(request.get({
+            // url: "http://localhost:8000/contentSet.zip",
+            url: "http://builds.highfidelity.com/interface-win64-3914.exe"
+        }, function(error, responseMessage, responseData) {
+            if (aborted) {
+                return;
+            } else if (error || responseMessage.statusCode != 200) {
+                var message = '';
+                if (error) {
+                    message = "Error contacting resource server.";
+                } else {
+                    message = "Error downloading resources from server.";
+                }
+                sendStateUpdate('error', {
+                    message: message
+                });
+            } else {
+                sendStateUpdate('installing');
+            }
+        }), { throttle: 250 }).on('progress', function(state) {
+            if (!aborted) {
+                // Update progress popup
+                console.log("progress", state);
+                sendStateUpdate('downloading', { progress: state.percentage });
+            }
+        });
+        var unzipper = unzip.Extract({
+            path: getAssignmentClientResourcesDirectory(),
+            verbose: true
+        });
+        unzipper.on('close', function() {
+            console.log("Done", arguments);
+            sendStateUpdate('complete');
+        });
+        unzipper.on('error', function (err) {
+            console.log("aborting");
+            aborted = true;
+            req.abort();
+            console.log("ERROR");
+            sendStateUpdate('error', {
+                message: "Error installing resources."
+            });
+        });
+        req.pipe(unzipper);
 
 
-
-
-    userConfig.set('hasRun', true);
+        userConfig.set('hasRun', true);
+    });
 }
 
 function maybeShowSplash() {
@@ -438,33 +451,34 @@ app.on('ready', function() {
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
-    maybeInstallDefaultContentSet();
-    maybeShowSplash();
+    maybeInstallDefaultContentSet(function() {
+        maybeShowSplash();
 
-    if (interfacePath && dsPath && acPath) {
-        domainServer = new Process('domain-server', dsPath, [], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n4',
-                                                                    '--log-directory', logPath,
-                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
-        homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
-        logWindow = new LogWindow(acMonitor, domainServer);
+        if (interfacePath && dsPath && acPath) {
+            domainServer = new Process('domain-server', dsPath, [], logPath);
+            acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n4',
+                                                                        '--log-directory', logPath,
+                                                                        '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+            homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
+            logWindow = new LogWindow(acMonitor, domainServer);
 
-        // make sure we stop child processes on app quit
-        app.on('quit', function(){
-            console.log('App quitting');
-            userConfig.save(configPath);
-            logWindow.close();
-            homeServer.stop();
-        });
+            // make sure we stop child processes on app quit
+            app.on('quit', function(){
+                console.log('App quitting');
+                userConfig.save(configPath);
+                logWindow.close();
+                homeServer.stop();
+            });
 
-        var processes = {
-            home: homeServer
-        };
+            var processes = {
+                home: homeServer
+            };
 
-        // handle process updates
-        homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
+            // handle process updates
+            homeServer.on('state-update', function(processGroup) { updateTrayMenu(processGroup.state); });
 
-        // start the home server
-        homeServer.start();
-    }
+            // start the home server
+            homeServer.start();
+        }
+    });
 });
