@@ -102,7 +102,6 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const Render
         return;
     }
 
-    // TODO: If we're not using the global keylight, bail
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
 
@@ -113,8 +112,11 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const Render
 
     ViewFrustum* viewFrustum = args->_viewFrustum;
 
-    const auto nearClip = viewFrustum->getNearClip();
-    globalLight->shadow.setKeylightFrustum(viewFrustum, nearClip - 1, nearClip + 20);
+    auto nearClip = viewFrustum->getNearClip();
+    const int SHADOW_NEAR_DEPTH = -1;
+    const int SHADOW_FAR_DEPTH = 20;
+    globalLight->shadow.setKeylightFrustum(viewFrustum,
+        glm::max(0.0f, nearClip - SHADOW_NEAR_DEPTH), nearClip + SHADOW_FAR_DEPTH);
 
     // Set the keylight frustum
     args->_viewFrustum = globalLight->shadow.getFrustum().get();
