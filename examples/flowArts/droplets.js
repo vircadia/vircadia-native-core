@@ -32,9 +32,9 @@ function createNode(position) {
       position: position,
       dimensions: sphereDimensions,
       color: {
-          red: 128,
-          green: 128,
-          blue: 128
+          red: 10,
+          green: randInt(100, 150),
+          blue: 10
       },
       lifetime: 3600, // 1 hour; just in case,
       collisionsWillMove: true
@@ -46,8 +46,8 @@ function createNode(position) {
       "position": position,
       parentID: sphere,
       "isEmitting": true,
-      "maxParticles": 1000,
-      "lifespan": 5,
+      "maxParticles": 10000,
+      "lifespan": 2,
       "emitRate": 1000,
       "emitSpeed": 0.025,
       "speedSpread": 0,
@@ -72,7 +72,7 @@ function createNode(position) {
           "blue": 255
       },
       color: {
-        red: 10, green: 10, blue: 200
+        red: 100, green: 100, blue: 200
       },
       "colorFinish": {
           "red": 200,
