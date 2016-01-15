@@ -261,24 +261,6 @@ endif()
 # call the fixup_interface macro to add required bundling commands for installation
 fixup_interface()
 
-# if present, add an install of the DDE components
-# which will be presented as an option during install
-if (APPLE AND DEFINED ENV{DDE_APP_PATH})
-  install(
-    DIRECTORY ENV{DDE_APP_PATH}
-    DESTINATION ${INTERFACE_INSTALL_APP_PATH}/Contents/MacOS
-    COMPONENT ${DDE_COMPONENT}
-  )
-endif ()
-
-if (WIN32 AND DEFINED ENV{DDE_ARCHIVE_DIR})
-  install(
-    DIRECTORY $ENV{DDE_ARCHIVE_DIR}/
-    DESTINATION ${INTERFACE_INSTALL_DIR}/dde
-    COMPONENT ${DDE_COMPONENT}
-  )
-endif ()
-
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
 endif()
