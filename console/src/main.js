@@ -14,7 +14,6 @@ const path = require('path');
 const fs = require('fs');
 const Tail = require('always-tail');
 const http = require('http');
-const path = require('path');
 const unzip = require('unzip');
 
 const request = require('request');
@@ -29,14 +28,23 @@ const ProcessStates = hfprocess.ProcessStates;
 const ProcessGroup = hfprocess.ProcessGroup;
 const ProcessGroupStates = hfprocess.ProcessGroupStates;
 
+const osType = os.type();
+
+const APP_ICON = path.join(__dirname, '../resources/console.png');
 
 function getRootHifiDataDirectory() {
-    var rootDirectory = app.getPath('appData');
-    return path.join(rootDirectory, '/High Fidelity');
+    if (osType == 'Windows_NT') {
+        var homePath = process.env.HOMEPATH;
+        return path.join(homePath, 'AppData/Roaming/High Fidelity');
+    } else if (osType == 'Darwin') {
+        return '~/Library/Application Support/High Fidelity';
+    } else {
+        return '/usr/local/share/High Fidelity';
+    }
 }
 
 function getStackManagerDataDirectory() {
-    return path.join(getRootHifiDataDirectory(), "../../Local/High Fidelity");
+    // return path.join(getRootHifiDataDirectory(), '../../Local/High Fidelity');
 }
 
 function getAssignmentClientResourcesDirectory() {
@@ -47,12 +55,10 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Console');
 }
 
-
-console.log("Root directory is: ", getRootHifiDataDirectory());
+console.log("Root hifi directory is: ", getRootHifiDataDirectory());
 
 const ipcMain = electron.ipcMain;
 
-const osType = os.type();
 
 var isShuttingDown = false;
 function shutdown() {
@@ -168,7 +174,6 @@ function openFileBrowser(path) {
     // Add quotes around path
     path = '"' + path + '"';
     if (osType == "Windows_NT") {
-        console.log('start "" ' + path);
         childProcess.exec('start "" ' + path);
     } else if (osType == "Darwin") {
         childProcess.exec('open ' + path);
@@ -355,22 +360,27 @@ const httpStatusPort = 60332;
 function maybeInstallDefaultContentSet(onComplete) {
     var hasRun = userConfig.get('hasRun', false);
 
-    if (false && hasRun) {
+    if (hasRun) {
+        onComplete();
         return;
     }
 
-    // Check for existing Stack Manager data
-    const stackManagerDataPath = getStackManagerDataDirectory();
-    console.log("Checking for existence of " + stackManagerDataPath);
+    // Check for existing AC data
+    const acResourceDirectory = getAssignmentClientResourcesDirectory();
+    console.log("Checking for existence of " + acResourceDirectory);
     var userHasExistingServerData = true;
     try {
-        fs.accessSync(stackManagerDataPath);
+        fs.accessSync(acResourceDirectory);
     } catch (e) {
         console.log(e);
         userHasExistingServerData = false;
     }
 
-    console.log("Existing data?", userHasExistingServerData);
+    if (userHasExistingServerData) {
+        console.log("User has existing data, suppressing downloader");
+        onComplete();
+        return;
+    }
 
     // Show popup
     var window = new BrowserWindow({
@@ -391,7 +401,7 @@ function maybeInstallDefaultContentSet(onComplete) {
     electron.ipcMain.on('ready', function() {
         console.log("got ready");
         function sendStateUpdate(state, args) {
-            console.log(state, window, args);
+            // console.log(state, window, args);
             window.webContents.send('update', { state: state, args: args });
         }
 
@@ -419,12 +429,11 @@ function maybeInstallDefaultContentSet(onComplete) {
         }), { throttle: 250 }).on('progress', function(state) {
             if (!aborted) {
                 // Update progress popup
-                console.log("progress", state);
                 sendStateUpdate('downloading', { progress: state.percentage });
             }
         });
         var unzipper = unzip.Extract({
-            path: getAssignmentClientResourcesDirectory(),
+            path: acResourceDirectory,
             verbose: true
         });
         unzipper.on('close', function() {
@@ -454,14 +463,14 @@ function maybeShowSplash() {
         var window = new BrowserWindow({
             icon: APP_ICON,
             width: 1600,
-            height: 587,
+            height: 737,
             center: true,
             frame: true,
             useContentSize: true,
             resizable: false
         });
         window.loadURL('file://' + __dirname + '/splash.html');
-        window.setMenu(null);
+        // window.setMenu(null);
         window.show();
 
         window.webContents.on('new-window', function(e, url) {
