@@ -1,15 +1,24 @@
-set(PACKAGING_TARGET_NAME package-console)
+set(TARGET_NAME package-console)
 
-# add a target that when built will produce an executable of console for this platform
-if (APPLE)
-  set(PACKAGE_COMMAND package-darwin)
-elseif (WIN32)
-  set(PACKAGE_COMMAND package-win)
-elseif (UNIX)
-  set(PACKAGE_COMMAND package-linux)
-endif ()
+if (BUILD_TAGGED_BETA)
+  set(BETA_OPTION "--beta")
+endif()
 
-add_custom_target(${PACKAGING_TARGET_NAME}
-  COMMAND npm run-script ${PACKAGE_COMMAND}
+# add a target that will package the console
+add_custom_target(${TARGET_NAME}
+  COMMAND npm run packager -- --out ${CMAKE_CURRENT_BINARY_DIR} ${BETA_OPTION}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
+
+# set the packaged console folder depending on platform, so we can copy it
+if (APPLE)
+  set(PACKAGED_CONSOLE_FOLDER "Server\\ Console-darwin-x64")
+elseif (WIN32)
+  set(PACKAGED_CONSOLE_FOLDER "server-console-win32-x64")
+elseif (UNIX)
+  set(PACKAGED_CONSOLE_FOLDER "server-console-linux-x64")
+endif ()
+
+set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL TRUE FOLDER "Installer")
+
+consolidate_installer_components()

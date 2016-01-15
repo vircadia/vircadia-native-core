@@ -17,7 +17,6 @@ AccountScriptingInterface::AccountScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, &AccountManager::balanceChanged, this,
             &AccountScriptingInterface::updateBalance);
-    
 }
 
 AccountScriptingInterface* AccountScriptingInterface::getInstance() {
@@ -38,4 +37,13 @@ bool AccountScriptingInterface::isLoggedIn() {
 void AccountScriptingInterface::updateBalance() {
     AccountManager& accountManager = AccountManager::getInstance();
     emit balanceChanged(accountManager.getAccountInfo().getBalanceInSatoshis());
+}
+
+QString AccountScriptingInterface::getUsername() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    if (accountManager.isLoggedIn()) {
+        return accountManager.getAccountInfo().getUsername();
+    } else {
+        return "Unknown user";
+    }
 }

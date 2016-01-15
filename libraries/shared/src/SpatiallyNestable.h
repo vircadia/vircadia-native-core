@@ -15,6 +15,7 @@
 #include <QUuid>
 
 #include "Transform.h"
+#include "AACube.h"
 #include "SpatialParentFinder.h"
 #include "shared/ReadWriteLockable.h"
 
@@ -38,37 +39,49 @@ public:
     virtual const QUuid& getID() const { return _id; }
     virtual void setID(const QUuid& id) { _id = id; }
 
-    virtual const QUuid getParentID() const { return _parentID; }
+    virtual QUuid getParentID() const { return _parentID; }
     virtual void setParentID(const QUuid& parentID);
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
-    virtual void setParentJointIndex(quint16 parentJointIndex) { _parentJointIndex = parentJointIndex; }
+    virtual void setParentJointIndex(quint16 parentJointIndex);
 
-    static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex);
-    static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex);
+    static glm::vec3 worldToLocal(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::quat worldToLocal(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
 
-    static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex);
-    static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex);
+    static glm::vec3 localToWorld(const glm::vec3& position, const QUuid& parentID, int parentJointIndex, bool& success);
+    static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
 
     // world frame
-    virtual const Transform getTransform() const;
-    virtual void setTransform(const Transform& transform);
+    virtual const Transform getTransform(bool& success) const;
+    virtual void setTransform(const Transform& transform, bool& success);
 
-    virtual Transform getParentTransform() const;
+    virtual Transform getParentTransform(bool& success) const;
 
+    virtual glm::vec3 getPosition(bool& success) const;
     virtual glm::vec3 getPosition() const;
+    virtual void setPosition(const glm::vec3& position, bool& success);
     virtual void setPosition(const glm::vec3& position);
 
+    virtual glm::quat getOrientation(bool& success) const;
     virtual glm::quat getOrientation() const;
-    virtual glm::quat getOrientation(int jointIndex) const;
+    virtual glm::quat getOrientation(int jointIndex, bool& success) const;
+    virtual void setOrientation(const glm::quat& orientation, bool& success);
     virtual void setOrientation(const glm::quat& orientation);
+
+    virtual AACube getMaximumAACube(bool& success) const;
+    virtual bool computePuffedQueryAACube();
+
+    virtual void setQueryAACube(const AACube& queryAACube);
+    virtual bool queryAABoxNeedsUpdate() const;
+    virtual AACube getQueryAACube(bool& success) const;
+    virtual AACube getQueryAACube() const;
 
     virtual glm::vec3 getScale() const;
     virtual void setScale(const glm::vec3& scale);
 
     // get world-frame values for a specific joint
-    virtual const Transform getTransform(int jointIndex) const;
-    virtual glm::vec3 getPosition(int jointIndex) const;
+    virtual const Transform getTransform(int jointIndex, bool& success) const;
+    virtual glm::vec3 getPosition(int jointIndex, bool& success) const;
     virtual glm::vec3 getScale(int jointIndex) const;
 
     // object's parent's frame
@@ -89,17 +102,28 @@ public:
 
     // this object's frame
     virtual const Transform getAbsoluteJointTransformInObjectFrame(int jointIndex) const;
-    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const { assert(false); return glm::quat(); }
-    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const { assert(false); return glm::vec3(); }
-    
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const = 0;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const = 0;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) = 0;
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) = 0;
+
     SpatiallyNestablePointer getThisPointer() const;
+
+    void markAncestorMissing(bool value) { _missingAncestor = value; }
+    bool getAncestorMissing() { return _missingAncestor; }
+
+    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
+    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+
+    void die() { _isDead = true; }
+    bool isDead() const { return _isDead; }
 
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
-    SpatiallyNestablePointer getParentPointer() const;
+    SpatiallyNestablePointer getParentPointer(bool& success) const;
     mutable SpatiallyNestableWeakPointer _parent;
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
@@ -108,17 +132,20 @@ protected:
     mutable ReadWriteLockable _childrenLock;
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
-    virtual void parentChanged() {} // called when parent pointer is updated
     virtual void locationChanged(); // called when a this object's location has changed
     virtual void dimensionsChanged() {} // called when a this object's dimensions have changed
 
-    void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
-    void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
+    // _queryAACube is used to decide where something lives in the octree
+    mutable AACube _queryAACube;
+    mutable bool _queryAACubeSet { false };
+
+    bool _missingAncestor { false };
 
 private:
     mutable ReadWriteLockable _transformLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
-    mutable bool _parentKnowsMe = false;
+    mutable bool _parentKnowsMe { false };
+    bool _isDead { false };
 };
 
 

@@ -76,11 +76,8 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::AvatarBillboard, this, "processAvatarBillboardPacket");
 }
 
-const float SMALLEST_REASONABLE_HORIZON = 5.0f; // meters
-Setting::Handle<float> avatarRenderDistanceInverseHighLimit("avatarRenderDistanceHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
-void AvatarManager::setRenderDistanceInverseHighLimit(float newValue) {
-    avatarRenderDistanceInverseHighLimit.set(newValue);
-     _renderDistanceController.setControlledValueHighLimit(newValue);
+AvatarManager::~AvatarManager() {
+    _myAvatar->die();
 }
 
 void AvatarManager::init() {
@@ -98,19 +95,6 @@ void AvatarManager::init() {
         _myAvatar->addToScene(_myAvatar, scene, pendingChanges);
     }
     scene->enqueuePendingChanges(pendingChanges);
-
-    const float target_fps = qApp->getTargetFrameRate();
-    _renderDistanceController.setMeasuredValueSetpoint(target_fps);
-    _renderDistanceController.setControlledValueHighLimit(avatarRenderDistanceInverseHighLimit.get());
-    _renderDistanceController.setControlledValueLowLimit(1.0f / (float) TREE_SCALE);
-    // Advice for tuning parameters:
-    // See PIDController.h. There's a section on tuning in the reference.
-    // Turn on logging with the following (or from js with AvatarList.setRenderDistanceControllerHistory("avatar render", 300))
-    //_renderDistanceController.setHistorySize("avatar render", target_fps * 4);
-    // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
-    _renderDistanceController.setKP(0.0008f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
-    _renderDistanceController.setKI(0.0006f); // Big enough to bring us to target with the above KP.
-    _renderDistanceController.setKD(0.000001f); // A touch of kd increases the speed by which we get there.
 }
 
 void AvatarManager::updateMyAvatar(float deltaTime) {
@@ -133,38 +117,21 @@ void AvatarManager::updateMyAvatar(float deltaTime) {
 void AvatarManager::updateOtherAvatars(float deltaTime) {
     // lock the hash for read to check the size
     QReadLocker lock(&_hashLock);
-    
+
     if (_avatarHash.size() < 2 && _avatarFades.isEmpty()) {
         return;
     }
-    
+
     lock.unlock();
-    
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    
-    float distance;
-    if (!qApp->isThrottleRendering()) {
-        _renderDistanceController.setMeasuredValueSetpoint(qApp->getTargetFrameRate()); // No problem updating in flight.
-        // The PID controller raises the controlled value when the measured value goes up.
-        // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
-        // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
-        // goes up.
-        const float deduced = qApp->getLastUnsynchronizedFps();
-        distance = 1.0f / _renderDistanceController.update(deduced, deltaTime);
-    } else {
-        // Here we choose to just use the maximum render cutoff distance if throttled.
-        distance = 1.0f / _renderDistanceController.getControlledValueLowLimit();
-    }
-    _renderDistanceAverage.updateAverage(distance);
-    _renderDistance = _renderDistanceAverage.getAverage();
-    int renderableCount = 0;
 
     // simulate avatars
     auto hashCopy = getHashCopy();
-    
+
     AvatarHash::iterator avatarIterator = hashCopy.begin();
     while (avatarIterator != hashCopy.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(avatarIterator.value());
@@ -179,14 +146,10 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         } else {
             avatar->startUpdate();
             avatar->simulate(deltaTime);
-            if (avatar->getShouldRender()) {
-                renderableCount++;
-            }
             avatar->endUpdate();
             ++avatarIterator;
         }
     }
-    _renderedAvatarCount = renderableCount;
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
@@ -206,7 +169,12 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
         if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             avatar->removeFromScene(*fadingIterator, scene, pendingChanges);
-            fadingIterator = _avatarFades.erase(fadingIterator);
+            // only remove from _avatarFades if we're sure its motionState has been removed from PhysicsEngine
+            if (_motionStatesToRemoveFromPhysics.empty()) {
+                fadingIterator = _avatarFades.erase(fadingIterator);
+            } else {
+                ++fadingIterator;
+            }
         } else {
             avatar->simulate(deltaTime);
             ++fadingIterator;
@@ -234,20 +202,6 @@ AvatarSharedPointer AvatarManager::addAvatar(const QUuid& sessionUUID, const QWe
     return newAvatar;
 }
 
-// protected
-void AvatarManager::removeAvatarMotionState(AvatarSharedPointer avatar) {
-    auto rawPointer = std::static_pointer_cast<Avatar>(avatar);
-    AvatarMotionState* motionState = rawPointer->getMotionState();
-    if (motionState) {
-        // clean up physics stuff
-        motionState->clearObjectBackPointer();
-        rawPointer->setMotionState(nullptr);
-        _avatarMotionStates.remove(motionState);
-        _motionStatesToAdd.remove(motionState);
-        _motionStatesToDelete.push_back(motionState);
-    }
-}
-
 // virtual
 void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
     QWriteLocker locker(&_hashLock);
@@ -261,8 +215,18 @@ void AvatarManager::removeAvatar(const QUuid& sessionUUID) {
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar) {
     AvatarHashMap::handleRemovedAvatar(removedAvatar);
 
-    removedAvatar->die();
-    removeAvatarMotionState(removedAvatar);
+    // removedAvatar is a shared pointer to an AvatarData but we need to get to the derived Avatar
+    // class in this context so we can call methods that don't exist at the base class.
+    Avatar* avatar = static_cast<Avatar*>(removedAvatar.get());
+    avatar->die();
+
+    AvatarMotionState* motionState = avatar->getMotionState();
+    if (motionState) {
+        _motionStatesThatMightUpdate.remove(motionState);
+        _motionStatesToAddToPhysics.remove(motionState);
+        _motionStatesToRemoveFromPhysics.push_back(motionState);
+    }
+
     _avatarFades.push_back(removedAvatar);
 }
 
@@ -315,22 +279,22 @@ AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
 }
 
 
-void AvatarManager::getObjectsToDelete(VectorOfMotionStates& result) {
+void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
     result.clear();
-    result.swap(_motionStatesToDelete);
+    result.swap(_motionStatesToRemoveFromPhysics);
 }
 
-void AvatarManager::getObjectsToAdd(VectorOfMotionStates& result) {
+void AvatarManager::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
     result.clear();
-    for (auto motionState : _motionStatesToAdd) {
+    for (auto motionState : _motionStatesToAddToPhysics) {
         result.push_back(motionState);
     }
-    _motionStatesToAdd.clear();
+    _motionStatesToAddToPhysics.clear();
 }
 
 void AvatarManager::getObjectsToChange(VectorOfMotionStates& result) {
     result.clear();
-    for (auto state : _avatarMotionStates) {
+    for (auto state : _motionStatesThatMightUpdate) {
         if (state->_dirtyFlags > 0) {
             result.push_back(state);
         }
@@ -385,8 +349,8 @@ void AvatarManager::addAvatarToSimulation(Avatar* avatar) {
         // we don't add to the simulation now, we put it on a list to be added later
         AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
         avatar->setMotionState(motionState);
-        _motionStatesToAdd.insert(motionState);
-        _avatarMotionStates.insert(motionState);
+        _motionStatesToAddToPhysics.insert(motionState);
+        _motionStatesThatMightUpdate.insert(motionState);
     }
 }
 

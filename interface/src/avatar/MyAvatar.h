@@ -83,6 +83,8 @@ public:
     MyAvatar(RigPointer rig);
     ~MyAvatar();
 
+    virtual void simulateAttachments(float deltaTime) override;
+
     AudioListenerMode getAudioListenerModeHead() const { return FROM_HEAD; }
     AudioListenerMode getAudioListenerModeCamera() const { return FROM_CAMERA; }
     AudioListenerMode getAudioListenerModeCustom() const { return CUSTOM; }
@@ -204,7 +206,7 @@ public:
     MyCharacterController* getCharacterController() { return &_characterController; }
 
     void prepareForPhysicsSimulation();
-    void harvestResultsFromPhysicsSimulation();
+    void harvestResultsFromPhysicsSimulation(float deltaTime);
     void adjustSensorTransform();
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -309,11 +311,13 @@ private:
 
     void setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visiblity);
 
-    PalmData getActivePalmData(int palmIndex) const;
-
     // derive avatar body position and orientation from the current HMD Sensor location.
     // results are in HMD frame
     glm::mat4 deriveBodyFromHMDSensor() const;
+
+    virtual void updatePalms() override {}
+    void lateUpdatePalms();
+
 
     float _driveKeys[MAX_DRIVE_KEYS];
     bool _wasPushing;

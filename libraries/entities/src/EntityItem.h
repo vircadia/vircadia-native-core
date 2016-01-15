@@ -56,6 +56,7 @@ namespace render {
 #define debugTimeOnly(T) qPrintable(QString("%1").arg(T, 16, 10))
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
+
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -161,11 +162,10 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
 
-    inline glm::vec3 getCenterPosition() const { return getTransformToCenter().getTranslation(); }
+    inline glm::vec3 getCenterPosition(bool& success) const { return getTransformToCenter(success).getTranslation(); }
     void setCenterPosition(const glm::vec3& position);
 
-    const Transform getTransformToCenter() const;
-    void setTranformToCenter(const Transform& transform);
+    const Transform getTransformToCenter(bool& success) const;
 
     inline void requiresRecalcBoxes() { _recalcAABox = true; _recalcMinAACube = true; _recalcMaxAACube = true; }
 
@@ -232,9 +232,12 @@ public:
     quint64 getExpiry() const;
 
     // position, size, and bounds related helpers
-    const AACube& getMaximumAACube() const;
-    const AACube& getMinimumAACube() const;
-    const AABox& getAABox() const; /// axis aligned bounding box in world-frame (meters)
+    virtual AACube getMaximumAACube(bool& success) const override;
+    AACube getMinimumAACube(bool& success) const;
+    AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
+
+    using SpatiallyNestable::getQueryAACube;
+    virtual AACube getQueryAACube(bool& success) const override;
 
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
@@ -299,7 +302,7 @@ public:
 
     virtual bool contains(const glm::vec3& point) const;
 
-    virtual bool isReadyToComputeShape() { return true; }
+    virtual bool isReadyToComputeShape() { return !isDead(); }
     virtual void computeShapeInfo(ShapeInfo& info);
     virtual float getVolumeEstimate() const { return getDimensions().x * getDimensions().y * getDimensions().z; }
 
@@ -333,6 +336,8 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+
+    bool isSimulated() const { return _simulated; }
 
     void* getPhysicsInfo() const { return _physicsInfo; }
 
@@ -381,10 +386,14 @@ public:
     // these are in the frame of this object
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override { return glm::quat(); }
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override { return glm::vec3(0.0f); }
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
 protected:
+
+    void setSimulated(bool simulated) { _simulated = simulated; }
 
     const QByteArray getActionDataInternal() const;
     void setActionDataInternal(QByteArray actionData);

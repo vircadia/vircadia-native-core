@@ -25,10 +25,12 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
 
 public:
     OffscreenUi();
-    virtual ~OffscreenUi();
+    virtual void create(QOpenGLContext* context) override;
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
+    bool navigationFocused();
+    void setNavigationFocused(bool focused);
 
     // Messagebox replacement functions
     using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
@@ -43,13 +45,24 @@ public:
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
+    /// Note: will block until user clicks a response to the question
     static void question(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No));
 
+    /// Same design as QMessageBox::question(), will block, returns result
+    static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text, 
+        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No), 
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+
     static void warning(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
+
+    /// Same design as QMessageBox::warning(), will block, returns result
+    static QMessageBox::StandardButton warning(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No),
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
     static void critical(const QString& title, const QString& text,
         ButtonCallback callback = NO_OP_CALLBACK,

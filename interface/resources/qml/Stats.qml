@@ -258,14 +258,14 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        visible: root.expanded
+                        visible: root.showAcuity
                         text: "LOD: " + root.lodStatus;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        visible: root.expanded
-                        text: "Renderable avatars: " + root.avatarRenderableCount + " w/in " + root.avatarRenderDistance + "m";
+                        visible: root.expanded && !root.showAcuity
+                        text: root.lodStatsRenderText;
                     }
                 }
             }

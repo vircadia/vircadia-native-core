@@ -72,7 +72,8 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
-    assert(!_shape);
+    releaseShape();
+    _type = MOTIONSTATE_TYPE_INVALID;
 }
 
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {

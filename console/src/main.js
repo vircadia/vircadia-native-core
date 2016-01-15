@@ -22,6 +22,8 @@ var progress = require('request-progress');
 
 var Config = require('./modules/config').Config;
 
+const dialog = require('electron').dialog;
+
 var hfprocess = require('./modules/hf-process.js');
 var Process = hfprocess.Process;
 var ACMonitorProcess = hfprocess.ACMonitorProcess;
@@ -95,7 +97,6 @@ userConfig.load(configPath);
 
 const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
-const APP_ICON = path.join(__dirname, '../resources/console.png');
 
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
@@ -130,8 +131,40 @@ if (argv.localDebugBuilds || argv.localReleaseBuilds) {
     acPath = pathFinder.discoveredPath("assignment-client", argv.localReleaseBuilds);
 }
 
+function binaryMissingMessage(displayName, executableName, required) {
+    var message = "The " + displayName + " executable was not found.\n";
+
+    if (required) {
+        message += "It is required for the Server Console to run.\n\n";
+    } else {
+        message += "\n";
+    }
+
+    if (debug) {
+        message += "Please ensure there is a compiled " + displayName + " in a folder named build in this checkout.\n\n";
+        message += "It was expected to be found at one of the following paths:\n";
+
+        var paths = pathFinder.searchPaths(executableName, argv.localReleaseBuilds);
+        message += paths.join("\n");
+    } else {
+        message += "It is expected to be found beside this executable.\n"
+        message += "You may need to re-install the Server Console.";
+    }
+
+    return message;
+}
+
 // if at this point any of the paths are null, we're missing something we wanted to find
-// TODO: show an error for the binaries that couldn't be found
+
+if (!dsPath) {
+    dialog.showErrorBox("Domain Server Not Found", binaryMissingMessage("domain-server", "domain-server", true));
+    app.quit();
+}
+
+if (!acPath) {
+    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true))
+    app.quit();
+}
 
 function openFileBrowser(path) {
     // Add quotes around path
@@ -207,6 +240,15 @@ LogWindow.prototype = {
     }
 };
 
+function goHomeClicked() {
+    if (interfacePath) {
+        startInterface('hifi://localhost');
+    } else {
+        // show an error to say that we can't go home without an interface instance
+        dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity Client", "Interface", false));
+    }
+}
+
 var logWindow = null;
 
 function buildMenuArray(serverState) {
@@ -222,7 +264,7 @@ function buildMenuArray(serverState) {
         menuArray = [
             {
                 label: 'Go Home',
-                click: function() { startInterface('hifi://localhost'); },
+                click: goHomeClicked,
                 enabled: false
             },
             {
@@ -446,18 +488,22 @@ app.on('ready', function() {
 
     // Create tray icon
     tray = new Tray(TRAY_ICON);
-    tray.setToolTip('High Fidelity');
+    tray.setToolTip('High Fidelity Server Console');
+
+    tray.on('click', function() {
+        tray.popUpContextMenu(tray.menu);
+    });
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     maybeInstallDefaultContentSet(function() {
         maybeShowSplash();
 
-        if (interfacePath && dsPath && acPath) {
+        if (dsPath && acPath) {
             domainServer = new Process('domain-server', dsPath, [], logPath);
-            acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n4',
-                                                                        '--log-directory', logPath,
-                                                                        '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+            acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
+                                                                    '--log-directory', logPath,
+                                                                    '--http-status-port', httpStatusPort], httpStatusPort, logPath);
             homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
             logWindow = new LogWindow(acMonitor, domainServer);
 

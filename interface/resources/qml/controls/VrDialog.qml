@@ -3,6 +3,8 @@ import QtQuick.Controls 1.2
 import "."
 import "../styles"
 
+import "../Global.js" as Global
+
 /*
  * FIXME Need to create a client property here so that objects can be
  * placed in it without having to think about positioning within the outer 
@@ -41,7 +43,21 @@ DialogBase {
     // modify the visibility
     onEnabledChanged: {
         opacity = enabled ? 1.0 : 0.0
+        // If the dialog is initially invisible, setting opacity doesn't 
+        // trigger making it visible.
+        if (enabled) {
+            visible = true;
+            if (root.parent) {
+                Global.raiseWindow(root);
+            }
+        }
     }
+
+    onParentChanged: {
+        if (enabled && parent) {
+            Global.raiseWindow(root);
+        }
+    } 
 
     // The actual animator
     Behavior on opacity {
@@ -54,6 +70,12 @@ DialogBase {
     // Once we're transparent, disable the dialog's visibility
     onOpacityChanged: {
         visible = (opacity != 0.0);
+    }
+    
+    Component.onCompleted: {
+        if (visible) {
+            Global.raiseWindow(root);
+        }
     }
 
     // Some dialogs should be destroyed when they become invisible,
@@ -113,6 +135,7 @@ DialogBase {
         y: root.titleY
         width: root.titleWidth
         height: root.titleHeight
+        onClicked: Global.raiseWindow(root)
 
         drag {
             target: root

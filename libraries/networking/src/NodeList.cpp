@@ -19,7 +19,6 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
-#include <ApplicationVersion.h>
 #include <LogHandler.h>
 #include <UUID.h>
 

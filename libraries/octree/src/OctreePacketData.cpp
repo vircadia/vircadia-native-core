@@ -14,6 +14,7 @@
 
 #include "OctreeLogging.h"
 #include "OctreePacketData.h"
+#include "NumericalConstants.h"
 
 bool OctreePacketData::_debug = false;
 AtomicUIntStat OctreePacketData::_totalBytesOfOctalCodes { 0 };
@@ -22,6 +23,11 @@ AtomicUIntStat OctreePacketData::_totalBytesOfColor { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfValues { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfPositions { 0 };
 AtomicUIntStat OctreePacketData::_totalBytesOfRawData { 0 };
+
+struct aaCubeData {
+    glm::vec3 corner;
+    float scale;
+};
 
 OctreePacketData::OctreePacketData(bool enableCompression, int targetSize) {
     changeSettings(enableCompression, targetSize); // does reset...
@@ -392,6 +398,28 @@ bool OctreePacketData::appendValue(const QVector<glm::vec3>& value) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const QVector<glm::quat>& value) {
+    uint16_t qVecSize = value.size();
+    bool success = appendValue(qVecSize);
+
+    if (success) {
+        QByteArray dataByteArray(udt::MAX_PACKET_SIZE, 0);
+        unsigned char* start = reinterpret_cast<unsigned char*>(dataByteArray.data());
+        unsigned char* destinationBuffer = start;
+        for (int index = 0; index < value.size(); index++) {
+            destinationBuffer += packOrientationQuatToBytes(destinationBuffer, value[index]);
+        }
+        int quatsSize = destinationBuffer - start;
+        success = append(start, quatsSize);
+        if (success) {
+            _bytesOfValues += quatsSize;
+            _totalBytesOfValues += quatsSize;
+        }
+    }
+
+    return success;
+}
+
 bool OctreePacketData::appendValue(const QVector<float>& value) {
     uint16_t qVecSize = value.size();
     bool success = appendValue(qVecSize);
@@ -400,6 +428,34 @@ bool OctreePacketData::appendValue(const QVector<float>& value) {
         if (success) {
             _bytesOfValues += qVecSize * sizeof(float);
             _totalBytesOfValues += qVecSize * sizeof(float);
+        }
+    }
+    return success;
+}
+
+bool OctreePacketData::appendValue(const QVector<bool>& value) {
+    uint16_t qVecSize = value.size();
+    bool success = appendValue(qVecSize);
+
+    if (success) {
+        QByteArray dataByteArray(udt::MAX_PACKET_SIZE, 0);
+        unsigned char* start = reinterpret_cast<unsigned char*>(dataByteArray.data());
+        unsigned char* destinationBuffer = start;
+        int bit = 0;
+        for (int index = 0; index < value.size(); index++) {
+            if (value[index]) {
+                (*destinationBuffer) |= (1 << bit);
+            }
+            if (++bit == BITS_IN_BYTE) {
+                destinationBuffer++;
+                bit = 0;
+            }
+        }
+        int boolsSize = destinationBuffer - start;
+        success = append(start, boolsSize);
+        if (success) {
+            _bytesOfValues += boolsSize;
+            _totalBytesOfValues += boolsSize;
         }
     }
     return success;
@@ -461,6 +517,17 @@ bool OctreePacketData::appendValue(const QByteArray& bytes) {
     return success;
 }
 
+bool OctreePacketData::appendValue(const AACube& aaCube) {
+    aaCubeData cube { aaCube.getCorner(), aaCube.getScale() };
+    const unsigned char* data = (const unsigned char*)&cube;
+    int length = sizeof(aaCubeData);
+    bool success = append(data, length);
+    if (success) {
+        _bytesOfValues += length;
+        _totalBytesOfValues += length;
+    }
+    return success;
+}
 
 bool OctreePacketData::appendPosition(const glm::vec3& value) {
     const unsigned char* data = (const unsigned char*)&value;
@@ -621,6 +688,20 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVecto
     return sizeof(uint16_t) + length * sizeof(glm::vec3);
 }
 
+int OctreePacketData::unpackDataFromBytes(const unsigned char *dataBytes, QVector<glm::quat>& result) {
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(uint16_t));
+    dataBytes += sizeof(length);
+    result.resize(length);
+
+    const unsigned char *start = dataBytes;
+    for (int i = 0; i < length; i++) {
+        dataBytes += unpackOrientationQuatFromBytes(dataBytes, result[i]);
+    }
+
+    return (dataBytes - start) + (int)sizeof(uint16_t);
+}
+
 int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<float>& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(uint16_t));
@@ -630,11 +711,38 @@ int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVecto
     return sizeof(uint16_t) + length * sizeof(float);
 }
 
-int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) { 
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QVector<bool>& result) {
+    uint16_t length;
+    memcpy(&length, dataBytes, sizeof(uint16_t));
+    dataBytes += sizeof(length);
+    result.resize(length);
+
+    int bit = 0;
+    unsigned char current = 0;
+    const unsigned char *start = dataBytes;
+    for (int i = 0; i < length; i ++) {
+        if (bit == 0) {
+            current = *dataBytes++;
+        }
+        result[i] = (bool)(current & (1 << bit));
+        bit = (bit + 1) % BITS_IN_BYTE;
+    }
+
+    return (dataBytes - start) + (int)sizeof(uint16_t);
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, QByteArray& result) {
     uint16_t length;
     memcpy(&length, dataBytes, sizeof(length));
     dataBytes += sizeof(length);
     QByteArray value((const char*)dataBytes, length);
     result = value;
     return sizeof(length) + length;
+}
+
+int OctreePacketData::unpackDataFromBytes(const unsigned char* dataBytes, AACube& result) {
+    aaCubeData cube;
+    memcpy(&cube, dataBytes, sizeof(aaCubeData));
+    result = AACube(cube.corner, cube.scale);
+    return sizeof(aaCubeData);
 }

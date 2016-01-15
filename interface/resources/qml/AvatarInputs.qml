@@ -84,6 +84,7 @@ Hifi.AvatarInputs {
     Item {
         width: root.mirrorWidth
         height: 44
+        visible: !root.isHMD
 
         x: root.mirrorLeftPad
         y: root.mirrorVisible ? root.mirrorTopPad + root.mirrorHeight : 5

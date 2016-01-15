@@ -717,11 +717,11 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, const
     }
 }
 
-void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
-                                                  const EntityItemID& id, const Collision& collision) {
+bool EntityTreeRenderer::isCollisionOwner(const QUuid& myNodeID, EntityTreePointer entityTree,
+    const EntityItemID& id, const Collision& collision) {
     EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
     if (!entity) {
-        return;
+        return false;
     }
     QUuid simulatorID = entity->getSimulatorID();
     if (simulatorID.isNull()) {
@@ -730,14 +730,30 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
         const EntityItemID& otherID = (id == collision.idA) ? collision.idB : collision.idA;
         EntityItemPointer otherEntity = entityTree->findEntityByEntityItemID(otherID);
         if (!otherEntity) {
-            return;
+            return false;
         }
         simulatorID = otherEntity->getSimulatorID();
     }
 
     if (simulatorID.isNull() || (simulatorID != myNodeID)) {
-        return; // Only one injector per simulation, please.
+        return false;
     }
+
+    return true;
+}
+
+void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityTreePointer entityTree,
+                                                  const EntityItemID& id, const Collision& collision) {
+
+    if (!isCollisionOwner(myNodeID, entityTree, id, collision)) {
+        return;
+    }
+
+    EntityItemPointer entity = entityTree->findEntityByEntityItemID(id);
+    if (!entity) {
+        return;
+    }
+
     const QString& collisionSoundURL = entity->getCollisionSoundURL();
     if (collisionSoundURL.isEmpty()) {
         return;
@@ -767,7 +783,12 @@ void EntityTreeRenderer::playEntityCollisionSound(const QUuid& myNodeID, EntityT
 
     // Shift the pitch down by ln(1 + (size / COLLISION_SIZE_FOR_STANDARD_PITCH)) / ln(2)
     const float COLLISION_SIZE_FOR_STANDARD_PITCH = 0.2f;
-    const float stretchFactor = log(1.0f + (entity->getMinimumAACube().getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
+    bool success;
+    auto minAACube = entity->getMinimumAACube(success);
+    if (!success) {
+        return;
+    }
+    const float stretchFactor = log(1.0f + (minAACube.getLargestDimension() / COLLISION_SIZE_FOR_STANDARD_PITCH)) / log(2);
     AudioInjector::playSound(collisionSoundURL, volume, stretchFactor, position);
 }
 
@@ -791,10 +812,15 @@ void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, cons
     playEntityCollisionSound(myNodeID, entityTree, idB, collision);
 
     // And now the entity scripts
-    emit collisionWithEntity(idA, idB, collision);
-    _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
-    emit collisionWithEntity(idB, idA, collision);
-    _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+    if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
+        emit collisionWithEntity(idA, idB, collision);
+        _entitiesScriptEngine->callEntityScriptMethod(idA, "collisionWithEntity", idB, collision);
+    }
+
+    if (isCollisionOwner(myNodeID, entityTree, idA, collision)) {
+        emit collisionWithEntity(idB, idA, collision);
+        _entitiesScriptEngine->callEntityScriptMethod(idB, "collisionWithEntity", idA, collision);
+    }
 }
 
 void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {

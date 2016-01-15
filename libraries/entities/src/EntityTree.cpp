@@ -89,6 +89,9 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
     _isDirty = true;
     maybeNotifyNewCollisionSoundURL("", entity->getCollisionSoundURL());
     emit addingEntity(entity->getEntityItemID());
+
+    // find and hook up any entities with this entity as a (previously) missing parent
+    fixupMissingParents();
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -142,8 +145,12 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
 
-                BoundingBoxRelatedProperties newBBRelProperties(entity, tempProperties);
-                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
+                bool success;
+                AACube queryCube = entity->getQueryAACube(success);
+                if (!success) {
+                    qCDebug(entities) << "Warning -- failed to get query-cube for" << entity->getID();
+                }
+                UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
                 entity->setProperties(tempProperties);
                 _isDirty = true;
@@ -211,8 +218,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
 
-        BoundingBoxRelatedProperties newBBRelProperties(entity, properties);
-        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newBBRelProperties);
+        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, properties.getQueryAACube());
         recurseTreeWithOperator(&theOperator);
         entity->setProperties(properties);
 
@@ -229,14 +235,19 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             if (!childEntity) {
                 continue;
             }
-            BoundingBoxRelatedProperties newChildBBRelProperties(childEntity);
             EntityTreeElementPointer containingElement = childEntity->getElement();
             if (!containingElement) {
                 continue;
             }
-            UpdateEntityOperator theChildOperator(getThisPointer(),
-                                                  containingElement,
-                                                  childEntity, newChildBBRelProperties);
+
+            bool success;
+            AACube queryCube = childEntity->getQueryAACube(success);
+            if (!success) {
+                _missingParent.append(childEntity);
+                continue;
+            }
+
+            UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
             recurseTreeWithOperator(&theChildOperator);
             foreach (SpatiallyNestablePointer childChild, childEntity->getChildren()) {
                 if (childChild && childChild->getNestableType() == NestableType::Entity) {
@@ -316,6 +327,11 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
+        if (result->getAncestorMissing()) {
+            // we added the entity, but didn't know about all its ancestors, so it went into the wrong place.
+            // add it to a list of entities needing to be fixed once their parents are known.
+            _missingParent.append(result);
+        }
 
         postAddEntity(result);
     }
@@ -426,6 +442,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
     const RemovedEntities& entities = theOperator.getEntities();
     foreach(const EntityToDeleteDetails& details, entities) {
         EntityItemPointer theEntity = details.entity;
+        theEntity->die();
 
         if (getIsServer()) {
             // set up the deleted entities ID
@@ -437,8 +454,7 @@ void EntityTree::processRemovedEntities(const DeleteEntityOperator& theOperator)
         }
 
         if (_simulation) {
-            theEntity->clearActions(_simulation);
-            _simulation->removeEntity(theEntity);
+            _simulation->prepareEntityForDelete(theEntity);
         }
     }
 }
@@ -757,6 +773,42 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("parentJointIndex:") + QString::number((int)value);
         }
     }
+    if (properties.parentIDChanged()) {
+        int index = changedProperties.indexOf("parentID");
+        if (index >= 0) {
+            QUuid value = properties.getParentID();
+            changedProperties[index] = QString("parentID:") + value.toString();
+        }
+    }
+
+    if (properties.jointRotationsSetChanged()) {
+        int index = changedProperties.indexOf("jointRotationsSet");
+        if (index >= 0) {
+            auto value = properties.getJointRotationsSet().size();
+            changedProperties[index] = QString("jointRotationsSet:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointRotationsChanged()) {
+        int index = changedProperties.indexOf("jointRotations");
+        if (index >= 0) {
+            auto value = properties.getJointRotations().size();
+            changedProperties[index] = QString("jointRotations:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointTranslationsSetChanged()) {
+        int index = changedProperties.indexOf("jointTranslationsSet");
+        if (index >= 0) {
+            auto value = properties.getJointTranslationsSet().size();
+            changedProperties[index] = QString("jointTranslationsSet:") + QString::number((int)value);
+        }
+    }
+    if (properties.jointTranslationsChanged()) {
+        int index = changedProperties.indexOf("jointTranslations");
+        if (index >= 0) {
+            auto value = properties.getJointTranslations().size();
+            changedProperties[index] = QString("jointTranslations:") + QString::number((int)value);
+        }
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
@@ -918,12 +970,43 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
+void EntityTree::fixupMissingParents() {
+    MovingEntitiesOperator moveOperator(getThisPointer());
+
+    QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
+    while (iter.hasNext()) {
+        EntityItemWeakPointer entityWP = iter.next();
+        EntityItemPointer entity = entityWP.lock();
+        if (entity) {
+            bool success;
+            AACube newCube = entity->getQueryAACube(success);
+            if (success) {
+                // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
+                // location in the EntityTree.
+                moveOperator.addEntityToMoveList(entity, newCube);
+                iter.remove();
+                entity->markAncestorMissing(false);
+            }
+        } else {
+            // entity was deleted before we found its parent.
+            iter.remove();
+        }
+    }
+
+    if (moveOperator.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        recurseTreeWithOperator(&moveOperator);
+    }
+
+}
+
 void EntityTree::update() {
+    fixupMissingParents();
     if (_simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
             VectorOfEntities pendingDeletes;
-            _simulation->getEntitiesToDelete(pendingDeletes);
+            _simulation->takeEntitiesToDelete(pendingDeletes);
 
             if (pendingDeletes.size() > 0) {
                 // translate into list of ID's

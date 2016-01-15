@@ -30,20 +30,28 @@ set(CMAKE_CXX_FLAGS_DEBUG  "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 if (WIN32)
   add_definitions(-DNOMINMAX -D_CRT_SECURE_NO_WARNINGS)
-  # set path for Microsoft SDKs
-  # if get build error about missing 'glu32' this path is likely wrong
-  # Uncomment the line with 8.1 if running Windows 8.1
+
+  if (NOT WINDOW_SDK_PATH)
+    set(DEBUG_DISCOVERED_SDK_PATH TRUE)
+  endif()
+
+  # sets path for Microsoft SDKs
+  # if you get build error about missing 'glu32' this path is likely wrong
   if (MSVC10)
-    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 ")
+    set(WINDOW_SDK_PATH "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1 " CACHE PATH "Windows SDK PATH")
   elseif (MSVC12)
     if ("${CMAKE_SIZEOF_VOID_P}" EQUAL "8")
       set(WINDOW_SDK_FOLDER "x64")
     else()
       set(WINDOW_SDK_FOLDER "x86")
     endif()
-    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}")
+    set(WINDOW_SDK_PATH "C:\\Program Files (x86)\\Windows Kits\\8.1\\Lib\\winv6.3\\um\\${WINDOW_SDK_FOLDER}" CACHE PATH "Windows SDK PATH")
   endif ()
-  message (WINDOW_SDK_PATH= ${WINDOW_SDK_PATH})
+
+  if (DEBUG_DISCOVERED_SDK_PATH)
+    message(STATUS "The discovered Windows SDK path is ${WINDOW_SDK_PATH}")
+  endif ()
+
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${WINDOW_SDK_PATH})
   # /wd4351 disables warning C4351: new behavior: elements of array will be default initialized
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /wd4351")
@@ -201,6 +209,8 @@ if (NOT DEFINED SERVER_ONLY)
   set(SERVER_ONLY 0)
 endif()
 
+set_packaging_parameters()
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
@@ -232,5 +242,4 @@ if (HIFI_MEMORY_DEBUGGING)
   endif (UNIX)
 endif ()
 
-include_application_version()
 generate_installers()

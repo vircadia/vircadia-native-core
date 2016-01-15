@@ -64,6 +64,7 @@ public:
     void saveSettings();
 
     MenuWrapper* getMenu(const QString& menuName);
+    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
 
     void triggerOption(const QString& menuOption);
     QAction* getActionForOption(const QString& menuOption);
@@ -130,7 +131,6 @@ private:
                                        const QString& grouping = QString());
 
     QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
-    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
     MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
 
     QAction* getMenuAction(const QString& menuName);
@@ -205,7 +205,6 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
-    const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
@@ -219,8 +218,9 @@ namespace MenuOption {
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
     const QString FrameTimer = "Show Timer";
-    const QString FullscreenMirror = "Fullscreen Mirror";
+    const QString FullscreenMirror = "Mirror";
     const QString GlowWhenSpeaking = "Glow When Speaking";
+    const QString Help = "Help...";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString InputMenu = "Avatar>Input Devices";
@@ -234,7 +234,7 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString Mirror = "Mirror";
+    const QString MiniMirror = "Mini Mirror";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
@@ -249,7 +249,7 @@ namespace MenuOption {
     const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString PhysicsShowHulls = "Draw Collision Hulls";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
-    const QString Preferences = "Preferences...";
+    const QString Preferences = "General...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
@@ -277,7 +277,7 @@ namespace MenuOption {
     const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
-    const QString RunningScripts = "Running Scripts";
+    const QString RunningScripts = "Running Scripts...";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";

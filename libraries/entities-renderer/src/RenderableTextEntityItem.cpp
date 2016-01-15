@@ -44,8 +44,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    
-    Transform transformToTopLeft = getTransformToCenter();
+
+    bool success;
+    Transform transformToTopLeft = getTransformToCenter(success);
+    if (!success) {
+        return;
+    }
     if (getFaceCamera()) {
         //rotate about vertical to face the camera
         glm::vec3 dPosition = args->_viewFrustum->getPosition() - getPosition();

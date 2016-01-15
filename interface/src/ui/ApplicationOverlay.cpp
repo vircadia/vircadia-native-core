@@ -86,7 +86,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-        renderAudioScope(renderArgs); // audio scope in the very back
+        renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderRearView(renderArgs); // renders the mirror view selfie
         renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
@@ -158,7 +158,7 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();

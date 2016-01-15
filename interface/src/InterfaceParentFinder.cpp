@@ -16,22 +16,31 @@
 
 #include "InterfaceParentFinder.h"
 
-SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID) const {
+SpatiallyNestableWeakPointer InterfaceParentFinder::find(QUuid parentID, bool& success) const {
     SpatiallyNestableWeakPointer parent;
 
     if (parentID.isNull()) {
+        success = true;
         return parent;
     }
 
     // search entities
     EntityTreeRenderer* treeRenderer = qApp->getEntities();
-    EntityTreePointer tree = treeRenderer->getTree();
-    parent = tree->findEntityByEntityItemID(parentID);
+    EntityTreePointer tree = treeRenderer ? treeRenderer->getTree() : nullptr;
+    parent = tree ? tree->findEntityByEntityItemID(parentID) : nullptr;
     if (!parent.expired()) {
+        success = true;
         return parent;
     }
 
     // search avatars
     QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-    return avatarManager->getAvatarBySessionID(parentID);
+    parent = avatarManager->getAvatarBySessionID(parentID);
+    if (!parent.expired()) {
+        success = true;
+        return parent;
+    }
+
+    success = false;
+    return parent;
 }

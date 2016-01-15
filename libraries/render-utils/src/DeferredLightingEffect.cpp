@@ -819,8 +819,6 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
         //DEBUG: model::Mesh::Part part(0, indices, 0, model::Mesh::LINE_STRIP);
         
         _spotLightMesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(sizeof(part), (gpu::Byte*) &part), gpu::Element::PART_DRAWCALL));
-
-        _spotLightMesh->getVertexStream();
     }
     return _spotLightMesh;
 }

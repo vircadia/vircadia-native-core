@@ -64,7 +64,7 @@ const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
-float MAX_AVATAR_SPEED = 300.0f;
+float MAX_AVATAR_SPEED = 30.0f;
 float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
@@ -199,6 +199,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+}
+
+// virtual
+void MyAvatar::simulateAttachments(float deltaTime) {
+    // don't update attachments here, do it in harvestResultsFromPhysicsSimulation()
 }
 
 QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
@@ -412,6 +417,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
     // position when driven from the head.
     glm::mat4 desiredMat = createMatFromQuatAndPos(getOrientation(), getPosition());
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
+
+    lateUpdatePalms();
 }
 
 //  Update avatar head rotation with sensor data
@@ -621,6 +628,7 @@ void MyAvatar::saveData() {
         settings.setValue("rotation_y", eulers.y);
         settings.setValue("rotation_z", eulers.z);
         settings.setValue("scale", attachment.scale);
+        settings.setValue("isSoft", attachment.isSoft);
     }
     settings.endArray();
 
@@ -702,6 +710,7 @@ void MyAvatar::loadData() {
         eulers.z = loadSetting(settings, "rotation_z", 0.0f);
         attachment.rotation = glm::quat(eulers);
         attachment.scale = loadSetting(settings, "scale", 1.0f);
+        attachment.isSoft = settings.value("isSoft").toBool();
         attachmentData.append(attachment);
     }
     settings.endArray();
@@ -1057,7 +1066,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setFollowVelocity(_followVelocity);
 }
 
-void MyAvatar::harvestResultsFromPhysicsSimulation() {
+void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaType) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     _characterController.getPositionAndOrientation(position, orientation);
@@ -1068,6 +1077,9 @@ void MyAvatar::harvestResultsFromPhysicsSimulation() {
     } else {
         setVelocity(_characterController.getLinearVelocity());
     }
+
+    // now that physics has adjusted our position, we can update attachements.
+    Avatar::simulateAttachments(deltaType);
 }
 
 void MyAvatar::adjustSensorTransform() {
@@ -1599,7 +1611,7 @@ void MyAvatar::maybeUpdateBillboard() {
     if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
         return;
     }
-    foreach (Model* model, _attachmentModels) {
+    for (auto& model : _attachmentModels) {
         if (!model->isLoadedWithTextures()) {
             return;
         }
@@ -1828,4 +1840,9 @@ QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioList
 
 void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMode& audioListenerMode) {
     audioListenerMode = (AudioListenerMode)object.toUInt16();
+}
+
+
+void MyAvatar::lateUpdatePalms() {
+    Avatar::updatePalms();
 }

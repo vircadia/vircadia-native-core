@@ -34,7 +34,7 @@ const quint64 USECS_BETWEEN_OWNERSHIP_BIDS = USECS_PER_SECOND / 5;
 
 #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
 bool EntityMotionState::entityTreeIsLocked() const {
-    EntityTreeElementPointer element = _entity ? _entity->getElement() : nullptr;
+    EntityTreeElementPointer element = _entity->getElement();
     EntityTreePointer tree = element ? element->getTree() : nullptr;
     if (!tree) {
         return true;
@@ -50,7 +50,8 @@ bool entityTreeIsLocked() {
 
 EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer entity) :
     ObjectMotionState(shape),
-    _entity(entity),
+    _entityPtr(entity),
+    _entity(entity.get()),
     _sentInactive(true),
     _lastStep(0),
     _serverPosition(0.0f),
@@ -69,14 +70,14 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _loopsWithoutOwner(0)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
-    assert(_entity != nullptr);
+    assert(_entity);
     assert(entityTreeIsLocked());
     setMass(_entity->computeMass());
 }
 
 EntityMotionState::~EntityMotionState() {
-    // be sure to clear _entity before calling the destructor
-    assert(!_entity);
+    assert(_entity);
+    _entity = nullptr;
 }
 
 void EntityMotionState::updateServerPhysicsVariables(const QUuid& sessionID) {
@@ -136,11 +137,6 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
     updateServerPhysicsVariables(engine->getSessionID());
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
-}
-
-void EntityMotionState::clearObjectBackPointer() {
-    ObjectMotionState::clearObjectBackPointer();
-    _entity = nullptr;
 }
 
 MotionType EntityMotionState::computeObjectMotionType() const {
@@ -221,22 +217,16 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
 
 
 // virtual and protected
-bool EntityMotionState::isReadyToComputeShape() {
-    if (_entity) {
-        return _entity->isReadyToComputeShape();
-    }
-    return false;
+bool EntityMotionState::isReadyToComputeShape() const {
+    return _entity->isReadyToComputeShape();
 }
 
 // virtual and protected
 btCollisionShape* EntityMotionState::computeNewShape() {
-    if (_entity) {
-        ShapeInfo shapeInfo;
-        assert(entityTreeIsLocked());
-        _entity->computeShapeInfo(shapeInfo);
-        return getShapeManager()->getShape(shapeInfo);
-    }
-    return nullptr;
+    ShapeInfo shapeInfo;
+    assert(entityTreeIsLocked());
+    _entity->computeShapeInfo(shapeInfo);
+    return getShapeManager()->getShape(shapeInfo);
 }
 
 bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
@@ -374,6 +364,10 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
         return true;
     }
 
+    if (_entity->queryAABoxNeedsUpdate()) {
+        return true;
+    }
+
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation, but maybe we should...
         if (_outgoingPriority != NO_PRORITY) {
@@ -466,6 +460,11 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         properties.setActionData(_serverActionData);
     }
 
+    if (properties.parentRelatedPropertyChanged() && _entity->computePuffedQueryAACube()) {
+        // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
+        properties.setQueryAACube(_entity->getQueryAACube());
+    }
+
     // set the LastEdited of the properties but NOT the entity itself
     quint64 now = usecTimestampNow();
     properties.setLastEdited(now);
@@ -502,6 +501,20 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, id, properties);
     _entity->setLastBroadcast(usecTimestampNow());
 
+    // if we've moved an entity with children, check/update the queryAACube of all descendents and tell the server
+    // if they've changed.
+    _entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+        if (descendant->getNestableType() == NestableType::Entity) {
+            EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
+            if (descendant->computePuffedQueryAACube()) {
+                EntityItemProperties newQueryCubeProperties;
+                newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
+                entityDescendant->setLastBroadcast(usecTimestampNow());
+            }
+        }
+    });
+
     _lastStep = step;
 }
 
@@ -530,26 +543,17 @@ void EntityMotionState::clearIncomingDirtyFlags() {
 
 // virtual
 quint8 EntityMotionState::getSimulationPriority() const {
-    if (_entity) {
-        return _entity->getSimulationPriority();
-    }
-    return NO_PRORITY;
+    return _entity->getSimulationPriority();
 }
 
 // virtual
 QUuid EntityMotionState::getSimulatorID() const {
-    if (_entity) {
-        assert(entityTreeIsLocked());
-        return _entity->getSimulatorID();
-    }
-    return QUuid();
+    assert(entityTreeIsLocked());
+    return _entity->getSimulatorID();
 }
 
-// virtual
 void EntityMotionState::bump(quint8 priority) {
-    if (_entity) {
-        setOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
-    }
+    setOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {
@@ -600,19 +604,13 @@ void EntityMotionState::setMotionType(MotionType motionType) {
 
 
 // virtual
-QString EntityMotionState::getName() {
-    if (_entity) {
-        assert(entityTreeIsLocked());
-        return _entity->getName();
-    }
-    return "";
+QString EntityMotionState::getName() const {
+    assert(entityTreeIsLocked());
+    return _entity->getName();
 }
 
 // virtual
-int16_t EntityMotionState::computeCollisionGroup() {
-    if (!_entity) {
-        return COLLISION_GROUP_STATIC;
-    }
+int16_t EntityMotionState::computeCollisionGroup() const {
     if (_entity->getIgnoreForCollisions()) {
         return COLLISION_GROUP_COLLISIONLESS;
     }

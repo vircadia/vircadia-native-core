@@ -1,4 +1,4 @@
-# 
+#
 #  GenerateInstallers.cmake
 #  cmake/macros
 #
@@ -7,10 +7,10 @@
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
+#
 
 macro(GENERATE_INSTALLERS)
-  if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE AND WIN32)
+  if (DEPLOY_PACKAGE AND WIN32)
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/package-bundle")
     find_program(MAKENSIS_COMMAND makensis PATHS [HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\NSIS])
     if (NOT MAKENSIS_COMMAND)
@@ -26,5 +26,7 @@ macro(GENERATE_INSTALLERS)
       COMMAND set INSTALLER_DIRECTORY=${INSTALLER_DIRECTORY}
       COMMAND CMD /C "\"${MAKENSIS_COMMAND}\" ${CMAKE_SOURCE_DIR}/tools/nsis/release.nsi"
     )
+
+    set_target_properties(build-package PROPERTIES EXCLUDE_FROM_ALL TRUE FOLDER "Installer")
   endif ()
 endmacro()

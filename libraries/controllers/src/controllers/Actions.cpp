@@ -70,6 +70,12 @@ namespace controller {
             makeAxisPair(Action::RETICLE_UP, "ReticleUp"),
             makeAxisPair(Action::RETICLE_DOWN, "ReticleDown"),
 
+            makeAxisPair(Action::UI_NAV_LATERAL, "UiNavLateral"),
+            makeAxisPair(Action::UI_NAV_VERTICAL, "UiNavVertical"),
+            makeAxisPair(Action::UI_NAV_GROUP, "UiNavGroup"),
+            makeAxisPair(Action::UI_NAV_SELECT, "UiNavSelect"),
+            makeAxisPair(Action::UI_NAV_BACK, "UiNavBack"),
+
             // Aliases and bisected versions
             makeAxisPair(Action::LONGITUDINAL_BACKWARD, "Backward"),
             makeAxisPair(Action::LONGITUDINAL_FORWARD, "Forward"),

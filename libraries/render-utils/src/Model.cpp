@@ -95,6 +95,9 @@ const float METERS_PER_MILLIMETER = 0.01f;
 void Model::setScaleInternal(const glm::vec3& scale) {
     if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
         _scale = scale;
+        if (_scale.x == 0.0f || _scale.y == 0.0f || _scale.z == 0.0f) {
+            assert(false);
+        }
         initJointTransforms();
     }
 }
@@ -971,11 +974,14 @@ void Model::updateRig(float deltaTime, glm::mat4 parentTransform) {
     _needsUpdateClusterMatrices = true;
     _rig->updateAnimations(deltaTime, parentTransform);
 }
+
 void Model::simulateInternal(float deltaTime) {
     // update the world space transforms for all joints
     glm::mat4 parentTransform = glm::scale(_scale) * glm::translate(_offset);
     updateRig(deltaTime, parentTransform);
 }
+
+// virtual
 void Model::updateClusterMatrices(glm::vec3 modelPosition, glm::quat modelOrientation) {
     PerformanceTimer perfTimer("Model::updateClusterMatrices");
 
