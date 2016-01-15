@@ -24,6 +24,7 @@
 ;Include Modern UI
 
   !include "MUI2.nsh"
+  !include "InstallOptions.nsh"
 
   ;Default installation folder
   InstallDir "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
