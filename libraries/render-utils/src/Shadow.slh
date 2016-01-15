@@ -16,7 +16,7 @@ uniform sampler2DShadow shadowMap;
 
 struct ShadowTransform {
 	mat4 projection;
-	mat4 view;
+	mat4 viewInverse;
 
 	float bias;
 	float scale;
@@ -26,8 +26,8 @@ uniform shadowTransformBuffer {
 	ShadowTransform _shadowTransform;
 };
 
-mat4 getShadowView() {
-	return _shadowTransform.view;
+mat4 getShadowViewInverse() {
+	return _shadowTransform.viewInverse;
 }
 
 mat4 getShadowProjection() {
@@ -35,21 +35,27 @@ mat4 getShadowProjection() {
 }
 
 float getShadowScale() {
-	return 1.0;
-	//_shadowTransform.scale;
+	return _shadowTransform.scale;
+}
+
+float getShadowBias() {
+	return _shadowTransform.bias;
 }
 
 // Compute the texture coordinates from world coordinates
 vec4 evalShadowTexcoord(vec4 position) {
-	mat4 bias = mat4(
+	mat4 biasMatrix = mat4(
 		0.5, 0.0, 0.0, 0.0,
 		0.0, 0.5, 0.0, 0.0,
-		0.0, 0.0, 0.5, 0.0,
+		0.0, 0.0, 0.5, 0.0,	
 		0.5, 0.5, 0.5, 1.0);
-	return bias * getShadowProjection() * inverse(getShadowView()) * position;
+	float bias = -getShadowBias();
+
+	vec4 shadowCoord = biasMatrix * getShadowProjection() * getShadowViewInverse() * position;
+	return vec4(shadowCoord.xy, shadowCoord.z + bias, 1.0);
 }
 
-// Fetching it
+// Sample the shadowMap with PCF (built-in)
 float fetchShadow(vec3 shadowTexcoord) {
     return texture(shadowMap, shadowTexcoord);
 }
@@ -65,40 +71,25 @@ vec2 samples[8] = vec2[8](
     vec2(0.0, -1.0)
 );
 
-float evalShadowAttenuationPCF(vec4 shadowTexcoord) {
-    float radiusScale = (shadowTexcoord.w + 1.0);
+float evalShadowAttenuationSampling(vec4 shadowTexcoord) {
 	float shadowScale = getShadowScale();
 
     float shadowAttenuation = (0.25 * (
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[0], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[1], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[2], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[3], 0.0))
     ));
 
+	// Check for early bailing
     if ((shadowAttenuation > 0) && (shadowAttenuation < 1.0)) {
-        radiusScale *= 0.5;
         shadowAttenuation = 0.5 * shadowAttenuation + (0.125 * (
-            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[4], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[5], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[6], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[7], 0.0))
+            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[4], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[5], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[6], 0.0)) +
+            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[7], 0.0))
         ));
     }
-
-    return shadowAttenuation;
-}
-
-float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
-    float radiusScale = 0.5;
-	float shadowScale = getShadowScale();
-
-    float shadowAttenuation = (0.25 * (
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[0], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[1], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[2], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + radiusScale * shadowScale * vec3(samples[3], 0.0))
-    ));
 
     return shadowAttenuation;
 }
@@ -106,9 +97,7 @@ float evalShadowAttenuationBasic(vec4 shadowTexcoord) {
 float evalShadowAttenuation(vec4 position) {
 	vec4 shadowTexcoord = evalShadowTexcoord(position);
 
-	return fetchShadow(shadowTexcoord.xyz);
-    // return evalShadowAttenuationBasic(shadowTexcoord);
-    // return evalShadowAttenuationPCF(shadowTexcoord);
+    return evalShadowAttenuationSampling(shadowTexcoord);
 }
 
 <@endif@>

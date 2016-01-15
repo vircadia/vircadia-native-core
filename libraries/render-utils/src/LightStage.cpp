@@ -16,7 +16,7 @@
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
-    Schema schema{glm::mat4(), glm::mat4(), 0, MAP_SIZE};
+    Schema schema;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
 }
 
@@ -72,7 +72,7 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
 
     // Update the buffer
     _schemaBuffer.edit<Schema>().projection = ortho;
-    _schemaBuffer.edit<Schema>().view = view.getMatrix();
+    _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
 }
 
 const glm::mat4& LightStage::Shadow::getView() const {

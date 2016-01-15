@@ -24,7 +24,7 @@ public:
     class Shadow {
     public:
         using UniformBufferView = gpu::BufferView;
-        const int MAP_SIZE = 2048;
+        static const int MAP_SIZE = 2048;
 
         Shadow(model::LightPointer light);
 
@@ -46,10 +46,10 @@ public:
         class Schema {
         public:
             glm::mat4 projection;
-            glm::mat4 view;
+            glm::mat4 viewInverse;
 
-            glm::float32 bias;
-            glm::float32 scale;
+            glm::float32 bias = 0.005f;
+            glm::float32 scale = 1 / MAP_SIZE;
         };
         UniformBufferView _schemaBuffer = nullptr;
     };
