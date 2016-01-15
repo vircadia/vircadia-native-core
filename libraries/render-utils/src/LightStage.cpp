@@ -40,10 +40,8 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
     const Transform viewInverse{ _view.getInverseMatrix() };
 
     viewFrustum->calculate();
-    //const auto nearCorners = viewFrustum->getCorners(0);
-    const auto nearClip = viewFrustum->getNearClip();
-    const auto nearCorners = viewFrustum->getCorners(nearDepth);
-    const auto farCorners = viewFrustum->getCorners(farDepth);
+    auto nearCorners = viewFrustum->getCorners(nearDepth);
+    auto farCorners = viewFrustum->getCorners(farDepth);
 
     vec3 min{ viewInverse.transform(nearCorners.bottomLeft) };
     vec3 max{ min };
@@ -59,7 +57,6 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
         max.y = glm::max(max.y, corner.y);
         max.z = glm::max(max.z, corner.z);
     };
-    fitFrustum(nearCorners.bottomLeft);
     fitFrustum(nearCorners.bottomRight);
     fitFrustum(nearCorners.topLeft);
     fitFrustum(nearCorners.topRight);

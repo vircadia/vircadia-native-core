@@ -740,8 +740,8 @@ const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) {
     glm::vec3 normal = glm::normalize(_direction);
 
     auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {
-        const auto dir = glm::normalize(_cornersWorld[nearCorner] - _cornersWorld[farCorner]);
-        const auto factor = depth / glm::dot(dir, normal);
+        auto dir = glm::normalize(_cornersWorld[nearCorner] - _cornersWorld[farCorner]);
+        auto factor = depth / glm::dot(dir, normal);
         return _position + factor * dir;
     };
 
