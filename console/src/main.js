@@ -255,8 +255,8 @@ function goHomeClicked() {
 var logWindow = null;
 
 function buildMenuArray(serverState) {
-<<<<<<< HEAD
     var menuArray = null;
+    
     if (isShuttingDown) {
         menuArray = [
             {
@@ -267,6 +267,13 @@ function buildMenuArray(serverState) {
     } else {
         menuArray = [
             {
+                label: 'Server - Stopped',
+                enabled: false
+            },
+            {
+                type: 'separator'
+            },
+            {
                 label: 'Go Home',
                 click: goHomeClicked,
                 enabled: false
@@ -275,30 +282,29 @@ function buildMenuArray(serverState) {
                 type: 'separator'
             },
             {
-                label: "Server - Stopped",
-                enabled: false
-            },
-            {
-                label: "Start",
+                label: 'Start Server',
                 click: function() { homeServer.restart(); }
             },
             {
-                label: "Stop",
+                label: 'Stop Server',
                 visible: false,
                 click: function() { homeServer.stop(); }
             },
             {
-                label: "Settings",
+                label: 'Settings',
                 click: function() { shell.openExternal('http://localhost:40100/settings'); },
                 enabled: false
             },
             {
-                label: "View Logs",
-                click: function() { logWindow.open(); }
+                label: 'View Logs',
+                click: function() { openFileBrowser(logPath); }
             },
             {
-                label: "Open Log Directory",
-                click: function() { openFileBrowser(logPath); }
+                type: 'separator'
+            },
+            {
+                label: 'Share',
+                click: function() { shell.openExternal('http://localhost:40100/settings/?action=share') }
             },
             {
                 type: 'separator'
@@ -306,65 +312,12 @@ function buildMenuArray(serverState) {
             {
                 label: 'Quit',
                 accelerator: 'Command+Q',
-                click: function() { shutdown(); }
+                click: function() { app.quit(); }
             }
         ];
 
         updateMenuArray(menuArray, serverState);
     }
-=======
-    var menuArray = [
-        {
-            label: 'Server - Stopped',
-            enabled: false
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Go Home',
-            click: goHomeClicked,
-            enabled: false
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Start Server',
-            click: function() { homeServer.restart(); }
-        },
-        {
-            label: 'Stop Server',
-            visible: false,
-            click: function() { homeServer.stop(); }
-        },
-        {
-            label: 'Settings',
-            click: function() { shell.openExternal('http://localhost:40100/settings'); },
-            enabled: false
-        },
-        {
-            label: 'View Logs',
-            click: function() { openFileBrowser(logPath); }
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Share',
-            click: function() { shell.openExternal('http://localhost:40100/settings/?action=share') }
-        },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Quit',
-            accelerator: 'Command+Q',
-            click: function() { app.quit(); }
-        }
-    ];
->>>>>>> shuffling and renaming of menu options
-
 
     return menuArray;
 }
