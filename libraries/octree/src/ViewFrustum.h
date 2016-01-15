@@ -61,7 +61,7 @@ public:
     float getFarClip() const { return _farClip; }
     float getFocalLength() const { return _focalLength; }
 
-    const class Corners{
+    class Corners {
     public:
         Corners(glm::vec3&& topLeft, glm::vec3&& topRight, glm::vec3&& bottomLeft, glm::vec3&& bottomRight)
             : topLeft{ topLeft }, topRight{ topRight }, bottomLeft{ bottomLeft }, bottomRight{ bottomRight } {}
@@ -70,7 +70,8 @@ public:
         glm::vec3 bottomLeft;
         glm::vec3 bottomRight;
     // Get the corners depth units from frustum position, along frustum orientation
-    } getCorners(const float& depth);
+    };
+    const Corners getCorners(const float& depth);
 
     // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
