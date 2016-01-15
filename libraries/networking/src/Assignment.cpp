@@ -12,11 +12,13 @@
 #include "udt/PacketHeaders.h"
 #include "SharedUtil.h"
 #include "UUID.h"
+#include "ServerPathUtils.h"
 
 #include <QtCore/QDataStream>
 
 #include <ApplicationVersion.h>
 #include "Assignment.h"
+#include <QtCore/QStandardPaths>
 
 Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
     switch (nodeType) {

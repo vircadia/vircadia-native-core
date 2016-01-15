@@ -35,6 +35,7 @@
 #include <ShutdownEventListener.h>
 #include <UUID.h>
 #include <LogHandler.h>
+#include <ServerPathUtils.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
@@ -1068,7 +1069,7 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
 
 const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
-    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+    QString newPath { ServerPathUtils::getDataDirectory() + "/" + QString(ASSIGNMENT_SCRIPT_HOST_LOCATION) };
     newPath += "/scripts/";
     // append the UUID for this script as the new filename, remove the curly braces
     newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
