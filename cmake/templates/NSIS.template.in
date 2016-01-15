@@ -36,6 +36,7 @@
 
   ; Set name prior to inner loop so uninstaller has correct values
   Name "@CPACK_NSIS_PACKAGE_NAME@"
+  BrandingText " "
 
   !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
