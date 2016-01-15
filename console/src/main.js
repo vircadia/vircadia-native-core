@@ -256,7 +256,7 @@ var logWindow = null;
 
 function buildMenuArray(serverState) {
     var menuArray = null;
-    
+
     if (isShuttingDown) {
         menuArray = [
             {
@@ -297,7 +297,7 @@ function buildMenuArray(serverState) {
             },
             {
                 label: 'View Logs',
-                click: function() { openFileBrowser(logPath); }
+                click: function() { logWindow.open(); }
             },
             {
                 type: 'separator'
