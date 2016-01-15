@@ -359,8 +359,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         // Start downloading content set
         var req = progress(request.get({
-            // url: "http://localhost:8000/contentSet.zip",
-            url: "http://builds.highfidelity.com/interface-win64-3914.exe"
+            url: "https://s3.amazonaws.com/hifi-public/homeset/updated.zip"
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
