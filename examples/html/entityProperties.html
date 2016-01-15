@@ -262,7 +262,7 @@
     
                 var elDensity = document.getElementById("property-density");
                 var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
-                var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
+                var elDynamic = document.getElementById("property-dyanmict );
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
@@ -492,7 +492,7 @@
     
                                 elDensity.value = properties.density.toFixed(2);
                                 elIgnoreForCollisions.checked = properties.ignoreForCollisions;
-                                elCollisionsWillMove.checked = properties.collisionsWillMove;
+                                elDynamic.checked = properties.dynamic;
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
                                 elScriptURL.value = properties.script;
@@ -719,7 +719,7 @@
     
                 elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
                 elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
-                elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
+                elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
                 elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
