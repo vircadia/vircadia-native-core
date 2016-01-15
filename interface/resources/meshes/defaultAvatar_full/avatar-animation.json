@@ -145,7 +145,7 @@
                                                         "id": "rightHandGraspOpen",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_open_right_v2.fbx",
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_open_right.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 0.0,
                                                             "timeScale": 1.0,
@@ -157,7 +157,7 @@
                                                         "id": "rightHandGraspClosed",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_close_right_v2.fbx",
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_closed_right.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 0.0,
                                                             "timeScale": 1.0,
@@ -205,7 +205,7 @@
                                                                 "id": "leftHandGraspOpen",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/grab/grab_left.fbx",
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_open_left.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 0.0,
                                                                     "timeScale": 1.0,
@@ -217,7 +217,7 @@
                                                                 "id": "leftHandGraspClosed",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/grab/grab_left.fbx",
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_closed_left.fbx",
                                                                     "startFrame": 10.0,
                                                                     "endFrame": 10.0,
                                                                     "timeScale": 1.0,
