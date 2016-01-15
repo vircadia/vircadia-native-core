@@ -10,7 +10,6 @@
 #
 
 macro(PACKAGE_LIBRARIES_FOR_DEPLOYMENT)
-
   if (WIN32)
     configure_file(
       ${HF_CMAKE_DIR}/templates/FixupBundlePostBuild.cmake.in

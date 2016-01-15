@@ -64,4 +64,8 @@ macro(install_beside_console)
     endif ()
   endif ()
 
+  # set variables used by manual ssleay library copy
+  set(TARGET_INSTALL_DIR ${COMPONENT_DESTINATION})
+  set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
+
 endmacro()

@@ -37,8 +37,8 @@ if (UNIX)
 endif ()
 
 if (WIN32)
-  set(MANUAL_SSLEAY_COPY TRUE)
   package_libraries_for_deployment()
 endif ()
 
 install_beside_console()
+manually_install_ssl_eay()
