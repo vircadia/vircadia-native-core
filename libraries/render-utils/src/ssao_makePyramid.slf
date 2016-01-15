@@ -12,14 +12,12 @@
 <@include ssao.slh@>
 <$declareAmbientOcclusion()$>
 
-// the depth texture
 uniform sampler2D depthMap;
 
-in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main(void) {
-    float Zdb = texture(depthMap, varTexCoord0).x;
+    float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;
     float Zeye = -evalZeyeFromZdb(Zdb);
     outFragColor = vec4(Zeye, 0.0, 0.0, 1.0);
 }

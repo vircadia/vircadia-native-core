@@ -31,7 +31,7 @@ public:
     float getLevel() const { return _parametersBuffer.get<Parameters>()._radiusInfo.w; }
 
     void setDithering(bool enabled);
-    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._ditheringInfo.w; }
+    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._ditheringInfo.x; }
 
     // Number of samples per pixel to evaluate the Obscurance
     void setNumSamples(int numSamples);
@@ -57,7 +57,7 @@ private:
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
         // Dithering info
-        glm::vec4 _ditheringInfo{ 1.0, 0.0, 0.0, 0.0 };
+        glm::vec4 _ditheringInfo{ 0.0, 0.0, 0.0, 0.0 };
         // Sampling info
         glm::vec4 _sampleInfo{ 11.0, 1.0/11.0, 7.0, 1.0 };
         // Blurring info
@@ -66,6 +66,8 @@ private:
         glm::vec4 _pixelInfo;
         // Depth info is { n.f, f - n, -f}
         glm::vec4 _depthInfo;
+        // Stereo info
+        glm::vec4 _stereoInfo{ 0.0 };
         // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
         glm::mat4 _projection[2];
         

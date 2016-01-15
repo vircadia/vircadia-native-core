@@ -178,8 +178,8 @@ void AmbientOcclusionEffect::setLevel(float level) {
 
 void AmbientOcclusionEffect::setDithering(bool enabled) {
     if (enabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
-        current.w = (float)enabled;
+        auto& current = _parametersBuffer.edit<Parameters>()._ditheringInfo;
+        current.x = (float)enabled;
     }
 }
 
@@ -331,15 +331,46 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     updateDeferredTransformBuffer(renderContext);
 
-    // Eval the mono projection
-    mat4 monoProjMat;
-    args->_viewFrustum->evalProjectionMatrix(monoProjMat);
-
+    // Update the depth info with near and far (same for stereo)
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
-    _parametersBuffer.edit<Parameters>()._projection[0] = monoProjMat;
-    _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
-    _parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
+
+    _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
+    //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
+
+    // Running in stero ?
+    bool isStereo = args->_context->isStereo();
+    if (!isStereo) {
+        // Eval the mono projection
+        mat4 monoProjMat;
+        args->_viewFrustum->evalProjectionMatrix(monoProjMat);
+        _parametersBuffer.edit<Parameters>()._projection[0] = monoProjMat;
+        _parametersBuffer.edit<Parameters>()._stereoInfo = glm::vec4(0.0f, args->_viewport.z, 0.0f, 0.0f);
+
+    } else {
+
+        mat4 projMats[2];
+        Transform viewTransforms[2];
+
+        DeferredTransform deferredTransforms[2];
+
+
+        mat4 eyeViews[2];
+        args->_context->getStereoProjections(projMats);
+        args->_context->getStereoViews(eyeViews);
+
+        float halfWidth = 0.5f * sWidth;
+
+        for (int i = 0; i < 2; i++) {
+            // Compose the mono Eye space to Stereo clip space Projection Matrix
+            auto sideViewMat = projMats[i] * eyeViews[i];
+
+            _parametersBuffer.edit<Parameters>()._projection[i] = sideViewMat;
+        }
+
+        _parametersBuffer.edit<Parameters>()._stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
+
+    }
 
     auto pyramidPipeline = getPyramidPipeline();
     auto occlusionPipeline = getOcclusionPipeline();

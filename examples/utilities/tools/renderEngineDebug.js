@@ -52,10 +52,12 @@ var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
-previousMode = 1; // FIXME: just for debug purpose
+previousMode = 8; // FIXME: just for debug purpose
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
 Render.deferredDebugMode = previousMode;
 Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
+
+Render.deferredDebugSize = { x: -0.5, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
 
 function setEngineDeferredDebugSize(eventX) {
     var scaledX = (2.0 * (eventX / Window.innerWidth) - 1.0).clamp(-1.0, 1.0);

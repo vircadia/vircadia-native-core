@@ -38,6 +38,7 @@ struct AmbientOcclusionParams {
     vec4 _blurInfo;
     vec4 _pixelInfo;
     vec4 _depthInfo;
+    vec4 _stereoInfo;
     mat4 _projection[2];
 };
 
@@ -90,16 +91,20 @@ float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
 
-float evalZeyeFromZdb(float depth) {
-    return params._depthInfo.x / (depth * params._depthInfo.y + params._depthInfo.z);
+bool isStereo() {
+    return params._stereoInfo.x > 0.0f;
 }
 
-vec3 evalEyePositionFromZeye(float Zeye, vec2 texcoord) {
-    // compute the view space position using the depth
-    // basically manually pick the proj matrix components to do the inverse
-    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[0][2][0] - params._projection[0][3][0]) / params._projection[0][0][0];
-    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[0][2][1] - params._projection[0][3][1]) / params._projection[0][1][1];
-    return vec3(Xe, Ye, Zeye);
+ivec2 getStereoSideInfo(int xPos) {
+    return (xPos < params._stereoInfo.y ? ivec2(0, 0) : ivec2(1, int(params._stereoInfo.y)) );
+}
+
+float getStereoSideWidth() {
+    return (params._stereoInfo.y);
+}
+
+float evalZeyeFromZdb(float depth) {
+    return params._depthInfo.x / (depth * params._depthInfo.y + params._depthInfo.z);
 }
 
 vec3 evalEyeNormal(vec3 C) {

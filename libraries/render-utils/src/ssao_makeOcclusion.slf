@@ -20,9 +20,16 @@ const int MAX_MIP_LEVEL = 5;
 // the depth pyramid texture
 uniform sampler2D pyramidMap;
 
-vec3 evalEyePosition(vec2 texcoord) {
-    float Zeye = -texture(pyramidMap, texcoord, 0).x;
-    return evalEyePositionFromZeye(Zeye, texcoord);
+float getZEye(ivec2 pixel) {
+    return -texelFetch(pyramidMap, pixel, 0).x;
+}
+
+vec3 evalEyePositionFromZeye(ivec2 side, float Zeye, vec2 texcoord) {
+    // compute the view space position using the depth
+    // basically manually pick the proj matrix components to do the inverse
+    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[side.x][2][0] - params._projection[side.x][3][0]) / params._projection[side.x][0][0];
+    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[side.x][2][1] - params._projection[side.x][3][1]) / params._projection[side.x][1][1];
+    return vec3(Xe, Ye, Zeye);
 }
 
 in vec2 varTexCoord0;
@@ -44,37 +51,36 @@ vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
     return vec2(cos(angle), sin(angle));
 }
 
-vec3 getOffsetPosition(ivec2 ssC, vec2 unitOffset, float ssR) {
+vec3 getOffsetPosition(ivec2 side, ivec2 ssC, vec2 unitOffset, float ssR) {
     // Derivation:
     //  mipLevel = floor(log(ssR / MAX_OFFSET));
     int mipLevel = clamp(findMSB(int(ssR)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL);
 
     ivec2 ssP = ivec2(ssR * unitOffset) + ssC;
+    ivec2 ssPFull = ivec2(ssP.x + side.y, ssP.y);
 
     vec3 P;
 
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
-    ivec2 mipP = clamp(ssP >> mipLevel, ivec2(0), textureSize(pyramidMap, mipLevel) - ivec2(1));
+    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, mipLevel) - ivec2(1));
     P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
-//    P.z = -texelFetch(pyramidMap, ssP, 0).r;
+//    P.z = -texelFetch(pyramidMap, ssPFull, 0).r;
 
     // Offset to pixel center
-    //P = reconstructCSPosition(vec2(ssP) + vec2(0.5), P.z);
-
-    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / getWidthHeight();
-    P = evalEyePositionFromZeye(P.z, tapUV);
+    vec2 tapUV = (vec2(ssP) + vec2(0.5)) / getStereoSideWidth();
+    P = evalEyePositionFromZeye(side, P.z, tapUV);
     return P;
 }
 
-float sampleAO(in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssDiskRadius, in int tapIndex, in float randomPatternRotationAngle) {
+float sampleAO(in ivec2 side, in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssDiskRadius, in int tapIndex, in float randomPatternRotationAngle) {
     // Offset on the unit disk, spun for this pixel
     float ssR;
     vec2 unitOffset = tapLocation(tapIndex, randomPatternRotationAngle, ssR);
     ssR *= ssDiskRadius;
 
     // The occluding point in camera space
-    vec3 Q = getOffsetPosition(ssC, unitOffset, ssR);
+    vec3 Q = getOffsetPosition(side, ssC, unitOffset, ssR);
 
     vec3 v = Q - C;
     float vv = dot(v, v);
@@ -84,11 +90,7 @@ float sampleAO(in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssDiskRadius, in i
     const float epsilon = 0.01;
     float radius2 = getRadius2();
 
-    // A: From the HPG12 paper
-    // Note large epsilon to avoid overdarkening within cracks
-    // return float(vv < radius2) * max((vn - bias) / (epsilon + vv), 0.0) * radius2 * 0.6;
-
-    // B: Smoother transition to zero (lowers contrast, smoothing out corners). [Recommended]
+    // Fall off function as recommended in SAO paper
     float f = max(radius2 - vv, 0.0);
     return f * f * f * max((vn - bias) / (epsilon + vv), 0.0);
 }
@@ -105,19 +107,31 @@ void main(void) {
     // Pixel being shaded
     ivec2 ssC = ivec2(gl_FragCoord.xy);
 
-    vec3 Cp = evalEyePosition(varTexCoord0);
+    // Fetch the z under the pixel (stereo or not)
+    float Zeye = getZEye(ssC);
 
-    float randomPatternRotationAngle = getAngleDithering(ssC);
+    // Stereo side info
+    ivec2 side = getStereoSideInfo(ssC.x);
 
+    // From now on, ssC is the pixel pos in the side
+    ssC.x -= side.y;
+    vec2 fragPos = (vec2(ssC) + 0.5) / getStereoSideWidth();
+
+    // The position  and normal of the pixel fragment in Eye space
+    vec3 Cp = evalEyePositionFromZeye(side, Zeye, fragPos);
     vec3 Cn = evalEyeNormal(Cp);
 
     // Choose the screen-space sample radius
     // proportional to the projected area of the sphere
     float ssDiskRadius = -getProjScale() * getRadius() / Cp.z;
 
+    // Let's make noise 
+    float randomPatternRotationAngle = getAngleDithering(ssC);
+
+    // Accumulate the Obscurance for each samples
     float sum = 0.0;
     for (int i = 0; i < getNumSamples(); ++i) {
-        sum += sampleAO(ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
+        sum += sampleAO(side, ssC, Cp, Cn, ssDiskRadius, i, randomPatternRotationAngle);
     }
 
     float A = max(0.0, 1.0 - sum * getObscuranceScaling() * 5.0 * getInvNumSamples());
