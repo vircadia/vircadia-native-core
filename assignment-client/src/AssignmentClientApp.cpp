@@ -47,7 +47,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     setOrganizationDomain("highfidelity.io");
     setApplicationName("assignment-client");
-    setApplicationName(BuildInfo::VERSION);
+//    setApplicationName(BuildInfo::VERSION);
 
     // use the verbose message handler in Logging
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
