@@ -5,52 +5,32 @@ import QtWebChannel 1.0
 import QtWebSockets 1.0
 import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
-import "Global.js" as Global
-
+import "windows" as Windows
 import "controls"
 import "styles"
 
-VrDialog {
+Windows.Window {
     id: root
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
-    enabled: false
     visible: false
     focus: true
     property var channel;
-    
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
-    contentImplicitWidth: clientArea.implicitWidth
-    contentImplicitHeight: clientArea.implicitHeight
     property alias source: pageLoader.source 
     
-    function raiseWindow() {
-        Global.raiseWindow(root)
-    }
+    function raiseWindow() { Desktop.raise(root) }
 
-    Item {
-        id: clientArea
-        implicitHeight: 600
-        implicitWidth: 800
-        x: root.clientX
-        y: root.clientY
-        width: root.clientWidth
-        height: root.clientHeight
+    Loader { 
+        id: pageLoader
+        objectName: "Loader"
         focus: true
-        clip: true
-
-        Loader { 
-            id: pageLoader
-            objectName: "Loader"
-            anchors.fill: parent
-            focus: true
-            property var dialog: root
+        property var dialog: root
             
-            Keys.onPressed: {
-                console.log("QmlWindow pageLoader keypress")
-            }
+        Keys.onPressed: {
+            console.log("QmlWindow pageLoader keypress")
         }
-    } // item
+    }
 } // dialog

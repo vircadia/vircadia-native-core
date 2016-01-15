@@ -4,7 +4,9 @@ EntityListTool = function(opts) {
     var that = {};
 
     var url = ENTITY_LIST_HTML_URL;
-    var webView = new WebWindow('Entities', url, 200, 280, true);
+    var webView = new OverlayWebWindow({
+        title: 'Entities',  source: url,  toolWindow: true   
+    });
 
     var searchRadius = 100;
 

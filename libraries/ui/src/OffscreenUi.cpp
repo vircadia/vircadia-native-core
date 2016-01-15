@@ -21,10 +21,6 @@
 #include "MessageDialog.h"
 
 // Needs to match the constants in resources/qml/Global.js
-static const QString OFFSCREEN_ROOT_OBJECT_NAME = "desktopRoot";
-static const QString OFFSCREEN_WINDOW_OBJECT_NAME = "topLevelWindow";
-static QQuickItem* _desktop { nullptr };
-
 class OffscreenFlags : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool navigationFocused READ isNavigationFocused WRITE setNavigationFocused NOTIFY navigationFocusedChanged)
@@ -252,6 +248,48 @@ void OffscreenUi::createDesktop() {
     _desktop = dynamic_cast<QQuickItem*>(load("Root.qml"));
     Q_ASSERT(_desktop);
     getRootContext()->setContextProperty("Desktop", _desktop);
+    _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 }
+
+void OffscreenUi::toggleToolWindow() {
+    _toolWindow->setEnabled(!_toolWindow->isEnabled());
+}
+
+QQuickItem* OffscreenUi::getDesktop() {
+    return _desktop;
+}
+
+QQuickItem* OffscreenUi::getToolWindow() {
+    return _toolWindow;
+}
+
+Q_DECLARE_METATYPE(std::function<void()>);
+static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+Q_DECLARE_METATYPE(std::function<QVariant()>);
+static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+
+
+void OffscreenUi::executeOnUiThread(std::function<void()> function) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "executeOnUiThread", Qt::QueuedConnection,
+            Q_ARG(std::function<void()>, function));
+        return;
+    }
+
+    function();
+}
+
+QVariant OffscreenUi::returnFromUiThread(std::function<QVariant()> function) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariant, result),
+            Q_ARG(std::function<QVariant()>, function));
+        return result;
+    }
+
+    return function();
+}
+
 
 #include "OffscreenUi.moc"

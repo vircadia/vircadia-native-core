@@ -3,8 +3,6 @@ import QtQuick.Controls 1.2
 import "."
 import "../styles"
 
-import "../Global.js" as Global
-
 /*
  * FIXME Need to create a client property here so that objects can be
  * placed in it without having to think about positioning within the outer 
@@ -48,7 +46,7 @@ DialogBase {
         if (enabled) {
             visible = true;
             if (root.parent) {
-                Global.raiseWindow(root);
+                Desktop.raise(root);
             }
         }
     }

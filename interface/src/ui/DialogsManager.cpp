@@ -148,8 +148,7 @@ void DialogsManager::lodTools() {
 }
 
 void DialogsManager::toggleToolWindow() {
-    QMainWindow* toolWindow = qApp->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
+    DependencyManager::get<OffscreenUi>()->toggleToolWindow();
 }
 
 void DialogsManager::hmdTools(bool showTools) {

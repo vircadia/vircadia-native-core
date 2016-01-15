@@ -231,7 +231,9 @@ GridTool = function(opts) {
     var listeners = [];
 
     var url = GRID_CONTROLS_HTML_URL;
-    var webView = new WebWindow('Grid', url, 200, 280, true);
+    var webView = new OverlayWebWindow({
+        title: 'Grid',  source: url,  toolWindow: true
+    });
 
     horizontalGrid.addListener(function(data) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));

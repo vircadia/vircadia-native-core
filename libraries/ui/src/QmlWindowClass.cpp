@@ -35,6 +35,7 @@ static const char* const TITLE_PROPERTY = "title";
 static const char* const WIDTH_PROPERTY = "width";
 static const char* const HEIGHT_PROPERTY = "height";
 static const char* const VISIBILE_PROPERTY = "visible";
+static const char* const TOOLWINDOW_PROPERTY = "toolWindow";
 
 void QmlScriptEventBridge::emitWebEvent(const QString& data) {
     QMetaObject::invokeMethod(this, "webEventReceived", Qt::QueuedConnection, Q_ARG(QString, data));
@@ -86,13 +87,14 @@ void QmlWindowClass::setupServer() {
 
 QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource, 
     QScriptContext* context, QScriptEngine* engine, 
-    std::function<QmlWindowClass*(QQmlContext*, QObject*)> function) 
+    std::function<QmlWindowClass*(QObject*)> builder) 
 {
     const auto argumentCount = context->argumentCount();
     QString url;
     QString title;
     int width = -1, height = -1;
     bool visible = true;
+    bool toolWindow = false;
     if (argumentCount > 1) {
 
         if (!context->argument(0).isUndefined()) {
@@ -106,6 +108,9 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         }
         if (context->argument(3).isNumber()) {
             height = context->argument(3).toInt32();
+        }
+        if (context->argument(4).isBool()) {
+            toolWindow = context->argument(4).toBool();
         }
     } else {
         auto argumentObject = context->argument(0);
@@ -125,6 +130,9 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         if (argumentObject.property(VISIBILE_PROPERTY).isBool()) {
             visible = argumentObject.property(VISIBILE_PROPERTY).toBool();
         }
+        if (argumentObject.property(TOOLWINDOW_PROPERTY).isBool()) {
+            toolWindow = argumentObject.property(TOOLWINDOW_PROPERTY).toBool();
+        }
     }
 
     if (!url.startsWith("http") && !url.startsWith("file://") && !url.startsWith("about:")) {
@@ -137,17 +145,44 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
     }
 
     QmlWindowClass* retVal{ nullptr };
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    qDebug() << "Clearing component cache";
-    offscreenUi->getRootContext()->engine()->clearComponentCache();
 
-    // Build the event bridge and wrapper on the main thread
-    QMetaObject::invokeMethod(offscreenUi.data(), "load", Qt::BlockingQueuedConnection,
-        Q_ARG(const QString&, qmlSource),
-        Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
+    if (toolWindow) {
+        auto toolWindow = offscreenUi->getToolWindow();
+        QVariantMap properties;
+        properties.insert(TITLE_PROPERTY, title);
+        properties.insert(SOURCE_PROPERTY, url);
+        if (width != -1 && height != -1) {
+            properties.insert(WIDTH_PROPERTY, width);
+            properties.insert(HEIGHT_PROPERTY, height);
+        }
+
+        // Build the event bridge and wrapper on the main thread
+        QVariant newTabVar;
+        bool invokeResult = QMetaObject::invokeMethod(toolWindow, "addWebTab", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariant, newTabVar),
+            Q_ARG(QVariant, QVariant::fromValue(properties)));
+
+        QQuickItem* newTab = qvariant_cast<QQuickItem*>(newTabVar);
+        if (!invokeResult || !newTab) {
+            return QScriptValue();
+        }
+
+        offscreenUi->returnFromUiThread([&] {
             setupServer();
-            retVal = function(context, object);
+            retVal = builder(newTab);
+            retVal->_toolWindow = true;
+            offscreenUi->getRootContext()->engine()->setObjectOwnership(retVal->_qmlWindow, QQmlEngine::CppOwnership);
+            registerObject(url.toLower(), retVal);
+            return QVariant();
+        });
+    } else {
+        // Build the event bridge and wrapper on the main thread
+        QMetaObject::invokeMethod(offscreenUi.data(), "load", Qt::BlockingQueuedConnection,
+            Q_ARG(const QString&, qmlSource),
+            Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
+            setupServer();
+            retVal = builder(object);
             context->engine()->setObjectOwnership(retVal->_qmlWindow, QQmlEngine::CppOwnership);
             registerObject(url.toLower(), retVal);
             if (!title.isEmpty()) {
@@ -158,9 +193,12 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
             }
             object->setProperty(SOURCE_PROPERTY, url);
             if (visible) {
-                object->setProperty("enabled", true);
+                object->setProperty("visible", true);
             }
         }));
+    }
+
+    retVal->_source = url;
     connect(engine, &QScriptEngine::destroyed, retVal, &QmlWindowClass::deleteLater);
     return engine->newQObject(retVal);
 }
@@ -168,7 +206,7 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
 
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
-    return internalConstructor("QmlWindow.qml", context, engine, [&](QQmlContext* context, QObject* object){
+    return internalConstructor("QmlWindow.qml", context, engine, [&](QObject* object){
         return new QmlWindowClass(object);
     });
 }
@@ -181,6 +219,21 @@ QmlWindowClass::QmlWindowClass(QObject* qmlWindow)
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow));
 }
 
+QmlWindowClass::~QmlWindowClass() {
+    if (_qmlWindow) {
+        if (_toolWindow) {
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            auto toolWindow = offscreenUi->getToolWindow();
+            auto invokeResult = QMetaObject::invokeMethod(toolWindow, "removeTabForUrl", Qt::QueuedConnection, 
+                Q_ARG(QVariant, _source));
+            Q_ASSERT(invokeResult);
+        } else {
+            _qmlWindow->deleteLater();
+        }
+        _qmlWindow = nullptr;
+    }
+}
+
 void QmlWindowClass::registerObject(const QString& name, QObject* object) {
     webChannel.registerObject(name, object);
 }
@@ -189,74 +242,85 @@ void QmlWindowClass::deregisterObject(QObject* object) {
     webChannel.deregisterObject(object);
 }
 
-void QmlWindowClass::setVisible(bool visible) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setVisible", Qt::AutoConnection, Q_ARG(bool, visible));
-        return;
-    }
-
-    auto qmlWindow = asQuickItem();
-    if (qmlWindow->isEnabled() != visible) {
-        qmlWindow->setEnabled(visible);
-        emit visibilityChanged(visible);
-    }
-}
-
 QQuickItem* QmlWindowClass::asQuickItem() const {
+    if (_toolWindow) {
+        return DependencyManager::get<OffscreenUi>()->getToolWindow();
+    }
     return dynamic_cast<QQuickItem*>(_qmlWindow);
 }
 
-bool QmlWindowClass::isVisible() const {
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(const_cast<QmlWindowClass*>(this), "isVisible", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result));
-        return result;
+void QmlWindowClass::setVisible(bool visible) {
+    // For tool window tabs we special case visiblility as enable / disable of the tab, not the window
+    // The tool window itself has special logic based on whether any tabs are enabled
+    if (_toolWindow) {
+        auto targetTab = dynamic_cast<QQuickItem*>(_qmlWindow);
+        DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+            targetTab->setEnabled(visible);
+            //emit visibilityChanged(visible);
+        });
+    } else {
+        QQuickItem* targetWindow = asQuickItem();
+        DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+            targetWindow->setVisible(visible);
+            //emit visibilityChanged(visible);
+        });
     }
+}
 
-    return asQuickItem()->isEnabled();
+bool QmlWindowClass::isVisible() const {
+    // The tool window itself has special logic based on whether any tabs are enabled
+    if (_toolWindow) {
+        auto targetTab = dynamic_cast<QQuickItem*>(_qmlWindow);
+        return DependencyManager::get<OffscreenUi>()->returnFromUiThread([&] {
+            return QVariant::fromValue(targetTab->isEnabled());
+        }).toBool();
+    } else {
+        QQuickItem* targetWindow = asQuickItem();
+        return DependencyManager::get<OffscreenUi>()->returnFromUiThread([&] {
+            return QVariant::fromValue(targetWindow->isVisible());
+        }).toBool();
+    }
 }
 
 
 glm::vec2 QmlWindowClass::getPosition() const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec2 result;
-        QMetaObject::invokeMethod(const_cast<QmlWindowClass*>(this), "getPosition", Qt::BlockingQueuedConnection, Q_RETURN_ARG(glm::vec2, result));
-        return result;
-    }
-
-    return glm::vec2(asQuickItem()->x(), asQuickItem()->y());
+    QQuickItem* targetWindow = asQuickItem();
+    QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
+        return targetWindow->position();
+    });
+    return toGlm(result.toPointF());
 }
 
 
 void QmlWindowClass::setPosition(const glm::vec2& position) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setPosition", Qt::QueuedConnection, Q_ARG(glm::vec2, position));
-        return;
-    }
-
-    asQuickItem()->setPosition(QPointF(position.x, position.y));
+    QQuickItem* targetWindow = asQuickItem();
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+        targetWindow->setPosition(QPointF(position.x, position.y));
+    });
 }
 
 void QmlWindowClass::setPosition(int x, int y) {
     setPosition(glm::vec2(x, y));
 }
 
+// FIXME move to GLM helpers
+glm::vec2 toGlm(const QSizeF& size) {
+    return glm::vec2(size.width(), size.height());
+}
+
 glm::vec2 QmlWindowClass::getSize() const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec2 result;
-        QMetaObject::invokeMethod(const_cast<QmlWindowClass*>(this), "getSize", Qt::BlockingQueuedConnection, Q_RETURN_ARG(glm::vec2, result));
-        return result;
-    }
-    
-    return glm::vec2(asQuickItem()->width(), asQuickItem()->height());
+    QQuickItem* targetWindow = asQuickItem();
+    QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
+        return QSizeF(targetWindow->width(), targetWindow->height());
+    });
+    return toGlm(result.toSizeF());
 }
 
 void QmlWindowClass::setSize(const glm::vec2& size) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setSize", Qt::QueuedConnection, Q_ARG(glm::vec2, size));
-    }
-
-    asQuickItem()->setSize(QSizeF(size.x, size.y));
+    QQuickItem* targetWindow = asQuickItem();
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+        targetWindow->setSize(QSizeF(size.x, size.y));
+    });
 }
 
 void QmlWindowClass::setSize(int width, int height) {
@@ -264,27 +328,28 @@ void QmlWindowClass::setSize(int width, int height) {
 }
 
 void QmlWindowClass::setTitle(const QString& title) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setTitle", Qt::QueuedConnection, Q_ARG(QString, title));
-    }
-
-    _qmlWindow->setProperty(TITLE_PROPERTY, title);
+    QQuickItem* targetWindow = asQuickItem();
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+        targetWindow->setProperty(TITLE_PROPERTY, title);
+    });
 }
 
 void QmlWindowClass::close() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "close", Qt::QueuedConnection);
-    }
-    _qmlWindow->setProperty("destroyOnInvisible", true);
-    _qmlWindow->setProperty("visible", false);
-    _qmlWindow->deleteLater();
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([this] {
+        if (_qmlWindow) {
+            _qmlWindow->setProperty("destroyOnInvisible", true);
+            _qmlWindow->setProperty("visible", false);
+            _qmlWindow->deleteLater();
+            _qmlWindow = nullptr;
+        }
+    });
 }
 
 void QmlWindowClass::hasClosed() {
 }
 
 void QmlWindowClass::raise() {
-    QMetaObject::invokeMethod(_qmlWindow, "raiseWindow", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(asQuickItem(), "raiseWindow", Qt::QueuedConnection);
 }
 
 #include "QmlWindowClass.moc"
