@@ -12,6 +12,7 @@
 #ifndef hifi_OffscreenUi_h
 #define hifi_OffscreenUi_h
 
+#include <QtCore/QVariant>
 #include <gl/OffscreenQmlSurface.h>
 
 #include <QMessageBox>
@@ -32,6 +33,12 @@ public:
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
+
+    QQuickItem* getDesktop();
+    QQuickItem* getToolWindow();
+
+    Q_INVOKABLE void executeOnUiThread(std::function<void()> function);
+    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
 
     // Messagebox replacement functions
     using ButtonCallback = std::function<void(QMessageBox::StandardButton)>;
@@ -70,6 +77,11 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok);
 
     static void error(const QString& text);  // Interim dialog in new style
+
+    void toggleToolWindow();
+private:
+    QQuickItem* _desktop { nullptr };
+    QQuickItem* _toolWindow { nullptr };
 };
 
 #endif

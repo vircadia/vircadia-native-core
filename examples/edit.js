@@ -1502,7 +1502,11 @@ PropertiesTool = function(opts) {
     var that = {};
 
     var url = Script.resolvePath('html/entityProperties.html');
-    var webView = new WebWindow('Entity Properties', url, 200, 280, true);
+    var webView = new OverlayWebWindow({
+        title: 'Entity Properties', 
+        source: url, 
+        toolWindow: true
+    });
 
     var visible = false;
 

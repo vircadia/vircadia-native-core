@@ -7,22 +7,25 @@ import "Global.js" as Global
 // windows will be childed. 
 Item {
     id: desktop
-    objectName: Global.OFFSCREEN_ROOT_OBJECT_NAME
     anchors.fill: parent;
+    onParentChanged: forceActiveFocus();
+
+    // Allows QML/JS to find the desktop through the parent chain
+    property bool desktopRoot: true
+
+    // The VR version of the primary menu
+    property var rootMenu: Menu { objectName: "rootMenu" }
+
+    // List of all top level windows
     property var windows: [];
-    property var rootMenu: Menu {
-        objectName: "rootMenu"
-    }
+    onChildrenChanged:  windows = Global.getTopLevelWindows(desktop);
 
-    onChildrenChanged:  {
-        windows = Global.getTopLevelWindows(desktop);
-    }
-
-    onParentChanged: {
-        forceActiveFocus();
-    }
+    // The tool window, one instance
+    property alias toolWindow: toolWindow
+    ToolWindow { id: toolWindow }
 
     function raise(item) {
         Global.raiseWindow(item);
     }
+
 }
