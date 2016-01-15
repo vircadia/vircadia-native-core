@@ -253,7 +253,7 @@ QString LODManager::getLODStatsRenderText() {
     const QString label = "Rendered objects: ";
     return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
 }
-// compare audoAdjustLOD()
+// compare autoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
     float distance;
     if (!isThrottled) {

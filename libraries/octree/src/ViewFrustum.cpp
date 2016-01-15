@@ -750,3 +750,51 @@ void ViewFrustum::evalViewTransform(Transform& view) const {
     view.setTranslation(getPosition());
     view.setRotation(getOrientation());
 }
+
+// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale, int boundaryLevelAdjust) const {
+    float distanceToCamera = glm::length(bounds.calcCenter() - getPosition());
+    float largestDimension = bounds.getLargestDimension();
+
+    const float maxScale = (float)TREE_SCALE;
+    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
+
+    static bool shouldRenderTableNeedsBuilding = true;
+    static QMap<float, float> shouldRenderTable;
+    if (shouldRenderTableNeedsBuilding) {
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float factor = 1.0f;
+
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            factor /= 2.0f;
+            shouldRenderTable[scale] = factor;
+        }
+
+        shouldRenderTableNeedsBuilding = false;
+    }
+
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
+    }
+
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+
+    // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
+    // a floating point for objects that have small angular size to indicate that they may be rendered
+    // with lower preciscion
+    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f; 
+}
+
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
+    return voxelSizeScale / powf(2, renderLevel);
+}

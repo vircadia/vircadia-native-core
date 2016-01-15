@@ -107,6 +107,7 @@ public:
     
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
 
 private:
     // Used for keyhole calculations
@@ -152,5 +153,6 @@ private:
     glm::mat4 _ourModelViewProjectionMatrix;
 };
 
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h
