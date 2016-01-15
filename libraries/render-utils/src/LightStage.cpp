@@ -18,7 +18,7 @@ LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum
     map = framebuffer->getDepthStencilBuffer();
 }
 
-void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float zBack, float zFront) {
+void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near, float far) {
     // Orient the keylight frustum
     const auto& direction = glm::normalize(_light->getDirection());
     glm::quat orientation;
@@ -32,7 +32,7 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float zBac
     _frustum->setOrientation(orientation);
 
     // Position the keylight frustum
-    _frustum->setPosition(viewFrustum->getPosition() - 21.0f * direction);
+    _frustum->setPosition(viewFrustum->getPosition() - (glm::abs(near) + glm::abs(far))*direction);
 
     _view = _frustum->getView();
     const Transform viewInverse{ _view.getInverseMatrix() };
@@ -40,8 +40,8 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float zBac
     viewFrustum->calculate();
     //const auto nearCorners = viewFrustum->getCorners(0);
     const auto nearClip = viewFrustum->getNearClip();
-    const auto nearCorners = viewFrustum->getCorners(nearClip - 1);
-    const auto farCorners = viewFrustum->getCorners(nearClip + 20);
+    const auto nearCorners = viewFrustum->getCorners(near);
+    const auto farCorners = viewFrustum->getCorners(far);
 
     vec3 min{ viewInverse.transform(nearCorners.bottomLeft) };
     vec3 max{ min };
