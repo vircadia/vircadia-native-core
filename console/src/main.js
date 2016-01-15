@@ -352,7 +352,7 @@ function buildMenuArray(serverState) {
         },
         {
             label: 'Share',
-            click: function() { }
+            click: function() { shell.openExternal('http://localhost:40100/settings/?action=share') }
         },
         {
             type: 'separator'
