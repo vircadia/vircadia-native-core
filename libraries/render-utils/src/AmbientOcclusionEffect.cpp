@@ -32,7 +32,6 @@
 #include "ssao_makeVerticalBlur_frag.h"
 
 const int AmbientOcclusionEffect_ParamsSlot = 0;
-const int AmbientOcclusionEffect_DeferredTransformSlot = 1;
 const int AmbientOcclusionEffect_DepthMapSlot = 0;
 const int AmbientOcclusionEffect_PyramidMapSlot = 0;
 const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
@@ -50,9 +49,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), AmbientOcclusionEffect_DeferredTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AmbientOcclusionEffect_DepthMapSlot));
-
         gpu::Shader::makeProgram(*program, slotBindings);
 
 
@@ -77,12 +74,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), AmbientOcclusionEffect_DeferredTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_PyramidMapSlot));
-        
-        slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), AmbientOcclusionEffect_PyramidMapSlot + 1));
         gpu::Shader::makeProgram(*program, slotBindings);
-
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
@@ -107,9 +100,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), AmbientOcclusionEffect_DeferredTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
-        
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -133,7 +124,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), AmbientOcclusionEffect_DeferredTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -208,106 +198,6 @@ void AmbientOcclusionEffect::setEdgeSharpness(float sharpness) {
     }
 }
 
-void AmbientOcclusionEffect::updateDeferredTransformBuffer(const render::RenderContextPointer& renderContext) {
-    // Allocate the parameters buffer used by all the deferred shaders
-    if (!_deferredTransformBuffer[0]._buffer) {
-        DeferredTransform parameters;
-        _deferredTransformBuffer[0] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
-        _deferredTransformBuffer[1] = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(DeferredTransform), (const gpu::Byte*) &parameters));
-    }
-
-    RenderArgs* args = renderContext->getArgs();
-
-    // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    QSize framebufferSize = framebufferCache->getFrameBufferSize();
-    auto monoViewport = args->_viewport;
-    float sMin = args->_viewport.x / (float)framebufferSize.width();
-    float sWidth = args->_viewport.z / (float)framebufferSize.width();
-    float tMin = args->_viewport.y / (float)framebufferSize.height();
-    float tHeight = args->_viewport.w / (float)framebufferSize.height();
-
-    // The view frustum is the mono frustum base
-    auto viewFrustum = args->_viewFrustum;
-
-    // Eval the mono projection
-    mat4 monoProjMat;
-    viewFrustum->evalProjectionMatrix(monoProjMat);
-
-    // The mono view transform
-    Transform monoViewTransform;
-    viewFrustum->evalViewTransform(monoViewTransform);
-
-    // THe mono view matrix coming from the mono view transform
-    glm::mat4 monoViewMat;
-    monoViewTransform.getMatrix(monoViewMat);
-
-    // Running in stero ?
-    bool isStereo = args->_context->isStereo();
-    int numPasses = 1;
-    
-    mat4 projMats[2];
-    Transform viewTransforms[2];
-    ivec4 viewports[2];
-    vec4 clipQuad[2];
-    vec2 screenBottomLeftCorners[2];
-    vec2 screenTopRightCorners[2];
-    vec4 fetchTexcoordRects[2];
-
-    DeferredTransform deferredTransforms[2];
-
-    if (isStereo) {
-        numPasses = 2;
-
-        mat4 eyeViews[2];
-        args->_context->getStereoProjections(projMats);
-        args->_context->getStereoViews(eyeViews);
-
-        float halfWidth = 0.5f * sWidth;
-
-        for (int i = 0; i < numPasses; i++) {
-            // In stereo, the 2 sides are layout side by side in the mono viewport and their width is half
-            int sideWidth = monoViewport.z >> 1;
-            viewports[i] = ivec4(monoViewport.x + (i * sideWidth), monoViewport.y, sideWidth, monoViewport.w);
-
-            deferredTransforms[i].projection = projMats[i];
-
-            auto sideViewMat = monoViewMat * glm::inverse(eyeViews[i]);
-            viewTransforms[i].evalFromRawMatrix(sideViewMat);
-            deferredTransforms[i].viewInverse = sideViewMat;
-
-            deferredTransforms[i].stereoSide = (i == 0 ? -1.0f : 1.0f);
-
-            clipQuad[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
-            screenBottomLeftCorners[i] = glm::vec2(-1.0f + i * 1.0f, -1.0f);
-            screenTopRightCorners[i] = glm::vec2(i * 1.0f, 1.0f);
-
-            fetchTexcoordRects[i] = glm::vec4(sMin + i * halfWidth, tMin, halfWidth, tHeight);
-        }
-    } else {
-
-        viewports[0] = monoViewport;
-        projMats[0] = monoProjMat;
-
-        deferredTransforms[0].projection = monoProjMat;
-
-        deferredTransforms[0].viewInverse = monoViewMat;
-        viewTransforms[0] = monoViewTransform;
-
-        deferredTransforms[0].stereoSide = 0.0f;
-
-        clipQuad[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
-        screenBottomLeftCorners[0] = glm::vec2(-1.0f, -1.0f);
-        screenTopRightCorners[0] = glm::vec2(1.0f, 1.0f);
-
-        fetchTexcoordRects[0] = glm::vec4(sMin, tMin, sWidth, tHeight);
-    }
-
-    _deferredTransformBuffer[0]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[0]);
-    _deferredTransformBuffer[1]._buffer->setSubData(0, sizeof(DeferredTransform), (const gpu::Byte*) &deferredTransforms[1]);
-
-}
-
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
@@ -328,12 +218,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     float tMin = args->_viewport.y / (float)framebufferSize.height();
     float tHeight = args->_viewport.w / (float)framebufferSize.height();
 
-
-    updateDeferredTransformBuffer(renderContext);
-
     // Update the depth info with near and far (same for stereo)
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
-
 
     _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
@@ -350,11 +236,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     } else {
 
         mat4 projMats[2];
-        Transform viewTransforms[2];
-
-        DeferredTransform deferredTransforms[2];
-
-
         mat4 eyeViews[2];
         args->_context->getStereoProjections(projMats);
         args->_context->getStereoViews(eyeViews);
@@ -364,7 +245,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         for (int i = 0; i < 2; i++) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
-
             _parametersBuffer.edit<Parameters>()._projection[i] = sideViewMat;
         }
 
@@ -379,9 +259,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
-
-        batch.setUniformBuffer(AmbientOcclusionEffect_DeferredTransformSlot, _deferredTransformBuffer[0]);
-
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
@@ -403,15 +280,13 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Make pyramid mips
-        batch.setFramebuffer(occlusionFBO);
         batch.generateTextureMips(pyramidFBO->getRenderBuffer(0));
 
         // Occlusion pass
+        batch.setFramebuffer(occlusionFBO);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
         batch.setPipeline(occlusionPipeline);
-        
-       // batch.setFramebuffer(occlusionFinalFBO);
         batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot, pyramidFBO->getRenderBuffer(0));
-        batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, normalBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, gpu::TexturePointer());
         

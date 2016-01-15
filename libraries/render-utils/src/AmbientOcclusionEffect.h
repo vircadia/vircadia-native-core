@@ -76,20 +76,6 @@ private:
     typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
-    // Class describing the uniform buffer with all the parameters common to the deferred shaders
-    class DeferredTransform {
-    public:
-        glm::mat4 projection;
-        glm::mat4 viewInverse;
-        float stereoSide{ 0.f };
-        float spareA, spareB, spareC;
-
-        DeferredTransform() {}
-    };
-    UniformBufferView _deferredTransformBuffer[2];
-    void updateDeferredTransformBuffer(const render::RenderContextPointer& renderContext);
-
-
     const gpu::PipelinePointer& getPyramidPipeline();
     const gpu::PipelinePointer& getOcclusionPipeline();
     const gpu::PipelinePointer& getHBlurPipeline(); // first
