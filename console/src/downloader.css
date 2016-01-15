@@ -17,6 +17,7 @@ body {
     font-size: 14pt;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+    cursor: default;
 }
 
 #error-message {
@@ -24,8 +25,12 @@ body {
     color: #EB4C5F;
     padding: 20px;
     margin: 20px 120px 0 120px;
+}
+
+.selectable {
     -webkit-touch-callout: text;
     -webkit-user-select: text;
+    cursor: text;
 }
 
 progress {
