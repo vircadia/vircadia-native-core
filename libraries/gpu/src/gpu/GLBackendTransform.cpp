@@ -180,10 +180,10 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::updateTransform() const {
+void GLBackend::updateTransform() {
     _transform.update(_commandIndex, _stereo);
 
-    auto& drawCallInfo = _drawCallInfos[_currentDraw];
+    auto& drawCallInfo = getDrawCallInfoBuffer()[_currentDraw];
     glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
 }
 

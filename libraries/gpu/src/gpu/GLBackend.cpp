@@ -161,6 +161,8 @@ void GLBackend::renderPassTransfer(Batch& batch) {
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
         _transform._objects.clear();
+        _drawCallInfos.clear();
+        _namedDrawCallInfos.clear();
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
@@ -286,7 +288,7 @@ GLBackend::DrawCallInfoBuffer& GLBackend::getDrawCallInfoBuffer() {
 
 void GLBackend::captureDrawCallInfo() {
     auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.push_back(_transform._objects.size() - 1);
+    drawCallInfos.push_back((uint16)_transform._objects.size() - 1);
 }
 
 bool GLBackend::checkGLError(const char* name) {

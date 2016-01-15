@@ -251,8 +251,8 @@ protected:
 
         DrawCallInfo(Index idx) : index(idx) {}
 
-        Index index;
-        uint16_t unused; // Reserved space for later
+        Index index { 0 };
+        uint16_t unused { 0 }; // Reserved space for later
     };
     // Make sure DrawCallInfo has no extra padding
     static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
@@ -344,7 +344,7 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform() const;
+    void updateTransform();
     void resetTransformStage();
 
     struct TransformStageState {
