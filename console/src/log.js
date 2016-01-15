@@ -127,7 +127,6 @@ ready = function() {
     domainServer.on('logs-updated', updateLogFiles);
     acMonitor.on('logs-updated', updateLogFiles);
 
-    updateLogFiles();
 
     const maxLogLines = 2500;
     const ipcRenderer = require('electron').ipcRenderer;
@@ -174,22 +173,6 @@ ready = function() {
 
     var filter = "";
 
-    var times = {};
-    var t = null;
-    function start() {
-        t = Date.now();
-    }
-    function stop(name) {
-        if (!(name in times)) times[name] = 0;
-        times[name] += (Date.now() - t);
-    }
-
-    function printTimes() {
-        for (var k in times) {
-            console.log(k, times[k] / 1000, 's');
-        }
-    }
-
     // Register for log events
     //   Process added
 
@@ -199,48 +182,33 @@ ready = function() {
 
     function appendLogMessage(pid, msg, name) {
         console.log(pid, msg, name);
-        start();
         var id = "pid-" + pid;
         id = name == "ds" ? "domain-server" : "assignment-client";
         var $pidLog = $('#' + id);
-        stop('acquire');
 
-        start();
-        // var $logLines = $pidLog.children();
-        // var removed = false;
         var size = ++tabStates[id].size;
-        stop('get size');
-        start();
         if (size > maxLogLines) {
             // $logLines.first().remove();
             $pidLog.find('div.log-line:first').remove();
             removed = true;
         }
-        stop('remove first');
 
-        start();
         var wasAtBottom = false;
         if (currentTab == id) {
             var padding = 15;
             wasAtBottom = $pidLog[0].scrollTop >= ($pidLog[0].scrollHeight - $pidLog.height() - (2 * padding));
         }
-        stop('scrollCheck');
 
-        start();
         var $logLine = $('<div class="log-line">').text(msg);
-        stop('create');
         if (!shouldDisplayLogMessage(msg)) {
             $logLine.hide();
         }
-        start();
-        $pidLog.append($logLine);
-        stop('append');
 
-        start();
+        $pidLog.append($logLine);
+
         if (wasAtBottom) {
             $pidLog.scrollTop($pidLog[0].scrollHeight);
         }
-        stop('scroll');
 
     }
 
@@ -261,5 +229,5 @@ ready = function() {
         }
     });
 
-    setInterval(printTimes, 10000);
+    updateLogFiles();
 };
