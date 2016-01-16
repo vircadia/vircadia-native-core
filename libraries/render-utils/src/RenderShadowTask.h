@@ -24,9 +24,9 @@ class RenderShadowMap {
 public:
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
-             const render::ItemIDsBounds& inItems);
+             const render::ShapesIDsBounds& inShapes);
 
-    using JobModel = render::Task::Job::ModelI<RenderShadowMap, render::ItemIDsBounds>;
+    using JobModel = render::Task::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
 protected:
     render::ShapePlumberPointer _shapePlumber;
 };

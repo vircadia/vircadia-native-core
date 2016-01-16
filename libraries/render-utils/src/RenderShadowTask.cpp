@@ -27,7 +27,7 @@
 using namespace render;
 
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
-                          const render::ItemIDsBounds& inItems) {
+                          const render::ShapesIDsBounds& inShapes) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
 
@@ -52,7 +52,27 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
         batch.setProjectionTransform(shadow.getProjection());
         batch.setViewTransform(shadow.getView());
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems);
+        auto shadowPipeline = _shapePlumber->pickPipeline(args, ShapeKey());
+        auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, ShapeKey::Builder().withSkinned());
+        args->_pipeline = shadowPipeline;
+        batch.setPipeline(shadowPipeline->pipeline);
+
+        std::vector<ShapeKey> skinnedShapeKeys{};
+        for (auto items : inShapes) {
+            if (items.first.isSkinned()) {
+                skinnedShapeKeys.push_back(items.first);
+            } else {
+                renderLights(sceneContext, renderContext, items.second);
+            }
+        }
+
+        args->_pipeline = shadowSkinnedPipeline;
+        batch.setPipeline(shadowSkinnedPipeline->pipeline);
+        for (const auto& key : skinnedShapeKeys) {
+            renderLights(sceneContext, renderContext, inShapes.at(key));
+        }
+
+        args->_pipeline = nullptr;
         args->_batch = nullptr;
     });
 }
@@ -86,11 +106,14 @@ RenderShadowTask::RenderShadowTask() : Task() {
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
     auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems);
 
+    // CPU: Sort by pipeline
+    auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
+
     // CPU: Sort front to back
-    auto shadowItems = addJob<DepthSortItems>("DepthSortShadowMap", culledItems);
+    auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
 
     // GPU: Render to shadow map
-    addJob<RenderShadowMap>("RenderShadowMap", shadowItems, shapePlumber);
+    addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
