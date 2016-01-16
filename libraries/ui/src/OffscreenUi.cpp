@@ -235,7 +235,7 @@ void OffscreenUi::createDesktop() {
     if (_desktop) {
         qDebug() << "Desktop already created";
     }
-    getRootContext()->setContextProperty("DebugQML", false);
+    getRootContext()->setContextProperty("DebugQML", QVariant(false));
     _desktop = dynamic_cast<QQuickItem*>(load("Root.qml"));
     Q_ASSERT(_desktop);
     getRootContext()->setContextProperty("Desktop", _desktop);

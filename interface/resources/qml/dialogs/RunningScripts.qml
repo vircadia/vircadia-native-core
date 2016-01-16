@@ -18,6 +18,12 @@ Window {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property var fileFilters: ListModel {
+        id: jsFilters
+        ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
+        ListElement { text: "All Files (*.*)"; filter: "*.*" }
+    }
+
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -63,6 +69,23 @@ Window {
     function stopAll() {
         console.log("Stop all scripts");
         scripts.stopAllScripts();
+    }
+
+    Component {
+        id: fileDialogBuilder
+        FileDialog { }
+    }
+
+    function loadFromFile() {
+        var fileDialog = fileDialogBuilder.createObject(Desktop, { filterModel: fileFilters });
+        fileDialog.canceled.connect(function(){
+            console.debug("Cancelled file open")
+        })
+
+        fileDialog.selectedFile.connect(function(file){
+            console.debug("Selected " + file)
+            scripts.loadOneScript(file);
+        })
     }
 
     Rectangle {
@@ -163,7 +186,7 @@ Window {
                 }
                 Button {
                     text: "from Disk"
-                    onClicked: ApplicationInterface.loadDialog();
+                    onClicked: loadFromFile();
                 }
             }
 
