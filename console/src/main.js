@@ -312,7 +312,7 @@ function buildMenuArray(serverState) {
             {
                 label: 'Quit',
                 accelerator: 'Command+Q',
-                click: function() { app.quit(); }
+                click: function() { shutdown(); }
             }
         ];
 
