@@ -66,6 +66,21 @@ public:
     using JobModel = Task::Job::Model<DrawLight>;
 };
 
+class PipelineSortShapes {
+public:
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ShapesIDsBounds& outShapes);
+    using JobModel = Task::Job::ModelIO<PipelineSortShapes, ItemIDsBounds, ShapesIDsBounds>;
+};
+
+class DepthSortShapes {
+public:
+    bool _frontToBack;
+    DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
+
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes);
+    using JobModel = Task::Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
+};
+
 }
 
 #endif // hifi_render_DrawTask_h
