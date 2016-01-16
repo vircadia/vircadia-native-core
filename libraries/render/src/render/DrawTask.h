@@ -19,11 +19,10 @@
 
 namespace render {
 
-void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
-void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
+void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
 void renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
-
 
 class FetchItems {
 public:
@@ -36,7 +35,6 @@ public:
     ProbeNumItems _probeNumItems;
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
-
     using JobModel = Task::Job::ModelO<FetchItems, ItemIDsBounds>;
 };
 
@@ -55,19 +53,16 @@ public:
 
 class DepthSortItems {
 public:
-    bool _frontToBack = true;
-
+    bool _frontToBack;
     DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outITems);
-
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
     using JobModel = Task::Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds>;
 };
 
 class DrawLight {
 public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
     using JobModel = Task::Job::Model<DrawLight>;
 };
 
