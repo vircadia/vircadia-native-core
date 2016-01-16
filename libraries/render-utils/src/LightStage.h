@@ -24,7 +24,7 @@ public:
     class Shadow {
     public:
         using UniformBufferView = gpu::BufferView;
-        static const int MAP_SIZE = 2048;
+        static const int MAP_SIZE = 1024;
 
         Shadow(model::LightPointer light);
 
