@@ -124,7 +124,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     }
 }
 
-void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
 
@@ -209,7 +209,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderLights(sceneContext, renderContext, culledItems);
+        renderItems(sceneContext, renderContext, culledItems);
         args->_batch = nullptr;
     });
 }

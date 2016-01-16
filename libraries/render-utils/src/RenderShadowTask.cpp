@@ -62,14 +62,14 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
             if (items.first.isSkinned()) {
                 skinnedShapeKeys.push_back(items.first);
             } else {
-                renderLights(sceneContext, renderContext, items.second);
+                renderItems(sceneContext, renderContext, items.second);
             }
         }
 
         args->_pipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
-            renderLights(sceneContext, renderContext, inShapes.at(key));
+            renderItems(sceneContext, renderContext, inShapes.at(key));
         }
 
         args->_pipeline = nullptr;

@@ -391,7 +391,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderLights(sceneContext, renderContext, inItems);
+        renderItems(sceneContext, renderContext, inItems);
     });
     args->_batch = nullptr;
 }
