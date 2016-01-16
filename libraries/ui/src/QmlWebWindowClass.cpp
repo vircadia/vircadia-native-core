@@ -42,19 +42,15 @@ QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWin
 void QmlWebWindowClass::handleNavigation(const QString& url) {
 }
 
-QString QmlWebWindowClass::getURL() const { 
-    if (QThread::currentThread() != thread()) {
-        QString result;
-        QMetaObject::invokeMethod(const_cast<QmlWebWindowClass*>(this), "getURL", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, result));
-        return result;
-    }
-
-    return _qmlWindow->property(URL_PROPERTY).toString();
+QString QmlWebWindowClass::getURL() const {
+    QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
+        return _qmlWindow->property(URL_PROPERTY);
+    });
+    return result.toString();
 }
 
 void QmlWebWindowClass::setURL(const QString& urlString) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setURL", Qt::QueuedConnection, Q_ARG(QString, urlString));
-    }
-    _qmlWindow->setProperty(URL_PROPERTY, urlString);
+    DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
+        _qmlWindow->setProperty(URL_PROPERTY, urlString);
+    });
 }
