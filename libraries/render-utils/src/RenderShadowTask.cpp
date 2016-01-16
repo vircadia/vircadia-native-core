@@ -81,16 +81,16 @@ RenderShadowTask::RenderShadowTask() : Task() {
     }
 
     // CPU: Fetch shadow-casting opaques
-    addJob<FetchItems>("FetchShadowMap");
+    auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", _jobs.back().getOutput());
+    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems);
 
     // CPU: Sort front to back
-    addJob<DepthSortItems>("DepthSortShadowMap", _jobs.back().getOutput());
+    auto shadowItems = addJob<DepthSortItems>("DepthSortShadowMap", culledItems);
 
     // GPU: Render to shadow map
-    addJob<RenderShadowMap>("RenderShadowMap", _jobs.back().getOutput(), shapePlumber);
+    addJob<RenderShadowMap>("RenderShadowMap", shadowItems, shapePlumber);
 }
 
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
