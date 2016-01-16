@@ -16,6 +16,7 @@
 
 #include "render/DrawTask.h"
 
+
 class AmbientOcclusionEffect {
 public:
 
@@ -85,6 +86,8 @@ private:
     gpu::PipelinePointer _occlusionPipeline;
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
+
+    gpu::Timer _gpuTimer;
 };
 
 #endif // hifi_AmbientOcclusionEffect_h

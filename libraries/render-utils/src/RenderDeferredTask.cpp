@@ -68,7 +68,6 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 }
 
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("ToneMappingDeferred");
     _toneMappingEffect.render(renderContext->getArgs());
 }
 

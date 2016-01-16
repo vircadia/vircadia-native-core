@@ -19,6 +19,7 @@
 #include <SharedUtil.h>
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
+#include "RenderUtilsLogging.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
@@ -240,8 +241,6 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         args->_context->getStereoProjections(projMats);
         args->_context->getStereoViews(eyeViews);
 
-        float halfWidth = 0.5f * sWidth;
-
         for (int i = 0; i < 2; i++) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
@@ -259,6 +258,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
+
+        _gpuTimer.begin(batch);
 
         batch.setViewportTransform(args->_viewport);
         batch.setProjectionTransform(glm::mat4());
@@ -301,6 +302,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setPipeline(lastVBlurPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+        _gpuTimer.end(batch);
 
     });
 }

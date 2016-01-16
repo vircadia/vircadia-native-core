@@ -13,26 +13,56 @@
 
 #include <assert.h>
 #include <memory>
+#include <functional>
 #include <vector>
+#include <SimpleMovingAverage.h>
 
 #include "Format.h"
 
 namespace gpu {
 
+    class Batch;
+
     class Query {
     public:
-        Query();
+        using Handler = std::function<void(const Query&)>;
+
+        Query(const Handler& returnHandler);
         ~Query();
 
-        uint32 queryResult;
-
-        double getElapsedTime();
+        double getElapsedTime() const;
 
         const GPUObjectPointer gpuObject {};
+        void triggerReturnHandler(uint64_t queryResult);
+    protected:
+        Handler _returnHandler;
+
+        uint64_t _queryResult = 0;
     };
     
     typedef std::shared_ptr<Query> QueryPointer;
     typedef std::vector< QueryPointer > Queries;
+
+
+    // gpu timer is just returning an estimate of the time taken by a chunck of work delimited by the 
+    // begin and end calls repeated for several times.
+    // The result is always a late average of the time spent for that same task a few cycles ago.
+    class Timer {
+    public:
+        Timer();
+        void begin(gpu::Batch& batch);
+        void end(gpu::Batch& batch);
+        
+        double getAverage() const;
+
+    protected:
+            
+        void onQueryReturned(const Query& query);
+
+        gpu::Queries _timerQueries;
+        int _currentTimerQueryIndex = 0;
+        MovingAverage<double, 5> _movingAverage;
+    };
 };
 
 #endif
