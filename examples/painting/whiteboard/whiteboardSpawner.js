@@ -41,6 +41,7 @@ var whiteboard = Entities.addEntity({
     type: "Model",
     shapeType: "box",
     modelURL: modelURL,
+    dimensions: {x: 2, y: 2.67, z: 0.76},
     name: "whiteboard base",
     position: center,
     rotation: rotation,
@@ -53,8 +54,11 @@ var colorIndicatorPosition = {
 };
 colorIndicatorPosition.y += 1.55;
 colorIndicatorPosition = Vec3.sum(colorIndicatorPosition, Vec3.multiply(-0.1, Quat.getFront(rotation)));
+var colorIndicatorBorderDimensions  = {x: 1.84, y: 0.46, z: 0.04};
 var colorIndicatorBorder = Entities.addEntity({
     type: "Model",
+    name: "Whiteboard Color Indicator Border",
+    dimensions: colorIndicatorBorderDimensions,
     position: colorIndicatorPosition,
     modelURL: colorIndicatorBorderModelURL,
     rotation: rotation,
@@ -63,10 +67,12 @@ var colorIndicatorBorder = Entities.addEntity({
 
 var surfaceCenter = Vec3.sum(center, Vec3.multiply(-0.1, Quat.getFront(rotation)));
 surfaceCenter.y += 0.6;
+var whiteboardDimensions = {x: 1.8, y: 1.3, z: 0.01};
 var drawingSurface = Entities.addEntity({
     type: "Model",
     modelURL: surfaceModelURL,
     shapeType: "box",
+    dimensions: whiteboardDimensions,
     name: "whiteboard surface",
     position: surfaceCenter,
     script: scriptURL,
@@ -111,6 +117,7 @@ var eraser = Entities.addEntity({
     type: "Model",
     modelURL: eraserModelURL,
     position: eraserPosition,
+    dimensions: {x: 1.73, y: 0.47, z: 0.11},
     name: "Eraser",
     script: scriptURL,
     rotation: rotation,
@@ -122,11 +129,7 @@ var eraser = Entities.addEntity({
     })
 });
 
-Script.setTimeout(function() {
-    whiteboardDimensions = Entities.getEntityProperties(whiteboard, "naturalDimensions").naturalDimensions;
-    colorIndicatorBorderDimensions = Entities.getEntityProperties(colorIndicatorBorder, "naturalDimensions").naturalDimensions;
-    setUp();
-}, 2000)
+setUp();
 
 
 function setUp() {
@@ -138,6 +141,7 @@ function setUp() {
     blockerPosition = Vec3.sum(blockerPosition, Vec3.multiply(-1, Quat.getFront(rotation)));
     blocker = Entities.addEntity({
         type: "Box",
+        name: "Whiteboard Blocker",
         rotation: rotation,
         position: blockerPosition,
         dimensions: {
@@ -148,26 +152,17 @@ function setUp() {
         shapeType: "box",
         visible: false
     });
-
-    var eraseModelDimensions = Entities.getEntityProperties(eraser, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(eraser, {
-        dimensions: eraseModelDimensions
-    });
-    Entities.editEntity(colorIndicatorBorder, {
-        dimensions: colorIndicatorBorderDimensions
-    });
-
     scriptURL = Script.resolvePath("colorIndicatorEntityScript.js");
     var colorIndicatorPosition = Vec3.sum(center, {
         x: 0,
-        y: whiteboardDimensions.y / 2 + colorIndicatorBorderDimensions.y / 2,
+        y: whiteboardDimensions.y / 2 + colorIndicatorBorderDimensions.y * 2,
         z: 0
     });
-    colorIndicatorPosition = Vec3.sum(colorIndicatorPosition, Vec3.multiply(-.1, Quat.getFront(rotation)));
+    colorIndicatorPosition = Vec3.sum(colorIndicatorPosition, Vec3.multiply(-0.1, Quat.getFront(rotation)));
     var colorIndicatorBoxDimensions = Vec3.multiply(colorIndicatorBorderDimensions, 0.9);
     colorIndicatorBox = Entities.addEntity({
         type: "Box",
-        name: "Color Indicator",
+        name: "Whiteboard Color Indicator",
         color: colors[0],
         rotation: rotation,
         position: colorIndicatorPosition,
@@ -205,13 +200,13 @@ function setUp() {
     colorBoxPosition = Vec3.sum(colorBoxPosition, Vec3.multiply(palleteDepthOffset, Quat.getFront(rotation)));
     colorBoxPosition.y += palleteHeightOffset;
     var spaceBetweenColorBoxes = Vec3.multiply(direction, colorSquareDimensions.x * 1.76);
-    var palleteXOffset = Vec3.multiply(direction, 0.43);
+    var palleteXOffset = Vec3.multiply(direction, 0.33);
     colorBoxPosition = Vec3.sum(colorBoxPosition, palleteXOffset);
     var scriptURL = Script.resolvePath("colorSelectorEntityScript.js");
     for (var i = 0; i < colors.length; i++) {
         var colorBox = Entities.addEntity({
             type: "Box",
-            name: "Color Selector",
+            name: "Whiteboard Color Selector",
             position: colorBoxPosition,
             dimensions: colorSquareDimensions,
             rotation: rotation,
