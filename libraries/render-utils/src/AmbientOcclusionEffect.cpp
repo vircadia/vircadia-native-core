@@ -32,12 +32,70 @@
 #include "ssao_makeHorizontalBlur_frag.h"
 #include "ssao_makeVerticalBlur_frag.h"
 
-const int AmbientOcclusionEffect_ParamsSlot = 0;
+class GaussianDistribution {
+public:
+    
+    static double integral(float x, float deviation) {
+        return 0.5 * erf(x / (deviation * sqrt(2.0)));
+    }
+    
+    static double rangeIntegral(float x0, float x1, float deviation) {
+        return integral(x1, deviation) - integral(x0, deviation);
+    }
+    
+    static std::vector<float> evalSampling(int samplingRadius, float deviation) {
+        std::vector<float> coefs(samplingRadius + 1, 0.0f);
+        
+        // corner case when radius is 0 or under
+        if (samplingRadius <= 0) {
+            coefs[0] = 1.0;
+            return coefs;
+        }
+        
+        // Evaluate all the samples range integral of width 1 from center until the penultimate one
+        float halfWidth = 0.5f;
+        double sum = 0.0;
+        for (int i = 0; i < samplingRadius; i++) {
+            float x = (float) i;
+            double sample = rangeIntegral(x - halfWidth, x + halfWidth, deviation);
+            coefs[i] = sample;
+            sum += sample;
+        }
+        
+        // last sample goes to infinity
+        float lastSampleX0 = (float) samplingRadius - halfWidth;
+        float largeEnough = lastSampleX0 + 1000.0f * deviation;
+        double sample = rangeIntegral(lastSampleX0, largeEnough, deviation);
+        coefs[samplingRadius] = sample;
+        sum += sample;
+        
+        return coefs;
+    }
+    
+    static void evalSampling(float* coefs, unsigned int coefsLength, int samplingRadius, float deviation) {
+        auto coefsVector = evalSampling(samplingRadius, deviation);
+        if (coefsLength> coefsVector.size() + 1) {
+            unsigned int coefsNum = 0;
+            for (auto s : coefsVector) {
+                coefs[coefsNum] = s;
+                coefsNum++;
+            }
+            for (;coefsNum < coefsLength; coefsNum++) {
+                coefs[coefsNum] = 0.0f;
+            }
+        }
+    }
+};
+
+const int AmbientOcclusionEffect_FrameTransformSlot = 0;
+const int AmbientOcclusionEffect_ParamsSlot = 1;
 const int AmbientOcclusionEffect_DepthMapSlot = 0;
 const int AmbientOcclusionEffect_PyramidMapSlot = 0;
 const int AmbientOcclusionEffect_OcclusionMapSlot = 0;
 
 AmbientOcclusionEffect::AmbientOcclusionEffect() {
+    FrameTransform frameTransform;
+    _frameTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(FrameTransform), (const gpu::Byte*) &frameTransform));
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
@@ -49,6 +107,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AmbientOcclusionEffect_DepthMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -74,6 +133,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("pyramidMap"), AmbientOcclusionEffect_PyramidMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -100,6 +160,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -124,6 +185,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionFrameTransformBuffer"), AmbientOcclusionEffect_FrameTransformSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("ambientOcclusionParamsBuffer"), AmbientOcclusionEffect_ParamsSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("occlusionMap"), AmbientOcclusionEffect_OcclusionMapSlot));
         
@@ -145,8 +207,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 
 
 void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
-    _parametersBuffer.edit<Parameters>()._depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
-
+    _frameTransformBuffer.edit<FrameTransform>()._depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
 }
 
 void AmbientOcclusionEffect::setRadius(float radius) {
@@ -199,6 +260,28 @@ void AmbientOcclusionEffect::setEdgeSharpness(float sharpness) {
     }
 }
 
+void AmbientOcclusionEffect::setBlurRadius(int radius) {
+    radius = std::max(0, std::min(6, radius));
+    if (radius != getBlurRadius()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        current.y = (float)radius;
+        updateGaussianDistribution();
+    }
+}
+
+void AmbientOcclusionEffect::setBlurDeviation(float deviation) {
+    deviation = std::max(0.0f, deviation);
+    if (deviation != getBlurDeviation()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        current.z = deviation;
+        updateGaussianDistribution();
+    }
+}
+void AmbientOcclusionEffect::updateGaussianDistribution() {
+    auto coefs = _parametersBuffer.edit<Parameters>()._gaussianCoefs;
+    GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, getBlurRadius(), getBlurDeviation());
+}
+
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
@@ -222,7 +305,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     // Update the depth info with near and far (same for stereo)
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
 
-    _parametersBuffer.edit<Parameters>()._pixelInfo = args->_viewport;
+    _frameTransformBuffer.edit<FrameTransform>()._pixelInfo = args->_viewport;
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
     // Running in stero ?
@@ -231,8 +314,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         // Eval the mono projection
         mat4 monoProjMat;
         args->_viewFrustum->evalProjectionMatrix(monoProjMat);
-        _parametersBuffer.edit<Parameters>()._projection[0] = monoProjMat;
-        _parametersBuffer.edit<Parameters>()._stereoInfo = glm::vec4(0.0f, args->_viewport.z, 0.0f, 0.0f);
+        _frameTransformBuffer.edit<FrameTransform>()._projection[0] = monoProjMat;
+        _frameTransformBuffer.edit<FrameTransform>()._stereoInfo = glm::vec4(0.0f, args->_viewport.z, 0.0f, 0.0f);
 
     } else {
 
@@ -244,10 +327,10 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         for (int i = 0; i < 2; i++) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
-            _parametersBuffer.edit<Parameters>()._projection[i] = sideViewMat;
+            _frameTransformBuffer.edit<FrameTransform>()._projection[i] = sideViewMat;
         }
 
-        _parametersBuffer.edit<Parameters>()._stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
+        _frameTransformBuffer.edit<FrameTransform>()._stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
 
     }
 
@@ -270,6 +353,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         model.setScale(glm::vec3(sWidth, tHeight, 1.0));
         batch.setModelTransform(model);
 
+        batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, _frameTransformBuffer);
         batch.setUniformBuffer(AmbientOcclusionEffect_ParamsSlot, _parametersBuffer);
 
 

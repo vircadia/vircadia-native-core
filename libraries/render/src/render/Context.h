@@ -80,6 +80,8 @@ public:
         float numSpiralTurns = 7.0f;
         bool ditheringEnabled = true;
         float edgeSharpness = 1.0f;
+        int blurRadius = 3;
+        float blurDeviation = 2.1f;
     };
 
     RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);

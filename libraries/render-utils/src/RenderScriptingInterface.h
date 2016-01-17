@@ -76,6 +76,8 @@ namespace RenderScripting {
         Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns)
         Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled)
         Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness)
+        Q_PROPERTY(int blurRadius MEMBER blurRadius)
+        Q_PROPERTY(float blurDeviation MEMBER blurDeviation)
     };
     using AmbientOcclusionPointer = std::unique_ptr<AmbientOcclusion>;
 };

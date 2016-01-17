@@ -27,8 +27,8 @@ float getZEye(ivec2 pixel) {
 vec3 evalEyePositionFromZeye(ivec2 side, float Zeye, vec2 texcoord) {
     // compute the view space position using the depth
     // basically manually pick the proj matrix components to do the inverse
-    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * params._projection[side.x][2][0] - params._projection[side.x][3][0]) / params._projection[side.x][0][0];
-    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * params._projection[side.x][2][1] - params._projection[side.x][3][1]) / params._projection[side.x][1][1];
+    float Xe = (-Zeye * (texcoord.x * 2.0 - 1.0) - Zeye * frameTransform._projection[side.x][2][0] - frameTransform._projection[side.x][3][0]) / frameTransform._projection[side.x][0][0];
+    float Ye = (-Zeye * (texcoord.y * 2.0 - 1.0) - Zeye * frameTransform._projection[side.x][2][1] - frameTransform._projection[side.x][3][1]) / frameTransform._projection[side.x][1][1];
     return vec3(Xe, Ye, Zeye);
 }
 
@@ -94,14 +94,6 @@ float sampleAO(in ivec2 side, in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssD
     return f * f * f * max((vn - bias) / (epsilon + vv), 0.0);
 }
 
-vec3 debugValue(float f, float scale) {
-    if (f < 0.0) {
-        return vec3((scale + f) / scale, 0.0, 0.0);
-    } else {
-        return vec3(0.0, (scale - f) / scale, 0.0);
-    }
-}
-
 void main(void) {
     // Pixel being shaded
     ivec2 ssC = ivec2(gl_FragCoord.xy);
@@ -145,5 +137,4 @@ void main(void) {
     }
 
     outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
-    //outFragColor = vec4(0.5 * (Cn + vec3(1.0)), A);
 }

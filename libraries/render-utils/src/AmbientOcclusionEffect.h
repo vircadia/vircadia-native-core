@@ -46,12 +46,42 @@ public:
     void setEdgeSharpness(float sharpness);
     int getEdgeSharpness() const { return (int)_parametersBuffer.get<Parameters>()._blurInfo.x; }
 
+    // Blurring Radius
+    // 0 means no blurring
+    const int MAX_BLUR_RADIUS = 6;
+    void setBlurRadius(int radius);
+    int getBlurRadius() const { return (int)_parametersBuffer.get<Parameters>()._blurInfo.y; }
+
+    void setBlurDeviation(float deviation);
+    float getBlurDeviation() const { return _parametersBuffer.get<Parameters>()._blurInfo.z; }
+
+    
     using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
 
 private:
 
+    void updateGaussianDistribution();
     void setDepthInfo(float nearZ, float farZ);
+    
+    typedef gpu::BufferView UniformBufferView;
 
+    // Class describing the uniform buffer with the transform info common to the AO shaders
+    // It s changing every frame
+    class FrameTransform {
+    public:
+        // Pixel info is { viemport width height and stereo on off}
+        glm::vec4 _pixelInfo;
+        // Depth info is { n.f, f - n, -f}
+        glm::vec4 _depthInfo;
+        // Stereo info
+        glm::vec4 _stereoInfo{ 0.0 };
+        // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
+        glm::mat4 _projection[2];
+        
+        FrameTransform() {}
+    };
+    gpu::BufferView _frameTransformBuffer;
+    
     // Class describing the uniform buffer with all the parameters common to the AO shaders
     class Parameters {
     public:
@@ -62,19 +92,13 @@ private:
         // Sampling info
         glm::vec4 _sampleInfo{ 11.0, 1.0/11.0, 7.0, 1.0 };
         // Blurring info
-        glm::vec4 _blurInfo{ 1.0, 0.0, 0.0, 0.0 };
-        // Pixel info is { viemport width height and stereo on off}
-        glm::vec4 _pixelInfo;
-        // Depth info is { n.f, f - n, -f}
-        glm::vec4 _depthInfo;
-        // Stereo info
-        glm::vec4 _stereoInfo{ 0.0 };
-        // Mono proj matrix or Left and Right proj matrix going from Mono Eye space to side clip space
-        glm::mat4 _projection[2];
+        glm::vec4 _blurInfo{ 1.0, 3.0, 2.0, 0.0 };
+         // gaussian distribution coefficients first is the sampling radius (max is 6)
+        const static int GAUSSIAN_COEFS_LENGTH = 8;
+        float _gaussianCoefs[GAUSSIAN_COEFS_LENGTH];
         
         Parameters() {}
     };
-    typedef gpu::BufferView UniformBufferView;
     gpu::BufferView _parametersBuffer;
 
     const gpu::PipelinePointer& getPyramidPipeline();

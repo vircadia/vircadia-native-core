@@ -52,7 +52,7 @@ var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
-previousMode = 8; // FIXME: just for debug purpose
+previousMode = 1; // FIXME: just for debug purpose
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
 Render.deferredDebugMode = previousMode;
 Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
@@ -124,6 +124,21 @@ panel.newSlider("Ambient Occlusion Num Spiral Turns", 0.0, 30.0,
 panel.newCheckbox("Ambient Occlusion Dithering",
     function (value) { Render.ambientOcclusion.ditheringEnabled = value; },
     function() { return Render.ambientOcclusion.ditheringEnabled; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Edge Sharpness", 0.0, 1.0,
+    function (value) { Render.ambientOcclusion.edgeSharpness = value; },
+    function() { return Render.ambientOcclusion.edgeSharpness; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Blur Radius", 0.0, 6.0,
+    function (value) { Render.ambientOcclusion.blurRadius = value; },
+    function() { return Render.ambientOcclusion.blurRadius; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Blur Deviation", 0.0, 3.0,
+    function (value) { Render.ambientOcclusion.blurDeviation = value; },
+    function() { return Render.ambientOcclusion.blurDeviation; },
     function (value) { return (value); });
 
 var tickTackPeriod = 500;

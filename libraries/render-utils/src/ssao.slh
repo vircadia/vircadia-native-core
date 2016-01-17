@@ -31,30 +31,59 @@ vec2 unpackOcclusionDepth(vec3 raw) {
 
 <@func declareAmbientOcclusion()@>
 
-struct AmbientOcclusionParams {
-    vec4 _radiusInfo;
-    vec4 _ditheringInfo;
-    vec4 _sampleInfo;
-    vec4 _blurInfo;
+struct AmbientOcclusionFrameTransform {
     vec4 _pixelInfo;
     vec4 _depthInfo;
     vec4 _stereoInfo;
     mat4 _projection[2];
 };
 
+struct AmbientOcclusionParams {
+    vec4 _radiusInfo;
+    vec4 _ditheringInfo;
+    vec4 _sampleInfo;
+    vec4 _blurInfo;
+    float _gaussianCoefs[8];
+};
+
+uniform ambientOcclusionFrameTransformBuffer {
+    AmbientOcclusionFrameTransform frameTransform;
+};
 uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
 vec2 getWidthHeight() {
-    return params._pixelInfo.zw;
+    return frameTransform._pixelInfo.zw;
 }
 float getProjScale() {
-    return getWidthHeight().y * params._projection[0][1][1] * 0.5;
+    return getWidthHeight().y * frameTransform._projection[0][1][1] * 0.5;
 }
 mat4 getProjection(int side) {
-    return params._projection[side];
+    return frameTransform._projection[side];
 }
+
+bool isStereo() {
+    return frameTransform._stereoInfo.x > 0.0f;
+}
+
+ivec2 getStereoSideInfo(int xPos) {
+    return (xPos < frameTransform._stereoInfo.y ? ivec2(0, 0) : ivec2(1, int(frameTransform._stereoInfo.y)) );
+}
+
+float getStereoSideWidth() {
+    return (frameTransform._stereoInfo.y);
+}
+
+float evalZeyeFromZdb(float depth) {
+    return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
+}
+
+vec3 evalEyeNormal(vec3 C) {
+    //return normalize(cross(dFdy(C), dFdx(C)));
+    return normalize(cross(dFdx(C), dFdy(C)));
+}
+
 
 float getRadius() {
     return params._radiusInfo.x;
@@ -91,26 +120,33 @@ float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
 
-bool isStereo() {
-    return params._stereoInfo.x > 0.0f;
+#ifdef CONSTANT_GAUSSIAN
+const int BLUR_RADIUS = 4;
+const float gaussian[BLUR_RADIUS + 1] =
+//    float[](0.356642, 0.239400, 0.072410, 0.009869);
+//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
+float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
+//float[](0.197413, 0.17467, 0.12098,0.065591,0.040059);
+//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
+
+int getBlurRadius() {
+    return BLUR_RADIUS;
+    return int(params._blurInfo.y);
 }
 
-ivec2 getStereoSideInfo(int xPos) {
-    return (xPos < params._stereoInfo.y ? ivec2(0, 0) : ivec2(1, int(params._stereoInfo.y)) );
+float getBlurCoef(int c) {
+    return gaussian[c];
+    return params._gaussianCoefs[c];
+}
+#else
+int getBlurRadius() {
+    return int(params._blurInfo.y);
 }
 
-float getStereoSideWidth() {
-    return (params._stereoInfo.y);
+float getBlurCoef(int c) {
+    return params._gaussianCoefs[c];
 }
-
-float evalZeyeFromZdb(float depth) {
-    return params._depthInfo.x / (depth * params._depthInfo.y + params._depthInfo.z);
-}
-
-vec3 evalEyeNormal(vec3 C) {
-    //return normalize(cross(dFdy(C), dFdx(C)));
-    return normalize(cross(dFdx(C), dFdy(C)));
-}
+#endif
 
 <@endfunc@>
 
@@ -131,49 +167,47 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
     return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
 }
 
-
-const int BLUR_RADIUS = 4;
 const int RADIUS_SCALE = 2;
 
-const float gaussian[BLUR_RADIUS + 1] =
-//    float[](0.356642, 0.239400, 0.072410, 0.009869);
-//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
-float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
-//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
+vec2 evalTapWeightedValue(int r, ivec2 ssC, float key) {
+    ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
+    vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
+
+    // spatial domain: offset gaussian tap
+    float weight = 0.3 + getBlurCoef(abs(r));
+
+    // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
+    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * 2000.0) * abs(tapOZ.y - key));
+    
+    return vec2(tapOZ.x * weight, weight);
+}
+
 vec3 getBlurredOcclusion(vec2 coord) {
     ivec2 ssC = ivec2(coord);
 
     vec3 rawSample;
     vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
     float key = occlusionDepth.y;
-    float sum = occlusionDepth.x;
+    
+    // Central pixel contribution
+    float mainWeight = getBlurCoef(0);
+    vec2 weightedSums = vec2(occlusionDepth.x * mainWeight, mainWeight);
 
-    // Base weight for depth falloff.  Increase this for more blurriness,
-    // decrease it for better edge discrimination
-    float BASE = gaussian[0];
-    float totalWeight = BASE;
-    sum *= totalWeight;
-
-    for (int r = -BLUR_RADIUS; r <= BLUR_RADIUS; ++r) {
-        // We already handled the zero case above.  This loop should be unrolled and the static branch optimized out,
-        // so the IF statement has no runtime cost
-        if (r != 0) {
-            vec2 tapOZ = fetchOcclusionDepth(ssC + <$axis$> * (r * RADIUS_SCALE));
-
-            // spatial domain: offset gaussian tap
-            float weight = 0.3 + gaussian[abs(r)];
-
-            // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-            weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * 2000.0) * abs(tapOZ.y - key));
-
-            sum += tapOZ.x * weight;
-            totalWeight += weight;
-        }
+    // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
+    int blurRadius = getBlurRadius();
+    // negative side first
+    for (int r = -blurRadius; r <= -1; ++r) {
+        weightedSums += evalTapWeightedValue(r, ssC, key);
+    }
+    // then possitive side
+    for (int r = 1; r <= blurRadius; ++r) {
+        weightedSums += evalTapWeightedValue(r, ssC, key);
     }
 
+    // Final normalization
     const float epsilon = 0.0001;
-    float result = sum / (totalWeight + epsilon);
-
+    float result = weightedSums.x / (weightedSums.y + epsilon);
+    
     rawSample.x = result;
     return rawSample;
 }
