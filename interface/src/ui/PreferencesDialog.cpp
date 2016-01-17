@@ -28,6 +28,7 @@
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
 #include "UIUtil.h"
+#include "scripting/WebWindowClass.h"
 
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
@@ -135,7 +136,7 @@ void PreferencesDialog::openFullAvatarModelBrowser() {
     const auto WIDTH = 900;
     const auto HEIGHT = 700;
     if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT);
     }
     _marketplaceWindow->setVisible(true);
 

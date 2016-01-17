@@ -10,18 +10,22 @@ function findChild(item, name) {
     return null;
 }
 
-function findParent(item, name) {
+function findParentMatching(item, predicate) {
     while (item) {
-        if (item.objectName === name) {
-            return item;
+        if (predicate(item)) {
+            break;
         }
         item = item.parent;
     }
-    return null;
+    return item;
 }
 
-function getDesktop(item) {
-    return findParent(item, OFFSCREEN_ROOT_OBJECT_NAME);
+function findParentByName(item, name) {
+    return findParentMatching(item, function(item) {
+        var testName = name;
+        var result = (item.name === testName);
+        return result;
+    });
 }
 
 function findRootMenu(item) {
@@ -29,6 +33,13 @@ function findRootMenu(item) {
     return item ? item.rootMenu : null;
 }
 
+function isDesktop(item) {
+    return item.desktopRoot;
+}
+
+function isTopLevelWindow(item) {
+    return item.topLevelWindow;
+}
 
 function getTopLevelWindows(item) {
     var desktop = getDesktop(item);
@@ -40,8 +51,7 @@ function getTopLevelWindows(item) {
 
     for (var i = 0; i < desktop.children.length; ++i) {
         var child = desktop.children[i];
-        if ((Global.OFFSCREEN_WINDOW_OBJECT_NAME === child.objectName) || 
-                child[Global.OFFSCREEN_WINDOW_OBJECT_NAME]) {
+        if (isTopLevelWindow(child)) {
             var windowId = child.toString();
             currentWindows.push(child)
         }
@@ -50,9 +60,12 @@ function getTopLevelWindows(item) {
 }
 
 
+function getDesktop(item) {
+    return findParentMatching(item, isDesktop);
+}
+
 function getDesktopWindow(item) {
-    item = findParent(item, OFFSCREEN_WINDOW_OBJECT_NAME);
-    return item;
+    return findParentMatching(item, isTopLevelWindow)
 }
 
 function closeWindow(item) {
@@ -142,7 +155,7 @@ function raiseWindow(item) {
     
     var desktop = getDesktop(targetWindow);
     if (!desktop) {
-        //console.warn("Could not find desktop for window " + targetWindow);
+        console.warn("Could not find desktop for window " + targetWindow);
         return;
     }
         

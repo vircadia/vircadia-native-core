@@ -62,7 +62,6 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/SnapshotShareDialog.h"
-#include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
 
 class OffscreenGLCanvas;
@@ -163,8 +162,6 @@ public:
     void setFieldOfView(float fov);
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
-
-    ToolWindow* getToolWindow() { return _toolWindow ; }
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
@@ -399,8 +396,6 @@ private:
     QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
-
-    ToolWindow* _toolWindow;
 
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;

@@ -113,7 +113,7 @@
                                 "id": "rightHandOverlay",
                                 "type": "overlay",
                                 "data": {
-                                    "alpha": 1.0,
+                                    "alpha": 0.0,
                                     "boneSet": "rightHand",
                                     "alphaVar": "rightHandOverlayAlpha"
                                 },
@@ -122,125 +122,50 @@
                                         "id": "rightHandStateMachine",
                                         "type": "stateMachine",
                                         "data": {
-                                            "currentState": "rightHandIdle",
+                                            "currentState": "rightHandGrasp",
                                             "states": [
-                                                {
-                                                    "id": "rightHandIdle",
-                                                    "interpTarget": 3,
-                                                    "interpDuration": 3,
-                                                    "transitions": [
-                                                        { "var": "rightHandOpen", "state": "rightHandOpen" },
-                                                        { "var": "rightHandGrasp", "state": "rightHandGrasp" },
-                                                        { "var": "rightHandPoint", "state": "rightHandPoint" },
-                                                        { "var": "rightHandFarGrasp", "state": "rightHandFarGrasp" }
-                                                    ]
-                                                },
-                                                {
-                                                    "id": "rightHandOpen",
-                                                    "interpTarget": 3,
-                                                    "interpDuration": 3,
-                                                    "transitions": [
-                                                        { "var": "rightHandIdle", "state": "rightHandIdle" },
-                                                        { "var": "rightHandGrasp", "state": "rightHandGrasp" },
-                                                        { "var": "rightHandPoint", "state": "rightHandPoint" },
-                                                        { "var": "rightHandFarGrasp", "state": "rightHandFarGrasp" }
-                                                    ]
-                                                },
                                                 {
                                                     "id": "rightHandGrasp",
                                                     "interpTarget": 3,
                                                     "interpDuration": 3,
-                                                    "transitions": [
-                                                        { "var": "rightHandOpen", "state": "rightHandOpen" },
-                                                        { "var": "rightHandIdle", "state": "rightHandIdle" },
-                                                        { "var": "rightHandPoint", "state": "rightHandPoint" },
-                                                        { "var": "rightHandFarGrasp", "state": "rightHandFarGrasp" }
-                                                    ]
-                                                },
-                                                {
-                                                    "id": "rightHandPoint",
-                                                    "interpTarget": 3,
-                                                    "interpDuration": 3,
-                                                    "transitions": [
-                                                        { "var": "rightHandOpen", "state": "rightHandOpen" },
-                                                        { "var": "rightHandIdle", "state": "rightHandIdle" },
-                                                        { "var": "rightHandGrasp", "state": "rightHandGrasp" },
-                                                        { "var": "rightHandFarGrasp", "state": "rightHandFarGrasp" }
-                                                    ]
-                                                },
-                                                {
-                                                    "id": "rightHandFarGrasp",
-                                                    "interpTarget": 3,
-                                                    "interpDuration": 3,
-                                                    "transitions": [
-                                                        { "var": "rightHandOpen", "state": "rightHandOpen" },
-                                                        { "var": "rightHandIdle", "state": "rightHandIdle" },
-                                                        { "var": "rightHandGrasp", "state": "rightHandGrasp" },
-                                                        { "var": "rightHandPoint", "state": "rightHandPoint" }
-                                                    ]
+                                                    "transitions": []
                                                 }
                                             ]
                                         },
                                         "children": [
                                             {
-                                                "id": "rightHandIdle",
-                                                "type": "clip",
-                                                "data": {
-                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_right_hand.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 0.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
-                                                },
-                                                "children": []
-                                            },
-                                            {
-                                                "id": "rightHandOpen",
-                                                "type": "clip",
-                                                "data": {
-                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/search_right.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 0.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
-                                                },
-                                                "children": []
-                                            },
-                                            {
                                                 "id": "rightHandGrasp",
-                                                "type": "clip",
+                                                "type": "blendLinear",
                                                 "data": {
-                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/grasp_right.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 0.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
+                                                    "alpha": 0.0,
+                                                    "alphaVar": "rightHandGraspAlpha"
                                                 },
-                                                "children": []
-                                            },
-                                            {
-                                                "id": "rightHandPoint",
-                                                "type": "clip",
-                                                "data": {
-                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_right_hand.fbx",
-                                                    "startFrame": 20.0,
-                                                    "endFrame": 20.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
-                                                },
-                                                "children": []
-                                            },
-                                            {
-                                                "id": "rightHandFarGrasp",
-                                                "type": "clip",
-                                                "data": {
-                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/far_grasp_right.fbx",
-                                                    "startFrame": 0.0,
-                                                    "endFrame": 0.0,
-                                                    "timeScale": 1.0,
-                                                    "loopFlag": true
-                                                },
-                                                "children": []
+                                                "children": [
+                                                    {
+                                                        "id": "rightHandGraspOpen",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_open_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 0.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "rightHandGraspClosed",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_closed_right.fbx",
+                                                            "startFrame": 0.0,
+                                                            "endFrame": 0.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
                                             }
                                         ]
                                     },
@@ -248,7 +173,7 @@
                                         "id": "leftHandOverlay",
                                         "type": "overlay",
                                         "data": {
-                                            "alpha": 1.0,
+                                            "alpha": 0.0,
                                             "boneSet": "leftHand",
                                             "alphaVar" : "leftHandOverlayAlpha"
                                         },
@@ -257,127 +182,50 @@
                                                 "id": "leftHandStateMachine",
                                                 "type": "stateMachine",
                                                 "data": {
-                                                    "currentState": "leftHandIdle",
+                                                    "currentState": "leftHandGrasp",
                                                     "states": [
-                                                        {
-                                                            "id": "leftHandIdle",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "leftHandOpen", "state": "leftHandOpen" },
-                                                                { "var": "leftHandGrasp", "state": "leftHandGrasp" },
-                                                                { "var": "leftHandPoint", "state": "leftHandPoint" },
-                                                                { "var": "leftHandFarGrasp", "state": "leftHandFarGrasp" }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "id": "leftHandOpen",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "leftHandIdle", "state": "leftHandIdle" },
-                                                                { "var": "leftHandGrasp", "state": "leftHandGrasp" },
-                                                                { "var": "leftHandPoint", "state": "leftHandPoint" },
-                                                                { "var": "leftHandFarGrasp", "state": "leftHandFarGrasp" }
-                                                            ]
-                                                        },
                                                         {
                                                             "id": "leftHandGrasp",
                                                             "interpTarget": 3,
                                                             "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "leftHandOpen", "state": "leftHandOpen" },
-                                                                { "var": "leftHandIdle", "state": "leftHandIdle" },
-                                                                { "var": "leftHandPoint", "state": "leftHandPoint" },
-                                                                { "var": "leftHandFarGrasp", "state": "leftHandFarGrasp" }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "id": "leftHandPoint",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "leftHandOpen", "state": "leftHandOpen" },
-                                                                { "var": "leftHandIdle", "state": "leftHandIdle" },
-                                                                { "var": "leftHandGrasp", "state": "leftHandGrasp" },
-                                                                { "var": "leftHandFarGrasp", "state": "leftHandFarGrasp" }
-                                                            ]
-                                                        },
-                                                        {
-                                                            "id": "leftHandFarGrasp",
-                                                            "interpTarget": 3,
-                                                            "interpDuration": 3,
-                                                            "transitions": [
-                                                                { "var": "leftHandOpen", "state": "leftHandOpen" },
-                                                                { "var": "leftHandIdle", "state": "leftHandIdle" },
-                                                                { "var": "leftHandGrasp", "state": "leftHandGrasp" },
-                                                                { "var": "leftHandPoint", "state": "leftHandPoint" }
-                                                            ]
+                                                            "transitions": []
                                                         }
                                                     ]
                                                 },
                                                 "children": [
                                                     {
-                                                        "id": "leftHandIdle",
-                                                        "type": "clip",
-                                                        "data": {
-                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_left_hand.fbx",
-                                                            "startFrame": 0.0,
-                                                            "endFrame": 0.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
-                                                        },
-                                                        "children": []
-                                                    },
-                                                    {
-                                                        "id": "leftHandOpen",
-                                                        "type": "clip",
-                                                        "data": {
-
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/search_left.fbx",
-                                                            "startFrame": 0.0,
-                                                            "endFrame": 0.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
-                                                        },
-                                                        "children": []
-                                                    },
-                                                    {
                                                         "id": "leftHandGrasp",
-                                                        "type": "clip",
+                                                        "type": "blendLinear",
                                                         "data": {
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/grasp_left.fbx",
-                                                            "startFrame": 0.0,
-                                                            "endFrame": 0.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "leftHandGraspAlpha"
                                                         },
-                                                        "children": []
-                                                    },
-                                                    {
-                                                        "id": "leftHandPoint",
-                                                        "type": "clip",
-                                                        "data": {
-                                                            "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/hand_anims/point_left_hand.fbx",
-                                                            "startFrame": 12.0,
-                                                            "endFrame": 12.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
-                                                        },
-                                                        "children": []
-                                                    },
-                                                    {
-                                                        "id": "leftHandFarGrasp",
-                                                        "type": "clip",
-                                                        "data": {
-
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/far_grasp_left.fbx",
-                                                            "startFrame": 0.0,
-                                                            "endFrame": 0.0,
-                                                            "timeScale": 1.0,
-                                                            "loopFlag": true
-                                                        },
-                                                        "children": []
+                                                        "children": [
+                                                            {
+                                                                "id": "leftHandGraspOpen",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_open_left.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "leftHandGraspClosed",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/hand_anims/hydra_pose_closed_left.fbx",
+                                                                    "startFrame": 10.0,
+                                                                    "endFrame": 10.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             },

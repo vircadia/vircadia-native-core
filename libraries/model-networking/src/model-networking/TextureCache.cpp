@@ -72,11 +72,12 @@ const gpu::TexturePointer& TextureCache::getPermutationNormalTexture() {
             data[3*i+0] = permutation[i];
             data[3*i+1] = permutation[i];
             data[3*i+2] = permutation[i];
+        }
 #else
         for (int i = 0; i < 256 * 3; i++) {
             data[i] = rand() % 256;
-#endif
         }
+#endif
 
         for (int i = 256 * 3; i < 256 * 3 * 2; i += 3) {
             glm::vec3 randvec = glm::sphericalRand(1.0f);
@@ -173,19 +174,11 @@ QSharedPointer<Resource> TextureCache::createResource(const QUrl& url,
         &Resource::allReferencesCleared);
 }
 
-Texture::Texture() {
-}
-
-Texture::~Texture() {
-}
-
 NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArray& content) :
     Resource(url, !content.isEmpty()),
-    _type(type),
-    _width(0),
-    _height(0) {
-    
-    _textureSource.reset(new gpu::TextureSource());
+    _type(type)
+{
+    _textureSource = std::make_shared<gpu::TextureSource>();
 
     if (!url.isValid()) {
         _loaded = true;
@@ -200,24 +193,9 @@ NetworkTexture::NetworkTexture(const QUrl& url, TextureType type, const QByteArr
 }
 
 NetworkTexture::NetworkTexture(const QUrl& url, const TextureLoaderFunc& textureLoader, const QByteArray& content) :
-    Resource(url, !content.isEmpty()),
-    _type(CUSTOM_TEXTURE),
-    _textureLoader(textureLoader),
-    _width(0),
-    _height(0) {
-        
-    _textureSource.reset(new gpu::TextureSource());
-        
-    if (!url.isValid()) {
-       _loaded = true;
-    }
-        
-    std::string theName = url.toString().toStdString();
-    // if we have content, load it after we have our self pointer
-    if (!content.isEmpty()) {
-        _startedLoading = true;
-        QMetaObject::invokeMethod(this, "loadContent", Qt::QueuedConnection, Q_ARG(const QByteArray&, content));
-    }
+    NetworkTexture(url, CUSTOM_TEXTURE, content)
+{
+    _textureLoader = textureLoader;
 }
     
 NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
@@ -247,57 +225,52 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
         }
     }
 }
-    
+
 
 class ImageReader : public QRunnable {
 public:
 
-    ImageReader(const QWeakPointer<Resource>& texture, const NetworkTexture::TextureLoaderFunc& textureLoader, const QByteArray& data, const QUrl& url = QUrl());
-    
+    ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data, const QUrl& url = QUrl());
+
     virtual void run();
 
 private:
-    
+    static void listSupportedImageFormats();
+
     QWeakPointer<Resource> _texture;
-    NetworkTexture::TextureLoaderFunc _textureLoader;
     QUrl _url;
     QByteArray _content;
 };
 
 void NetworkTexture::downloadFinished(const QByteArray& data) {
     // send the reader off to the thread pool
-    QThreadPool::globalInstance()->start(new ImageReader(_self, getTextureLoader(), data, _url));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, data, _url));
 }
 
 void NetworkTexture::loadContent(const QByteArray& content) {
-    QThreadPool::globalInstance()->start(new ImageReader(_self, getTextureLoader(), content, _url));
+    QThreadPool::globalInstance()->start(new ImageReader(_self, content, _url));
 }
 
-ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const NetworkTexture::TextureLoaderFunc& textureLoader, const QByteArray& data,
+ImageReader::ImageReader(const QWeakPointer<Resource>& texture, const QByteArray& data,
         const QUrl& url) :
     _texture(texture),
-    _textureLoader(textureLoader),
     _url(url),
     _content(data)
 {
-    
 }
 
-std::once_flag onceListSupportedFormatsflag;
-void listSupportedImageFormats() {
-    std::call_once(onceListSupportedFormatsflag, [](){
+void ImageReader::listSupportedImageFormats() {
+    static std::once_flag once;
+    std::call_once(once, []{
         auto supportedFormats = QImageReader::supportedImageFormats();
-        QString formats;
-        foreach(const QByteArray& f, supportedFormats) {
-            formats += QString(f) + ",";
-        }
-        qCDebug(modelnetworking) << "List of supported Image formats:" << formats;
+        qCDebug(modelnetworking) << "List of supported Image formats:" << supportedFormats.join(", ");
     });
 }
 
 void ImageReader::run() {
-    QSharedPointer<Resource> texture = _texture.toStrongRef();
-    if (texture.isNull()) {
+    auto texture = _texture.toStrongRef();
+    if (!texture) {
+        qCWarning(modelnetworking) << "Could not get strong ref";
         return;
     }
 
@@ -324,7 +297,7 @@ void ImageReader::run() {
     }
 
     gpu::Texture* theTexture = nullptr;
-    auto ntex = dynamic_cast<NetworkTexture*>(&*texture);
+    auto ntex = texture.dynamicCast<NetworkTexture>();
     if (ntex) {
         theTexture = ntex->getTextureLoader()(image, _url.toString().toStdString());
     }
@@ -333,8 +306,6 @@ void ImageReader::run() {
         Q_ARG(const QImage&, image),
         Q_ARG(void*, theTexture),
         Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
-
-
 }
 
 void NetworkTexture::setImage(const QImage& image, void* voidTexture, int originalWidth,

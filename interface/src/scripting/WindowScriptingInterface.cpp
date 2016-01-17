@@ -23,6 +23,7 @@
 #include "Menu.h"
 #include "OffscreenUi.h"
 #include "ui/ModelsBrowser.h"
+#include "WebWindowClass.h"
 
 #include "WindowScriptingInterface.h"
 
@@ -37,8 +38,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
     connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow) {
-    return new WebWindowClass(title, url, width, height, isToolWindow);
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
+    return new WebWindowClass(title, url, width, height);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {

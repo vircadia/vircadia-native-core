@@ -43,20 +43,15 @@ public:
     void displayOverlayTexture(RenderArgs* renderArgs);
     void displayOverlayTextureHmd(RenderArgs* renderArgs, int eye);
 
-    QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
-
-    bool hasMagnifier() const { return _magnifier; }
-    void toggleMagnifier() { _magnifier = !_magnifier; }
 
     float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
     void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
 
     // Converter from one frame of reference to another.
     // Frame of reference:
-    // Direction: Ray that represents the spherical values
     // Screen: Position on the screen (x,y)
-    // Spherical: Pitch and yaw that gives the position on the sphere we project on (yaw,pitch)
+    // Spherical: Polar coordinates that gives the position on the sphere we project on (yaw,pitch)
     // Overlay: Position on the overlay (x,y)
     // (x,y) in Overlay are similar than (x,y) in Screen except they can be outside of the bound of te screen.
     // This allows for picking outside of the screen projection in 3D.
@@ -80,8 +75,6 @@ public:
     float getAlpha() const { return _alpha; }
     void setAlpha(float alpha) { _alpha = alpha; }
 
-    static glm::vec2 directionToSpherical(const glm::vec3 & direction);
-    static glm::vec3 sphericalToDirection(const glm::vec2 & sphericalPos);
     static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
 
@@ -92,8 +85,6 @@ private:
     void drawSphereSection(gpu::Batch& batch);
     void updateTooltips();
 
-    vec2 getPolarCoordinates(const PalmData& palm) const;
-
     // Support for hovering and tooltips
     static EntityItemID _noItemId;
     EntityItemID _hoverItemId { _noItemId };
@@ -101,31 +92,22 @@ private:
     QString _hoverItemDescription;
     quint64 _hoverItemEnterUsecs { 0 };
 
-    float _hmdUIAngularSize = DEFAULT_HMD_UI_ANGULAR_SIZE;
-    float _textureFov{ glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE) };
-    float _textureAspectRatio{ 1.0f };
-    int _hemiVerticesID{ GeometryCache::UNKNOWN_ID };
+    float _hmdUIAngularSize { DEFAULT_HMD_UI_ANGULAR_SIZE };
+    float _textureFov { glm::radians(DEFAULT_HMD_UI_ANGULAR_SIZE) };
+    float _textureAspectRatio { 1.0f };
+    int _hemiVerticesID { GeometryCache::UNKNOWN_ID };
 
-    bool _magnifier{ true };
-
-    float _alpha{ 1.0f };
-    float _prevAlpha{ 1.0f };
-    float _fadeInAlpha{ true };
-    float _oculusUIRadius{ 1.0f };
+    float _alpha { 1.0f };
+    float _prevAlpha { 1.0f };
+    float _fadeInAlpha { true };
+    float _oculusUIRadius { 1.0f };
 
     QMap<uint16_t, gpu::TexturePointer> _cursors;
 
     int _reticleQuad;
-    int _magnifierQuad;
-    int _magnifierBorder;
 
-    int _previousBorderWidth{ -1 };
-    int _previousBorderHeight{ -1 };
-
-    glm::vec3 _previousMagnifierBottomLeft;
-    glm::vec3 _previousMagnifierBottomRight;
-    glm::vec3 _previousMagnifierTopLeft;
-    glm::vec3 _previousMagnifierTopRight;
+    int _previousBorderWidth { -1 };
+    int _previousBorderHeight { -1 };
 
     Transform _modelTransform;
     Transform _cameraBaseTransform;

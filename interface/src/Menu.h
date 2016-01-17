@@ -156,6 +156,7 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
+    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
@@ -163,8 +164,8 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
-    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
+    const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString Back = "Back";

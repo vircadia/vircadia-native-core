@@ -67,9 +67,6 @@ public:
     typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
     
     typedef std::function<TextureLoader> TextureLoaderFunc;
-    
-    NetworkTexturePointer getTexture(const QUrl& url, const TextureLoaderFunc& textureLoader,
-                                     const QByteArray& content = QByteArray());
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -94,15 +91,9 @@ private:
 class Texture {
 public:
     friend class TextureCache;
-    Texture();
-    ~Texture();
 
-    const gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
+    gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
     gpu::TextureSourcePointer _textureSource;
-
-protected:
-
-private:
 };
 
 /// A texture loaded from the network.
@@ -134,14 +125,14 @@ protected:
 
     virtual void imageLoaded(const QImage& image);
 
-    TextureType _type;
 
 private:
+    TextureType _type;
     TextureLoaderFunc _textureLoader;
-    int _originalWidth;
-    int _originalHeight;
-    int _width;
-    int _height;
+    int _originalWidth { 0 };
+    int _originalHeight { 0 };
+    int _width { 0 };
+    int _height { 0 };
 };
 
 #endif // hifi_TextureCache_h

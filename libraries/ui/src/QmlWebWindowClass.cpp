@@ -31,25 +31,15 @@ static const char* const URL_PROPERTY = "source";
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QQmlContext* context, QObject* object) { return new QmlWebWindowClass(object); });
+        [&](QObject* object) { return new QmlWebWindowClass(object); });
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
-    QObject::connect(_qmlWindow, SIGNAL(navigating(QString)), this, SLOT(handleNavigation(QString)));
 }
 
-void QmlWebWindowClass::handleNavigation(const QString& url) {
-    bool handled = false;
-    static auto handler = dynamic_cast<AbstractUriHandler*>(qApp);
-    if (handler) {
-        if (handler->canAcceptURL(url)) {
-            handled = handler->acceptURL(url);
-        }
-    }
 
-    if (handled) {
-        QMetaObject::invokeMethod(_qmlWindow, "stop", Qt::AutoConnection);
-    }
+// FIXME remove.
+void QmlWebWindowClass::handleNavigation(const QString& url) {
 }
 
 QString QmlWebWindowClass::getURL() const { 
