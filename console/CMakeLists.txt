@@ -54,12 +54,18 @@ endif()
 if (PR_BUILD OR PRODUCTION_BUILD)
   set_target_properties(${TARGET_NAME} PROPERTIES EXCLUDE_FROM_ALL FALSE EXCLUDE_FROM_DEFAULT_BUILD FALSE)
 
+  if (APPLE)
+    set(BESIDE_CONSOLE_DIR "${CONSOLE_INSTALL_APP_PATH}/Contents/Resources")
+  else ()
+    set(BESIDE_CONSOLE_DIR ${CONSOLE_INSTALL_DIR})
+  endif ()
+
   # configure our build info json file and install it beside the console
-  set(CONSOLE_BUILD_INFO_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/console-build-info.json")
+  set(CONSOLE_BUILD_INFO_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build-info.json")
   configure_file("${HF_CMAKE_DIR}/templates/console-build-info.json.in" ${CONSOLE_BUILD_INFO_OUTPUT})
   install(
     FILES ${CONSOLE_BUILD_INFO_OUTPUT}
-    DESTINATION ${CONSOLE_INSTALL_DIR}
+    DESTINATION ${BESIDE_CONSOLE_DIR}
     COMPONENT ${SERVER_COMPONENT}
   )
 endif ()
