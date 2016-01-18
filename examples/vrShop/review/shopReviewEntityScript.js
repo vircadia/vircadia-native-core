@@ -241,7 +241,7 @@
             var myName = MyAvatar.displayName ? MyAvatar.displayName : "Anonymous";
             dbObj.dbKey[dbObj.dbKey.length] = {name: myName, score: scoreAssigned, clip_url: url};
             setEntityCustomData('infoKey', dataBaseID, dbObj);
-            print("Feeded DB: " + url");
+            print("Feeded DB: " + url);
         }
     };
     
