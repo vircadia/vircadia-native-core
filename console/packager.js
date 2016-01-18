@@ -13,15 +13,11 @@ var argv = require('yargs').argv;
 // check which icon we should use, beta or regular
 var iconName = argv.production ? "console" : "console-beta";
 
-// see if we were passed a build version
-var buildVersion = argv.buildVersion ? argv.buildVersion : "dev";
-
 // setup the common options for the packager
 var options = {
     dir: __dirname,
     name: "server-console",
     version: "0.35.4",
-    'build-version': buildVersion,
     overwrite: true,
     prune: true,
     arch: "x64",
