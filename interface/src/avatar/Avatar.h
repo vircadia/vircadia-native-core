@@ -167,6 +167,10 @@ public:
     using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
+    // these just call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+    Q_INVOKABLE virtual QUuid getParentID() const { return SpatiallyNestable::getParentID(); }
+    Q_INVOKABLE virtual void setParentID(const QUuid& parentID) { SpatiallyNestable::setParentID(parentID); }
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
