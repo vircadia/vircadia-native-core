@@ -12,111 +12,88 @@ function cleanPath(path) {
     return path;
 }
 
+// a: array, b: array
+// Returns: { add: [...], subtract: [...] }
+// add: a list of items in b but not a
+// subtract: a list of items in a but not b
+function difference(a, b) {
+    var add = [];
+    var subtract = [];
+    for (var k of a) {
+        if (b.indexOf(k) == -1) {
+            // In a, but not in b
+            subtract.push(k);
+        }
+    }
+    for (k of b) {
+        if (a.indexOf(k) == -1) {
+            // In a, but not in b
+            add.push(k);
+        }
+    }
+    return {
+        add: add,
+        subtract: subtract
+    };
+}
+
 ready = function() {
     window.$ = require('./vendor/jquery/jquery-2.1.4.min.js');
-
-    console.log(remote.debug);
 
     var domainServer = remote.getGlobal('domainServer');
     var acMonitor = remote.getGlobal('acMonitor');
 
-    var logFiles = {
+    var logWatchers = {
         'ds': {
         },
         'ac': {
         }
     };
 
+    function updateLogWatchers(stream, watchList, newLogFilesByPID) {
+        // Consolidate into a list of the log paths
+        var newLogFilePaths = [];
+        for (var pid in newLogFilesByPID) {
+            newLogFilePaths.push(newLogFilesByPID[pid].stdout);
+            newLogFilePaths.push(newLogFilesByPID[pid].stderr);
+        }
+
+        var oldLogFilePaths = Object.keys(watchList);
+        var diff = difference(oldLogFilePaths, newLogFilePaths);
+        console.log('diff', diff);
+        // For each removed file, remove it from our watch list
+        diff.subtract.forEach(function(removedLogFilePath) {
+            watchList[removedLogFilePath].unwatch();
+            delete watchList[removedLogFilePath];
+        });
+        diff.add.forEach(function(addedLogFilePath) {
+            var cleanFilePath = cleanPath(addedLogFilePath);
+
+            var logTail = new Tail(cleanFilePath, '\n', { start: 0, interval: 500 });
+
+            logTail.on('line', function(msg) {
+                // console.log('msg', msg, stream);
+                appendLogMessage(0, msg, stream);
+            });
+
+            logTail.on('error', function(error) {
+                console.log("ERROR:", error);
+            });
+
+            logTail.watch();
+
+            watchList[addedLogFilePath] = logTail;
+            console.log("Watching", cleanFilePath);
+        });
+    }
+
     function updateLogFiles() {
+        // Get ds and ac logs from main application
         var dsLogs = domainServer.getLogs();
         var acLogs = acMonitor.getLogs();
 
-        // Update ds logs
-        var dsLogFilePaths = [];
-        for (var pid in dsLogs) {
-            dsLogFilePaths.push(dsLogs[pid].stdout);
-            dsLogFilePaths.push(dsLogs[pid].stderr);
-        }
-        console.log(dsLogFilePaths);
-        console.log(dsLogs);
-        var dsFilePaths = Object.keys(logFiles.ds);
-        for (const filePath of dsFilePaths) {
-            if (dsLogFilePaths.indexOf(filePath) == -1) {
-                // This file is no longer being used, let's stop watching it
-                // and remove it from our list.
-                logFiles.ds[filePath].unwatch();
-                delete logFiles[filePath];
-            }
-        }
-        dsLogFilePaths.forEach(function(filePath) {
-            if (logFiles.ds[filePath] === undefined) {
-                var cleanFilePath = cleanPath(filePath);
-
-                var logTail = new Tail(cleanFilePath, '\n', { start: 0, interval: 500 });
-
-                logTail.on('line', function(msg) {
-                    console.log('msg', msg, 'ds');
-                    appendLogMessage(0, msg, 'ds');
-                });
-
-                logTail.on('error', function(error) {
-                    console.log("ERROR:", error);
-                });
-
-                logTail.watch();
-
-                logFiles.ds[filePath] = logTail;
-                console.log("Watching", cleanFilePath);
-            }
-        });
-
-        // Update ac logs
-        var acLogFilePaths = [];
-        for (var pid in acLogs) {
-            acLogFilePaths.push(acLogs[pid].stdout);
-            acLogFilePaths.push(acLogs[pid].stderr);
-        }
-        console.log(acLogFilePaths);
-        console.log(acLogs);
-        var acFilePaths = Object.keys(logFiles.ac);
-        for (filePath of acFilePaths) {
-            if (acLogFilePaths.indexOf(filePath) == -1) {
-                // This file is no longer being used, let's stop watching it
-                // and remove it from our list.
-                logFiles.ac[filePath].unwatch();
-                delete logFiles[filePath];
-            }
-        }
-        acLogFilePaths.forEach(function(filePath) {
-            if (logFiles.ac[filePath] === undefined) {
-                var cleanFilePath = cleanPath(filePath);
-
-                var fs = require('fs');
-
-                var stats = fs.statSync(cleanFilePath);
-                var size = stats.size;
-                var start = Math.max(0, size - (25000));
-                console.log(cleanFilePath, size, start, maxLogLines);
-
-                var logTail = new Tail(cleanFilePath, '\n', { start: start, interval: 500 });
-
-                logTail.on('line', function(msg) {
-                    console.log('msg', msg, 'ac');
-                    appendLogMessage(0, msg, 'ac');
-                });
-
-                logTail.on('error', function(error) {
-                    console.log("ERROR:", error);
-                });
-
-                logTail.watch();
-
-                logFiles.ac[filePath] = logTail;
-                console.log("Watching", cleanFilePath);
-            }
-        });
-
-        console.log(dsLogs, acLogs);
+        updateLogWatchers('ds', logWatchers.ds, dsLogs);
+        updateLogWatchers('ac', logWatchers.ac, acLogs);
     }
 
     window.onbeforeunload = function(e) {
