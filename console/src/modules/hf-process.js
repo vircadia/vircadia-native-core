@@ -1,12 +1,13 @@
 'use strict'
 
-var request = require('request');
-var extend = require('extend');
-var util = require('util');
-var events = require('events');
-var childProcess = require('child_process');
-var fs = require('fs');
-var os = require('os');
+const request = require('request');
+const extend = require('extend');
+const util = require('util');
+const events = require('events');
+const childProcess = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -144,8 +145,8 @@ Process.prototype = extend(Process.prototype, {
             if (logDirectoryCreated) {
                 // Create a temporary file with the current time
                 var time = (new Date).getTime();
-                var tmpLogStdout = this.logDirectory + '/' + this.name + '-' + time + '-stdout.txt';
-                var tmpLogStderr = this.logDirectory + '/' + this.name + '-' + time + '-stderr.txt';
+                var tmpLogStdout = path.resolve(this.logDirectory + '/' + this.name + '-' + time + '-stdout.txt');
+                var tmpLogStderr = path.resolve(this.logDirectory + '/' + this.name + '-' + time + '-stderr.txt');
 
                 try {
                     logStdout = fs.openSync(tmpLogStdout, 'ax');
@@ -175,7 +176,7 @@ Process.prototype = extend(Process.prototype, {
         }
 
         if (logStdout != 'ignore') {
-            var pidLogStdout = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt";
+            var pidLogStdout = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt");
             fs.rename(tmpLogStdout, pidLogStdout, function(e) {
                 if (e !== null) {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
@@ -186,7 +187,7 @@ Process.prototype = extend(Process.prototype, {
         }
 
         if (logStderr != 'ignore') {
-            var pidLogStderr = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt";
+            var pidLogStderr = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt");
             fs.rename(tmpLogStderr, pidLogStderr, function(e) {
                 if (e !== null) {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
