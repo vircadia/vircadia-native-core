@@ -107,7 +107,11 @@ public:
     
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
-    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
+
+    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
+                                  int boundaryLevelAdjust = 0) const;
 
 private:
     // Used for keyhole calculations

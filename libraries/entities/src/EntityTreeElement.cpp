@@ -308,19 +308,27 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                         includeThisEntity = false; // out of view, don't include it
                     }
 
-                    // Now check the size of the entity, it's possible that a "too small to see" entity is included in a larger
-                    // octree cell because of it's position (for example if it crosses the boundary of a cell it pops to the next
-                    // higher cell. So we want to check to see that the entity is large enough to be seen before we consider 
-                    // including it.
+                    // Now check the size of the entity, it's possible that a "too small to see" entity is included in a
+                    // larger octree cell because of it's position (for example if it crosses the boundary of a cell it 
+                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen 
+                    // before we consider including it.
                     if (includeThisEntity) {
                         AABox entityBounds = entity->getAABox(success);
                         if (success) {
-                            auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds, params.octreeElementSizeScale, params.boundaryLevelAdjust);
-                            qDebug() << "checking entity:" << entity->getID() << " entityBounds:" << entityBounds << "---renderAccuracy:" << renderAccuracy 
-                                        << "   [   sizeScale:" << params.octreeElementSizeScale << "levelAdjust:" << params.boundaryLevelAdjust << " ]";
+                            auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds, 
+                                                                            params.octreeElementSizeScale, params.boundaryLevelAdjust);
+
                             if (renderAccuracy <= 0.0f) {
                                 includeThisEntity = false; // too small, don't include it
-                                qDebug() << "returning FALSE... too small...";
+
+                                #ifdef WANT_LOD_DEBUGGING
+                                qDebug() << "skipping entity - TOO SMALL - \n"
+                                         << "......id:" << entity->getID() << "\n" 
+                                         << "....name:" << entity->getName() << "\n"
+                                         << "..bounds:" << entityBounds << "\n"
+                                         << "....cell:" << getAACube();
+                                #endif
+
                             }
                         } else {
                             includeThisEntity = false; // couldn't get box, don't include it
@@ -329,7 +337,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 }
 
                 if (includeThisEntity) {
-                    qDebug() << "including entity:" << entity->getID() << " octree cell:" << getAACube();
+                    #ifdef WANT_LOD_DEBUGGING
+                    qDebug() << "including entity - \n"
+                        << "......id:" << entity->getID() << "\n"
+                        << "....name:" << entity->getName() << "\n"
+                        << "..bounds:" << entityBounds << "\n"
+                        << "....cell:" << getAACube();
+                    #endif
                     indexesOfEntitiesToInclude << i;
                     numberOfEntities++;
                 }

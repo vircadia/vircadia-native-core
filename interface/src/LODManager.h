@@ -104,7 +104,6 @@ public:
     QString getLODStatsRenderText();
 
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     void autoAdjustLOD(float currentFPS);
     
     void loadSettings();

@@ -751,15 +751,12 @@ void ViewFrustum::evalViewTransform(Transform& view) const {
     view.setRotation(getOrientation());
 }
 
-// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
-// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
 float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale, int boundaryLevelAdjust) const {
     float distanceToCamera = glm::length(bounds.calcCenter() - getPosition());
     float largestDimension = bounds.getLargestDimension();
 
     const float maxScale = (float)TREE_SCALE;
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
 
     static bool shouldRenderTableNeedsBuilding = true;
     static QMap<float, float> shouldRenderTable;
