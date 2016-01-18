@@ -321,7 +321,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                             if (renderAccuracy <= 0.0f) {
                                 includeThisEntity = false; // too small, don't include it
 
-                                #if 1 //def WANT_LOD_DEBUGGING
+                                #ifdef WANT_LOD_DEBUGGING
                                 qDebug() << "skipping entity - TOO SMALL - \n"
                                          << "......id:" << entity->getID() << "\n" 
                                          << "....name:" << entity->getName() << "\n"
@@ -337,7 +337,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 }
 
                 if (includeThisEntity) {
-                    #if 1 //def WANT_LOD_DEBUGGING
+                    #ifdef WANT_LOD_DEBUGGING
                     qDebug() << "including entity - \n"
                         << "......id:" << entity->getID() << "\n"
                         << "....name:" << entity->getName() << "\n"
