@@ -21,7 +21,6 @@
 #include <HTTPManager.h>
 
 #include <ThreadedAssignment.h>
-#include <EnvironmentData.h>
 
 #include "OctreePersistThread.h"
 #include "OctreeSendThread.h"

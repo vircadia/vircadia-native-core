@@ -154,7 +154,6 @@ namespace MenuOption {
     const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
-    const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";

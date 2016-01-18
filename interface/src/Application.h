@@ -44,7 +44,6 @@
 #include "avatar/MyAvatar.h"
 #include "Bookmarks.h"
 #include "Camera.h"
-#include "Environment.h"
 #include "FileLogger.h"
 #include "gpu/Context.h"
 #include "Menu.h"
@@ -172,8 +171,6 @@ public:
     virtual QThread* getMainThread() { return thread(); }
     virtual PickRay computePickRay(float x, float y) const;
     virtual glm::vec3 getAvatarPosition() const;
-    virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
-    virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
     virtual qreal getDevicePixelRatio();
 
     void setActiveDisplayPlugin(const QString& pluginName);
@@ -439,8 +436,6 @@ private:
     float _scaleMirror;
     float _rotateMirror;
     float _raiseMirror;
-
-    Environment _environment;
 
     QSet<int> _keysPressed;
 

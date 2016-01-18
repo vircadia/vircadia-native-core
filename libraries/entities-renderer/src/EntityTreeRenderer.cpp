@@ -277,7 +277,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _hasPreviousZone = false;
         }
 
-        _viewState->endOverrideEnvironmentData();
         skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
 
         return; // Early exit
@@ -309,22 +308,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_ATMOSPHERE: {
-            EnvironmentData data = zone->getEnvironmentData();
-            glm::vec3 keyLightDirection = sceneKeyLight->getDirection();
-            glm::vec3 inverseKeyLightDirection = keyLightDirection * -1.0f;
-
-            // NOTE: is this right? It seems like the "sun" should be based on the center of the
-            //       atmosphere, not where the camera is.
-            glm::vec3 keyLightLocation = _viewState->getAvatarPosition() +
-                                        (inverseKeyLightDirection * data.getAtmosphereOuterRadius());
-
-            data.setSunLocation(keyLightLocation);
-
-            const float KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO = 20.0f;
-            float sunBrightness = sceneKeyLight->getIntensity() * KEY_LIGHT_INTENSITY_TO_SUN_BRIGHTNESS_RATIO;
-            data.setSunBrightness(sunBrightness);
-
-            _viewState->overrideEnvironmentData(data);
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();
@@ -360,12 +343,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 }
             }
 
-            _viewState->endOverrideEnvironmentData();
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             break;
         }
         case BACKGROUND_MODE_INHERIT:
-            _viewState->endOverrideEnvironmentData();
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();

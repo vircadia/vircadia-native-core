@@ -41,26 +41,6 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _backgroundMode = BACKGROUND_MODE_INHERIT;
 }
 
-
-EnvironmentData ZoneEntityItem::getEnvironmentData() const {
-    EnvironmentData result;
-
-    result.setAtmosphereCenter(_atmosphereProperties.getCenter());
-    result.setAtmosphereInnerRadius(_atmosphereProperties.getInnerRadius());
-    result.setAtmosphereOuterRadius(_atmosphereProperties.getOuterRadius());
-    result.setRayleighScattering(_atmosphereProperties.getRayleighScattering());
-    result.setMieScattering(_atmosphereProperties.getMieScattering());
-    result.setScatteringWavelengths(_atmosphereProperties.getScatteringWavelengths());
-    result.setHasStars(_atmosphereProperties.getHasStars());
-
-    // NOTE: The sunLocation and SunBrightness will be overwritten in the EntityTreeRenderer to use the
-    // keyLight details from the scene interface
-    //result.setSunLocation(1000, 900, 1000));
-    //result.setSunBrightness(20.0f);
-    
-    return result;
-}
-
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
