@@ -19,7 +19,7 @@ var pistol = Entities.addEntity({
         blue: 20
     },
     shapeType: 'box',
-    collisionsWillMove: true,
+    dynamic: true,
     gravity: {x: 0, y: -5.0, z: 0},
     restitution: 0,
     collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",

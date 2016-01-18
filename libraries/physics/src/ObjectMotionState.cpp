@@ -120,7 +120,7 @@ void ObjectMotionState::releaseShape() {
     }
 }
 
-void ObjectMotionState::setMotionType(MotionType motionType) {
+void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
     _motionType = motionType;
 }
 

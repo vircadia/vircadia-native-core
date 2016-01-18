@@ -23,7 +23,7 @@ LightSaber = function(spawnPosition) {
         modelURL: modelURL,
         position: spawnPosition,
         shapeType: 'box',
-        collisionsWillMove: true,
+        dynamic: true,
         script: scriptURL,
         dimensions: {
             x: 0.06,

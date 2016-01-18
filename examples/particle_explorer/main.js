@@ -9,7 +9,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/*global window, alert, EventBridge, dat, convertBinaryToBoolean, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+/*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
 var Settings = function() {
     this.exportSettings = function() {
@@ -66,7 +66,7 @@ var keysToIgnore = [
     'angularVelocity',
     'angularDamping',
     'ignoreForCollisions',
-    'collisionsWillMove',
+    'dynamic',
     'href',
     'actionData',
     'marketplaceID',
@@ -502,11 +502,3 @@ function registerDOMElementsForListenerBlocking() {
     });
 }
 
-///utility method for converting weird collisionWillMove type propertyies from binary to new Boolean()
-//
-// function convertBinaryToBoolean(value) {
-//     if (value === 0) {
-//         return false;
-//     }
-//     return true;
-// }

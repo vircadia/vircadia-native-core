@@ -107,7 +107,7 @@ var PITCHING_MACHINE_PROPERTIES = {
         y: 0.61,
         z: 0.39
     },
-    collisionsWillMove: false,
+    dynamic: false,
     shapeType: "Box"
 };
 PITCHING_MACHINE_PROPERTIES.dimensions = Vec3.multiply(2.5, PITCHING_MACHINE_PROPERTIES.dimensions);
@@ -217,7 +217,7 @@ var BASEBALL_PROPERTIES = {
         y: BASEBALL_RADIUS,
         z: BASEBALL_RADIUS
     },
-    collisionsWillMove: true,
+    dynamic: true,
     angularVelocity: {
         x: 17.0,
         y: 0,

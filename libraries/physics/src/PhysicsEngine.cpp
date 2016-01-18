@@ -98,7 +98,7 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     float mass = 0.0f;
     // NOTE: the body may or may not already exist, depending on whether this corresponds to a reinsertion, or a new insertion.
     btRigidBody* body = motionState->getRigidBody();
-    MotionType motionType = motionState->computeObjectMotionType();
+    PhysicsMotionType motionType = motionState->computePhysicsMotionType();
     motionState->setMotionType(motionType);
     switch(motionType) {
         case MOTION_TYPE_KINEMATIC: {

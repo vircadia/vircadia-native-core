@@ -157,7 +157,7 @@ MasterReset = function() {
             rotation: rotation,
             position: position,
             shapeType: 'box',
-            collisionsWillMove: true,
+            dynamic: true,
             script: raveStickEntityScriptURL,
             dimensions: {
                 x: 0.06,
@@ -279,7 +279,7 @@ MasterReset = function() {
                 z: 0
             },
             restitution: 0,
-            collisionsWillMove: true,
+            dynamic: true,
             collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
             userData: JSON.stringify({
                 grabbableKey: {
@@ -336,7 +336,7 @@ MasterReset = function() {
             position: startPosition,
             rotation: BOW_ROTATION,
             dimensions: BOW_DIMENSIONS,
-            collisionsWillMove: true,
+            dynamic: true,
             gravity: BOW_GRAVITY,
             shapeType: 'compound',
             compoundShapeURL: COLLISION_HULL_URL,
@@ -477,7 +477,7 @@ MasterReset = function() {
                 y: 1.37,
                 z: 1.73
             },
-            collisionsWillMove: true,
+            dynamic: true,
             ignoreForCollisions: false,
             compoundShapeURL: rackCollisionHullURL,
             userData: JSON.stringify({
@@ -526,7 +526,7 @@ MasterReset = function() {
                         y: -9.8,
                         z: 0
                     },
-                    collisionsWillMove: true,
+                    dynamic: true,
                     collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
                     ignoreForCollisions: false,
                     modelURL: basketballURL,
@@ -672,7 +672,7 @@ MasterReset = function() {
                     type: 'Model',
                     modelURL: MODEL_URL,
                     shapeType: 'compound',
-                    collisionsWillMove: true,
+                    dynamic: true,
                     dimensions: TARGET_DIMENSIONS,
                     compoundShapeURL: COLLISION_HULL_URL,
                     position: position,
@@ -753,7 +753,7 @@ MasterReset = function() {
                 y: 0.30,
                 z: 0.08
             },
-            collisionsWillMove: true,
+            dynamic: true,
             collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/flashlight_drop.L.wav",
             gravity: {
                 x: 0,
@@ -1043,7 +1043,7 @@ MasterReset = function() {
                 z: 0
             },
             shapeType: "box",
-            collisionsWillMove: true,
+            dynamic: true,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -1087,7 +1087,7 @@ MasterReset = function() {
                 z: 0.2
             },
             rotation: rotation,
-            collisionsWillMove: true,
+            dynamic: true,
             gravity: {
                 x: 0,
                 y: -100,
@@ -1138,7 +1138,7 @@ MasterReset = function() {
                 y: 0.21,
                 z: 0.47
             },
-            collisionsWillMove: true,
+            dynamic: true,
             collisionSoundURL: COLLISION_SOUND_URL,
             userData: JSON.stringify({
                 resetMe: {
@@ -1186,7 +1186,7 @@ MasterReset = function() {
                 z: 0.05
             },
             //must be enabled to be grabbable in the physics engine
-            collisionsWillMove: true,
+            dynamic: true,
             compoundShapeURL: WAND_COLLISION_SHAPE,
             script: wandScriptURL,
             userData: JSON.stringify({
@@ -1217,7 +1217,7 @@ MasterReset = function() {
             type: "Model",
             modelURL: modelURL,
             position: position,
-            collisionsWillMove: true,
+            dynamic: true,
             shapeType: "sphere",
             name: "basketball",
             dimensions: {
@@ -1277,7 +1277,7 @@ MasterReset = function() {
                 y: -0.1,
                 z: 0
             },
-            collisionsWillMove: true,
+            dynamic: true,
             userData: JSON.stringify({
                 resetMe: {
                     resetMe: true
@@ -1305,7 +1305,7 @@ MasterReset = function() {
                 y: 0.17,
                 z: 0.07
             },
-            collisionsWillMove: true,
+            dynamic: true,
             collisionSoundURL: "http://hifi-public.s3.amazonaws.com/sounds/SpryPntCnDrp1.L.wav",
             shapeType: 'box',
             gravity: {
@@ -1344,7 +1344,7 @@ MasterReset = function() {
                 y: 2.18,
                 z: 1.07
             },
-            collisionsWillMove: true,
+            dynamic: true,
             shapeType: 'box',
             gravity: {
                 x: 0,
@@ -1388,7 +1388,7 @@ MasterReset = function() {
                 y: 1.56,
                 z: 1.35
             },
-            collisionsWillMove: true,
+            dynamic: true,
             gravity: {
                 x: 0,
                 y: -0.8,
@@ -1470,7 +1470,7 @@ MasterReset = function() {
                     shapeType: 'box',
                     name: "block",
                     dimensions: blockTypes[i].dimensions,
-                    collisionsWillMove: true,
+                    dynamic: true,
                     collisionSoundURL: collisionSoundURL,
                     gravity: {
                         x: 0,

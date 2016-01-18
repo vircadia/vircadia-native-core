@@ -154,7 +154,7 @@ function checkControllerSide(whichSide) {
                 dimensions: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
                 damping: 0.00001,
                 shapeType: "sphere",
-                collisionsWillMove: false,
+                dynamic: false,
                 color: HELD_COLOR,
                 lifetime: LIFETIME_SECONDS
             };
@@ -200,7 +200,7 @@ function checkControllerSide(whichSide) {
                     velocity: linearVelocity,
                     rotation: palmRotation,
                     angularVelocity: angularVelocity,
-                    collisionsWillMove: true,
+                    dynamic: true,
                     color: THROWN_COLOR,
                     gravity: { x: 0, y: -GRAVITY_STRENGTH, z: 0}, 
                 };

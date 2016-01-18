@@ -77,7 +77,7 @@ Script.setInterval(function () {
             damping: DAMPING,
             angularDamping: ANGULAR_DAMPING,
             gravity: (gravity ? GRAVITY : { x: 0, y: 0, z: 0}),
-            collisionsWillMove: collidable,
+            dynamic: collidable,
             lifetime: LIFETIME
         });
 

@@ -37,7 +37,7 @@
             modelURL: MODEL_URL,
             position: MyAvatar.position,
             dimensions: {x: 0.04, y: 1.3, z: 0.21},
-            collisionsWillMove: true,
+            dynamic: true,
             gravity: {x: 0, y: 0, z: 0},
             shapeType: 'compound',
             compoundShapeURL: COLLISION_HULL_URL,
