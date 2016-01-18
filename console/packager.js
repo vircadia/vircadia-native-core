@@ -23,7 +23,7 @@ var options = {
     arch: "x64",
     platform: platform,
     icon: "resources/" + iconName,
-    ignore: "logs|(S|s)erver(\\s|-)(C|c)onsole-\\S+|electron-packager"
+    ignore: "logs|(S|s)erver(\\s|-)(C|c)onsole-\\S+|electron-packager|README.md|CMakeLists.txt|packager.js|.gitignore"
 }
 
 const EXEC_NAME = "server-console";
