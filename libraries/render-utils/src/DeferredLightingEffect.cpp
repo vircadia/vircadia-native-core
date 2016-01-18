@@ -31,6 +31,10 @@
 #include "directional_ambient_light_frag.h"
 #include "directional_skybox_light_frag.h"
 
+#include "directional_light_shadow_frag.h"
+#include "directional_ambient_light_shadow_frag.h"
+#include "directional_skybox_light_shadow_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -47,14 +51,15 @@ struct LightLocations {
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
-
 void DeferredLightingEffect::init() {
     _directionalLightLocations = std::make_shared<LightLocations>();
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
+
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
+    // TODO: To use shadowmaps, replace directional_*_light_frag with directional_*_light_shadow_frag shaders.
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);

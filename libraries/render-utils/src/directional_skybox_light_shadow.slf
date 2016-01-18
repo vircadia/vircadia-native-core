@@ -2,21 +2,22 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_light.frag
+//  directional_light_shadow.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/3/14.
+//  Created by Zach Pomerantz on 1/18/2016.
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
+//!>
 
+<@include Shadow.slh@>
 <@include DeferredBuffer.slh@>
 <@include DeferredGlobalLight.slh@>
 
 <$declareEvalLightmappedColor()$>
-<$declareEvalAmbientSphereGlobalColor()$>
+<$declareEvalSkyboxGlobalColor()$>
 
 in vec2 _texCoord0;
 out vec4 _fragColor;
@@ -25,8 +26,10 @@ void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-	float shadowAttenuation = 1.0;
+    vec4 worldPos = deferredTransform.viewInverse * vec4(frag.position.xyz, 1.0);
+	float shadowAttenuation = evalShadowAttenuation(worldPos);
 
+    // Light mapped or not ?
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
@@ -36,7 +39,7 @@ void main(void) {
                         frag.specularVal.xyz);
         _fragColor = vec4(color, 1.0);
     } else {
-        vec3 color =  evalAmbientSphereGlobalColor(
+        vec3 color =  evalSkyboxGlobalColor(
                         deferredTransform.viewInverse,
                         shadowAttenuation,
                         frag.position.xyz,
@@ -44,6 +47,7 @@ void main(void) {
                         frag.diffuse,
                         frag.specular,
                         frag.gloss);
+
         _fragColor = vec4(color, frag.normalVal.a);
     }
 }
