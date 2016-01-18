@@ -104,7 +104,6 @@ public:
     QString getLODStatsRenderText();
 
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
-    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
     void autoAdjustLOD(float currentFPS);
     
     void loadSettings();
@@ -136,9 +135,6 @@ private:
     SimpleMovingAverage _fpsAverageDownWindow = DOWN_SHIFT_SAMPLES_OF_FRAMES;
     SimpleMovingAverage _fpsAverageUpWindow = UP_SHIFT_SAMPLES_OF_FRAMES;
     
-    bool _shouldRenderTableNeedsRebuilding = true;
-    QMap<float, float> _shouldRenderTable;
-
     PIDController _renderDistanceController{};
     SimpleMovingAverage _renderDistanceAverage{ 10 };
 };

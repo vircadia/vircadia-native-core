@@ -417,15 +417,6 @@ const FBXGeometry* EntityTreeRenderer::getCollisionGeometryForEntity(EntityItemP
     return result;
 }
 
-float EntityTreeRenderer::getSizeScale() const {
-    return _viewState->getSizeScale();
-}
-
-int EntityTreeRenderer::getBoundaryLevelAdjust() const {
-    return _viewState->getBoundaryLevelAdjust();
-}
-
-
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
     std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }

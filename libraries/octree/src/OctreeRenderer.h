@@ -39,8 +39,6 @@ public:
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
     virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
-    virtual float getSizeScale() const { return DEFAULT_OCTREE_SIZE_SCALE; }
-    virtual int getBoundaryLevelAdjust() const { return 0; }
 
     virtual void setTree(OctreePointer newTree);
 
