@@ -42,7 +42,7 @@ var PICK_WITH_HAND_RAY = true;
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
+var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
 
 var NO_INTERSECT_COLOR = {
@@ -917,6 +917,10 @@ function MyController(hand) {
             }
             // far grab or equip with action
             if (isPhysical && !near) {
+                if (entityIsGrabbedByOther(intersection.entityID)) {
+                    // don't distance grab something that is already grabbed.
+                    return;
+                }
                 this.temporaryPositionOffset = null;
                 if (typeof grabbableData.spatialKey === 'undefined') {
                     // We want to give a temporary position offset to this object so it is pulled close to hand
@@ -1143,7 +1147,6 @@ function MyController(hand) {
                 y: this.currentObjectPosition.y,
                 z: this.currentObjectPosition.z
             }
-
         }
 
 
@@ -1489,7 +1492,7 @@ function MyController(hand) {
     this.continueFarTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
-            Entities.callEntityMethod(this.grabbedEntity, "stopNearTrigger");
+            Entities.callEntityMethod(this.grabbedEntity, "stopFarTrigger");
             return;
         }
 
