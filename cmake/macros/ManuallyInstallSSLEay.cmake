@@ -19,7 +19,7 @@ macro(manually_install_ssl_eay)
     find_package(OpenSSL REQUIRED)
 
     install(
-      FILES $<$<CONFIG:Debug>:${SSL_EAY_LIBRARY_DEBUG}> $<$<NOT:$<CONFIG:Debug>>:${SSL_EAY_LIBRARY_RELEASE}>
+      FILES "${OPENSSL_DLL_PATH}/ssleay32.dll"
       DESTINATION ${TARGET_INSTALL_DIR}
       COMPONENT ${TARGET_INSTALL_COMPONENT}
     )
