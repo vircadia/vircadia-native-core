@@ -90,7 +90,7 @@ var modelRatProperties = {
     damping: 0.8,
     angularDamping: 0.99,
     friction: 0.75,
-    collisionsWillMove: true,
+    dynamic: true,
     ignoreForCollisions: false,
     gravity: {
         x: 0,
@@ -194,7 +194,7 @@ function addAvoiderBlock(position) {
             z: 1
         },
         position: position,
-        collisionsWillMove: false,
+        dynamic: false,
         ignoreForCollisions: true,
         visible: false
     };

@@ -41,7 +41,7 @@ void AvatarMotionState::clearIncomingDirtyFlags() {
     }
 }
 
-MotionType AvatarMotionState::computeObjectMotionType() const {
+PhysicsMotionType AvatarMotionState::computePhysicsMotionType() const {
     // TODO?: support non-DYNAMIC motion for avatars? (e.g. when sitting)
     return MOTION_TYPE_DYNAMIC;
 }

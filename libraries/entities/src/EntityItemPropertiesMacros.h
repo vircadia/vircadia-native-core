@@ -168,7 +168,15 @@ inline QScriptValue convertScriptValue(QScriptEngine* e, const AACube& v) { retu
         QScriptValue V = convertScriptValue(engine, G); \
         properties.setProperty(#P, V); \
     }
-    
+
+// same as COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER but uses #X instead of #P in the setProperty() step
+#define COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(p, P, X, G) \
+    if ((_desiredProperties.isEmpty() || _desiredProperties.getHasProperty(p)) && \
+        (!skipDefaults || defaultEntityProperties._##P != _##P)) { \
+        QScriptValue V = convertScriptValue(engine, G); \
+        properties.setProperty(#X, V); \
+    }
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(P, G) \
     if (!skipDefaults || defaultEntityProperties._##P != _##P) { \
         QScriptValue V = convertScriptValue(engine, G); \

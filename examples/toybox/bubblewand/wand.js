@@ -71,7 +71,7 @@
         addCollisionsToBubbleAfterCreation: function(bubble) {
             //if the bubble collide immediately, we get weird effects.  so we add collisions after release
             Entities.editEntity(bubble, {
-                collisionsWillMove: true
+                dynamic: true
             });
         },
         randomizeBubbleGravity: function() {
@@ -161,7 +161,7 @@
                 modelURL: BUBBLE_MODEL,
                 position: this.getWandTipPosition(properties),
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true,
                 damping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"

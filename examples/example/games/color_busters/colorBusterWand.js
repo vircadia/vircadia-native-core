@@ -219,7 +219,7 @@
                 type: 'Box',
                 dimensions: COLOR_INDICATOR_DIMENSIONS,
                 position: this.currentProperties.position,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true
             }
 

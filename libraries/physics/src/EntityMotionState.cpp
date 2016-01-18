@@ -139,12 +139,12 @@ bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
 
-MotionType EntityMotionState::computeObjectMotionType() const {
+PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
     if (!_entity) {
         return MOTION_TYPE_STATIC;
     }
     assert(entityTreeIsLocked());
-    if (_entity->getCollisionsWillMove()) {
+    if (_entity->getDynamic()) {
         return MOTION_TYPE_DYNAMIC;
     }
     return (_entity->isMoving() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
@@ -157,7 +157,7 @@ bool EntityMotionState::isMoving() const {
 
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
-//     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
+//     (irregardless of PhysicsMotionType: STATIC, DYNAMIC, or KINEMATIC)
 // (2) at the beginning of each simulation step for KINEMATIC RigidBody's --
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
@@ -608,7 +608,7 @@ glm::vec3 EntityMotionState::getObjectLinearVelocityChange() const {
 }
 
 // virtual
-void EntityMotionState::setMotionType(MotionType motionType) {
+void EntityMotionState::setMotionType(PhysicsMotionType motionType) {
     ObjectMotionState::setMotionType(motionType);
     resetMeasuredBodyAcceleration();
 }
@@ -627,7 +627,7 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
         if (_entity->getIgnoreForCollisions()) {
             group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         }
-        switch (computeObjectMotionType()){
+        switch (computePhysicsMotionType()){
             case MOTION_TYPE_STATIC:
                 group =  BULLET_COLLISION_GROUP_STATIC;
                 break;

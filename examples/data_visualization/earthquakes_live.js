@@ -51,7 +51,7 @@ function createEarth() {
             z: EARTH_SPHERE_RADIUS
         },
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
-        // collisionsWillMove: true,
+        // dynamic: true,
         //if you have a shapetype it blocks the smaller markers
         // shapeType:'sphere'
         // userData: JSON.stringify({

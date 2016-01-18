@@ -65,7 +65,7 @@
             modelURL: BAT_MODEL,
             position: dropPosition,
             compoundShapeURL: BAT_COLLISION_HULL,
-            collisionsWillMove: true,
+            dynamic: true,
             velocity: { x: 0, y: 0.05, z: 0}, // workaround for gravity not taking effect on add
             gravity: { x: 0, y: -9.81, z: 0},
             rotation: Quat.fromPitchYawRollDegrees(0.0, 0.0, -90.0),

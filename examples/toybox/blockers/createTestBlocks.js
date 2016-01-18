@@ -90,7 +90,7 @@ var topBlock = Entities.addEntity({
     rotation: topBlock_rotation,
     damping: LINEAR_DAMPING,
     gravity: BLOCK_GRAVITY,
-    collisionsWillMove: true,
+    dynamic: true,
     velocity: {
         x: 0,
         y: -0.01,
@@ -108,7 +108,7 @@ var sideBlock1 = Entities.addEntity({
     rotation: sideBlock1_rotation,
     damping: LINEAR_DAMPING,
     gravity: BLOCK_GRAVITY,
-    collisionsWillMove: true
+    dynamic: true
 });
 
 var sideBlock2 = Entities.addEntity({
@@ -119,10 +119,10 @@ var sideBlock2 = Entities.addEntity({
     dimensions: blockDimensions,
     position: sideBlock2_position,
     rotation: sideBlock2_rotation,
-    collsionsWillMove: true,
+    dynamic: true,
     damping: LINEAR_DAMPING,
     gravity: BLOCK_GRAVITY,
-    collisionsWillMove: true
+    dynamic: true
 });
 
 var ground = Entities.addEntity({
