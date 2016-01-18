@@ -54,6 +54,9 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(CONSOLE_EXEC_NAME "server-console.exe")
 
+    set(DS_EXEC_NAME "domain-server.exe")
+    set(AC_EXEC_NAME "assignment-client.exe")
+
     # start menu shortcuts
     set(INTERFACE_SM_SHORTCUT_NAME "High Fidelity")
     set(CONSOLE_SM_SHORTCUT_NAME "Server Console")

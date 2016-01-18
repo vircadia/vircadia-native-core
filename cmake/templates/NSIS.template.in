@@ -984,7 +984,31 @@ Function HandlePostInstallOptions
 
 FunctionEnd
 
-!include WinVer.nsh
+!define FindProc_NOT_FOUND 1
+!define FindProc_FOUND 0
+!macro FindProc result processName
+  ExecCmd::exec "%SystemRoot%\System32\tasklist /NH /FI $\"IMAGENAME eq ${processName}$\" | %SystemRoot%\System32\find /I $\"${processName}$\""
+  Pop $0 ; The handle for the process
+  ExecCmd::wait $0
+  Pop ${result} ; The exit code
+!macroend
+
+Var processFound
+
+!macro PromptForRunningApplication applicationName displayName
+  !insertmacro FindProc $processFound ${applicationName}
+
+  ${If} $processFound == FindProc_FOUND
+    MessageBox MB_OK|MB_ICONEXCLAMATION "The High Fidelity ${displayName} is running. Please close it first." /SD IDOK
+  ${EndIf}
+!macroend
+
+!macro CheckForRunningApplications
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "Client"
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "Server Console"
+  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "domain-server"
+  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "assignment-client"
+!macroend
 
 ;--------------------------------
 ; determine admin versus local install
@@ -1000,6 +1024,9 @@ Function un.onInit
     SetErrorLevel $0
     Quit
   ${EndIf}
+
+  ; make sure none of the installed applications are still running
+  !insertmacro CheckForRunningApplications
 
   ; attempt to elevate the uninstaller to admin status
   uac_tryagain:
