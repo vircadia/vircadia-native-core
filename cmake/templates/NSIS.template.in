@@ -155,8 +155,8 @@ Var AR_RegFlags
     ; We do not do that here because it would absolutely cause issues with shared dependencies
 
     ;!insertmacro "Remove_${${SecName}}"
-    ;WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
-    ;  "Installed" 0
+    WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\Components\${SecName}" \
+      "Installed" 0
 
     Goto "exit_${SecName}"
 
