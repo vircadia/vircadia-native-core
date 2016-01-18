@@ -50,7 +50,7 @@ public:
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
 
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
-
+ 
 private:
     DeferredLightingEffect() = default;
 

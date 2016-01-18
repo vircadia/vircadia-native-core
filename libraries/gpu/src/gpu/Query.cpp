@@ -37,32 +37,31 @@ void Query::triggerReturnHandler(uint64_t queryResult) {
 
 
 Timer::Timer() {
-    _timerQueries.resize(6, std::make_shared<gpu::Query>([&] (const Query& query) {
-        auto elapsedTime = query.getElapsedTime();
-        _movingAverage.addSample(elapsedTime);
-
-        static int frameNum = 0;
-        frameNum++;
-        frameNum %= 10;
-        if (frameNum == 0) {
-            auto value = _movingAverage.average;
-            qCDebug(gpulogging) << "AO on gpu = " << value;
-        }
-    }));
-
+    for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
+        _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
+            _tailIndex ++;
+            auto elapsedTime = query.getElapsedTime();
+            _movingAverage.addSample(elapsedTime);
+        }));
+    }
 }
 
 void Timer::begin(gpu::Batch& batch) {
-    batch.beginQuery(_timerQueries[_currentTimerQueryIndex]);
+    _headIndex++;
+    batch.beginQuery(_timerQueries[rangeIndex(_headIndex)]);
 }
 void Timer::end(gpu::Batch& batch) {
-    batch.endQuery(_timerQueries[_currentTimerQueryIndex]);
-    _currentTimerQueryIndex = (_currentTimerQueryIndex + 1) % _timerQueries.size();
-
-    auto returnQuery = _timerQueries[_currentTimerQueryIndex];
-    batch.getQuery(returnQuery);
-}
-
-void Timer::onQueryReturned(const Query& query) {
-
+    if (_headIndex < 0) {
+        return;
+    }
+    batch.endQuery(_timerQueries[rangeIndex(_headIndex)]);
+    
+    if (_tailIndex < 0) {
+        _tailIndex = _headIndex;
+    }
+    
+    // Pull the previous tail query hopping to see it return
+    if (_tailIndex != _headIndex) {
+        batch.getQuery(_timerQueries[rangeIndex(_tailIndex)]);
+    }
 }

@@ -56,12 +56,15 @@ namespace gpu {
         double getAverage() const;
 
     protected:
-            
-        void onQueryReturned(const Query& query);
+        
+        static const int QUERY_QUEUE_SIZE = 4;
 
         gpu::Queries _timerQueries;
-        int _currentTimerQueryIndex = 0;
-        MovingAverage<double, 5> _movingAverage;
+        int _headIndex = -1;
+        int _tailIndex = -1;
+        MovingAverage<double, QUERY_QUEUE_SIZE * 2> _movingAverage;
+        
+        int rangeIndex(int index) const { return (index % QUERY_QUEUE_SIZE); }
     };
 };
 

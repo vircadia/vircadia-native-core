@@ -56,6 +56,8 @@ public:
     float getBlurDeviation() const { return _parametersBuffer.get<Parameters>()._blurInfo.z; }
 
     
+    double getTimerAverage() const { return _gpuTimer.getAverage(); }
+    
     using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
 
 private:
