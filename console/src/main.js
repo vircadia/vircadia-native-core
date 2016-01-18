@@ -164,7 +164,7 @@ function binaryMissingMessage(displayName, executableName, required) {
         var paths = pathFinder.searchPaths(executableName, argv.localReleaseBuilds);
         message += paths.join("\n");
     } else {
-        message += "It is expected to be found beside this executable.\n"
+        message += "It is expected to be found beside this executable.\n";
         message += "You may need to re-install the Server Console.";
     }
 
@@ -179,7 +179,7 @@ if (!dsPath) {
 }
 
 if (!acPath) {
-    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true))
+    dialog.showErrorBox("Assignment Client Not Found", binaryMissingMessage("assignment-client", "assignment-client", true));
     app.quit();
 }
 
