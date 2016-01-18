@@ -20,6 +20,7 @@
   "scripts": {
     "start": "electron . --binary-type local-debug --debug",
     "local-release": "electron . --binary-type local-release --debug",
+    "local-release-no-debug": "electron . --binary-type local-release",
     "packager": "node packager.js"
   },
   "dependencies": {
