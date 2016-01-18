@@ -37,7 +37,6 @@
   ; Set name prior to inner loop so uninstaller has correct values
   Name "@CPACK_NSIS_PACKAGE_NAME@"
   BrandingText " "
-  ManifestDPIAware true
 
   !ifdef INNER
     !echo "Inner invocation"                  ; just to see what's going on
@@ -989,6 +988,11 @@ FunctionEnd
 ; determine admin versus local install
 Function un.onInit
 
+  ; manually set this process to DPI aware for fonts on high-dpi screens
+  ${If} ${AtLeastWinVista}
+    System::Call 'user32::SetProcessDPIAware()'
+  ${EndIf}
+
   ; In order for the uninstaller to be able to remove itself, we have to do some trickery here.
   ; If the $EXEPATH does not contain the $TEMP dir, this instance is not the copied one
   ; so we move it to the $TEMP dir and then execute the copied uninstaller.
@@ -1213,6 +1217,11 @@ SectionEnd
 ; "Program Files" for AllUsers, "My Documents" for JustMe...
 
 Function .onInit
+
+  ; manually set this process to DPI aware for fonts on high-dpi screens
+  ${If} ${AtLeastWinVista}
+    System::Call 'user32::SetProcessDPIAware()'
+  ${EndIf}
 
   !ifdef INNER
     ; If INNER is defined, then we aren't supposed to do anything except write out
