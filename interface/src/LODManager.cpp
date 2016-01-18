@@ -183,7 +183,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     
         if (changed) {
             calculateAvatarLODDistanceMultiplier();
-            _shouldRenderTableNeedsRebuilding = true;
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
                 lodToolsDialog->reloadSliders();
@@ -294,7 +293,6 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
     calculateAvatarLODDistanceMultiplier();
-    _shouldRenderTableNeedsRebuilding = true;
 }
 
 void LODManager::calculateAvatarLODDistanceMultiplier() {
@@ -303,7 +301,6 @@ void LODManager::calculateAvatarLODDistanceMultiplier() {
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    _shouldRenderTableNeedsRebuilding = true;
 }
 
 

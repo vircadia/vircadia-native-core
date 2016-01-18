@@ -758,9 +758,9 @@ float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSize
     const float maxScale = (float)TREE_SCALE;
     float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
 
-    static bool shouldRenderTableNeedsBuilding = true;
+    static std::once_flag once;
     static QMap<float, float> shouldRenderTable;
-    if (shouldRenderTableNeedsBuilding) {
+    std::call_once(once, [&] {
         float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
         float scale = maxScale;
         float factor = 1.0f;
@@ -770,9 +770,7 @@ float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSize
             factor /= 2.0f;
             shouldRenderTable[scale] = factor;
         }
-
-        shouldRenderTableNeedsBuilding = false;
-    }
+    });
 
     float closestScale = maxScale;
     float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;

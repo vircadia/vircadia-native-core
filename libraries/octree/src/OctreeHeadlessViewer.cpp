@@ -14,11 +14,7 @@
 #include "OctreeLogging.h"
 #include "OctreeHeadlessViewer.h"
 
-OctreeHeadlessViewer::OctreeHeadlessViewer() :
-    OctreeRenderer(),
-    _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _boundaryLevelAdjust(0),
-    _maxPacketsPerSecond(DEFAULT_MAX_OCTREE_PPS)
+OctreeHeadlessViewer::OctreeHeadlessViewer() : OctreeRenderer()
 {
     _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 }
@@ -57,9 +53,8 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
     _octreeQuery.setKeyholeRadius(_viewFrustum.getKeyholeRadius());
-
-    _octreeQuery.setOctreeSizeScale(getVoxelSizeScale());
-    _octreeQuery.setBoundaryLevelAdjust(getBoundaryLevelAdjust());
+    _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
+    _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
 
     // Iterate all of the nodes, and get a count of how many voxel servers we have...
     int totalServers = 0;
