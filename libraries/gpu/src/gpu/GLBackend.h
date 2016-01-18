@@ -482,7 +482,6 @@ protected:
     void do_pushProfileRange(Batch& batch, size_t paramOffset);
     void do_popProfileRange(Batch& batch, size_t paramOffset);
     
-    std::string _currentNamedCall;
     int _currentDraw { -1 };
 
     typedef void (GLBackend::*CommandCall)(Batch&, size_t);

@@ -412,12 +412,12 @@ void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
-    _currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+    batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
     _currentDraw = -1;
 }
 
 void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
-    _currentNamedCall.clear();
+    batch._currentNamedCall.clear();
 }
 
 void GLBackend::resetStages() {

@@ -378,7 +378,9 @@ void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Fun
         instance.function = function;
     }
 
+    _currentNamedCall = instanceName;
     captureDrawCallInfo();
+    _currentNamedCall.clear();
 }
 
 BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
@@ -411,9 +413,8 @@ const Batch::DrawCallInfoBuffer& Batch::getDrawCallInfoBuffer() const {
 }
 
 void Batch::captureDrawCallInfo() {
-    TransformObject object;
-
     if (_invalidModel) {
+        TransformObject object;
         _currentModel.getMatrix(object._model);
 
         // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
@@ -423,10 +424,10 @@ void Batch::captureDrawCallInfo() {
         object._modelInverse = glm::inverse(object._model);
 
         _objects.push_back(object);
-    }
 
-    // Flags are clean
-    _invalidModel = false;
+        // Flag is clean
+        _invalidModel = false;
+    }
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
     drawCallInfos.push_back((uint16)_objects.size() - 1);

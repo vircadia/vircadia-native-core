@@ -447,7 +447,7 @@ public:
     };
 
     using TransformObjects = std::vector<TransformObject>;
-    bool _invalidModel { false };
+    bool _invalidModel { true };
     Transform _currentModel;
     TransformObjects _objects;
 

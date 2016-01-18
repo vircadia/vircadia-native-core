@@ -168,7 +168,7 @@ void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
 
     auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
-    if (_currentNamedCall.empty()) {
+    if (batch._currentNamedCall.empty()) {
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, (GLint)drawCallInfo.index, (GLint)drawCallInfo.unused);
     } else {
