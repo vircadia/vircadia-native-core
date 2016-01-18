@@ -45,13 +45,31 @@ class Batch {
 public:
     typedef Stream::Slot Slot;
 
+
+    class DrawCallInfo {
+    public:
+        using Index = uint16_t;
+
+        DrawCallInfo(Index idx) : index(idx) {}
+
+        Index index{0};
+        uint16_t unused{0}; // Reserved space for later
+
+    };
+    // Make sure DrawCallInfo has no extra padding
+    static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
+
+    using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
+
     struct NamedBatchData {
         using BufferPointers = std::vector<BufferPointer>;
         using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
 
         BufferPointers buffers;
-        size_t count { 0 };
         Function function;
+        DrawCallInfoBuffer drawCallInfos;
+
+        size_t count() const { return drawCallInfos.size();  }
 
         void process(Batch& batch) {
             if (function) {
@@ -61,6 +79,14 @@ public:
     };
 
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
+
+    DrawCallInfoBuffer _drawCallInfos;
+
+    std::string _currentNamedCall;
+
+    const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
+    DrawCallInfoBuffer& getDrawCallInfoBuffer();
+    void captureDrawCallInfo();
 
     class CacheState {
     public:
@@ -88,7 +114,7 @@ public:
             transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
     };
 
-    Batch();
+    Batch() {}
     Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
@@ -121,13 +147,8 @@ public:
     void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
-
-    void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
     BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
-    void setNamedBuffer(const std::string& instanceName, BufferPointer& buffer, uint8_t index = 0);
-
-    
 
     // Input Stage
     // InputFormat
@@ -417,6 +438,18 @@ public:
     CommandOffsets _commandOffsets;
     Params _params;
     Bytes _data;
+
+    // SSBO class... layout MUST match the layout in TransformCamera.slh
+    class TransformObject {
+    public:
+        Mat4 _model;
+        Mat4 _modelInverse;
+    };
+
+    using TransformObjects = std::vector<TransformObject>;
+    bool _invalidModel { false };
+    Transform _currentModel;
+    TransformObjects _objects;
 
     BufferCaches _buffers;
     TextureCaches _textures;

@@ -245,30 +245,6 @@ protected:
     void renderPassTransfer(Batch& batch);
     void renderPassDraw(Batch& batch);
 
-    class DrawCallInfo {
-    public:
-        using Index = uint16_t;
-
-        DrawCallInfo(Index idx) : index(idx) {}
-
-        Index index { 0 };
-        uint16_t unused { 0 }; // Reserved space for later
-    };
-    // Make sure DrawCallInfo has no extra padding
-    static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
-
-    using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
-    using NamedDrawCallInfoBuffer = std::map<std::string, DrawCallInfoBuffer>;
-
-    int _currentDraw{ -1 };
-    DrawCallInfoBuffer _drawCallInfos;
-    NamedDrawCallInfoBuffer _namedDrawCallInfos;
-
-    std::string _currentNamedCall;
-
-    DrawCallInfoBuffer& getDrawCallInfoBuffer();
-    void captureDrawCallInfo();
-
     Stats _stats;
 
     // Draw Stage
@@ -344,27 +320,22 @@ protected:
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform();
+    void updateTransform(const Batch& batch);
     void resetTransformStage();
 
     struct TransformStageState {
-        using TransformObjects = std::vector<TransformObject>;
         using TransformCameras = std::vector<TransformCamera>;
 
-        TransformObject _object;
         TransformCamera _camera;
-        TransformObjects _objects;
         TransformCameras _cameras;
 
         GLuint _objectBuffer{ 0 };
         GLuint _cameraBuffer{ 0 };
         size_t _cameraUboSize{ 0 };
-        Transform _model;
         Transform _view;
         Mat4 _projection;
         Vec4i _viewport{ 0, 0, 1, 1 };
         Vec2 _depthRange{ 0.0f, 1.0f };
-        bool _invalidModel{true};
         bool _invalidView{false};
         bool _invalidProj{false};
         bool _invalidViewport{ false };
@@ -376,7 +347,7 @@ protected:
 
         void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
-        void transfer() const;
+        void transfer(const Batch& batch) const;
     } _transform;
 
     int32_t _uboAlignment{ 0 };
@@ -510,6 +481,9 @@ protected:
 
     void do_pushProfileRange(Batch& batch, size_t paramOffset);
     void do_popProfileRange(Batch& batch, size_t paramOffset);
+    
+    std::string _currentNamedCall;
+    int _currentDraw { -1 };
 
     typedef void (GLBackend::*CommandCall)(Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];

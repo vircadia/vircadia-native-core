@@ -16,8 +16,6 @@ using namespace gpu;
 
 // Transform Stage
 void GLBackend::do_setModelTransform(Batch& batch, size_t paramOffset) {
-    _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
-    _transform._invalidModel = true;
 }
 
 void GLBackend::do_setViewTransform(Batch& batch, size_t paramOffset) {
@@ -78,7 +76,6 @@ void GLBackend::syncTransformStateCache() {
     _transform._invalidViewport = true;
     _transform._invalidProj = true;
     _transform._invalidView = true;
-    _transform._invalidModel = true;
 
     glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
 
@@ -87,7 +84,6 @@ void GLBackend::syncTransformStateCache() {
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
-    _transform._model.setIdentity();
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
@@ -104,18 +100,6 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         _view.getInverseMatrix(_camera._view);
     }
 
-    if (_invalidModel) {
-        _model.getMatrix(_object._model);
-
-        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
-        // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases
-        // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
-        //_model.getInverseMatrix(_object._modelInverse);
-        _object._modelInverse = glm::inverse(_object._model);
-
-        _objects.push_back(_object);
-    }
-
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
         if (stereo._enable) {
@@ -130,10 +114,10 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
     }
 
     // Flags are clean
-    _invalidView = _invalidProj = _invalidModel = _invalidViewport = false;
+    _invalidView = _invalidProj = _invalidViewport = false;
 }
 
-void GLBackend::TransformStageState::transfer() const {
+void GLBackend::TransformStageState::transfer(const Batch& batch) const {
     // FIXME not thread safe
     static std::vector<uint8_t> bufferData;
     if (!_cameras.empty()) {
@@ -146,10 +130,10 @@ void GLBackend::TransformStageState::transfer() const {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    if (!_objects.empty()) {
-        auto byteSize = _objects.size() * sizeof(TransformObject);
+    if (!batch._objects.empty()) {
+        auto byteSize = batch._objects.size() * sizeof(Batch::TransformObject);
         bufferData.resize(byteSize);
-        memcpy(bufferData.data(), _objects.data(), byteSize);
+        memcpy(bufferData.data(), batch._objects.data(), byteSize);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
@@ -180,10 +164,10 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::updateTransform() {
+void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
 
-    auto& drawCallInfoBuffer = getDrawCallInfoBuffer();
+    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
     if (_currentNamedCall.empty()) {
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, (GLint)drawCallInfo.index, (GLint)drawCallInfo.unused);

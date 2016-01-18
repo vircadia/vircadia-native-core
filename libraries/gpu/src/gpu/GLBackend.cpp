@@ -124,11 +124,7 @@ Backend* GLBackend::createBackend() {
     return new GLBackend();
 }
 
-GLBackend::GLBackend() :
-    _input(),
-    _pipeline(),
-    _output()
-{
+GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
@@ -160,9 +156,6 @@ void GLBackend::renderPassTransfer(Batch& batch) {
         PROFILE_RANGE("syncCPUTransform");
         _transform._cameras.clear();
         _transform._cameraOffsets.clear();
-        _transform._objects.clear();
-        _drawCallInfos.clear();
-        _namedDrawCallInfos.clear();
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
@@ -173,12 +166,8 @@ void GLBackend::renderPassTransfer(Batch& batch) {
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
                     _transform.preUpdate(_commandIndex, _stereo);
-                    captureDrawCallInfo();
                     break;
 
-                case Batch::COMMAND_startNamedCall:
-                case Batch::COMMAND_stopNamedCall:
-                case Batch::COMMAND_setModelTransform:
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
@@ -197,7 +186,7 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync the transform buffers
         PROFILE_RANGE("syncGPUTransform");
-        _transform.transfer();
+        _transform.transfer(batch);
     }
 
 
@@ -229,7 +218,7 @@ void GLBackend::renderPassDraw(Batch& batch) {
                 // updates for draw calls
                 ++_currentDraw;
                 updateInput();
-                updateTransform();
+                updateTransform(batch);
                 updatePipeline();
                 // Fallthrough to next case
             default: {
@@ -275,20 +264,6 @@ void GLBackend::render(Batch& batch) {
 
     // Restore the saved stereo state for the next batch
     _stereo._enable = savedStereo;
-}
-
-
-GLBackend::DrawCallInfoBuffer& GLBackend::getDrawCallInfoBuffer() {
-    if (_currentNamedCall.empty()) {
-        return _drawCallInfos;
-    } else {
-        return _namedDrawCallInfos[_currentNamedCall];
-    }
-}
-
-void GLBackend::captureDrawCallInfo() {
-    auto& drawCallInfos = getDrawCallInfoBuffer();
-    drawCallInfos.push_back((uint16)_transform._objects.size() - 1);
 }
 
 bool GLBackend::checkGLError(const char* name) {
