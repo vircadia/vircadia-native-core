@@ -984,23 +984,14 @@ Function HandlePostInstallOptions
 
 FunctionEnd
 
-!define FindProc_NOT_FOUND 1
-!define FindProc_FOUND 0
-!macro FindProc result processName
-  ExecCmd::exec "%SystemRoot%\System32\tasklist /NH /FI $\"IMAGENAME eq ${processName}$\" | %SystemRoot%\System32\find /I $\"${processName}$\""
-  Pop $0 ; The handle for the process
-  ExecCmd::wait $0
-  Pop ${result} ; The exit code
-!macroend
-
-Var processFound
 
 !macro PromptForRunningApplication applicationName displayName
-  !insertmacro FindProc $processFound ${applicationName}
+  FindProcDLL::FindProc ${applicationName}
 
-  ${If} $processFound == FindProc_FOUND
+  IntCmp $R0 1 0 notRunning
     MessageBox MB_OK|MB_ICONEXCLAMATION "The High Fidelity ${displayName} is running. Please close it first." /SD IDOK
-  ${EndIf}
+    Abort
+  notRunning:
 !macroend
 
 !macro CheckForRunningApplications
