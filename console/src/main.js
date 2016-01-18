@@ -517,9 +517,10 @@ app.on('ready', function() {
 
     if (osType == "Darwin") {
         trayFilename = "console-tray-Template.png";
+    } else if (osType == "Windows_NT") {
+        trayFilename = "console-tray.ico";
     } else {
-        const scaleFactor = require('screen').getPrimaryDisplay().scaleFactor
-        trayFilename = (scaleFactor > 1 ? "console-tray@2x.png" : "console-tray.png");
+        trayFilename = "console-tray.png";
     }
 
     const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
