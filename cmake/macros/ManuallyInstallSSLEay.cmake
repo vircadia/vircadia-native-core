@@ -18,11 +18,11 @@ macro(manually_install_ssl_eay)
     # so we have to call find_package(OpenSSL) here even though this target may not specifically need it
     find_package(OpenSSL REQUIRED)
 
-    # install(
-    #   FILES $<$<CONFIG:Debug>:${SSL_EAY_LIBRARY_DEBUG}> $<$<NOT:$<CONFIG:Debug>>:${SSL_EAY_LIBRARY_RELEASE}>
-    #   DESTINATION ${TARGET_INSTALL_DIR}
-    #   COMPONENT ${TARGET_INSTALL_COMPONENT}
-    # )
+    install(
+      FILES $<$<CONFIG:Debug>:${SSL_EAY_LIBRARY_DEBUG}> $<$<NOT:$<CONFIG:Debug>>:${SSL_EAY_LIBRARY_RELEASE}>
+      DESTINATION ${TARGET_INSTALL_DIR}
+      COMPONENT ${TARGET_INSTALL_COMPONENT}
+    )
   endif()
 
 endmacro()
