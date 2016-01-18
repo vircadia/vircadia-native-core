@@ -1057,6 +1057,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
 
     properties._defaultSettings = false;
 
