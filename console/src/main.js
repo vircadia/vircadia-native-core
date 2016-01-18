@@ -30,7 +30,7 @@ const ProcessGroupStates = hfprocess.ProcessGroupStates;
 
 const osType = os.type();
 
-const APP_ICON = path.join(__dirname, '../resources/console.png');
+const appIcon = path.join(__dirname, '../resources/console.png');
 
 function getRootHifiDataDirectory() {
     if (osType == 'Windows_NT') {
@@ -238,7 +238,7 @@ LogWindow.prototype = {
             return;
         }
         // Create the browser window.
-        this.window = new BrowserWindow({ width: 700, height: 500, icon: APP_ICON });
+        this.window = new BrowserWindow({ width: 700, height: 500, icon: appIcon });
         this.window.loadURL('file://' + __dirname + '/log.html');
 
         if (!debug) {
@@ -404,7 +404,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
     // Show popup
     var window = new BrowserWindow({
-        icon: APP_ICON,
+        icon: appIcon,
         width: 640,
         height: 480,
         center: true,
@@ -481,7 +481,7 @@ function maybeShowSplash() {
 
     if (!suppressSplash) {
         var window = new BrowserWindow({
-            icon: APP_ICON,
+            icon: appIcon,
             width: 1600,
             height: 737,
             center: true,
@@ -505,7 +505,7 @@ function detectExistingStackManagerResources() {
 }
 
 const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
-const trayIcon = path.join(__dirname, '../resources/' + TRAY_FILENAME);
+const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
