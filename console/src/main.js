@@ -18,6 +18,7 @@ const unzip = require('unzip');
 
 const request = require('request');
 const progress = require('request-progress');
+const osHomeDir = require('os-homedir');
 
 const Config = require('./modules/config').Config;
 
@@ -34,17 +35,12 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 
 function getRootHifiDataDirectory() {
     if (osType == 'Windows_NT') {
-        var homePath = process.env.HOMEPATH;
-        return path.resolve(path.join(homePath, 'AppData/Roaming/High Fidelity'));
+        return path.resolve(osHomeDir(), 'AppData/Roaming/High Fidelity');
     } else if (osType == 'Darwin') {
-        return path.resolve('~/Library/Application Support/High Fidelity');
+        return path.resolve(osHomeDir(), 'Library/Application Support/High Fidelity');
     } else {
-        return path.resolve('~/.local/share/High Fidelity');
+        return path.resolve(osHomeDir(), '.local/share/High Fidelity');
     }
-}
-
-function getStackManagerDataDirectory() {
-    // return path.join(getRootHifiDataDirectory(), '../../Local/High Fidelity');
 }
 
 function getAssignmentClientResourcesDirectory() {
@@ -109,7 +105,7 @@ function shutdown() {
 
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
-console.log("Log directory:", logPath);
+console.log("Log directory:", logPath, getRootHifiDataDirectory());
 
 const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();

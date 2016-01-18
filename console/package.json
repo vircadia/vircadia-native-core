@@ -24,11 +24,12 @@
     "packager": "node packager.js"
   },
   "dependencies": {
+    "always-tail": "0.2.0",
     "extend": "^3.0.0",
-    "yargs": "^3.30.0",
+    "os-homedir": "^1.0.1",
     "request": "2.67.0",
     "request-progress": "1.0.2",
-    "always-tail": "0.2.0",
-    "unzip": "0.1.11"
+    "unzip": "0.1.11",
+    "yargs": "^3.30.0"
   }
 }
