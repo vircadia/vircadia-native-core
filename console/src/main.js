@@ -63,12 +63,18 @@ const ipcMain = electron.ipcMain;
 var isShuttingDown = false;
 function shutdown() {
     if (!isShuttingDown) {
-        var idx = dialog.showMessageBox({
-            type: 'question',
-            buttons: ['Yes', 'No'],
-            title: 'High Fidelity',
-            message: 'Are you sure you want to quit?'
-        });
+        var idx = 0;
+
+        // if the home server is running, show a prompt before quit to ask if the user is sure
+        if (homeServer.state == ProcessGroupStates.STARTED) {
+            idx = dialog.showMessageBox({
+                type: 'question',
+                buttons: ['Yes', 'No'],
+                title: 'Are you sure?',
+                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.'
+            });
+        }
+
         if (idx == 0) {
             isShuttingDown = true;
 
