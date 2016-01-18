@@ -16,8 +16,6 @@ Windows.Window {
     destroyOnCloseButton: false
     property alias source: webview.url
 
-    function raiseWindow() { Desktop.raise(root) }
-
     Controls.WebView {
         id: webview
         url: "about:blank"

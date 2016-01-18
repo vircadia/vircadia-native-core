@@ -345,7 +345,7 @@ void QmlWindowClass::hasClosed() {
 }
 
 void QmlWindowClass::raise() {
-    QMetaObject::invokeMethod(asQuickItem(), "raiseWindow", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(asQuickItem(), "raise", Qt::QueuedConnection);
 }
 
 #include "QmlWindowClass.moc"

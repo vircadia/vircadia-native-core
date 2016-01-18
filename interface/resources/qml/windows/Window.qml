@@ -114,7 +114,7 @@ Fadable {
 
     function raise() {
         if (visible && parent) {
-            Desktop.raise(window)
+            desktop.raise(window)
             if (!focus) {
                 focus = true;
             }
