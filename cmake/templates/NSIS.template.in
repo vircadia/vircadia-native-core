@@ -996,7 +996,7 @@ FunctionEnd
 
 !macro CheckForRunningApplications
   !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "Client"
-  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "Server Console"
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
   !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "domain-server"
   !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "assignment-client"
 !macroend
