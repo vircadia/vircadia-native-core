@@ -207,12 +207,13 @@ public:
     virtual ~Task() = default;
 
     // Queue a new job to the task; returns the job's index
-    template <class T, class... A> size_t addJob(std::string name, A&&... args) {
+    template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
         _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(std::forward<A>(args)...));
-        return _jobs.size() - 1;
+        return _jobs.back().getOutput();
     }
 
-    const Job& getJob(size_t i) const { return _jobs.at(i); }
+    void enableJob(size_t jobIndex, bool enable = true) { _jobs.at(jobIndex).setEnabled(enable); }
+    bool getEnableJob(size_t jobIndex) const { return _jobs.at(jobIndex).isEnabled(); }
 
     virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {}
 

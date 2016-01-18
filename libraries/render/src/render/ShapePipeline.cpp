@@ -91,7 +91,9 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
     auto& batch = args->_batch;
 
     // Run the pipeline's BatchSetter on the passed in batch
-    shapePipeline->batchSetter(*shapePipeline, *batch);
+    if (shapePipeline->batchSetter) {
+        shapePipeline->batchSetter(*shapePipeline, *batch);
+    }
 
     // Setup the one pipeline (to rule them all)
     batch->setPipeline(shapePipeline->pipeline);

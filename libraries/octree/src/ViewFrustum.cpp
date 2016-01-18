@@ -736,6 +736,23 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
+const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) {
+    glm::vec3 normal = glm::normalize(_direction);
+
+    auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {
+        auto dir = glm::normalize(_cornersWorld[nearCorner] - _cornersWorld[farCorner]);
+        auto factor = depth / glm::dot(dir, normal);
+        return _position + factor * dir;
+    };
+
+    return Corners{
+        getCorner(TOP_LEFT_NEAR, TOP_LEFT_FAR),
+        getCorner(TOP_RIGHT_NEAR, TOP_RIGHT_FAR),
+        getCorner(BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR),
+        getCorner(BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR)
+    };
+}
+
 float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
     glm::vec3 temp = getPosition() - point;
     float distanceToPoint = sqrtf(glm::dot(temp, temp));

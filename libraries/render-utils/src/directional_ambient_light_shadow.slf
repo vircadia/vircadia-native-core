@@ -2,16 +2,17 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  directional_light.frag
+//  directional_light_shadow.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/3/14.
+//  Created by Zach Pomerantz on 1/18/2016.
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+<@include Shadow.slh@>
 <@include DeferredBuffer.slh@>
 <@include DeferredGlobalLight.slh@>
 
@@ -25,7 +26,8 @@ void main(void) {
     DeferredTransform deferredTransform = getDeferredTransform();
     DeferredFragment frag = unpackDeferredFragment(deferredTransform, _texCoord0);
 
-	float shadowAttenuation = 1.0;
+    vec4 worldPos = deferredTransform.viewInverse * vec4(frag.position.xyz, 1.0);
+	float shadowAttenuation = evalShadowAttenuation(worldPos);
 
     if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
         vec3 color = evalLightmappedColor(

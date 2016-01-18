@@ -23,6 +23,9 @@ class FramebufferCache : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    // Shadow map size is static
+    static const int SHADOW_MAP_SIZE = 2048;
+
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -44,9 +47,6 @@ public:
     
     gpu::TexturePointer getLightingTexture();
     gpu::FramebufferPointer getLightingFramebuffer();
-
-    /// Returns the framebuffer object used to render shadow maps;
-    gpu::FramebufferPointer getShadowFramebuffer();
 
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();

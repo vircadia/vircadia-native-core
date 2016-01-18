@@ -432,7 +432,11 @@ public:
     AABox bounds;
 };
 
-typedef std::vector< ItemIDAndBounds > ItemIDsBounds;
+// A list of items to be passed between rendering jobs
+using ItemIDsBounds = std::vector<ItemIDAndBounds>;
+
+// A map of items by ShapeKey to optimize rendering pipeline assignments
+using ShapesIDsBounds = std::unordered_map<ShapeKey, ItemIDsBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
 
 
 // A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly

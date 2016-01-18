@@ -83,32 +83,32 @@ public:
 
             Filter build() const { return Filter(_flags, _mask); }
 
-            Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
             Builder& withTranslucent() { _flags.set(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
+            Builder& withOpaque() { _flags.reset(TRANSLUCENT); _mask.set(TRANSLUCENT); return (*this); }
 
-            Builder& withLightmap() { _flags.reset(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
-            Builder& withoutLightmap() { _flags.set(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+            Builder& withLightmap() { _flags.set(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
+            Builder& withoutLightmap() { _flags.reset(LIGHTMAP); _mask.set(LIGHTMAP); return (*this); }
 
-            Builder& withTangents() { _flags.reset(TANGENTS); _mask.set(TANGENTS); return (*this); }
-            Builder& withoutTangents() { _flags.set(TANGENTS); _mask.set(TANGENTS); return (*this); }
+            Builder& withTangents() { _flags.set(TANGENTS); _mask.set(TANGENTS); return (*this); }
+            Builder& withoutTangents() { _flags.reset(TANGENTS); _mask.set(TANGENTS); return (*this); }
 
-            Builder& withSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
-            Builder& withoutSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
+            Builder& withSpecular() { _flags.set(SPECULAR); _mask.set(SPECULAR); return (*this); }
+            Builder& withoutSpecular() { _flags.reset(SPECULAR); _mask.set(SPECULAR); return (*this); }
 
-            Builder& withEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
-            Builder& withoutEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
+            Builder& withEmissive() { _flags.set(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
+            Builder& withoutEmissive() { _flags.reset(EMISSIVE); _mask.set(EMISSIVE); return (*this); }
 
-            Builder& withSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
-            Builder& withoutSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withSkinned() { _flags.set(SKINNED); _mask.set(SKINNED); return (*this); }
+            Builder& withoutSkinned() { _flags.reset(SKINNED); _mask.set(SKINNED); return (*this); }
 
-            Builder& withStereo() { _flags.reset(STEREO); _mask.set(STEREO); return (*this); }
-            Builder& withoutStereo() { _flags.set(STEREO); _mask.set(STEREO); return (*this); }
+            Builder& withStereo() { _flags.set(STEREO); _mask.set(STEREO); return (*this); }
+            Builder& withoutStereo() { _flags.reset(STEREO); _mask.set(STEREO); return (*this); }
 
-            Builder& withDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
-            Builder& withoutDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
+            Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
+            Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
 
-            Builder& withWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
-            Builder& withoutWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
+            Builder& withWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
+            Builder& withoutWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
 
         protected:
             friend class Filter;
