@@ -87,5 +87,13 @@ DISTFILES += \
     ../../interface/resources/qml/menus/VrMenuItem.qml \
     ../../interface/resources/qml/menus/VrMenuView.qml \
     ../../interface/resources/qml/windows/ModalWindow.qml \
-    ../../interface/resources/qml/desktop/FocusHack.qml
-
+    ../../interface/resources/qml/desktop/FocusHack.qml \
+    ../../interface/resources/qml/hifi/dialogs/PreferencesDialog.qml \
+    ../../interface/resources/qml/hifi/dialogs/Section.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Browsable.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Section.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Editable.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Slider.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Preference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/SpinBox.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml

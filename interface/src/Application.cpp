@@ -1175,7 +1175,7 @@ void Application::initializeGL() {
 
     InfoView::show(INFO_HELP_PATH, true);
 }
-
+extern void setupPreferences();
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
@@ -1200,6 +1200,8 @@ void Application::initializeUi() {
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
     });
+
+    setupPreferences();
 
     // For some reason there is already an "Application" object in the QML context, 
     // though I can't find it. Hence, "ApplicationInterface"
@@ -1830,6 +1832,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     }
                 } else {
                     Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                }
+                break;
+
+            case Qt::Key_X:
+                if (isShifted && isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    offscreenUi->show(QString("hifi/dialogs/PreferencesDialog.qml"), "PreferencesDialog");
                 }
                 break;
 

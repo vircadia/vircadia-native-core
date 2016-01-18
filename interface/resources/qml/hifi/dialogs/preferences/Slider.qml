@@ -1,0 +1,32 @@
+import QtQuick 2.5
+import QtQuick.Controls 1.4 as Original
+
+import "."
+
+Preference {
+    id: root
+    property alias slider: slider
+    height: slider.height
+
+    Component.onCompleted: {
+        slider.value = preference.value;
+    }
+
+    function save() {
+        preference.value = slider.value;
+        preference.save();
+    }
+
+
+    Text {
+        text: root.label
+        anchors.verticalCenter: slider.verticalCenter
+    }
+
+    Original.Slider {
+        id: slider
+        value: preference.value
+        width: 130
+        anchors { right: parent.right }
+    }
+}

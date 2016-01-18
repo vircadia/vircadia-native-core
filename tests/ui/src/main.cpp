@@ -3,6 +3,36 @@
 #include <QtWebEngine>
 #include <QFileSystemModel>
 
+
+
+class Preference : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString category READ getCategory() CONSTANT)
+    Q_PROPERTY(QString name READ getName() CONSTANT)
+    Q_PROPERTY(Type type READ getType() CONSTANT)
+    Q_ENUMS(Type)
+public:
+    enum Type {
+        Editable,
+        Browsable,
+        Spinner,
+        Checkbox,
+    };
+
+    Preference(QObject* parent = nullptr) : QObject(parent) {}
+
+    Preference(const QString& category, const QString& name, QObject* parent = nullptr)
+        : QObject(parent), _category(category), _name(name) { }
+    const QString& getCategory() const { return _category; }
+    const QString& getName() const { return _name; }
+    virtual Type getType() { return Editable; }
+
+protected:
+    const QString _category;
+    const QString _name;
+};
+
+
 QString getRelativeDir(const QString& relativePath = ".") {
     QDir path(__FILE__); path.cdUp();
     auto result = path.absoluteFilePath(relativePath);
@@ -45,6 +75,7 @@ int main(int argc, char *argv[]) {
     QDir::setCurrent(getRelativeDir(".."));
 
     QtWebEngine::initialize();
+    qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     QQmlApplicationEngine engine;
     addImportPath(engine, "../qml");
@@ -63,3 +94,5 @@ int main(int argc, char *argv[]) {
     engine.load(QUrl(QStringLiteral("qml/main.qml")));
     return app.exec();
 }
+
+#include "main.moc"
