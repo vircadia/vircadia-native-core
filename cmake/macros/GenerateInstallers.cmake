@@ -27,8 +27,9 @@ macro(GENERATE_INSTALLERS)
   if (WIN32)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
-    # reference the installer icon for Add/Remove icon
-    set(ADD_REMOVE_ICON_BAD_PATH "${CPACK_NSIS_MUI_ICON}")
+    # install and reference the Add/Remove icon
+    set(ADD_REMOVE_ICON_NAME "installer.ico")
+    set(ADD_REMOVE_ICON_BAD_PATH "${HF_CMAKE_DIR}/installer/${ADD_REMOVE_ICON_NAME}")
     fix_path_for_nsis(${ADD_REMOVE_ICON_BAD_PATH} ADD_REMOVE_ICON_PATH)
     set(CPACK_NSIS_INSTALLED_ICON_NAME ${ADD_REMOVE_ICON_NAME})
 
