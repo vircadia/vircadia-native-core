@@ -232,7 +232,7 @@ LogWindow.prototype = {
         this.window.loadURL('file://' + __dirname + '/log.html');
 
         if (!debug) {
-            logWindow.setMenu(null);
+            this.window.setMenu(null);
         }
 
         this.window.on('closed', function() {
