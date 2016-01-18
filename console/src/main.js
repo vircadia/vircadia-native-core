@@ -35,11 +35,11 @@ const appIcon = path.join(__dirname, '../resources/console.png');
 function getRootHifiDataDirectory() {
     if (osType == 'Windows_NT') {
         var homePath = process.env.HOMEPATH;
-        return path.join(homePath, 'AppData/Roaming/High Fidelity');
+        return path.resolve(path.join(homePath, 'AppData/Roaming/High Fidelity'));
     } else if (osType == 'Darwin') {
-        return '~/Library/Application Support/High Fidelity';
+        return path.resolve('~/Library/Application Support/High Fidelity');
     } else {
-        return '/usr/local/share/High Fidelity';
+        return path.resolve('~/.local/share/High Fidelity');
     }
 }
 
