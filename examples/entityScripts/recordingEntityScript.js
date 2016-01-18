@@ -54,10 +54,10 @@
         preload: function (entityID) {
             print("RECORDING ENTITY PRELOAD");
             this.entityID = entityID;
-            
+
             var entityProperties = Entities.getEntityProperties(_this.entityID);
-            if (!entityProperties.ignoreForCollisions) {
-                Entities.editEntity(_this.entityID, { ignoreForCollisions: true });
+            if (!entityProperties.collisionless) {
+                Entities.editEntity(_this.entityID, { collisionless: true });
             }
 
             Messages.messageReceived.connect(receivingMessage);

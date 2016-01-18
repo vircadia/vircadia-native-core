@@ -254,7 +254,7 @@ PlankyStack = function() {
             density: _this.options.density,
             velocity: {x: 0, y: 0, z: 0},
             angularVelocity: Quat.fromPitchYawRollDegrees(0, 0, 0),
-            ignoreForCollisions: true
+            collisionless: true
         };
         _this.planks.forEach(function(plank, index, object) {
             if (plank.layer === layer && plank.row === row) {
@@ -289,7 +289,7 @@ PlankyStack = function() {
         }
         if (!editMode) {
             _this.planks.forEach(function(plank, index, object) {
-                Entities.editEntity(plank.entity, {ignoreForCollisions: false, dynamic: true});
+                Entities.editEntity(plank.entity, {collisionless: false, dynamic: true});
             });
         }
     };

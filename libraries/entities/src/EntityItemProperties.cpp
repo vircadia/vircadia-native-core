@@ -255,7 +255,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
-    CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISIONLESS, collisionless);
     CHECK_PROPERTY_CHANGE(PROP_COLLISION_MASK, collisionMask);
     CHECK_PROPERTY_CHANGE(PROP_DYNAMIC, dynamic);
     CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
@@ -370,7 +370,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
+    COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISION_MASK, collisionMask, getCollisionMaskAsString());
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DYNAMIC, dynamic);
     COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_DYNAMIC, dynamic, collisionsWillMove, getDynamic()); // legacy support
@@ -593,7 +594,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
     COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collisionMask, CollisionMask);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
     COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
@@ -757,7 +759,8 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
-        ADD_PROPERTY_TO_MAP(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, ignoreForCollisions, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t);
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
         ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
@@ -1005,7 +1008,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
-            APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, properties.getIgnoreForCollisions());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
             APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
             APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
@@ -1298,7 +1301,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
@@ -1480,7 +1483,7 @@ void EntityItemProperties::markAllChanged() {
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
-    _ignoreForCollisionsChanged = true;
+    _collisionlessChanged = true;
     _collisionMaskChanged = true;
     _dynamicChanged = true;
 
@@ -1600,7 +1603,7 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
     return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
-        _compoundShapeURLChanged || _dynamicChanged || _ignoreForCollisionsChanged || _collisionMaskChanged;
+        _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged;
 }
 
 void EntityItemProperties::clearSimulationOwner() {
@@ -1713,8 +1716,8 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (angularDampingChanged()) {
         out += "angularDamping";
     }
-    if (ignoreForCollisionsChanged()) {
-        out += "ignoreForCollisions";
+    if (collisionlessChanged()) {
+        out += "collisionless";
     }
     if (collisionMaskChanged()) {
         out += "collisionMask";

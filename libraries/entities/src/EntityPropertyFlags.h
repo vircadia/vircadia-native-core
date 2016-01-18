@@ -45,7 +45,7 @@ enum EntityPropertyList {
     PROP_REGISTRATION_POINT,
     PROP_ANGULAR_VELOCITY,
     PROP_ANGULAR_DAMPING,
-    PROP_IGNORE_FOR_COLLISIONS,
+    PROP_COLLISIONLESS,
     PROP_DYNAMIC,
 
     // property used by Light entity

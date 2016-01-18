@@ -65,7 +65,7 @@ var keysToIgnore = [
     'registrationPoint',
     'angularVelocity',
     'angularDamping',
-    'ignoreForCollisions',
+    'collisionless',
     'dynamic',
     'href',
     'actionData',
