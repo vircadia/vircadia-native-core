@@ -29,9 +29,12 @@
                 <div class="column center">
                     <p>
                         <h2>How do I use it?</h2>
-                        Console is your personal domain server in High Fidelity.
-                        It allows your local machine to manage your server by clicking on the
-                        High Fidelity icon in your ... In the menu that opens, you can:
+                        You can manage your server by clicking on the High Fidelity icon in your
+                        <script>
+                            var osType = require('os').type();
+                            document.write(osType == 'Windows_NT' ? 'system tray.' : 'menu bar.');
+                        </script>
+                        In the menu that opens, you can:
                     </p>
 
                     <p>
