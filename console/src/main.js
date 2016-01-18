@@ -413,7 +413,9 @@ function maybeInstallDefaultContentSet(onComplete) {
         resizable: false
     });
     window.loadURL('file://' + __dirname + '/downloader.html');
-    window.setMenu(null);
+    if (!debug) {
+        window.setMenu(null);
+    }
     window.show();
 
     window.on('closed', onComplete);
@@ -492,7 +494,9 @@ function maybeShowSplash() {
             resizable: false
         });
         window.loadURL('file://' + __dirname + '/splash.html');
-        // window.setMenu(null);
+        if (!debug) {
+            window.setMenu(null);
+        }
         window.show();
 
         window.webContents.on('new-window', function(e, url) {
