@@ -1209,3 +1209,27 @@ void Avatar::updatePalms() {
     _leftPalmPositionCache.set(leftPalmPosition);
     _rightPalmPositionCache.set(rightPalmPosition);
 }
+
+void Avatar::setParentID(const QUuid& parentID) {
+    bool success;
+    Transform beforeChangeTransform = getTransform(success);
+    SpatiallyNestable::setParentID(parentID);
+    if (success) {
+        setTransform(beforeChangeTransform, success);
+        if (!success) {
+            qDebug() << "Avatar::setParentID failed to reset avatar's location.";
+        }
+    }
+}
+
+void Avatar::setParentJointIndex(quint16 parentJointIndex) {
+    bool success;
+    Transform beforeChangeTransform = getTransform(success);
+    SpatiallyNestable::setParentJointIndex(parentJointIndex);
+    if (success) {
+        setTransform(beforeChangeTransform, success);
+        if (!success) {
+            qDebug() << "Avatar::setParentJointIndex failed to reset avatar's location.";
+        }
+    }
+}

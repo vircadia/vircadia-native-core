@@ -167,9 +167,11 @@ public:
     using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
-    // these just call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+    // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
     Q_INVOKABLE virtual QUuid getParentID() const { return SpatiallyNestable::getParentID(); }
-    Q_INVOKABLE virtual void setParentID(const QUuid& parentID) { SpatiallyNestable::setParentID(parentID); }
+    Q_INVOKABLE virtual void setParentID(const QUuid& parentID);
+    Q_INVOKABLE virtual quint16 getParentJointIndex() const { return SpatiallyNestable::getParentJointIndex(); }
+    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex);
 
 public slots:
 
