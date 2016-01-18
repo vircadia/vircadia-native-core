@@ -504,6 +504,9 @@ function detectExistingStackManagerResources() {
     return false;
 }
 
+const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
+const trayIcon = path.join(__dirname, '../resources/' + TRAY_FILENAME);
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -512,18 +515,6 @@ app.on('ready', function() {
         // hide the dock icon on OS X
         app.dock.hide();
     }
-
-    var trayFilename = null;
-
-    if (osType == "Darwin") {
-        trayFilename = "console-tray-Template.png";
-    } else if (osType == "Windows_NT") {
-        trayFilename = "console-tray.ico";
-    } else {
-        trayFilename = "console-tray.png";
-    }
-
-    const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
 
     // Create tray icon
     tray = new Tray(trayIcon);
