@@ -87,15 +87,22 @@ function shutdown() {
                 homeServer.stop();
             }
 
-            var timeoutID = setTimeout(app.quit, 5000);
-            homeServer.on('state-update', function(processGroup) {
-                if (processGroup.state == ProcessGroupStates.STOPPED) {
-                    clearTimeout(timeoutID);
-                    app.quit();
-                }
-            });
-
             updateTrayMenu(null);
+
+            if (homeServer.state == ProcessGroupStates.STOPPED) {
+                // if the home server is already down, take down the server console now
+                app.quit();
+            } else {
+                // if the home server is still running, wait until we get a state change or timeout
+                // before quitting the app
+                var timeoutID = setTimeout(app.quit, 5000);
+                homeServer.on('state-update', function(processGroup) {
+                    if (processGroup.state == ProcessGroupStates.STOPPED) {
+                        clearTimeout(timeoutID);
+                        app.quit();
+                    }
+                });
+            }
         }
     }
 }
