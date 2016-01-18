@@ -984,6 +984,8 @@ Function HandlePostInstallOptions
 
 FunctionEnd
 
+!include WinVer.nsh
+
 ;--------------------------------
 ; determine admin versus local install
 Function un.onInit
