@@ -16,7 +16,7 @@ body {
 
 * {
     font-family: "Proxima Nova", "Open Sans", Arial, Helvetica, sans-serif;
-    font-size: 1.022em;
+    font-size: 14.5pt;
     line-height: 130%;
 }
 
@@ -36,14 +36,13 @@ a:hover {
 h1 {
     font-weight: normal;
     color: #6D7472;
-    font-size: 2.0em;
+    font-size: 30pt;
     margin: 0;
     padding: 0;
 }
 
 h2 {
     color: #6D7472;
-    font-size: 1.0em;
     font-weight: bold;
     margin: 0;
     padding: 0;

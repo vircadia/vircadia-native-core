@@ -480,13 +480,15 @@ function maybeShowSplash() {
     var suppressSplash = userConfig.get('doNotShowSplash', false);
 
     if (!suppressSplash) {
+        const zoomFactor = 0.8;
         var window = new BrowserWindow({
             icon: appIcon,
-            width: 1600,
-            height: 737,
+            width: 1600 * zoomFactor,
+            height: 737 * zoomFactor,
             center: true,
             frame: true,
             useContentSize: true,
+            zoomFactor: zoomFactor,
             resizable: false
         });
         window.loadURL('file://' + __dirname + '/splash.html');
