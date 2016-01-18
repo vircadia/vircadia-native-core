@@ -115,9 +115,6 @@ const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
 userConfig.load(configPath);
 
-const TRAY_FILENAME = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
-const TRAY_ICON = path.join(__dirname, '../resources/' + TRAY_FILENAME);
-
 // print out uncaught exceptions in the console
 process.on('uncaughtException', function(err) {
     console.error(err);
@@ -516,8 +513,19 @@ app.on('ready', function() {
         app.dock.hide();
     }
 
+    var trayFilename = null;
+
+    if (osType == "Darwin") {
+        trayFilename = "console-tray-Template.png";
+    } else {
+        const scaleFactor = require('screen').getPrimaryDisplay().scaleFactor
+        trayFilename = (scaleFactor > 1 ? "console-tray@2x.png" : "console-tray.png");
+    }
+
+    const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
+
     // Create tray icon
-    tray = new Tray(TRAY_ICON);
+    tray = new Tray(trayIcon);
     tray.setToolTip('High Fidelity Server Console');
 
     tray.on('click', function() {
