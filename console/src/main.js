@@ -71,6 +71,9 @@ function shutdown() {
         });
         if (idx == 0) {
             isShuttingDown = true;
+
+            userConfig.save(configPath);
+
             if (logWindow) {
                 logWindow.close();
             }
@@ -520,14 +523,6 @@ app.on('ready', function() {
                                                                     '--http-status-port', httpStatusPort], httpStatusPort, logPath);
             homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
             logWindow = new LogWindow(acMonitor, domainServer);
-
-            // make sure we stop child processes on app quit
-            app.on('quit', function(){
-                console.log('App quitting');
-                userConfig.save(configPath);
-                logWindow.close();
-                homeServer.stop();
-            });
 
             var processes = {
                 home: homeServer
