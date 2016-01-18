@@ -39,14 +39,13 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        batch->setModelTransform(Transform());
-
         Transform transform = _transform;
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
+        batch->setModelTransform(transform);
         if (_isSolid) {
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(*batch, sphereColor);
         } else {
-            DependencyManager::get<GeometryCache>()->renderWireSphereInstance(*batch, transform, sphereColor);
+            DependencyManager::get<GeometryCache>()->renderWireSphereInstance(*batch, sphereColor);
         }
     }
 }

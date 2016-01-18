@@ -456,7 +456,8 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             Transform transform;
             transform.setTranslation(position);
             transform.postScale(INDICATOR_RADIUS);
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, LOOK_AT_INDICATOR_COLOR);
+            batch.setModelTransform(transform);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, LOOK_AT_INDICATOR_COLOR);
         }
 
         // If the avatar is looking at me, indicate that they are
@@ -484,9 +485,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
 
+                    batch.setModelTransform(Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT));
                     DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
-                        Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT),
-                        glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                                                                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                     position = getHead()->getRightEyePosition();
                     transform.setTranslation(position);
@@ -494,9 +495,9 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
                     if (eyeDiameter == 0.0f) {
                         eyeDiameter = DEFAULT_EYE_DIAMETER;
                     }
+                    batch.setModelTransform(Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT));
                     DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch,
-                        Transform(transform).postScale(eyeDiameter * getUniformScale() / 2.0f + RADIUS_INCREMENT),
-                        glm::vec4(LOOKING_AT_ME_COLOR, alpha));
+                                                                            glm::vec4(LOOKING_AT_ME_COLOR, alpha));
 
                 }
             }
