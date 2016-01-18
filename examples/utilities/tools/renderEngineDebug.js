@@ -104,12 +104,12 @@ panel.newSlider("Tone Mapping Exposure", -10, 10,
 panel.newSlider("Ambient Occlusion Radius", 0.0, 2.0,
     function (value) { Render.ambientOcclusion.radius = value; },
     function() { return Render.ambientOcclusion.radius; },
-    function (value) { return (value); });
+    function (value) { return (value.toFixed(2)); });
 
 panel.newSlider("Ambient Occlusion Level", 0.0, 1.0,
     function (value) { Render.ambientOcclusion.level = value; },
     function() { return Render.ambientOcclusion.level; },
-    function (value) { return (value); });
+    function (value) { return (value.toFixed(2)); });
 
 panel.newSlider("Ambient Occlusion Num Samples", 1, 32,
     function (value) { Render.ambientOcclusion.numSamples = value; },
@@ -119,7 +119,7 @@ panel.newSlider("Ambient Occlusion Num Samples", 1, 32,
 panel.newSlider("Ambient Occlusion Num Spiral Turns", 0.0, 30.0,
     function (value) { Render.ambientOcclusion.numSpiralTurns = value; },
     function() { return Render.ambientOcclusion.numSpiralTurns; },
-    function (value) { return (value); });
+    function (value) { return (value.toFixed(2)); });
 
 panel.newCheckbox("Ambient Occlusion Dithering",
     function (value) { Render.ambientOcclusion.ditheringEnabled = value; },
@@ -129,7 +129,7 @@ panel.newCheckbox("Ambient Occlusion Dithering",
 panel.newSlider("Ambient Occlusion Edge Sharpness", 0.0, 1.0,
     function (value) { Render.ambientOcclusion.edgeSharpness = value; },
     function() { return Render.ambientOcclusion.edgeSharpness; },
-    function (value) { return (value); });
+    function (value) { return (value.toFixed(2)); });
 
 panel.newSlider("Ambient Occlusion Blur Radius", 0.0, 6.0,
     function (value) { Render.ambientOcclusion.blurRadius = value; },
@@ -139,7 +139,14 @@ panel.newSlider("Ambient Occlusion Blur Radius", 0.0, 6.0,
 panel.newSlider("Ambient Occlusion Blur Deviation", 0.0, 3.0,
     function (value) { Render.ambientOcclusion.blurDeviation = value; },
     function() { return Render.ambientOcclusion.blurDeviation; },
-    function (value) { return (value); });
+    function (value) { return (value.toFixed(2)); });
+
+
+panel.newSlider("Ambient Occlusion GPU time", 0.0, 10.0,
+    function (value) {},
+    function() { return Render.ambientOcclusion.gpuTime; },
+    function (value) { return (value.toFixed(2) + " ms"); });
+
 
 var tickTackPeriod = 500;
 
@@ -147,6 +154,7 @@ function updateCounters() {
     opaquesCounter.update();
     transparentsCounter.update();
     overlaysCounter.update();
+    panel.update("Ambient Occlusion GPU time");
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 

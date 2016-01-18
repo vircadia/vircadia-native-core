@@ -56,7 +56,7 @@ public:
     float getBlurDeviation() const { return _parametersBuffer.get<Parameters>()._blurInfo.z; }
 
     
-    double getTimerAverage() const { return _gpuTimer.getAverage(); }
+    double getGPUTime() const { return _gpuTimer.getAverage(); }
     
     using JobModel = render::Task::Job::Model<AmbientOcclusionEffect>;
 
@@ -113,7 +113,7 @@ private:
     gpu::PipelinePointer _hBlurPipeline;
     gpu::PipelinePointer _vBlurPipeline;
 
-    gpu::Timer _gpuTimer;
+    gpu::RangeTimer _gpuTimer;
 };
 
 #endif // hifi_AmbientOcclusionEffect_h

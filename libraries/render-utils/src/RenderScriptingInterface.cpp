@@ -50,3 +50,7 @@ void RenderScriptingInterface::setItemCounts(const render::RenderContext::ItemsC
     _transparent->setCounts(items.transparent);
     _overlay3D->setCounts(items.overlay3D);
 }
+
+void RenderScriptingInterface::setJobGPUTimes(double aoTime) {
+    _ambientOcclusion->gpuTime = aoTime;
+}

@@ -44,12 +44,12 @@ namespace gpu {
     typedef std::vector< QueryPointer > Queries;
 
 
-    // gpu timer is just returning an estimate of the time taken by a chunck of work delimited by the 
+    // gpu RangeTimer is just returning an estimate of the time taken by a chunck of work delimited by the 
     // begin and end calls repeated for several times.
     // The result is always a late average of the time spent for that same task a few cycles ago.
-    class Timer {
+    class RangeTimer {
     public:
-        Timer();
+        RangeTimer();
         void begin(gpu::Batch& batch);
         void end(gpu::Batch& batch);
         

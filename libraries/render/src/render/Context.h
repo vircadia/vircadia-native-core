@@ -82,6 +82,8 @@ public:
         float edgeSharpness = 1.0f;
         int blurRadius = 3;
         float blurDeviation = 2.1f;
+
+        double gpuTime = 0.0;
     };
 
     RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);

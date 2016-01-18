@@ -36,7 +36,7 @@ void Query::triggerReturnHandler(uint64_t queryResult) {
 }
 
 
-Timer::Timer() {
+RangeTimer::RangeTimer() {
     for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
         _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
             _tailIndex ++;
@@ -46,11 +46,11 @@ Timer::Timer() {
     }
 }
 
-void Timer::begin(gpu::Batch& batch) {
+void RangeTimer::begin(gpu::Batch& batch) {
     _headIndex++;
     batch.beginQuery(_timerQueries[rangeIndex(_headIndex)]);
 }
-void Timer::end(gpu::Batch& batch) {
+void RangeTimer::end(gpu::Batch& batch) {
     if (_headIndex < 0) {
         return;
     }
@@ -64,4 +64,8 @@ void Timer::end(gpu::Batch& batch) {
     if (_tailIndex != _headIndex) {
         batch.getQuery(_timerQueries[rangeIndex(_tailIndex)]);
     }
+}
+
+double RangeTimer::getAverage() const {
+    return _movingAverage.average;
 }

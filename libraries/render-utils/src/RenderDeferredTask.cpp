@@ -202,6 +202,11 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         job.run(sceneContext, renderContext);
     }
 
+    if (_occlusionJobIndex >= 0 && renderContext->getOcclusionStatus()) {
+        renderContext->getAmbientOcclusion().gpuTime = _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().getGPUTime();
+    } else {
+        renderContext->getAmbientOcclusion().gpuTime = 0.0;
+    }
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {

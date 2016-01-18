@@ -78,6 +78,7 @@ namespace RenderScripting {
         Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness)
         Q_PROPERTY(int blurRadius MEMBER blurRadius)
         Q_PROPERTY(float blurDeviation MEMBER blurDeviation)
+        Q_PROPERTY(double gpuTime MEMBER gpuTime)
     };
     using AmbientOcclusionPointer = std::unique_ptr<AmbientOcclusion>;
 };
@@ -102,6 +103,9 @@ class RenderScriptingInterface : public QObject, public Dependency {
 
     render::RenderContext getRenderContext();
     void setItemCounts(const render::RenderContext::ItemsConfig& items);
+
+    // FIXME: It is ugly, we need a cleaner solution
+    void setJobGPUTimes(double aoTime);
 
 protected:
     RenderScriptingInterface();

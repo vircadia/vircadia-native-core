@@ -3853,6 +3853,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         auto engineContext = _renderEngine->getRenderContext();
         renderInterface->setItemCounts(engineContext->getItemsConfig());
+        renderInterface->setJobGPUTimes(engineContext->getAmbientOcclusion().gpuTime);
+
     }
 
     activeRenderingThread = nullptr;
