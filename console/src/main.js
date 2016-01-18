@@ -33,13 +33,52 @@ const osType = os.type();
 
 const appIcon = path.join(__dirname, '../resources/console.png');
 
-function getRootHifiDataDirectory() {
+function getBuildInfo() {
+    var buildInfoPath = null;
+
     if (osType == 'Windows_NT') {
-        return path.resolve(osHomeDir(), 'AppData/Roaming/High Fidelity');
+        buildInfoPath = path.resolve(process.execPath, 'build-info.json');
     } else if (osType == 'Darwin') {
-        return path.resolve(osHomeDir(), 'Library/Application Support/High Fidelity');
+        var contentPath = ".app/Contents/";
+        var contentEndIndex = __dirname.indexOf(contentPath);
+        if (contentEndIndex != -1) {
+            // this is an app bundle
+            var appPath = __dirname.substring(0, contentEndIndex) + ".app";
+            buildInfoPath = path.resolve(appPath, "/Contents/Resources/build-info.json");
+        }
+    }
+
+    const DEFAULT_BUILD_INFO = { releaseType: "", buildIdentifier: "dev" };
+    var buildInfo = DEFAULT_BUILD_INFO;
+
+    if (buildInfoPath) {
+        console.log('Build info path:', buildInfoPath);
+        try {
+            buildInfo = fs.readFileSync(buildInfoPath);
+        } catch (e) {
+            buildInfo = DEFAULT_BUILD_INFO;
+        }
+    }
+
+    return buildInfo;
+}
+
+const buildInfo = getBuildInfo();
+
+console.log("build info", buildInfo);
+
+
+function getRootHifiDataDirectory() {
+    var organization = "High Fidelity";
+    if (buildInfo.releaseType != "PRODUCTION") {
+        organization += ' - ' + buildInfo.buildIdentifier;
+    }
+    if (osType == 'Windows_NT') {
+        return path.resolve(osHomeDir(), 'AppData/Roaming', organization);
+    } else if (osType == 'Darwin') {
+        return path.resolve(osHomeDir(), 'Library/Application Support', organization);
     } else {
-        return path.resolve(osHomeDir(), '.local/share/High Fidelity');
+        return path.resolve(osHomeDir(), '.local/share/', organization);
     }
 }
 
