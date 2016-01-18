@@ -39,8 +39,8 @@ ApplicationWindow {
     Root {
         id: desktop
         anchors.fill: parent
-
         StubMenu { id: stubMenu }
+        Component.onCompleted: offscreenWindow = appWindow
 
         Row {
             id: testButtons

@@ -2191,6 +2191,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     _altPressed = false;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    // If we get a mouse press event it means it wasn't consumed by the offscreen UI,
+    // hence, we should defocus all of the offscreen UI windows, in order to allow
+    // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
+    // will consume all keyboard events.
+    offscreenUi->unfocusWindows();
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,

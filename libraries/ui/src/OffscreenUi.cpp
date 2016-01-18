@@ -279,5 +279,10 @@ QVariant OffscreenUi::returnFromUiThread(std::function<QVariant()> function) {
     return function();
 }
 
+void OffscreenUi::unfocusWindows() {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
+    Q_ASSERT(invokeResult);
+}
+
 
 #include "OffscreenUi.moc"

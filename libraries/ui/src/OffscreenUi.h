@@ -33,7 +33,7 @@ public:
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
-
+    void unfocusWindows();
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 

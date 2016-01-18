@@ -6,14 +6,31 @@ import "dialogs"
 
 // This is our primary 'desktop' object to which all VR dialogs and
 // windows will be childed.
-Item {
+FocusScope {
     id: desktop
     anchors.fill: parent;
 
     // Debugging help for figuring out focus issues
     property var offscreenWindow;
     onOffscreenWindowChanged: offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
-    function onWindowFocusChanged() { console.log("Focus item is " + offscreenWindow.activeFocusItem); }
+    function onWindowFocusChanged() {
+        console.log("Focus item is " + offscreenWindow.activeFocusItem);
+        var focusedItem = offscreenWindow.activeFocusItem ;
+        if (DebugQML && focusedItem) {
+            var rect = desktop.mapToItem(desktop, focusedItem.x, focusedItem.y, focusedItem.width, focusedItem.height);
+            focusDebugger.visible = true
+            focusDebugger.x = rect.x;
+            focusDebugger.y = rect.y;
+            focusDebugger.width = rect.width
+            focusDebugger.height = rect.height
+        }
+    }
+
+    Rectangle {
+        id: focusDebugger; 
+        z: 9999; visible: false; color: "red"
+        ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
+    }
 
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
@@ -184,76 +201,14 @@ Item {
             var windows = getTopLevelWindows(predicate);
             fixupZOrder(windows, zBasis, targetWindow);
         }
+    }
 
-
-
-        //function findMenuChild(menu, childName) {
-        //    if (!menu) {
-        //        return null;
-        //    }
-
-        //    if (menu.type !== 2) {
-        //        console.warn("Tried to find child of a non-menu");
-        //        return null;
-        //    }
-
-        //    var items = menu.items;
-        //    var count = items.length;
-        //    for (var i = 0; i < count; ++i) {
-        //        var child = items[i];
-        //        var name;
-        //        switch (child.type) {
-        //            case 2:
-        //                name = child.title;
-        //                break;
-        //            case 1:
-        //                name = child.text;
-        //                break;
-        //            default:
-        //                break;
-        //        }
-
-        //        if (name && name === childName) {
-        //            return child;
-        //        }
-        //    }
-        //}
-
-        //function findMenu(rootMenu, path) {
-        //    if ('string' === typeof(path)) {
-        //        path = [ path ]
-        //    }
-
-        //    var currentMenu = rootMenu;
-        //    for (var i = 0; currentMenu && i < path.length; ++i) {
-        //        currentMenu = findMenuChild(currentMenu, path[i]);
-        //    }
-
-        //    return currentMenu;
-        //}
-
-        //function findInRootMenu(item, path) {
-        //    return findMenu(findRootMenu(item), path);
-        //}
-
-        //function menuItemsToListModel(parent, items) {
-        //    var newListModel = Qt.createQmlObject('import QtQuick 2.5; ListModel {}', parent);
-        //    for (var i = 0; i < items.length; ++i) {
-        //        var item = items[i];
-        //        switch (item.type) {
-        //        case 2:
-        //            newListModel.append({"type":item.type, "name": item.title, "item": item})
-        //            break;
-        //        case 1:
-        //            newListModel.append({"type":item.type, "name": item.text, "item": item})
-        //            break;
-        //        case 0:
-        //            newListModel.append({"type":item.type, "name": "-----", "item": item})
-        //            break;
-        //        }
-        //    }
-        //    return newListModel;
-        //}
+    function unfocusWindows() {
+        var windows = d.getTopLevelWindows();
+        for (var i = 0; i < windows.length; ++i) {
+            windows[i].focus = false;
+        }
+        desktop.focus = true;
     }
 }
 
