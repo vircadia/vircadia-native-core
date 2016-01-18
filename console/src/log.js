@@ -14,8 +14,8 @@ function cleanPath(path) {
 
 // a: array, b: array
 // Returns: { add: [...], subtract: [...] }
-// add: a list of items in b but not a
-// subtract: a list of items in a but not b
+// add: array of items in b but not a
+// subtract: array of items in a but not b
 function difference(a, b) {
     var add = [];
     var subtract = [];
