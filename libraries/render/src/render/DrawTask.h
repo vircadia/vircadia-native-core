@@ -19,7 +19,10 @@
 
 namespace render {
 
-void cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
+using CullFunctor = std::function<bool(const RenderArgs*, const AABox&)>;
+
+void cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
+               const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
 void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
 void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
@@ -41,14 +44,18 @@ public:
 template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
 class CullItems {
 public:
+    CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
+
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-        outItems.clear();
-        outItems.reserve(inItems.size());
-        renderContext->getArgs()->_details.pointTo(T);
-        render::cullItems(sceneContext, renderContext, inItems, outItems);
+        const auto& args = renderContext->getArgs();
+        auto& details = args->_details.edit(T);
+        render::cullItems(renderContext, _cullFunctor, details, inItems, outItems);
     }
 
     using JobModel = Task::Job::ModelIO<CullItems<T>, ItemIDsBounds, ItemIDsBounds>;
+
+protected:
+    CullFunctor _cullFunctor;
 };
 
 class DepthSortItems {
@@ -62,8 +69,12 @@ public:
 
 class DrawLight {
 public:
+    DrawLight(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
     using JobModel = Task::Job::Model<DrawLight>;
+
+protected:
+    CullFunctor _cullFunctor;
 };
 
 class PipelineSortShapes {

@@ -672,7 +672,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
 
     // Start rendering
-    _renderEngine->addTask(make_shared<RenderDeferredTask>());
+    _renderEngine->addTask(make_shared<RenderDeferredTask>(LODManager::shouldRender));
     _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
@@ -3820,7 +3820,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
         auto renderContext = renderInterface->getRenderContext();
 
-        renderArgs->_shouldRender = LODManager::shouldRender;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
         renderContext.setArgs(renderArgs);
 
