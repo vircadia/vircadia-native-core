@@ -170,8 +170,6 @@ public:
 
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() { return thread(); }
-    virtual float getSizeScale() const;
-    virtual int getBoundaryLevelAdjust() const;
     virtual PickRay computePickRay(float x, float y) const;
     virtual glm::vec3 getAvatarPosition() const;
     virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }

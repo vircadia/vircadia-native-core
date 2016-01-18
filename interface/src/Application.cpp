@@ -3507,14 +3507,6 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-float Application::getSizeScale() const {
-    return DependencyManager::get<LODManager>()->getOctreeSizeScale();
-}
-
-int Application::getBoundaryLevelAdjust() const {
-    return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
-}
-
 PickRay Application::computePickRay(float x, float y) const {
     vec2 pickPoint { x, y };
     PickRay result;

@@ -108,6 +108,11 @@ public:
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
 
+    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
+                                  int boundaryLevelAdjust = 0) const;
+
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
@@ -152,5 +157,6 @@ private:
     glm::mat4 _ourModelViewProjectionMatrix;
 };
 
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h
