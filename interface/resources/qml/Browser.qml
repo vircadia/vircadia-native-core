@@ -12,23 +12,23 @@ Window {
     title: "Browser"
     resizable: true
     destroyOnInvisible: true
+    width: 800
+    height: 600
 
     Component.onCompleted: {
-        enabled = true
+        visible = true
         addressBar.text = webview.url
     }
 
     onParentChanged: {
-        if (visible && enabled) {
+        if (visible) {
             addressBar.forceActiveFocus();
             addressBar.selectAll()
         }
     }
 
     Item {
-        width: 800
-        height: 600
-        
+        anchors.fill: parent
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right

@@ -12,29 +12,23 @@ import Hifi 1.0
 import QtQuick 2.4
 import "controls"
 import "styles"
+import "windows"
 
-DialogContainer {
+Window {
     id: root
     HifiConstants { id: hifi }
-
     objectName: "LoginDialog"
-
-    property bool destroyOnInvisible: false
-
-    implicitWidth: loginDialog.implicitWidth
-    implicitHeight: loginDialog.implicitHeight
-
-    x: parent ? parent.width / 2 - width / 2 : 0
-    y: parent ? parent.height / 2 - height / 2 : 0
-    property int maximumX: parent ? parent.width - width : 0
-    property int maximumY: parent ? parent.height - height : 0
+    height: loginDialog.implicitHeight
+    width: loginDialog.implicitWidth
+    // FIXME make movable
+    anchors.centerIn: parent
+    destroyOnInvisible: false
+    visible: false
 
     LoginDialog {
         id: loginDialog
-
         implicitWidth: backgroundRectangle.width
         implicitHeight: backgroundRectangle.height
-
         readonly property int inputWidth: 500
         readonly property int inputHeight: 60
         readonly property int borderWidth: 30
@@ -47,46 +41,8 @@ DialogContainer {
             width: loginDialog.inputWidth + loginDialog.borderWidth * 2
             height: loginDialog.inputHeight * 6 + loginDialog.closeMargin * 2
             radius: loginDialog.closeMargin * 2
-
             color: "#2c86b1"
             opacity: 0.85
-
-            MouseArea {
-                width: parent.width
-                height: parent.height
-                anchors {
-                    horizontalCenter: parent.horizontalCenter
-                    verticalCenter: parent.verticalCenter
-                }
-                drag {
-                    target: root
-                    minimumX: 0
-                    minimumY: 0
-                    maximumX: root.parent ? root.maximumX : 0
-                    maximumY: root.parent ? root.maximumY : 0
-                }
-            }
-        }
-
-        Image {
-            id: closeIcon
-            source: "../images/login-close.svg"
-            width: 20
-            height: 20
-            anchors {
-                top: backgroundRectangle.top
-                right: backgroundRectangle.right
-                topMargin: loginDialog.closeMargin
-                rightMargin: loginDialog.closeMargin
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                cursorShape: "PointingHandCursor"
-                onClicked: {
-                    root.enabled = false
-                }
-            }
         }
 
         Column {
@@ -324,18 +280,13 @@ DialogContainer {
         }
     }
 
-    onOpacityChanged: {
-        // Set focus once animation is completed so that focus is set at start-up when not logged in
-        if (opacity == 1.0) {
-            username.forceActiveFocus()
-        }
-    }
-
     onVisibleChanged: {
         if (!visible) {
             username.text = ""
             password.text = ""
             loginDialog.statusText = ""
+        } else {
+            username.forceActiveFocus()
         }
     }
 
@@ -343,11 +294,10 @@ DialogContainer {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                if (enabled) {
-                    enabled = false
-                    event.accepted = true
-                }
-                break
+                root.close();
+                event.accepted = true;
+                break;
+
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 if (username.activeFocus) {
