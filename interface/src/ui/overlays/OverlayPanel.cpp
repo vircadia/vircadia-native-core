@@ -170,9 +170,13 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 transform.setTranslation(DependencyManager::get<AvatarManager>()->getMyAvatar()
                                          ->getPosition());
             } else if (!_anchorPositionBindEntity.isNull()) {
-                transform.setTranslation(DependencyManager::get<EntityScriptingInterface>()
-                                         ->getEntityTree()->findEntityByID(_anchorPositionBindEntity)
-                                         ->getPosition());
+                EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
+                entityTree->withReadLock([&] {
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorPositionBindEntity);
+                    if (foundEntity) {
+                        transform.setTranslation(foundEntity->getPosition());
+                    }
+                });
             } else {
                 transform.setTranslation(getAnchorPosition());
             }
@@ -181,9 +185,13 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
                 transform.setRotation(DependencyManager::get<AvatarManager>()->getMyAvatar()
                                       ->getOrientation());
             } else if (!_anchorRotationBindEntity.isNull()) {
-                transform.setRotation(DependencyManager::get<EntityScriptingInterface>()
-                                      ->getEntityTree()->findEntityByID(_anchorRotationBindEntity)
-                                      ->getRotation());
+                EntityTreePointer entityTree = DependencyManager::get<EntityScriptingInterface>()->getEntityTree();
+                entityTree->withReadLock([&] {
+                    EntityItemPointer foundEntity = entityTree->findEntityByID(_anchorRotationBindEntity);
+                    if (foundEntity) {
+                        transform.setRotation(foundEntity->getRotation());
+                    }
+                });
             } else {
                 transform.setRotation(getAnchorRotation());
             }

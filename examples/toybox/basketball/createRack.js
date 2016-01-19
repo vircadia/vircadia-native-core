@@ -48,7 +48,7 @@ var rack = Entities.addEntity({
         z: 1.73
     },
     dynamic: true,
-    ignoreForCollisions: false,
+    collisionless: false,
     collisionSoundURL: collisionSoundURL,
     compoundShapeURL: rackCollisionHullURL,
     userData: JSON.stringify({
@@ -90,7 +90,7 @@ function createBalls() {
                 z: 0
             },
             dynamic: true,
-            ignoreForCollisions: false,
+            collisionless: false,
             modelURL: basketballURL,
             userData: JSON.stringify({
                 grabbableKey: {

@@ -506,14 +506,14 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     data["activated"] = true;
     data["avatarId"] = MyAvatar.sessionUUID;
     data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
-    // zero gravity and set ignoreForCollisions to true, but in a way that lets us put them back, after all grabs are done
+    // zero gravity and set collisionless to true, but in a way that lets us put them back, after all grabs are done
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
-        data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
+        data["collisionless"] = grabbedProperties.collisionless;
         data["dynamic"] = grabbedProperties.dynamic;
         var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
         if (invertSolidWhileHeld) {
-            whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
+            whileHeldProperties["collisionless"] = ! grabbedProperties.collisionless;
         }
         Entities.editEntity(entityID, whileHeldProperties);
     }
@@ -527,7 +527,7 @@ Grabber.prototype.deactivateEntity = function(entityID) {
         if (data["refCount"] < 1) {
             Entities.editEntity(entityID, {
                 gravity: data["gravity"],
-                ignoreForCollisions: data["ignoreForCollisions"],
+                collisionless: data["collisionless"],
                 dynamic: data["dynamic"]
             });
             data = null;

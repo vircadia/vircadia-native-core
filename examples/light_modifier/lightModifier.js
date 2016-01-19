@@ -228,7 +228,7 @@ entitySlider.prototype = {
             name: 'Hifi-Slider-Axis::' + this.sliderType,
             color: this.color,
             dynamic: false,
-            ignoreForCollisions: true,
+            collisionless: true,
             dimensions: {
                 x: 3,
                 y: 3,
@@ -251,7 +251,7 @@ entitySlider.prototype = {
             name: 'Hifi-End-Of-Axis',
             type: 'Box',
             dynamic: false,
-            ignoreForCollisions: true,
+            collisionless: true,
             dimensions: {
                 x: 0.01,
                 y: 0.01,
@@ -364,7 +364,7 @@ entitySlider.prototype = {
             color: this.color,
             position: sliderPosition,
             script: SLIDER_SCRIPT_URL,
-            ignoreForCollisions: true,
+            collisionless: true,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
@@ -559,7 +559,7 @@ function createPanelEntity(position) {
         },
         visible: false,
         dynamic: false,
-        ignoreForCollisions: true
+        collisionless: true
     }
 
     var panel = Entities.addEntity(panelProperties);
@@ -583,7 +583,7 @@ function createVisiblePanel() {
         },
         visible: true,
         dynamic: false,
-        ignoreForCollisions: true,
+        collisionless: true,
         position: moveDown,
         rotation: avatarRot,
         script: VISIBLE_PANEL_SCRIPT_URL
@@ -640,7 +640,7 @@ function createCloseButton(axisStart) {
         rotation: Quat.multiply(avatarRot, Quat.fromPitchYawRollDegrees(90, 0, 45)),
         //rotation: Quat.fromPitchYawRollDegrees(0, 0, 90),
         dynamic: false,
-        ignoreForCollisions: true,
+        collisionless: true,
         script: CLOSE_BUTTON_SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {

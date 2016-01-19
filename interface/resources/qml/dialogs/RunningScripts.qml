@@ -197,7 +197,7 @@ Window {
                 anchors.bottom: treeView.top
                 anchors.bottomMargin: 8
                 placeholderText: "filter"
-                onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$")
+                onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
             }
 
             TreeView {

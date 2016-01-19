@@ -162,7 +162,7 @@
                 position: this.getWandTipPosition(properties),
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
                 dynamic: false,
-                ignoreForCollisions: true,
+                collisionless: true,
                 damping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"
             });

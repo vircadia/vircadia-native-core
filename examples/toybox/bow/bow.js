@@ -235,7 +235,7 @@
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
                 dynamic: false,
-                ignoreForCollisions: true,
+                collisionless: true,
                 collisionSoundURL: ARROW_HIT_SOUND_URL,
                 damping: 0.01,
                 userData: JSON.stringify({
@@ -287,7 +287,7 @@
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
                 dynamic: false,
-                ignoreForCollisions: true,
+                collisionless: true,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -305,7 +305,7 @@
                 position: Vec3.sum(this.bowProperties.position, BOTTOM_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
                 dynamic: false,
-                ignoreForCollisions: true,
+                collisionless: true,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -390,7 +390,7 @@
                 dimensions: LINE_DIMENSIONS,
                 visible: true,
                 dynamic: false,
-                ignoreForCollisions: true,
+                collisionless: true,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -539,7 +539,7 @@
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
                     dynamic: true,
-                    ignoreForCollisions: false,
+                    collisionless: false,
                     collisionMask: "static,dynamic,otherAvatar", // workaround: not with kinematic --> no collision with bow
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,

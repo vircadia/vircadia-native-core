@@ -371,6 +371,7 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success) c
     Transform jointInWorldFrame;
 
     Transform worldTransform = getTransform(success);
+    worldTransform.setScale(1.0f); // TODO -- scale;
     if (!success) {
         return jointInWorldFrame;
     }
