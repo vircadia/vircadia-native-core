@@ -91,7 +91,7 @@ function getAssignmentClientResourcesDirectory() {
 }
 
 function getApplicationDataDirectory() {
-    return path.join(getRootHifiDataDirectory(), '/Console');
+    return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
 console.log("Root hifi directory is: ", getRootHifiDataDirectory());
