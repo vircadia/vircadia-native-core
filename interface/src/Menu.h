@@ -188,6 +188,7 @@ namespace MenuOption {
     const QString CoupleEyelids = "Couple Eyelids";
     const QString CrashInterface = "Crash Interface";
     const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
+    const QString DebugShadows = "Debug Shadows";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";

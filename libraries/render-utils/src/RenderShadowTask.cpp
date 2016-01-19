@@ -120,6 +120,11 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const Render
     assert(sceneContext);
     RenderArgs* args = renderContext->getArgs();
 
+    // This feature is in a debugging stage - it must be turned on explicitly
+    if (!renderContext->getShadowMapStatus()) {
+        return;
+    }
+
     // sanity checks
     if (!sceneContext->_scene || !args) {
         return;

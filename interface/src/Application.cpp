@@ -95,6 +95,7 @@
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
 #include <RenderableWebEntityItem.h>
+#include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <RenderScriptingInterface.h>
@@ -672,6 +673,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
 
     // Start rendering
+    _renderEngine->addTask(make_shared<RenderShadowTask>());
     _renderEngine->addTask(make_shared<RenderDeferredTask>());
     _renderEngine->registerScene(_main3DScene);
 
@@ -3825,9 +3827,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext.setArgs(renderArgs);
 
         bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
-        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus, shadowStatus);
 
         _renderEngine->setRenderContext(renderContext);
 

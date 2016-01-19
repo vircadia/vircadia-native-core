@@ -21,9 +21,10 @@ RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool 
 {
 }
 
-void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
+void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap) {
     _occlusionStatus = occlusion;
     _fxaaStatus = fxaa;
+    _shadowMapStatus = shadowMap;
 
     if (showOwned) {
         _drawStatus |= render::showNetworkStatusFlag;

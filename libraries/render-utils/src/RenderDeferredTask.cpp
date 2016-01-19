@@ -175,6 +175,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
 
+    // TODO: For now, lighting is controlled through a singleton, so it is distinct
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
+
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }

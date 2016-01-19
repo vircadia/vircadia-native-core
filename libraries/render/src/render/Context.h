@@ -83,7 +83,8 @@ public:
     bool getDrawHitEffect() { return _drawHitEffect; }
     bool getOcclusionStatus() { return _occlusionStatus; }
     bool getFxaaStatus() { return _fxaaStatus; }
-    void setOptions(bool occlusion, bool fxaa, bool showOwned);
+    bool getShadowMapStatus() { return _shadowMapStatus; }
+    void setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap);
 
     // Debugging
     int _deferredDebugMode;
@@ -97,6 +98,7 @@ protected:
     bool _drawHitEffect;
     bool _occlusionStatus { false };
     bool _fxaaStatus = { false };
+    bool _shadowMapStatus = { false };
 
     ItemsConfig _items;
     Tone _tone;
