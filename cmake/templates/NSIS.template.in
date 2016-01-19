@@ -988,17 +988,17 @@ FunctionEnd
 !macro PromptForRunningApplication applicationName displayName
   FindProcDLL::FindProc ${applicationName}
 
-  IntCmp $R0 1 0 notRunning
+  ${If} $R0 == 1
     MessageBox MB_OK|MB_ICONEXCLAMATION "The High Fidelity ${displayName} is running. Please close it first." /SD IDOK
     Abort
-  notRunning:
+  ${EndIf}
 !macroend
 
 !macro CheckForRunningApplications
-  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "Client"
-  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
-  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "domain-server"
-  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "assignment-client"
+  !insertmacro PromptForRunningApplication "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" "Client"
+  !insertmacro PromptForRunningApplication "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
+  !insertmacro PromptForRunningApplication "$INSTDIR\@DS_EXEC_NAME@" "domain-server"
+  !insertmacro PromptForRunningApplication "$INSTDIR\@AC_EXEC_NAME@" "assignment-client"
 !macroend
 
 ;--------------------------------
