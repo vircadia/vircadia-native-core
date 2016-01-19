@@ -111,8 +111,7 @@ Window {
                 Button { text: "Stop all"; onClicked: stopAll() }
             }
 
-            ListView {
-                clip: true
+            ScrollView {
                 anchors {
                     top: allButtons.bottom;
                     left: parent.left;
@@ -122,44 +121,48 @@ Window {
                     bottomMargin: 8
                 }
 
-                model: runningScriptsModel
+                ListView {
+                    clip: true
+                    anchors { fill: parent; margins: 0 }
 
-                delegate: Rectangle {
-                    radius: 3
-                    anchors { left: parent.left; right: parent.right }
+                    model: runningScriptsModel
 
-                    height: scriptName.height + 12
-                    color: index % 2 ? "#ddd" : "#eee"
+                    delegate: Rectangle {
+                        radius: 3
+                        anchors { left: parent.left; right: parent.right }
 
-                    Text {
-                        anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
-                        id: scriptName
-                        text: name
-                    }
+                        height: scriptName.height + 12
+                        color: index % 2 ? "#ddd" : "#eee"
 
-                    Row {
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.right: parent.right
-                        anchors.rightMargin: 4
-                        spacing: 4
-                        HifiControls.FontAwesome {
-                            text: "\uf021"; size: scriptName.height;
-                            MouseArea {
-                                anchors { fill: parent; margins: -2; }
-                                onClicked: reloadScript(model.url)
-                            }
+                        Text {
+                            anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
+                            id: scriptName
+                            text: name
                         }
-                        HifiControls.FontAwesome {
-                            size: scriptName.height; text: "\uf00d"
-                            MouseArea {
-                                anchors { fill: parent; margins: -2; }
-                                onClicked: stopScript(model.url)
+
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.right: parent.right
+                            anchors.rightMargin: 4
+                            spacing: 4
+                            HifiControls.FontAwesome {
+                                text: "\uf021"; size: scriptName.height;
+                                MouseArea {
+                                    anchors { fill: parent; margins: -2; }
+                                    onClicked: reloadScript(model.url)
+                                }
+                            }
+                            HifiControls.FontAwesome {
+                                size: scriptName.height; text: "\uf00d"
+                                MouseArea {
+                                    anchors { fill: parent; margins: -2; }
+                                    onClicked: stopScript(model.url)
+                                }
                             }
                         }
                     }
                 }
             }
-
 
             Text {
                 id: loadLabel
