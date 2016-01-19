@@ -1023,8 +1023,6 @@ FunctionEnd
   ${nsProcess::FindProcess} ${applicationName} $R0
 
   ${If} $R0 == 0
-    !define UniqueID ${__LINE__}
-
     ; the process is running, ask the user if they want us to close it
     MessageBox MB_OK|MB_ICONEXCLAMATION \
       "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close ${displayName} and try again."
