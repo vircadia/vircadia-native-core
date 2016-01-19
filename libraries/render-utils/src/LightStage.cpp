@@ -28,6 +28,8 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
     glm::quat orientation;
     if (direction == IDENTITY_UP) {
         orientation = glm::quat(glm::mat3(IDENTITY_RIGHT, IDENTITY_UP, IDENTITY_FRONT));
+    } else if (direction == -IDENTITY_UP) {
+        orientation = glm::quat(glm::mat3(-IDENTITY_RIGHT, -IDENTITY_UP, IDENTITY_FRONT));
     } else {
         auto side = glm::normalize(glm::cross(direction, IDENTITY_UP));
         auto up = glm::normalize(glm::cross(side, direction));
