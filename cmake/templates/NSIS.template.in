@@ -971,7 +971,7 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ${If} @PRODUCTION_BUILD@ == 1
+  ${If} @PR_BUILD@ == 1
     ; check if we need to copy settings/content from production for this PR build
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
 
