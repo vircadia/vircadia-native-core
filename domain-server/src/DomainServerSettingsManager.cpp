@@ -482,6 +482,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             settingsVariant.remove(rootKey);
         }
     }
+
+    // re-merge the user and master configs after a settings change
+    _configMap.mergeMasterAndUserConfigs();
 }
 
 void DomainServerSettingsManager::persistToFile() {

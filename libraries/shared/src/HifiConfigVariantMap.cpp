@@ -157,6 +157,10 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
 
     loadMapFromJSONFile(_userConfig, _userConfigFilename);
 
+    mergeMasterAndUserConfigs();
+}
+
+void HifiConfigVariantMap::mergeMasterAndUserConfigs() {
     // the merged config is initially matched to the master config
     _mergedConfig = _masterConfig;
 

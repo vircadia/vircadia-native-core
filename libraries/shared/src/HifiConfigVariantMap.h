@@ -26,6 +26,8 @@ public:
     QVariantMap& getUserConfig() { return _userConfig; }
     QVariantMap& getMergedConfig() { return _mergedConfig; }
 
+    void mergeMasterAndUserConfigs();
+
     const QString& getUserConfigFilename() const { return _userConfigFilename; }
 private:
     QString _userConfigFilename;
