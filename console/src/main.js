@@ -530,7 +530,7 @@ app.on('ready', function() {
         maybeShowSplash();
 
         if (dsPath && acPath) {
-            domainServer = new Process('domain-server', dsPath, [], logPath);
+            domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
             acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
                                                                     '--log-directory', logPath,
                                                                     '--http-status-port', httpStatusPort], httpStatusPort, logPath);
