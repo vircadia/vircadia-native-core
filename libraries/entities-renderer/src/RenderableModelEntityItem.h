@@ -79,6 +79,8 @@ public:
 
     virtual void resizeJointArrays(int newSize = -1) override;
 
+    virtual int getJointIndex(const QString& name) const override;
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();

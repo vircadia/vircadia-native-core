@@ -763,3 +763,17 @@ void RenderableModelEntityItem::locationChanged() {
         _model->setTranslation(getPosition());
     }
 }
+
+int RenderableModelEntityItem::getJointIndex(const QString& name) const {
+    if (_model && _model->isActive()) {
+        RigPointer rig = _model->getRig();
+        return rig->indexOfJoint(name);
+    }
+    return -1;
+}
+
+
+// TODO -- expose a way to list joint names
+// RenderableModelEntityItem::QStringList getJointNames() const {
+// rig->nameOfJoint(i);
+// }
