@@ -13,6 +13,7 @@
 #define hifi_HifiConfigVariantMap_h
 
 #include <QtCore/QStringList>
+#include <QtCore/QVariantMap>
 
 class HifiConfigVariantMap {
 public:

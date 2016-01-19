@@ -16,19 +16,19 @@
 #include <QDebug>
 
 QString ServerPathUtils::getDataDirectory() {
-    auto homeDirectory = QDir(QStandardPaths::writableLocation(QStandardPaths::HomeLocation));
+    auto dataPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation);
 
 #ifdef Q_OS_WIN
-    homeDirectory.cd("AppData/Roaming/");
-#elif Q_OS_OSX
-    homeDirectory.cd("Library/Application Support/");
+    dataPath += "/AppData/Roaming/";
+#elif defined(Q_OS_OSX)
+    dataPath += "/Library/Application Support/";
 #else
-    homeDirectory.cd(".local/share/");
+    dataPath += "/.local/share/";
 #endif
 
-    homeDirectory.cd(qApp->organizationName() + "/" + qApp->applicationName());
+    dataPath += qApp->organizationName() + "/" + qApp->applicationName();
 
-    return homeDirectory.absolutePath();
+    return QDir::cleanPath(dataPath);
 }
 
 QString ServerPathUtils::getDataFilePath(QString filename) {
