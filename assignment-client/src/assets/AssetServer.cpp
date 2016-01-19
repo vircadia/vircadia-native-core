@@ -50,13 +50,14 @@ void AssetServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    const QString RESOURCES_PATH = "resources/assets";
+    const QString OLD_RESOURCES_PATH = "resources/assets";
+    const QString RESOURCES_PATH = "assets";
 
-    _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
+    _resourcesDirectory = QDir(ServerPathUtils::getDataFilePath(RESOURCES_PATH));
     if (!_resourcesDirectory.exists()) {
         qDebug() << "Asset resources directory not found, searching for existing asset resources";
         QString oldDataDirectory = QCoreApplication::applicationDirPath();
-        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath(RESOURCES_PATH);
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath(OLD_RESOURCES_PATH);
 
         if (QDir(oldResourcesDirectory).exists()) {
             qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
