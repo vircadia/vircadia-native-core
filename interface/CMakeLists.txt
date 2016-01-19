@@ -219,6 +219,9 @@ if (APPLE)
 
   set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
 
+  # call the fixup_interface macro to add required bundling commands for installation
+  fixup_interface()
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -257,9 +260,6 @@ if (SCRIPTS_INSTALL_DIR)
     COMPONENT ${CLIENT_COMPONENT}
   )
 endif()
-
-# call the fixup_interface macro to add required bundling commands for installation
-fixup_interface()
 
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
