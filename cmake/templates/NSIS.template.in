@@ -975,8 +975,8 @@ Function HandlePostInstallOptions
 
     ${If} $CopyFromProductionState == ${BST_CHECKED}
       ; we need to copy whatever is in the data folder for production build to the data folder for this build
-      CreateDirectory "$APPDATA\@MODIFIED_ORGANIZATION@"
-      CopyFiles "$APPDATA\High Fidelity\" "$APPDATA\@MODIFIED_ORGANIZATION@\"
+      CreateDirectory "$APPDATA\@BUILD_ORGANIZATION@"
+      CopyFiles "$APPDATA\High Fidelity\" "$APPDATA\@BUILD_ORGANIZATION@\"
     ${EndIf}
   ${EndIf}
 
