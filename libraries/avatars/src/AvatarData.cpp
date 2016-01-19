@@ -222,7 +222,7 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
     }
     *destinationBuffer++ = bitItems;
 
-    if (parentID.isNull()) {
+    if (!parentID.isNull()) {
         QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
         destinationBuffer += referentialAsBytes.size();
