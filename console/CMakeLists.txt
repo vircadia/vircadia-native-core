@@ -15,8 +15,8 @@ add_custom_target(${TARGET_NAME}
   DEPENDS ${TARGET_NAME}-npm-install
 )
 
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Console")
-set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "Console")
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Server Console")
+set_target_properties(${TARGET_NAME}-npm-install PROPERTIES FOLDER "Server Console")
 
 # add a dependency from the package target to the server components
 add_dependencies(${TARGET_NAME} assignment-client domain-server)
