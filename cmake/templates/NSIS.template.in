@@ -984,21 +984,22 @@ Function HandlePostInstallOptions
 
 FunctionEnd
 
+!include nsProcess.nsh
 
 !macro PromptForRunningApplication applicationName displayName
-  FindProcDLL::FindProc ${applicationName}
+  ${nsProcess::FindProcess} ${applicationName} $R0
 
-  ${If} $R0 == 1
+  ${If} $R0 == 0
     MessageBox MB_OK|MB_ICONEXCLAMATION "The High Fidelity ${displayName} is running. Please close it first." /SD IDOK
     Abort
   ${EndIf}
 !macroend
 
 !macro CheckForRunningApplications
-  !insertmacro PromptForRunningApplication "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@" "Client"
-  !insertmacro PromptForRunningApplication "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
-  !insertmacro PromptForRunningApplication "$INSTDIR\@DS_EXEC_NAME@" "domain-server"
-  !insertmacro PromptForRunningApplication "$INSTDIR\@AC_EXEC_NAME@" "assignment-client"
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "Client"
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
+  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "domain-server"
+  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "assignment-client"
 !macroend
 
 ;--------------------------------
