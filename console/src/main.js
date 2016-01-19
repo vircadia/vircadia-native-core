@@ -576,13 +576,6 @@ app.on('ready', function() {
     maybeInstallDefaultContentSet(function() {
         maybeShowSplash();
 
-        console.log(notificationIcon);
-        notifier.notify({
-            icon: notificationIcon,
-            title: 'An update is available!',
-            message: 'High Fidelity version ' + 4 + ' is available',
-            wait: true
-        });
         if (buildInfo.releaseType == 'PRODUCTION') {
             var currentVersion = null;
             try {
