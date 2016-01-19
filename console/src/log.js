@@ -128,10 +128,10 @@ ready = function() {
         tabStates[currentTab].atBottom = $currentTab[0].scrollTop >= ($currentTab[0].scrollHeight - $currentTab.height() - (2 * padding));
 
         currentTab = tabId;
-		    $('ul.tabs li').removeClass('current');
-		    $('.tab-pane').removeClass('current');
+        $('ul.tabs li').removeClass('current');
+        $('.tab-pane').removeClass('current');
 
-		    $('li[data-tab=' + tabId + ']').addClass('current');
+        $('li[data-tab=' + tabId + ']').addClass('current');
         var $pidLog = $("#" + tabId);
         $pidLog.addClass('current');
 
@@ -141,16 +141,13 @@ ready = function() {
     }
 
     $('ul.tabs li').click(function(){
-		    setCurrentTab($(this).attr('data-tab'));
-	  });
+        setCurrentTab($(this).attr('data-tab'));
+    });
 
     setCurrentTab('domain-server');
     setCurrentTab('assignment-client');
 
     var filter = "";
-
-    // Register for log events
-    //   Process added
 
     function shouldDisplayLogMessage(message) {
         return !filter || message.toLowerCase().indexOf(filter) >= 0;
