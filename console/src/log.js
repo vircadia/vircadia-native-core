@@ -161,7 +161,6 @@ ready = function() {
 
         var size = ++tabStates[id].size;
         if (size > maxLogLines) {
-            // $logLines.first().remove();
             $pidLog.find('div.log-line:first').remove();
             removed = true;
         }
