@@ -722,15 +722,15 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
         }
     }
 
-    if (properties.ignoreForCollisionsChanged()) {
-        int index = changedProperties.indexOf("ignoreForCollisions");
+    if (properties.collisionlessChanged()) {
+        int index = changedProperties.indexOf("collisionless");
         if (index >= 0) {
-            bool value = properties.getIgnoreForCollisions();
+            bool value = properties.getCollisionless();
             QString changeHint = "0";
             if (value) {
                 changeHint = "1";
             }
-            changedProperties[index] = QString("ignoreForCollisions:") + changeHint;
+            changedProperties[index] = QString("collisionless:") + changeHint;
         }
     }
 

@@ -76,7 +76,7 @@ var RainSquall = function (properties) {
             velocity: { x: 0, y: -dropFallSpeed, z: 0 },
             damping: 0,
             angularDamping: 0,
-            ignoreForCollisions: true
+            collisionless: true
         };
     }
 

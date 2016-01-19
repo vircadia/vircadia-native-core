@@ -83,7 +83,7 @@ var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
                     },
                     dynamic: true,
                     collisionSoundURL: basketballCollisionSoundURL,
-                    ignoreForCollisions: false,
+                    collisionless: false,
                     modelURL: basketballURL,
                     userData: JSON.stringify({
                         resetMe: {

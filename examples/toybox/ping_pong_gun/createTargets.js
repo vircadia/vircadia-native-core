@@ -56,7 +56,7 @@ var targetIntervalClearer = Entities.addEntity({
     rotation: rotation,
     visible: false,
     dynamic: false,
-    ignoreForCollisions: true,
+    collisionless: true,
 });
 
 var targets = [];

@@ -271,11 +271,11 @@ public:
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
 
-    bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
-    void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
+    bool getCollisionless() const { return _collisionless; }
+    void setCollisionless(bool value) { _collisionless = value; }
 
     uint8_t getCollisionMask() const { return _collisionMask; }
-    uint8_t getFinalCollisionMask() const { return _ignoreForCollisions ? 0 : _collisionMask; }
+    uint8_t getFinalCollisionMask() const { return _collisionless ? 0 : _collisionMask; }
     void setCollisionMask(uint8_t value) { _collisionMask = value; }
 
     bool getDynamic() const { return _dynamic; }
@@ -331,7 +331,7 @@ public:
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
     void updateAngularDamping(float value);
-    void updateIgnoreForCollisions(bool value);
+    void updateCollisionless(bool value);
     void updateCollisionMask(uint8_t value);
     void updateDynamic(bool value);
     void updateLifetime(float value);
@@ -447,7 +447,7 @@ protected:
     glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
-    bool _ignoreForCollisions;
+    bool _collisionless;
     uint8_t _collisionMask { ENTITY_COLLISION_MASK_DEFAULT };
     bool _dynamic;
     bool _locked;

@@ -122,7 +122,7 @@ function createQuakeMarker(earthquake) {
         parentID:earth,
         dimensions: QUAKE_MARKER_DIMENSIONS,
         position: getQuakePosition(earthquake),
-        ignoreForCollisions:true,
+        collisionless:true,
         lifetime: 6000,
         color: getQuakeMarkerColor(earthquake)
     }

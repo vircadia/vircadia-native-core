@@ -261,7 +261,7 @@
                 var elAccelerationZ = document.getElementById("property-lacc-z");
     
                 var elDensity = document.getElementById("property-density");
-                var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
+                var elCollisionless = document.getElementById("property-collisionless");
                 var elDynamic = document.getElementById("property-dynamic" );
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
                 var elLifetime = document.getElementById("property-lifetime");
@@ -491,7 +491,7 @@
                                 elAccelerationZ.value = properties.acceleration.z.toFixed(2);
     
                                 elDensity.value = properties.density.toFixed(2);
-                                elIgnoreForCollisions.checked = properties.ignoreForCollisions;
+                                elCollisionless.checked = properties.collisionless;
                                 elDynamic.checked = properties.dynamic;
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
@@ -718,7 +718,7 @@
                 elAccelerationZ.addEventListener('change', accelerationChangeFunction);
     
                 elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
-                elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
+                elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
@@ -1235,9 +1235,9 @@
         </div>
 
         <div class="property">
-            <span class="label">Ignore For Collisions</span>
+            <span class="label">Collisionless</span>
             <span class="value">
-                <input type='checkbox' id="property-ignore-for-collisions">
+                <input type='checkbox' id="property-collisionless">
             </span>
         </div>
 

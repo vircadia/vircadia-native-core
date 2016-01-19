@@ -82,7 +82,7 @@ function createColorBusterCube(row, column, vertical) {
         type: 'Box',
         dimensions: CUBE_DIMENSIONS,
         dynamic: false,
-        ignoreForCollisions: false,
+        collisionless: false,
         color: startingColor[1],
         position: position,
         userData: JSON.stringify({
