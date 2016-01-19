@@ -912,7 +912,7 @@ Function PostInstallOptionsPage
     ; push the offset
     IntOp $CurrentOffset $CurrentOffset + 15
 
-    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Copy data from production install"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Copy settings and content from production install"
   ${EndIf}
 
   nsDialogs::Show
