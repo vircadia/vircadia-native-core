@@ -60,11 +60,11 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
         glm::vec3 palmPosition;
         glm::quat palmRotation;
         if (_hand == "right") {
-            palmPosition = holdingAvatar->getRightPalmPosition();
-            palmRotation = holdingAvatar->getRightPalmRotation();
+            palmPosition = holdingAvatar->getUncachedRightPalmPosition();
+            palmRotation = holdingAvatar->getUncachedRightPalmRotation();
         } else {
-            palmPosition = holdingAvatar->getLeftPalmPosition();
-            palmRotation = holdingAvatar->getLeftPalmRotation();
+            palmPosition = holdingAvatar->getUncachedLeftPalmPosition();
+            palmRotation = holdingAvatar->getUncachedLeftPalmRotation();
         }
 
         glm::vec3 avatarRigidBodyPosition;
