@@ -987,7 +987,7 @@ Function HandlePostInstallOptions
       CopyFiles "$APPDATA\High Fidelity\*" $0
 
       ; handle an error in copying files
-      IfError 0 NoError
+      IfErrors 0 NoError
 
       MessageBox mb_IconStop|mb_TopMost|mb_SetForeground \
       "There was a problem copying your production content and settings to $0 for this PR build.$\r$\nPlease copy them manually."
