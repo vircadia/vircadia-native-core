@@ -1025,7 +1025,7 @@ FunctionEnd
   ${If} $R0 == 0
     ; the process is running, ask the user if they want us to close it
     MessageBox MB_OK|MB_ICONEXCLAMATION \
-      "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close ${displayName} and try again."
+      "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and try again."
     Abort
   ${EndIf}
 !macroend
