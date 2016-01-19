@@ -311,7 +311,6 @@ bool AssignmentClientMonitor::handleHTTPRequest(HTTPConnection* connection, cons
     if (url.path() == "/status") {
         QByteArray response;
 
-        //QJsonDocument status;
         QJsonObject status;
         QJsonObject servers;
         for (auto& ac : _childProcesses) {
