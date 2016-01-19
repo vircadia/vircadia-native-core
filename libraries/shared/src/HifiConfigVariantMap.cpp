@@ -139,13 +139,16 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
                 // we have the old file and not the new file - time to copy the file
 
                 // make the destination directory if it doesn't exist
-                QDir().mkdir(ServerPathUtils::getDataDirectory());
-
-                if (oldConfigFile.copy(_userConfigFilename)) {
-                    qDebug() << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
-                } else {
-                    qWarning() << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
+                auto dataDirectory = ServerPathUtils::getDataDirectory();
+                if (QDir().mkpath(dataDirectory)) {
+                    if (oldConfigFile.copy(_userConfigFilename)) {
+                        qDebug() << "Migrated config file from" << oldConfigFilename << "to" << _userConfigFilename;
+                    } else {
+                        qWarning() << "Could not copy previous config file from" << oldConfigFilename << "to" << _userConfigFilename
                         << "- please try to copy manually and restart.";
+                    }
+                } else {
+                    qWarning() << "Could not create application data directory" << dataDirectory << "- unable to migrate previous config file.";
                 }
             }
         }
