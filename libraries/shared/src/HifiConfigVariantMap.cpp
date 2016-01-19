@@ -122,7 +122,7 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         // we weren't passed a user config path
         _userConfigFilename = ServerPathUtils::getDataFilePath(USER_CONFIG_FILE_NAME);
 
-        // as of 1/19/2016 this path was moved
+        // as of 1/19/2016 this path was moved so we attempt a migration for first run post migration here
 
         // figure out what the old path was
         auto oldConfigFilename = QString("%1/%2/%3/%4").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
