@@ -774,11 +774,6 @@ int RenderableModelEntityItem::getJointIndex(const QString& name) const {
 
 QStringList RenderableModelEntityItem::getJointNames() const {
     QStringList result;
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<RenderableModelEntityItem*>(this), "getJointNames", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QStringList, result));
-        return result;
-    }
     if (_model && _model->isActive()) {
         RigPointer rig = _model->getRig();
         int jointCount = rig->getJointStateCount();

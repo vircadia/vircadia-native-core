@@ -236,6 +236,10 @@ public:
         return _deletedEntityItemIDs.contains(id);
     }
 
+    // these are used to call through to EntityItems
+    int getJointIndex(const QUuid& entityID, const QString& name) const;
+    QStringList getJointNames(const QUuid& entityID) const;
+
 public slots:
     void callLoader(EntityItemID entityID);
 
