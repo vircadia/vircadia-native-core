@@ -1040,7 +1040,7 @@ Function un.onInit
 
   ; make sure none of the installed applications are still running
   !insertmacro CheckForRunningApplications "uninstalled" "Uninstaller"
-  ${nsProcess:Unload}
+  ${nsProcess::Unload}
 
   ; attempt to elevate the uninstaller to admin status
   uac_tryagain:
@@ -1269,7 +1269,7 @@ Function .onInit
 
   ; make sure none of the installed applications are still running
   !insertmacro CheckForRunningApplications "installed" "Installer"
-  ${nsProcess:Unload}
+  ${nsProcess::Unload}
 
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
 
