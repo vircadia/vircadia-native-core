@@ -10,19 +10,29 @@
 <@if not GPU_TRANSFORM_STATE_SLH@>
 <@def GPU_TRANSFORM_STATE_SLH@>
 
-<@func declareStandardTransform()@>
-struct TransformObject { 
-    mat4 _model;
-    mat4 _modelInverse;
-};
-
-struct TransformCamera { 
+<@func declareStandardCameraTransform()@>
+struct TransformCamera {
     mat4 _view;
     mat4 _viewInverse;
     mat4 _projectionViewUntranslated;
     mat4 _projection;
     mat4 _projectionInverse;
     vec4 _viewport;
+};
+
+layout(std140) uniform transformCameraBuffer {
+    TransformCamera _camera;
+};
+TransformCamera getTransformCamera() {
+    return _camera;
+}
+<@endfunc@>
+
+
+<@func declareStandardObjectTransform()@>
+struct TransformObject {
+    mat4 _model;
+    mat4 _modelInverse;
 };
 
 in ivec2 _drawCallInfo;
@@ -33,13 +43,12 @@ layout(std140) buffer transformObjectBuffer {
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
+<@endfunc@>
 
-layout(std140) uniform transformCameraBuffer {
-    TransformCamera _camera;
-};
-TransformCamera getTransformCamera() {
-    return _camera;
-}
+
+<@func declareStandardTransform()@>
+<$declareStandardObjectTransform()$>
+<$declareStandardCameraTransform()$>
 <@endfunc@>
 
 <@func transformCameraViewport(cameraTransform, viewport)@>
