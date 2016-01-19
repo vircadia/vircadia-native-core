@@ -1012,6 +1012,7 @@ FunctionEnd
     Abort_${UniqueID}:
       Abort
     Next_${UniqueID}:
+      !undef UniqueID
   ${EndIf}
 !macroend
 
