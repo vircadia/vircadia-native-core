@@ -993,7 +993,8 @@ FunctionEnd
     !define UniqueID ${__LINE__}
 
     ; the process is running, ask the user if they want us to close it
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${displayName} cannot be ${action} while ${displayName} is running. Would you like the ${prompter} to try closing it?"
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+    "${displayName} cannot be ${action} while ${displayName} is running. Would you like the ${prompter} to try closing it?" \
     IDOK AttemptClose_${UniqueID} IDCANCEL Abort_${UniqueID} /SD IDCANCEL
 
     AttemptClose_${UniqueID}:
