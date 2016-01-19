@@ -574,17 +574,15 @@ app.on('ready', function() {
     maybeInstallDefaultContentSet(function() {
         maybeShowSplash();
 
-        // if (buildInfo.releaseType == 'PRODUCTION') {
-        if (true) { // TODO: remove, uncomment line above
+        if (buildInfo.releaseType == 'PRODUCTION') {
             var currentVersion = null;
             try {
                 currentVersion = parseInt(buildInfo.buildIdentifier);
             } catch (e) {
             }
-            currentVersion = 0; // TODO: remove
 
             if (currentVersion !== null) {
-                const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 20;
+                const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
                 const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
                 updateChecker.on('update-available', function(latestVersion, url) {
                     notifier.notify({
