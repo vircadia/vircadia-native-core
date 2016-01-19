@@ -916,6 +916,8 @@ Function PostInstallOptionsPage
 
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Copy settings and content from production install"
     Pop $CopyFromProductionCheckbox
+
+    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
   ${EndIf}
 
   nsDialogs::Show
@@ -976,7 +978,7 @@ Function HandlePostInstallOptions
     ${If} $CopyFromProductionState == ${BST_CHECKED}
       ; we need to copy whatever is in the data folder for production build to the data folder for this build
       CreateDirectory "$APPDATA\@BUILD_ORGANIZATION@"
-      CopyFiles "$APPDATA\High Fidelity\" "$APPDATA\@BUILD_ORGANIZATION@\"
+      CopyFiles "$APPDATA\High Fidelity\*" "$APPDATA\@BUILD_ORGANIZATION@"
     ${EndIf}
   ${EndIf}
 
