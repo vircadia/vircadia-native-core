@@ -56,14 +56,8 @@ macro(GENERATE_INSTALLERS)
     set(CPACK_OSX_PACKAGE_VERSION ${CMAKE_OSX_DEPLOYMENT_TARGET})
   endif ()
 
-  cpack_add_component(
-    ${CLIENT_COMPONENT}
-    DISPLAY_NAME "High Fidelity Client"
-  )
-
-  cpack_add_component(${SERVER_COMPONENT}
-    DISPLAY_NAME "High Fidelity Server"
-  )
+  cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Client")
+  cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Server")
 
   if (APPLE)
     # we don't want the OS X package to install anywhere but the main volume, so disable relocation
