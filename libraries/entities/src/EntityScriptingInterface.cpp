@@ -978,5 +978,19 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
         return -1;
     }
     EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        return -1;
+    }
     return entity->getJointIndex(name);
+}
+
+QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
+    if (!_entityTree) {
+        return QStringList();
+    }
+    EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        return QStringList();
+    }
+    return entity->getJointNames();
 }
