@@ -583,15 +583,19 @@ app.on('ready', function() {
 
             if (currentVersion !== null) {
                 const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 60 * 30;
+                var hasShownUpdateNotification = false;
                 const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
                 updateChecker.on('update-available', function(latestVersion, url) {
-                    notifier.notify({
-                        icon: trayIcon,
-                        title: 'An update is available!',
-                        message: 'High Fidelity version ' + latestVersion + ' is available',
-                        wait: true,
-                        url: url
-                    });
+                    if (!hasShownUpdateNotification) {
+                        notifier.notify({
+                            icon: trayIcon,
+                            title: 'An update is available!',
+                            message: 'High Fidelity version ' + latestVersion + ' is available',
+                            wait: true,
+                            url: url
+                        });
+                        hasShownUpdateNotification = true;
+                    }
                 });
                 notifier.on('click', function(notifierObject, options) {
                     console.log("Got click", options.url);
