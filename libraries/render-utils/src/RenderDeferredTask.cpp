@@ -172,6 +172,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setOcclusionStatus(renderContext->getOcclusionStatus());
 
     if (_occlusionJobIndex >= 0) {
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setResolutionLevel(renderContext->getAmbientOcclusion().resolutionLevel);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSamples(renderContext->getAmbientOcclusion().numSamples);

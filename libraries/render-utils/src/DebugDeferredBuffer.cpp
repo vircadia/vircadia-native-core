@@ -35,8 +35,8 @@ enum Slots {
     Lighting,
     Shadow,
     Pyramid,
-    OcclusionRaw,
-    OcclusionBlurred
+    AmbientOcclusion,
+    AmbientOcclusionBlurred
 };
 
 static const std::string DEFAULT_DIFFUSE_SHADER {
@@ -79,24 +79,19 @@ static const std::string DEFAULT_SHADOW_SHADER{
     " }"
 };
 
-static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
-    "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(diffuseMap, uv).a), 1.0);"
-    " }"
-};
-
 static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
     //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
     " }"
 };
-static const std::string DEFAULT_OCCLUSION_RAW_SHADER {
+
+static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(occlusionRawMap, uv).x), 1.0);"
+    "    return vec4(vec3(texture(occlusionMap, uv).x), 1.0);"
     " }"
 };
-static const std::string DEFAULT_OCCLUSION_BLURRED_SHADER {
+static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(occlusionBlurredMap, uv).x), 1.0);"
     " }"
@@ -148,10 +143,8 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
             return DEFAULT_PYRAMID_DEPTH_SHADER;
         case AmbientOcclusionMode:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
-        case OcclusionRawMode:
-            return DEFAULT_OCCLUSION_RAW_SHADER;
-        case OcclusionBlurredMode:
-            return DEFAULT_OCCLUSION_BLURRED_SHADER;
+        case AmbientOcclusionBlurredMode:
+            return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
     }
@@ -201,8 +194,8 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         slotBindings.insert(gpu::Shader::Binding("shadowMapColor", Shadow));
         slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
-        slotBindings.insert(gpu::Shader::Binding("occlusionRawMap", OcclusionRaw));
-        slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", OcclusionBlurred));
+        slotBindings.insert(gpu::Shader::Binding("occlusionMap", AmbientOcclusion));
+        slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
         gpu::Shader::makeProgram(*program, slotBindings);
         
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
@@ -260,8 +253,8 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getRenderBuffer(0));
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
-        batch.setResourceTexture(OcclusionRaw, framebufferCache->getOcclusionTexture());
-        batch.setResourceTexture(OcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
+        batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
+        batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
 
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);

@@ -49,6 +49,15 @@ struct LightLocations {
     int shadowTransformBuffer;
 };
 
+enum {
+    DEFERRED_BUFFER_COLOR_UNIT = 0,
+    DEFERRED_BUFFER_NORMAL_UNIT = 1,
+    DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
+    DEFERRED_BUFFER_DEPTH_UNIT = 3,
+    DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
+    SHADOW_MAP_UNIT = 5,
+    SKYBOX_MAP_UNIT = 6,
+};
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
@@ -172,16 +181,17 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.setStateScissorRect(args->_viewport);
 
         // BInd the G-Buffer surfaces
-        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
-        batch.setResourceTexture(1, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(2, framebufferCache->getDeferredSpecularTexture());
-        batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
 
         assert(_lightStage.lights.size() > 0);
         const auto& globalShadow = _lightStage.lights[0]->shadow;
 
         // Bind the shadow buffer
-        batch.setResourceTexture(4, globalShadow.map);
+        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
         auto monoViewport = args->_viewport;
@@ -323,7 +333,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     }
     
                     if (useSkyboxCubemap) {
-                        batch.setResourceTexture(5, _skybox->getCubemap());
+                        batch.setResourceTexture(SKYBOX_MAP_UNIT, _skybox->getCubemap());
                     }
 
                     if (locations->lightBufferUnit >= 0) {
@@ -345,7 +355,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 }
 
                 if (useSkyboxCubemap) {
-                    batch.setResourceTexture(5, nullptr);
+                    batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
                 }
             }
 
@@ -461,10 +471,14 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         }
 
         // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
-        batch.setResourceTexture(0, nullptr);
-        batch.setResourceTexture(1, nullptr);
-        batch.setResourceTexture(2, nullptr);
-        batch.setResourceTexture(3, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
+        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
+        batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+
         batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
     });
 
@@ -489,12 +503,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DEFERRED_BUFFER_COLOR_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("obscuranceMap"), DEFERRED_BUFFER_OBSCURANCE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
     static const int LIGHT_GPU_SLOT = 3;
     static const int ATMOSPHERE_GPU_SLOT = 4;

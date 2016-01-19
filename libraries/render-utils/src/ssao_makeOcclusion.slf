@@ -21,7 +21,7 @@ const int MAX_MIP_LEVEL = 5;
 uniform sampler2D pyramidMap;
 
 float getZEye(ivec2 pixel) {
-    return -texelFetch(pyramidMap, pixel, 0).x;
+    return -texelFetch(pyramidMap, pixel, getResolutionLevel()).x;
 }
 
 vec3 evalEyePositionFromZeye(ivec2 side, float Zeye, vec2 texcoord) {
@@ -62,8 +62,8 @@ vec3 getOffsetPosition(ivec2 side, ivec2 ssC, vec2 unitOffset, float ssR) {
 
     // We need to divide by 2^mipLevel to read the appropriately scaled coordinate from a MIP-map.
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
-    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, mipLevel) - ivec2(1));
-    P.z = -texelFetch(pyramidMap, mipP, mipLevel).r;
+    ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, getResolutionLevel() + mipLevel) - ivec2(1));
+    P.z = -texelFetch(pyramidMap, mipP, getResolutionLevel() + mipLevel).r;
 //    P.z = -texelFetch(pyramidMap, ssPFull, 0).r;
 
     // Offset to pixel center

@@ -15,7 +15,7 @@
 <@include DeferredBuffer.slh@>
 
 uniform sampler2D pyramidMap;
-uniform sampler2D occlusionRawMap;
+uniform sampler2D occlusionMap;
 uniform sampler2D occlusionBlurredMap;
 
 in vec2 uv;

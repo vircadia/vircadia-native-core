@@ -24,6 +24,9 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
+// the obscurance texture
+uniform sampler2D obscuranceMap;
+
 // the lighting texture
 uniform sampler2D lightingMap;
 
@@ -82,6 +85,7 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     frag.normalVal = texture(normalMap, texcoord);
     frag.diffuseVal = texture(diffuseMap, texcoord);
     frag.specularVal = texture(specularMap, texcoord);
+    frag.obscurance = texture(obscuranceMap, texcoord).x;
 
     if (getStereoMode(deferredTransform)) {
         if (texcoord.x > 0.5) {
@@ -100,9 +104,9 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     }
 
     frag.diffuse = frag.diffuseVal.xyz;
-    frag.obscurance = frag.diffuseVal.w;
     frag.specular = frag.specularVal.xyz;
     frag.gloss = frag.specularVal.w;
+
 
     return frag;
 }

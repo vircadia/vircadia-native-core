@@ -12,7 +12,7 @@
 Script.include("cookies.js");
 
 var MENU = "Developer>Render>Debug Deferred Buffer";
-var ACTIONS = ["Off", "Diffuse", "Metallic", "Roughness", "Normal", "Depth", "Lighting", "PyramidDepth", "AmbientOcclusion", "OcclusionRaw", "OcclusionBlurred", "Custom"];
+var ACTIONS = ["Off", "Diffuse", "Metallic", "Roughness", "Normal", "Depth", "Lighting", "Shadow", "PyramidDepth", "AmbientOcclusion", "OcclusionBlurred", "Custom"];
 var SETTINGS_KEY = "EngineDebugScript.DebugMode";
 
 Number.prototype.clamp = function(min, max) {
@@ -97,6 +97,11 @@ panel.newCheckbox("Network/Physics status",
 panel.newSlider("Tone Mapping Exposure", -10, 10,
     function (value) { Render.tone.exposure = value; },
     function() { return Render.tone.exposure; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Resolution Level", 0.0, 4.0,
+    function (value) { Render.ambientOcclusion.resolutionLevel = value; },
+    function() { return Render.ambientOcclusion.resolutionLevel; },
     function (value) { return (value); });
 
 panel.newSlider("Ambient Occlusion Radius", 0.0, 2.0,

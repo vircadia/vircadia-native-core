@@ -197,8 +197,8 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         
         // Vertical blur write just the final result Occlusion value in the alpha channel
-        state->setColorWriteMask(false, false, false, true);
-        
+        state->setColorWriteMask(true, true, true, false);
+
         // Good to go add the brand new pipeline
         _vBlurPipeline = gpu::Pipeline::create(program, state);
     }
@@ -208,6 +208,17 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 
 void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
     _frameTransformBuffer.edit<FrameTransform>()._depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
+}
+
+void AmbientOcclusionEffect::setResolutionLevel(int level) {
+    level = std::max(0, std::min(level, 4));
+    if (level != getResolutionLevel()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._resolutionInfo;
+        current.x = (float)level;
+
+        // Communicate the change to the Framebuffer cache
+        DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(level);
+    }
 }
 
 void AmbientOcclusionEffect::setRadius(float radius) {
@@ -294,13 +305,14 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     auto pyramidFBO = framebufferCache->getDepthPyramidFramebuffer();
     auto occlusionFBO = framebufferCache->getOcclusionFramebuffer();
     auto occlusionBlurredFBO = framebufferCache->getOcclusionBlurredFramebuffer();
-    auto occlusionFinalFBO = framebufferCache->getDeferredFramebufferDepthColor();
 
     QSize framebufferSize = framebufferCache->getFrameBufferSize();
     float sMin = args->_viewport.x / (float)framebufferSize.width();
     float sWidth = args->_viewport.z / (float)framebufferSize.width();
     float tMin = args->_viewport.y / (float)framebufferSize.height();
     float tHeight = args->_viewport.w / (float)framebufferSize.height();
+
+    auto resolutionLevel = getResolutionLevel();
 
     // Update the depth info with near and far (same for stereo)
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
@@ -367,6 +379,12 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         // Make pyramid mips
         batch.generateTextureMips(pyramidFBO->getRenderBuffer(0));
 
+        // Adjust Viewport for rendering resolution
+        if (resolutionLevel > 0) {
+            glm::ivec4 viewport(args->_viewport.x, args->_viewport.y, args->_viewport.z >> resolutionLevel, args->_viewport.w >> resolutionLevel);
+            batch.setViewportTransform(viewport);
+        }
+
         // Occlusion pass
         batch.setFramebuffer(occlusionFBO);
         batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, glm::vec4(1.0f));
@@ -375,14 +393,14 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, gpu::TexturePointer());
         
-        // Blur 1 pass
+        // Blur 1st pass
         batch.setFramebuffer(occlusionBlurredFBO);
         batch.setPipeline(firstHBlurPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionFBO->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        // Blur 2 pass
-        batch.setFramebuffer(occlusionFinalFBO);
+        // Blur 2nd pass
+        batch.setFramebuffer(occlusionFBO);
         batch.setPipeline(lastVBlurPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);

@@ -74,6 +74,7 @@ public:
     
     class AmbientOcclusion {
     public:
+        int resolutionLevel = 0;
         float radius = 0.5f; // radius in meters of the AO effect
         float level = 0.5f; // Level of the obscrance value
         int numSamples = 11; // Num Samples per pixel

@@ -46,7 +46,8 @@ public:
 
     gpu::FramebufferPointer getDepthPyramidFramebuffer();
     gpu::TexturePointer getDepthPyramidTexture();
-    
+
+    void setAmbientOcclusionResolutionLevel(int level);
     gpu::FramebufferPointer getOcclusionFramebuffer();
     gpu::TexturePointer getOcclusionTexture();
     gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
@@ -102,6 +103,11 @@ private:
     gpu::TexturePointer _occlusionBlurredTexture;
 
     QSize _frameBufferSize{ 100, 100 };
+    int _AOResolutionLevel = 0;
+
+    // Resize/reallocate the buffers used for AO
+    // the size of the AO buffers is scaled by the AOResolutionScale;
+    void resizeAmbientOcclusionBuffers();
 };
 
 #endif // hifi_FramebufferCache_h

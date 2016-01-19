@@ -35,8 +35,7 @@ private:
         ShadowMode,
         PyramidDepthMode,
         AmbientOcclusionMode,
-        OcclusionRawMode,
-        OcclusionBlurredMode,
+        AmbientOcclusionBlurredMode,
         CustomMode // Needs to stay last
     };
     struct CustomPipeline {

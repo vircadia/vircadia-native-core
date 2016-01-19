@@ -39,6 +39,7 @@ struct AmbientOcclusionFrameTransform {
 };
 
 struct AmbientOcclusionParams {
+    vec4 _resolutionInfo;
     vec4 _radiusInfo;
     vec4 _ditheringInfo;
     vec4 _sampleInfo;
@@ -53,8 +54,13 @@ uniform ambientOcclusionParamsBuffer {
     AmbientOcclusionParams params;
 };
 
+
+int getResolutionLevel() {
+    return int(params._resolutionInfo.x);
+}
+
 vec2 getWidthHeight() {
-    return frameTransform._pixelInfo.zw;
+    return vec2(ivec2(frameTransform._pixelInfo.zw) >> getResolutionLevel());
 }
 float getProjScale() {
     return getWidthHeight().y * frameTransform._projection[0][1][1] * 0.5;
@@ -67,13 +73,15 @@ bool isStereo() {
     return frameTransform._stereoInfo.x > 0.0f;
 }
 
-ivec2 getStereoSideInfo(int xPos) {
-    return (xPos < frameTransform._stereoInfo.y ? ivec2(0, 0) : ivec2(1, int(frameTransform._stereoInfo.y)) );
+float getStereoSideWidth() {
+    return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
 }
 
-float getStereoSideWidth() {
-    return (frameTransform._stereoInfo.y);
+ivec2 getStereoSideInfo(int xPos) {
+    int sideWidth = int(getStereoSideWidth());
+    return (xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth) );
 }
+
 
 float evalZeyeFromZdb(float depth) {
     return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
@@ -199,7 +207,7 @@ vec3 getBlurredOcclusion(vec2 coord) {
     for (int r = -blurRadius; r <= -1; ++r) {
         weightedSums += evalTapWeightedValue(r, ssC, key);
     }
-    // then possitive side
+    // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
         weightedSums += evalTapWeightedValue(r, ssC, key);
     }

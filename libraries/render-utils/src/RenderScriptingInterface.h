@@ -70,6 +70,7 @@ namespace RenderScripting {
         Q_OBJECT
         
     public:
+        Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel)
         Q_PROPERTY(float radius MEMBER radius)
         Q_PROPERTY(float level MEMBER level)
         Q_PROPERTY(int numSamples MEMBER numSamples)
