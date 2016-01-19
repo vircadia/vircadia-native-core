@@ -48,8 +48,6 @@ h2 {
     padding: 0;
 }
 
-p {}
-
 .header-title {
     padding-top: 80px;
 }
@@ -81,8 +79,6 @@ p {}
     position: absolute;
     right: -30px;
 }
-
-.column.right img {}
 
 .top {
     height: 168px;
@@ -118,8 +114,6 @@ p {}
 .footer {
     padding-top: 34px;
 }
-
-.header-title {}
 
 .header-right {
     /* float: right; */
