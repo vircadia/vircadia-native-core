@@ -1,5 +1,5 @@
   Script.include("../libraries/utils.js");
-
+ var weatherBox, boxDimensions;
   var orientation = Camera.getOrientation();
   orientation = Quat.safeEulerAngles(orientation);
   orientation.x = 0;
@@ -9,49 +9,76 @@
   var emitters = [];
 var spheres = []
 
+var raveRoomModelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/RaveRoom.fbx";
+var roomDimensions = {x: 30.58, y: 15.29, z: 30.58}; 
+
+var raveRoom = Entities.addEntity({
+    type: "Model",
+    name: "Rave Hut Room",
+    modelURL: raveRoomModelURL,
+    position: center,
+    dimensions:roomDimensions,
+    visible: true
+});
+
+
+var weatherZone = Entities.addEntity({
+    type: "Zone",
+    name: "Weather Zone",
+    shapeType: 'box',
+    keyLightIntensity: 0.01,
+    keyLightColor: {
+        red: 50,
+        green: 0,
+        blue: 50
+    },
+    keyLightAmbientIntensity: .01,
+    position: MyAvatar.position,
+    dimensions: {
+        x: 10,
+        y: 10,
+        z: 10
+    }
+});
+createWeatherBox(center);
 createNodes();
 
+
+function createWeatherBox(position) {
+    var naturalDimensions = {x: 1.11, y: 1.3, z: 1.11};
+    boxDimensions = Vec3.multiply(naturalDimensions, 0.7);
+    var modelURL = "file:///C:/Users/Eric/Desktop/weatherBox.fbx?v1" + Math.random();
+    // var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/raveStick.fbx";
+    weatherBox = Entities.addEntity({
+        type: "Model",
+        modelURL: modelURL,
+        position: position,
+        dimensions: boxDimensions
+    });
+}
+
+
 function createNodes() {
-    var numNodes = 10;
+    var numNodes = 1;
     for (var i = 0; i < numNodes; i++) {
-        var position = Vec3.sum(center, {x: randFloat(0, 3), y: 0, z: randFloat(0, 3)});
+        var position = center;
+        position.y += boxDimensions.y/2;
         createNode(position)
     }
 }
-createNode(center);
+
 
 function createNode(position) {
-     var sphereDimensions = {
-      x: 0.8,
-      y: 0.1,
-      z: 0.8
-  };
-  var sphere = Entities.addEntity({
-      type: "Sphere",
-      name: "ParticlesTest Sphere",
-      position: position,
-      dimensions: sphereDimensions,
-      color: {
-          red: 10,
-          green: randInt(100, 150),
-          blue: 10
-      },
-      lifetime: 3600, // 1 hour; just in case,
-      collisionsWillMove: true
-  });
-  spheres.push(sphere);
-
   var props = {
       "type": "ParticleEffect",
       "position": position,
-      parentID: sphere,
       "isEmitting": true,
       "maxParticles": 10000,
       "lifespan": 2,
       "emitRate": 1000,
       "emitSpeed": 0.025,
       "speedSpread": 0,
-      "emitDimensions": {x: 2, y: 2, z: .1},
+      "emitDimensions": {x: 1, y: 1, z: 0.1},
       "emitRadiusStart": 1,
       "polarStart": 0,
       "polarFinish": 1.570796012878418,
@@ -102,6 +129,8 @@ function createNode(position) {
     spheres.forEach(function(sphere) {
         Entities.deleteEntity(sphere);
     })
+    Entities.deleteEntity(weatherBox);
+    Entities.deleteEntity(weatherZone);
   }
 
   Script.scriptEnding.connect(cleanup);
