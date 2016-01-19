@@ -12,7 +12,16 @@ function ready() {
     function updateState(state, args) {
         console.log(state, args);
         if (state == 'downloading') {
-            $('#download-progress').attr('value', args.progress * 100);
+            function formatBytes(size) {
+                return (size / 1000000).toFixed('2');
+            }
+            $('#download-progress').attr('value', args.percentage * 100);
+            if (args.size !== null && args.size.transferred !== null && args.size.total !== null) {
+                var progressString = formatBytes(args.size.transferred) + "MB / " + formatBytes(args.size.total) + "MB";
+                $('#progress-bytes').html(progressString);
+            } else {
+                $('#progress-bytes').html("Retrieving resources...");
+            }
         } else if (state == 'installing') {
         } else if (state == 'complete') {
             setTimeout(function() {
@@ -37,7 +46,8 @@ function ready() {
 
     // updateState('error', { message: "This is an error message", progress: 0.5 });
     // updateState('complete', { progress: 0 });
+    // updateState('downloading', { percentage: 0.5, size: { total: 83040400, transferred: 500308} });
 
-    updateState('downloading', { progress: 0 });
+    updateState('downloading', { percentage: 0, size: null });
     electron.ipcRenderer.send('ready');
 }

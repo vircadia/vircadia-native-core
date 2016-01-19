@@ -486,7 +486,7 @@ function maybeInstallDefaultContentSet(onComplete) {
         }), { throttle: 250 }).on('progress', function(state) {
             if (!aborted) {
                 // Update progress popup
-                sendStateUpdate('downloading', { progress: state.percentage });
+                sendStateUpdate('downloading', state);
             }
         });
         var unzipper = unzip.Extract({
