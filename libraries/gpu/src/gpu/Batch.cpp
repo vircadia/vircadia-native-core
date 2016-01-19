@@ -442,8 +442,6 @@ void Batch::preExecute() {
         instance.process(*this);
         stopNamedCall();
     }
-
-    _namedData.clear();
 }
 
 QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {

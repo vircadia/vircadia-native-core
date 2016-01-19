@@ -169,6 +169,7 @@ void GLBackend::updateTransform(const Batch& batch) {
 
     auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
     if (batch._currentNamedCall.empty()) {
+        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
         glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, (GLint)drawCallInfo.index, (GLint)drawCallInfo.unused);
     } else {
