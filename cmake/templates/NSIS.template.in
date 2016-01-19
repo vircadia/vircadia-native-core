@@ -986,20 +986,39 @@ FunctionEnd
 
 !include nsProcess.nsh
 
-!macro PromptForRunningApplication applicationName displayName
+!macro PromptForRunningApplication applicationName displayName action prompter
   ${nsProcess::FindProcess} ${applicationName} $R0
 
   ${If} $R0 == 0
-    MessageBox MB_OK|MB_ICONEXCLAMATION "The High Fidelity ${displayName} is running. Please close it first." /SD IDOK
-    Abort
+    !define UniqueID ${__LINE__}
+
+    ; the process is running, ask the user if they want us to close it
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION "${displayName} cannot be ${action} while ${displayName} is running. Would you like the ${prompter} to try closing it?"
+    IDOK AttemptClose_${UniqueID} IDCANCEL Abort_${UniqueID} /SD IDCANCEL
+
+    AttemptClose_${UniqueID}:
+      ; attempt to close the given process
+      ${nsProcess::CloseProcess} ${applicationName} $R0
+
+      ; check if the process was closed
+      ${If} $R0 == 0
+        ; closed the running application
+        Goto Next_${UniqueID}
+      ${Else}
+        ; couldn't close the running application, bail
+        Abort
+      ${EndIf}
+    Abort_${UniqueID}:
+      Abort
+    Next_${UniqueID}:
   ${EndIf}
 !macroend
 
-!macro CheckForRunningApplications
-  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "Client"
-  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@"
-  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "domain-server"
-  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "assignment-client"
+!macro CheckForRunningApplications action prompter
+  !insertmacro PromptForRunningApplication "@INTERFACE_WIN_EXEC_NAME@" "@INTERFACE_SHORTCUT_NAME@" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@CONSOLE_WIN_EXEC_NAME@" "@CONSOLE_SHORTCUT_NAME@" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@DS_EXEC_NAME@" "Domain Server" ${action} ${prompter}
+  !insertmacro PromptForRunningApplication "@AC_EXEC_NAME@" "Assignment Client" ${action} ${prompter}
 !macroend
 
 ;--------------------------------
@@ -1018,7 +1037,8 @@ Function un.onInit
   ${EndIf}
 
   ; make sure none of the installed applications are still running
-  !insertmacro CheckForRunningApplications
+  !insertmacro CheckForRunningApplications "uninstalled" "Uninstaller"
+  ${nsProcess:Unload}
 
   ; attempt to elevate the uninstaller to admin status
   uac_tryagain:
@@ -1246,7 +1266,8 @@ Function .onInit
   !endif
 
   ; make sure none of the installed applications are still running
-  !insertmacro CheckForRunningApplications
+  !insertmacro CheckForRunningApplications "installed" "Installer"
+  ${nsProcess:Unload}
 
   StrCmp "@CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL@" "ON" 0 inst
 
