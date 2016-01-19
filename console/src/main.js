@@ -87,7 +87,7 @@ function getRootHifiDataDirectory() {
 }
 
 function getAssignmentClientResourcesDirectory() {
-    return path.join(getRootHifiDataDirectory(), '/assignment-client/resources');
+    return path.join(getRootHifiDataDirectory(), '/assignment-client');
 }
 
 function getApplicationDataDirectory() {
