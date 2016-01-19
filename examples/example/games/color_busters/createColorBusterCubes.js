@@ -81,7 +81,7 @@ function createColorBusterCube(row, column, vertical) {
         name: 'Hifi-ColorBusterCube',
         type: 'Box',
         dimensions: CUBE_DIMENSIONS,
-        collisionsWillMove: false,
+        dynamic: false,
         ignoreForCollisions: false,
         color: startingColor[1],
         position: position,

@@ -34,7 +34,7 @@ var pingPongGun = Entities.addEntity({
         y: 0.21,
         z: 0.47
     },
-    collisionsWillMove: true,
+    dynamic: true,
     collisionSoundURL: COLLISION_SOUND_URL,
     userData: JSON.stringify({
         grabbableKey: {

@@ -64,6 +64,10 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, opaqueOutOfView, 0)
     STATS_PROPERTY(int, opaqueTooSmall, 0)
     STATS_PROPERTY(int, opaqueRendered, 0)
+    STATS_PROPERTY(int, shadowConsidered, 0)
+    STATS_PROPERTY(int, shadowOutOfView, 0)
+    STATS_PROPERTY(int, shadowTooSmall, 0)
+    STATS_PROPERTY(int, shadowRendered, 0)
     STATS_PROPERTY(int, translucentConsidered, 0)
     STATS_PROPERTY(int, translucentOutOfView, 0)
     STATS_PROPERTY(int, translucentTooSmall, 0)
@@ -151,6 +155,10 @@ signals:
     void opaqueOutOfViewChanged();
     void opaqueTooSmallChanged();
     void opaqueRenderedChanged();
+    void shadowConsideredChanged();
+    void shadowOutOfViewChanged();
+    void shadowTooSmallChanged();
+    void shadowRenderedChanged();
     void translucentConsideredChanged();
     void translucentOutOfViewChanged();
     void translucentTooSmallChanged();

@@ -20,7 +20,7 @@ Item {
 
     Item {
         objectName: "ScriptDiscoveryService"
-        property var scriptsModelFilter: scriptsModel
+        //property var scriptsModelFilter: scriptsModel
         signal scriptCountChanged()
         property var _runningScripts:[
             { name: "wireFrameTest.js", url: "foo/wireframetest.js", path: "foo/wireframetest.js", local: true },
@@ -106,7 +106,7 @@ Item {
         function closeDialog(item) {
             item = findDialog(item);
             if (item) {
-                item.enabled = false
+                item.visible = false
             } else {
                 console.warn("Could not find top level dialog")
             }

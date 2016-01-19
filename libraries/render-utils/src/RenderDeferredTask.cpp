@@ -76,30 +76,28 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
     
-    // CPU only, create the list of renderedOpaques items
-    addJob<FetchItems>("FetchOpaque", FetchItems([](const RenderContextPointer& context, int count) {
+    // CPU: Fetch the renderOpaques
+    auto fetchedOpaques = addJob<FetchItems>("FetchOpaque", FetchItems([](const RenderContextPointer& context, int count) {
         context->getItemsConfig().opaque.numFeed = count;
     }));
-    addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", _jobs.back().getOutput());
-    addJob<DepthSortItems>("DepthSortOpaque", _jobs.back().getOutput());
-    auto& renderedOpaques = _jobs.back().getOutput();
+    auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques);
+    auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
 
     // CPU only, create the list of renderedTransparents items
-    addJob<FetchItems>("FetchTransparent", FetchItems(
+    auto fetchedTransparents = addJob<FetchItems>("FetchTransparent", FetchItems(
         ItemFilter::Builder::transparentShape().withoutLayered(),
         [](const RenderContextPointer& context, int count) {
             context->getItemsConfig().transparent.numFeed = count;
         }
-     ));
-    addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", _jobs.back().getOutput());
-    addJob<DepthSortItems>("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false));
-    auto& renderedTransparents = _jobs.back().getOutput();
+    ));
+    auto culledTransparents = addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents);
+    auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
 
     // GPU Jobs: Start preparing the deferred and lighting buffer
     addJob<PrepareDeferred>("PrepareDeferred");
 
     // Render opaque objects in DeferredBuffer
-    addJob<DrawOpaqueDeferred>("DrawOpaqueDeferred", renderedOpaques, shapePlumber);
+    addJob<DrawOpaqueDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
 
     // Once opaque is all rendered create stencil background
     addJob<DrawStencilDeferred>("DrawOpaqueStencil");
@@ -120,11 +118,11 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing");
-    _jobs.back().setEnabled(false);
     _antialiasingJobIndex = (int)_jobs.size() - 1;
+    enableJob(_antialiasingJobIndex, false);
 
     // Render transparent objects forward in LigthingBuffer
-    addJob<DrawTransparentDeferred>("DrawTransparentDeferred", renderedTransparents, shapePlumber);
+    addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
     
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
@@ -132,24 +130,24 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
 
     // Debugging Deferred buffer job
     addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
-    _jobs.back().setEnabled(false);
     _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
+    enableJob(_drawDebugDeferredBufferIndex, false);
 
     // Status icon rendering job
     {
         // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
         auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
         auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-        addJob<DrawStatus>("DrawStatus", renderedOpaques, DrawStatus(statusIconMap));
-        _jobs.back().setEnabled(false);
+        addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         _drawStatusJobIndex = (int)_jobs.size() - 1;
+        enableJob(_drawStatusJobIndex, false);
     }
 
     addJob<DrawOverlay3D>("DrawOverlay3D", shapePlumber);
 
     addJob<HitEffect>("HitEffect");
-    _jobs.back().setEnabled(false);
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
+    enableJob(_drawHitEffectJobIndex, false);
 
     addJob<Blit>("Blit");
 }
@@ -167,18 +165,12 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    // Make sure we turn the deferred buffer debug on/off
     setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
-    
-    // Make sure we turn the displayItemStatus on/off
     setDrawItemStatus(renderContext->getDrawStatus());
-    
-    // Make sure we display hit effect on screen, as desired from a script
     setDrawHitEffect(renderContext->getDrawHitEffect());
-    
-
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->getOcclusionStatus());
+
     if (_occlusionJobIndex >= 0) {
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
         _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
@@ -191,11 +183,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
     
     setAntialiasingStatus(renderContext->getFxaaStatus());
-
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
 
-    
     renderContext->getArgs()->_context->syncCache();
 
     for (auto job : _jobs) {
@@ -419,7 +409,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderLights(sceneContext, renderContext, inItems);
+        renderItems(sceneContext, renderContext, inItems);
     });
     args->_batch = nullptr;
 }

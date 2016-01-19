@@ -56,7 +56,7 @@ function explodeHelicopter(explodePosition) {
             dimensions: partsURLS[i].dimensions,
             position: position,
             shapeType: "box",
-            collisionsWillMove: true,
+            dynamic: true,
             damping: 0,
             gravity: {
                 x: 0,

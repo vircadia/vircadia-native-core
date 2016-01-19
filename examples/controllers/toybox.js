@@ -175,7 +175,7 @@ function createTable() {
                                 damping: 0.1,
                                 restitution: 0.01,
                                 density: 0.5,
-                                collisionsWillMove: true,
+                                dynamic: true,
                                 color: { red: randInt(0, 255), green: randInt(0, 255), blue: randInt(0, 255) },
                             });
         if (type == "Model") {

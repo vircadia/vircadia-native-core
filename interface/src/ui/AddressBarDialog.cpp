@@ -61,10 +61,10 @@ void AddressBarDialog::loadForward() {
 }
 
 void AddressBarDialog::displayAddressOfflineMessage() {
-    OffscreenUi::error("That user or place is currently offline");
+    OffscreenUi::critical("", "That user or place is currently offline");
 }
 
 void AddressBarDialog::displayAddressNotFoundMessage() {
-    OffscreenUi::error("There is no address information for that user or place");
+    OffscreenUi::critical("", "There is no address information for that user or place");
 }
 

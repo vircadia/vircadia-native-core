@@ -31,6 +31,10 @@
 #include "directional_ambient_light_frag.h"
 #include "directional_skybox_light_frag.h"
 
+#include "directional_light_shadow_frag.h"
+#include "directional_ambient_light_shadow_frag.h"
+#include "directional_skybox_light_shadow_frag.h"
+
 #include "point_light_frag.h"
 #include "spot_light_frag.h"
 
@@ -42,24 +46,23 @@ struct LightLocations {
     int texcoordMat;
     int coneParam;
     int deferredTransformBuffer;
+    int shadowTransformBuffer;
 };
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
-
 
 void DeferredLightingEffect::init() {
     _directionalLightLocations = std::make_shared<LightLocations>();
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
+
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
+    // TODO: To use shadowmaps, replace directional_*_light_frag with directional_*_light_shadow_frag shaders.
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
-
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
-
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
-
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
@@ -69,6 +72,8 @@ void DeferredLightingEffect::init() {
     _allocatedLights.push_back(std::make_shared<model::Light>());
 
     model::LightPointer lp = _allocatedLights[0];
+    // Add the global light to the light stage (for later shadow rendering)
+    _lightStage.addLight(lp);
 
     lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
     lp->setColor(glm::vec3(1.0f));
@@ -171,6 +176,12 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.setResourceTexture(1, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(2, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
+
+        assert(_lightStage.lights.size() > 0);
+        const auto& globalShadow = _lightStage.lights[0]->shadow;
+
+        // Bind the shadow buffer
+        batch.setResourceTexture(4, globalShadow.map);
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
         auto monoViewport = args->_viewport;
@@ -290,6 +301,10 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     } else if (_ambientLightMode > -1) {
                         program = _directionalAmbientSphereLight;
                         locations = _directionalAmbientSphereLightLocations;
+                    }
+
+                    if (locations->shadowTransformBuffer >= 0) {
+                        batch.setUniformBuffer(locations->shadowTransformBuffer, globalShadow.getBuffer());
                     }
                     batch.setPipeline(program);
                 }
@@ -478,16 +493,17 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
+    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
+
     static const int LIGHT_GPU_SLOT = 3;
-    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
     static const int ATMOSPHERE_GPU_SLOT = 4;
-    slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
+    slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DEFERRED_TRANSFORM_BUFFER_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
-
 
     locations->radius = program->getUniforms().findLocation("radius");
     locations->ambientSphere = program->getUniforms().findLocation("ambientSphere.L00");
@@ -498,6 +514,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
     locations->atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
+    locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 
     auto state = std::make_shared<gpu::State>();
     state->setColorWriteMask(true, true, true, false);

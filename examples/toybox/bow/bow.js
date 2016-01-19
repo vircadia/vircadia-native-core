@@ -234,7 +234,7 @@
                 compoundShapeURL: ARROW_COLLISION_HULL_URL,
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true,
                 collisionSoundURL: ARROW_HIT_SOUND_URL,
                 damping: 0.01,
@@ -264,7 +264,7 @@
                             z: 0
                         },
                         position: collision.contactPoint,
-                        collisionsWillMove: false
+                        dynamic: false
                     })
                     // print('ARROW COLLIDED WITH::' + entityB);
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
@@ -286,7 +286,7 @@
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true,
                 userData: JSON.stringify({
                     grabbableKey: {
@@ -304,7 +304,7 @@
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, BOTTOM_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true,
                 userData: JSON.stringify({
                     grabbableKey: {
@@ -389,7 +389,7 @@
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
                 visible: true,
-                collisionsWillMove: false,
+                dynamic: false,
                 ignoreForCollisions: true,
                 userData: JSON.stringify({
                     grabbableKey: {
@@ -538,7 +538,7 @@
 
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
-                    collisionsWillMove: true,
+                    dynamic: true,
                     ignoreForCollisions: false,
                     collisionMask: "static,dynamic,otherAvatar", // workaround: not with kinematic --> no collision with bow
                     velocity: releaseVelocity,

@@ -15,6 +15,7 @@ Windows.Window {
     destroyOnInvisible: false
     closable: false
     visible: false
+    width: 384; height: 640;
     property string newTabSource
     property alias tabView: tabView
     onParentChanged: {
@@ -43,7 +44,8 @@ Windows.Window {
     }
 
     TabView {
-        id: tabView; width: 384; height: 640;
+        anchors.fill: parent
+        id: tabView;
         onCountChanged: {
             if (0 == count) {
                 toolWindow.visible = false
@@ -73,13 +75,37 @@ Windows.Window {
                 return i;
             }
         }
+        console.warn("Could not find tab for " + source);
         return -1;
+    }
+
+    function findTabForUrl(source) {
+        var index = findIndexForUrl(source);
+        if (index < 0) {
+            return;
+        }
+        return tabView.getTab(index);
+    }
+
+    function showTabForUrl(source, newVisible) {
+        var index = findIndexForUrl(source);
+        if (index < 0) {
+            return;
+        }
+
+        var tab = tabView.getTab(index);
+        if (newVisible) {
+            toolWindow.visible = true
+            tab.enabled = true
+        } else {
+            tab.enabled = false;
+            updateVisiblity();
+        }
     }
 
     function removeTabForUrl(source) {
         var index = findIndexForUrl(source);
         if (index < 0) {
-            console.warn("Could not find tab for " + source);
             return;
         }
         tabView.removeTab(index);

@@ -42,7 +42,7 @@ function makeBasketball() {
             y: DIAMETER,
             z: DIAMETER
         },
-        collisionsWillMove: true,
+        dynamic: true,
         collisionSoundURL: collisionSoundURL,
         modelURL: basketballURL,
         restitution: 1.0,

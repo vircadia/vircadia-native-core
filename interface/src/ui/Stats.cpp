@@ -348,6 +348,10 @@ void Stats::setRenderDetails(const RenderDetails& details) {
         STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
         STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
         STAT_UPDATE(opaqueRendered, (int)details._opaque._rendered);
+        STAT_UPDATE(shadowConsidered, (int)details._shadow._considered);
+        STAT_UPDATE(shadowOutOfView, details._shadow._outOfView);
+        STAT_UPDATE(shadowTooSmall, details._shadow._tooSmall);
+        STAT_UPDATE(shadowRendered, (int)details._shadow._rendered);
         STAT_UPDATE(translucentConsidered, (int)details._translucent._considered);
         STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
         STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);

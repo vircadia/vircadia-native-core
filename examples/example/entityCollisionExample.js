@@ -19,7 +19,7 @@ var position = Vec3.sum(MyAvatar.position, Quat.getFront(MyAvatar.orientation));
 var properties = {
   type: "Box",
   position: position,
-  collisionsWillMove: true,
+  dynamic: true,
   color: { red: 200, green: 0, blue: 0 }
 };
 var collider = Entities.addEntity(properties);

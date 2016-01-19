@@ -18,7 +18,6 @@
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 
-
 using namespace render;
 
 void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
@@ -60,27 +59,6 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         }
     }
     renderDetails->_rendered += outItems.size();
-}
-
-
-void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    outItems.clear();
-
-    const auto& bucket = scene->getMasterBucket();
-    const auto& items = bucket.find(_filter);
-    if (items != bucket.end()) {
-        outItems.reserve(items->second.size());
-        for (auto& id : items->second) {
-            auto& item = scene->getItem(id);
-            outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
-        }
-    }
-
-    if (_probeNumItems) {
-        _probeNumItems(renderContext, (int)outItems.size());
-    }
 }
 
 struct ItemBound {
@@ -146,14 +124,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
     }
 }
 
-
-void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    outItems.clear();
-    outItems.reserve(inItems.size());
-    depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
-}
-
-void render::renderLights(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->getArgs();
 
@@ -190,6 +161,30 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
+void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
+    auto& scene = sceneContext->_scene;
+
+    outItems.clear();
+
+    const auto& bucket = scene->getMasterBucket();
+    const auto& items = bucket.find(_filter);
+    if (items != bucket.end()) {
+        outItems.reserve(items->second.size());
+        for (auto& id : items->second) {
+            auto& item = scene->getItem(id);
+            outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
+        }
+    }
+
+    if (_probeNumItems) {
+        _probeNumItems(renderContext, (int)outItems.size());
+    }
+}
+
+void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+    depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
+}
+
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
@@ -214,7 +209,39 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderLights(sceneContext, renderContext, culledItems);
+        renderItems(sceneContext, renderContext, culledItems);
         args->_batch = nullptr;
     });
+}
+
+void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ShapesIDsBounds& outShapes) {
+    auto& scene = sceneContext->_scene;
+    outShapes.clear();
+
+    for (const auto& item : inItems) {
+        auto key = scene->getItem(item.id).getShapeKey();
+        auto outItems = outShapes.find(key);
+        if (outItems == outShapes.end()) {
+            outItems = outShapes.insert(std::make_pair(key, ItemIDsBounds{})).first;
+            outItems->second.reserve(inItems.size());
+        }
+
+        outItems->second.push_back(item);
+    }
+
+    for (auto& items : outShapes) {
+        items.second.shrink_to_fit();
+    }
+}
+
+void DepthSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes) {
+    for (auto& pipeline : inShapes) {
+        auto& inItems = pipeline.second;
+        auto outItems = outShapes.find(pipeline.first);
+        if (outItems == outShapes.end()) {
+            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemIDsBounds{})).first;
+        }
+
+        depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems->second);
+    }
 }

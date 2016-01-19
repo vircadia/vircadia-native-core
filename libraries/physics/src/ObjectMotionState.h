@@ -23,13 +23,13 @@
 #include "ContactInfo.h"
 #include "ShapeManager.h"
 
-enum MotionType {
+enum PhysicsMotionType {
     MOTION_TYPE_STATIC,     // no motion
     MOTION_TYPE_DYNAMIC,    // motion according to physical laws
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
-inline QString motionTypeToString(MotionType motionType) {
+inline QString motionTypeToString(PhysicsMotionType motionType) {
     switch(motionType) {
         case MOTION_TYPE_STATIC: return QString("static");
         case MOTION_TYPE_DYNAMIC: return QString("dynamic");
@@ -88,7 +88,7 @@ public:
     virtual void updateBodyMassProperties();
 
     MotionStateType getType() const { return _type; }
-    virtual MotionType getMotionType() const { return _motionType; }
+    virtual PhysicsMotionType getMotionType() const { return _motionType; }
 
     void setMass(float mass) { _mass = fabsf(mass); }
     float getMass() { return _mass; }
@@ -105,7 +105,7 @@ public:
     virtual uint32_t getIncomingDirtyFlags() = 0;
     virtual void clearIncomingDirtyFlags() = 0;
 
-    virtual MotionType computeObjectMotionType() const = 0;
+    virtual PhysicsMotionType computePhysicsMotionType() const = 0;
 
     btCollisionShape* getShape() const { return _shape; }
     btRigidBody* getRigidBody() const { return _body; }
@@ -150,13 +150,13 @@ public:
 protected:
     virtual bool isReadyToComputeShape() const = 0;
     virtual btCollisionShape* computeNewShape() = 0;
-    void setMotionType(MotionType motionType);
+    void setMotionType(PhysicsMotionType motionType);
     void updateCCDConfiguration();
 
     void setRigidBody(btRigidBody* body);
 
     MotionStateType _type = MOTIONSTATE_TYPE_INVALID; // type of MotionState
-    MotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
+    PhysicsMotionType _motionType; // type of motion: KINEMATIC, DYNAMIC, or STATIC
 
     btCollisionShape* _shape;
     btRigidBody* _body;
