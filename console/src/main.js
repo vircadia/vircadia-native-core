@@ -569,39 +569,38 @@ app.on('ready', function() {
         tray.popUpContextMenu(tray.menu);
     });
 
-    // if (buildInfo.releaseType == 'PRODUCTION') {
-    if (true) { // TODO: remove, uncomment line above
-        var currentVersion = null;
-        try {
-            currentVersion = parseInt(buildInfo.buildIdentifier);
-        } catch (e) {
-        }
-        currentVersion = 0; // TODO: remove
-
-        if (currentVersion !== null) {
-            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 20;
-            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
-            updateChecker.on('update-available', function(latestVersion, url) {
-                notifier.notify({
-                    icon: trayIcon,
-                    title: 'An update is available!',
-                    message: 'High Fidelity version ' + latestVersion + ' is available',
-                    wait: true,
-                    url: url
-                });
-            });
-            notifier.on('click', function(notifierObject, options) {
-                console.log("Got click", options.url);
-                shell.openExternal(options.url);
-            });
-        }
-    }
-
-
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
     maybeInstallDefaultContentSet(function() {
         maybeShowSplash();
+
+        // if (buildInfo.releaseType == 'PRODUCTION') {
+        if (true) { // TODO: remove, uncomment line above
+            var currentVersion = null;
+            try {
+                currentVersion = parseInt(buildInfo.buildIdentifier);
+            } catch (e) {
+            }
+            currentVersion = 0; // TODO: remove
+
+            if (currentVersion !== null) {
+                const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 20;
+                const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+                updateChecker.on('update-available', function(latestVersion, url) {
+                    notifier.notify({
+                        icon: trayIcon,
+                        title: 'An update is available!',
+                        message: 'High Fidelity version ' + latestVersion + ' is available',
+                        wait: true,
+                        url: url
+                    });
+                });
+                notifier.on('click', function(notifierObject, options) {
+                    console.log("Got click", options.url);
+                    shell.openExternal(options.url);
+                });
+            }
+        }
 
         if (dsPath && acPath) {
             domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
