@@ -466,7 +466,7 @@ function maybeInstallDefaultContentSet(onComplete) {
 
         // Start downloading content set
         var req = progress(request.get({
-            url: "https://s3.amazonaws.com/hifi-public/homeset/updated.zip"
+            url: "https://s3.amazonaws.com/hifi-public/homeset/demo.zip"
         }, function(error, responseMessage, responseData) {
             if (aborted) {
                 return;
