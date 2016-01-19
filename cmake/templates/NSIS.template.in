@@ -828,7 +828,8 @@ Var DesktopServerCheckbox
 Var ServerStartupCheckbox
 Var LaunchNowCheckbox
 Var CurrentOffset
-Var CopyForPRCheckbox
+Var OffsetUnits
+Var CopyFromProductionCheckbox
 
 !macro SetPostInstallOption Checkbox OptionName Default
   ; reads the value for the given post install option to the registry
@@ -873,9 +874,10 @@ Function PostInstallOptionsPage
   ShowWindow $OptionsLabel ${SW_SHOW}
 
   StrCpy $CurrentOffset 15
+  StrCpy $OffsetUnits u
 
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
 
@@ -885,7 +887,7 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
     Pop $DesktopServerCheckbox
 
     ; set the checkbox state depending on what is present in the registry
@@ -893,7 +895,7 @@ Function PostInstallOptionsPage
 
     IntOp $CurrentOffset $CurrentOffset + 15
 
-    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
     Pop $ServerStartupCheckbox
 
     ; set the checkbox state depending on what is present in the registry
@@ -902,7 +904,7 @@ Function PostInstallOptionsPage
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Launch High Fidelity Now"
+  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Now"
   Pop $LaunchNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
@@ -912,7 +914,8 @@ Function PostInstallOptionsPage
     ; push the offset
     IntOp $CurrentOffset $CurrentOffset + 15
 
-    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Copy settings and content from production install"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Copy settings and content from production install"
+    Pop $CopyFromProductionCheckbox
   ${EndIf}
 
   nsDialogs::Show
@@ -923,17 +926,18 @@ FunctionEnd
   WriteRegStr HKLM "@REGISTRY_HKLM_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@\@POST_INSTALL_OPTIONS_REG_GROUP@" "${OptionName}" ${Option}
 !macroend
 
-Var DESKTOP_CLIENT_STATE
-Var DESKTOP_SERVER_STATE
-Var SERVER_STARTUP_STATE
-VAR LAUNCH_NOW_STATE
+Var DesktopClientState
+Var DesktopServerState
+Var ServerStartupState
+Var LaunchNowState
+Var CopyFromProductionState
 
 Function HandlePostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
-    ${NSD_GetState} $DesktopClientCheckbox $DESKTOP_CLIENT_STATE
+    ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
 
-    ${If} $DESKTOP_CLIENT_STATE == ${BST_CHECKED}
+    ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
     ${Else}
@@ -944,9 +948,9 @@ Function HandlePostInstallOptions
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to Server Console
-    ${NSD_GetState} $DesktopServerCheckbox $DESKTOP_SERVER_STATE
+    ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
 
-    ${If} $DESKTOP_SERVER_STATE == ${BST_CHECKED}
+    ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
     ${Else}
@@ -954,9 +958,9 @@ Function HandlePostInstallOptions
     ${EndIf}
 
     ; check if the user asked to have Server Console launched every startup
-    ${NSD_GetState} $ServerStartupCheckbox $SERVER_STARTUP_STATE
+    ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
 
-    ${If} $SERVER_STARTUP_STATE == ${BST_CHECKED}
+    ${If} $ServerStartupState == ${BST_CHECKED}
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
 
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
@@ -965,10 +969,21 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ; check if we need to launch an application post-install
-  ${NSD_GetState} $LaunchNowCheckbox $LAUNCH_NOW_STATE
+  ${If} @PRODUCTION_BUILD@ == 1
+    ; check if we need to copy settings/content from production for this PR build
+    ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
 
-  ${If} $LAUNCH_NOW_STATE == ${BST_CHECKED}
+    ${If} $CopyFromProductionState == ${BST_CHECKED}
+      ; we need to copy whatever is in the data folder for production build to the data folder for this build
+      CreateDirectory "$APPDATA\@MODIFIED_ORGANIZATION@"
+      CopyFiles "$APPDATA\High Fidelity\" "$APPDATA\@MODIFIED_ORGANIZATION@\"
+    ${EndIf}
+  ${EndIf}
+
+  ; check if we need to launch an application post-install
+  ${NSD_GetState} $LaunchNowCheckbox $LaunchNowState
+
+  ${If} $LaunchNowState == ${BST_CHECKED}
     !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
 
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
