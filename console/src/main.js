@@ -4,6 +4,8 @@ const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
 
+const notifier = require('node-notifier');
+const util = require('util');
 const dialog = electron.dialog;
 const Menu = require('menu');
 const Tray = require('tray');
@@ -19,6 +21,8 @@ const unzip = require('unzip');
 const request = require('request');
 const progress = require('request-progress');
 const osHomeDir = require('os-homedir');
+
+const updater = require('./modules/hf-updater.js');
 
 const Config = require('./modules/config').Config;
 
@@ -564,6 +568,35 @@ app.on('ready', function() {
     tray.on('click', function() {
         tray.popUpContextMenu(tray.menu);
     });
+
+    // if (buildInfo.releaseType == 'PRODUCTION') {
+    if (true) { // TODO: remove, uncomment line above
+        var currentVersion = null;
+        try {
+            currentVersion = parseInt(buildInfo.buildIdentifier);
+        } catch (e) {
+        }
+        currentVersion = 0; // TODO: remove
+
+        if (currentVersion !== null) {
+            const CHECK_FOR_UPDATES_INTERVAL_SECONDS = 20;
+            const updateChecker = new updater.UpdateChecker(currentVersion, CHECK_FOR_UPDATES_INTERVAL_SECONDS);
+            updateChecker.on('update-available', function(latestVersion, url) {
+                notifier.notify({
+                    icon: trayIcon,
+                    title: 'An update is available!',
+                    message: 'High Fidelity version ' + latestVersion + ' is available',
+                    wait: true,
+                    url: url
+                });
+            });
+            notifier.on('click', function(notifierObject, options) {
+                console.log("Got click", options.url);
+                shell.openExternal(options.url);
+            });
+        }
+    }
+
 
     updateTrayMenu(ProcessGroupStates.STOPPED);
 
