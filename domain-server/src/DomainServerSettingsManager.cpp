@@ -193,7 +193,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
 
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _configMap.getUserConfig());
+        recurseJSONObjectAndOverwriteSettings(postedObject);
 
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -407,8 +407,9 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
-                                                                        QVariantMap& settingsVariant) {
+void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+    auto& settingsVariant = _configMap.getUserConfig();
+    
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         QJsonValue rootValue = postedObject[rootKey];

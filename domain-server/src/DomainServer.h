@@ -90,6 +90,7 @@ private:
     bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();
+    void setupICEHeartbeatForFullNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
 
     unsigned int countConnectedUsers();
@@ -149,6 +150,8 @@ private:
     DomainServerSettingsManager _settingsManager;
 
     HifiSockAddr _iceServerSocket;
+
+    QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
     
     friend class DomainGatekeeper;
 };

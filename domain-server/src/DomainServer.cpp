@@ -242,16 +242,49 @@ void DomainServer::optionallyGetTemporaryName(const QStringList& arguments) {
         callbackParameters.errorCallbackMethod = "handleTempDomainError";
 
         accountManager.sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
-                                   QNetworkAccessManager::GetOperation, callbackParameters);
+                                   QNetworkAccessManager::PostOperation, callbackParameters);
     }
 }
 
 void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+
+    // grab the information for the new domain
+    static const QString DATA_KEY = "data";
+    static const QString DOMAIN_KEY = "domain";
+    static const QString ID_KEY = "id";
+    static const QString NAME_KEY = "name";
+
+    auto domainObject = jsonObject[DATA_KEY].toObject()[DOMAIN_KEY].toObject();
+    if (!domainObject.isEmpty()) {
+        auto id = domainObject[ID_KEY].toString();
+        auto name = domainObject[NAME_KEY].toString();
+
+        qInfo() << "Received new temporary domain name" << name;
+        qDebug() << "The temporary domain ID is" << id;
+
+        // store the new domain ID and auto network setting immediately
+        QString newSettingsJSON = QString("{\"metaverse\": { \"id\": \"%1\", \"automatic_networking\": \"full\"}}").arg(id);
+        auto settingsDocument = QJsonDocument::fromJson(newSettingsJSON.toUtf8());
+        _settingsManager.recurseJSONObjectAndOverwriteSettings(settingsDocument.object());
+
+        // store the new ID and auto networking setting on disk
+        _settingsManager.persistToFile();
+
+        // change our domain ID immediately
+        DependencyManager::get<LimitedNodeList>()->setSessionUUID(QUuid { id });
+
+        // change our automatic networking settings so that we're communicating with the ICE server
+        setupICEHeartbeatForFullNetworking();
+
+    } else {
+        qWarning() << "There were problems parsing the API response containing a temporary domain name. Please try again"
+            << "via domain-server relaunch or from the domain-server settings.";
+    }
 }
 
 void DomainServer::handleTempDomainError(QNetworkReply& requestReply) {
-    qWarning() << "A temporary name was requested but there was an error creating one. Try again via domain-server relaunch"
+    qWarning() << "A temporary name was requested but there was an error creating one. Please try again via domain-server relaunch"
         << "or from the domain-server settings.";
 }
 
@@ -417,19 +450,7 @@ void DomainServer::setupAutomaticNetworking() {
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
     if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
-        connect(nodeList.data(), &LimitedNodeList::localSockAddrChanged,
-                this, &DomainServer::sendHeartbeatToIceServer);
-        connect(nodeList.data(), &LimitedNodeList::publicSockAddrChanged,
-                this, &DomainServer::sendHeartbeatToIceServer);
-
-        // we need this DS to know what our public IP is - start trying to figure that out now
-        nodeList->startSTUNPublicSocketUpdate();
-
-        // setup a timer to heartbeat with the ice-server every so often
-        QTimer* iceHeartbeatTimer = new QTimer(this);
-        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
-        iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+        
     }
 
     if (!didSetupAccountManagerWithAccessToken()) {
@@ -477,6 +498,26 @@ void DomainServer::setupAutomaticNetworking() {
     QTimer* dataHeartbeatTimer = new QTimer(this);
     connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
+}
+
+void DomainServer::setupICEHeartbeatForFullNetworking() {
+    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+    // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
+    connect(limitedNodeList.data(), &LimitedNodeList::localSockAddrChanged,
+            this, &DomainServer::sendHeartbeatToIceServer);
+    connect(limitedNodeList.data(), &LimitedNodeList::publicSockAddrChanged,
+            this, &DomainServer::sendHeartbeatToIceServer);
+
+    // we need this DS to know what our public IP is - start trying to figure that out now
+    limitedNodeList->startSTUNPublicSocketUpdate();
+
+    if (!_iceHeartbeatTimer) {
+        // setup a timer to heartbeat with the ice-server every so often
+        _iceHeartbeatTimer = new QTimer { this };
+        connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
+        _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+    }
 }
 
 void DomainServer::loginFailed() {
