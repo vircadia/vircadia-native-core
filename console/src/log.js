@@ -72,7 +72,6 @@ ready = function() {
             var logTail = new Tail(cleanFilePath, '\n', { start: 0, interval: 500 });
 
             logTail.on('line', function(msg) {
-                // console.log('msg', msg, stream);
                 appendLogMessage(0, msg, stream);
             });
 
