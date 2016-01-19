@@ -1147,7 +1147,7 @@ void OctreeServer::domainSettingsRequestComplete() {
         // If there is, let's copy it over to our target persist directory
         QString oldResourcesDirectory = QCoreApplication::applicationDirPath();
         auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
-        auto persistPath = ServerPathUtils::getDataFilePath(_persistFilename);
+        auto persistPath = ServerPathUtils::getDataFilePath("entities/" + QString(_persistFilename));
         if (oldPersistPath != persistPath && !QFile::exists(persistPath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
             if (QFile::exists(oldPersistPath)) {
