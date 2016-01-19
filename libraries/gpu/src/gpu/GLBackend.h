@@ -329,16 +329,19 @@ protected:
         TransformCamera _camera;
         TransformCameras _cameras;
 
-        GLuint _objectBuffer{ 0 };
-        GLuint _cameraBuffer{ 0 };
-        size_t _cameraUboSize{ 0 };
+        mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
+
+        GLuint _objectBuffer { 0 };
+        GLuint _cameraBuffer { 0 };
+        GLuint _drawCallInfoBuffer { 0 };
+        size_t _cameraUboSize { 0 };
         Transform _view;
         Mat4 _projection;
-        Vec4i _viewport{ 0, 0, 1, 1 };
-        Vec2 _depthRange{ 0.0f, 1.0f };
-        bool _invalidView{false};
-        bool _invalidProj{false};
-        bool _invalidViewport{ false };
+        Vec4i _viewport { 0, 0, 1, 1 };
+        Vec2 _depthRange { 0.0f, 1.0f };
+        bool _invalidView { false };
+        bool _invalidProj { false };
+        bool _invalidViewport { false };
 
         using Pair = std::pair<size_t, size_t>;
         using List = std::list<Pair>;

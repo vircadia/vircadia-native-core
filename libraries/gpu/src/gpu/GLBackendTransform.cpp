@@ -61,6 +61,7 @@ void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
 void GLBackend::initTransform() {
     glGenBuffers(1, &_transform._objectBuffer);
     glGenBuffers(1, &_transform._cameraBuffer);
+    glGenBuffers(1, &_transform._drawCallInfoBuffer);
     size_t cameraSize = sizeof(TransformCamera);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
@@ -70,6 +71,7 @@ void GLBackend::initTransform() {
 void GLBackend::killTransform() {
     glDeleteBuffers(1, &_transform._objectBuffer);
     glDeleteBuffers(1, &_transform._cameraBuffer);
+    glDeleteBuffers(1, &_transform._drawCallInfoBuffer);
 }
 
 void GLBackend::syncTransformStateCache() {
@@ -140,6 +142,21 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
 
+    if (!batch._namedData.empty()) {
+        bufferData.clear();
+        for (auto& data : batch._namedData) {
+            auto currentSize = bufferData.size();
+            auto bytesToCopy = data.second.drawCallInfos.size() * sizeof(Batch::DrawCallInfo);
+            bufferData.resize(currentSize + bytesToCopy);
+            memcpy(bufferData.data() + currentSize, data.second.drawCallInfos.data(), bytesToCopy);
+            _drawCallInfoOffsets[data.first] = (GLvoid*)currentSize;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, _drawCallInfoBuffer);
+        glBufferData(GL_ARRAY_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
     CHECK_GL_ERROR();
 }
 
@@ -169,12 +186,21 @@ void GLBackend::updateTransform(const Batch& batch) {
 
     auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
     if (batch._currentNamedCall.empty()) {
-        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
         auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
-        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, (GLint)drawCallInfo.index, (GLint)drawCallInfo.unused);
+        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
+        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
     } else {
-        glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO);
-        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_SHORT, 4, drawCallInfoBuffer.data());
+        if (false) {
+            auto& drawCallInfo = drawCallInfoBuffer[0];
+            glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
+            glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+        } else {
+            glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
+            glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+            glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
+                                   _transform._drawCallInfoOffsets[batch._currentNamedCall]);
+            glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 100000);
+        }
     }
 }
 

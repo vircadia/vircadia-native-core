@@ -52,8 +52,8 @@ public:
 
         DrawCallInfo(Index idx) : index(idx) {}
 
-        Index index{0};
-        uint16_t unused{0}; // Reserved space for later
+        Index index { 0 };
+        uint16_t unused { 0 }; // Reserved space for later
 
     };
     // Make sure DrawCallInfo has no extra padding
@@ -68,6 +68,7 @@ public:
         BufferPointers buffers;
         Function function;
         DrawCallInfoBuffer drawCallInfos;
+        size_t numVertices;
 
         size_t count() const { return drawCallInfos.size();  }
 
