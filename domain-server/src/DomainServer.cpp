@@ -82,7 +82,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // (need this since domain-server can restart itself and maintain static variables)
     AccountManager::getInstance(true);
 
-    _settingsManager.setupConfigMap(arguments());
+    auto args = arguments();
+
+    _settingsManager.setupConfigMap(args);
 
     // setup a shutdown event listener to handle SIGTERM or WM_CLOSE for us
 #ifdef _WIN32
@@ -111,6 +113,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         // preload some user public keys so they can connect on first request
         _gatekeeper.preloadAllowedUserPublicKeys();
+
+        optionallyGetTemporaryName(args);
     }
 }
 
@@ -210,6 +214,47 @@ bool DomainServer::optionallySetupOAuth() {
     return true;
 }
 
+static const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
+
+void DomainServer::optionallyGetTemporaryName(const QStringList& arguments) {
+    // check for the temporary name parameter
+    const QString GET_TEMPORARY_NAME_SWITCH = "--get-temp-name";
+
+    if (arguments.contains(GET_TEMPORARY_NAME_SWITCH)) {
+
+        // make sure we don't already have a domain ID
+        const QVariant* idValueVariant = valueForKeyPath(_settingsManager.getSettingsMap(), METAVERSE_DOMAIN_ID_KEY_PATH);
+        if (idValueVariant) {
+            qWarning() << "Temporary domain name requested but a domain ID is already present in domain-server settings."
+                << "Will not request temporary name.";
+            return;
+        }
+
+        // we've been asked to grab a temporary name from the API
+        // so fire off that request now
+        auto& accountManager = AccountManager::getInstance();
+
+        // ask our auth endpoint for our balance
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.jsonCallbackMethod = "handleTempDomainSuccess";
+        callbackParameters.errorCallbackReceiver = this;
+        callbackParameters.errorCallbackMethod = "handleTempDomainError";
+
+        accountManager.sendRequest("/api/v1/domains/temporary", AccountManagerAuth::None,
+                                   QNetworkAccessManager::GetOperation, callbackParameters);
+    }
+}
+
+void DomainServer::handleTempDomainSuccess(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+}
+
+void DomainServer::handleTempDomainError(QNetworkReply& requestReply) {
+    qWarning() << "A temporary name was requested but there was an error creating one. Try again via domain-server relaunch"
+        << "or from the domain-server settings.";
+}
+
 const QString DOMAIN_CONFIG_ID_KEY = "id";
 
 const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
@@ -260,7 +305,6 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
-    const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
         nodeList->setSessionUUID(idValueVariant->toString());

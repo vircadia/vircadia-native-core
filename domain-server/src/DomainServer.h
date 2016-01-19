@@ -74,12 +74,17 @@ private slots:
     void sendHeartbeatToIceServer();
     
     void handleConnectedNode(SharedNodePointer newNode);
+
+    void handleTempDomainSuccess(QNetworkReply& requestReply);
+    void handleTempDomainError(QNetworkReply& requestReply);
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
     bool optionallySetupAssignmentPayment();
+
+    void optionallyGetTemporaryName(const QStringList& arguments);
 
     bool didSetupAccountManagerWithAccessToken();
     bool resetAccountManagerAccessToken();
