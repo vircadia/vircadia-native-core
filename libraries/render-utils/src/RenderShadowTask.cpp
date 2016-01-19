@@ -138,20 +138,24 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const Render
         return;
     }
 
+    // Cache old render args
     ViewFrustum* viewFrustum = args->_viewFrustum;
+    RenderArgs::RenderMode mode = args->_renderMode;
 
     auto nearClip = viewFrustum->getNearClip();
     const int SHADOW_NEAR_DEPTH = -2;
     const int SHADOW_FAR_DEPTH = 20;
     globalLight->shadow.setKeylightFrustum(viewFrustum, nearClip + SHADOW_NEAR_DEPTH, nearClip + SHADOW_FAR_DEPTH);
 
-    // Set the keylight frustum
+    // Set the keylight render args
     args->_viewFrustum = globalLight->shadow.getFrustum().get();
+    args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
 
-    // Reset the view frustum
+    // Reset the render args
     args->_viewFrustum = viewFrustum;
+    args->_renderMode = mode;
 };
