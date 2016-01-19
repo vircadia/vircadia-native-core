@@ -10,7 +10,6 @@ function ready() {
     var currentState = null;
 
     function updateState(state, args) {
-        console.log(state, args);
         if (state == 'downloading') {
             function formatBytes(size) {
                 return (size / 1000000).toFixed('2');
