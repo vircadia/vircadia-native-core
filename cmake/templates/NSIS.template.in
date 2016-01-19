@@ -821,13 +821,14 @@ FunctionEnd
 ; Make sure nsDialogs is included before we use it
 !include "nsdialogs.nsh"
 
-Var POST_INSTALL_DIALOG
-Var OPTIONS_LABEL
-Var DESKTOP_CLIENT_CHECKBOX
-Var DESKTOP_SERVER_CHECKBOX
-Var SERVER_STARTUP_CHECKBOX
-Var LAUNCH_NOW_CHECKBOX
-Var CURRENT_OFFSET
+Var PostInstallDialog
+Var OptionsLabel
+Var DesktopClientCheckbox
+Var DesktopServerCheckbox
+Var ServerStartupCheckbox
+Var LaunchNowCheckbox
+Var CurrentOffset
+Var CopyForPRCheckbox
 
 !macro SetPostInstallOption Checkbox OptionName Default
   ; reads the value for the given post install option to the registry
@@ -854,66 +855,65 @@ Function PostInstallOptionsPage
   ShowWindow $R3 0
 
   nsDialogs::Create 1018
-  Pop $POST_INSTALL_DIALOG
+  Pop $PostInstallDialog
 
-  ${If} $POST_INSTALL_DIALOG == error
+  ${If} $PostInstallDialog == error
     Abort
   ${EndIf}
 
   ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
-  Pop $OPTIONS_LABEL
+  Pop $OptionsLabel
 
   ; Set label to bold
   CreateFont $R2 "Arial" 10 700
-  SendMessage $OPTIONS_LABEL ${WM_SETFONT} $R2 0
+  SendMessage $OptionsLabel ${WM_SETFONT} $R2 0
 
   ; Force label redraw
-  ShowWindow $OPTIONS_LABEL ${SW_HIDE}
-  ShowWindow $OPTIONS_LABEL ${SW_SHOW}
+  ShowWindow $OptionsLabel ${SW_HIDE}
+  ShowWindow $OptionsLabel ${SW_SHOW}
 
-  StrCpy $CURRENT_OFFSET "15u"
+  StrCpy $CurrentOffset 15
 
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 15u 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
-    Pop $DESKTOP_CLIENT_CHECKBOX
-    StrCpy $CURRENT_OFFSET "30u"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Create a desktop shortcut for @INTERFACE_SHORTCUT_NAME@"
+    Pop $DesktopClientCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15
 
     ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetPostInstallOption $DESKTOP_CLIENT_CHECKBOX @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
+    !insertmacro SetPostInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
 
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
-    Pop $DESKTOP_SERVER_CHECKBOX
+    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Create a desktop shortcut for High Fidelity @CONSOLE_SHORTCUT_NAME@"
+    Pop $DesktopServerCheckbox
 
     ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetPostInstallOption $DESKTOP_SERVER_CHECKBOX @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
+    !insertmacro SetPostInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
 
-    ${If} $CURRENT_OFFSET == "15u"
-      StrCpy $CURRENT_OFFSET "30u"
-    ${Else}
-      StrCpy $CURRENT_OFFSET "45u"
-    ${EndIf}
+    IntOp $CurrentOffset $CurrentOffset + 15
 
-    ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
-    Pop $SERVER_STARTUP_CHECKBOX
+    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Launch High Fidelity @CONSOLE_SHORTCUT_NAME@ on startup"
+    Pop $ServerStartupCheckbox
 
     ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetPostInstallOption $SERVER_STARTUP_CHECKBOX @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+    !insertmacro SetPostInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
 
-    ${If} $CURRENT_OFFSET == "30u"
-      StrCpy $CURRENT_OFFSET "45u"
-    ${Else}
-      StrCpy $CURRENT_OFFSET "60u"
-    ${EndIf}
+    IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 $CURRENT_OFFSET 100% 10u "&Launch High Fidelity Now"
-  Pop $LAUNCH_NOW_CHECKBOX
+  ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Launch High Fidelity Now"
+  Pop $LaunchNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
-  !insertmacro SetPostInstallOption $LAUNCH_NOW_CHECKBOX @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+  !insertmacro SetPostInstallOption $LaunchNowCheckbox @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+
+  ${If} @PR_BUILD@ == 1
+    ; push the offset
+    IntOp $CurrentOffset $CurrentOffset + 15
+
+    ${NSD_CreateCheckbox} 0 $CurrentOffset 100% 10u "&Copy data from production install"
+  ${EndIf}
 
   nsDialogs::Show
 FunctionEnd
@@ -931,7 +931,7 @@ VAR LAUNCH_NOW_STATE
 Function HandlePostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
-    ${NSD_GetState} $DESKTOP_CLIENT_CHECKBOX $DESKTOP_CLIENT_STATE
+    ${NSD_GetState} $DesktopClientCheckbox $DESKTOP_CLIENT_STATE
 
     ${If} $DESKTOP_CLIENT_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
@@ -944,7 +944,7 @@ Function HandlePostInstallOptions
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to Server Console
-    ${NSD_GetState} $DESKTOP_SERVER_CHECKBOX $DESKTOP_SERVER_STATE
+    ${NSD_GetState} $DesktopServerCheckbox $DESKTOP_SERVER_STATE
 
     ${If} $DESKTOP_SERVER_STATE == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
@@ -954,7 +954,7 @@ Function HandlePostInstallOptions
     ${EndIf}
 
     ; check if the user asked to have Server Console launched every startup
-    ${NSD_GetState} $SERVER_STARTUP_CHECKBOX $SERVER_STARTUP_STATE
+    ${NSD_GetState} $ServerStartupCheckbox $SERVER_STARTUP_STATE
 
     ${If} $SERVER_STARTUP_STATE == ${BST_CHECKED}
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
@@ -966,7 +966,7 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ; check if we need to launch an application post-install
-  ${NSD_GetState} $LAUNCH_NOW_CHECKBOX $LAUNCH_NOW_STATE
+  ${NSD_GetState} $LaunchNowCheckbox $LAUNCH_NOW_STATE
 
   ${If} $LAUNCH_NOW_STATE == ${BST_CHECKED}
     !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
