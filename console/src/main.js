@@ -54,7 +54,7 @@ function getBuildInfo() {
     if (buildInfoPath) {
         console.log('Build info path:', buildInfoPath);
         try {
-            buildInfo = fs.readFileSync(buildInfoPath);
+            buildInfo = JSON.parse(fs.readFileSync(buildInfoPath));
         } catch (e) {
             buildInfo = DEFAULT_BUILD_INFO;
         }
