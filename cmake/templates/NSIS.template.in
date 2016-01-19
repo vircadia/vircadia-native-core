@@ -978,7 +978,7 @@ Function HandlePostInstallOptions
     ${If} $CopyFromProductionState == ${BST_CHECKED}
       SetShellVarContext current
 
-      StrCopy $0 "$APPDATA\@BUILD_ORGANIZATION@"
+      StrCpy $0 "$APPDATA\@BUILD_ORGANIZATION@"
 
       ; we need to copy whatever is in the data folder for production build to the data folder for this build
       CreateDirectory $0
