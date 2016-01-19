@@ -545,10 +545,6 @@ function maybeShowSplash() {
     }
 }
 
-function detectExistingStackManagerResources() {
-    return false;
-}
-
 const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
 
