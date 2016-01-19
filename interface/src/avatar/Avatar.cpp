@@ -1224,22 +1224,9 @@ void Avatar::setOrientation(const glm::quat& orientation) {
 }
 
 void Avatar::updatePalms() {
-
-    // get palm rotations
-    glm::quat leftPalmRotation, rightPalmRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightPalmRotation);
-
-    // get palm positions
-    glm::vec3 leftPalmPosition, rightPalmPosition;
-    getSkeletonModel().getLeftHandPosition(leftPalmPosition);
-    getSkeletonModel().getRightHandPosition(rightPalmPosition);
-    leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
-    rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
-
     // update thread-safe caches
-    _leftPalmRotationCache.set(leftPalmRotation);
-    _rightPalmRotationCache.set(rightPalmRotation);
-    _leftPalmPositionCache.set(leftPalmPosition);
-    _rightPalmPositionCache.set(rightPalmPosition);
+    _leftPalmRotationCache.set(getUncachedLeftPalmRotation());
+    _rightPalmRotationCache.set(getUncachedRightPalmRotation());
+    _leftPalmPositionCache.set(getUncachedLeftPalmPosition());
+    _rightPalmPositionCache.set(getUncachedRightPalmPosition());
 }
