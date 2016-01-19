@@ -510,6 +510,8 @@ private:
     bool _reticleClickPressed { false };
 
     int _avatarAttachmentRequest = 0;
+
+    bool _settingsLoaded { false };
 };
 
 #endif // hifi_Application_h
