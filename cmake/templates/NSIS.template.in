@@ -1026,26 +1026,9 @@ FunctionEnd
     !define UniqueID ${__LINE__}
 
     ; the process is running, ask the user if they want us to close it
-    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-      "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nWould you like the ${prompter} to try closing it?" \
-      /SD IDCANCEL IDOK AttemptClose_${UniqueID} IDCANCEL Abort_${UniqueID}
-
-    AttemptClose_${UniqueID}:
-      ; attempt to close the given process
-      ${nsProcess::CloseProcess} ${applicationName} $R0
-
-      ; check if the process was closed
-      ${If} $R0 == 0
-        ; closed the running application
-        Goto Next_${UniqueID}
-      ${Else}
-        ; couldn't close the running application, bail
-        Abort
-      ${EndIf}
-    Abort_${UniqueID}:
-      Abort
-    Next_${UniqueID}:
-      !undef UniqueID
+    MessageBox MB_OK|MB_ICONEXCLAMATION \
+      "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close ${displayName} and try again."
+    Abort
   ${EndIf}
 !macroend
 
