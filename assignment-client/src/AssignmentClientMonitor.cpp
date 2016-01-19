@@ -321,7 +321,6 @@ bool AssignmentClientMonitor::handleHTTPRequest(HTTPConnection* connection, cons
             server["logStderr"] = ac.logStderrPath;
 
             servers[QString::number(ac.process->processId())] = server;
-
         }
 
         status["servers"] = servers;
