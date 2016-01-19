@@ -234,6 +234,9 @@ function openFileBrowser(path) {
     }
 }
 
+// NOTE: this looks like it does nothing, but it's very important.
+// Without it the default behaviour is to quit the app once all windows closed
+// which is absolutely not what we want for a taskbar application.
 app.on('window-all-closed', function() {
 });
 
