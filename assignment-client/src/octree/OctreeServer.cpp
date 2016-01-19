@@ -283,7 +283,7 @@ OctreeServer::~OctreeServer() {
 void OctreeServer::initHTTPManager(int port) {
     // setup the embedded web server
 
-    QString documentRoot = QString("%1/resources/web").arg(ServerPathUtils::getDataDirectory());
+    QString documentRoot = QString("%1/web").arg(ServerPathUtils::getDataDirectory());
 
     // setup an httpManager with us as the request handler and the parent
     _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
