@@ -70,6 +70,9 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
     glm::mat4 ortho = glm::ortho<float>(min.x, max.x, min.y, max.y, -max.z, -min.z);
     _frustum->setProjection(ortho);
 
+    // Calculate the frustum's internal state
+    _frustum->calculate();
+
     // Update the buffer
     _schemaBuffer.edit<Schema>().projection = ortho;
     _schemaBuffer.edit<Schema>().viewInverse = viewInverse.getMatrix();
