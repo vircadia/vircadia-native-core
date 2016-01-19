@@ -117,7 +117,7 @@ var leafSquall = function (properties) {
             },
             damping: 0,
             angularDamping: 0,
-            ignoreForCollisions: true
+            collisionless: true
 
         };
     }

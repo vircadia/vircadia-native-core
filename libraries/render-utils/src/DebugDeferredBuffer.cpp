@@ -20,6 +20,7 @@
 
 #include "GeometryCache.h"
 #include "FramebufferCache.h"
+#include "DeferredLightingEffect.h"
 
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
@@ -31,45 +32,53 @@ enum Slots {
     Normal,
     Specular,
     Depth,
-    Lighting
+    Lighting,
+    Shadow
 };
 
-static const std::string DEEFAULT_DIFFUSE_SHADER {
+static const std::string DEFAULT_DIFFUSE_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(diffuseMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_ALPHA_SHADER {
+static const std::string DEFAULT_ALPHA_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(diffuseMap, uv).a), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_SPECULAR_SHADER {
+static const std::string DEFAULT_SPECULAR_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(texture(specularMap, uv).xyz, 1.0);"
     " }"
 };
-static const std::string DEEFAULT_ROUGHNESS_SHADER {
+static const std::string DEFAULT_ROUGHNESS_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(specularMap, uv).a), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_NORMAL_SHADER {
+static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(normalize(texture(normalMap, uv).xyz), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_DEPTH_SHADER {
+static const std::string DEFAULT_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_LIGHTING_SHADER {
+static const std::string DEFAULT_LIGHTING_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
-static const std::string DEEFAULT_CUSTOM_SHADER {
+static const std::string DEFAULT_SHADOW_SHADER {
+    "uniform sampler2D shadowMapColor;"
+    // The actual shadowMap is a sampler2DShadow, so we cannot normally sample it
+    "vec4 getFragmentColor() {"
+    "    return vec4(texture(shadowMapColor, uv).xyz, 1.0);"
+    " }"
+};
+static const std::string DEFAULT_CUSTOM_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
     " }"
@@ -98,21 +107,23 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
 std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string customFile) {
     switch (mode) {
         case DiffuseMode:
-            return DEEFAULT_DIFFUSE_SHADER;
+            return DEFAULT_DIFFUSE_SHADER;
         case AlphaMode:
-            return DEEFAULT_ALPHA_SHADER;
+            return DEFAULT_ALPHA_SHADER;
         case SpecularMode:
-            return DEEFAULT_SPECULAR_SHADER;
+            return DEFAULT_SPECULAR_SHADER;
         case RoughnessMode:
-            return DEEFAULT_ROUGHNESS_SHADER;
+            return DEFAULT_ROUGHNESS_SHADER;
         case NormalMode:
-            return DEEFAULT_NORMAL_SHADER;
+            return DEFAULT_NORMAL_SHADER;
         case DepthMode:
-            return DEEFAULT_DEPTH_SHADER;
+            return DEFAULT_DEPTH_SHADER;
         case LightingMode:
-            return DEEFAULT_LIGHTING_SHADER;
+            return DEFAULT_LIGHTING_SHADER;
+        case ShadowMode:
+            return DEFAULT_SHADOW_SHADER;
         case CustomMode:
-            return getFileContent(customFile, DEEFAULT_CUSTOM_SHADER);
+            return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
     }
     Q_UNREACHABLE();
     return std::string();
@@ -158,6 +169,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
+        slotBindings.insert(gpu::Shader::Binding("shadowMapColor", Shadow));
         gpu::Shader::makeProgram(*program, slotBindings);
         
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
@@ -182,10 +194,18 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
     RenderArgs* args = renderContext->getArgs();
+
+    // Guard against unspecified modes
+    auto mode = renderContext->_deferredDebugMode;
+    if (mode > (int)CustomMode) {
+        renderContext->_deferredDebugMode = -1;
+        return;
+    }
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        
+        const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
         
         glm::mat4 projMat;
         Transform viewMat;
@@ -205,6 +225,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
+        batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getRenderBuffer(0));
         
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);

@@ -128,7 +128,7 @@ public:
     virtual glm::vec3 getObjectAngularVelocity() const = 0;
     virtual glm::vec3 getObjectGravity() const = 0;
 
-    virtual const QUuid& getObjectID() const = 0;
+    virtual const QUuid getObjectID() const = 0;
 
     virtual quint8 getSimulationPriority() const { return 0; }
     virtual QUuid getSimulatorID() const = 0;

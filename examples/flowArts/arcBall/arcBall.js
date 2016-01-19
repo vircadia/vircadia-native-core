@@ -44,7 +44,7 @@ ArcBall = function(spawnPosition) {
             green: 10,
             blue: 150
         },
-        ignoreForCollisions: true,
+        collisionless: true,
         damping: 0.8,
         dynamic: true,
         userData: JSON.stringify({

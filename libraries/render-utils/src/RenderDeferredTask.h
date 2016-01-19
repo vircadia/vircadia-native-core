@@ -113,41 +113,32 @@ public:
 
 class RenderDeferredTask : public render::Task {
 public:
-
     RenderDeferredTask();
 
-    int _drawDebugDeferredBufferIndex = -1;
-    int _drawStatusJobIndex = -1;
-    int _drawHitEffectJobIndex = -1;
+    int _drawDebugDeferredBufferIndex;
+    int _drawStatusJobIndex;
+    int _drawHitEffectJobIndex;
+    int _occlusionJobIndex;
+    int _antialiasingJobIndex;
+    int _toneMappingJobIndex;
     
-    void setDrawDebugDeferredBuffer(int draw) {
-        if (_drawDebugDeferredBufferIndex >= 0) {
-            _jobs[_drawDebugDeferredBufferIndex].setEnabled(draw >= 0);
-        }
-    }
-    bool doDrawDebugDeferredBuffer() const { if (_drawDebugDeferredBufferIndex >= 0) { return _jobs[_drawDebugDeferredBufferIndex].isEnabled(); } else { return false; } }
+    void setDrawDebugDeferredBuffer(int draw) { enableJob(_drawDebugDeferredBufferIndex, draw >= 0); }
+    bool doDrawDebugDeferredBuffer() const { return getEnableJob(_drawDebugDeferredBufferIndex); }
     
-    void setDrawItemStatus(int draw) {
-        if (_drawStatusJobIndex >= 0) {
-            _jobs[_drawStatusJobIndex].setEnabled(draw > 0);
-        }
-    }
-    bool doDrawItemStatus() const { if (_drawStatusJobIndex >= 0) { return _jobs[_drawStatusJobIndex].isEnabled(); } else { return false; } }
+    void setDrawItemStatus(int draw) { enableJob(_drawStatusJobIndex, draw > 0); }
+    bool doDrawItemStatus() const { return getEnableJob(_drawStatusJobIndex); }
     
-    void setDrawHitEffect(bool draw) { if (_drawHitEffectJobIndex >= 0) { _jobs[_drawHitEffectJobIndex].setEnabled(draw); } }
-    bool doDrawHitEffect() const { if (_drawHitEffectJobIndex >=0) { return _jobs[_drawHitEffectJobIndex].isEnabled(); } else { return false; } }
+    void setDrawHitEffect(bool draw) { enableJob(_drawHitEffectJobIndex, draw); }
+    bool doDrawHitEffect() const { return getEnableJob(_drawHitEffectJobIndex); }
 
-    int _occlusionJobIndex = -1;
 
-    void setOcclusionStatus(bool draw) { if (_occlusionJobIndex >= 0) { _jobs[_occlusionJobIndex].setEnabled(draw); } }
-    bool doOcclusionStatus() const { if (_occlusionJobIndex >= 0) { return _jobs[_occlusionJobIndex].isEnabled(); } else { return false; } }
+    void setOcclusionStatus(bool draw) { enableJob(_occlusionJobIndex, draw); }
+    bool doOcclusionStatus() const { return getEnableJob(_occlusionJobIndex); }
 
-    int _antialiasingJobIndex = -1;
 
-    void setAntialiasingStatus(bool draw) { if (_antialiasingJobIndex >= 0) { _jobs[_antialiasingJobIndex].setEnabled(draw); } }
-    bool doAntialiasingStatus() const { if (_antialiasingJobIndex >= 0) { return _jobs[_antialiasingJobIndex].isEnabled(); } else { return false; } }
+    void setAntialiasingStatus(bool draw) { enableJob(_antialiasingJobIndex, draw); }
+    bool doAntialiasingStatus() const { return getEnableJob(_antialiasingJobIndex); }
 
-    int _toneMappingJobIndex = -1;
 
     void setToneMappingExposure(float exposure);
     float getToneMappingExposure() const;
@@ -156,11 +147,6 @@ public:
     int getToneMappingToneCurve() const;
 
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-
-    gpu::Queries _timerQueries;
-    int _currentTimerQueryIndex = 0;
 };
-
 
 #endif // hifi_RenderDeferredTask_h

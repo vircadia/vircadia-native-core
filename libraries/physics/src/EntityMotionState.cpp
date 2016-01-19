@@ -624,7 +624,7 @@ QString EntityMotionState::getName() const {
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
     group = BULLET_COLLISION_GROUP_STATIC;
     if (_entity) {
-        if (_entity->getIgnoreForCollisions()) {
+        if (_entity->getCollisionless()) {
             group = BULLET_COLLISION_GROUP_COLLISIONLESS;
         }
         switch (computePhysicsMotionType()){

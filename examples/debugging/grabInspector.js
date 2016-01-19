@@ -108,7 +108,7 @@ Script.setInterval(function() {
         var grabData = userData["grabKey"]
 
         // {"grabbableKey":{"invertSolidWhileHeld":true},
-        //  "grabKey":{"activated":true,"avatarId":"{6ea8b092-10e0-4058-888b-6facc40d0fe9}","refCount":1,"gravity":{"x":0,"y":0,"z":0},"ignoreForCollisions":0,"dynamic":1}
+        //  "grabKey":{"activated":true,"avatarId":"{6ea8b092-10e0-4058-888b-6facc40d0fe9}","refCount":1,"gravity":{"x":0,"y":0,"z":0},"collisionless":0,"dynamic":1}
         // }
 
         if (typeof grabData != 'undefined') {

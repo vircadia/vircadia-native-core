@@ -216,13 +216,14 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    if (!getParentID().isNull()) {
+    QUuid parentID = getParentID();
+    if (!parentID.isNull()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
 
-    if (!getParentID().isNull()) {
-        QByteArray referentialAsBytes = getParentID().toRfc4122();
+    if (parentID.isNull()) {
+        QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
         destinationBuffer += referentialAsBytes.size();
         memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));

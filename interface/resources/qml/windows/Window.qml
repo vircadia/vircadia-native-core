@@ -1,53 +1,48 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
+
 import "."
 import "../styles"
 
-FocusScope {
+// FIXME how do I set the initial position of a window without
+// overriding places where the a individual client of the window
+// might be setting the position with a Settings{} element?
+
+// FIXME how to I enable dragging without allowing the window to lay outside
+// of the desktop?  How do I ensure when the desktop resizes all the windows
+// are still at least partially visible?
+Fadable {
     id: window
     HifiConstants { id: hifi }
     // The Window size is the size of the content, while the frame
-    // decorations can extend outside it.  Windows should generally not be
-    // given explicit height / width, but rather be allowed to conform to
-    // their content
+    // decorations can extend outside it.
     implicitHeight: content.height
     implicitWidth: content.width
 
-    property bool topLevelWindow: true
+    property int modality: Qt.NonModal
+
+    readonly property bool topLevelWindow: true
     property string title
-    // Should the window include a close control?
+    // Should the window be closable control?
     property bool closable: true
+    // Should the window try to remain on top of other windows?
+    property bool alwaysOnTop: false
     // Should hitting the close button hide or destroy the window?
     property bool destroyOnCloseButton: true
-    // Should hiding the window destroy it or just hide it?
-    property bool destroyOnInvisible: false
     // FIXME support for pinned / unpinned pending full design
     // property bool pinnable: false
     // property bool pinned: false
     property bool resizable: false
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 720)
+    enabled: visible
 
     // The content to place inside the window, determined by the client
     default property var content
 
-
-    onContentChanged: {
-        if (content) {
-            content.anchors.fill = window
-        }
-    }
-
-    // Default to a standard frame.  Can be overriden to provide custom
-    // frame styles, like a full desktop frame to simulate a modal window
-    property var frame: DefaultFrame {
-        z: -1
-        anchors.fill: parent
-    }
-
-    // This mouse area serves to raise the window. To function, it must live 
-    // in the window and have a higher Z-order than the content, but follow 
+    // This mouse area serves to raise the window. To function, it must live
+    // in the window and have a higher Z-order than the content, but follow
     // the position and size of frame decoration
     property var activator: MouseArea {
         width: frame.decoration.width
@@ -56,18 +51,48 @@ FocusScope {
         y: frame.decoration.anchors.topMargin
         propagateComposedEvents: true
         hoverEnabled: true
-        onPressed: { window.raise(); mouse.accepted = false; }
-        // Debugging visualization
-        // Rectangle { anchors.fill:parent; color: "#7f00ff00" }
+        acceptedButtons: Qt.AllButtons
+        onPressed: {
+            //console.log("Pressed on activator area");
+            window.raise();
+            mouse.accepted = false;
+        }
+        // Debugging
+//        onEntered: console.log("activator entered")
+//        onExited: console.log("activator exited")
+//        onContainsMouseChanged: console.log("Activator contains mouse " + containsMouse)
+//        onPositionChanged: console.log("Activator mouse position " + mouse.x + " x " + mouse.y)
+//        Rectangle { anchors.fill:parent; color: "#7f00ff00" }
+    }
+
+    signal windowDestroyed();
+
+    // Default to a standard frame.  Can be overriden to provide custom
+    // frame styles, like a full desktop frame to simulate a modal window
+    property var frame;
+
+    Component {
+        id: defaultFrameBuilder;
+        DefaultFrame { anchors.fill: parent }
+    }
+
+    Component {
+        id: modalFrameBuilder;
+        ModalFrame { anchors.fill: parent }
+    }
+
+    Component.onCompleted: {
+        if (!frame) {
+            if (modality === Qt.NonModal) {
+                frame = defaultFrameBuilder.createObject(window);
+            } else {
+                frame = modalFrameBuilder.createObject(window);
+            }
+        }
+        raise();
     }
 
     children: [ frame, content, activator ]
-    signal windowDestroyed();
-
-    Component.onCompleted: {
-        fadeTargetProperty = visible ? 1.0 : 0.0
-        raise();
-    }
 
     Component.onDestruction: {
         content.destroy();
@@ -76,17 +101,15 @@ FocusScope {
     }
     onParentChanged: raise();
 
-    Connections {
-        target: frame
-        onRaise: window.raise();
-        onClose: window.close();
-        onPin: window.pin();
-        onDeltaSize: {
-            var newSize = Qt.vector2d(content.width + dx, content.height + dy);
-            newSize = clampVector(newSize, minSize, maxSize);
-            window.width = newSize.x
-            window.height = newSize.y
+    onVisibleChanged: {
+        if (!visible && destroyOnInvisible) {
+            destroy();
+            return;
         }
+        if (visible) {
+            raise();
+        }
+        enabled = visible
     }
 
     function raise() {
@@ -114,67 +137,6 @@ FocusScope {
         visible = false;
     }
 
-    //
-    // Enable window visibility transitions
-    //
-
-    // The target property to animate, usually scale or opacity
-    property alias fadeTargetProperty: window.opacity
-    // always start the property at 0 to enable fade in on creation
-    opacity: 0
-
-    // Some dialogs should be destroyed when they become
-    // invisible, so handle that
-    onVisibleChanged: {
-        // If someone directly set the visibility to false
-        // toggle it back on and use the targetVisible flag to transition
-        // via fading.
-        if ((!visible && fadeTargetProperty != 0.0) || (visible && fadeTargetProperty == 0.0)) {
-            var target = visible;
-            visible = !visible;
-            fadeTargetProperty = target ? 1.0 : 0.0;
-            return;
-        }
-        if (!visible && destroyOnInvisible) {
-            console.log("Destroying " + window);
-            destroy();
-            return;
-        }
-    }
-
-    // The offscreen UI will enable an object, rather than manipulating it's
-    // visibility, so that we can do animations in both directions.  Because
-    // visibility is a boolean flags, it cannot be animated.  So when
-    // targetVisible is changed, we modify a property that can be animated,
-    // like scale or opacity, and then when the target animation value is reached,
-    // we can modify the visibility
-
-    // The actual animator
-    Behavior on fadeTargetProperty {
-        NumberAnimation {
-            duration: hifi.effects.fadeInDuration
-            easing.type: Easing.OutCubic
-        }
-    }
-
-    // Once we're transparent, disable the dialog's visibility
-    onFadeTargetPropertyChanged: {
-        visible = (fadeTargetProperty != 0.0);
-    }
-
-
-    Keys.onPressed: {
-        switch(event.key) {
-            case Qt.Key_W:
-                if (event.modifiers === Qt.ControlModifier) {
-                    event.accepted = true
-                    visible = false
-                }
-                break;
-        }
-    }
-
-
     function clamp(value, min, max) {
         return Math.min(Math.max(value, min), max);
     }
@@ -185,4 +147,14 @@ FocusScope {
                     clamp(value.y, min.y, max.y))
     }
 
+    Keys.onPressed: {
+        switch(event.key) {
+            case Qt.Key_W:
+                if (window.closable && (event.modifiers === Qt.ControlModifier)) {
+                    visible = false
+                    event.accepted = true
+                }
+                break
+        }
+    }
 }

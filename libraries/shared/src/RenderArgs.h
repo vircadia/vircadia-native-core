@@ -36,6 +36,7 @@ class RenderDetails {
 public:
     enum Type {
         OPAQUE_ITEM,
+        SHADOW_ITEM,
         TRANSLUCENT_ITEM,
         OTHER_ITEM
     };
@@ -51,6 +52,7 @@ public:
     int _trianglesRendered = 0;
     
     Item _opaque;
+    Item _shadow;
     Item _translucent;
     Item _other;
     
@@ -60,6 +62,9 @@ public:
         switch (type) {
             case OPAQUE_ITEM:
                 _item = &_opaque;
+                break;
+            case SHADOW_ITEM:
+                _item = &_shadow;
                 break;
             case TRANSLUCENT_ITEM:
                 _item = &_translucent;

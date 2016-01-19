@@ -134,7 +134,7 @@ glm::vec3 AvatarMotionState::getObjectGravity() const {
 }
 
 // virtual
-const QUuid& AvatarMotionState::getObjectID() const {
+const QUuid AvatarMotionState::getObjectID() const {
     return _avatar->getSessionUUID();
 }
 

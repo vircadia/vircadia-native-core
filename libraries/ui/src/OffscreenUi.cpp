@@ -16,10 +16,6 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
-
-#include "ErrorDialog.h"
-#include "MessageDialog.h"
-
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
     Q_OBJECT
@@ -117,7 +113,7 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
         item = getRootItem()->findChild<QQuickItem*>(name);
     }
     if (item) {
-        item->setEnabled(true);
+        item->setVisible(true);
     }
 }
 
@@ -129,109 +125,103 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
         item = getRootItem()->findChild<QQuickItem*>(name);
     }
     if (item) {
-        item->setEnabled(!item->isEnabled());
+        item->setVisible(!item->isVisible());
     }
 }
 
-void OffscreenUi::messageBox(const QString& title, const QString& text,
-    ButtonCallback callback,
-    QMessageBox::Icon icon,
-    QMessageBox::StandardButtons buttons) {
-    MessageDialog* pDialog{ nullptr };
-    MessageDialog::show([&](QQmlContext* ctx, QObject* item) {
-        pDialog = item->findChild<MessageDialog*>();
-        pDialog->setIcon((MessageDialog::Icon)icon);
-        pDialog->setTitle(title);
-        pDialog->setText(text);
-        pDialog->setStandardButtons(MessageDialog::StandardButtons(static_cast<int>(buttons)));
-        pDialog->setResultCallback(callback);
-    });
-    pDialog->setEnabled(true);
-}
+class MessageBoxListener : public QObject {
+    Q_OBJECT
 
-void OffscreenUi::information(const QString& title, const QString& text,
-    ButtonCallback callback,
-    QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback,
-            static_cast<QMessageBox::Icon>(MessageDialog::Information), buttons);
-}
+    friend class OffscreenUi;
 
-void OffscreenUi::question(const QString& title, const QString& text,
-                            ButtonCallback callback,
-                            QMessageBox::StandardButtons buttons) {
-
-    bool waiting = true;
-    ButtonCallback blockingCallback = [&](QMessageBox::StandardButton response){
-        callback(response); // call the actual callback
-        waiting = false;
-    };
-
-    messageBox(title, text, blockingCallback,
-        static_cast<QMessageBox::Icon>(MessageDialog::Question), buttons);
-
-    // block until the call back has been called   
-    while (waiting) {
-        QCoreApplication::processEvents();
+    MessageBoxListener(QQuickItem* messageBox) : _messageBox(messageBox) {
+        if (!_messageBox) {
+            _finished = true;
+            return;
+        } 
+        connect(_messageBox, SIGNAL(selected(int)), this, SLOT(onSelected(int)));
+        connect(_messageBox, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
     }
+
+    ~MessageBoxListener() {
+        disconnect(_messageBox);
+    }
+
+    QMessageBox::StandardButton waitForResult() {
+        while (!_finished) {
+            QCoreApplication::processEvents();
+        }
+        return _result;
+    }
+
+private slots:
+    void onSelected(int button) {
+        _result = static_cast<QMessageBox::StandardButton>(button);
+        _finished = true;
+        disconnect(_messageBox);
+    }
+
+    void onDestroyed() {
+        _finished = true;
+        disconnect(_messageBox);
+    }
+
+private:
+    bool _finished { false };
+    QMessageBox::StandardButton _result { QMessageBox::StandardButton::NoButton };
+    QQuickItem* const _messageBox;
+};
+
+QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    if (QThread::currentThread() != thread()) {
+        QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
+        QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QMessageBox::StandardButton, result),
+            Q_ARG(QMessageBox::Icon, icon),
+            Q_ARG(QString, title),
+            Q_ARG(QString, text),
+            Q_ARG(QMessageBox::StandardButtons, buttons),
+            Q_ARG(QMessageBox::StandardButton, defaultButton));
+        return result;
+    }
+
+    QVariantMap map;
+    map.insert("title", title);
+    map.insert("text", text);
+    map.insert("icon", icon);
+    map.insert("buttons", buttons.operator int());
+    map.insert("defaultButton", defaultButton);
+    QVariant result;
+    bool invokeResult = QMetaObject::invokeMethod(getDesktop(), "messageBox", 
+        Q_RETURN_ARG(QVariant, result),
+        Q_ARG(QVariant, QVariant::fromValue(map)));
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create message box";
+        return QMessageBox::StandardButton::NoButton;
+    }
+    
+    auto resultButton = MessageBoxListener(qvariant_cast<QQuickItem*>(result)).waitForResult();
+    qDebug() << "Message box got a result of " << resultButton;
+    return resultButton;
 }
 
-QMessageBox::StandardButton OffscreenUi::question(void* ignored, const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-
-    QMessageBox::StandardButton result = defaultButton;
-
-    OffscreenUi::question(title, text, [&](QMessageBox::StandardButton response){
-        result = response;
-    }, buttons);
-
-    return result;
-}
-
-
-void OffscreenUi::warning(const QString& title, const QString& text,
-    ButtonCallback callback,
-    QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback,
-            static_cast<QMessageBox::Icon>(MessageDialog::Warning), buttons);
-}
-
-QMessageBox::StandardButton OffscreenUi::warning(void* ignored, const QString& title, const QString& text,
+QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-
-    bool waiting = true;
-    QMessageBox::StandardButton result = defaultButton;
-
-    OffscreenUi::warning(title, text, [&](QMessageBox::StandardButton response){
-        result = response;
-        waiting = false;
-    }, buttons);
-
-    // block until the call back has been called   
-    while (waiting) {
-        QCoreApplication::processEvents();
-    }
-
-    return result;
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
 }
-
-
-void OffscreenUi::critical(const QString& title, const QString& text,
-    ButtonCallback callback,
-    QMessageBox::StandardButtons buttons) {
-    messageBox(title, text, callback,
-            static_cast<QMessageBox::Icon>(MessageDialog::Critical), buttons);
+QMessageBox::StandardButton OffscreenUi::information(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
 }
-
-void OffscreenUi::error(const QString& text) {
-    ErrorDialog* pDialog{ nullptr };
-    ErrorDialog::show([&](QQmlContext* ctx, QObject* item) {
-        pDialog = item->findChild<ErrorDialog*>();
-        pDialog->setText(text);
-    });
-    pDialog->setEnabled(true);
+QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
 }
-
-OffscreenUi::ButtonCallback OffscreenUi::NO_OP_CALLBACK = [](QMessageBox::StandardButton) {};
+QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+}
 
 bool OffscreenUi::navigationFocused() {
     return offscreenFlags->isNavigationFocused();
@@ -245,14 +235,12 @@ void OffscreenUi::createDesktop() {
     if (_desktop) {
         qDebug() << "Desktop already created";
     }
+    getRootContext()->setContextProperty("DebugQML", QVariant(false));
     _desktop = dynamic_cast<QQuickItem*>(load("Root.qml"));
     Q_ASSERT(_desktop);
     getRootContext()->setContextProperty("Desktop", _desktop);
+    _desktop->setProperty("offscreenWindow", QVariant::fromValue(getWindow()));
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
-}
-
-void OffscreenUi::toggleToolWindow() {
-    _toolWindow->setEnabled(!_toolWindow->isEnabled());
 }
 
 QQuickItem* OffscreenUi::getDesktop() {
@@ -289,6 +277,11 @@ QVariant OffscreenUi::returnFromUiThread(std::function<QVariant()> function) {
     }
 
     return function();
+}
+
+void OffscreenUi::unfocusWindows() {
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
+    Q_ASSERT(invokeResult);
 }
 
 

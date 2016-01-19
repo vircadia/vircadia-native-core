@@ -17,7 +17,7 @@ OffscreenQmlDialog::~OffscreenQmlDialog() {
 }
 
 void OffscreenQmlDialog::hide() {
-    static_cast<QQuickItem*>(parent())->setEnabled(false);
+    static_cast<QQuickItem*>(parent())->setVisible(false);
 }
 
 QString OffscreenQmlDialog::title() const {

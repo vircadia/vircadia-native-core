@@ -49,7 +49,9 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
 
 Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     auto framebuffer = Framebuffer::create();
-    auto depthTexture = TexturePointer(Texture::create2D(Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH), width, width));
+
+    auto depthFormat = Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH); // Depth32 texel format
+    auto depthTexture = TexturePointer(Texture::create2D(depthFormat, width, width));
         
     Sampler::Desc samplerDesc;
     samplerDesc._borderColor = glm::vec4(1.0f);
@@ -59,8 +61,11 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     samplerDesc._comparisonFunc = LESS_EQUAL;
 
     depthTexture->setSampler(Sampler(samplerDesc));
+    framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
 
-    framebuffer->setDepthStencilBuffer(depthTexture, Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH));
+    // Use a render buffer to allow use of the DebugDeferredBuffer Job
+    gpu::TexturePointer colorbuffer{gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, width)};
+    framebuffer->setRenderBuffer(0, colorbuffer);
 
     return framebuffer;
 }

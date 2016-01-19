@@ -36,10 +36,10 @@ public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
     virtual ~SpatiallyNestable() { }
 
-    virtual const QUuid& getID() const { return _id; }
-    virtual void setID(const QUuid& id) { _id = id; }
+    virtual const QUuid getID() const;
+    virtual void setID(const QUuid& id);
 
-    virtual QUuid getParentID() const { return _parentID; }
+    virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
@@ -143,6 +143,7 @@ protected:
 
 private:
     mutable ReadWriteLockable _transformLock;
+    mutable ReadWriteLockable _idLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
