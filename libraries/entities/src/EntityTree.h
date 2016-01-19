@@ -237,8 +237,8 @@ public:
     }
 
     // these are used to call through to EntityItems
-    int getJointIndex(const QUuid& entityID, const QString& name) const;
-    QStringList getJointNames(const QUuid& entityID) const;
+    Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
+    Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
 
 public slots:
     void callLoader(EntityItemID entityID);
