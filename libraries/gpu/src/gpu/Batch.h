@@ -68,7 +68,6 @@ public:
         BufferPointers buffers;
         Function function;
         DrawCallInfoBuffer drawCallInfos;
-        size_t numVertices;
 
         size_t count() const { return drawCallInfos.size();  }
 
