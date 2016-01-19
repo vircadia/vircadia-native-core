@@ -552,6 +552,8 @@ function detectExistingStackManagerResources() {
 const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
 
+const notificationIcon = path.join(__dirname, '../resources/console-notification-win.png');
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.on('ready', function() {
@@ -574,6 +576,13 @@ app.on('ready', function() {
     maybeInstallDefaultContentSet(function() {
         maybeShowSplash();
 
+        console.log(notificationIcon);
+        notifier.notify({
+            icon: notificationIcon,
+            title: 'An update is available!',
+            message: 'High Fidelity version ' + 4 + ' is available',
+            wait: true
+        });
         if (buildInfo.releaseType == 'PRODUCTION') {
             var currentVersion = null;
             try {
@@ -588,7 +597,7 @@ app.on('ready', function() {
                 updateChecker.on('update-available', function(latestVersion, url) {
                     if (!hasShownUpdateNotification) {
                         notifier.notify({
-                            icon: trayIcon,
+                            icon: notificationIcon,
                             title: 'An update is available!',
                             message: 'High Fidelity version ' + latestVersion + ' is available',
                             wait: true,
