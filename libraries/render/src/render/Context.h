@@ -74,15 +74,15 @@ public:
     
     class AmbientOcclusion {
     public:
-        int resolutionLevel = 0;
+        int resolutionLevel = 1;
         float radius = 0.5f; // radius in meters of the AO effect
         float level = 0.5f; // Level of the obscrance value
         int numSamples = 11; // Num Samples per pixel
         float numSpiralTurns = 7.0f;
         bool ditheringEnabled = true;
         float edgeSharpness = 1.0f;
-        int blurRadius = 3;
-        float blurDeviation = 2.1f;
+        int blurRadius = 4;
+        float blurDeviation = 2.5f;
 
         double gpuTime = 0.0;
     };
