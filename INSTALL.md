@@ -1,6 +1,6 @@
 Follow the [build guide](BUILD.md) to figure out how to build High Fidelity for your platform.
 
-During generation, CMake should produce an 'install' target and a 'package' target.
+During generation, CMake should produce an `install` target and a `package` target.
 
 ###Install
 
