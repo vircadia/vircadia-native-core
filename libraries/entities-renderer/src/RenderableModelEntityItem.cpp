@@ -772,8 +772,14 @@ int RenderableModelEntityItem::getJointIndex(const QString& name) const {
     return -1;
 }
 
-
-// TODO -- expose a way to list joint names
-// RenderableModelEntityItem::QStringList getJointNames() const {
-// rig->nameOfJoint(i);
-// }
+QStringList RenderableModelEntityItem::getJointNames() const {
+    QStringList result;
+    if (_model && _model->isActive()) {
+        RigPointer rig = _model->getRig();
+        int jointCount = rig->getJointStateCount();
+        for (int jointIndex = 0; jointIndex < jointCount; jointIndex++) {
+            result << rig->nameOfJoint(jointIndex);
+        }
+    }
+    return result;
+}
