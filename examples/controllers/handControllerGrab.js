@@ -1663,12 +1663,6 @@ function MyController(hand) {
 var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
 
-//preload the particle beams so that they are full length when you start searching
-// if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
-//     rightController.createParticleBeam();
-//     leftController.createParticleBeam();
-// }
-
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
 var mapping = Controller.newMapping(MAPPING_NAME);
