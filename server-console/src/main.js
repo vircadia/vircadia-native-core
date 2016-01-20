@@ -162,7 +162,7 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
     }
 
     for (const filename of filenames) {
-        console.log(filename);
+        console.log("Checking", filename);
         const absolutePath = path.join(directoryPath, filename);
         var stat = null;
         try {
@@ -174,9 +174,8 @@ function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
         const curTime = Date.now();
         if (stat.isFile() && filename.search(filenameRegex) >= 0) {
             const ageInSeconds = (curTime - stat.mtime.getTime()) / 1000.0;
-            console.log("Match:", filename, ageInSeconds);
             if (ageInSeconds >= maxAgeInSeconds) {
-                console.log("\tDeleting:", filename);
+                console.log("\tDeleting:", filename, ageInSeconds);
                 try {
                     fs.unlinkSync(absolutePath);
                 } catch (e) {
