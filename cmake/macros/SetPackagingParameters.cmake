@@ -42,8 +42,17 @@ macro(SET_PACKAGING_PARAMETERS)
     set(INTERFACE_ICON_PREFIX "interface-beta")
   endif ()
 
-  set(CONSOLE_INSTALL_DIR ".")
-  set(INTERFACE_INSTALL_DIR ".")
+  if (APPLE)
+    set(DMG_SUBFOLDER_NAME "High Fidelity")
+    set(ESCAPED_DMG_SUBFOLDER_NAME "High\\ Fidelity")
+    set(DMG_SUBFOLDER_ICON "${HF_CMAKE_DIR}/installer/install-folder.rsrc")
+
+    set(CONSOLE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
+    set(INTERFACE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
+  else ()
+    set(CONSOLE_INSTALL_DIR ".")
+    set(INTERFACE_INSTALL_DIR ".")
+  endif ()
 
   if (WIN32)
     set(INTERFACE_EXEC_PREFIX "interface")
@@ -77,10 +86,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   if (APPLE)
-    set(CONSOLE_EXEC_NAME "Server Console.app")
-    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_EXEC_NAME}")
 
-    set(INTERFACE_INSTALL_APP_PATH "${INTERFACE_BUNDLE_NAME}.app")
+    set(CONSOLE_EXEC_NAME "Server Console.app")
+    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}")
+
+    set(INTERFACE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
     set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.icns")
   endif()
 
