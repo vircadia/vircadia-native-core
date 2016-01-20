@@ -37,9 +37,7 @@ public:
         SKIN_CLUSTER_INDEX = 5,
         SKIN_CLUSTER_WEIGHT = 6,
         TEXCOORD1 = 7,
-        INSTANCE_SCALE = 8,
-        INSTANCE_TRANSLATE = 9,
-        NUM_INPUT_SLOTS = INSTANCE_TRANSLATE + 1,
+        NUM_INPUT_SLOTS = TEXCOORD1 + 1,
 
 
         DRAW_CALL_INFO = 15, // Reserve last input slot for draw call infos

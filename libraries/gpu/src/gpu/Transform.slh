@@ -35,7 +35,7 @@ struct TransformObject {
     mat4 _modelInverse;
 };
 
-in ivec2 _drawCallInfo;
+layout(location=15) in ivec2 _drawCallInfo;
 
 <@if GLPROFILE == PC_GL @>
 layout(std140) buffer transformObjectBuffer {

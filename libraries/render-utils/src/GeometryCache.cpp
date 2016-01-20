@@ -1850,8 +1850,7 @@ uint32_t toCompactColor(const glm::vec4& color) {
     return compactColor;
 }
 
-static const size_t INSTANCE_TRANSFORM_BUFFER = 0;
-static const size_t INSTANCE_COLOR_BUFFER = 1;
+static const size_t INSTANCE_COLOR_BUFFER = 0;
 
 template <typename F>
 void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color, F f) {
