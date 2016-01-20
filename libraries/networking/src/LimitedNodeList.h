@@ -293,7 +293,6 @@ protected:
     bool _thisNodeCanRez;
 
     QPointer<QTimer> _initialSTUNTimer;
-    bool _hasStartedSTUN { false };
 
     int _numInitialSTUNRequests = 0;
     bool _hasCompletedInitialSTUN = false;

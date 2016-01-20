@@ -672,46 +672,48 @@ const int NUM_BYTES_STUN_HEADER = 20;
 
 void LimitedNodeList::sendSTUNRequest() {
 
-    const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
+    if (!_stunSockAddr.isNull()) {
+        const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
 
-    if (!_hasCompletedInitialSTUN) {
-        qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
+        if (!_hasCompletedInitialSTUN) {
+            qCDebug(networking) << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
 
-        if (_numInitialSTUNRequests > NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL) {
-            // we're still trying to do our initial STUN we're over the fail threshold
-            stopInitialSTUNUpdate(false);
+            if (_numInitialSTUNRequests > NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL) {
+                // we're still trying to do our initial STUN we're over the fail threshold
+                stopInitialSTUNUpdate(false);
+            }
+
+            ++_numInitialSTUNRequests;
         }
 
-        ++_numInitialSTUNRequests;
+        char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+
+        int packetIndex = 0;
+
+        const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+
+        // leading zeros + message type
+        const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+        memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+        packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+
+        // message length (no additional attributes are included)
+        uint16_t messageLength = 0;
+        memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+        packetIndex += sizeof(messageLength);
+
+        memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+        packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+
+        // transaction ID (random 12-byte unsigned integer)
+        const uint NUM_TRANSACTION_ID_BYTES = 12;
+        QUuid randomUUID = QUuid::createUuid();
+        memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
+        
+        flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
+        
+        _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
     }
-
-    char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-
-    int packetIndex = 0;
-
-    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-
-    // leading zeros + message type
-    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
-    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
-    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-
-    // message length (no additional attributes are included)
-    uint16_t messageLength = 0;
-    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
-    packetIndex += sizeof(messageLength);
-
-    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
-    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-
-    // transaction ID (random 12-byte unsigned integer)
-    const uint NUM_TRANSACTION_ID_BYTES = 12;
-    QUuid randomUUID = QUuid::createUuid();
-    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
-
-    flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
-
-    _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
 }
 
 void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packet) {
@@ -796,33 +798,35 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 }
 
 void LimitedNodeList::startSTUNPublicSocketUpdate() {
-    if (!_hasStartedSTUN) {
-        _hasStartedSTUN = true;
+    if (!_initialSTUNTimer ) {
+        // setup our initial STUN timer here so we can quickly find out our public IP address
+        _initialSTUNTimer = new QTimer { this };
 
-        if (!_initialSTUNTimer) {
-            // if we don't know the STUN IP yet we need to have ourselves be called once it is known
-            if (_stunSockAddr.getAddress().isNull()) {
-                connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
+        connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
 
-                // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
-                const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
+        const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
+        _initialSTUNTimer->setInterval(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
 
-                QTimer* stunLookupFailTimer = new QTimer(this);
-                connect(stunLookupFailTimer, &QTimer::timeout, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
-                stunLookupFailTimer->start(STUN_DNS_LOOKUP_TIMEOUT_MSECS);
+        // if we don't know the STUN IP yet we need to wait until it is known to start STUN requests
+        if (_stunSockAddr.getAddress().isNull()) {
 
-            } else {
-                // setup our initial STUN timer here so we can quickly find out our public IP address
-                _initialSTUNTimer = new QTimer(this);
+            // if we fail to lookup the socket then timeout the STUN address lookup
+            connect(&_stunSockAddr, &HifiSockAddr::lookupFailed, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
 
-                connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
+            // immediately send a STUN request once we know the socket
+            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::sendSTUNRequest);
 
-                const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
-                _initialSTUNTimer->start(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
-                
-                // send an initial STUN request right away
-                sendSTUNRequest();
-            }
+            // start the initial STUN timer once we know the socket
+            connect(&_stunSockAddr, SIGNAL(lookupCompleted), _initialSTUNTimer, SLOT(start()));
+
+            // in case we just completely fail to lookup the stun socket - add a 10s single shot that will trigger the fail case
+            const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
+            QTimer::singleShot(STUN_DNS_LOOKUP_TIMEOUT_MSECS, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
+        } else {
+            _initialSTUNTimer->start();
+
+            // send an initial STUN request right away
+            sendSTUNRequest();
         }
     }
 }
@@ -868,7 +872,7 @@ void LimitedNodeList::stopInitialSTUNUpdate(bool success) {
     // Or, if we failed - if will check if we can eventually get a public socket
     const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
 
-    QTimer* stunOccasionalTimer = new QTimer(this);
+    QTimer* stunOccasionalTimer = new QTimer { this };
     connect(stunOccasionalTimer, &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
 
     stunOccasionalTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
