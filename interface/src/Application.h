@@ -61,9 +61,7 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/RunningScriptsWidget.h"
 #include "ui/SnapshotShareDialog.h"
-#include "ui/ToolWindow.h"
 #include "UndoStackScriptingInterface.h"
 
 class OffscreenGLCanvas;
@@ -106,10 +104,6 @@ public:
 
     void postLambdaEvent(std::function<void()> f) override;
 
-    void loadScripts();
-    QString getPreviousScriptLocation();
-    void setPreviousScriptLocation(const QString& previousScriptLocation);
-    void clearScriptsBeforeRunning();
     void initializeGL();
     void initializeUi();
     void paintGL();
@@ -169,22 +163,18 @@ public:
 
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
 
-    ToolWindow* getToolWindow() { return _toolWindow ; }
-
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
     QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
-    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
-    virtual QThread* getMainThread() override { return thread(); }
-    virtual float getSizeScale() const override;
-    virtual int getBoundaryLevelAdjust() const override;
-    virtual PickRay computePickRay(float x, float y) const override;
-    virtual glm::vec3 getAvatarPosition() const override;
-    virtual void overrideEnvironmentData(const EnvironmentData& newData) override { _environment.override(newData); }
-    virtual void endOverrideEnvironmentData() override { _environment.endOverride(); }
-    virtual qreal getDevicePixelRatio() override;
+    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
+    virtual QThread* getMainThread() { return thread(); }
+    virtual PickRay computePickRay(float x, float y) const;
+    virtual glm::vec3 getAvatarPosition() const;
+    virtual void overrideEnvironmentData(const EnvironmentData& newData) { _environment.override(newData); }
+    virtual void endOverrideEnvironmentData() { _environment.endOverride(); }
+    virtual qreal getDevicePixelRatio();
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
@@ -196,9 +186,6 @@ public:
     glm::vec2 getViewportDimensions() const;
 
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
-
-    QStringList getRunningScripts();
-    ScriptEngine* getScriptEngine(const QString& scriptHash);
 
     float getRenderResolutionScale() const;
 
@@ -213,12 +200,7 @@ public:
     glm::mat4 getEyeProjection(int eye) const;
 
     QRect getDesirableApplicationGeometry();
-    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
-
     Bookmarks* getBookmarks() const { return _bookmarks; }
-
-    QString getScriptsLocation();
-    void setScriptsLocation(const QString& scriptsLocation);
 
     virtual bool canAcceptURL(const QString& url) const override;
     virtual bool acceptURL(const QString& url, bool defaultUpload = false) override;
@@ -241,8 +223,6 @@ public:
     float getAverageSimsPerSecond();
 
 signals:
-    void scriptLocationChanged(const QString& newPath);
-
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
@@ -260,21 +240,13 @@ public slots:
     bool importEntities(const QString& url);
 
     void setLowVelocityFilter(bool lowVelocityFilter);
-    void loadDialog();
-    void loadScriptURLDialog();
+    Q_INVOKABLE void loadDialog();
+    Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
+    void toggleRunningScriptsWidget();
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
-
-    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true,
-        bool loadScriptFromEditor = false, bool activateMainWindow = false, bool reload = false);
-    void stopAllScripts(bool restart = false);
-    bool stopScript(const QString& scriptHash, bool restart = false);
-    void reloadAllScripts();
-    void reloadOneScript(const QString& scriptName);
-    void loadDefaultScripts();
-    void toggleRunningScriptsWidget();
 
     void showFriendsWindow();
 
@@ -316,9 +288,6 @@ private slots:
     void idle(uint64_t now);
     void aboutToQuit();
 
-    void handleScriptEngineLoaded(const QString& scriptFilename);
-    void handleScriptLoadError(const QString& scriptFilename);
-
     void connectedToDomain(const QString& hostname);
 
     void audioMuteToggled();
@@ -333,11 +302,7 @@ private slots:
 
     void loadSettings();
     void saveSettings();
-
-    void scriptFinished(const QString& scriptName, ScriptEngine* engine);
-    void saveScripts();
-    void reloadScript(const QString& scriptName, bool isUserLoaded = true);
-
+    
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
@@ -433,8 +398,6 @@ private:
 
     MainWindow* _window;
 
-    ToolWindow* _toolWindow;
-
     QUndoStack _undoStack;
     UndoStackScriptingInterface _undoStackScriptingInterface;
 
@@ -471,9 +434,6 @@ private:
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
-    Setting::Handle<bool> _firstRun;
-    Setting::Handle<QString> _previousScriptLocation;
-    Setting::Handle<QString> _scriptsLocationHandle;
     Setting::Handle<float> _fieldOfView;
 
     float _scaleMirror;
@@ -501,12 +461,6 @@ private:
     FileLogger* _logger;
 
     TouchEvent _lastTouchEvent;
-
-    QReadWriteLock _scriptEnginesHashLock;
-    RunningScriptsWidget* _runningScriptsWidget;
-    QHash<QString, ScriptEngine*> _scriptEnginesHash;
-    bool _runningScriptsWidgetWasVisible;
-    QString _scriptsLocation;
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;

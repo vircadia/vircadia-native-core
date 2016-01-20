@@ -15,12 +15,13 @@
 #include <QSet>
 #include <QStack>
 
-#include <EntityTree.h>
+#include <AbstractAudioInterface.h>
 #include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
+#include <EntityTree.h>
 #include <MouseEvent.h>
 #include <OctreeRenderer.h>
 #include <ScriptCache.h>
-#include <AbstractAudioInterface.h>
+#include <TextureCache.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -40,8 +41,6 @@ public:
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketType::EntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketType::EntityData; }
-    virtual float getSizeScale() const;
-    virtual int getBoundaryLevelAdjust() const;
     virtual void setTree(OctreePointer newTree);
 
     void shutdown();
@@ -142,9 +141,11 @@ private:
     void forceRecheckEntities();
 
     glm::vec3 _lastAvatarPosition;
-    bool _pendingSkyboxTextureDownload = false;
     QVector<EntityItemID> _currentEntitiesInside;
-    
+
+    bool _pendingSkyboxTexture { false };
+    NetworkTexturePointer _skyboxTexture;
+
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
 
@@ -161,11 +162,11 @@ private:
     bool _displayModelBounds;
     bool _dontDoPrecisionPicking;
     
-    bool _shuttingDown = false;
+    bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
 
-    bool _hasPreviousZone = false;
+    bool _hasPreviousZone { false };
     std::shared_ptr<ZoneEntityItem> _bestZone;
     float _bestZoneVolume;
 

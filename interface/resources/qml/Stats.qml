@@ -188,6 +188,7 @@ Item {
                         visible: root.expanded;
                         text: "\tItems Rendered Opaque: " + root.opaqueRendered +
                             " / Translucent: " + root.translucentRendered +
+                            " / Shadow: " + root.shadowRendered +
                             " / Other: " + root.otherRendered;
                     }
                     Text {
@@ -197,6 +198,14 @@ Item {
                         text: "\tOpaque considered: " + root.opaqueConsidered +
                             " / Out of view: " + root.opaqueOutOfView + 
                             " / Too small: " + root.opaqueTooSmall;
+                    }
+                    Text {
+                        color: root.fontColor;
+                        font.pixelSize: root.fontSize
+                        visible: root.expanded;
+                        text: "\tShadow considered: " + root.shadowConsidered +
+                            " / Out of view: " + root.shadowOutOfView +
+                            " / Too small: " + root.shadowTooSmall;
                     }
                     Text {
                         color: root.fontColor;

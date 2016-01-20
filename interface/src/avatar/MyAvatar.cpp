@@ -1022,12 +1022,12 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 }
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
-    Avatar::setAttachmentData(attachmentData);
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
+    Avatar::setAttachmentData(attachmentData);
     _billboardValid = false;
 }
 
@@ -1165,21 +1165,25 @@ void MyAvatar::setCollisionSoundURL(const QString& url) {
     }
 }
 
-void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
-        const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
+void MyAvatar::attach(const QString& modelURL, const QString& jointName,
+                      const glm::vec3& translation, const glm::quat& rotation,
+                      float scale, bool isSoft,
+                      bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {
-        Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+        Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
         return;
     }
     if (useSaved) {
         AttachmentData attachment = loadAttachmentData(modelURL, jointName);
         if (attachment.isValid()) {
-            Avatar::attach(modelURL, attachment.jointName, attachment.translation,
-                attachment.rotation, attachment.scale, allowDuplicates, useSaved);
+            Avatar::attach(modelURL, attachment.jointName,
+                           attachment.translation, attachment.rotation,
+                           attachment.scale, attachment.isSoft,
+                           allowDuplicates, useSaved);
             return;
         }
     }
-    Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
+    Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
 void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
@@ -1702,24 +1706,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     _characterController.setEnabled(menu->isOptionChecked(MenuOption::EnableCharacterController));
-}
-
-//Gets the tip position for the laser pointer
-glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
-    glm::vec3 direction = glm::normalize(palm->getTipPosition() - palm->getPosition());
-
-    glm::vec3 position = palm->getPosition();
-    //scale the position with the avatar
-    scaleVectorRelativeToPosition(position);
-
-
-    glm::vec3 result;
-    const auto& compositor = qApp->getApplicationCompositor();
-    if (compositor.calculateRayUICollisionPoint(position, direction, result)) {
-        return result;
-    }
-
-    return palm->getPosition();
 }
 
 void MyAvatar::clearDriveKeys() {

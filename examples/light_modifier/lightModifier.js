@@ -227,8 +227,8 @@ entitySlider.prototype = {
             type: 'Line',
             name: 'Hifi-Slider-Axis::' + this.sliderType,
             color: this.color,
-            collisionsWillMove: false,
-            ignoreForCollisions: true,
+            dynamic: false,
+            collisionless: true,
             dimensions: {
                 x: 3,
                 y: 3,
@@ -250,8 +250,8 @@ entitySlider.prototype = {
         var properties = {
             name: 'Hifi-End-Of-Axis',
             type: 'Box',
-            collisionsWillMove: false,
-            ignoreForCollisions: true,
+            dynamic: false,
+            collisionless: true,
             dimensions: {
                 x: 0.01,
                 y: 0.01,
@@ -360,11 +360,11 @@ entitySlider.prototype = {
             type: 'Sphere',
             name: 'Hifi-Slider-' + this.sliderType,
             dimensions: SLIDER_DIMENSIONS,
-            collisionsWillMove: true,
+            dynamic: true,
             color: this.color,
             position: sliderPosition,
             script: SLIDER_SCRIPT_URL,
-            ignoreForCollisions: true,
+            collisionless: true,
             userData: JSON.stringify({
                 lightModifierKey: {
                     lightID: this.lightID,
@@ -558,8 +558,8 @@ function createPanelEntity(position) {
             z: 0.1
         },
         visible: false,
-        collisionsWillMove: false,
-        ignoreForCollisions: true
+        dynamic: false,
+        collisionless: true
     }
 
     var panel = Entities.addEntity(panelProperties);
@@ -582,8 +582,8 @@ function createVisiblePanel() {
             z: SLIDER_DIMENSIONS.z / 4
         },
         visible: true,
-        collisionsWillMove: false,
-        ignoreForCollisions: true,
+        dynamic: false,
+        collisionless: true,
         position: moveDown,
         rotation: avatarRot,
         script: VISIBLE_PANEL_SCRIPT_URL
@@ -602,7 +602,7 @@ function createLightModel(position, rotation) {
         shapeType: 'box',
         modelURL: LIGHT_MODEL_URL,
         dimensions: LIGHT_MODEL_DIMENSIONS,
-        collisionsWillMove: true,
+        dynamic: true,
         position: position,
         rotation: rotation,
         script: PARENT_SCRIPT_URL,
@@ -639,8 +639,8 @@ function createCloseButton(axisStart) {
         position: Vec3.sum(position, VERTICAL_OFFFSET),
         rotation: Quat.multiply(avatarRot, Quat.fromPitchYawRollDegrees(90, 0, 45)),
         //rotation: Quat.fromPitchYawRollDegrees(0, 0, 90),
-        collisionsWillMove: false,
-        ignoreForCollisions: true,
+        dynamic: false,
+        collisionless: true,
         script: CLOSE_BUTTON_SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {

@@ -59,7 +59,7 @@ public slots:
 
     // getters for LOD and PPS
     float getVoxelSizeScale() const { return _voxelSizeScale; }
-    int getBoundaryLevelAdjust() const override { return _boundaryLevelAdjust; }
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     int getMaxPacketsPerSecond() const { return _maxPacketsPerSecond; }
 
     unsigned getOctreeElementsCount() const { return _tree->getOctreeElementsCount(); }
@@ -68,9 +68,10 @@ private:
     ViewFrustum _viewFrustum;
     JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
-    float _voxelSizeScale;
-    int _boundaryLevelAdjust;
-    int _maxPacketsPerSecond;
+
+    float _voxelSizeScale { DEFAULT_OCTREE_SIZE_SCALE };
+    int _boundaryLevelAdjust { 0 };
+    int _maxPacketsPerSecond { DEFAULT_MAX_OCTREE_PPS };
 };
 
 #endif // hifi_OctreeHeadlessViewer_h

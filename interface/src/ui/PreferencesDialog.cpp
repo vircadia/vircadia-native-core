@@ -17,6 +17,7 @@
 #include <devices/DdeFaceTracker.h>
 #include <devices/Faceshift.h>
 #include <NetworkingConstants.h>
+#include <ScriptEngines.h>
 
 #include "Application.h"
 #include "DialogsManager.h"
@@ -27,6 +28,7 @@
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
 #include "UIUtil.h"
+#include "scripting/WebWindowClass.h"
 
 
 const int PREFERENCES_HEIGHT_PADDING = 20;
@@ -44,7 +46,9 @@ PreferencesDialog::PreferencesDialog(QWidget* parent) :
 
     connect(ui.buttonBrowseLocation, &QPushButton::clicked, this, &PreferencesDialog::openSnapshotLocationBrowser);
     connect(ui.buttonBrowseScriptsLocation, &QPushButton::clicked, this, &PreferencesDialog::openScriptsLocationBrowser);
-    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, qApp, &Application::loadDefaultScripts);
+    connect(ui.buttonReloadDefaultScripts, &QPushButton::clicked, [] {
+        DependencyManager::get<ScriptEngines>()->loadDefaultScripts();
+    });
 
     connect(ui.buttonChangeAppearance, &QPushButton::clicked, this, &PreferencesDialog::openFullAvatarModelBrowser);
     connect(ui.appearanceDescription, &QLineEdit::editingFinished, this, &PreferencesDialog::changeFullAvatarURL);
@@ -132,7 +136,7 @@ void PreferencesDialog::openFullAvatarModelBrowser() {
     const auto WIDTH = 900;
     const auto HEIGHT = 700;
     if (!_marketplaceWindow) {
-        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT, false);
+        _marketplaceWindow = new WebWindowClass("Marketplace", MARKETPLACE_URL, WIDTH, HEIGHT);
     }
     _marketplaceWindow->setVisible(true);
 
@@ -171,7 +175,7 @@ void PreferencesDialog::loadPreferences() {
 
     ui.snapshotLocationEdit->setText(Snapshot::snapshotsLocation.get());
 
-    ui.scriptsLocationEdit->setText(qApp->getScriptsLocation());
+    ui.scriptsLocationEdit->setText(DependencyManager::get<ScriptEngines>()->getScriptsLocation());
 
     ui.pupilDilationSlider->setValue(myAvatar->getHead()->getPupilDilation() *
                                      ui.pupilDilationSlider->maximum());
@@ -265,7 +269,7 @@ void PreferencesDialog::savePreferences() {
     }
 
     if (!ui.scriptsLocationEdit->text().isEmpty() && QDir(ui.scriptsLocationEdit->text()).exists()) {
-        qApp->setScriptsLocation(ui.scriptsLocationEdit->text());
+        DependencyManager::get<ScriptEngines>()->setScriptsLocation(ui.scriptsLocationEdit->text());
     }
 
     myAvatar->getHead()->setPupilDilation(ui.pupilDilationSlider->value() / (float)ui.pupilDilationSlider->maximum());

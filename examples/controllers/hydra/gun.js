@@ -234,7 +234,7 @@ function shootBullet(position, velocity, grenade) {
         damping: 0.01,
         density: 8000,
         ignoreCollisions: false,
-        collisionsWillMove: true
+        dynamic: true
     });
 
     Script.addEventHandler(bulletID, "collisionWithEntity", entityCollisionWithEntity);
@@ -294,7 +294,7 @@ function shootTarget() {
         rotation: Camera.getOrientation(),
         damping: 0.1,
         density: 100.0,
-        collisionsWillMove: true
+        dynamic: true
     });
 
     // Record start time
@@ -349,7 +349,7 @@ function makeGrid(type, scale, size) {
                     rotation: Camera.getOrientation(),
                     damping: 0.1,
                     density: 100.0,
-                    collisionsWillMove: true
+                    dynamic: true
                 });
             }
         }
@@ -401,7 +401,7 @@ function makePlatform(gravity, scale, size) {
                     lifetime: TARGET_LIFE,
                     damping: 0.1,
                     density: 100.0,
-                    collisionsWillMove: true
+                    dynamic: true
                 });
             }
         }

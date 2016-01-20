@@ -21,8 +21,9 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
+#include "LightStage.h"
+
 class RenderArgs;
-class SimpleProgramKey;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
 /// Handles deferred lighting for the bits that require it (voxels...)
@@ -30,42 +31,7 @@ class DeferredLightingEffect : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-    static const int NORMAL_FITTING_MAP_SLOT = 10;
-    static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
-
     void init();
-
-    /// Sets up the state necessary to render static untextured geometry with the simple program.
-    gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
-                           bool emissive = false, bool depthBias = false);
-
-    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) { 
-        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
-    }
-
-    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
-    }
-
-    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
-    }
-
-    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
-    }
-
-    
-    //// Renders a quad with the simple program.
-    void renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, const glm::vec3& maxCorner, const glm::vec4& color);
-
-    //// Renders a line with the simple program.
-    void renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm::vec3& p2, 
-                    const glm::vec4& color1, const glm::vec4& color2);
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
@@ -84,21 +50,17 @@ public:
     void setAmbientLightMode(int preset);
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
     void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
-
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
+    const LightStage& getLightStage() { return _lightStage; }
+
 private:
-    DeferredLightingEffect() {}
-    virtual ~DeferredLightingEffect() { }
+    LightStage _lightStage;
+
+    DeferredLightingEffect() = default;
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
-
-    gpu::PipelinePointer getPipeline(SimpleProgramKey config);
-    
-    gpu::ShaderPointer _simpleShader;
-    gpu::ShaderPointer _emissiveShader;
-    QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
     
     gpu::PipelinePointer _directionalSkyboxLight;
     LightLocationsPtr _directionalSkyboxLightLocations;
@@ -114,26 +76,7 @@ private:
     gpu::PipelinePointer _spotLight;
     LightLocationsPtr _spotLightLocations;
 
-    class PointLight {
-    public:
-        glm::vec4 position;
-        float radius;
-        glm::vec4 ambient;
-        glm::vec4 diffuse;
-        glm::vec4 specular;
-        float constantAttenuation;
-        float linearAttenuation;
-        float quadraticAttenuation;
-    };
-    
-    class SpotLight : public PointLight {
-    public:
-        glm::vec3 direction;
-        float exponent;
-        float cutoff;
-    };
-
-    typedef std::vector< model::LightPointer > Lights;
+    using Lights = std::vector<model::LightPointer>;
 
     Lights _allocatedLights;
     std::vector<int> _globalLights;
@@ -157,54 +100,5 @@ private:
     typedef gpu::BufferView UniformBufferView;
     UniformBufferView _deferredTransformBuffer[2];
 };
-
-class SimpleProgramKey {
-public:
-    enum FlagBit {
-        IS_TEXTURED_FLAG = 0,
-        IS_CULLED_FLAG,
-        IS_EMISSIVE_FLAG,
-        HAS_DEPTH_BIAS_FLAG,
-        
-        NUM_FLAGS,
-    };
-    
-    enum Flag {
-        IS_TEXTURED = (1 << IS_TEXTURED_FLAG),
-        IS_CULLED = (1 << IS_CULLED_FLAG),
-        IS_EMISSIVE = (1 << IS_EMISSIVE_FLAG),
-        HAS_DEPTH_BIAS = (1 << HAS_DEPTH_BIAS_FLAG),
-    };
-    typedef unsigned short Flags;
-    
-    bool isFlag(short flagNum) const { return bool((_flags & flagNum) != 0); }
-    
-    bool isTextured() const { return isFlag(IS_TEXTURED); }
-    bool isCulled() const { return isFlag(IS_CULLED); }
-    bool isEmissive() const { return isFlag(IS_EMISSIVE); }
-    bool hasDepthBias() const { return isFlag(HAS_DEPTH_BIAS); }
-    
-    Flags _flags = 0;
-    short _spare = 0;
-    
-    int getRaw() const { return *reinterpret_cast<const int*>(this); }
-    
-    
-    SimpleProgramKey(bool textured = false, bool culled = true,
-                     bool emissive = false, bool depthBias = false) {
-        _flags = (textured ? IS_TEXTURED : 0) | (culled ? IS_CULLED : 0) |
-        (emissive ? IS_EMISSIVE : 0) | (depthBias ? HAS_DEPTH_BIAS : 0);
-    }
-    
-    SimpleProgramKey(int bitmask) : _flags(bitmask) {}
-};
-
-inline uint qHash(const SimpleProgramKey& key, uint seed) {
-    return qHash(key.getRaw(), seed);
-}
-
-inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
-    return a.getRaw() == b.getRaw();
-}
 
 #endif // hifi_DeferredLightingEffect_h

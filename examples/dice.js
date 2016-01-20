@@ -33,11 +33,11 @@ var BUTTON_SIZE = 32;
 var PADDING = 3;
 
 Script.include(["libraries/toolBars.js"]);
-var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function (screenSize) {
-    return {
-        x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
-        y: (screenSize.y - (BUTTON_SIZE + PADDING))
-    };
+var toolBar = new ToolBar(0, 0, ToolBar.HORIZONTAL, "highfidelity.dice.toolbar", function(screenSize) {
+  return {
+    x: (screenSize.x / 2 - BUTTON_SIZE * 2 + PADDING),
+    y: (screenSize.y - (BUTTON_SIZE + PADDING))
+  };
 });
 var offButton = toolBar.addOverlay("image", {
   width: BUTTON_SIZE,
@@ -65,12 +65,13 @@ var deleteButton = toolBar.addOverlay("image", {
   alpha: 1
 });
 
+var diceIconURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/dice.png"
 var diceButton = toolBar.addOverlay("image", {
   x: screenSize.x / 2 + PADDING,
   y: screenSize.y - (BUTTON_SIZE + PADDING),
   width: BUTTON_SIZE,
   height: BUTTON_SIZE,
-  imageURL: HIFI_PUBLIC_BUCKET + "images/die.png",
+  imageURL: diceIconURL,
   color: {
     red: 255,
     green: 255,
@@ -78,6 +79,7 @@ var diceButton = toolBar.addOverlay("image", {
   },
   alpha: 1
 });
+
 
 var GRAVITY = -3.5;
 
@@ -90,28 +92,27 @@ function shootDice(position, velocity) {
     Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
   } else {
     for (var i = 0; i < NUMBER_OF_DICE; i++) {
-      dice.push(Entities.addEntity(
-        {
-          type: "Model",
-          modelURL: HIFI_PUBLIC_BUCKET + "models/props/Dice/goldDie.fbx",
-          position: position,
-          velocity: velocity,
-          rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
-          angularVelocity: {
-            x: Math.random() * MAX_ANGULAR_SPEED,
-            y: Math.random() * MAX_ANGULAR_SPEED,
-            z: Math.random() * MAX_ANGULAR_SPEED
-          },
-          gravity: {
-            x: 0,
-            y: GRAVITY,
-            z: 0
-          },
-          lifetime: LIFETIME,
-          shapeType: "box",
-          collisionsWillMove: true,
-          collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav"
-        }));
+      dice.push(Entities.addEntity({
+        type: "Model",
+        modelURL: HIFI_PUBLIC_BUCKET + "models/props/Dice/goldDie.fbx",
+        position: position,
+        velocity: velocity,
+        rotation: Quat.fromPitchYawRollDegrees(Math.random() * 360, Math.random() * 360, Math.random() * 360),
+        angularVelocity: {
+          x: Math.random() * MAX_ANGULAR_SPEED,
+          y: Math.random() * MAX_ANGULAR_SPEED,
+          z: Math.random() * MAX_ANGULAR_SPEED
+        },
+        gravity: {
+          x: 0,
+          y: GRAVITY,
+          z: 0
+        },
+        lifetime: LIFETIME,
+        shapeType: "box",
+        dynamic: true,
+        collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav"
+      }));
       position = Vec3.sum(position, Vec3.multiply(DIE_SIZE, Vec3.normalize(Quat.getRight(Camera.getOrientation()))));
     }
   }

@@ -33,7 +33,7 @@ var flashlight = Entities.addEntity({
         y: 0.30,
         z: 0.08
     },
-    collisionsWillMove: true,
+    dynamic: true,
     shapeType: 'box',
     script: scriptURL,
     userData: JSON.stringify({

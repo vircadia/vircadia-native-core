@@ -170,20 +170,17 @@ Resource::Size Resource::Sysmem::append(Size size, const Byte* bytes) {
 
 Buffer::Buffer() :
     Resource(),
-    _sysmem(new Sysmem()),
-    _gpuObject(NULL) {
+    _sysmem(new Sysmem()) {
 }
 
 Buffer::Buffer(Size size, const Byte* bytes) :
     Resource(),
-    _sysmem(new Sysmem(size, bytes)),
-    _gpuObject(NULL) {
+    _sysmem(new Sysmem(size, bytes)) {
 }
 
 Buffer::Buffer(const Buffer& buf) :
     Resource(),
-    _sysmem(new Sysmem(buf.getSysmem())),
-    _gpuObject(NULL) {
+    _sysmem(new Sysmem(buf.getSysmem())) {
 }
 
 Buffer& Buffer::operator=(const Buffer& buf) {
@@ -195,10 +192,6 @@ Buffer::~Buffer() {
     if (_sysmem) {
         delete _sysmem;
         _sysmem = NULL;
-    }
-    if (_gpuObject) {
-        delete _gpuObject;
-        _gpuObject = NULL;
     }
 }
 

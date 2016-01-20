@@ -8,25 +8,12 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+#include <gpu/Context.h>
+
 #include "Engine.h"
 
-#include "DrawTask.h"
 using namespace render;
-
-RenderContext::RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode)
-    : _deferredDebugMode{ deferredDebugMode }, _deferredDebugSize{ deferredDebugSize },
-    _args{ nullptr },
-    _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
-    _items{ items }, _tone{ tone } {}
-
-void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
-    _occlusionStatus = occlusion;
-    _fxaaStatus = fxaa;
-
-    if (showOwned) {
-        _drawStatus |= render::showNetworkStatusFlag;
-    }
-};
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),
@@ -49,16 +36,10 @@ void Engine::addTask(const TaskPointer& task) {
 }
 
 void Engine::run() {
+    // Sync GPU state before beginning to render
+    _renderContext->getArgs()->_context->syncCache();
+
     for (auto task : _tasks) {
         task->run(_sceneContext, _renderContext);
     }
 }
-
-void Engine::buildStandardTaskPipeline() {
-    if (!_tasks.empty()) {
-        _tasks.clear();
-    }
-
-    addTask(std::make_shared<DrawSceneTask>());
-}
-

@@ -147,11 +147,6 @@ void DialogsManager::lodTools() {
     _lodToolsDialog->raise();
 }
 
-void DialogsManager::toggleToolWindow() {
-    QMainWindow* toolWindow = qApp->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
-}
-
 void DialogsManager::hmdTools(bool showTools) {
     if (showTools) {
         if (!_hmdToolsDialog) {

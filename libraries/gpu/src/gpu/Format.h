@@ -11,15 +11,30 @@
 #ifndef hifi_gpu_Format_h
 #define hifi_gpu_Format_h
 
-#include <glm/glm.hpp>
 #include <assert.h>
+#include <memory>
+
+#include <glm/glm.hpp>
 
 namespace gpu {
 
+class Backend;
+
 class GPUObject {
 public:
-    GPUObject() {}
-    virtual ~GPUObject() {}
+    virtual ~GPUObject() = default;
+};
+
+class GPUObjectPointer {
+private:
+    using GPUObjectUniquePointer = std::unique_ptr<GPUObject>;
+
+    // This shouldn't be used by anything else than the Backend class with the proper casting.
+    mutable GPUObjectUniquePointer _gpuObject;
+    void setGPUObject(GPUObject* gpuObject) const { _gpuObject.reset(gpuObject); }
+    GPUObject* getGPUObject() const { return _gpuObject.get(); }
+
+    friend class Backend;
 };
 
 typedef int  Stamp;

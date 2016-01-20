@@ -385,6 +385,4 @@ protected:
     bool _isServer;
 };
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
-
 #endif // hifi_Octree_h

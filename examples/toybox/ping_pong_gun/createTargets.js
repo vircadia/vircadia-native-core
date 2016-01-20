@@ -55,8 +55,8 @@ var targetIntervalClearer = Entities.addEntity({
     },
     rotation: rotation,
     visible: false,
-    collisionsWillMove: false,
-    ignoreForCollisions: true,
+    dynamic: false,
+    collisionless: true,
 });
 
 var targets = [];
@@ -89,7 +89,7 @@ function addTargets() {
             type: 'Model',
             modelURL: MODEL_URL,
             shapeType: 'compound',
-            collisionsWillMove: true,
+            dynamic: true,
             dimensions: TARGET_DIMENSIONS,
             compoundShapeURL: COLLISION_HULL_URL,
             position: position,
@@ -122,7 +122,7 @@ function testTargetDistanceFromStart() {
                 type: 'Model',
                 modelURL: MODEL_URL,
                 shapeType: 'compound',
-                collisionsWillMove: true,
+                dynamic: true,
                 dimensions: TARGET_DIMENSIONS,
                 compoundShapeURL: COLLISION_HULL_URL,
                 position: originalPositions[index],

@@ -340,11 +340,24 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _qmlComponent = new QQmlComponent(_qmlEngine);
 }
 
-void OffscreenQmlSurface::resize(const QSize& newSize) {
+void OffscreenQmlSurface::resize(const QSize& newSize_) {
 
     if (!_renderer || !_renderer->_quickWindow) {
         return;
     }
+
+    const float MAX_OFFSCREEN_DIMENSION = 4096;
+    QSize newSize = newSize_;
+
+    if (newSize.width() > MAX_OFFSCREEN_DIMENSION || newSize.height() > MAX_OFFSCREEN_DIMENSION) {
+        float scale = std::min(
+                ((float)newSize.width() / MAX_OFFSCREEN_DIMENSION),
+                ((float)newSize.height() / MAX_OFFSCREEN_DIMENSION));
+        newSize = QSize(
+                std::max(static_cast<int>(scale * newSize.width()), 10),
+                std::max(static_cast<int>(scale * newSize.height()), 10));
+    }
+
 
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();

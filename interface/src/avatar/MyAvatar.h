@@ -214,10 +214,6 @@ public:
 
     void clearScriptableSettings();
 
-    /// Renders a laser pointer for UI picking
-
-    glm::vec3 getLaserPointerTipPosition(const PalmData* palm);
-
     float getBoomLength() const { return _boomLength; }
     void setBoomLength(float boomLength) { _boomLength = boomLength; }
 
@@ -295,7 +291,8 @@ private:
     void setScriptedMotorTimescale(float timescale);
     void setScriptedMotorFrame(QString frame);
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
-                        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+                        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
+                        float scale = 1.0f, bool isSoft = false,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
     //void beginFollowingHMD();

@@ -155,6 +155,8 @@ public:
     // independant of the graphics api in use underneath (looking at you opengl & vulkan).
     static bool makeProgram(Shader& shader, const Shader::BindingSet& bindings = Shader::BindingSet());
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     Shader(Type type, const Source& source);
     Shader(Type type, const Pointer& vertex, const Pointer& pixel);
@@ -178,12 +180,6 @@ protected:
 
     // The type of the shader, the master key
     Type _type;
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = NULL;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 
 typedef Shader::Pointer ShaderPointer;

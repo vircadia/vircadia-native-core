@@ -13,7 +13,6 @@
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
 #include <RegisteredMetaTypes.h>
 
 

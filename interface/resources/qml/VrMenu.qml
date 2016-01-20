@@ -51,6 +51,16 @@ Hifi.VrMenu {
         VrMenuView {
             property int menuDepth: root.models.length - 1
             model: root.models[menuDepth]
+            
+            function fit(position, size, maxposition) {
+                var padding = 8;
+                if (position < padding) {
+                    position = padding;
+                } else if (position + size + padding > maxposition) {
+                    position = maxposition - (size + padding); 
+                }
+                return position;
+            }
 
             Component.onCompleted: {
                 if (menuDepth === 0) {
@@ -61,6 +71,8 @@ Hifi.VrMenu {
                     x = lastColumn.x + 64;
                     y = lastMousePosition.y - height / 2;
                 }
+                x = fit(x, width, parent.width);
+                y = fit(y, height, parent.height);
             }
 
             onSelected: {

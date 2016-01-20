@@ -25,6 +25,7 @@
 #include <RenderArgs.h>
 
 #include "model/Material.h"
+#include "ShapePipeline.h"
 
 namespace render {
 
@@ -81,6 +82,9 @@ public:
         static Builder background() { return Builder().withViewSpace().withLayered(); }
     };
     ItemKey(const Builder& builder) : ItemKey(builder._flags) {}
+
+    bool isShape() const { return _flags[TYPE_SHAPE]; }
+    bool isLight() const { return _flags[TYPE_LIGHT]; }
 
     bool isOpaque() const { return !_flags[TRANSLUCENT]; }
     bool isTransparent() const { return _flags[TRANSLUCENT]; }
@@ -264,7 +268,7 @@ public:
 
         virtual void render(RenderArgs* args) = 0;
 
-        virtual const model::MaterialKey getMaterialKey() const = 0;
+        virtual const ShapeKey getShapeKey() const = 0;
 
         ~PayloadInterface() {}
 
@@ -301,10 +305,10 @@ public:
     int getLayer() const { return _payload->getLayer(); }
 
     // Render call for the item
-    void render(RenderArgs* args) { _payload->render(args); }
+    void render(RenderArgs* args) const { _payload->render(args); }
 
     // Shape Type Interface
-    const model::MaterialKey getMaterialKey() const { return _payload->getMaterialKey(); }
+    const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
 
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
@@ -346,7 +350,10 @@ template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { 
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
     
 // Shape type interface
-template <class T> const model::MaterialKey shapeGetMaterialKey(const std::shared_ptr<T>& payloadData) { return model::MaterialKey(); }
+// This allows shapes to characterize their pipeline via a ShapeKey, to be picked with a subclass of Shape.
+// When creating a new shape payload you need to create a specialized version, or the ShapeKey will be ownPipeline,
+// implying that the shape will setup its own pipeline without the use of the ShapeKey.
+template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::ownPipeline(); }
 
 template <class T> class Payload : public Item::PayloadInterface {
 public:
@@ -364,7 +371,7 @@ public:
     virtual void render(RenderArgs* args) { payloadRender<T>(_data, args); } 
 
     // Shape Type interface
-    virtual const model::MaterialKey getMaterialKey() const { return shapeGetMaterialKey<T>(_data); }
+    virtual const ShapeKey getShapeKey() const { return shapeGetShapeKey<T>(_data); }
 
 protected:
     DataPointer _data;
@@ -425,7 +432,11 @@ public:
     AABox bounds;
 };
 
-typedef std::vector< ItemIDAndBounds > ItemIDsBounds;
+// A list of items to be passed between rendering jobs
+using ItemIDsBounds = std::vector<ItemIDAndBounds>;
+
+// A map of items by ShapeKey to optimize rendering pipeline assignments
+using ShapesIDsBounds = std::unordered_map<ShapeKey, ItemIDsBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
 
 
 // A map of ItemIDSets allowing to create bucket lists of items which are filtering correctly

@@ -83,7 +83,6 @@
 #include <controllers/StateController.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
-#include <MessageDialog.h>
 #include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
@@ -106,6 +105,7 @@
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
+#include <ScriptEngines.h>
 #include <TextureCache.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
@@ -151,7 +151,6 @@
 #endif
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
-#include "ui/RecorderDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DataWebDialog.h"
@@ -322,6 +321,7 @@ bool setupEssentials(int& argc, char** argv) {
     Setting::init();
 
     // Set dependencies
+    DependencyManager::set<ScriptEngines>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
@@ -396,7 +396,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     QApplication(argc, argv),
     _dependencyManagerIsSetup(setupEssentials(argc, argv)),
     _window(new MainWindow(desktop())),
-    _toolWindow(NULL),
     _undoStackScriptingInterface(&_undoStack),
     _frameCount(0),
     _fps(60.0f),
@@ -405,16 +404,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-    _firstRun("firstRun", true),
-    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
-    _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
     _raiseMirror(0.0f),
     _enableProcessOctreeThread(true),
-    _runningScriptsWidget(NULL),
-    _runningScriptsWidgetWasVisible(false),
     _lastNackTime(usecTimestampNow()),
     _lastSendDownstreamAudioStats(usecTimestampNow()),
     _aboutToQuit(false),
@@ -453,10 +447,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
 
     _bookmarks = new Bookmarks();  // Before setting up the menu
-
-    _runningScriptsWidget = new RunningScriptsWidget(_window);
-    _renderEngine->addTask(make_shared<RenderDeferredTask>());
-    _renderEngine->registerScene(_main3DScene);
 
     // start the nodeThread so its event loop is running
     QThread* nodeThread = new QThread(this);
@@ -601,6 +591,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
 
+    auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
+    scriptEngines->registerScriptInitializer([this](ScriptEngine* engine){
+        registerScriptEngineWithApplicationServices(engine);
+    });
+
+    connect(scriptEngines, &ScriptEngines::scriptCountChanged, scriptEngines, [this] {
+        auto scriptEngines = DependencyManager::get<ScriptEngines>();
+        if (scriptEngines->getRunningScripts().isEmpty()) {
+            getMyAvatar()->clearScriptableSettings();
+        }
+    }, Qt::QueuedConnection);
+
+    connect(scriptEngines, &ScriptEngines::scriptsReloading, scriptEngines, [this] {
+        getEntities()->reloadEntityScripts();
+    }, Qt::QueuedConnection);
+
+    connect(scriptEngines, &ScriptEngines::scriptLoadError, 
+        scriptEngines, [](const QString& filename, const QString& error){
+        OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
+    }, Qt::QueuedConnection);
+
 #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2, 2), &WsaData);
@@ -663,10 +674,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _offscreenContext->makeCurrent();
     initializeGL();
 
-
-    _toolWindow = new ToolWindow();
-    _toolWindow->setWindowFlags((_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint) & ~Qt::WindowMinimizeButtonHint);
-    _toolWindow->setWindowTitle("Tools");
+    // Start rendering
+    _renderEngine->addTask(make_shared<RenderDeferredTask>());
+    _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
 
@@ -680,9 +690,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _overlays.init(); // do this before scripts load
 
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-
-    connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // hook up bandwidth estimator
@@ -849,18 +856,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
-    // check first run...
-    if (_firstRun.get()) {
-        qCDebug(interfaceapp) << "This is a first run...";
-        // clear the scripts, and set out script to our default scripts
-        clearScriptsBeforeRunning();
-        loadScript(DEFAULT_SCRIPTS_JS_URL);
-
-        _firstRun.set(false);
-    } else {
-        // do this as late as possible so that all required subsystems are initialized
-        loadScripts();
-    }
+    // force the model the look at the correct directory (weird order of operations issue)
+    scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
+    // do this as late as possible so that all required subsystems are initialized
+    scriptEngines->loadScripts();
 
     loadSettings();
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
@@ -872,7 +871,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL);
     _settingsThread.start();
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
+        cameraMenuChanged();
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
         Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, true);
         cameraMenuChanged();
     }
@@ -974,7 +978,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
-
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
 }
 
@@ -1019,7 +1022,9 @@ void Application::cleanupBeforeQuit() {
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
-    ScriptEngine::stopAllScripts(this); // stop all currently running global scripts
+    DependencyManager::get<ScriptEngines>()->saveScripts();
+    DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
+    DependencyManager::destroy<ScriptEngines>(); 
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1172,10 +1177,8 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
-    RecorderDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
-    MessageDialog::registerType();
     VrMenu::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
@@ -1184,7 +1187,10 @@ void Application::initializeUi() {
     offscreenUi->create(_offscreenContext->getContext());
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
-    offscreenUi->load("Root.qml");
+    // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
+    // support the window management and scripting proxies for VR use
+    offscreenUi->createDesktop();
+    
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -1194,8 +1200,12 @@ void Application::initializeUi() {
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
     });
-    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
+
+    // For some reason there is already an "Application" object in the QML context, 
+    // though I can't find it. Hence, "ApplicationInterface"
+    rootContext->setContextProperty("ApplicationInterface", this); 
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
     rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
@@ -1216,12 +1226,11 @@ void Application::initializeUi() {
 #endif
 
     rootContext->setContextProperty("Overlays", &_overlays);
-    rootContext->setContextProperty("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-
     rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
     rootContext->setContextProperty("Menu", MenuScriptingInterface::getInstance());
     rootContext->setContextProperty("Stats", Stats::getInstance());
     rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
@@ -1236,7 +1245,6 @@ void Application::initializeUi() {
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
-    rootContext->setContextProperty("ScriptDiscoveryService", this->getRunningScriptsWidget());
 
     _glWidget->installEventFilter(offscreenUi.data());
     VrMenu::load();
@@ -1586,7 +1594,7 @@ void Application::paintGL() {
         Stats::getInstance()->setRenderDetails(renderArgs._details);
         // Reset the gpu::Context Stages
         // Back to the default framebuffer;
-        gpu::doInBatch(renderArgs._context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(renderArgs._context, [&](gpu::Batch& batch) {
             batch.resetStages();
         });
     }
@@ -1831,14 +1839,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->load("Browser.qml");
-                }
-                break;
-
-            case Qt::Key_X:
-                if (isMeta && isShifted) {
-//                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-//                    offscreenUi->load("TestControllers.qml");
-                    RecorderDialog::toggle();
                 }
                 break;
 
@@ -2194,6 +2194,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     _altPressed = false;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    // If we get a mouse press event it means it wasn't consumed by the offscreen UI,
+    // hence, we should defocus all of the offscreen UI windows, in order to allow
+    // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
+    // will consume all keyboard events.
+    offscreenUi->unfocusWindows();
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
@@ -3088,63 +3093,70 @@ void Application::update(float deltaTime) {
 
     if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
-
-        static VectorOfMotionStates motionStates;
-        _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToAddToPhysics(motionStates);
-            _physicsEngine->addObjects(motionStates);
-
-        });
-        getEntities()->getTree()->withWriteLock([&] {
-            _entitySimulation.getObjectsToChange(motionStates);
-            VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
-            _entitySimulation.setObjectsToChange(stillNeedChange);
-        });
-
-        _entitySimulation.applyActionChanges();
-
         AvatarManager* avatarManager = DependencyManager::get<AvatarManager>().data();
-        avatarManager->getObjectsToRemoveFromPhysics(motionStates);
-        _physicsEngine->removeObjects(motionStates);
-        avatarManager->getObjectsToAddToPhysics(motionStates);
-        _physicsEngine->addObjects(motionStates);
-        avatarManager->getObjectsToChange(motionStates);
-        _physicsEngine->changeObjects(motionStates);
 
-        myAvatar->prepareForPhysicsSimulation();
-        _physicsEngine->forEachAction([&](EntityActionPointer action) {
-            action->prepareForPhysicsSimulation();
-        });
+        {
+            PerformanceTimer perfTimer("updateStates)");
+            static VectorOfMotionStates motionStates;
+            _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
 
-        getEntities()->getTree()->withWriteLock([&] {
-            _physicsEngine->stepSimulation();
-        });
-
-        if (_physicsEngine->hasOutgoingChanges()) {
             getEntities()->getTree()->withWriteLock([&] {
-                _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
-                avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                _entitySimulation.getObjectsToAddToPhysics(motionStates);
+                _physicsEngine->addObjects(motionStates);
+
+            });
+            getEntities()->getTree()->withWriteLock([&] {
+                _entitySimulation.getObjectsToChange(motionStates);
+                VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
+                _entitySimulation.setObjectsToChange(stillNeedChange);
             });
 
-            auto collisionEvents = _physicsEngine->getCollisionEvents();
-            avatarManager->handleCollisionEvents(collisionEvents);
+            _entitySimulation.applyActionChanges();
 
-            _physicsEngine->dumpStatsIfNecessary();
+             avatarManager->getObjectsToRemoveFromPhysics(motionStates);
+            _physicsEngine->removeObjects(motionStates);
+            avatarManager->getObjectsToAddToPhysics(motionStates);
+            _physicsEngine->addObjects(motionStates);
+            avatarManager->getObjectsToChange(motionStates);
+            _physicsEngine->changeObjects(motionStates);
 
-            if (!_aboutToQuit) {
-                PerformanceTimer perfTimer("entities");
-                // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
-                // deadlock.)
-                _entitySimulation.handleCollisionEvents(collisionEvents);
-                // NOTE: the getEntities()->update() call below will wait for lock
-                // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                getEntities()->update(); // update the models...
+            myAvatar->prepareForPhysicsSimulation();
+            _physicsEngine->forEachAction([&](EntityActionPointer action) {
+                action->prepareForPhysicsSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("stepSimulation");
+            getEntities()->getTree()->withWriteLock([&] {
+                _physicsEngine->stepSimulation();
+            });
+        }
+        {
+            PerformanceTimer perfTimer("havestChanges");
+            if (_physicsEngine->hasOutgoingChanges()) {
+                getEntities()->getTree()->withWriteLock([&] {
+                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
+                    avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                });
+
+                auto collisionEvents = _physicsEngine->getCollisionEvents();
+                avatarManager->handleCollisionEvents(collisionEvents);
+
+                _physicsEngine->dumpStatsIfNecessary();
+
+                if (!_aboutToQuit) {
+                    PerformanceTimer perfTimer("entities");
+                    // Collision events (and their scripts) must not be handled when we're locked, above. (That would risk
+                    // deadlock.)
+                    _entitySimulation.handleCollisionEvents(collisionEvents);
+                    // NOTE: the getEntities()->update() call below will wait for lock
+                    // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
+                    getEntities()->update(); // update the models...
+                }
+
+                myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
             }
-
-            myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
         }
     }
 
@@ -3491,16 +3503,8 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-float Application::getSizeScale() const {
-    return DependencyManager::get<LODManager>()->getOctreeSizeScale();
-}
-
-int Application::getBoundaryLevelAdjust() const {
-    return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
-}
-
 PickRay Application::computePickRay(float x, float y) const {
-    vec2 pickPoint{ x, y };
+    vec2 pickPoint { x, y };
     PickRay result;
     if (isHMDMode()) {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
@@ -3597,7 +3601,7 @@ namespace render {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
-            DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch);
+            DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
             renderWorldBox(batch);
         }
     }
@@ -3621,10 +3625,15 @@ public:
 render::ItemID BackgroundRenderData::_item = 0;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) { return ItemKey::Builder::background(); }
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) { return Item::Bound(); }
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
+    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
+        return ItemKey::Builder::background();
+    }
 
+    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
+        return Item::Bound();
+    }
+
+    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
         Q_ASSERT(args->_batch);
         gpu::Batch& batch = *args->_batch;
 
@@ -3632,20 +3641,18 @@ namespace render {
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         auto backgroundMode = skyStage->getBackgroundMode();
 
-        if (backgroundMode == model::SunSkyStage::NO_BACKGROUND) {
-            // this line intentionally left blank
-        } else {
-            if (backgroundMode == model::SunSkyStage::SKY_BOX) {
+        switch (backgroundMode) {
+            case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
                 if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, *(args->_viewFrustum));
-                } else {
-                    // If no skybox texture is available, render the SKY_DOME while it loads
-                    backgroundMode = model::SunSkyStage::SKY_DOME;
+                    break;
                 }
+                // If no skybox texture is available, render the SKY_DOME while it loads
             }
-            if (backgroundMode == model::SunSkyStage::SKY_DOME) {
+                // fall through to next case
+            case model::SunSkyStage::SKY_DOME:  {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
@@ -3711,6 +3718,11 @@ namespace render {
 
                 }
             }
+                break;
+            case model::SunSkyStage::NO_BACKGROUND:
+            default:
+                // this line intentionally left blank
+                break;
         }
     }
 }
@@ -4166,48 +4178,6 @@ int Application::processOctreeStats(ReceivedMessage& message, SharedNodePointer 
 void Application::packetSent(quint64 length) {
 }
 
-const QString SETTINGS_KEY = "Settings";
-
-void Application::loadScripts() {
-    // loads all saved scripts
-    Settings settings;
-    int size = settings.beginReadArray(SETTINGS_KEY);
-    for (int i = 0; i < size; ++i){
-        settings.setArrayIndex(i);
-        QString string = settings.value("script").toString();
-        if (!string.isEmpty()) {
-            loadScript(string);
-        }
-    }
-    settings.endArray();
-}
-
-void Application::clearScriptsBeforeRunning() {
-    // clears all scripts from the settingsSettings settings;
-    Settings settings;
-    settings.beginWriteArray(SETTINGS_KEY);
-    settings.remove("");
-}
-
-void Application::saveScripts() {
-    // Saves all currently running user-loaded scripts
-    Settings settings;
-    settings.beginWriteArray(SETTINGS_KEY);
-    settings.remove("");
-
-    QStringList runningScripts = getRunningScripts();
-    int i = 0;
-    for (auto it = runningScripts.begin(); it != runningScripts.end(); ++it) {
-        if (getScriptEngine(*it)->isUserLoaded()) {
-            settings.setArrayIndex(i);
-            settings.setValue("script", *it);
-            ++i;
-        }
-    }
-    settings.endArray();
-}
-
-
 void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -4233,11 +4203,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     ClipboardScriptingInterface* clipboardScriptable = new ClipboardScriptingInterface();
     scriptEngine->registerGlobalObject("Clipboard", clipboardScriptable);
     connect(scriptEngine, &ScriptEngine::finished, clipboardScriptable, &ClipboardScriptingInterface::deleteLater);
-
-    connect(scriptEngine, &ScriptEngine::finished, this, &Application::scriptFinished, Qt::DirectConnection);
-
-    connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
-    connect(scriptEngine, SIGNAL(reloadScript(const QString&, bool)), this, SLOT(reloadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
     qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
@@ -4286,7 +4251,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
-    scriptEngine->registerGlobalObject("ScriptDiscoveryService", this->getRunningScriptsWidget());
+    scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4392,7 +4357,7 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
 
     if (reply == QMessageBox::Yes) {
         qCDebug(interfaceapp) << "Chose to run the script: " << scriptFilenameOrURL;
-        loadScript(scriptFilenameOrURL);
+        DependencyManager::get<ScriptEngines>()->loadScript(scriptFilenameOrURL);
     } else {
         qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
     }
@@ -4565,199 +4530,21 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
     }
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-                                      bool loadScriptFromEditor, bool activateMainWindow, bool reload) {
-
-    if (isAboutToQuit()) {
-        return NULL;
-    }
-
-    QUrl scriptUrl(scriptFilename);
-    const QString& scriptURLString = scriptUrl.toString();
-    {
-        QReadLocker lock(&_scriptEnginesHashLock);
-        if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-            && !_scriptEnginesHash[scriptURLString]->isFinished()) {
-
-            return _scriptEnginesHash[scriptURLString];
-        }
-    }
-
-    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    scriptEngine->setUserLoaded(isUserLoaded);
-
-    if (scriptFilename.isNull()) {
-        // This appears to be the script engine used by the script widget's evaluation window before the file has been saved...
-
-        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
-        // doesn't just get an empty script engine)
-
-        // we can complete setup now since there isn't a script we have to load
-        registerScriptEngineWithApplicationServices(scriptEngine);
-        scriptEngine->runInThread();
-    } else {
-        // connect to the appropriate signals of this script engine
-        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
-        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
-
-        // get the script engine object to load the script at the designated script URL
-        scriptEngine->loadURL(scriptUrl, reload);
-    }
-
-    // restore the main window's active state
-    if (activateMainWindow && !loadScriptFromEditor) {
-        _window->activateWindow();
-    }
-
-    return scriptEngine;
-}
-
-void Application::reloadScript(const QString& scriptName, bool isUserLoaded) {
-    loadScript(scriptName, isUserLoaded, false, false, true);
-}
-
-// FIXME - change to new version of ScriptCache loading notification
-void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
-    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
-
-    {
-        QWriteLocker lock(&_scriptEnginesHashLock);
-        _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
-    }
-
-    _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    UserActivityLogger::getInstance().loadedScript(scriptFilename);
-
-    // register our application services and set it off on its own thread
-    registerScriptEngineWithApplicationServices(scriptEngine);
-    scriptEngine->runInThread();
-}
-
-// FIXME - change to new version of ScriptCache loading notification
-void Application::handleScriptLoadError(const QString& scriptFilename) {
-    qCDebug(interfaceapp) << "Application::loadScript(), script failed to load...";
-    OffscreenUi::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
-}
-
-QStringList Application::getRunningScripts() {
-    QReadLocker lock(&_scriptEnginesHashLock);
-    return _scriptEnginesHash.keys();
-}
-
-ScriptEngine* Application::getScriptEngine(const QString& scriptHash) {
-    QReadLocker lock(&_scriptEnginesHashLock);
-    return _scriptEnginesHash.value(scriptHash, nullptr);
-}
-
-void Application::scriptFinished(const QString& scriptName, ScriptEngine* engine) {
-    bool removed = false;
-    {
-        QWriteLocker lock(&_scriptEnginesHashLock);
-        const QString& scriptURLString = QUrl(scriptName).toString();
-        for (auto it = _scriptEnginesHash.find(scriptURLString); it != _scriptEnginesHash.end(); ++it) {
-            if (it.value() == engine) {
-                _scriptEnginesHash.erase(it);
-                removed = true;
-                break;
-            }
-        }
-    }
-    if (removed) {
-        postLambdaEvent([this, scriptName]() {
-            _runningScriptsWidget->scriptStopped(scriptName);
-            _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        });
-    }
-}
-
-void Application::stopAllScripts(bool restart) {
-    {
-        QReadLocker lock(&_scriptEnginesHashLock);
-
-        if (restart) {
-            // Delete all running scripts from cache so that they are re-downloaded when they are restarted
-            auto scriptCache = DependencyManager::get<ScriptCache>();
-            for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-            it != _scriptEnginesHash.constEnd(); it++) {
-                if (!it.value()->isFinished()) {
-                    scriptCache->deleteScript(it.key());
-                }
-            }
-        }
-
-        // Stop and possibly restart all currently running scripts
-        for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
-                it != _scriptEnginesHash.constEnd(); it++) {
-            if (it.value()->isFinished()) {
-                continue;
-            }
-            if (restart && it.value()->isUserLoaded()) {
-                connect(it.value(), &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
-                    reloadScript(scriptName);
-                });
-            }
-            QMetaObject::invokeMethod(it.value(), "stop");
-            //it.value()->stop();
-            qCDebug(interfaceapp) << "stopping script..." << it.key();
-        }
-    }
-    getMyAvatar()->clearScriptableSettings();
-}
-
-bool Application::stopScript(const QString& scriptHash, bool restart) {
-    bool stoppedScript = false;
-    {
-        QReadLocker lock(&_scriptEnginesHashLock);
-        if (_scriptEnginesHash.contains(scriptHash)) {
-            ScriptEngine* scriptEngine = _scriptEnginesHash[scriptHash];
-            if (restart) {
-                auto scriptCache = DependencyManager::get<ScriptCache>();
-                scriptCache->deleteScript(QUrl(scriptHash));
-                connect(scriptEngine, &ScriptEngine::finished, this, [this](QString scriptName, ScriptEngine* engine) {
-                    reloadScript(scriptName);
-                });
-            }
-            scriptEngine->stop();
-            stoppedScript = true;
-            qCDebug(interfaceapp) << "stopping script..." << scriptHash;
-        }
-    }
-    if (_scriptEnginesHash.empty()) {
-        getMyAvatar()->clearScriptableSettings();
-    }
-    return stoppedScript;
-}
-
-void Application::reloadAllScripts() {
-    DependencyManager::get<ScriptCache>()->clearCache();
-    getEntities()->reloadEntityScripts();
-    stopAllScripts(true);
-}
-
-void Application::reloadOneScript(const QString& scriptName) {
-    stopScript(scriptName, true);
-}
-
-void Application::loadDefaultScripts() {
-    QReadLocker lock(&_scriptEnginesHashLock);
-    if (!_scriptEnginesHash.contains(DEFAULT_SCRIPTS_JS_URL)) {
-        loadScript(DEFAULT_SCRIPTS_JS_URL);
-    }
-}
-
 void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidget->isVisible()) {
-        if (_runningScriptsWidget->hasFocus()) {
-            _runningScriptsWidget->hide();
-        } else {
-            _runningScriptsWidget->raise();
-            setActiveWindow(_runningScriptsWidget);
-            _runningScriptsWidget->setFocus();
-        }
-    } else {
-        _runningScriptsWidget->show();
-        _runningScriptsWidget->setFocus();
-    }
+    static const QUrl url("dialogs/RunningScripts.qml");
+    DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
+    //if (_runningScriptsWidget->isVisible()) {
+    //    if (_runningScriptsWidget->hasFocus()) {
+    //        _runningScriptsWidget->hide();
+    //    } else {
+    //        _runningScriptsWidget->raise();
+    //        setActiveWindow(_runningScriptsWidget);
+    //        _runningScriptsWidget->setFocus();
+    //    }
+    //} else {
+    //    _runningScriptsWidget->show();
+    //    _runningScriptsWidget->setFocus();
+    //}
 }
 
 void Application::packageModel() {
@@ -4802,27 +4589,17 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
     qCDebug(interfaceapp) << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
-QString Application::getPreviousScriptLocation() {
-    return _previousScriptLocation.get();
-}
-
-void Application::setPreviousScriptLocation(const QString& previousScriptLocation) {
-    _previousScriptLocation.set(previousScriptLocation);
-}
-
 void Application::loadDialog() {
-
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget,
-                                                          tr("Open Script"),
-                                                          getPreviousScriptLocation(),
-                                                          tr("JavaScript Files (*.js)"));
+    // To be migratd to QML
+    QString fileNameString = QFileDialog::getOpenFileName(
+        _glWidget, tr("Open Script"), "", tr("JavaScript Files (*.js)"));
     if (!fileNameString.isEmpty()) {
-        setPreviousScriptLocation(fileNameString);
-        loadScript(fileNameString);
+        DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
     }
 }
 
 void Application::loadScriptURLDialog() {
+    // To be migratd to QML
     QInputDialog scriptURLDialog(getWindow());
     scriptURLDialog.setWindowTitle("Open and Run Script URL");
     scriptURLDialog.setLabelText("Script:");
@@ -4838,17 +4615,8 @@ void Application::loadScriptURLDialog() {
             // the user input a new hostname, use that
             newScript = scriptURLDialog.textValue();
         }
-        loadScript(newScript);
+        DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
-}
-
-QString Application::getScriptsLocation() {
-    return _scriptsLocationHandle.get();
-}
-
-void Application::setScriptsLocation(const QString& scriptsLocation) {
-    _scriptsLocationHandle.set(scriptsLocation);
-    emit scriptLocationChanged(scriptsLocation);
 }
 
 void Application::toggleLogDialog() {
@@ -4981,7 +4749,7 @@ void Application::showFriendsWindow() {
     auto webWindowClass = _window->findChildren<WebWindowClass>(FRIENDS_WINDOW_OBJECT_NAME);
     if (webWindowClass.empty()) {
         auto friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
-                                                FRIENDS_WINDOW_HEIGHT, false);
+                                                FRIENDS_WINDOW_HEIGHT);
         friendsWindow->setParent(_window);
         friendsWindow->setObjectName(FRIENDS_WINDOW_OBJECT_NAME);
         connect(friendsWindow, &WebWindowClass::closed, &WebWindowClass::deleteLater);
@@ -5065,7 +4833,22 @@ const DisplayPlugin* Application::getActiveDisplayPlugin() const {
 static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool active = false) {
     auto menu = Menu::getInstance();
     QString name = displayPlugin->getName();
+    auto grouping = displayPlugin->getGrouping();
+    QString groupingMenu { "" };
     Q_ASSERT(!menu->menuItemExists(MenuOption::OutputMenu, name));
+
+    // assign the meny grouping based on plugin grouping
+    switch (grouping) {
+        case Plugin::ADVANCED:
+            groupingMenu = "Advanced";
+            break;
+        case Plugin::DEVELOPER:
+            groupingMenu = "Developer";
+            break;
+        default:
+            groupingMenu = "Standard"; 
+            break;
+    }
 
     static QActionGroup* displayPluginGroup = nullptr;
     if (!displayPluginGroup) {
@@ -5075,7 +4858,9 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     auto parent = menu->getMenu(MenuOption::OutputMenu);
     auto action = menu->addActionToQMenuAndActionHash(parent,
         name, 0, qApp,
-        SLOT(updateDisplayMode()));
+        SLOT(updateDisplayMode()),
+        QAction::NoRole, UNSPECIFIED_POSITION, groupingMenu);
+
     action->setCheckable(true);
     action->setChecked(active);
     displayPluginGroup->addAction(action);
@@ -5089,7 +4874,31 @@ void Application::updateDisplayMode() {
     static std::once_flag once;
     std::call_once(once, [&] {
         bool first = true;
+
+        // first sort the plugins into groupings: standard, advanced, developer
+        DisplayPluginList standard;
+        DisplayPluginList advanced;
+        DisplayPluginList developer;
         foreach(auto displayPlugin, displayPlugins) {
+            auto grouping = displayPlugin->getGrouping();
+            switch (grouping) {
+                case Plugin::ADVANCED:
+                    advanced.push_back(displayPlugin);
+                    break;
+                case Plugin::DEVELOPER:
+                    developer.push_back(displayPlugin);
+                    break;
+                default:
+                    standard.push_back(displayPlugin);
+                    break;
+            }
+        }
+
+        // concactonate the groupings into a single list in the order: standard, advanced, developer
+        standard.insert(std::end(standard), std::begin(advanced), std::end(advanced));
+        standard.insert(std::end(standard), std::begin(developer), std::end(developer));
+
+        foreach(auto displayPlugin, standard) {
             addDisplayPluginToMenu(displayPlugin, first);
             // This must be a queued connection to avoid a deadlock
             QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender,
@@ -5101,6 +4910,11 @@ void Application::updateDisplayMode() {
 
             first = false;
         }
+
+        // after all plugins have been added to the menu, add a seperator to the menu
+        auto menu = Menu::getInstance();
+        auto parent = menu->getMenu(MenuOption::OutputMenu);
+        parent->addSeparator();
     });
 
 

@@ -21,6 +21,7 @@
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <VrMenu.h>
+#include <ScriptEngines.h>
 
 #include "Application.h"
 #include "AccountManager.h"
@@ -57,9 +58,6 @@ Menu::Menu() {
     // File/Application menu ----------------------------------
     MenuWrapper* fileMenu = addMenu("File");
 
-    // File > Quit
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp,SLOT(quit()), QAction::QuitRole);
-
     // File > Login menu items
     {
         addActionToQMenuAndActionHash(fileMenu, MenuOption::Login);
@@ -85,6 +83,70 @@ Menu::Menu() {
     // File > About
     addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
 
+    // File > Quit
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::Quit, Qt::CTRL | Qt::Key_Q, qApp, SLOT(quit()), QAction::QuitRole);
+
+
+    // Edit menu ----------------------------------
+    MenuWrapper* editMenu = addMenu("Edit");
+
+    // Edit > Undo
+    QUndoStack* undoStack = qApp->getUndoStack();
+    QAction* undoAction = undoStack->createUndoAction(editMenu);
+    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, undoAction);
+
+    // Edit > Redo
+    QAction* redoAction = undoStack->createRedoAction(editMenu);
+    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
+    addActionToQMenuAndActionHash(editMenu, redoAction);
+
+    // Edit > Running Sccripts
+    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
+        qApp, SLOT(toggleRunningScriptsWidget()));
+
+    // Edit > Open and Run Script from File... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
+        qApp, SLOT(loadDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Open and Run Script from Url... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScriptURL,
+        Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    // Edit > Stop All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, 
+        scriptEngines.data(), SLOT(stopAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Scripts... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
+        scriptEngines.data(), SLOT(reloadAllScripts()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Scripts Editor... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
+        dialogsManager.data(), SLOT(showScriptEditor()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Console... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
+        DependencyManager::get<StandAloneJSConsole>().data(),
+        SLOT(toggleConsole()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+    // Edit > Reload All Content [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
+
+    // Edit > Package Model... [advanced]
+    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
+        qApp, SLOT(packageModel()),
+        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+
 
     // Audio menu ----------------------------------
     MenuWrapper* audioMenu = addMenu("Audio");
@@ -94,9 +156,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false, 
         audioIO.data(), SLOT(toggleMute()));
 
-    // Audio > Level Meter  [advanced] -- FIXME: needs implementation
-    auto levelMeterAction = addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-    levelMeterAction->setDisabled(true);
+    // Audio > Show Level Meter
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, true);
 
 
     // Avatar menu ----------------------------------
@@ -186,65 +247,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
 
-    // Edit menu ----------------------------------
-    MenuWrapper* editMenu = addMenu("Edit");
-
-    // Edit > Undo
-    QUndoStack* undoStack = qApp->getUndoStack();
-    QAction* undoAction = undoStack->createUndoAction(editMenu);
-    undoAction->setShortcut(Qt::CTRL | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, undoAction);
-
-    // Edit > Redo
-    QAction* redoAction = undoStack->createRedoAction(editMenu);
-    redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
-    addActionToQMenuAndActionHash(editMenu, redoAction);
-
-    // Edit > Running Sccripts
-    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-        qApp, SLOT(toggleRunningScriptsWidget()));
-
-    // Edit > Open and Run Script from File... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
-        qApp, SLOT(loadDialog()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Open and Run Script from Url... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScriptURL,
-        Qt::CTRL | Qt::SHIFT | Qt::Key_O, qApp, SLOT(loadScriptURLDialog()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Stop All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::StopAllScripts, 0, qApp, SLOT(stopAllScripts()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Reload All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-        qApp, SLOT(reloadAllScripts()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Scripts Editor... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ScriptEditor, Qt::ALT | Qt::Key_S,
-        dialogsManager.data(), SLOT(showScriptEditor()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Console... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
-        DependencyManager::get<StandAloneJSConsole>().data(),
-        SLOT(toggleConsole()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-    // Edit > Reload All Content [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
-    // Edit > Package Model... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
-        qApp, SLOT(packageModel()),
-        QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
 
@@ -271,14 +273,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::CopyPath, 0,
         addressManager.data(), SLOT(copyPath()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
-
-    // Market menu ----------------------------------
-    MenuWrapper* marketMenu = addMenu("Market");
-
-    // Market > Marketplace... -- FIXME: needs implementation
-    auto marketplaceAction = addActionToQMenuAndActionHash(marketMenu, "Marketplace...");
-    marketplaceAction->setDisabled(true);
 
 
     // Settings menu ----------------------------------
@@ -330,8 +324,10 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 0, true);
 
     // Developer > Render > Ambient Light
     MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
@@ -362,15 +358,8 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
-    // Developer > Render > Stars
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars,
-        0, // QML Qt::Key_Asterisk,
-        true);
-
     // Developer > Render > LOD Tools
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
-        0, // QML Qt::SHIFT | Qt::Key_L,
-        dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
 
     // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
@@ -503,6 +492,12 @@ Menu::Menu() {
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
+    // Developer > Entities >>>
+    MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");
+    addActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::OctreeStats, 0,
+        dialogsManager.data(), SLOT(octreeStatsDetails()));
+    addCheckableActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::ShowRealtimeEntityStats);
+
     // Developer > Network >>>
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
@@ -519,12 +514,14 @@ Menu::Menu() {
         dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
         dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
-
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
+        dialogsManager.data(), SLOT(bandwidthDetails()));
 
-    // Developer > Timing and Stats >>>
-    MenuWrapper* timingMenu = developerMenu->addMenu("Timing and Stats");
+
+    // Developer > Timing >>>
+    MenuWrapper* timingMenu = developerMenu->addMenu("Timing");
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayDebugTimingDetails, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
@@ -539,7 +536,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::ShowRealtimeEntityStats);
 
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
@@ -576,6 +572,10 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
+    // Developer > Audio > Audio Network Stats...
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNetworkStats, 0,
+        dialogsManager.data(), SLOT(audioStatsDetails()));
+
     // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
@@ -592,22 +592,6 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
-
-    // Developer > Audio Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::AudioNetworkStats, 0,
-        dialogsManager.data(), SLOT(audioStatsDetails()));
-
-    // Developer > Bandwidth Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::BandwidthDetails, 0,
-        dialogsManager.data(), SLOT(bandwidthDetails()));
-
-    // Developer > Entity Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::OctreeStats, 0,
-        dialogsManager.data(), SLOT(octreeStatsDetails()));
-
-    // Developer > World Axes
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::WorldAxes);
-
 
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------

@@ -126,7 +126,7 @@
                 damping: BALL_LINEAR_DAMPING,
                 gravity: BALL_GRAVITY,
                 restitution: BALL_RESTITUTION,
-                collisionsWillMove: true,
+                dynamic: true,
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
                 velocity: forwardVec,

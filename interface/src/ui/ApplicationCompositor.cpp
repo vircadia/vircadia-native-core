@@ -117,8 +117,6 @@ ApplicationCompositor::ApplicationCompositor() :
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     _reticleQuad = geometryCache->allocateID();
-    _magnifierQuad = geometryCache->allocateID();
-    _magnifierBorder = geometryCache->allocateID();
 
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::hoverEnterEntity, [=](const EntityItemID& entityItemID, const MouseEvent& event) {
@@ -202,7 +200,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     updateTooltips();
 
     //Handle fading and deactivation/activation of UI
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -231,25 +229,6 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
     });
 }
 
-
-vec2 ApplicationCompositor::getPolarCoordinates(const PalmData& palm) const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-    glm::vec3 relativePos = myAvatar->getDefaultEyePosition();
-    glm::quat rotation = myAvatar->getOrientation();
-    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
-        relativePos = _modelTransform.getTranslation();
-        rotation = _modelTransform.getRotation();
-    }
-    glm::vec3 tipDirection = tip - relativePos;
-    tipDirection = glm::inverse(rotation) * tipDirection;
-    // Normalize for trig functions
-    tipDirection = glm::normalize(tipDirection);
-    // Convert to polar coordinates
-    glm::vec2 polar(glm::atan(tipDirection.x, -tipDirection.z), glm::asin(tipDirection.y));
-    return polar;
-}
-
 // Draws the FBO texture for Oculus rift.
 void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int eye) {
     PROFILE_RANGE(__FUNCTION__);
@@ -270,7 +249,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         geometryCache->useSimpleDrawPipeline(batch);
 
         batch.setResourceTexture(0, overlayFramebuffer->getRenderBuffer(0));
@@ -343,36 +322,6 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
     origin = worldSpaceHeadPosition;
     direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
-}
-
-//Caculate the click location using one of the sixense controllers. Scale is not applied
-QPoint ApplicationCompositor::getPalmClickLocation(const PalmData *palm) const {
-    QPoint rv;
-    auto canvasSize = qApp->getCanvasSize();
-    if (qApp->isHMDMode()) {
-        glm::vec2 polar = getPolarCoordinates(*palm);
-        glm::vec2 point = sphericalToScreen(-polar);
-        rv.rx() = point.x;
-        rv.ry() = point.y;
-    } else {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::mat4 projection;
-        qApp->getDisplayViewFrustum()->evalProjectionMatrix(projection);
-        glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
-        glm::vec3 eyePos = myAvatar->getDefaultEyePosition();
-        glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
-        glm::vec3 tipPos = invOrientation * (tip - eyePos);
-
-        glm::vec4 clipSpacePos = glm::vec4(projection * glm::vec4(tipPos, 1.0f));
-        glm::vec3 ndcSpacePos;
-        if (clipSpacePos.w != 0) {
-            ndcSpacePos = glm::vec3(clipSpacePos) / clipSpacePos.w;
-        }
-
-        rv.setX(((ndcSpacePos.x + 1.0f) / 2.0f) * canvasSize.x);
-        rv.setY((1.0f - ((ndcSpacePos.y + 1.0f) / 2.0f)) * canvasSize.y);
-    }
-    return rv;
 }
 
 //Finds the collision point of a world space ray
@@ -496,27 +445,6 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.setInputBuffer(COLOR_DATA_SLOT, colView);
     batch.setIndexBuffer(gpu::UINT16, _hemiIndices, 0);
     batch.drawIndexed(gpu::TRIANGLES, _hemiIndexCount);
-}
-
-glm::vec2 ApplicationCompositor::directionToSpherical(const glm::vec3& direction) {
-    glm::vec2 result;
-    // Compute yaw
-    glm::vec3 normalProjection = glm::normalize(glm::vec3(direction.x, 0.0f, direction.z));
-    result.x = glm::acos(glm::dot(IDENTITY_FRONT, normalProjection));
-    if (glm::dot(IDENTITY_RIGHT, normalProjection) > 0.0f) {
-        result.x = -glm::abs(result.x);
-    } else {
-        result.x = glm::abs(result.x);
-    }
-    // Compute pitch
-    result.y = angleBetween(IDENTITY_UP, direction) - PI_OVER_TWO;
-
-    return result;
-}
-
-glm::vec3 ApplicationCompositor::sphericalToDirection(const glm::vec2& sphericalPos) {
-    glm::quat rotation(glm::vec3(sphericalPos.y, sphericalPos.x, 0.0f));
-    return rotation * IDENTITY_FRONT;
 }
 
 glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {

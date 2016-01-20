@@ -9,7 +9,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "RenderDeferredTask.h"
 
 #include <PerfStat.h>
 #include <PathUtils.h>
@@ -24,9 +23,32 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 
+#include "render/DrawTask.h"
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
+
+#include "RenderDeferredTask.h"
+
+#include "model_vert.h"
+#include "model_shadow_vert.h"
+#include "model_normal_map_vert.h"
+#include "model_lightmap_vert.h"
+#include "model_lightmap_normal_map_vert.h"
+#include "skin_model_vert.h"
+#include "skin_model_shadow_vert.h"
+#include "skin_model_normal_map_vert.h"
+
+#include "model_frag.h"
+#include "model_shadow_frag.h"
+#include "model_normal_map_frag.h"
+#include "model_normal_specular_map_frag.h"
+#include "model_specular_map_frag.h"
+#include "model_lightmap_frag.h"
+#include "model_lightmap_normal_map_frag.h"
+#include "model_lightmap_normal_specular_map_frag.h"
+#include "model_lightmap_specular_map_frag.h"
+#include "model_translucent_frag.h"
 
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
@@ -35,6 +57,7 @@
 
 using namespace render;
 
+void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->getArgs());
@@ -50,87 +73,84 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
 }
 
 RenderDeferredTask::RenderDeferredTask() : Task() {
-    // CPU only, create the list of renderedOpaques items
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
-        FetchItems([](const RenderContextPointer& context, int count) {
-            context->getItemsConfig().opaque.numFeed = count;
-        })
-    )));
-    _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
-    auto& renderedOpaques = _jobs.back().getOutput();
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    initDeferredPipelines(*shapePlumber);
+    
+    // CPU: Fetch the renderOpaques
+    auto fetchedOpaques = addJob<FetchItems>("FetchOpaque", FetchItems([](const RenderContextPointer& context, int count) {
+        context->getItemsConfig().opaque.numFeed = count;
+    }));
+    auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques);
+    auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
 
     // CPU only, create the list of renderedTransparents items
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
-        FetchItems(ItemFilter::Builder::transparentShape().withoutLayered(),
-            [](const RenderContextPointer& context, int count) {
-                context->getItemsConfig().transparent.numFeed = count;
-        })
-     )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
-    auto& renderedTransparents = _jobs.back().getOutput();
+    auto fetchedTransparents = addJob<FetchItems>("FetchTransparent", FetchItems(
+        ItemFilter::Builder::transparentShape().withoutLayered(),
+        [](const RenderContextPointer& context, int count) {
+            context->getItemsConfig().transparent.numFeed = count;
+        }
+    ));
+    auto culledTransparents = addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents);
+    auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
 
     // GPU Jobs: Start preparing the deferred and lighting buffer
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
+    addJob<PrepareDeferred>("PrepareDeferred");
 
     // Render opaque objects in DeferredBuffer
-    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", renderedOpaques)));
+    addJob<DrawOpaqueDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
 
     // Once opaque is all rendered create stencil background
-    _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
+    addJob<DrawStencilDeferred>("DrawOpaqueStencil");
 
     // Use Stencil and start drawing background in Lighting buffer
-    _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
+    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred");
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
+    addJob<DrawLight>("DrawLight");
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
-    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
+    addJob<RenderDeferred>("RenderDeferred");
 
     // AO job, to be revisited
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
-    _jobs.back().setEnabled(false);
+    addJob<AmbientOcclusion>("AmbientOcclusion");
     _occlusionJobIndex = (int)_jobs.size() - 1;
+    enableJob(_occlusionJobIndex, false);
 
     // AA job to be revisited
-    _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
-    _jobs.back().setEnabled(false);
+    addJob<Antialiasing>("Antialiasing");
     _antialiasingJobIndex = (int)_jobs.size() - 1;
+    enableJob(_antialiasingJobIndex, false);
 
     // Render transparent objects forward in LigthingBuffer
-    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", renderedTransparents)));
+    addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
     
     // Lighting Buffer ready for tone mapping
-    _jobs.push_back(Job(new ToneMappingDeferred::JobModel("ToneMapping")));
+    addJob<ToneMappingDeferred>("ToneMapping");
     _toneMappingJobIndex = (int)_jobs.size() - 1;
 
     // Debugging Deferred buffer job
-    _jobs.push_back(Job(new DebugDeferredBuffer::JobModel("DebugDeferredBuffer")));
-    _jobs.back().setEnabled(false);
+    addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
     _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
+    enableJob(_drawDebugDeferredBufferIndex, false);
 
     // Status icon rendering job
     {
         // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
         auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
         auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-        _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
-        _jobs.back().setEnabled(false);
+        addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         _drawStatusJobIndex = (int)_jobs.size() - 1;
+        enableJob(_drawStatusJobIndex, false);
     }
 
-    _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
+    addJob<DrawOverlay3D>("DrawOverlay3D", shapePlumber);
 
-    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
-    _jobs.back().setEnabled(false);
+    addJob<HitEffect>("HitEffect");
     _drawHitEffectJobIndex = (int)_jobs.size() -1;
+    enableJob(_drawHitEffectJobIndex, false);
 
-    _jobs.push_back(Job(new Blit::JobModel("Blit")));
-}
-
-RenderDeferredTask::~RenderDeferredTask() {
+    addJob<Blit>("Blit");
 }
 
 void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -146,25 +166,14 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    // Make sure we turn the deferred buffer debug on/off
     setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
-    
-    // Make sure we turn the displayItemStatus on/off
     setDrawItemStatus(renderContext->getDrawStatus());
-    
-    // Make sure we display hit effect on screen, as desired from a script
     setDrawHitEffect(renderContext->getDrawHitEffect());
-    
-
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->getOcclusionStatus());
-
     setAntialiasingStatus(renderContext->getFxaaStatus());
-
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
-
-    renderContext->getArgs()->_context->syncCache();
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
@@ -177,7 +186,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -193,7 +202,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, inItems, opaque.maxDrawn);
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, opaque.maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -203,7 +212,7 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
@@ -219,11 +228,12 @@ void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderItems(sceneContext, renderContext, inItems, transparent.maxDrawn);
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, transparent.maxDrawn);
         args->_batch = nullptr;
     });
 }
 
+// TODO: Move this to the shapePlumber
 gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
 const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
     if (!_opaquePipeline) {
@@ -276,7 +286,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
 
         // Render the items
-        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
             args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
 
@@ -292,7 +302,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderItems(sceneContext, renderContext, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();
@@ -326,7 +336,7 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
     // from the touched pixel generate the stencil buffer 
     RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
@@ -361,7 +371,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         inItems.emplace_back(id);
     }
     RenderArgs* args = renderContext->getArgs();
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
         auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
@@ -382,7 +392,6 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setViewTransform(viewMat);
 
         renderItems(sceneContext, renderContext, inItems);
-
     });
     args->_batch = nullptr;
 }
@@ -406,7 +415,7 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
 
-    gpu::doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
@@ -484,5 +493,167 @@ int RenderDeferredTask::getToneMappingToneCurve() const {
     } else {
         return 0.0f;
     }
+}
+
+void pipelineBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    if (pipeline.locations->normalFittingMapUnit > -1) {
+        batch.setResourceTexture(pipeline.locations->normalFittingMapUnit,
+            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+    }
+}
+
+void initDeferredPipelines(render::ShapePlumber& plumber) {
+    using Key = render::ShapeKey;
+    using ShaderPointer = gpu::ShaderPointer;
+
+    auto addPipeline = [&plumber](const Key& key, const ShaderPointer& vertexShader, const ShaderPointer& pixelShader) {
+        auto state = std::make_shared<gpu::State>();
+
+        // Cull backface
+        state->setCullMode(gpu::State::CULL_BACK);
+
+        // Z test depends on transparency
+        state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
+
+        // Blend if transparent
+        state->setBlendFunction(key.isTranslucent(),
+            // For transparency, keep the highlight intensity
+            gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
+        plumber.addPipeline(key, program, state, &pipelineBatchSetter);
+
+        // Add a wireframe version
+        if (!key.isWireFrame()) {
+            auto wireFrameKey = Key::Builder(key).withWireframe();
+            auto wireFrameState = std::make_shared<gpu::State>(state->getValues());
+
+            wireFrameState->setFillMode(gpu::State::FILL_LINE);
+
+            plumber.addPipeline(wireFrameKey, program, wireFrameState, &pipelineBatchSetter);
+        }
+    };
+
+    // Vertex shaders
+    auto modelVertex = gpu::Shader::createVertex(std::string(model_vert));
+    auto modelNormalMapVertex = gpu::Shader::createVertex(std::string(model_normal_map_vert));
+    auto modelLightmapVertex = gpu::Shader::createVertex(std::string(model_lightmap_vert));
+    auto modelLightmapNormalMapVertex = gpu::Shader::createVertex(std::string(model_lightmap_normal_map_vert));
+    auto modelShadowVertex = gpu::Shader::createVertex(std::string(model_shadow_vert));
+    auto skinModelVertex = gpu::Shader::createVertex(std::string(skin_model_vert));
+    auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
+    auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
+
+    // Pixel shaders
+    auto modelPixel = gpu::Shader::createPixel(std::string(model_frag));
+    auto modelNormalMapPixel = gpu::Shader::createPixel(std::string(model_normal_map_frag));
+    auto modelSpecularMapPixel = gpu::Shader::createPixel(std::string(model_specular_map_frag));
+    auto modelNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_frag));
+    auto modelTranslucentPixel = gpu::Shader::createPixel(std::string(model_translucent_frag));
+    auto modelShadowPixel = gpu::Shader::createPixel(std::string(model_shadow_frag));
+    auto modelLightmapPixel = gpu::Shader::createPixel(std::string(model_lightmap_frag));
+    auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
+    auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
+    auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
+
+    // Fill the pipelineLib
+    addPipeline(
+        Key::Builder(),
+        modelVertex, modelPixel);
+
+    addPipeline(
+        Key::Builder().withTangents(),
+        modelNormalMapVertex, modelNormalMapPixel);
+
+    addPipeline(
+        Key::Builder().withSpecular(),
+        modelVertex, modelSpecularMapPixel);
+
+    addPipeline(
+        Key::Builder().withTangents().withSpecular(),
+        modelNormalMapVertex, modelNormalSpecularMapPixel);
+
+
+    addPipeline(
+        Key::Builder().withTranslucent(),
+        modelVertex, modelTranslucentPixel);
+    // FIXME Ignore lightmap for translucents meshpart
+    addPipeline(
+        Key::Builder().withTranslucent().withLightmap(),
+        modelVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withTangents().withTranslucent(),
+        modelNormalMapVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withSpecular().withTranslucent(),
+        modelVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withTangents().withSpecular().withTranslucent(),
+        modelNormalMapVertex, modelTranslucentPixel);
+
+
+    addPipeline(
+        Key::Builder().withLightmap(),
+        modelLightmapVertex, modelLightmapPixel);
+
+    addPipeline(
+        Key::Builder().withLightmap().withTangents(),
+        modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
+
+    addPipeline(
+        Key::Builder().withLightmap().withSpecular(),
+        modelLightmapVertex, modelLightmapSpecularMapPixel);
+
+    addPipeline(
+        Key::Builder().withLightmap().withTangents().withSpecular(),
+        modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
+
+
+    addPipeline(
+        Key::Builder().withSkinned(),
+        skinModelVertex, modelPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withTangents(),
+        skinModelNormalMapVertex, modelNormalMapPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withSpecular(),
+        skinModelVertex, modelSpecularMapPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withTangents().withSpecular(),
+        skinModelNormalMapVertex, modelNormalSpecularMapPixel);
+
+
+    addPipeline(
+        Key::Builder().withSkinned().withTranslucent(),
+        skinModelVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withTangents().withTranslucent(),
+        skinModelNormalMapVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withSpecular().withTranslucent(),
+        skinModelVertex, modelTranslucentPixel);
+
+    addPipeline(
+        Key::Builder().withSkinned().withTangents().withSpecular().withTranslucent(),
+        skinModelNormalMapVertex, modelTranslucentPixel);
+
+
+    addPipeline(
+        Key::Builder().withDepthOnly(),
+        modelShadowVertex, modelShadowPixel);
+
+
+    addPipeline(
+        Key::Builder().withSkinned().withDepthOnly(),
+        skinModelShadowVertex, modelShadowPixel);
 }
 

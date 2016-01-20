@@ -46,7 +46,7 @@ Script.setInterval(function () {
             position: position,  
             dimensions: MODEL_DIMENSION,        
             ignoreCollisions: true,
-            collisionsWillMove: false, 
+            dynamic: false, 
             lifetime: LIFETIME
             });
         } else {
@@ -57,7 +57,7 @@ Script.setInterval(function () {
             dimensions: { x: SIZE, y: SIZE, z: SIZE },       
             color: { red: x / ROWS_X * 255, green: 50, blue: z / ROWS_Z * 255 },
             ignoreCollisions: true,
-            collisionsWillMove: false,
+            dynamic: false,
             lifetime: LIFETIME
             });
         }

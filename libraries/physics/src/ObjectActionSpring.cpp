@@ -58,15 +58,16 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
 
         const float MAX_TIMESCALE = 600.0f; // 10 min is a long time
         if (_linearTimeScale < MAX_TIMESCALE) {
+            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
             btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
             float offsetLength = offset.length();
-            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
-
-            if (offsetLength > 0) {
-                float speed = (offsetLength > FLT_EPSILON) ? glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED) : 0.0f;
+            if (offsetLength > FLT_EPSILON) {
+                float speed = glm::min(offsetLength / _linearTimeScale, SPRING_MAX_SPEED);
                 targetVelocity = (-speed / offsetLength) * offset;
+                if (speed > rigidBody->getLinearSleepingThreshold()) {
+                    rigidBody->activate();
+                }
             }
-
             // this action is aggresively critically damped and defeats the current velocity
             rigidBody->setLinearVelocity(targetVelocity);
         }
@@ -90,10 +91,10 @@ void ObjectActionSpring::updateActionWorker(btScalar deltaTimeStep) {
                 //
                 //      dQ = Q1 * Q0^
                 btQuaternion deltaQ = target * bodyRotation.inverse();
-                float angle = deltaQ.getAngle();
-                const float MIN_ANGLE = 1.0e-4f;
-                if (angle > MIN_ANGLE) {
-                    targetVelocity = (angle / _angularTimeScale) * deltaQ.getAxis();
+                float speed = deltaQ.getAngle() / _angularTimeScale;
+                targetVelocity = speed * deltaQ.getAxis();
+                if (speed > rigidBody->getAngularSleepingThreshold()) {
+                    rigidBody->activate();
                 }
             }
             // this action is aggresively critically damped and defeats the current velocity

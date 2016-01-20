@@ -297,3 +297,8 @@ calculateHandSizeRatio = function() {
     var handSizeRatio = centerHandPoint/standardCenterHandPoint;
     return handSizeRatio;
 }
+
+clamp = function(val, min, max){
+     return Math.max(min, Math.min(max, val))
+ } 
+

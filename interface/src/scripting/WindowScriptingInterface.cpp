@@ -23,6 +23,7 @@
 #include "Menu.h"
 #include "OffscreenUi.h"
 #include "ui/ModelsBrowser.h"
+#include "WebWindowClass.h"
 
 #include "WindowScriptingInterface.h"
 
@@ -37,8 +38,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
     connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height, bool isToolWindow) {
-    return new WebWindowClass(title, url, width, height, isToolWindow);
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
+    return new WebWindowClass(title, url, width, height);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
@@ -167,9 +168,9 @@ QScriptValue WindowScriptingInterface::showAlert(const QString& message) {
 /// \return QScriptValue `true` if 'Yes' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showConfirm(const QString& message) {
     bool confirm = false;
-    OffscreenUi::question("", message, [&](QMessageBox::StandardButton response){
-        confirm = (response == QMessageBox::Yes);
-    });
+    if (QMessageBox::Yes == OffscreenUi::question("", message)) {
+        confirm = true;
+    }
     return QScriptValue(confirm);
 }
 

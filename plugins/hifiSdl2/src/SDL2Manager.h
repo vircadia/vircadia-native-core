@@ -29,7 +29,7 @@ public:
     // Plugin functions
     virtual bool isSupported() const override;
     virtual bool isJointController() const override { return false; }
-    const QString& getName() const override { return NAME; }
+    virtual const QString& getName() const override { return NAME; }
 
     virtual void init() override;
     virtual void deinit() override;

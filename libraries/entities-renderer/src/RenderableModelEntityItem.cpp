@@ -16,7 +16,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -101,6 +100,21 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
     return bytesRead;
 }
 
+QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
+    if (textures == "") {
+        return QVariantMap();
+    }
+
+    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    QJsonParseError error;
+    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+    }
+    QJsonObject texturesAsJsonObject = texturesAsJson.object();
+    return texturesAsJsonObject.toVariantMap();
+}
+
 void RenderableModelEntityItem::remapTextures() {
     if (!_model) {
         return; // nothing to do if we don't have a model
@@ -125,13 +139,8 @@ void RenderableModelEntityItem::remapTextures() {
     // since we're changing here, we need to run through our current texture map
     // and any textures in the recently mapped texture, that is not in our desired
     // textures, we need to "unset"
-    QJsonDocument currentTexturesAsJson = QJsonDocument::fromJson(_currentTextures.toUtf8());
-    QJsonObject currentTexturesAsJsonObject = currentTexturesAsJson.object();
-    QVariantMap currentTextureMap = currentTexturesAsJsonObject.toVariantMap();
-
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8());
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    QVariantMap textureMap = texturesAsJsonObject.toVariantMap();
+    QVariantMap currentTextureMap = parseTexturesToMap(_currentTextures);
+    QVariantMap textureMap = parseTexturesToMap(_textures);
 
     foreach(const QString& key, currentTextureMap.keys()) {
         // if the desired texture map (what we're setting the textures to) doesn't
@@ -432,7 +441,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
             batch.setModelTransform(Transform()); // we want to include the scale as well
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
         }
     }
 }
@@ -754,3 +763,17 @@ void RenderableModelEntityItem::locationChanged() {
         _model->setTranslation(getPosition());
     }
 }
+
+int RenderableModelEntityItem::getJointIndex(const QString& name) const {
+    if (_model && _model->isActive()) {
+        RigPointer rig = _model->getRig();
+        return rig->indexOfJoint(name);
+    }
+    return -1;
+}
+
+
+// TODO -- expose a way to list joint names
+// RenderableModelEntityItem::QStringList getJointNames() const {
+// rig->nameOfJoint(i);
+// }

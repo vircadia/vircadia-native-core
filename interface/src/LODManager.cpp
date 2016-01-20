@@ -25,7 +25,7 @@ Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DO
 // pid: renderDistance is adjusted by a PID such that frame rate targets are met.
 // acuity:  a pseudo-acuity target is held, or adjusted to match minimum frame rates (and a PID controlls avatar rendering distance)
 // If unspecified, acuity is used only if user has specified non-default minumum frame rates.
-Setting::Handle<int> lodPreference("lodPreference", (int)LODManager::LODPreference::unspecified);
+Setting::Handle<int> lodPreference("lodPreference", (int)LODManager::LODPreference::acuity);
 const float SMALLEST_REASONABLE_HORIZON = 50.0f; // meters
 Setting::Handle<float> renderDistanceInverseHighLimit("renderDistanceInverseHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
 void LODManager::setRenderDistanceInverseHighLimit(float newValue) {
@@ -183,7 +183,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
     
         if (changed) {
             calculateAvatarLODDistanceMultiplier();
-            _shouldRenderTableNeedsRebuilding = true;
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
                 lodToolsDialog->reloadSliders();
@@ -253,7 +252,7 @@ QString LODManager::getLODStatsRenderText() {
     const QString label = "Rendered objects: ";
     return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
 }
-// compare audoAdjustLOD()
+// compare autoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
     float distance;
     if (!isThrottled) {
@@ -274,96 +273,26 @@ void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, flo
 }
 
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
-    float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
-    float largestDimension = bounds.getLargestDimension();
+    // NOTE: this branch of code is the alternate form of LOD that uses PID controllers.
     if (!getUseAcuity()) {
+        float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
+        float largestDimension = bounds.getLargestDimension();
         const float scenerySize = 300; // meters
         bool isRendered = (largestDimension > scenerySize) || // render scenery regardless of distance
             (distanceToCamera < renderDistance + largestDimension);
         renderedCount += isRendered ? 1 : 0;
         return isRendered;
     }
-
-    const float maxScale = (float)TREE_SCALE;
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float octreeSizeScale = args->_sizeScale;
-    int boundaryLevelAdjust = args->_boundaryLevelAdjust;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
-
-    static bool shouldRenderTableNeedsBuilding = true;
-    static QMap<float, float> shouldRenderTable;
-    if (shouldRenderTableNeedsBuilding) {
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float factor = 1.0f;
-        
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            factor /= 2.0f;
-            shouldRenderTable[scale] = factor;
-        }
-        
-        shouldRenderTableNeedsBuilding = false;
-    }
     
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
-    }
-    
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-
-    return distanceToCamera <= visibleDistanceAtClosestScale;
+    // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
+    // to use in rendering.
+    float renderAccuracy = args->_viewFrustum->calculateRenderAccuracy(bounds, args->_sizeScale, args->_boundaryLevelAdjust);
+    return (renderAccuracy > 0.0f);
 };
-
-// TODO: This is essentially the same logic used to render octree cells, but since models are more detailed then octree cells
-//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
-bool LODManager::shouldRenderMesh(float largestDimension, float distanceToCamera) {
-    const float octreeToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
-    float octreeSizeScale = getOctreeSizeScale();
-    int boundaryLevelAdjust = getBoundaryLevelAdjust();
-    float maxScale = (float)TREE_SCALE;
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / octreeToMeshRatio;
-    
-    if (_shouldRenderTableNeedsRebuilding) {
-        _shouldRenderTable.clear();
-        
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
-        
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            visibleDistanceAtScale /= 2.0f;
-            _shouldRenderTable[scale] = visibleDistanceAtScale;
-        }
-        _shouldRenderTableNeedsRebuilding = false;
-    }
-    
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != _shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = lowerBound.value();
-    }
-    
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-    
-    return (distanceToCamera <= visibleDistanceAtClosestScale);
-}
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
     calculateAvatarLODDistanceMultiplier();
-    _shouldRenderTableNeedsRebuilding = true;
 }
 
 void LODManager::calculateAvatarLODDistanceMultiplier() {
@@ -372,7 +301,6 @@ void LODManager::calculateAvatarLODDistanceMultiplier() {
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
-    _shouldRenderTableNeedsRebuilding = true;
 }
 
 

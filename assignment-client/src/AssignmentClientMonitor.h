@@ -60,11 +60,12 @@ private:
 
     QDir _logDirectory;
 
+    HTTPManager _httpManager;
+
     const unsigned int _numAssignmentClientForks;
     const unsigned int _minAssignmentClientForks;
     const unsigned int _maxAssignmentClientForks;
 
-    HTTPManager _httpManager;
     Assignment::Type _requestAssignmentType;
     QString _assignmentPool;
     QUuid _walletUUID;

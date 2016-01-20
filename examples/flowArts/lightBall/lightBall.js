@@ -41,7 +41,7 @@ LightBall = function(spawnPosition) {
             green: 10,
             blue: 150
         },
-        collisionsWillMove: true,
+        dynamic: true,
         // gravity: {
         //     x: 0,
         //     y: -0.5,

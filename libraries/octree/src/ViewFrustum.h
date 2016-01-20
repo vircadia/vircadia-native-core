@@ -48,7 +48,7 @@ public:
 
     // setters for lens attributes
     void setProjection(const glm::mat4 & projection);
-    void getFocalLength(float focalLength) { _focalLength = focalLength; }
+    void setFocalLength(float focalLength) { _focalLength = focalLength; }
 
     // getters for lens attributes
     const glm::mat4& getProjection() const { return _projection; }
@@ -61,11 +61,23 @@ public:
     float getFarClip() const { return _farClip; }
     float getFocalLength() const { return _focalLength; }
 
+    class Corners {
+    public:
+        Corners(glm::vec3&& topLeft, glm::vec3&& topRight, glm::vec3&& bottomLeft, glm::vec3&& bottomRight)
+            : topLeft{ topLeft }, topRight{ topRight }, bottomLeft{ bottomLeft }, bottomRight{ bottomRight } {}
+        glm::vec3 topLeft;
+        glm::vec3 topRight;
+        glm::vec3 bottomLeft;
+        glm::vec3 bottomRight;
+    // Get the corners depth units from frustum position, along frustum orientation
+    };
+    const Corners getCorners(const float& depth);
+
+    // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
     const glm::vec3& getFarTopRight() const { return _cornersWorld[TOP_RIGHT_FAR]; }
     const glm::vec3& getFarBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_FAR]; }
     const glm::vec3& getFarBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_FAR]; }
-
     const glm::vec3& getNearTopLeft() const { return _cornersWorld[TOP_LEFT_NEAR]; }
     const glm::vec3& getNearTopRight() const { return _cornersWorld[TOP_RIGHT_NEAR]; }
     const glm::vec3& getNearBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_NEAR]; }
@@ -107,6 +119,11 @@ public:
     
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
+
+    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
+                                  int boundaryLevelAdjust = 0) const;
 
 private:
     // Used for keyhole calculations
@@ -151,6 +168,8 @@ private:
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
 };
+using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h

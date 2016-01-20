@@ -5,21 +5,16 @@ import QtQuick.Controls.Styles 1.3
 import QtGraphicalEffects 1.0
 import "controls"
 import "styles"
+import "windows"
 
-DialogContainer {
+Window {
     id: root
     HifiConstants { id: hifi }
-
     objectName: "UpdateDialog"
-
-    implicitWidth: updateDialog.implicitWidth
-    implicitHeight: updateDialog.implicitHeight
-
-    x: parent ? parent.width / 2 - width / 2 : 0
-    y: parent ? parent.height / 2 - height / 2 : 0
-    property int maximumX: parent ? parent.width - width : 0
-    property int maximumY: parent ? parent.height - height : 0
-
+    width: updateDialog.implicitWidth
+    height: updateDialog.implicitHeight
+    resizable: false
+    anchors.centerIn: parent
     UpdateDialog {
         id: updateDialog
         

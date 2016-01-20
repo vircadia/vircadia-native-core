@@ -104,7 +104,7 @@ function generateFloor() {
         green: randFloat(70, 71),
         blue: randFloat(70, 80)
       },
-      // collisionsWillMove: true
+      // dynamic: true
     }));
   }
 
@@ -132,7 +132,7 @@ function dropBlock() {
     shapeType: 'box',
     position: dropPos,
     dimensions: BLOCK_SIZE,
-    collisionsWillMove: true,
+    dynamic: true,
     gravity: {
       x: 0,
       y: -9,

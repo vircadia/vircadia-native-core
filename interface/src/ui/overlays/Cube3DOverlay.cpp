@@ -13,7 +13,6 @@
 
 #include <QScriptValue>
 
-#include <DeferredLightingEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 #include <GeometryCache.h>
@@ -61,7 +60,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             // }
 
             transform.setScale(dimensions);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(*batch, transform, cubeColor);
+            DependencyManager::get<GeometryCache>()->renderSolidCubeInstance(*batch, transform, cubeColor);
         } else {
 
             if (getIsDashedLine()) {
@@ -99,7 +98,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             } else {
                 batch->setModelTransform(Transform());
                 transform.setScale(dimensions);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(*batch, transform, cubeColor);
+                DependencyManager::get<GeometryCache>()->renderWireCubeInstance(*batch, transform, cubeColor);
             }
         }
     }

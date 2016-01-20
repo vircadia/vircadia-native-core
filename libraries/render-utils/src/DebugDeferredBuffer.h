@@ -18,7 +18,7 @@
 
 class DebugDeferredBuffer {
 public:
-    using JobModel = render::Job::Model<DebugDeferredBuffer>;
+    using JobModel = render::Task::Job::Model<DebugDeferredBuffer>;
     
     DebugDeferredBuffer();
     
@@ -33,6 +33,7 @@ private:
         NormalMode,
         DepthMode,
         LightingMode,
+        ShadowMode,
         
         CustomMode // Needs to stay last
     };

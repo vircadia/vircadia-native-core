@@ -20,6 +20,7 @@
 class AABox;
 class OctreeRenderer;
 class ViewFrustum;
+
 namespace gpu {
 class Batch;
 class Context;
@@ -27,10 +28,15 @@ class Texture;
 class Framebuffer;
 }
 
+namespace render {
+class ShapePipeline;
+}
+
 class RenderDetails {
 public:
     enum Type {
         OPAQUE_ITEM,
+        SHADOW_ITEM,
         TRANSLUCENT_ITEM,
         OTHER_ITEM
     };
@@ -46,6 +52,7 @@ public:
     int _trianglesRendered = 0;
     
     Item _opaque;
+    Item _shadow;
     Item _translucent;
     Item _other;
     
@@ -55,6 +62,9 @@ public:
         switch (type) {
             case OPAQUE_ITEM:
                 _item = &_opaque;
+                break;
+            case SHADOW_ITEM:
+                _item = &_shadow;
                 break;
             case TRANSLUCENT_ITEM:
                 _item = &_translucent;
@@ -103,6 +113,7 @@ public:
 
     std::shared_ptr<gpu::Context> _context = nullptr;
     std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
+    std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
     glm::ivec4 _viewport{ 0, 0, 1, 1 };

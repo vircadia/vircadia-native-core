@@ -14,30 +14,36 @@
 #include <PerfStat.h>
 
 #include "DeferredLightingEffect.h"
-
 #include "Model.h"
 
-namespace render {
-    template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getKey();
-        }
-        // Return opaque for lack of a better idea
-        return ItemKey::Builder::opaqueShape();
-    }
+using namespace render;
 
-    template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getBound();
-        }
-        return render::Item::Bound();
+namespace render {
+template <> const ItemKey payloadGetKey(const MeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getKey();
     }
-    template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
-        return payload->render(args);
-    }
+    return ItemKey::Builder::opaqueShape(); // for lack of a better idea
 }
 
-using namespace render;
+template <> const Item::Bound payloadGetBound(const MeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getBound();
+    }
+    return Item::Bound();
+}
+
+template <> const ShapeKey shapeGetShapeKey(const MeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getShapeKey();
+    }
+    return ShapeKey::Builder::invalid();
+}
+
+template <> void payloadRender(const MeshPartPayload::Pointer& payload, RenderArgs* args) {
+    return payload->render(args);
+}
+}
 
 MeshPartPayload::MeshPartPayload(model::MeshPointer mesh, int partIndex, model::MaterialPointer material, const Transform& transform, const Transform& offsetTransform) {
 
@@ -69,7 +75,7 @@ void MeshPartPayload::updateMaterial(model::MaterialPointer drawMaterial) {
     _drawMaterial = drawMaterial;
 }
 
-render::ItemKey MeshPartPayload::getKey() const {
+ItemKey MeshPartPayload::getKey() const {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -83,8 +89,30 @@ render::ItemKey MeshPartPayload::getKey() const {
     return builder.build();
 }
 
-render::Item::Bound MeshPartPayload::getBound() const {
+Item::Bound MeshPartPayload::getBound() const {
     return _worldBound;
+}
+
+ShapeKey MeshPartPayload::getShapeKey() const {
+    model::MaterialKey drawMaterialKey;
+    if (_drawMaterial) {
+        drawMaterialKey = _drawMaterial->getKey();
+    }
+
+    ShapeKey::Builder builder;
+    if (drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap()) {
+        builder.withTranslucent();
+    }
+    if (drawMaterialKey.isNormalMap()) {
+        builder.withTangents();
+    }
+    if (drawMaterialKey.isGlossMap()) {
+        builder.withSpecular();
+    }
+    if (drawMaterialKey.isLightmapMap()) {
+        builder.withLightmap();
+    }
+    return builder.build();
 }
 
 void MeshPartPayload::drawCall(gpu::Batch& batch) const {
@@ -104,14 +132,14 @@ void MeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locations* locations) const {
+void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     if (!_drawMaterial) {
         return;
     }
 
     auto textureCache = DependencyManager::get<TextureCache>();
 
-    batch.setUniformBuffer(ModelRender::MATERIAL_GPU_SLOT, _drawMaterial->getSchemaBuffer());
+    batch.setUniformBuffer(ShapePipeline::Slot::MATERIAL_GPU, _drawMaterial->getSchemaBuffer());
 
     auto materialKey = _drawMaterial->getKey();
     auto textureMaps = _drawMaterial->getTextureMaps();
@@ -121,44 +149,44 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
     if (materialKey.isDiffuseMap()) {
         auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
         if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, diffuseMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
 
             if (!diffuseMap->getTextureTransform().isIdentity()) {
                 diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::DIFFUSE_MAP_SLOT, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map
     if (materialKey.isNormalMap()) {
         auto normalMap = textureMaps[model::MaterialKey::NORMAL_MAP];
         if (normalMap && normalMap->isDefined()) {
-            batch.setResourceTexture(ModelRender::NORMAL_MAP_SLOT, normalMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
             // texcoord are assumed to be the same has diffuse
         } else {
-            batch.setResourceTexture(ModelRender::NORMAL_MAP_SLOT, textureCache->getBlueTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::NORMAL_MAP_SLOT, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
     // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
     if (materialKey.isGlossMap()) {
         auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ModelRender::SPECULAR_MAP_SLOT, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
 
             // texcoord are assumed to be the same has diffuse
         } else {
-            batch.setResourceTexture(ModelRender::SPECULAR_MAP_SLOT, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::SPECULAR_MAP_SLOT, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
     }
 
     // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
@@ -166,7 +194,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ModelRender::LIGHTMAP_MAP_SLOT, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -175,10 +203,10 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ModelRender::LIGHTMAP_MAP_SLOT, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ModelRender::LIGHTMAP_MAP_SLOT, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -187,7 +215,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ModelRender::Locatio
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -195,29 +223,12 @@ void MeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locati
 void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
 
-
     gpu::Batch& batch = *(args->_batch);
-    auto mode = args->_renderMode;
 
-    model::MaterialKey drawMaterialKey;
-    if (_drawMaterial) {
-        drawMaterialKey = _drawMaterial->getKey();
-    }
-    bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
+    ShapeKey key = getShapeKey();
 
-    bool hasTangents = drawMaterialKey.isNormalMap();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
-    bool isSkinned = false;
-    bool wireframe = false;
-    if (wireframe) {
-        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-    }
-
-    ModelRender::Locations* locations = nullptr;
-    ModelRender::pickPrograms(batch, mode, translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-        args, locations);
-
+    auto locations = args->_pipeline->locations;
+    assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
     bindTransform(batch, locations);
@@ -230,7 +241,7 @@ void MeshPartPayload::render(RenderArgs* args) const {
 
 
     // TODO: We should be able to do that just in the renderTransparentJob
-    if (translucentMesh && locations->lightBufferUnit >= 0) {
+    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
         PerformanceTimer perfTimer("DLE->setupTransparent()");
 
         DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
@@ -251,29 +262,32 @@ void MeshPartPayload::render(RenderArgs* args) const {
     }
 }
 
-
-
 namespace render {
-    template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getKey();
-        }
-        // Return opaque for lack of a better idea
-        return ItemKey::Builder::opaqueShape();
+template <> const ItemKey payloadGetKey(const ModelMeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getKey();
     }
-    
-    template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload) {
-        if (payload) {
-            return payload->getBound();
-        }
-        return render::Item::Bound();
-    }
-    template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
-        return payload->render(args);
-    }
+    return ItemKey::Builder::opaqueShape(); // for lack of a better idea
 }
 
-using namespace render;
+template <> const Item::Bound payloadGetBound(const ModelMeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getBound();
+    }
+    return Item::Bound();
+}
+
+template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload) {
+    if (payload) {
+        return payload->getShapeKey();
+    }
+    return ShapeKey::Builder::invalid();
+}
+
+template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
+    return payload->render(args);
+}
+}
 
 ModelMeshPartPayload::ModelMeshPartPayload(Model* model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
     _model(model),
@@ -310,7 +324,7 @@ void ModelMeshPartPayload::notifyLocationChanged() {
     _model->_needsUpdateClusterMatrices = true;
 }
 
-render::ItemKey ModelMeshPartPayload::getKey() const {
+ItemKey ModelMeshPartPayload::getKey() const {
     ItemKey::Builder builder;
     builder.withTypeShape();
 
@@ -332,10 +346,77 @@ render::ItemKey ModelMeshPartPayload::getKey() const {
     return builder.build();
 }
 
-render::Item::Bound ModelMeshPartPayload::getBound() const {
+Item::Bound ModelMeshPartPayload::getBound() const {
     // NOTE: we can't cache this bounds because we need to handle the case of a moving
     // entity or mesh part.
     return _model->getPartBounds(_meshIndex, _partIndex, _transform.getTranslation(), _transform.getRotation());
+}
+
+ShapeKey ModelMeshPartPayload::getShapeKey() const {
+    const FBXGeometry& geometry = _model->_geometry->getFBXGeometry();
+    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _model->_geometry->getMeshes();
+
+    // guard against partially loaded meshes
+    if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size()) {
+        return ShapeKey::Builder::invalid();
+    }
+
+    const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
+
+    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+    // to false to rebuild out mesh groups.
+    if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
+        _model->_meshGroupsKnown = false; // regenerate these lists next time around.
+        _model->_readyWhenAdded = false; // in case any of our users are using scenes
+        _model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
+        return ShapeKey::Builder::invalid();
+    }
+
+
+    int vertexCount = mesh.vertices.size();
+    if (vertexCount == 0) {
+        // sanity check
+        return ShapeKey::Builder::invalid(); // FIXME
+    }
+
+
+    model::MaterialKey drawMaterialKey;
+    if (_drawMaterial) {
+        drawMaterialKey = _drawMaterial->getKey();
+    }
+
+    bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
+    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
+    bool hasSpecular = drawMaterialKey.isGlossMap();
+    bool hasLightmap = drawMaterialKey.isLightmapMap();
+
+    bool isSkinned = _isSkinned;
+    bool wireframe = _model->isWireframe();
+
+    if (wireframe) {
+        isTranslucent = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
+    }
+
+    ShapeKey::Builder builder;
+    if (isTranslucent) {
+        builder.withTranslucent();
+    }
+    if (hasTangents) {
+        builder.withTangents();
+    }
+    if (hasSpecular) {
+        builder.withSpecular();
+    }
+    if (hasLightmap) {
+        builder.withLightmap();
+    }
+    if (isSkinned) {
+        builder.withSkinned();
+    }
+    if (wireframe) {
+        builder.withWireframe();
+    }
+    return builder.build();
 }
 
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
@@ -361,16 +442,16 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::Locations* locations) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
     // Still relying on the raw data from the model
     const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
 
     Transform transform;
     if (state.clusterBuffer) {
         if (_model->_cauterizeBones) {
-            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.cauterizedClusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.cauterizedClusterBuffer);
         } else {
-            batch.setUniformBuffer(ModelRender::SKINNING_GPU_SLOT, state.clusterBuffer);
+            batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.clusterBuffer);
         }
     } else {
         if (_model->_cauterizeBones) {
@@ -387,54 +468,18 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ModelRender::L
 
 void ModelMeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
+
     if (!_model->_readyWhenAdded || !_model->_isVisible) {
         return; // bail asap
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto mode = args->_renderMode;
 
-    const FBXGeometry& geometry = _model->_geometry->getFBXGeometry();
-    const std::vector<std::unique_ptr<NetworkMesh>>& networkMeshes = _model->_geometry->getMeshes();
-    
-    // guard against partially loaded meshes
-    if (_meshIndex >= (int)networkMeshes.size() || _meshIndex >= (int)geometry.meshes.size() || _meshIndex >= (int)_model->_meshStates.size() ) {
+    ShapeKey key = getShapeKey();
+    if (!key.isValid()) {
         return;
     }
-    
-    // Back to model to update the cluster matrices right now
-    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
-    
-    const FBXMesh& mesh = geometry.meshes.at(_meshIndex);
-    
-    // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
-    // to false to rebuild out mesh groups.
-    if (_meshIndex < 0 || _meshIndex >= (int)networkMeshes.size() || _meshIndex > geometry.meshes.size()) {
-        _model->_meshGroupsKnown = false; // regenerate these lists next time around.
-        _model->_readyWhenAdded = false; // in case any of our users are using scenes
-        _model->invalidCalculatedMeshBoxes(); // if we have to reload, we need to assume our mesh boxes are all invalid
-        return; // FIXME!
-    }
-    
-    
-    int vertexCount = mesh.vertices.size();
-    if (vertexCount == 0) {
-        // sanity check
-        return; // FIXME!
-    }
 
-    model::MaterialKey drawMaterialKey;
-    if (_drawMaterial) {
-        drawMaterialKey = _drawMaterial->getKey();
-    }
-    bool translucentMesh = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
-    
-    bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
-    bool hasLightmap = drawMaterialKey.isLightmapMap();
-    bool isSkinned = _isSkinned;
-    bool wireframe = _model->isWireframe();
-    
     // render the part bounding box
 #ifdef DEBUG_BOUNDING_PARTS
     {
@@ -454,23 +499,15 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         transform.setTranslation(partBounds.calcCenter());
         transform.setScale(partBounds.getDimensions());
         batch.setModelTransform(transform);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
 #endif //def DEBUG_BOUNDING_PARTS
     
-    if (wireframe) {
-        translucentMesh = hasTangents = hasSpecular = hasLightmap = isSkinned = false;
-    }
-    
-    ModelRender::Locations* locations = nullptr;
-    ModelRender::pickPrograms(batch, mode, translucentMesh, hasLightmap, hasTangents, hasSpecular, isSkinned, wireframe,
-                              args, locations);
-    
-    if (!locations) { // the pipeline could not be found
-        return;
-    }
+    auto locations =  args->_pipeline->locations;
+    assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
+    _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations);
     
     //Bind the index buffer and vertex buffer and Blend shapes if needed
@@ -481,7 +518,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         
         
     // TODO: We should be able to do that just in the renderTransparentJob
-    if (translucentMesh && locations->lightBufferUnit >= 0) {
+    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
         PerformanceTimer perfTimer("DLE->setupTransparent()");
             
         DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);

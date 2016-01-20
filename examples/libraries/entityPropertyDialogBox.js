@@ -199,9 +199,9 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Density:", value: properties.density.toFixed(decimals) });
         index++;
-        array.push({ label: "Ignore for Collisions:", type: "checkbox", value: properties.ignoreForCollisions });
+        array.push({ label: "Collisionless:", type: "checkbox", value: properties.collisionless });
         index++;
-        array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
+        array.push({ label: "Dynamic:", type: "checkbox", value: properties.dynamic });
         index++;
         array.push({ label: "Collision Sound URL:", value: properties.collisionSoundURL });
         index++;
@@ -412,8 +412,8 @@ EntityPropertyDialogBox = (function () {
 
             index++; // skip header
             properties.density = array[index++].value;
-            properties.ignoreForCollisions = array[index++].value;
-            properties.collisionsWillMove = array[index++].value;
+            properties.collisionless = array[index++].value;
+            properties.dynamic = array[index++].value;
 
             properties.lifetime = array[index++].value;
             properties.visible = array[index++].value;

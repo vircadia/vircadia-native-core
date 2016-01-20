@@ -12,7 +12,6 @@
 #include <glm/gtx/transform.hpp>
 #include <QMultiMap>
 
-#include <DeferredLightingEffect.h>
 #include <recording/Deck.h>
 
 #include "Application.h"
@@ -119,7 +118,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isLeftEnabled = true;
             handParams.leftPosition = Quaternions::Y_180 * leftPalm.getRawPosition();
             handParams.leftOrientation = Quaternions::Y_180 * leftPalm.getRawRotation();
-            handParams.leftTrigger = leftPalm.getTrigger();
         } else {
             handParams.isLeftEnabled = false;
         }
@@ -129,7 +127,6 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isRightEnabled = true;
             handParams.rightPosition = Quaternions::Y_180 * rightPalm.getRawPosition();
             handParams.rightOrientation = Quaternions::Y_180 * rightPalm.getRawRotation();
-            handParams.rightTrigger = rightPalm.getTrigger();
         } else {
             handParams.isRightEnabled = false;
         }
@@ -349,11 +346,10 @@ void SkeletonModel::computeBoundingShape() {
 
 void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
-    auto deferredLighting = DependencyManager::get<DeferredLightingEffect>();
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + getRotation() * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
 
-    deferredLighting->renderSolidSphereInstance(batch,
+    geometryCache->renderSolidSphereInstance(batch,
         Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius),
     	glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
@@ -361,14 +357,14 @@ void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float scale
     glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
 
-    deferredLighting->renderSolidSphereInstance(batch,
+    geometryCache->renderSolidSphereInstance(batch,
         Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius),
         glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);
     batch.setModelTransform(Transform().setTranslation(bottomPoint));
-    deferredLighting->bindSimpleProgram(batch);
+    geometryCache->bindSimpleProgram(batch);
     Avatar::renderJointConnectingCone(batch, origin, axis, scale * _boundingCapsuleRadius, scale * _boundingCapsuleRadius,
                                       glm::vec4(0.6f, 0.8f, 0.6f, alpha));
 }

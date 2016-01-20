@@ -39,7 +39,7 @@ var bow = Entities.addEntity({
     modelURL: MODEL_URL,
     position: center,
     dimensions: BOW_DIMENSIONS,
-    collisionsWillMove: true,
+    dynamic: true,
     gravity: BOW_GRAVITY,
     shapeType: 'compound',
     compoundShapeURL: COLLISION_HULL_URL,

@@ -153,11 +153,11 @@ var onTargetHit = function(targetEntity, projectileEntity, collision) {
                 });
                 // Attach arrow to target for the nice effect
                 Entities.editEntity(projectileEntity, {
-                    ignoreForCollisions: true,
+                    collisionless: true,
                     parentID: targetEntity
                 });
                 Entities.editEntity(targetEntity, {
-                    collisionsWillMove: true,
+                    dynamic: true,
                     gravity: {x: 0, y: GRAVITY, z: 0},
                     velocity: {x: 0, y: -0.01, z: 0}
                 });

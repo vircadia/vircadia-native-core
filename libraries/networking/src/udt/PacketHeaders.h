@@ -164,6 +164,7 @@ const PacketVersion VERSION_ENTITIES_HAVE_PARENTS = 51;
 const PacketVersion VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP = 52;
 const PacketVersion VERSION_MODEL_ENTITIES_JOINTS_ON_WIRE = 53;
 const PacketVersion VERSION_ENTITITES_HAVE_QUERY_BOX = 54;
+const PacketVersion VERSION_ENTITITES_HAVE_COLLISION_MASK = 55;
 
 enum class AvatarMixerPacketVersion : PacketVersion {
     TranslationSupport = 17,
