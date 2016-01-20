@@ -979,7 +979,7 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
     }
     int result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointIndex", Qt::BlockingQueuedConnection,
-                              Q_ARG(QUuid, entityID), Q_ARG(QString, name), Q_RETURN_ARG(int, result));
+                              Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
     return result;
 }
 
@@ -989,6 +989,6 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     }
     QStringList result;
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
-                              Q_ARG(QUuid, entityID), Q_RETURN_ARG(QStringList, result));
+                              Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
     return result;
 }
