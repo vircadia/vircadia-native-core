@@ -1,6 +1,20 @@
 @font-face {
-    font-family: 'Proxima Nova';
-    src: url('vendor/ProximaNova/ProximaNova-Regular.otf');
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-Regular.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-ExtraLight.ttf');
+    font-weight: 200;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-SemiBold.ttf');
+    font-weight: bold;
+    font-style: normal;
 }
 
 body {
@@ -12,11 +26,15 @@ body {
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     cursor: default;
+    font-variant-numeric: lining-nums;
+    -moz-font-feature-settings: "lnum";
+    -webkit-font-feature-settings: "lnum";
+    font-feature-settings: "lnum";
 }
 
 * {
-    font-family: "Proxima Nova", "Open Sans", Arial, Helvetica, sans-serif;
-    font-size: 14.5pt;
+    font-family: "Raleway", "Open Sans", Arial, Helvetica, sans-serif;
+    font-size: 13.5pt;
     line-height: 130%;
 }
 
@@ -68,7 +86,7 @@ h2 {
 }
 
 .column.center {
-    width: 540px;
+    width: 565px;
 }
 
 .column.right {
