@@ -91,7 +91,9 @@ public:
 
     const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
     DrawCallInfoBuffer& getDrawCallInfoBuffer();
+
     void captureDrawCallInfo();
+    void captureNamedDrawCallInfo(std::string name);
 
     class CacheState {
     public:
@@ -478,6 +480,8 @@ protected:
 
     // Maybe useful but shoudln't be public. Please convince me otherwise
     void runLambda(std::function<void()> f);
+
+    void captureDrawCallInfoImpl();
 };
 
 }

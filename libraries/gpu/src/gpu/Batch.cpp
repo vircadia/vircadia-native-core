@@ -378,9 +378,7 @@ void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Fun
         instance.function = function;
     }
 
-    _currentNamedCall = instanceName;
-    captureDrawCallInfo();
-    _currentNamedCall.clear();
+    captureNamedDrawCallInfo(instanceName);
 }
 
 BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
@@ -412,7 +410,7 @@ const Batch::DrawCallInfoBuffer& Batch::getDrawCallInfoBuffer() const {
     }
 }
 
-void Batch::captureDrawCallInfo() {
+void Batch::captureDrawCallInfoImpl() {
     if (_invalidModel) {
         TransformObject object;
         _currentModel.getMatrix(object._model);
@@ -431,6 +429,21 @@ void Batch::captureDrawCallInfo() {
 
     auto& drawCallInfos = getDrawCallInfoBuffer();
     drawCallInfos.push_back((uint16)_objects.size() - 1);
+}
+
+void Batch::captureDrawCallInfo() {
+    if (!_currentNamedCall.empty()) {
+        // If we are processing a named call, we don't want to register the raw draw calls
+        return;
+    }
+
+    captureDrawCallInfoImpl();
+}
+
+void Batch::captureNamedDrawCallInfo(std::string name) {
+    std::swap(_currentNamedCall, name); // Set and save _currentNamedCall
+    captureDrawCallInfoImpl();
+    std::swap(_currentNamedCall, name); // Restore _currentNamedCall
 }
 
 void Batch::preExecute() {
