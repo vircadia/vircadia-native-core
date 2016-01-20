@@ -2653,6 +2653,8 @@ void Application::loadSettings() {
 
     Menu::getInstance()->loadSettings();
     getMyAvatar()->loadData();
+
+    _settingsLoaded = true;
 }
 
 void Application::saveSettings() {
@@ -3275,6 +3277,10 @@ int Application::sendNackPackets() {
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
+
+    if (!_settingsLoaded) {
+        return; // bail early if settings are not loaded
+    }
 
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();

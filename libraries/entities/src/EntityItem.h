@@ -396,6 +396,7 @@ public:
     virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
     virtual int getJointIndex(const QString& name) const { return -1; }
+    virtual QStringList getJointNames() const { return QStringList(); }
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
