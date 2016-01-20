@@ -41,7 +41,7 @@ function getBuildInfo() {
     var buildInfoPath = null;
 
     if (osType == 'Windows_NT') {
-        buildInfoPath = path.resolve(process.execPath, 'build-info.json');
+        buildInfoPath = path.join(path.dirname(process.execPath), 'build-info.json');
     } else if (osType == 'Darwin') {
         var contentPath = ".app/Contents/";
         var contentEndIndex = __dirname.indexOf(contentPath);
