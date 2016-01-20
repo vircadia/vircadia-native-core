@@ -338,7 +338,7 @@ function promptToMigrateContent() {
     }, function(index) {
         if (index == 0) {
             if (homeServer.state != ProcessGroupStates.STOPPED) {
-                homeServer.on('state-update', function(processGroup) {
+                homeServer.once('state-update', function(processGroup) {
                     if (processGroup.state == ProcessGroupStates.STOPPED) {
                         performContentMigration();
                     }
