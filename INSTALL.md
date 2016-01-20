@@ -4,7 +4,7 @@ During generation, CMake should produce an `install` target and a `package` targ
 
 ###Install
 
-The `install` target will copy the High Fidelity targets and their dependencies to your CMAKE_INSTALL_PREFIX.
+The `install` target will copy the High Fidelity targets and their dependencies to your `CMAKE_INSTALL_PREFIX`.
 
 ###Packaging
 
