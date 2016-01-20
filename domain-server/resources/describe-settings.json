@@ -386,8 +386,8 @@
           "name": "persistFilename",
           "label": "Entities Filename",
           "help": "the path to the file entities are stored in. Make sure the path exists.",
-          "placeholder": "entities/models.json.gz",
-          "default": "entities/models.json.gz",
+          "placeholder": "models.json.gz",
+          "default": "models.json.gz",
           "advanced": true
         },
         {
