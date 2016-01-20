@@ -414,7 +414,9 @@ function performContentMigration() {
                     console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
 
                     // attempt to copy the assets folder, show correct dialog depending on success/failure
-                    fs.copy(oldAssetsPath, newAssetsPath, showMigrationCompletionDialog);
+                    fs.copy(oldAssetsPath, newAssetsPath, {
+                        preserveTimestamps: true
+                    }, showMigrationCompletionDialog);
                 } else {
                     showMigrationCompletionDialog(null);
                 }
