@@ -1,7 +1,7 @@
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
 var scriptURL = Script.resolvePath('pistol.js');
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
-print('MAKING A PISTOLA')
+
 
 var pistol = Entities.addEntity({
     type: 'Model',
