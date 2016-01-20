@@ -51,7 +51,7 @@ void UpdateDialog::closeDialog() {
 }
 
 void UpdateDialog::hide() {
-    ((QQuickItem*)parent())->setEnabled(false);
+    ((QQuickItem*)parent())->setVisible(false);
 }
 
 void UpdateDialog::triggerUpgrade() {
