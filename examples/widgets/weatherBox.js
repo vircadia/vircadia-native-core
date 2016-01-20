@@ -10,7 +10,6 @@ var emitters = [];
 var spheres = [];
 
 var bolt;
-
 var raveRoomModelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/RaveRoom.fbx";
 var roomDimensions = {
     x: 30.58,
@@ -50,6 +49,14 @@ createWeatherBox(center);
 center.y += boxDimensions.y / 2;
 createCloud(center);
 createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
+createLightningStrike(center)
 
 
 function createLightningStrike(position) {
@@ -59,21 +66,20 @@ function createLightningStrike(position) {
     var linePoints = [];
     var normals = [];
     var strokeWidths = [];
-    linePoints.push({
-        x: 0,
-        y: 0,
-        z: 0
-    });
-    linePoints.push({
-        x: 0,
-        y: -1,
-        z: 0
-    });
-    normals.push(normal);
-    normals.push(normal);
-    strokeWidths.push(0.01);
-    strokeWidths.push(0.01);
-    var bolt = Entities.addEntity({
+    var strokeWidth = 0.02
+    var currentPointPosition = {x: 0, y: 0, z: 0};
+    for (var i = 0; i < 8; i++) {
+        linePoints.push(currentPointPosition);
+        currentPointPosition = Vec3.sum(currentPointPosition, {x: randFloat(-0.07, 0.07), y: randFloat(-0.1, -0.05), z: randFloat(-0.07, 0.07)});
+        linePoints.push(currentPointPosition);
+        normals.push(normal);
+        normals.push(normal);
+        strokeWidth -= 0.002;
+        strokeWidths.push(strokeWidth);
+        strokeWidths.push(strokeWidth);
+    }
+
+    bolt = Entities.addEntity({
         type: "PolyLine",
         textures: textureURL,
         position: position,
@@ -84,12 +90,14 @@ function createLightningStrike(position) {
         },
         linePoints: linePoints,
         normals: normals,
-        strokeWidths: strokeWidths
+        strokeWidths: strokeWidths,
+        lifetime: randFloat(0.01, 0.2)
     });
+
     Script.setTimeout(function() {
-        print("UIAYUAYHUAY")
-        createLightningStrike(position);
-    }, 10);
+        createLightningStrike(position)
+    }, randInt(500, 5000));
+
 }
 
 
@@ -178,9 +186,9 @@ function cleanup() {
     });
     Entities.deleteEntity(weatherBox);
     Entities.deleteEntity(weatherZone);
-    Entities.deleteEntity(bolt);
 
     Entities.deleteEntity(raveRoom);
+    Entities.deleteEntity(bolt);
 }
 
 Script.scriptEnding.connect(cleanup);
