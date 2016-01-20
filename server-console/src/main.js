@@ -37,6 +37,9 @@ const osType = os.type();
 
 const appIcon = path.join(__dirname, '../resources/console.png');
 
+const DELETE_LOG_FILES_OLDER_THAN_X_SECONDS = 60 * 60 * 24 * 7; // 7 Days
+const LOG_FILE_REGEX = /(domain-server|ac-monitor|ac)-.*-std(out|err).txt/;
+
 function getBuildInfo() {
     var buildInfoPath = null;
 
@@ -147,9 +150,48 @@ function shutdown() {
     }
 }
 
+function deleteOldFiles(directoryPath, maxAgeInSeconds, filenameRegex) {
+    console.log("Deleting old log files in " + directoryPath);
+
+    var filenames = [];
+    try {
+        filenames = fs.readdirSync(directoryPath);
+    } catch (e) {
+        console.warn("Error reading contents of log file directory", e);
+        return;
+    }
+
+    for (const filename of filenames) {
+        console.log("Checking", filename);
+        const absolutePath = path.join(directoryPath, filename);
+        var stat = null;
+        try {
+            stat = fs.statSync(absolutePath);
+        } catch (e) {
+            console.log("Error stat'ing file", absolutePath, e);
+            continue;
+        }
+        const curTime = Date.now();
+        if (stat.isFile() && filename.search(filenameRegex) >= 0) {
+            const ageInSeconds = (curTime - stat.mtime.getTime()) / 1000.0;
+            if (ageInSeconds >= maxAgeInSeconds) {
+                console.log("\tDeleting:", filename, ageInSeconds);
+                try {
+                    fs.unlinkSync(absolutePath);
+                } catch (e) {
+                    if (e.code != 'EBUSY') {
+                        console.warn("\tError deleting:", e);
+                    }
+                }
+            }
+        }
+    }
+}
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
-console.log("Log directory:", logPath, getRootHifiDataDirectory());
+
+console.log("Log directory:", logPath);
+console.log("Data directory:", getRootHifiDataDirectory());
 
 const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
@@ -610,6 +652,8 @@ app.on('ready', function() {
                 });
             }
         }
+
+        deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
 
         if (dsPath && acPath) {
             domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
