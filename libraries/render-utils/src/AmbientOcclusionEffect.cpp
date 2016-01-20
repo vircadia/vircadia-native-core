@@ -36,7 +36,7 @@ class GaussianDistribution {
 public:
     
     static double integral(float x, float deviation) {
-        return 0.5 * erf(x / (deviation * sqrt(2.0)));
+        return 0.5 * erf((double)x / ((double)deviation * sqrt(2.0)));
     }
     
     static double rangeIntegral(float x0, float x1, float deviation) {
@@ -227,7 +227,7 @@ void AmbientOcclusionEffect::setRadius(float radius) {
         auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
         current.x = radius;
         current.y = radius * radius;
-        current.z = 1.0f / pow(radius, 6.0f);
+        current.z = 1.0f / pow(radius, 6.0);
     }
 }
 

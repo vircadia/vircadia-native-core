@@ -136,7 +136,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 <@endfunc@>
 
 <@func declareEvalLightmappedColor()@>
-vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
+vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
 
@@ -156,7 +156,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal,
     // ambient is a tiny percentage of the lightmap and only when in the shadow
     vec3 ambientLight = (1 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
 
-    return diffuse * (ambientLight +  diffuseLight);
+    return  obscurance * diffuse * (ambientLight +  diffuseLight);
 }
 <@endfunc@>
 

@@ -33,6 +33,7 @@ void main(void) {
         vec3 color = evalLightmappedColor(
                         deferredTransform.viewInverse,
                         shadowAttenuation,
+                        frag.obscurance,
                         frag.normal,
                         frag.diffuse,
                         frag.specularVal.xyz);
