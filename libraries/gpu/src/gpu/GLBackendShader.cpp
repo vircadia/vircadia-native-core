@@ -103,6 +103,8 @@ void makeBindings(GLBackend::GLShader* shader) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
+
+    (void)CHECK_GL_ERROR();
 }
 
 GLBackend::GLShader* compileShader(const Shader& shader) {

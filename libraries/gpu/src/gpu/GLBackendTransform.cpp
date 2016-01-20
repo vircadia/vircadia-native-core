@@ -173,7 +173,7 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
             offset += _cameraUboSize;
         }
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
-            _cameraBuffer, offset, sizeof(Backend::TransformCamera));
+                          _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
@@ -196,6 +196,8 @@ void GLBackend::updateTransform(const Batch& batch) {
                                _transform._drawCallInfoOffsets[batch._currentNamedCall]);
         glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
     }
+    
+    (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::resetTransformStage() {

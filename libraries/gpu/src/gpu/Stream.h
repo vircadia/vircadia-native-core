@@ -39,10 +39,10 @@ public:
         TEXCOORD1 = 7,
         INSTANCE_SCALE = 8,
         INSTANCE_TRANSLATE = 9,
+        NUM_INPUT_SLOTS = INSTANCE_TRANSLATE + 1,
 
 
         DRAW_CALL_INFO = 15, // Reserve last input slot for draw call infos
-        NUM_INPUT_SLOTS = DRAW_CALL_INFO
     };
 
     typedef uint8 Slot;
