@@ -110,6 +110,14 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
     
     _packetStatTimer.start();
+
+    if (_stunSockAddr.getAddress().isNull()) {
+        // we don't know the stun server socket yet, add it to unfiltered once known
+        connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
+    } else {
+        // we know the stun server socket, add it to unfiltered now
+        addSTUNHandlerToUnfiltered();
+    }
 }
 
 void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
@@ -788,30 +796,33 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 }
 
 void LimitedNodeList::startSTUNPublicSocketUpdate() {
-    if (!_initialSTUNTimer) {
-        // if we don't know the STUN IP yet we need to have ourselves be called once it is known
-        if (_stunSockAddr.getAddress().isNull()) {
-            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
-            connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::addSTUNHandlerToUnfiltered);
+    if (!_hasStartedSTUN) {
+        _hasStartedSTUN = true;
 
-            // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
-            const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
+        if (!_initialSTUNTimer) {
+            // if we don't know the STUN IP yet we need to have ourselves be called once it is known
+            if (_stunSockAddr.getAddress().isNull()) {
+                connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::startSTUNPublicSocketUpdate);
 
-            QTimer* stunLookupFailTimer = new QTimer(this);
-            connect(stunLookupFailTimer, &QTimer::timeout, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
-            stunLookupFailTimer->start(STUN_DNS_LOOKUP_TIMEOUT_MSECS);
+                // in case we just completely fail to lookup the stun socket - add a 10s timeout that will trigger the fail case
+                const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
 
-        } else {
-            // setup our initial STUN timer here so we can quickly find out our public IP address
-            _initialSTUNTimer = new QTimer(this);
+                QTimer* stunLookupFailTimer = new QTimer(this);
+                connect(stunLookupFailTimer, &QTimer::timeout, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
+                stunLookupFailTimer->start(STUN_DNS_LOOKUP_TIMEOUT_MSECS);
 
-            connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
+            } else {
+                // setup our initial STUN timer here so we can quickly find out our public IP address
+                _initialSTUNTimer = new QTimer(this);
 
-            const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
-           _initialSTUNTimer->start(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+                connect(_initialSTUNTimer.data(), &QTimer::timeout, this, &LimitedNodeList::sendSTUNRequest);
 
-           // send an initial STUN request right away
-           sendSTUNRequest();
+                const int STUN_INITIAL_UPDATE_INTERVAL_MSECS = 250;
+                _initialSTUNTimer->start(STUN_INITIAL_UPDATE_INTERVAL_MSECS);
+                
+                // send an initial STUN request right away
+                sendSTUNRequest();
+            }
         }
     }
 }
