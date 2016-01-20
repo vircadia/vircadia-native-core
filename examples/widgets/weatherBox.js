@@ -9,61 +9,17 @@ var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientat
 var emitters = [];
 var spheres = [];
 
-var bolt;
-var raveRoomModelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/RaveRoom.fbx";
-var roomDimensions = {
-    x: 30.58,
-    y: 15.29,
-    z: 30.58
-};
-
-var raveRoom = Entities.addEntity({
-    type: "Model",
-    name: "Rave Hut Room",
-    modelURL: raveRoomModelURL,
-    position: center,
-    dimensions: roomDimensions,
-    visible: true
-});
-
-
-var weatherZone = Entities.addEntity({
-    type: "Zone",
-    name: "Weather Zone",
-    shapeType: 'box',
-    keyLightIntensity: 1,
-    keyLightColor: {
-        red: 50,
-        green: 0,
-        blue: 50
-    },
-    keyLightAmbientIntensity: 1,
-    position: MyAvatar.position,
-    dimensions: {
-        x: 100,
-        y: 100,
-        z: 100
-    }
-});
 createWeatherBox(center);
 center.y += boxDimensions.y / 2;
 createCloud(center);
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-createLightningStrike(center)
-
+for (var i = 0; i < 7; i++) {
+   createLightningStrike(center) 
+}
 
 function createLightningStrike(basePosition) {
     var normal = Vec3.subtract(position, MyAvatar.position);
     normal.y = 0;
-    var textureURL = "http://localhost:8080/lightning.png"
-    // var textureURL = "file:///C:/Users/Eric/Desktop/lightning.png";
+    var textureURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/lightning.png"
     var linePoints = [];
     var normals = [];
     var strokeWidths = [];
@@ -71,7 +27,7 @@ function createLightningStrike(basePosition) {
     var currentPointPosition = {x: 0, y: 0, z: 0};
     for (var i = 0; i < 8; i++) {
         linePoints.push(currentPointPosition);
-        currentPointPosition = Vec3.sum(currentPointPosition, {x: randFloat(-0.07, 0.07), y: randFloat(-0.1, -0.05), z: randFloat(-0.07, 0.07)});
+        currentPointPosition = Vec3.sum(currentPointPosition, {x: randFloat(-0.05, 0.05), y: randFloat(-0.1, -0.05), z: randFloat(-0.05, 0.05)});
         linePoints.push(currentPointPosition);
         normals.push(normal);
         normals.push(normal);
@@ -79,8 +35,8 @@ function createLightningStrike(basePosition) {
         strokeWidths.push(strokeWidth);
         strokeWidths.push(strokeWidth);
     }
-    var position = Vec3.sum(basePosition, {x: randFloat(-boxDimensions.x/8, boxDimensions.x/8), y: 0, z: randFloat(-boxDimensions.x/8, boxDimensions.x/8)});
-    bolt = Entities.addEntity({
+    var position = Vec3.sum(basePosition, {x: randFloat(-boxDimensions.x/20, boxDimensions.x/20), y: 0, z: randFloat(-boxDimensions.x/20, boxDimensions.x/20)});
+    var bolt = Entities.addEntity({
         type: "PolyLine",
         textures: textureURL,
         position: position,
@@ -109,8 +65,7 @@ function createWeatherBox(position) {
         z: 1.11
     };
     boxDimensions = Vec3.multiply(naturalDimensions, 0.7);
-    var modelURL = "http://localhost:8080/weatherBox.fbx?v1" + Math.random();
-    // var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/raveStick.fbx";
+    var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/weatherBox.fbx"
     weatherBox = Entities.addEntity({
         type: "Model",
         name: "Weather Box",
@@ -177,8 +132,6 @@ function createCloud(position) {
     emitters.push(oceanEmitter);
 }
 
-
-
 function cleanup() {
     emitters.forEach(function(emitter) {
         Entities.deleteEntity(emitter);
@@ -187,10 +140,7 @@ function cleanup() {
         Entities.deleteEntity(sphere);
     });
     Entities.deleteEntity(weatherBox);
-    Entities.deleteEntity(weatherZone);
 
-    Entities.deleteEntity(raveRoom);
-    Entities.deleteEntity(bolt);
 }
 
 Script.scriptEnding.connect(cleanup);

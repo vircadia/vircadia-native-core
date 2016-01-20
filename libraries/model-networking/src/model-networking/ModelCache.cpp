@@ -285,6 +285,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         diffuseMap->setTextureTransform(material.diffuseTexture.transform);
 
         material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
+        material._material->setTextureMap(model::MaterialKey::TRANSPARENT_MAP, diffuseMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
         networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);

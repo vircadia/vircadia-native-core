@@ -80,6 +80,7 @@ void FBXReader::consolidateFBXMaterials() {
             }
 
             material.diffuseTexture = diffuseTexture;
+            material.opacityTexture = diffuseTexture;
 
             detectDifferentUVs = (diffuseTexture.texcoordSet != 0) || (!diffuseTexture.transform.isIdentity());
         }
