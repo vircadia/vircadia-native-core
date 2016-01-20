@@ -134,12 +134,11 @@ var blacklist = [];
 //we've created various ways of visualizing looking for and moving distant objects
 var USE_ENTITY_LINES_FOR_SEARCHING = false;
 var USE_OVERLAY_LINES_FOR_SEARCHING = true;
-var USE_PARTICLE_BEAM_FOR_SEARCHING = false;
 
 var USE_ENTITY_LINES_FOR_MOVING = false;
 var USE_OVERLAY_LINES_FOR_MOVING = false;
 var USE_PARTICLE_BEAM_FOR_MOVING = true;
-var TEMPORARY_PARTICLE_BEAM_LIFETIME = 30;
+
 
 var USE_SPOTLIGHT = false;
 var USE_POINTLIGHT = false;
@@ -475,24 +474,6 @@ function MyController(hand) {
         }
     };
 
-    this.handleParticleBeam = function(position, orientation, color) {
-
-        var rotation = Quat.angleAxis(0, {
-            x: 1,
-            y: 0,
-            z: 0
-        });
-
-        var finalRotation = Quat.multiply(orientation, rotation);
-        var lifespan = LINE_LENGTH / 10;
-        var speed = 5;
-        var spread = 2;
-        if (this.particleBeam === null) {
-            this.createParticleBeam(position, finalRotation, color, speed, spread, lifespan);
-        } else {
-            this.updateParticleBeam(position, finalRotation, color, speed, spread, lifespan);
-        }
-    };
 
     this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
 
@@ -504,7 +485,6 @@ function MyController(hand) {
         var spread = 0;
 
         var lifespan = distance / speed;
-
 
         if (this.particleBeam === null) {
             this.createParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
@@ -520,6 +500,7 @@ function MyController(hand) {
             isEmitting: true,
             position: position,
             visible: false,
+            lifetime: 60,
             "name": "Particle Beam",
             "color": color,
             "maxParticles": 2000,
@@ -555,15 +536,6 @@ function MyController(hand) {
             },
             "particleRadius": 0.015,
             "radiusSpread": 0.005,
-            // "radiusStart": 0.01,
-            // "radiusFinish": 0.01,
-            // "colorSpread": {
-            //     "red": 0,
-            //     "green": 0,
-            //     "blue": 0
-            // },
-            // "colorStart": color,
-            // "colorFinish": color,
             "alpha": 1,
             "alphaSpread": 0,
             "alphaStart": 1,
@@ -712,9 +684,8 @@ function MyController(hand) {
 
     this.particleBeamOff = function() {
         if (this.particleBeam !== null) {
-            Entities.editEntity(this.particleBeam, {
-                visible: false
-            })
+            Entities.deleteEntity(this.particleBeam);
+            this.particleBeam = null;
         }
     }
 
@@ -744,7 +715,7 @@ function MyController(hand) {
             this.overlayLineOff();
         }
 
-        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
+        if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.particleBeamOff();
         }
         this.searchSphereOff();
@@ -814,8 +785,7 @@ function MyController(hand) {
 
         var distantPickRay = {
             origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
-            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : 
-                Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -853,7 +823,7 @@ function MyController(hand) {
                 intersection = Entities.findRayIntersection(pickRayBacked, true, [], blacklist);
             } else {
                 intersection = Entities.findRayIntersection(pickRayBacked, true);
-            } 
+            }
 
             if (intersection.intersects) {
                 rayPickedCandidateEntities.push(intersection.entityID);
@@ -925,11 +895,11 @@ function MyController(hand) {
                 if (typeof grabbableData.spatialKey === 'undefined') {
                     // We want to give a temporary position offset to this object so it is pulled close to hand
                     var intersectionPointToCenterDistance = Vec3.length(Vec3.subtract(intersection.intersection,
-                                                                                      intersection.properties.position));
+                        intersection.properties.position));
                     this.temporaryPositionOffset = Vec3.normalize(Vec3.subtract(intersection.properties.position, handPosition));
                     this.temporaryPositionOffset = Vec3.multiply(this.temporaryPositionOffset,
-                                                                 intersectionPointToCenterDistance *
-                                                                 FAR_TO_NEAR_GRAB_PADDING_FACTOR);
+                        intersectionPointToCenterDistance *
+                        FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
                 this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
                 return;
@@ -945,10 +915,6 @@ function MyController(hand) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
-        if (USE_PARTICLE_BEAM_FOR_SEARCHING === true) {
-            this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
-        }
-
         var SEARCH_SPHERE_SIZE = 0.011;
         var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
@@ -956,7 +922,7 @@ function MyController(hand) {
             //  If we hit something with our pick ray, move the search sphere toward that distance 
             this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE + this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
         }
-            
+
         var searchSphereLocation = Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
         this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance, (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
@@ -1159,7 +1125,6 @@ function MyController(hand) {
         }
         if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
             this.handleDistantParticleBeam(handPosition, grabbedProperties.position, INTERSECT_COLOR)
-                // this.handleDistantParticleBeam(handPosition, this.currentObjectPosition, INTERSECT_COLOR)
         }
         if (USE_POINTLIGHT === true) {
             this.handlePointLight(this.grabbedEntity);
@@ -1597,8 +1562,8 @@ function MyController(hand) {
             if (this.actionID !== null) {
                 //sometimes we want things to stay right where they are when we let go.
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY,
-                                                              this.grabbedEntity,
-                                                              DEFAULT_GRABBABLE_DATA);
+                    this.grabbedEntity,
+                    DEFAULT_GRABBABLE_DATA);
                 if (releaseVelocityData.disableReleaseVelocity === true) {
                     Entities.deleteAction(this.grabbedEntity, this.actionID);
 
@@ -1699,10 +1664,10 @@ var rightController = new MyController(RIGHT_HAND);
 var leftController = new MyController(LEFT_HAND);
 
 //preload the particle beams so that they are full length when you start searching
-if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
-    rightController.createParticleBeam();
-    leftController.createParticleBeam();
-}
+// if (USE_PARTICLE_BEAM_FOR_MOVING === true) {
+//     rightController.createParticleBeam();
+//     leftController.createParticleBeam();
+// }
 
 var MAPPING_NAME = "com.highfidelity.handControllerGrab";
 
@@ -1780,31 +1745,7 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
-    if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
-        Script.update.disconnect(renewParticleBeamLifetimes);
-    }
+
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
-
-// particle systems can end up hanging around if a user crashes or something else causes controller cleanup not to get called. 
-// we can't create the search system on-demand since it takes some time for the particles to reach their entire length.  
-// thus the system cannot have a fixed lifetime.  this loop updates the lifetimes and will stop updating if a user crashes.
-
-if (USE_PARTICLE_BEAM_FOR_SEARCHING === true || USE_PARTICLE_BEAM_FOR_MOVING === true) {
-    Script.update.connect(renewParticleBeamLifetimes)
-}
-
-var sinceLastParticleLifetimeUpdate = 0;
-
-function renewParticleBeamLifetimes(deltaTime) {
-    //debounce this call since we don't want it 60x a second
-    sinceLastParticleLifetimeUpdate = sinceLastParticleLifetimeUpdate + deltaTime;
-    if (sinceLastParticleLifetimeUpdate > TEMPORARY_PARTICLE_BEAM_LIFETIME - 2) {
-        sinceLastParticleLifetimeUpdate = 0;
-    } else {
-        return;
-    }
-    rightController.renewParticleBeamLifetime();
-    leftController.renewParticleBeamLifetime();
-}
