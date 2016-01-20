@@ -450,7 +450,7 @@ void DomainServer::setupAutomaticNetworking() {
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
 
     if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        
+        setupICEHeartbeatForFullNetworking();
     }
 
     if (!didSetupAccountManagerWithAccessToken()) {
