@@ -63,6 +63,7 @@ function createLightningStrike(basePosition) {
     var normal = Vec3.subtract(position, MyAvatar.position);
     normal.y = 0;
     var textureURL = "http://localhost:8080/lightning.png"
+    // var textureURL = "file:///C:/Users/Eric/Desktop/lightning.png";
     var linePoints = [];
     var normals = [];
     var strokeWidths = [];
