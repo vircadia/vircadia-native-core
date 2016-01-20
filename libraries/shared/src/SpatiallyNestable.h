@@ -118,6 +118,8 @@ public:
     void die() { _isDead = true; }
     bool isDead() const { return _isDead; }
 
+    bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;

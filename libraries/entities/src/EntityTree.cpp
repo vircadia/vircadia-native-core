@@ -1291,12 +1291,13 @@ void EntityTree::remapIDs() {
     recurseTreeWithOperator(&theOperator);
 }
 
-bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) {
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) {
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
     }
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents);
     recurseTreeWithOperator(&theOperator);
     return true;
 }

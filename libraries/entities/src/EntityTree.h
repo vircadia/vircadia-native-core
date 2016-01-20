@@ -199,7 +199,8 @@ public:
 
     void remapIDs();
 
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) override;
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
 
     float getContentsLargestDimension();
