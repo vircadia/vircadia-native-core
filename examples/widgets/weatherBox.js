@@ -60,6 +60,7 @@ createLightningStrike(center)
 
 
 function createLightningStrike(position) {
+    print("LIGHTNING STRIKE")
     var normal = Vec3.subtract(position, MyAvatar.position);
     normal.y = 0;
     var textureURL = "file:///C:/Users/Eric/Desktop/lightning.png"
@@ -108,7 +109,7 @@ function createWeatherBox(position) {
         z: 1.11
     };
     boxDimensions = Vec3.multiply(naturalDimensions, 0.7);
-    var modelURL = "file:///C:/Users/Eric/Desktop/weatherBox.fbx?v1" + Math.random();
+    var modelURL = "localhost:8080:weatherBox.fbx?v1" + Math.random();
     // var modelURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/raveStick.fbx";
     weatherBox = Entities.addEntity({
         type: "Model",
