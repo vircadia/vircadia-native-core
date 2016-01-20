@@ -28,9 +28,6 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     RenderArgs* args = renderContext->getArgs();
     ViewFrustum* frustum = args->_viewFrustum;
 
-    outItems.clear();
-    outItems.reserve(inItems.size());
-
     details._considered += inItems.size();
     
     // Culling / LOD
@@ -208,6 +205,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
     ItemIDsBounds culledItems;
+    culledItems.reserve(inItems.size());
     cullItems(renderContext, _cullFunctor, details, inItems, culledItems);
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {

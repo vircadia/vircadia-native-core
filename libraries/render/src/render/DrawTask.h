@@ -49,6 +49,8 @@ public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
         const auto& args = renderContext->getArgs();
         auto& details = args->_details.edit(T);
+        outItems.clear();
+        outItems.reserve(inItems.size());
         render::cullItems(renderContext, _cullFunctor, details, inItems, outItems);
     }
 
