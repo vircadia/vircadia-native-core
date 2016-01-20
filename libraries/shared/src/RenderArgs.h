@@ -56,34 +56,25 @@ public:
     Item _translucent;
     Item _other;
     
-    Item* _item = &_other;
-    
-    void pointTo(Type type) {
+    Item& edit(Type type) {
         switch (type) {
             case OPAQUE_ITEM:
-                _item = &_opaque;
-                break;
+                return _opaque;
             case SHADOW_ITEM:
-                _item = &_shadow;
-                break;
+                return _shadow;
             case TRANSLUCENT_ITEM:
-                _item = &_translucent;
-                break;
+                return _translucent;
             case OTHER_ITEM:
-                _item = &_other;
-                break;
+            default:
+                return _other;
         }
     }
 };
 
 class RenderArgs {
 public:
-    typedef std::function<bool(const RenderArgs* args, const AABox& bounds)> ShoudRenderFunctor;
-
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
-
     enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
-
     enum DebugFlags {
         RENDER_DEBUG_NONE = 0,
         RENDER_DEBUG_HULLS = 1
@@ -97,8 +88,7 @@ public:
                RenderMode renderMode = DEFAULT_RENDER_MODE,
                RenderSide renderSide = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
-               gpu::Batch* batch = nullptr,
-               ShoudRenderFunctor shouldRender = nullptr) :
+               gpu::Batch* batch = nullptr) :
     _context(context),
     _renderer(renderer),
     _viewFrustum(viewFrustum),
@@ -107,8 +97,7 @@ public:
     _renderMode(renderMode),
     _renderSide(renderSide),
     _debugFlags(debugFlags),
-    _batch(batch),
-    _shouldRender(shouldRender) {
+    _batch(batch) {
     }
 
     std::shared_ptr<gpu::Context> _context = nullptr;
@@ -123,7 +112,6 @@ public:
     RenderSide _renderSide = MONO;
     DebugFlags _debugFlags = RENDER_DEBUG_NONE;
     gpu::Batch* _batch = nullptr;
-    ShoudRenderFunctor _shouldRender;
     
     std::shared_ptr<gpu::Texture> _whiteTexture;
 
