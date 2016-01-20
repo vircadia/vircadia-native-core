@@ -64,7 +64,6 @@ vec3 getOffsetPosition(ivec2 side, ivec2 ssC, vec2 unitOffset, float ssR) {
     // Manually clamp to the texture size because texelFetch bypasses the texture unit
     ivec2 mipP = clamp(ssPFull >> mipLevel, ivec2(0), textureSize(pyramidMap, getResolutionLevel() + mipLevel) - ivec2(1));
     P.z = -texelFetch(pyramidMap, mipP, getResolutionLevel() + mipLevel).r;
-//    P.z = -texelFetch(pyramidMap, ssPFull, 0).r;
 
     // Offset to pixel center
     vec2 tapUV = (vec2(ssP) + vec2(0.5)) / getStereoSideWidth();
@@ -136,5 +135,16 @@ void main(void) {
         A -= dFdy(A) * ((ssC.y & 1) - 0.5);
     }
 
-    outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
+    // Debug Normal: outFragColor = vec4((Cn + vec3(1.0))* 0.5, 1.0);
+    // Debug Radius outFragColor = vec4(vec3(ssDiskRadius / 100.0), 1.0);
+    // Debug MaxMiplevel outFragColor = vec4(1.0 - vec3(float(clamp(findMSB(int(ssDiskRadius)) - LOG_MAX_OFFSET, 0, MAX_MIP_LEVEL))/ float(MAX_MIP_LEVEL)), 1.0);
+    // Debug OffsetPosition
+    float ssR;
+    vec2 unitOffset = tapLocation(int(getNumSamples() - 1), 0, ssR);
+    vec3 Q = getOffsetPosition(side, ssC, unitOffset, ssR * ssDiskRadius);
+    //outFragColor = vec4(vec3(Q.x / 10.0, Q.y / 2.0, -Q.z/ 3.0), 1.0);
+    vec3 v = normalize(Q - Cp);
+    outFragColor = vec4((v + vec3(1.0))* 0.5, 1.0);
+    
+    //outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
 }

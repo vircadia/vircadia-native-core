@@ -391,20 +391,22 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setPipeline(occlusionPipeline);
         batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot, pyramidFBO->getRenderBuffer(0));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.setResourceTexture(AmbientOcclusionEffect_PyramidMapSlot + 1, gpu::TexturePointer());
+
         
-        // Blur 1st pass
-        batch.setFramebuffer(occlusionBlurredFBO);
-        batch.setPipeline(firstHBlurPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionFBO->getRenderBuffer(0));
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
+        if (getBlurRadius() > 0) {
+            // Blur 1st pass
+            batch.setFramebuffer(occlusionBlurredFBO);
+            batch.setPipeline(firstHBlurPipeline);
+            batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionFBO->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
 
-        // Blur 2nd pass
-        batch.setFramebuffer(occlusionFBO);
-        batch.setPipeline(lastVBlurPipeline);
-        batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+            // Blur 2nd pass
+            batch.setFramebuffer(occlusionFBO);
+            batch.setPipeline(lastVBlurPipeline);
+            batch.setResourceTexture(AmbientOcclusionEffect_OcclusionMapSlot, occlusionBlurredFBO->getRenderBuffer(0));
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
+        
         _gpuTimer.end(batch);
 
     });
