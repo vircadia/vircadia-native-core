@@ -494,7 +494,7 @@
                     z: 1.73
                 },
                 dynamic: true,
-                ignoreForCollisions: false,
+                collisionless: false,
                 compoundShapeURL: rackCollisionHullURL,
                 userData: JSON.stringify({
                     resetMe: {
@@ -543,7 +543,7 @@
                         },
                         dynamic: true,
                         collisionSoundURL: 'http://hifi-public.s3.amazonaws.com/sounds/basketball/basketball.wav',
-                        ignoreForCollisions: false,
+                        collisionless: false,
                         modelURL: basketballURL,
                         userData: JSON.stringify({
                             originalPositionKey: {

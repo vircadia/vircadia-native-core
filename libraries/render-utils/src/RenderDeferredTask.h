@@ -12,9 +12,9 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "render/Engine.h"
-
 #include "gpu/Pipeline.h"
+
+#include "render/DrawTask.h"
 
 #include "ToneMappingEffect.h"
 
@@ -113,15 +113,8 @@ public:
 
 class RenderDeferredTask : public render::Task {
 public:
-    RenderDeferredTask();
+    RenderDeferredTask(render::CullFunctor cullFunctor);
 
-    int _drawDebugDeferredBufferIndex;
-    int _drawStatusJobIndex;
-    int _drawHitEffectJobIndex;
-    int _occlusionJobIndex;
-    int _antialiasingJobIndex;
-    int _toneMappingJobIndex;
-    
     void setDrawDebugDeferredBuffer(int draw) { enableJob(_drawDebugDeferredBufferIndex, draw >= 0); }
     bool doDrawDebugDeferredBuffer() const { return getEnableJob(_drawDebugDeferredBufferIndex); }
     
@@ -144,6 +137,14 @@ public:
     int getToneMappingToneCurve() const;
 
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+protected:
+    int _drawDebugDeferredBufferIndex;
+    int _drawStatusJobIndex;
+    int _drawHitEffectJobIndex;
+    int _occlusionJobIndex;
+    int _antialiasingJobIndex;
+    int _toneMappingJobIndex;
 };
 
 #endif // hifi_RenderDeferredTask_h

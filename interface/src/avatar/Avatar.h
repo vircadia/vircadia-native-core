@@ -167,13 +167,20 @@ public:
     using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
+    // NOT thread safe, must be called on main thread.
+    glm::vec3 getUncachedLeftPalmPosition() const;
+    glm::quat getUncachedLeftPalmRotation() const;
+    glm::vec3 getUncachedRightPalmPosition() const;
+    glm::quat getUncachedRightPalmRotation() const;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
-    glm::vec3 getLeftPalmPosition();
-    glm::quat getLeftPalmRotation();
-    glm::vec3 getRightPalmPosition();
-    glm::quat getRightPalmRotation();
+    // thread safe, will return last valid palm from cache
+    glm::vec3 getLeftPalmPosition() const;
+    glm::quat getLeftPalmRotation() const;
+    glm::vec3 getRightPalmPosition() const;
+    glm::quat getRightPalmRotation() const;
 
 protected:
     friend class AvatarManager;

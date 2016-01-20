@@ -178,6 +178,15 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                     desiredProperties.setHasProperty(PROP_PARENT_JOINT_INDEX);
                 }
 
+                if (desiredProperties.isEmpty()) {
+                    // these are left out of EntityItem::getEntityProperties so that localPosition and localRotation
+                    // don't end up in json saves, etc.  We still want them here, though.
+                    EncodeBitstreamParams params; // unknown
+                    desiredProperties = entity->getEntityProperties(params);
+                    desiredProperties.setHasProperty(PROP_LOCAL_POSITION);
+                    desiredProperties.setHasProperty(PROP_LOCAL_ROTATION);
+                 }
+
                 results = entity->getProperties(desiredProperties);
 
                 // TODO: improve sitting points and naturalDimensions in the future,
@@ -956,11 +965,30 @@ bool EntityScriptingInterface::setAbsoluteJointTranslationsInObjectFrame(const Q
     return false;
 }
 
-
 bool EntityScriptingInterface::setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
                                                                   const QVector<glm::quat>& rotations,
                                                                   const QVector<glm::vec3>& translations) {
     // for a model with 80 joints, sending both these in one edit packet causes the packet to be too large.
     return setAbsoluteJointRotationsInObjectFrame(entityID, rotations) ||
         setAbsoluteJointTranslationsInObjectFrame(entityID, translations);
+}
+
+int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString& name) {
+    if (!_entityTree) {
+        return -1;
+    }
+    int result;
+    QMetaObject::invokeMethod(_entityTree.get(), "getJointIndex", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
+    return result;
+}
+
+QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
+    if (!_entityTree) {
+        return QStringList();
+    }
+    QStringList result;
+    QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
+    return result;
 }

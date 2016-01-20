@@ -220,7 +220,7 @@
                 dimensions: COLOR_INDICATOR_DIMENSIONS,
                 position: this.currentProperties.position,
                 dynamic: false,
-                ignoreForCollisions: true
+                collisionless: true
             }
 
             this.colorIndicator = Entities.addEntity(properties);

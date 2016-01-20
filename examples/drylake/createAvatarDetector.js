@@ -25,7 +25,7 @@ function createAvatarDetector() {
             z: 1
         },
         dynamic: false,
-        ignoreForCollisions: true,
+        collisionless: true,
         visible: false,
         color: {
             red: 255,

@@ -673,8 +673,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
 
     // Start rendering
-    _renderEngine->addTask(make_shared<RenderShadowTask>());
-    _renderEngine->addTask(make_shared<RenderDeferredTask>());
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
+    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
     _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
@@ -2655,6 +2656,8 @@ void Application::loadSettings() {
 
     Menu::getInstance()->loadSettings();
     getMyAvatar()->loadData();
+
+    _settingsLoaded = true;
 }
 
 void Application::saveSettings() {
@@ -3278,6 +3281,10 @@ int Application::sendNackPackets() {
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
+    if (!_settingsLoaded) {
+        return; // bail early if settings are not loaded
+    }
+
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
@@ -3822,7 +3829,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
         auto renderContext = renderInterface->getRenderContext();
 
-        renderArgs->_shouldRender = LODManager::shouldRender;
         renderArgs->_viewFrustum = getDisplayViewFrustum();
         renderContext.setArgs(renderArgs);
 

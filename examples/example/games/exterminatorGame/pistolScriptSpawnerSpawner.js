@@ -7,7 +7,7 @@ var pistolSpawnerEntity = Entities.addEntity({
     dimensions: {x: 0.38, y: 1.9, z: 3.02},
     script: scriptURL,
     visible: false,
-    ignoreForCollisions: true
+    collisionless: true
 });
 
 var pistol = Entities.addEntity({
@@ -17,7 +17,7 @@ var pistol = Entities.addEntity({
     dimensions: {x: 0.38, y: 1.9, z: 3.02},
     script: scriptURL,
     color: {red: 200, green: 0, blue: 20},
-    ignoreForCollisions: true
+    collisionless: true
 });
 
 

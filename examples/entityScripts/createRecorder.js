@@ -19,5 +19,5 @@ var recordAreaEntity = Entities.addEntity({
     },
     visible: true,
     script: PARAMS_SCRIPT_URL,
-    ignoreForCollision: true,
+    collisionless: true,
 });

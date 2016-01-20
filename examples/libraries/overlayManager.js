@@ -383,6 +383,9 @@
                 searchList[object._id] = object;
             });
             return searchList;
+        },
+        findRayIntersection: function(pickRay) {
+            return Overlays.findRayIntersection(pickRay);
         }
     };
 
