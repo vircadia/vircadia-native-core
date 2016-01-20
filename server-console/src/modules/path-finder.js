@@ -76,7 +76,7 @@ exports.discoveredPath = function (name, binaryType, releaseType) {
     }
 
     // for a released server console on OS X, assume the name of the interface executable is "High Fidelity"
-    if (releaseType && name == "Interface") {
+    if (releaseType && process.platform == "darwin" && name == "Interface") {
         name = "High Fidelity";
     }
 
