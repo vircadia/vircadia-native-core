@@ -84,11 +84,6 @@
 #include "overlay3D_vert.h"
 #include "overlay3D_frag.h"
 
-#include "SkyFromSpace_vert.h"
-#include "SkyFromSpace_frag.h"
-#include "SkyFromAtmosphere_vert.h"
-#include "SkyFromAtmosphere_frag.h"
-
 #include "Skybox_vert.h"
 #include "Skybox_frag.h"
 
@@ -220,9 +215,6 @@ void QTestWindow::draw() {
 
         testShaderBuild(overlay3D_vert, overlay3D_frag);
 
-        testShaderBuild(SkyFromSpace_vert, SkyFromSpace_frag);
-        testShaderBuild(SkyFromAtmosphere_vert, SkyFromAtmosphere_frag);
-        
         testShaderBuild(Skybox_vert, Skybox_frag);
         
         testShaderBuild(paintStroke_vert,paintStroke_frag);

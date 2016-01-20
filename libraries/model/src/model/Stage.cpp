@@ -133,56 +133,6 @@ void EarthSunModel::setSunLongitude(float lon) {
     invalidate();
 }
 
-Atmosphere::Atmosphere() {
-    // only if created from nothing shall we create the Buffer to store the properties
-    Data data;
-    _dataBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Data), (const gpu::Byte*) &data));
-
-    setScatteringWavelength(_scatteringWavelength);
-    setRayleighScattering(_rayleighScattering);
-    setInnerOuterRadiuses(getInnerRadius(), getOuterRadius());
-}
-
-void Atmosphere::setScatteringWavelength(Vec3 wavelength) {
-    _scatteringWavelength = wavelength;
-    Data& data = editData();
-    data._invWaveLength = Vec4(1.0f / powf(wavelength.x, 4.0f), 1.0f / powf(wavelength.y, 4.0f), 1.0f / powf(wavelength.z, 4.0f), 0.0f);
-}
-
-void Atmosphere::setRayleighScattering(float scattering) {
-    _rayleighScattering = scattering;
-    updateScattering();
-}
-
-void Atmosphere::setMieScattering(float scattering) {
-    _mieScattering = scattering;
-    updateScattering();
-}
-
-void Atmosphere::setSunBrightness(float brightness) {
-    _sunBrightness = brightness;
-    updateScattering();
-}
-
-void Atmosphere::updateScattering() {
-    Data& data = editData();
-
-    data._scatterings.x = getRayleighScattering() * getSunBrightness();
-    data._scatterings.y = getMieScattering() * getSunBrightness();
-
-    data._scatterings.z = getRayleighScattering() * 4.0f * glm::pi<float>();
-    data._scatterings.w = getMieScattering() * 4.0f * glm::pi<float>();
-}
-
-void Atmosphere::setInnerOuterRadiuses(float inner, float outer) {
-    Data& data = editData();
-    data._radiuses.x = inner;
-    data._radiuses.y = outer;
-    data._scales.x = 1.0f / (outer - inner);
-    data._scales.z = data._scales.x / data._scales.y;
-}
-
-
 const int NUM_DAYS_PER_YEAR = 365;
 const float NUM_HOURS_PER_DAY = 24.0f;
 const float NUM_HOURS_PER_HALF_DAY = NUM_HOURS_PER_DAY * 0.5f;

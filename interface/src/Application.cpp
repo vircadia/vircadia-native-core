@@ -3651,8 +3651,7 @@ namespace render {
                         "Application::payloadRender<BackgroundRenderData>() ... stars...");
                     // should be the first rendering pass - w/o depth buffer / lighting
 
-                    // compute starfield alpha based on distance from atmosphere
-                    float alpha = 1.0f;
+                    static const float alpha = 1.0f;
                     background->_stars.render(args, alpha);
                 }
             }
@@ -3736,7 +3735,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         auto skybox = model::SkyboxPointer();
         if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {

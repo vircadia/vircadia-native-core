@@ -277,7 +277,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _hasPreviousZone = false;
         }
 
-        skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+        skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
 
         return; // Early exit
     }
@@ -307,12 +307,6 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     sceneTime->setDay(zone->getStageProperties().calculateDay());
 
     switch (zone->getBackgroundMode()) {
-        case BACKGROUND_MODE_ATMOSPHERE: {
-            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
-            _pendingSkyboxTexture = false;
-            _skyboxTexture.clear();
-            break;
-        }
         case BACKGROUND_MODE_SKYBOX: {
             auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
             skybox->setColor(zone->getSkyboxProperties().getColorVec3());
@@ -347,7 +341,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             break;
         }
         case BACKGROUND_MODE_INHERIT:
-            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application atmosphere through
+            skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();
             break;

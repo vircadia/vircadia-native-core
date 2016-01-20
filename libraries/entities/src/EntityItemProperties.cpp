@@ -184,7 +184,7 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* backgroundModeNames[] = {"inherit", "atmosphere", "skybox" };
+const char* backgroundModeNames[] = {"inherit", "skybox" };
 
 QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
 
@@ -194,7 +194,6 @@ void addBackgroundMode(BackgroundMode type) {
 
 void buildStringToBackgroundModeLookup() {
     addBackgroundMode(BACKGROUND_MODE_INHERIT);
-    addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
     addBackgroundMode(BACKGROUND_MODE_SKYBOX);
 }
 
