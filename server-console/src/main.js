@@ -607,15 +607,9 @@ app.on('ready', function() {
         }
 
         if (dsPath && acPath) {
-            var logPathArg = logPath;
-            if (osType == 'Windows_NT') {
-                // surround the log path in quotes on windows in case it has spaces
-                logPathArg = '"' + logPath + '"';
-            }
-
-            domainServer = new Process('domain-server', dsPath, ['--get-temp-name'], logPath);
+            domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
             acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n6',
-                                                                    '--log-directory', logPathArg,
+                                                                    '--log-directory', logPath,
                                                                     '--http-status-port', httpStatusPort], httpStatusPort, logPath);
             homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
             logWindow = new LogWindow(acMonitor, domainServer);
