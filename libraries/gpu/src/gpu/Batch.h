@@ -29,7 +29,12 @@ class QDebug;
 namespace gpu {
 
 enum ReservedSlot {
+
+#ifdef WIN32
     TRANSFORM_OBJECT_SLOT = 6,
+#else
+    TRANSFORM_OBJECT_SLOT = 31,
+#endif
     TRANSFORM_CAMERA_SLOT = 7,
 };
 

@@ -334,6 +334,7 @@ protected:
         GLuint _objectBuffer { 0 };
         GLuint _cameraBuffer { 0 };
         GLuint _drawCallInfoBuffer { 0 };
+        GLuint _objectBufferTexture { 0 };
         size_t _cameraUboSize { 0 };
         Transform _view;
         Mat4 _projection;

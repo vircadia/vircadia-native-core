@@ -37,12 +37,32 @@ struct TransformObject {
 
 in ivec2 _drawCallInfo;
 
+<@if GLPROFILE == PC_GL @>
 layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
 };
 TransformObject getTransformObject() {
     return _object[_drawCallInfo.x];
 }
+<@else@>
+uniform samplerBuffer transformObjectBuffer;
+
+TransformObject getTransformObject() {
+    int offset = 8 * _drawCallInfo.x;
+    TransformObject object;
+    object._model[0] = texelFetch(transformObjectBuffer, offset);
+    object._model[1] = texelFetch(transformObjectBuffer, offset + 1);
+    object._model[2] = texelFetch(transformObjectBuffer, offset + 2);
+    object._model[3] = texelFetch(transformObjectBuffer, offset + 3);
+
+    object._modelInverse[0] = texelFetch(transformObjectBuffer, offset + 4);
+    object._modelInverse[1] = texelFetch(transformObjectBuffer, offset + 5);
+    object._modelInverse[2] = texelFetch(transformObjectBuffer, offset + 6);
+    object._modelInverse[3] = texelFetch(transformObjectBuffer, offset + 7);
+
+    return object;
+}
+<@endif@>
 <@endfunc@>
 
 
