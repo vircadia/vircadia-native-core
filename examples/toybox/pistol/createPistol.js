@@ -1,7 +1,7 @@
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
 var scriptURL = Script.resolvePath('pistol.js');
 var modelURL = "https://s3.amazonaws.com/hifi-public/eric/models/gun.fbx";
-
+print('MAKING A PISTOLA')
 
 var pistol = Entities.addEntity({
     type: 'Model',
@@ -9,8 +9,8 @@ var pistol = Entities.addEntity({
     position: center,
     dimensions: {
         x: 0.05,
-        y: .23,
-        z: .36
+        y: 0.23,
+        z: 0.36
     },
     script: scriptURL,
     color: {
@@ -20,9 +20,14 @@ var pistol = Entities.addEntity({
     },
     shapeType: 'box',
     dynamic: true,
-    gravity: {x: 0, y: -5.0, z: 0},
+    gravity: {
+        x: 0,
+        y: -5.0,
+        z: 0
+    },
     restitution: 0,
-    collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
+    damping:0.5,
+    collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/gundrop.wav",
     userData: JSON.stringify({
         grabbableKey: {
             spatialKey: {
