@@ -168,8 +168,8 @@ void AssignmentClientMonitor::spawnChildClient() {
     }
 
     auto nowString = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
-    auto stdoutFilenameTemp = QString("ac_stdout_%1.txt").arg(nowString);
-    auto stderrFilenameTemp = QString("ac_stderr_%1.txt").arg(nowString);
+    auto stdoutFilenameTemp = QString("ac-%1-stdout.txt").arg(nowString);
+    auto stderrFilenameTemp = QString("ac-%1-stderr.txt").arg(nowString);
     QString stdoutPathTemp = _logDirectory.absoluteFilePath(stdoutFilenameTemp);
     QString stderrPathTemp = _logDirectory.absoluteFilePath(stderrFilenameTemp);
 
@@ -183,8 +183,8 @@ void AssignmentClientMonitor::spawnChildClient() {
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
 
     // Update log path to use PID in filename
-    auto stdoutFilename = QString("ac_stdout_%1_%2.txt").arg(nowString).arg(assignmentClient->processId());
-    auto stderrFilename = QString("ac_stderr_%1_%2.txt").arg(nowString).arg(assignmentClient->processId());
+    auto stdoutFilename = QString("ac-%1_%2-stdout.txt").arg(nowString).arg(assignmentClient->processId());
+    auto stderrFilename = QString("ac-%1_%2-stderr.txt").arg(nowString).arg(assignmentClient->processId());
     QString stdoutPath = _logDirectory.absoluteFilePath(stdoutFilename);
     QString stderrPath = _logDirectory.absoluteFilePath(stderrFilename);
 
