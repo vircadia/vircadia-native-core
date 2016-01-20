@@ -115,6 +115,10 @@ class RenderDeferredTask : public render::Task {
 public:
     RenderDeferredTask(render::CullFunctor cullFunctor);
 
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    using JobModel = render::Task::Job::Model<RenderDeferredTask>;
+
     void setDrawDebugDeferredBuffer(int draw) { enableJob(_drawDebugDeferredBufferIndex, draw >= 0); }
     bool doDrawDebugDeferredBuffer() const { return getEnableJob(_drawDebugDeferredBufferIndex); }
     
@@ -136,7 +140,6 @@ public:
     void setToneMappingToneCurve(int toneCurve);
     int getToneMappingToneCurve() const;
 
-    virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 protected:
     int _drawDebugDeferredBufferIndex;

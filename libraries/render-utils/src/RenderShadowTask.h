@@ -35,6 +35,8 @@ public:
     RenderShadowTask(render::CullFunctor shouldRender);
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+    using JobModel = render::Task::Job::Model<RenderShadowTask>;
 };
 
 #endif // hifi_RenderShadowTask_h

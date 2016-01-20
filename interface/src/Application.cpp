@@ -677,8 +677,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // Start rendering
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
-    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
+    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
     _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
