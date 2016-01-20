@@ -91,7 +91,7 @@ private:
     class Parameters {
     public:
         // Resolution info
-        glm::vec4 _resolutionInfo{ 1.0, 1.0, 1.0, 1.0 };
+        glm::vec4 _resolutionInfo{ -1.0, 0.0, 0.0, 0.0 };
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
         // Dithering info

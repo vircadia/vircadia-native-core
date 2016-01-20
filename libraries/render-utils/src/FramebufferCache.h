@@ -103,7 +103,7 @@ private:
     gpu::TexturePointer _occlusionBlurredTexture;
 
     QSize _frameBufferSize{ 100, 100 };
-    int _AOResolutionLevel = 0;
+    int _AOResolutionLevel = 1; // AO perform at half res
 
     // Resize/reallocate the buffers used for AO
     // the size of the AO buffers is scaled by the AOResolutionScale;

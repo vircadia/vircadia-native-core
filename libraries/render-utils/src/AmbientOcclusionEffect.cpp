@@ -227,7 +227,7 @@ void AmbientOcclusionEffect::setRadius(float radius) {
         auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
         current.x = radius;
         current.y = radius * radius;
-        current.z = 1.0f / pow(radius, 6.0);
+        current.z = 1.0f / pow((double)radius, 6.0);
     }
 }
 
