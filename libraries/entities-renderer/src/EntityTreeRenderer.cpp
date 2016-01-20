@@ -340,7 +340,9 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
             break;
         }
+
         case BACKGROUND_MODE_INHERIT:
+        default:
             skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME); // let the application background through
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();

@@ -184,38 +184,26 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* backgroundModeNames[] = {"inherit", "skybox" };
-
-QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
-
-void addBackgroundMode(BackgroundMode type) {
-    stringToBackgroundModeLookup[backgroundModeNames[type]] = type;
-}
-
-void buildStringToBackgroundModeLookup() {
-    addBackgroundMode(BACKGROUND_MODE_INHERIT);
-    addBackgroundMode(BACKGROUND_MODE_SKYBOX);
-}
+using BackgroundPair = std::pair<const BackgroundMode, const QString>;
+const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = {
+    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
+    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
+};
 
 QString EntityItemProperties::getBackgroundModeAsString() const {
-    if (_backgroundMode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[_backgroundMode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[_backgroundMode].second;
 }
 
 QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    if (mode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[mode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[mode].second;
 }
 
 void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    if (stringToBackgroundModeLookup.empty()) {
-        buildStringToBackgroundModeLookup();
-    }
-    auto backgroundModeItr = stringToBackgroundModeLookup.find(backgroundMode.toLower());
-    if (backgroundModeItr != stringToBackgroundModeLookup.end()) {
-        _backgroundMode = backgroundModeItr.value();
+    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
+        return (pair.second == backgroundMode);
+    });
+    if (result != BACKGROUND_MODES.end()) {
+        _backgroundMode = result->first;
         _backgroundModeChanged = true;
     }
 }
