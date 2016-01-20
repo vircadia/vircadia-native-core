@@ -57,7 +57,7 @@ static const std::string DEFAULT_ROUGHNESS_SHADER {
 };
 static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(normalize(texture(normalMap, uv).xyz), 1.0);"
+    "    return vec4(normalize(texture(normalMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_DEPTH_SHADER {
@@ -89,6 +89,8 @@ static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(occlusionMap, uv).x), 1.0);"
+    // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
+    // when drawing normal "    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{

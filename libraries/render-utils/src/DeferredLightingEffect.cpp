@@ -187,6 +187,8 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
         batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
+
+        // need to assign the white texture if ao is off
         if (renderContext->getOcclusionStatus()) {
             batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
         } else {
