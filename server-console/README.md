@@ -19,7 +19,7 @@ On platforms with separate build folders for release and debug libraries `npm st
 
 ### Packaging
 
-CMake produces a target `package-console` that will bundle up everything you need for the console on your platform.
+CMake produces a target `packaged-server-console` that will bundle up everything you need for the console on your platform.
 It ensures that there are available builds for the domain-server, assignment-client, and Interface. Then it produces an executable for the console.
 
 Finally it copies all of the produced executables to a directory, ready for testing or packaging for deployment.
