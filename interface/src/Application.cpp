@@ -80,7 +80,6 @@
 #include <controllers/StateController.h>
 #include <LogHandler.h>
 #include <MainWindow.h>
-#include <MessageDialog.h>
 #include <MessagesClient.h>
 #include <ModelEntityItem.h>
 #include <NetworkAccessManager.h>
@@ -149,7 +148,6 @@
 #endif
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
-#include "ui/RecorderDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DataWebDialog.h"
@@ -1176,10 +1174,8 @@ void Application::initializeGL() {
 
 void Application::initializeUi() {
     AddressBarDialog::registerType();
-    RecorderDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
-    MessageDialog::registerType();
     VrMenu::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
@@ -1843,14 +1839,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
-            case Qt::Key_X:
-                if (isMeta && isShifted) {
-//                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-//                    offscreenUi->load("TestControllers.qml");
-                    RecorderDialog::toggle();
-                }
-                break;
-
             case Qt::Key_L:
                 if (isShifted && isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Log);
@@ -2203,6 +2191,11 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     _altPressed = false;
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    // If we get a mouse press event it means it wasn't consumed by the offscreen UI,
+    // hence, we should defocus all of the offscreen UI windows, in order to allow
+    // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
+    // will consume all keyboard events.
+    offscreenUi->unfocusWindows();
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
@@ -3507,14 +3500,6 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-float Application::getSizeScale() const {
-    return DependencyManager::get<LODManager>()->getOctreeSizeScale();
-}
-
-int Application::getBoundaryLevelAdjust() const {
-    return DependencyManager::get<LODManager>()->getBoundaryLevelAdjust();
-}
-
 PickRay Application::computePickRay(float x, float y) const {
     vec2 pickPoint { x, y };
     PickRay result;
@@ -4544,7 +4529,7 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 
 void Application::toggleRunningScriptsWidget() {
     static const QUrl url("dialogs/RunningScripts.qml");
-    DependencyManager::get<OffscreenUi>()->toggle(url, "RunningScripts");
+    DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     //if (_runningScriptsWidget->isVisible()) {
     //    if (_runningScriptsWidget->hasFocus()) {
     //        _runningScriptsWidget->hide();

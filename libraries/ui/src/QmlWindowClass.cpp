@@ -250,16 +250,13 @@ QQuickItem* QmlWindowClass::asQuickItem() const {
 }
 
 void QmlWindowClass::setVisible(bool visible) {
-    // For tool window tabs we special case visiblility as enable / disable of the tab, not the window
-    // The tool window itself has special logic based on whether any tabs are enabled
+    QQuickItem* targetWindow = asQuickItem();
     if (_toolWindow) {
-        auto targetTab = dynamic_cast<QQuickItem*>(_qmlWindow);
-        DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-            targetTab->setEnabled(visible);
-            //emit visibilityChanged(visible);
-        });
+        // For tool window tabs we special case visibility as a function call on the tab parent
+        // The tool window itself has special logic based on whether any tabs are visible
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        QMetaObject::invokeMethod(targetWindow, "showTabForUrl", Qt::QueuedConnection, Q_ARG(QVariant, _source), Q_ARG(QVariant, visible));
     } else {
-        QQuickItem* targetWindow = asQuickItem();
         DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
             targetWindow->setVisible(visible);
             //emit visibilityChanged(visible);
@@ -281,7 +278,6 @@ bool QmlWindowClass::isVisible() const {
         }).toBool();
     }
 }
-
 
 glm::vec2 QmlWindowClass::getPosition() const {
     QQuickItem* targetWindow = asQuickItem();

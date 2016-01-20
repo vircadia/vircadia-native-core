@@ -102,7 +102,7 @@ function createOrUpdateLine(event) {
         sphereEntityID = Entities.addEntity({
             type: "Sphere",
             position: intersection.intersection,
-            ignoreForCollisions: 1,
+            collisionless: 1,
             dimensions: { x: 0.6, y: 0.6, z: 0.6 },
             color: { red: 0, green: 255, blue: 0 },
             lifetime: 15 // if someone crashes while pointing, don't leave the line there forever.

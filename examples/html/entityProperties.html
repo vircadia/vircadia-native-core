@@ -261,8 +261,8 @@
                 var elAccelerationZ = document.getElementById("property-lacc-z");
     
                 var elDensity = document.getElementById("property-density");
-                var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
-                var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
+                var elCollisionless = document.getElementById("property-collisionless");
+                var elDynamic = document.getElementById("property-dynamic" );
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
@@ -491,8 +491,8 @@
                                 elAccelerationZ.value = properties.acceleration.z.toFixed(2);
     
                                 elDensity.value = properties.density.toFixed(2);
-                                elIgnoreForCollisions.checked = properties.ignoreForCollisions;
-                                elCollisionsWillMove.checked = properties.collisionsWillMove;
+                                elCollisionless.checked = properties.collisionless;
+                                elDynamic.checked = properties.dynamic;
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
                                 elScriptURL.value = properties.script;
@@ -718,8 +718,8 @@
                 elAccelerationZ.addEventListener('change', accelerationChangeFunction);
     
                 elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
-                elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
-                elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
+                elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
+                elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
                 elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
@@ -1235,16 +1235,16 @@
         </div>
 
         <div class="property">
-            <span class="label">Ignore For Collisions</span>
+            <span class="label">Collisionless</span>
             <span class="value">
-                <input type='checkbox' id="property-ignore-for-collisions">
+                <input type='checkbox' id="property-collisionless">
             </span>
         </div>
 
         <div class="property">
-            <span class="label">Collisions Will Move</span>
+            <span class="label">Dynamic</span>
             <span class="value">
-                <input type='checkbox' id="property-collisions-will-move">
+                <input type='checkbox' id="property-dynamic">
             </span>
         </div>
 

@@ -63,9 +63,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
     _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
-    _ignoreForCollisions(ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
+    _collisionless(ENTITY_ITEM_DEFAULT_COLLISIONLESS),
     _collisionMask(ENTITY_COLLISION_MASK_DEFAULT),
-    _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
+    _dynamic(ENTITY_ITEM_DEFAULT_DYNAMIC),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
     _simulationOwner(),
@@ -123,9 +123,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
-    requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
+    requestedProperties += PROP_COLLISIONLESS;
     requestedProperties += PROP_COLLISION_MASK;
-    requestedProperties += PROP_COLLISIONS_WILL_MOVE;
+    requestedProperties += PROP_DYNAMIC;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
@@ -260,9 +260,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
-        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
         APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
+        APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
@@ -680,9 +680,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
-    READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
+    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
@@ -1044,9 +1044,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionMask, getCollisionMask);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
@@ -1057,6 +1057,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
 
     properties._defaultSettings = false;
 
@@ -1100,9 +1102,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(restitution, updateRestitution);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, updateFriction);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionless, updateCollisionless);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionMask, updateCollisionMask);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
 
@@ -1444,9 +1446,9 @@ void EntityItem::updateAngularDamping(float value) {
     }
 }
 
-void EntityItem::updateIgnoreForCollisions(bool value) {
-    if (_ignoreForCollisions != value) {
-        _ignoreForCollisions = value;
+void EntityItem::updateCollisionless(bool value) {
+    if (_collisionless != value) {
+        _collisionless = value;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
     }
 }
@@ -1458,9 +1460,9 @@ void EntityItem::updateCollisionMask(uint8_t value) {
     }
 }
 
-void EntityItem::updateCollisionsWillMove(bool value) {
-    if (_collisionsWillMove != value) {
-        _collisionsWillMove = value;
+void EntityItem::updateDynamic(bool value) {
+    if (_dynamic != value) {
+        _dynamic = value;
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
     }
 }

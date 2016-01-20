@@ -13,12 +13,17 @@ Window {
     title: "Running Scripts"
     resizable: true
     destroyOnInvisible: true
-    enabled: false
     x: 40; y: 40
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property var fileFilters: ListModel {
+        id: jsFilters
+        ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
+        ListElement { text: "All Files (*.*)"; filter: "*.*" }
+    }
+
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -64,6 +69,23 @@ Window {
     function stopAll() {
         console.log("Stop all scripts");
         scripts.stopAllScripts();
+    }
+
+    Component {
+        id: fileDialogBuilder
+        FileDialog { }
+    }
+
+    function loadFromFile() {
+        var fileDialog = fileDialogBuilder.createObject(Desktop, { filterModel: fileFilters });
+        fileDialog.canceled.connect(function(){
+            console.debug("Cancelled file open")
+        })
+
+        fileDialog.selectedFile.connect(function(file){
+            console.debug("Selected " + file)
+            scripts.loadOneScript(file);
+        })
     }
 
     Rectangle {
@@ -164,7 +186,7 @@ Window {
                 }
                 Button {
                     text: "from Disk"
-                    onClicked: ApplicationInterface.loadDialog();
+                    onClicked: loadFromFile();
                 }
             }
 
@@ -175,7 +197,7 @@ Window {
                 anchors.bottom: treeView.top
                 anchors.bottomMargin: 8
                 placeholderText: "filter"
-                onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$")
+                onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
             }
 
             TreeView {
@@ -202,7 +224,6 @@ Window {
 
             TextField {
                 id: selectedScript
-                enabled: true
                 readOnly: true
                 anchors.left: parent.left
                 anchors.right: loadButton.left

@@ -191,7 +191,7 @@ function initializeInvaders() {
                         dimensions: { x: invaderSize * 2, y: invaderSize * 2, z: invaderSize * 2 },
                         color: { red: 255, green: 0, blue: 0 },
                         modelURL: invaderModels[row].modelURL,
-                        collisionsWillMove: true,
+                        dynamic: true,
                         lifetime: itemLifetimes
                     });
         }
@@ -341,7 +341,7 @@ function fireMissile() {
                             velocity: { x: 0, y: 5, z: 0},
                             gravity: { x: 0, y: 0, z: 0 },
                             damping: 0,
-                            collisionsWillMove: true,
+                            dynamic: true,
                             dimensions: { x: missileSize, y: missileSize, z: missileSize },
                             color: { red: 0, green: 0, blue: 255 },
                             lifetime: 5

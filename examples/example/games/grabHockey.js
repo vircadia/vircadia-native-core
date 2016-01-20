@@ -142,7 +142,7 @@ function mousePressEvent(event) {
   if (!pickResults.intersects) {
     return;
   }
-  if (pickResults.properties.collisionsWillMove) {
+  if (pickResults.properties.dynamic) {
     grabbedEntity = pickResults.entityID;
     var props = Entities.getEntityProperties(grabbedEntity)
     originalGravity = props.gravity;

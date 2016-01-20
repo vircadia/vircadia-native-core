@@ -736,6 +736,23 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
+const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) {
+    glm::vec3 normal = glm::normalize(_direction);
+
+    auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {
+        auto dir = glm::normalize(_cornersWorld[nearCorner] - _cornersWorld[farCorner]);
+        auto factor = depth / glm::dot(dir, normal);
+        return _position + factor * dir;
+    };
+
+    return Corners{
+        getCorner(TOP_LEFT_NEAR, TOP_LEFT_FAR),
+        getCorner(TOP_RIGHT_NEAR, TOP_RIGHT_FAR),
+        getCorner(BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR),
+        getCorner(BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR)
+    };
+}
+
 float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
     glm::vec3 temp = getPosition() - point;
     float distanceToPoint = sqrtf(glm::dot(temp, temp));
@@ -749,4 +766,47 @@ void ViewFrustum::evalProjectionMatrix(glm::mat4& proj) const {
 void ViewFrustum::evalViewTransform(Transform& view) const {
     view.setTranslation(getPosition());
     view.setRotation(getOrientation());
+}
+
+float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale, int boundaryLevelAdjust) const {
+    float distanceToCamera = glm::length(bounds.calcCenter() - getPosition());
+    float largestDimension = bounds.getLargestDimension();
+
+    const float maxScale = (float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
+
+    static std::once_flag once;
+    static QMap<float, float> shouldRenderTable;
+    std::call_once(once, [&] {
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float factor = 1.0f;
+
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            factor /= 2.0f;
+            shouldRenderTable[scale] = factor;
+        }
+    });
+
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
+    }
+
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+
+    // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
+    // a floating point for objects that have small angular size to indicate that they may be rendered
+    // with lower preciscion
+    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f; 
+}
+
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
+    return voxelSizeScale / powf(2, renderLevel);
 }

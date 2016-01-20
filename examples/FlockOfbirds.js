@@ -272,7 +272,7 @@ function loadBirds(howMany) {
                     gravity: {  x: 0, y: BIRD_GRAVITY, z: 0 },
                     velocity: { x: 0, y: -0.1, z: 0 },
                     damping: LINEAR_DAMPING,
-                    collisionsWillMove: true,
+                    dynamic: true,
                     lifetime: STARTING_LIFETIME,
                     color: colors[whichBird]
         }),

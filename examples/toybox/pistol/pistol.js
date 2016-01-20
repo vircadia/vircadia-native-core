@@ -153,8 +153,8 @@
                         });
                     }, randFloat(10, 200));
                 }
-                if (intersection.properties.collisionsWillMove === 1) {
-                    // Any entity with collisions will move can be shot
+                if (intersection.properties.dynamic === 1) {
+                    // Any dynaic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });

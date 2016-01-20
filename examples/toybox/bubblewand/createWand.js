@@ -41,7 +41,7 @@ var wand = Entities.addEntity({
         z: 0.05
     },
     //must be enabled to be grabbable in the physics engine
-    collisionsWillMove: true,
+    dynamic: true,
     compoundShapeURL: WAND_COLLISION_SHAPE,
     script: WAND_SCRIPT_URL,
     userData: JSON.stringify({

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <gpu/Context.h>
+
 #include "Engine.h"
 
 using namespace render;
@@ -34,7 +36,9 @@ void Engine::addTask(const TaskPointer& task) {
 }
 
 void Engine::run() {
-    // TODO: Tasks will need to be specified such that their data can feed into each other
+    // Sync GPU state before beginning to render
+    _renderContext->getArgs()->_context->syncCache();
+
     for (auto task : _tasks) {
         task->run(_sceneContext, _renderContext);
     }

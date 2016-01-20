@@ -33,6 +33,8 @@ var BUMPER_ON_VALUE = 0.5;
 
 var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only use head for search/move.
 
+var PICK_WITH_HAND_RAY = true;
+
 //
 // distant manipulation
 //
@@ -40,7 +42,7 @@ var HAND_HEAD_MIX_RATIO = 0.0; //  0 = only use hands for search/move.  1 = only
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
-var MOVE_WITH_HEAD = true; // experimental head-controll of distantly held objects
+var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
 
 var NO_INTERSECT_COLOR = {
@@ -302,8 +304,10 @@ function MyController(hand) {
     this.searchSphere = null;
 
     // how far from camera to search intersection?
+    var DEFAULT_SEARCH_SPHERE_DISTANCE = 1000;
     this.intersectionDistance = 0.0;
-    this.searchSphereDistance = 0.0;
+    this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
+
 
     this.ignoreIK = false;
     this.offsetPosition = Vec3.ZERO;
@@ -456,7 +460,6 @@ function MyController(hand) {
                 visible: true,
                 alpha: 1
             };
-
             this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
 
         } else {
@@ -699,10 +702,9 @@ function MyController(hand) {
 
     this.searchSphereOff = function() {
         if (this.searchSphere !== null) {
-            //Overlays.editOverlay(this.searchSphere, { visible: false });
             Overlays.deleteOverlay(this.searchSphere);
             this.searchSphere = null;
-            this.searchSphereDistance = 0.0;
+            this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
             this.intersectionDistance = 0.0;
         }
 
@@ -811,8 +813,9 @@ function MyController(hand) {
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
 
         var distantPickRay = {
-            origin: Camera.position,
-            direction: Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : 
+                Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -850,7 +853,7 @@ function MyController(hand) {
                 intersection = Entities.findRayIntersection(pickRayBacked, true, [], blacklist);
             } else {
                 intersection = Entities.findRayIntersection(pickRayBacked, true);
-            }
+            } 
 
             if (intersection.intersects) {
                 rayPickedCandidateEntities.push(intersection.entityID);
@@ -897,8 +900,8 @@ function MyController(hand) {
                 grabbableData = grabbableDataForCandidate;
             }
         }
-        if (this.grabbedEntity !== null) {
-            // We've found an entity that we'll do something with.
+        if ((this.grabbedEntity !== null) && (this.triggerSmoothedGrab() || this.bumperSqueezed())) {
+            // We are squeezing enough to grab, and we've found an entity that we'll try to do something with.
             var near = (nearPickedCandidateEntities.indexOf(this.grabbedEntity) >= 0);
             var isPhysical = this.propsArePhysical(props);
 
@@ -914,6 +917,10 @@ function MyController(hand) {
             }
             // far grab or equip with action
             if (isPhysical && !near) {
+                if (entityIsGrabbedByOther(intersection.entityID)) {
+                    // don't distance grab something that is already grabbed.
+                    return;
+                }
                 this.temporaryPositionOffset = null;
                 if (typeof grabbableData.spatialKey === 'undefined') {
                     // We want to give a temporary position offset to this object so it is pulled close to hand
@@ -942,32 +949,18 @@ function MyController(hand) {
             this.handleParticleBeam(distantPickRay.origin, this.getHandRotation(), NO_INTERSECT_COLOR);
         }
 
-        // if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-        //     this.overlayLineOn(searchVisualizationPickRay.origin,
-        //                        Vec3.sum(searchVisualizationPickRay.origin,
-        //                                 Vec3.multiply(searchVisualizationPickRay.direction,
-        //                                               LINE_LENGTH)),
-        //                        NO_INTERSECT_COLOR);
-        // }
+        var SEARCH_SPHERE_SIZE = 0.011;
+        var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
         if (this.intersectionDistance > 0) {
-            var SPHERE_INTERSECTION_SIZE = 0.011;
-            var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
-            var SEARCH_SPHERE_CHASE_DROP = 0.2;
-            this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE +
-                this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
-            var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-                                                Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
-            searchSphereLocation.y -= ((this.intersectionDistance - this.searchSphereDistance) /
-                                       this.intersectionDistance) * SEARCH_SPHERE_CHASE_DROP;
-            this.searchSphereOn(searchSphereLocation,
-                                SPHERE_INTERSECTION_SIZE * this.intersectionDistance,
-                                this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
-            if (USE_OVERLAY_LINES_FOR_SEARCHING === true) {
-                this.overlayLineOn(handPosition,
-                                   searchSphereLocation,
-                                   this.triggerSmoothedGrab() ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
-            }
+            //  If we hit something with our pick ray, move the search sphere toward that distance 
+            this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE + this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
+        }
+            
+        var searchSphereLocation = Vec3.sum(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
+        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance, (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+        if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
+            this.overlayLineOn(handPosition, searchSphereLocation, (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
     };
 
@@ -1154,7 +1147,6 @@ function MyController(hand) {
                 y: this.currentObjectPosition.y,
                 z: this.currentObjectPosition.z
             }
-
         }
 
 
@@ -1500,7 +1492,7 @@ function MyController(hand) {
     this.continueFarTrigger = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
-            Entities.callEntityMethod(this.grabbedEntity, "stopNearTrigger");
+            Entities.callEntityMethod(this.grabbedEntity, "stopFarTrigger");
             return;
         }
 

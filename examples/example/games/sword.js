@@ -286,7 +286,7 @@ function makeSword() {
         damping: 0.1,
         collisionSoundURL: swordCollisionSoundURL,
         restitution: 0.01,
-        collisionsWillMove: true,
+        dynamic: true,
     });
 
     if (originalAvatarCollisionSound === undefined) {
