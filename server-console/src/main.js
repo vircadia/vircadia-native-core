@@ -330,27 +330,27 @@ function isStackManagerContentPresent() {
 }
 
 function promptToMigrateContent() {
-    var idx = dialog.showMessageBox({
+    dialog.showMessageBox({
         type: 'question',
         buttons: ['Yes', 'No'],
         title: 'Migrate Content',
         message: 'Are you sure?\n\nThis will stop your home server and replace everything in your home with your content from Stack Manager.'
-    });
+    }, function(index) {
+        if (index == 0) {
+            if (homeServer.state != ProcessGroupStates.STOPPED) {
+                homeServer.on('state-update', function(processGroup) {
+                    if (processGroup.state == ProcessGroupStates.STOPPED) {
+                        performContentMigration();
+                    }
+                });
 
-    if (idx == 0) {
-        if (homeServer.state != ProcessGroupStates.STOPPED) {
-            homeServer.on('state-update', function(processGroup) {
-                if (processGroup.state == ProcessGroupStates.STOPPED) {
-                    performContentMigration();
-                }
-            });
+                homeServer.stop();
 
-            homeServer.stop();
-
-        } else {
-            performContentMigration();
+            } else {
+                performContentMigration();
+            }
         }
-    }
+    });
 }
 
 function performContentMigration() {
@@ -366,7 +366,7 @@ function performContentMigration() {
             buttons: ['OK'],
             title: 'Models File Not Found',
             message: 'There is no models file at ' + modelsPath + '\n\nStack Manager content migration can not proceed.'
-        });
+        }, null);
 
         return;
     }
@@ -381,7 +381,7 @@ function performContentMigration() {
                 buttons: ['OK'],
                 title: 'Migration Complete',
                 message: 'Your Stack Manager content has been migrated.\n\nYour home server will now be restarted.'
-            });
+            }, null);
         } else {
             // show error message for copy fail
             dialog.showMessageBox({
@@ -389,7 +389,7 @@ function performContentMigration() {
                 buttons: ['OK'],
                 title: 'Migration Failed',
                 message: 'There was an error copying your Stack Manager content: ' + copyError + '\n\nPlease try again.'
-            });
+            }, null);
         }
     }
 
