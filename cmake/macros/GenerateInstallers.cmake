@@ -24,11 +24,6 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
-  # configure a cpack properties file for custom variables in template
-  set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
-  configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})
-  set(CPACK_PROPERTIES_FILE ${CPACK_CONFIGURED_PROP_FILE})
-
   if (WIN32)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
@@ -68,6 +63,11 @@ macro(GENERATE_INSTALLERS)
     # hide the special Icon? file
     install(CODE "execute_process(COMMAND SetFile -a V \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)")
   endif ()
+
+  # configure a cpack properties file for custom variables in template
+  set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
+  configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})
+  set(CPACK_PROPERTIES_FILE ${CPACK_CONFIGURED_PROP_FILE})
 
   set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
