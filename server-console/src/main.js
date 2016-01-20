@@ -45,10 +45,11 @@ function getBuildInfo() {
     } else if (osType == 'Darwin') {
         var contentPath = ".app/Contents/";
         var contentEndIndex = __dirname.indexOf(contentPath);
+
         if (contentEndIndex != -1) {
             // this is an app bundle
             var appPath = __dirname.substring(0, contentEndIndex) + ".app";
-            buildInfoPath = path.resolve(appPath, "/Contents/Resources/build-info.json");
+            buildInfoPath = path.join(appPath, "/Contents/Resources/build-info.json");
         }
     }
 
