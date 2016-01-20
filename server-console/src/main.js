@@ -338,11 +338,17 @@ function promptToMigrateContent() {
     }, function(index) {
         if (index == 0) {
             if (homeServer.state != ProcessGroupStates.STOPPED) {
-                homeServer.once('state-update', function(processGroup) {
-                    if (processGroup.state == ProcessGroupStates.STOPPED) {
+                var stopThenMigrateCallback = function(processGroup) {
+                    if (isShuttingDown) {
+                        homeServer.removeListener('state-update', stopThenMigrateCallback);
+                    } else if (processGroup.state == ProcessGroupStates.STOPPED) {
                         performContentMigration();
+
+                        homeServer.removeListener('state-update', stopThenMigrateCallback);
                     }
-                });
+                };
+
+                homeServer.on('state-update', stopThenMigrateCallback);
 
                 homeServer.stop();
 
@@ -397,34 +403,33 @@ function performContentMigration() {
     var newModelsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'entities/models.json.gz')
     console.log("Copying Stack Manager entity file from " + modelsPath + " to " + newModelsPath);
 
-    fs.copy(modelsPath, newModelsPath, function(error){
-        if (!error) {
-            // check if there are any assets to copy
-            var oldAssetsPath = path.resolve(stackManagerBasePath(), 'assets');
+    var entitiesCopied = false;
 
-            fs.readdir(oldAssetsPath, function(error, data){
-                if (error) {
-                    showMigrationCompletionDialog(error);
-                } else if (data.length > 0) {
+    try {
+        fs.copySync(modelsPath, newModelsPath);
 
-                    // assume this means the directory is not empty
-                    // and that we should copy it
-                    var newAssetsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'assets');
+        // check if there are any assets to copy
+        var oldAssetsPath = path.resolve(stackManagerBasePath(), 'assets');
 
-                    console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
+        var assets = fs.readdirSync(oldAssetsPath);
 
-                    // attempt to copy the assets folder, show correct dialog depending on success/failure
-                    fs.copy(oldAssetsPath, newAssetsPath, {
-                        preserveTimestamps: true
-                    }, showMigrationCompletionDialog);
-                } else {
-                    showMigrationCompletionDialog(null);
-                }
+        if (assets.length > 0) {
+            // assume this means the directory is not empty
+            // and that we should copy it
+            var newAssetsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'assets');
+
+            console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
+
+            // attempt to copy the assets folder, show correct dialog depending on success/failure
+            fs.copySync(oldAssetsPath, newAssetsPath, {
+                preserveTimestamps: true
             });
-        } else {
-            showMigrationCompletionDialog(error);
         }
-    });
+
+        showMigrationCompletionDialog(null);
+    } catch (error) {
+        showMigrationCompletionDialog(error);
+    }
 
     homeServer.start();
 }
