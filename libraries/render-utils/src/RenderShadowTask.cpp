@@ -13,6 +13,7 @@
 
 #include <ViewFrustum.h>
 
+#include "render/Context.h"
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
@@ -116,7 +117,7 @@ RenderShadowTask::RenderShadowTask() : Task() {
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
-void RenderShadowTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
     RenderArgs* args = renderContext->getArgs();
 

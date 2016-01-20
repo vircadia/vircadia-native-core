@@ -21,6 +21,8 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
+#include "render/Context.h"
+
 #include "LightStage.h"
 
 class RenderArgs;
@@ -42,7 +44,7 @@ public:
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
-    void render(RenderArgs* args);
+    void render(const render::RenderContextPointer& renderContext);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
 

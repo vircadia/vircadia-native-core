@@ -64,7 +64,7 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->getArgs());
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {

@@ -155,7 +155,8 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
     });
 }
 
-void DeferredLightingEffect::render(RenderArgs* args) {
+void DeferredLightingEffect::render(const render::RenderContextPointer& renderContext) {
+    auto args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         
         // Allocate the parameters buffer used by all the deferred shaders
@@ -170,6 +171,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         // perform deferred lighting, rendering to free fbo
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        auto textureCache = DependencyManager::get<TextureCache>();
     
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
@@ -185,7 +187,11 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
-        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+        if (renderContext->getOcclusionStatus()) {
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+        } else {
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
+        }
 
         assert(_lightStage.lights.size() > 0);
         const auto& globalShadow = _lightStage.lights[0]->shadow;
