@@ -61,7 +61,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
         firstCall = false;
     }
-    
+
     qRegisterMetaType<ConnectionStep>("ConnectionStep");
 
     _nodeSocket.bind(QHostAddress::AnyIPv4, socketListenPort);
@@ -87,7 +87,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
 
     // check the local socket right now
     updateLocalSockAddr();
-    
+
     // set &PacketReceiver::handleVerifiedPacket as the verified packet callback for the udt::Socket
     _nodeSocket.setPacketHandler(
         [this](std::unique_ptr<udt::Packet> packet) {
@@ -108,7 +108,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     // set our isPacketVerified method as the verify operator for the udt::Socket
     using std::placeholders::_1;
     _nodeSocket.setPacketFilterOperator(std::bind(&LimitedNodeList::isPacketVerified, this, _1));
-    
+
     _packetStatTimer.start();
 
     if (_stunSockAddr.getAddress().isNull()) {
@@ -169,42 +169,42 @@ bool LimitedNodeList::isPacketVerified(const udt::Packet& packet) {
 bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
     PacketType headerType = NLPacket::typeInHeader(packet);
     PacketVersion headerVersion = NLPacket::versionInHeader(packet);
-    
+
     if (headerVersion != versionForPacketType(headerType)) {
-        
+
         static QMultiHash<QUuid, PacketType> sourcedVersionDebugSuppressMap;
         static QMultiHash<HifiSockAddr, PacketType> versionDebugSuppressMap;
-        
+
         bool hasBeenOutput = false;
         QString senderString;
-        
+
         if (NON_SOURCED_PACKETS.contains(headerType)) {
             const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
             hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, headerType);
-            
+
             if (!hasBeenOutput) {
                 versionDebugSuppressMap.insert(senderSockAddr, headerType);
                 senderString = QString("%1:%2").arg(senderSockAddr.getAddress().toString()).arg(senderSockAddr.getPort());
             }
         } else {
             QUuid sourceID = NLPacket::sourceIDInHeader(packet);
-            
+
             hasBeenOutput = sourcedVersionDebugSuppressMap.contains(sourceID, headerType);
-            
+
             if (!hasBeenOutput) {
                 sourcedVersionDebugSuppressMap.insert(sourceID, headerType);
                 senderString = uuidStringWithoutCurlyBraces(sourceID.toString());
             }
         }
-        
+
         if (!hasBeenOutput) {
             qCDebug(networking) << "Packet version mismatch on" << headerType << "- Sender"
                 << senderString << "sent" << qPrintable(QString::number(headerVersion)) << "but"
                 << qPrintable(QString::number(versionForPacketType(headerType))) << "expected.";
-            
+
             emit packetVersionMismatch(headerType);
         }
-        
+
         return false;
     } else {
         return true;
@@ -212,27 +212,27 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
 }
 
 bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
-    
+
     PacketType headerType = NLPacket::typeInHeader(packet);
-    
+
     if (NON_SOURCED_PACKETS.contains(headerType)) {
         return true;
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
-        
+
         // figure out which node this is from
         SharedNodePointer matchingNode = nodeWithUUID(sourceID);
-        
+
         if (matchingNode) {
             if (!NON_VERIFIED_PACKETS.contains(headerType)) {
-                
+
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, matchingNode->getConnectionSecret());
-            
+
                 // check if the md5 hash in the header matches the hash we would expect
                 if (packetHeaderHash != expectedHash) {
                     static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
-                    
+
                     if (!hashDebugSuppressMap.contains(sourceID, headerType)) {
                         qCDebug(networking) << "Packet hash mismatch on" << headerType << "- Sender" << sourceID;
 
@@ -246,15 +246,15 @@ bool LimitedNodeList::packetSourceAndHashMatch(const udt::Packet& packet) {
             // No matter if this packet is handled or not, we update the timestamp for the last time we heard
             // from this sending node
             matchingNode->setLastHeardMicrostamp(usecTimestampNow());
-            
+
             return true;
-            
+
         } else {
             static const QString UNKNOWN_REGEX = "Packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown node with UUID";
             static QString repeatedMessage
                 = LogHandler::getInstance().addRepeatedMessageRegex(UNKNOWN_REGEX);
 
-            qCDebug(networking) << "Packet of type" << headerType 
+            qCDebug(networking) << "Packet of type" << headerType
                 << "received from unknown node with UUID" << qPrintable(uuidStringWithoutCurlyBraces(sourceID));
         }
     }
@@ -272,7 +272,7 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
     if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
         packet.writeSourceID(getSessionUUID());
     }
-    
+
     if (!connectionSecret.isNull()
         && !NON_SOURCED_PACKETS.contains(packet.getType())
         && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
@@ -282,14 +282,14 @@ void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& conn
 
 qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const Node& destinationNode) {
     Q_ASSERT(!packet.isPartOfMessage());
-    
+
     if (!destinationNode.getActiveSocket()) {
         return 0;
     }
-    
+
     emit dataSent(destinationNode.getType(), packet.getDataSize());
     destinationNode.recordBytesSent(packet.getDataSize());
-    
+
     return sendUnreliablePacket(packet, *destinationNode.getActiveSocket(), destinationNode.getConnectionSecret());
 }
 
@@ -298,21 +298,21 @@ qint64 LimitedNodeList::sendUnreliablePacket(const NLPacket& packet, const HifiS
     Q_ASSERT(!packet.isPartOfMessage());
     Q_ASSERT_X(!packet.isReliable(), "LimitedNodeList::sendUnreliablePacket",
                "Trying to send a reliable packet unreliably.");
-    
+
     collectPacketStats(packet);
     fillPacketHeader(packet, connectionSecret);
-    
+
     return _nodeSocket.writePacket(packet, sockAddr);
 }
 
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode) {
     Q_ASSERT(!packet->isPartOfMessage());
     auto activeSocket = destinationNode.getActiveSocket();
-    
+
     if (activeSocket) {
         emit dataSent(destinationNode.getType(), packet->getDataSize());
         destinationNode.recordBytesSent(packet->getDataSize());
-        
+
         return sendPacket(std::move(packet), *activeSocket, destinationNode.getConnectionSecret());
     } else {
         qDebug() << "LimitedNodeList::sendPacket called without active socket for node" << destinationNode << "- not sending";
@@ -326,10 +326,10 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
     if (packet->isReliable()) {
         collectPacketStats(*packet);
         fillPacketHeader(*packet, connectionSecret);
-        
+
         auto size = packet->getDataSize();
         _nodeSocket.writePacket(std::move(packet), sockAddr);
-        
+
         return size;
     } else {
         return sendUnreliablePacket(*packet, sockAddr, connectionSecret);
@@ -338,18 +338,18 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const HifiS
 
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& destinationNode) {
     auto activeSocket = destinationNode.getActiveSocket();
-    
+
     if (activeSocket) {
         qint64 bytesSent = 0;
         auto connectionSecret = destinationNode.getConnectionSecret();
-        
+
         // close the last packet in the list
         packetList.closeCurrentPacket();
-        
+
         while (!packetList._packets.empty()) {
             bytesSent += sendPacket(packetList.takeFront<NLPacket>(), *activeSocket, connectionSecret);
         }
-        
+
         emit dataSent(destinationNode.getType(), bytesSent);
         return bytesSent;
     } else {
@@ -362,21 +362,21 @@ qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const Node& des
 qint64 LimitedNodeList::sendPacketList(NLPacketList& packetList, const HifiSockAddr& sockAddr,
                                        const QUuid& connectionSecret) {
     qint64 bytesSent = 0;
-    
+
     // close the last packet in the list
     packetList.closeCurrentPacket();
-    
+
     while (!packetList._packets.empty()) {
         bytesSent += sendPacket(packetList.takeFront<NLPacket>(), sockAddr, connectionSecret);
     }
-    
+
     return bytesSent;
 }
 
 qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList, const HifiSockAddr& sockAddr) {
     // close the last packet in the list
     packetList->closeCurrentPacket();
-    
+
     for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
         NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
         collectPacketStats(*nlPacket);
@@ -391,13 +391,13 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
     if (activeSocket) {
         // close the last packet in the list
         packetList->closeCurrentPacket();
-        
+
         for (std::unique_ptr<udt::Packet>& packet : packetList->_packets) {
             NLPacket* nlPacket = static_cast<NLPacket*>(packet.get());
             collectPacketStats(*nlPacket);
             fillPacketHeader(*nlPacket, destinationNode.getConnectionSecret());
         }
-        
+
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
     } else {
         qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node. Not sending.";
@@ -411,11 +411,11 @@ qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node&
         qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node. Not sending.";
         return 0;
     }
-    
+
     // use the node's active socket as the destination socket if there is no overriden socket address
     auto& destinationSockAddr = (overridenSockAddr.isNull()) ? *destinationNode.getActiveSocket()
                                                              : overridenSockAddr;
-    
+
     return sendPacket(std::move(packet), destinationSockAddr, destinationNode.getConnectionSecret());
 }
 
@@ -431,7 +431,7 @@ int LimitedNodeList::updateNodeWithDataFromPacket(QSharedPointer<ReceivedMessage
         QMutexLocker linkedDataLocker(&linkedData->getMutex());
         return linkedData->parseData(*message);
     }
-    
+
     return 0;
 }
 
@@ -461,7 +461,7 @@ void LimitedNodeList::eraseAllNodes() {
             }
         }
     }
-    
+
     foreach(const SharedNodePointer& killedNode, killedNodes) {
         handleNodeKill(killedNode);
     }
@@ -469,7 +469,7 @@ void LimitedNodeList::eraseAllNodes() {
 
 void LimitedNodeList::reset() {
     eraseAllNodes();
-    
+
     // we need to make sure any socket connections are gone so wait on that here
     _nodeSocket.clearConnections();
 }
@@ -482,16 +482,16 @@ bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         SharedNodePointer matchingNode = it->second;
 
         readLocker.unlock();
-        
+
         {
             QWriteLocker writeLocker(&_nodeMutex);
             _nodeHash.unsafe_erase(it);
         }
-        
+
         handleNodeKill(matchingNode);
         return true;
     }
-    
+
     return false;
 }
 
@@ -507,7 +507,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
     qCDebug(networking) << "Killed" << *node;
     node->stopPingTimer();
     emit nodeKilled(node);
-    
+
     if (auto activeSocket = node->getActiveSocket()) {
         _nodeSocket.cleanupConnection(*activeSocket);
     }
@@ -561,9 +561,9 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
 std::unique_ptr<NLPacket> LimitedNodeList::constructPingPacket(PingType_t pingType) {
     int packetSize = sizeof(PingType_t) + sizeof(quint64);
-    
+
     auto pingPacket = NLPacket::create(PacketType::Ping, packetSize);
-    
+
     pingPacket->writePrimitive(pingType);
     pingPacket->writePrimitive(usecTimestampNow());
 
@@ -613,14 +613,14 @@ std::unique_ptr<NLPacket> LimitedNodeList::constructICEPingReplyPacket(ReceivedM
 
 unsigned int LimitedNodeList::broadcastToNodes(std::unique_ptr<NLPacket> packet, const NodeSet& destinationNodeTypes) {
     unsigned int n = 0;
-    
+
     eachNode([&](const SharedNodePointer& node){
         if (node && destinationNodeTypes.contains(node->getType())) {
             sendUnreliablePacket(*packet, *node);
             ++n;
         }
     });
-    
+
     return n;
 }
 
@@ -709,9 +709,9 @@ void LimitedNodeList::sendSTUNRequest() {
         const uint NUM_TRANSACTION_ID_BYTES = 12;
         QUuid randomUUID = QUuid::createUuid();
         memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
-        
+
         flagTimeForConnectionStep(ConnectionStep::SendSTUNRequest);
-        
+
         _nodeSocket.writeDatagram(stunRequestPacket, sizeof(stunRequestPacket), _stunSockAddr);
     }
 }
@@ -732,7 +732,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
         // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
         while (attributeStartIndex < packet->getDataSize()) {
-            
+
             if (memcmp(packet->getData() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
                 const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
@@ -761,7 +761,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
 
                     QHostAddress newPublicAddress(stunAddress);
-                    
+
                     if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
                         _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
 
@@ -778,7 +778,7 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 
                         flagTimeForConnectionStep(ConnectionStep::SetPublicSocketFromSTUN);
                     }
-                    
+
                     // we're done reading the packet so we can return now
                     return;
                 }
@@ -817,7 +817,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
             connect(&_stunSockAddr, &HifiSockAddr::lookupCompleted, this, &LimitedNodeList::sendSTUNRequest);
 
             // start the initial STUN timer once we know the socket
-            connect(&_stunSockAddr, SIGNAL(lookupCompleted), _initialSTUNTimer, SLOT(start()));
+            connect(&_stunSockAddr, SIGNAL(lookupCompleted()), _initialSTUNTimer, SLOT(start()));
 
             // in case we just completely fail to lookup the stun socket - add a 10s single shot that will trigger the fail case
             const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
@@ -923,7 +923,7 @@ void LimitedNodeList::sendPacketToIceServer(PacketType packetType, const HifiSoc
 
     QDataStream iceDataStream(icePacket.get());
     iceDataStream << clientID << _publicSockAddr << _localSockAddr;
-    
+
     if (packetType == PacketType::ICEServerQuery) {
         assert(!peerID.isNull());
 
