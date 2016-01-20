@@ -1,6 +1,6 @@
 ### Console
 
-The High Fidelity Desktop Console, made with [Electron](http://electron.atom.io/).
+The High Fidelity Server Console, made with [Electron](http://electron.atom.io/).
 
 ### Running Locally
 
@@ -19,7 +19,7 @@ On platforms with separate build folders for release and debug libraries `npm st
 
 ### Packaging
 
-CMake produces a target `packaged-server-console` that will bundle up everything you need for the console on your platform.
-It ensures that there are available builds for the domain-server, assignment-client, and Interface. Then it produces an executable for the console.
+CMake produces a target `packaged-server-console` that will bundle up everything you need for the Server Console on your platform.
+It ensures that there are available builds for the domain-server and assignment-client. Then it produces an executable for the Server Console.
 
-Finally it copies all of the produced executables to a directory, ready for testing or packaging for deployment.
+The install target will copy all of the produced executables to a directory, ready for testing or packaging for deployment.
