@@ -35,6 +35,11 @@ exports.searchPaths = function(name, binaryType) {
 
         // assume we're inside an app bundle on OS X
         if (process.platform == "darwin") {
+            // this is a production build - on OS X Interface will be called High Fidelity
+            if (name ==  "Interface") {
+                name = "High Fidelity";
+            }
+
             var contentPath = ".app/Contents/";
             var contentEndIndex = __dirname.indexOf(contentPath);
 
