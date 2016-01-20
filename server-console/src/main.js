@@ -516,6 +516,11 @@ function maybeInstallDefaultContentSet(onComplete) {
         });
         req.pipe(unzipper);
 
+        window.on('closed', function() {
+            if (currentState == 'downloading') {
+                req.abort();
+            }
+        });
 
         userConfig.set('hasRun', true);
     });
