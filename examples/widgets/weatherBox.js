@@ -125,13 +125,13 @@ function createCloud(position) {
         "position": position,
         "isEmitting": true,
         "maxParticles": 10000,
-        "lifespan": 2,
-        "emitRate": 1000,
+        "lifespan": 3,
+        "emitRate": 2000,
         "emitSpeed": 0.025,
         "speedSpread": 0,
         "emitDimensions": {
-            x: 1,
-            y: 1,
+            x: boxDimensions.x,
+            y: boxDimensions.x,
             z: 0.1
         },
         "emitRadiusStart": 1,
@@ -145,27 +145,27 @@ function createCloud(position) {
             "z": 0
         },
         "particleRadius": 0.04,
-        "radiusSpread": 0,
+        "radiusSpread": 0.02,
         "radiusStart": 0.04,
         radiusFinish: 0.04,
         "colorStart": {
-            "red": 0,
-            "green": 0,
-            "blue": 255
+            "red": 40,
+            "green": 40,
+            "blue": 100
         },
         color: {
-            red: 100,
-            green: 100,
-            blue: 200
+            red: 40,
+            green: 40,
+            blue: 100
         },
         "colorFinish": {
-            "red": 200,
-            "green": 200,
-            "blue": 255
+            "red": 40,
+            "green": 40,
+            "blue": 100
         },
         "alpha": 1,
         "alphaSpread": 0,
-        "alphaStart": 0,
+        "alphaStart": 0.3,
         "alphaFinish": 0,
         "emitterShouldTrail": true,
         "textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png"
