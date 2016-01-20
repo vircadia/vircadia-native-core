@@ -6,6 +6,7 @@ const util = require('util');
 const events = require('events');
 const childProcess = require('child_process');
 const fs = require('fs');
+const mkdirp = require('mkdirp');
 const os = require('os');
 const path = require('path');
 
@@ -132,7 +133,7 @@ Process.prototype = extend(Process.prototype, {
             var logDirectoryCreated = false;
 
             try {
-                fs.mkdirSync(this.logDirectory);
+                mkdirp.sync(this.logDirectory);
                 logDirectoryCreated = true;
             } catch (e) {
                 if (e.code == 'EEXIST') {
