@@ -821,7 +821,13 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 
             // in case we just completely fail to lookup the stun socket - add a 10s single shot that will trigger the fail case
             const quint64 STUN_DNS_LOOKUP_TIMEOUT_MSECS = 10 * 1000;
-            QTimer::singleShot(STUN_DNS_LOOKUP_TIMEOUT_MSECS, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
+
+            QTimer* lookupTimeoutTimer = new QTimer { this };
+            lookupTimeoutTimer->setSingleShot(true);
+
+            connect(lookupTimeoutTimer, &QTimer::timeout, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
+
+            lookupTimeoutTimer->start(STUN_DNS_LOOKUP_TIMEOUT_MSECS);
         } else {
             _initialSTUNTimer->start();
 
@@ -832,7 +838,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 }
 
 void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
-    if (_stunSockAddr.getAddress().isNull()) {
+    if (_stunSockAddr.isNull()) {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
         stopInitialSTUNUpdate(false);
     }
