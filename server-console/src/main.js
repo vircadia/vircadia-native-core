@@ -13,7 +13,7 @@ const shell = require('shell');
 const os = require('os');
 const childProcess = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs-extra');
 const Tail = require('always-tail');
 const http = require('http');
 const unzip = require('unzip');
@@ -71,7 +71,6 @@ function getBuildInfo() {
 const buildInfo = getBuildInfo();
 
 console.log("build info", buildInfo);
-
 
 function getRootHifiDataDirectory() {
     var organization = "High Fidelity";
@@ -260,12 +259,6 @@ global.domainServer = null;
 global.acMonitor = null;
 global.userConfig = userConfig;
 
-const GO_HOME_INDEX = 2;
-const SERVER_LABEL_INDEX = 0;
-const RESTART_INDEX = 4;
-const STOP_INDEX = 5;
-const SETTINGS_INDEX = 6;
-
 var LogWindow = function(ac, ds) {
     this.ac = ac;
     this.ds = ds;
@@ -306,6 +299,132 @@ function goHomeClicked() {
         // show an error to say that we can't go home without an interface instance
         dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity client", "Interface", false));
     }
+}
+
+function stackManagerBasePath() {
+    var dataPath = 'High Fidelity/Stack Manager/resources';
+
+    if (process.platform == "win32") {
+        return path.resolve(osHomeDir(), 'AppData/Local', dataPath);
+    } else if (process.platform == "darwin") {
+        return path.resolve(osHomeDir(), 'Library/Application Support', dataPath);
+    } else {
+        return ""
+    }
+}
+
+function isStackManagerContentPresent() {
+    var modelsPath = path.resolve(stackManagerBasePath(), 'models.json.gz');
+
+    try {
+        var stats = fs.lstatSync(modelsPath);
+
+        if (stats.isFile()) {
+            console.log("Stack Manager entities file discovered at " + modelsPath)
+            // we found a content file
+            return true;
+        }
+    } catch (e) {
+        console.log("Stack Manager entities file not found at " + modelsPath);
+    }
+}
+
+function promptToMigrateContent() {
+    var idx = dialog.showMessageBox({
+        type: 'question',
+        buttons: ['Yes', 'No'],
+        title: 'Migrate Content',
+        message: 'Are you sure?\n\nThis will stop your home server and replace everything in your home with your content from Stack Manager.'
+    });
+
+    if (idx == 0) {
+        if (homeServer.state != ProcessGroupStates.STOPPED) {
+            homeServer.on('state-update', function(processGroup) {
+                if (processGroup.state == ProcessGroupStates.STOPPED) {
+                    performContentMigration();
+                }
+            });
+
+            homeServer.stop();
+
+        } else {
+            performContentMigration();
+        }
+    }
+}
+
+function performContentMigration() {
+    // check if there is a models file to migrate
+    var modelsPath = path.resolve(stackManagerBasePath(), 'models.json.gz');
+
+    try {
+        var stats = fs.lstatSync(modelsPath);
+    } catch (e) {
+        // no entities file
+        dialog.showMessageBox({
+            type: 'info',
+            buttons: ['OK'],
+            title: 'Models File Not Found',
+            message: 'There is no models file at ' + modelsPath + '\n\nStack Manager content migration can not proceed.'
+        });
+
+        return;
+    }
+
+    var copyError = null;
+
+    function showMigrationCompletionDialog(copyError) {
+        if (!copyError) {
+            // show message for successful migration
+            dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK'],
+                title: 'Migration Complete',
+                message: 'Your Stack Manager content has been migrated.\n\nYour home server will now be restarted.'
+            });
+        } else {
+            // show error message for copy fail
+            dialog.showMessageBox({
+                type: 'info',
+                buttons: ['OK'],
+                title: 'Migration Failed',
+                message: 'There was an error copying your Stack Manager content: ' + copyError + '\n\nPlease try again.'
+            });
+        }
+    }
+
+    // we have a models file, try and copy it
+    var newModelsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'entities/models.json.gz')
+    console.log("Copying Stack Manager entity file from " + modelsPath + " to " + newModelsPath);
+
+    fs.copy(modelsPath, newModelsPath, function(error){
+        if (!error) {
+            // check if there are any assets to copy
+            var oldAssetsPath = path.resolve(stackManagerBasePath(), 'assets');
+
+            fs.readdir(oldAssetsPath, function(error, data){
+                if (error) {
+                    showMigrationCompletionDialog(error);
+                } else if (data.length > 0) {
+
+                    // assume this means the directory is not empty
+                    // and that we should copy it
+                    var newAssetsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'assets');
+
+                    console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
+
+                    // attempt to copy the assets folder, show correct dialog depending on success/failure
+                    fs.copy(oldAssetsPath, newAssetsPath, showMigrationCompletionDialog);
+                } else {
+                    showMigrationCompletionDialog(null);
+                }
+            });
+        } else {
+            showMigrationCompletionDialog(error);
+        }
+    });
+
+    homeServer.start();
 }
 
 var logWindow = null;
@@ -372,11 +491,28 @@ function buildMenuArray(serverState) {
             }
         ];
 
+        var foundStackManagerContent = isStackManagerContentPresent();
+        if (foundStackManagerContent) {
+            // add a separator and the stack manager content migration option
+            menuArray.splice(menuArray.length - 1, 0, {
+                label: 'Migrate Stack Manager Content',
+                click: function() { promptToMigrateContent(); }
+            }, {
+                type: 'separator'
+            });
+        }
+
         updateMenuArray(menuArray, serverState);
     }
 
     return menuArray;
 }
+
+const GO_HOME_INDEX = 2;
+const SERVER_LABEL_INDEX = 0;
+const RESTART_INDEX = 4;
+const STOP_INDEX = 5;
+const SETTINGS_INDEX = 6;
 
 function updateMenuArray(menuArray, serverState) {
     // update the tray menu state
