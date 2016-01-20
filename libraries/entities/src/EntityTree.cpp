@@ -1291,12 +1291,13 @@ void EntityTree::remapIDs() {
     recurseTreeWithOperator(&theOperator);
 }
 
-bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) {
+bool EntityTree::writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) {
     if (! entityDescription.contains("Entities")) {
         entityDescription["Entities"] = QVariantList();
     }
     QScriptEngine scriptEngine;
-    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues);
+    RecurseOctreeToMapOperator theOperator(entityDescription, element, &scriptEngine, skipDefaultValues, skipThoseWithBadParents);
     recurseTreeWithOperator(&theOperator);
     return true;
 }
@@ -1358,11 +1359,28 @@ void EntityTree::trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytes
     }
 }
 
-
 void EntityTree::callLoader(EntityItemID entityID) {
     // this is used to bounce from the networking thread to the main thread
     EntityItemPointer entity = findEntityByEntityItemID(entityID);
     if (entity) {
         entity->loader();
     }
+}
+
+int EntityTree::getJointIndex(const QUuid& entityID, const QString& name) const {
+    EntityTree* nonConstThis = const_cast<EntityTree*>(this);
+    EntityItemPointer entity = nonConstThis->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        return -1;
+    }
+    return entity->getJointIndex(name);
+}
+
+QStringList EntityTree::getJointNames(const QUuid& entityID) const {
+    EntityTree* nonConstThis = const_cast<EntityTree*>(this);
+    EntityItemPointer entity = nonConstThis->findEntityByEntityItemID(entityID);
+    if (!entity) {
+        return QStringList();
+    }
+    return entity->getJointNames();
 }

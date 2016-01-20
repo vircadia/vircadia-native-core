@@ -199,7 +199,8 @@ public:
 
     void remapIDs();
 
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) override;
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) override;
     virtual bool readFromMap(QVariantMap& entityDescription) override;
 
     float getContentsLargestDimension();
@@ -235,6 +236,10 @@ public:
         QReadLocker locker(&_deletedEntitiesLock);
         return _deletedEntityItemIDs.contains(id);
     }
+
+    // these are used to call through to EntityItems
+    Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
+    Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
 
 public slots:
     void callLoader(EntityItemID entityID);
