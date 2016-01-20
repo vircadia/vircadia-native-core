@@ -137,7 +137,7 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         bufferData.resize(byteSize);
         memcpy(bufferData.data(), batch._objects.data(), byteSize);
 
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     }
@@ -157,6 +157,8 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+
     CHECK_GL_ERROR();
 }
 
@@ -175,8 +177,6 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
                           _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
-
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
 
     (void)CHECK_GL_ERROR();
 }
