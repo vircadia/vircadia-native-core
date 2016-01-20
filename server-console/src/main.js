@@ -149,7 +149,8 @@ function shutdown() {
 
 
 var logPath = path.join(getApplicationDataDirectory(), '/logs');
-console.log("Log directory:", logPath, getRootHifiDataDirectory());
+console.log("Log directory:", logPath);
+console.log("Data directory:", getRootHifiDataDirectory());
 
 const configPath = path.join(getApplicationDataDirectory(), 'config.json');
 var userConfig = new Config();
