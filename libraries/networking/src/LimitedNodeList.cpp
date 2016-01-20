@@ -788,8 +788,6 @@ void LimitedNodeList::processSTUNResponse(std::unique_ptr<udt::BasePacket> packe
 }
 
 void LimitedNodeList::startSTUNPublicSocketUpdate() {
-    assert(!_initialSTUNTimer);
-
     if (!_initialSTUNTimer) {
         // if we don't know the STUN IP yet we need to have ourselves be called once it is known
         if (_stunSockAddr.getAddress().isNull()) {

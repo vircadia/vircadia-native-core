@@ -63,22 +63,23 @@ set(INTERFACE_SRCS ${INTERFACE_SRCS} "${QT_UI_HEADERS}" "${QT_RESOURCES}")
 
 if (APPLE)
   # configure CMake to use a custom Info.plist
-  SET_TARGET_PROPERTIES( ${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in )
+  set_target_properties(${this_target} PROPERTIES MACOSX_BUNDLE_INFO_PLIST MacOSXBundleInfo.plist.in)
 
-  set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
-  set(MACOSX_BUNDLE_GUI_IDENTIFIER io.highfidelity.Interface)
-
-  if (UPPER_CMAKE_BUILD_TYPE MATCHES RELEASE OR UPPER_CMAKE_BUILD_TYPE MATCHES RELWITHDEBINFO)
-    set(ICON_FILENAME "interface.icns")
+  if (PRODUCTION_BUILD)
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface)
   else ()
-    set(ICON_FILENAME "interface-beta.icns")
+    if (DEV_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-dev)
+    elseif (PR_BUILD)
+      set(MACOSX_BUNDLE_GUI_IDENTIFIER com.highfidelity.interface-pr)
+    endif ()
   endif ()
 
   # set how the icon shows up in the Info.plist file
-  SET(MACOSX_BUNDLE_ICON_FILE "${ICON_FILENAME}")
+  set(MACOSX_BUNDLE_ICON_FILE "${INTERFACE_ICON_FILENAME}")
 
   # set where in the bundle to put the resources file
-  SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
   set(DISCOVERED_RESOURCES "")
 
@@ -88,29 +89,36 @@ if (APPLE)
   # append the discovered resources to our list of interface sources
   list(APPEND INTERFACE_SRCS ${DISCOVERED_RESOURCES})
 
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${ICON_FILENAME}")
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
 endif()
 
 # create the executable, make it a bundle on OS X
 if (APPLE)
   add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
+
+  # make sure the output name for the .app bundle is correct
+  set_target_properties(${TARGET_NAME} PROPERTIES OUTPUT_NAME ${INTERFACE_BUNDLE_NAME})
 elseif(WIN32)
-  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM})
+  # configure an rc file for the chosen icon
+  set(CONFIGURE_ICON_PATH "${CMAKE_CURRENT_SOURCE_DIR}/icon/${INTERFACE_ICON_FILENAME}")
+  set(CONFIGURE_ICON_RC_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/Icon.rc")
+  configure_file("${HF_CMAKE_DIR}/templates/Icon.rc.in" ${CONFIGURE_ICON_RC_OUTPUT})
+
+  # add an executable that also has the icon itself and the configured rc file as resources
+  add_executable(${TARGET_NAME} WIN32 ${INTERFACE_SRCS} ${QM} ${CONFIGURE_ICON_RC_OUTPUT})
 else()
   add_executable(${TARGET_NAME} ${INTERFACE_SRCS} ${QM})
 endif()
 
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")
 
-# These are external plugins, but we need to do the 'add dependency' here so that their
-# binary directories get added to the fixup path
-add_dependency_external_projects(sixense)
-add_dependency_external_projects(sdl2)
 if (WIN32)
-    add_dependency_external_projects(OpenVR)
-endif()
-if(WIN32 OR APPLE)
-    add_dependency_external_projects(neuron)
+  # These are external plugins, but we need to do the 'add dependency' here so that their
+  # binary directories get added to the fixup path
+  add_dependency_external_projects(sixense)
+  add_dependency_external_projects(sdl2)
+  add_dependency_external_projects(OpenVR)
+  add_dependency_external_projects(neuron)
 endif()
 
 # disable /OPT:REF and /OPT:ICF for the Debug builds
@@ -136,7 +144,7 @@ target_glew()
 target_opengl()
 
 if (WIN32 OR APPLE)
-    target_faceshift()
+  target_faceshift()
 endif()
 
 # perform standard include and linking for found externals
@@ -190,7 +198,7 @@ target_link_libraries(
 # Issue causes build failure unless we add this directory.
 # See https://bugreports.qt.io/browse/QTBUG-43351
 if (WIN32)
-    add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
+  add_paths_to_fixup_libs(${Qt5_DIR}/../../../plugins/qtwebengine)
 endif()
 
 # assume we are using a Qt build without bearer management
@@ -203,11 +211,17 @@ if (APPLE)
 
   target_link_libraries(${TARGET_NAME} ${OpenGL} ${AppKit})
 
-  # install command for OS X bundle
-  INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+  # setup install of OS X interface bundle
+  install(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION ${INTERFACE_INSTALL_DIR}
+    COMPONENT ${CLIENT_COMPONENT}
   )
+
+  set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_APP_PATH}/Contents/Resources")
+
+  # call the fixup_interface macro to add required bundling commands for installation
+  fixup_interface()
+
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -222,14 +236,37 @@ else (APPLE)
   # link target to external libraries
   if (WIN32)
     target_link_libraries(${TARGET_NAME} wsock32.lib Winmm.lib)
-  else (WIN32)
-    # Nothing else required on linux apparently
+
+    # setup install of executable and things copied by fixup/windeployqt
+    install(
+      FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+      DESTINATION ${INTERFACE_INSTALL_DIR}
+      COMPONENT ${CLIENT_COMPONENT}
+    )
+
+    set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
+
+    set(EXECUTABLE_COMPONENT ${CLIENT_COMPONENT})
+
+    optional_win_executable_signing()
   endif()
 endif (APPLE)
 
-if (WIN32)
-    set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
+if (SCRIPTS_INSTALL_DIR)
+  # setup install of scripts beside interface executable
+  install(
+    DIRECTORY "${CMAKE_SOURCE_DIR}/examples/"
+    DESTINATION ${SCRIPTS_INSTALL_DIR}/scripts
+    COMPONENT ${CLIENT_COMPONENT}
+  )
 endif()
 
-package_libraries_for_deployment()
-consolidate_installer_components()
+if (WIN32)
+    set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
+
+    set(TARGET_INSTALL_DIR ${INTERFACE_INSTALL_DIR})
+    set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
+    manually_install_ssl_eay()
+
+    package_libraries_for_deployment()
+endif()

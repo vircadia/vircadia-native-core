@@ -21,24 +21,34 @@
 #include <Assignment.h>
 
 #include "AssignmentClientChildData.h"
+#include <HTTPManager.h>
+#include <HTTPConnection.h>
 
 extern const char* NUM_FORKS_PARAMETER;
 
-class AssignmentClientMonitor : public QObject {
+struct ACProcess {
+    QProcess* process;
+    QString logStdoutPath;
+    QString logStderrPath;
+};
+
+class AssignmentClientMonitor : public QObject, public HTTPRequestHandler {
     Q_OBJECT
 public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
                             const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
                             QString assignmentPool, quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                            quint16 assignmentServerPort, QDir logDirectory);
+                            quint16 assignmentServerPort, quint16 httpStatusServerPort, QDir logDirectory);
     ~AssignmentClientMonitor();
 
     void stopChildProcesses();
 private slots:
     void checkSpares();
-    void childProcessFinished();
+    void childProcessFinished(qint64 pid);
     void handleChildStatusPacket(QSharedPointer<ReceivedMessage> message);
     
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+
 public slots:
     void aboutToQuit();
 
@@ -54,13 +64,14 @@ private:
     const unsigned int _minAssignmentClientForks;
     const unsigned int _maxAssignmentClientForks;
 
+    HTTPManager _httpManager;
     Assignment::Type _requestAssignmentType;
     QString _assignmentPool;
     QUuid _walletUUID;
     QString _assignmentServerHostname;
     quint16 _assignmentServerPort;
 
-    QMap<qint64, QProcess*> _childProcesses;
+    QMap<qint64, ACProcess> _childProcesses;
 };
 
 #endif // hifi_AssignmentClientMonitor_h

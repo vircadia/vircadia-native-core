@@ -8,11 +8,11 @@
 #  OPENSSL_INCLUDE_DIR - the OpenSSL include directory
 #  OPENSSL_LIBRARIES - The libraries needed to use OpenSSL
 #  OPENSSL_VERSION - This is set to $major.$minor.$revision$path (eg. 0.9.8s)
-# 
+#
 # Modified on 7/16/2014 by Stephen Birarda
 # This is an adapted version of the FindOpenSSL.cmake module distributed with Cmake 2.8.12.2
 # The original license for that file is displayed below.
-# 
+#
 #=============================================================================
 # Copyright 2006-2009 Kitware, Inc.
 # Copyright 2006 Alexander Neundorf <neundorf@kde.org>
@@ -50,18 +50,18 @@ if (WIN32)
     )
     set(_OPENSSL_ROOT_PATHS "${_programfiles}/OpenSSL" "${_programfiles}/OpenSSL-Win32" "C:/OpenSSL/" "C:/OpenSSL-Win32/")
   endif()
-  
+
   unset(_programfiles)
   set(_OPENSSL_ROOT_HINTS_AND_PATHS HINTS ${_OPENSSL_ROOT_HINTS} PATHS ${_OPENSSL_ROOT_PATHS})
-  
+
 else ()
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("openssl")
-  
+
   set(_OPENSSL_ROOT_HINTS_AND_PATHS ${OPENSSL_SEARCH_DIRS})
 endif ()
 
-find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR} 
+find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_INCLUDEDIR}
   PATH_SUFFIXES include
 )
 
@@ -81,15 +81,15 @@ if (WIN32 AND NOT CYGWIN)
     # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
-    find_library(LIB_EAY_DEBUG NAMES libeay32MDd libeay32d 
+    find_library(LIB_EAY_DEBUG NAMES libeay32MDd libeay32d
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
-    find_library(LIB_EAY_RELEASE NAMES libeay32MD libeay32 
+    find_library(LIB_EAY_RELEASE NAMES libeay32MD libeay32
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
-    find_library(SSL_EAY_DEBUG NAMES ssleay32MDd ssleay32d 
+    find_library(SSL_EAY_DEBUG NAMES ssleay32MDd ssleay32d
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
     )
 
@@ -109,22 +109,22 @@ if (WIN32 AND NOT CYGWIN)
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
 
     find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
-    
+
   elseif (MINGW)
     # same player, for MinGW
     set(LIB_EAY_NAMES libeay32)
     set(SSL_EAY_NAMES ssleay32)
-    
+
     if (CMAKE_CROSSCOMPILING)
       list(APPEND LIB_EAY_NAMES crypto)
       list(APPEND SSL_EAY_NAMES ssl)
     endif ()
-    
+
     find_library(LIB_EAY NAMES ${LIB_EAY_NAMES}
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
     )
 
-    find_library(SSL_EAY NAMES ${SSL_EAY_NAMES} 
+    find_library(SSL_EAY NAMES ${SSL_EAY_NAMES}
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
     )
 
@@ -147,7 +147,7 @@ else()
     PATH_SUFFIXES lib
   )
 
-  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} 
+  find_library(OPENSSL_CRYPTO_LIBRARY NAMES crypto HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR}
     PATH_SUFFIXES lib
   )
 
@@ -196,7 +196,7 @@ if (OPENSSL_INCLUDE_DIR)
   if(OPENSSL_INCLUDE_DIR AND EXISTS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h")
     file(STRINGS "${OPENSSL_INCLUDE_DIR}/openssl/opensslv.h" openssl_version_str
          REGEX "^#[ ]?define[\t ]+OPENSSL_VERSION_NUMBER[\t ]+0x([0-9a-fA-F])+.*")
-    
+
     # The version number is encoded as 0xMNNFFPPS: major minor fix patch status
     # The status gives if this is a developer or prerelease and is ignored here.
     # Major, minor, and fix directly translate into the version numbers shown in
@@ -252,15 +252,6 @@ endif ()
 
 if (WIN32)
   add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
-  #
-  # For some reason fixup misses the following DLL and only copies libeay32. There's gotta be a better way to handle this
-  # but for now resorting to the following interm solution
-  if (DEFINED DEPLOY_PACKAGE AND DEPLOY_PACKAGE)
-    add_custom_command(
-      TARGET ${TARGET_NAME} POST_BUILD
-      COMMAND "${CMAKE_COMMAND}" -E copy ${OPENSSL_DLL_PATH}/ssleay32.dll ${CMAKE_BINARY_DIR}/package-bundle/
-    )
-  endif ()
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

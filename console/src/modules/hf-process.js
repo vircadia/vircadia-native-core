@@ -1,11 +1,13 @@
 'use strict'
 
-var extend = require('extend');
-var util = require('util');
-var events = require('events');
-var childProcess = require('child_process');
-var fs = require('fs');
-var os = require('os');
+const request = require('request');
+const extend = require('extend');
+const util = require('util');
+const events = require('events');
+const childProcess = require('child_process');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 const ProcessGroupStates = {
     STOPPED: 'stopped',
@@ -18,6 +20,8 @@ const ProcessStates = {
     STARTED: 'started',
     STOPPING: 'stopping'
 };
+
+
 
 function ProcessGroup(name, processes) {
     events.EventEmitter.call(this);
@@ -107,6 +111,8 @@ function Process(name, command, commandArgs, logDirectory) {
     this.commandArgs = commandArgs ? commandArgs : [];
     this.child = null;
     this.logDirectory = logDirectory;
+    this.logStdout = null;
+    this.logStderr = null;
 
     this.state = ProcessStates.STOPPED;
 };
@@ -126,7 +132,7 @@ Process.prototype = extend(Process.prototype, {
             var logDirectoryCreated = false;
 
             try {
-                fs.mkdirSync('logs');
+                fs.mkdirSync(this.logDirectory);
                 logDirectoryCreated = true;
             } catch (e) {
                 if (e.code == 'EEXIST') {
@@ -139,8 +145,8 @@ Process.prototype = extend(Process.prototype, {
             if (logDirectoryCreated) {
                 // Create a temporary file with the current time
                 var time = (new Date).getTime();
-                var tmpLogStdout = this.logDirectory + '/' + this.name + '-' + time + '-stdout.txt';
-                var tmpLogStderr = this.logDirectory + '/' + this.name + '-' + time + '-stderr.txt';
+                var tmpLogStdout = path.resolve(this.logDirectory + '/' + this.name + '-' + time + '-stdout.txt');
+                var tmpLogStderr = path.resolve(this.logDirectory + '/' + this.name + '-' + time + '-stderr.txt');
 
                 try {
                     logStdout = fs.openSync(tmpLogStdout, 'ax');
@@ -165,63 +171,182 @@ Process.prototype = extend(Process.prototype, {
         } catch (e) {
             console.log("Got error starting child process for " + this.name, e);
             this.child = null;
-            this.state = ProcessStates.STOPPED;
+            this.updateState(ProcessStates.STOPPED);
+            return;
         }
 
         if (logStdout != 'ignore') {
-            var pidLogStdout = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt";
+            var pidLogStdout = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stdout.txt");
             fs.rename(tmpLogStdout, pidLogStdout, function(e) {
                 if (e !== null) {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
+            this.logStdout = pidLogStdout;
+            fs.closeSync(logStdout);
         }
 
         if (logStderr != 'ignore') {
-            var pidLogStderr = './logs/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt";
+            var pidLogStderr = path.resolve(this.logDirectory + '/' + this.name + "-" + this.child.pid + "-" + time + "-stderr.txt");
             fs.rename(tmpLogStderr, pidLogStderr, function(e) {
                 if (e !== null) {
                     console.log("Error renaming log file from " + tmpLogStdout + " to " + pidLogStdout, e);
                 }
             });
+            this.logStderr = pidLogStderr;
+
+            fs.closeSync(logStderr);
         }
 
         this.child.on('error', this.onChildStartError.bind(this));
         this.child.on('close', this.onChildClose.bind(this));
-        this.state = ProcessStates.STARTED;
-        console.log("Child process started");
 
-        this.emit('state-update', this);
+        console.log("Child process started");
+        this.updateState(ProcessStates.STARTED);
+        this.emit('logs-updated');
     },
-    stop: function() {
-        if (this.state != ProcessStates.STARTED) {
-            console.warn("Can't stop process that is not started.");
+    stop: function(force) {
+        if (this.state == ProcessStates.STOPPED) {
+            console.warn("Can't stop process that is not started or stopping.");
             return;
         }
         if (os.type() == "Windows_NT") {
-            childProcess.spawn("taskkill", ["/pid", this.child.pid, '/f', '/t']);
+            var command = "taskkill /pid " + this.child.pid;
+            if (force) {
+                command += " /f /t";
+            }
+            childProcess.exec(command, {}, function(error) {
+                if (error) {
+                    console.error('Error executing taskkill:', error);
+                }
+            });
         } else {
-            this.child.kill();
+            var signal = force ? 'SIGKILL' : null;
+            this.child.kill(signal);
         }
-        this.state = ProcessStates.STOPPING;
 
-        this.emit('state-update', this);
+        console.log("Stopping child process:", this.child.pid, this.name);
+
+        if (!force) {
+            this.stoppingTimeoutID = setTimeout(function() {
+                if (this.state == ProcessStates.STOPPING) {
+                    console.log("Force killling", this.name, this.child.pid);
+                    this.stop(true);
+                }
+            }.bind(this), 2500);
+        }
+
+        this.updateState(ProcessStates.STOPPING);
+    },
+    updateState: function(newState) {
+        if (this.state != newState) {
+            this.state = newState;
+            this.emit('state-update', this);
+            return true;
+        }
+        return false;
+    },
+    getLogs: function() {
+        var logs = {};
+        logs[this.child.pid] = {
+            stdout: this.logStdout == 'ignore' ? null : this.logStdout,
+            stderr: this.logStderr == 'ignore' ? null : this.logStderr
+        };
+        return logs;
     },
 
     // Events
     onChildStartError: function(error) {
         console.log("Child process error ", error);
-        this.state = ProcessStates.STOPPED;
-        this.emit('state-update', this);
+        this.updateState(ProcessStates.STOPPED);
     },
     onChildClose: function(code) {
-        console.log("Child process closed with code ", code);
-        this.state = ProcessStates.STOPPED;
-        this.emit('state-update', this);
+        console.log("Child process closed with code ", code, this.name);
+        if (this.stoppingTimeoutID) {
+            clearTimeout(this.stoppingTimeoutID);
+            this.stoppingTimeoutID = null;
+        }
+        this.updateState(ProcessStates.STOPPED);
+    }
+});
+
+// ACMonitorProcess is an extension of Process that keeps track of the AC Montior's
+// children status and log locations.
+const CHECK_AC_STATUS_INTERVAL = 5000;
+function ACMonitorProcess(name, path, args, httpStatusPort, logPath) {
+    Process.call(this, name, path, args, logPath);
+
+    this.httpStatusPort = httpStatusPort;
+
+    this.requestTimeoutID = null;
+    this.pendingRequest = null;
+    this.childServers = {};
+};
+util.inherits(ACMonitorProcess, Process);
+ACMonitorProcess.prototype = extend(ACMonitorProcess.prototype, {
+    updateState: function(newState) {
+        if (ACMonitorProcess.super_.prototype.updateState.call(this, newState)) {
+            if (this.state == ProcessStates.STARTED) {
+                this._updateACMonitorStatus();
+            } else {
+                if (this.requestTimeoutID) {
+                    clearTimeout(this.requestTimeoutID);
+                    this.requestTimeoutID = null;
+                }
+                if (this.pendingRequest) {
+                    this.pendingRequest.destroy();
+                    this.pendingRequest = null;
+                }
+            }
+        }
+    },
+    getLogs: function() {
+        var logs = {};
+        logs[this.child.pid] = {
+            stdout: this.logStdout == 'ignore' ? null : this.logStdout,
+            stderr: this.logStderr == 'ignore' ? null : this.logStderr
+        };
+        for (var pid in this.childServers) {
+            logs[pid] = {
+                stdout: this.childServers[pid].logStdout,
+                stderr: this.childServers[pid].logStderr
+            }
+        }
+        console.log(logs);
+        return logs;
+    },
+    _updateACMonitorStatus: function() {
+        if (this.state != ProcessStates.STARTED) {
+            return;
+        }
+
+        // If there is a pending request, return
+        if (this.pendingRequest) {
+            return;
+        }
+
+        console.log("Checking AC Monitor status");
+        var options = {
+            url: "http://localhost:" + this.httpStatusPort + "/status",
+            json: true
+        };
+        this.pendingRequest = request(options, function(error, response, body) {
+            if (error) {
+                console.error('ERROR Getting AC Monitor status', error);
+            } else {
+                this.childServers = body.servers;
+            }
+            console.log(body);
+
+            this.emit('logs-updated');
+
+            this.requestTimeoutID = setTimeout(this._updateACMonitorStatus.bind(this), CHECK_AC_STATUS_INTERVAL);
+        }.bind(this));
     }
 });
 
 module.exports.Process = Process;
+module.exports.ACMonitorProcess = ACMonitorProcess;
 module.exports.ProcessGroup = ProcessGroup;
 module.exports.ProcessGroupStates = ProcessGroupStates;
 module.exports.ProcessStates = ProcessStates;

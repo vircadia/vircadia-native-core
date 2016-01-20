@@ -9,5 +9,8 @@ link_hifi_libraries(
   controllers physics
 )
 
-package_libraries_for_deployment()
-consolidate_installer_components()
+if (WIN32)
+  package_libraries_for_deployment()
+endif()
+
+install_beside_console()

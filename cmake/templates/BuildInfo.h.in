@@ -1,12 +1,15 @@
 //
-//  ApplicationVersion.h.in
+//  BuildInfo.h.in
 //  cmake/macros
 //
-//  Created by Leonardo Murillo on 8/13/15.
+//  Created by Stephen Birarda on 1/14/16.
 //  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-const QString BUILD_VERSION = "@BUILD_SEQ@";
+namespace BuildInfo {
+    const QString MODIFIED_ORGANIZATION = "@BUILD_ORGANIZATION@";
+    const QString VERSION = "@BUILD_VERSION@";
+}

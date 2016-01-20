@@ -30,7 +30,7 @@ public:
 
     virtual void updateActionWorker(float deltaTimeStep) override;
 
-    QByteArray serialize() const;
+    QByteArray serialize() const override;
     virtual void deserialize(QByteArray serializedArguments) override;
 
     virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
