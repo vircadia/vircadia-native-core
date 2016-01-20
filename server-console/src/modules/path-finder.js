@@ -1,9 +1,9 @@
 var fs = require('fs');
 var path = require('path');
 
-exports.searchPaths = function(name, binaryType) {
+exports.searchPaths = function(name, binaryType, releaseType) {
     function platformExtension(name) {
-        if (name == "Interface") {
+        if (name == "Interface" || name == "High Fidelity") {
             if (process.platform == "darwin") {
                 return ".app/Contents/MacOS/" + name
             } else if (process.platform == "win32") {
@@ -21,7 +21,7 @@ exports.searchPaths = function(name, binaryType) {
 
     var paths = [];
 
-    if (binaryType == "local-release" ||  binaryType == "local-debug") {
+    if (!releaseType) {
         // check in the developer build tree for binaries
         paths = [
             devBasePath + name + extension,
@@ -35,11 +35,6 @@ exports.searchPaths = function(name, binaryType) {
 
         // assume we're inside an app bundle on OS X
         if (process.platform == "darwin") {
-            // this is a production build - on OS X Interface will be called High Fidelity
-            if (name ==  "Interface") {
-                name = "High Fidelity";
-            }
-
             var contentPath = ".app/Contents/";
             var contentEndIndex = __dirname.indexOf(contentPath);
 
@@ -60,7 +55,7 @@ exports.searchPaths = function(name, binaryType) {
     return paths;
 }
 
-exports.discoveredPath = function (name, binaryType) {
+exports.discoveredPath = function (name, binaryType, releaseType) {
     function binaryFromPaths(name, paths) {
         for (var i = 0; i < paths.length; i++) {
             var testPath = paths[i];
@@ -80,6 +75,11 @@ exports.discoveredPath = function (name, binaryType) {
         return null;
     }
 
+    // for a released server console on OS X, assume the name of the interface executable is "High Fidelity"
+    if (releaseType && name == "Interface") {
+        name = "High Fidelity";
+    }
+
     // attempt to find a binary at the usual paths, return null if it doesn't exist
-    return binaryFromPaths(name, this.searchPaths(name, binaryType));
+    return binaryFromPaths(name, this.searchPaths(name, binaryType, releaseType));
 }

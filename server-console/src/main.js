@@ -184,9 +184,9 @@ var debug = argv.debug;
 
 var binaryType = argv.binaryType;
 
-interfacePath = pathFinder.discoveredPath("Interface", binaryType);
-dsPath = pathFinder.discoveredPath("domain-server", binaryType);
-acPath = pathFinder.discoveredPath("assignment-client", binaryType);
+interfacePath = pathFinder.discoveredPath("Interface", binaryType, buildInfo.releaseType);
+dsPath = pathFinder.discoveredPath("domain-server", binaryType, buildInfo.releaseType);
+acPath = pathFinder.discoveredPath("assignment-client", binaryType, buildInfo.releaseType);
 
 function binaryMissingMessage(displayName, executableName, required) {
     var message = "The " + displayName + " executable was not found.\n";

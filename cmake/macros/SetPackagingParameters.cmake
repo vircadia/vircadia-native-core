@@ -43,8 +43,11 @@ macro(SET_PACKAGING_PARAMETERS)
   endif ()
 
   if (APPLE)
-    set(DMG_SUBFOLDER_NAME "High Fidelity")
-    set(ESCAPED_DMG_SUBFOLDER_NAME "High\\ Fidelity")
+    set(DMG_SUBFOLDER_NAME "${BUILD_ORGANIZATION}")
+
+    set(ESCAPED_DMG_SUBFOLDER_NAME "")
+    string(REPLACE " " "\\ " ESCAPED_DMG_SUBFOLDER_NAME ${DMG_SUBFOLDER_NAME})
+
     set(DMG_SUBFOLDER_ICON "${HF_CMAKE_DIR}/installer/install-folder.rsrc")
 
     set(CONSOLE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
