@@ -349,7 +349,6 @@ function promptToMigrateContent() {
                 };
 
                 homeServer.on('state-update', stopThenMigrateCallback);
-
                 homeServer.stop();
 
             } else {
@@ -377,8 +376,6 @@ function performContentMigration() {
         return;
     }
 
-    var copyError = null;
-
     function showMigrationCompletionDialog(copyError) {
         if (!copyError) {
             // show message for successful migration
@@ -403,8 +400,6 @@ function performContentMigration() {
     var newModelsPath = path.resolve(getAssignmentClientResourcesDirectory(), 'entities/models.json.gz')
     console.log("Copying Stack Manager entity file from " + modelsPath + " to " + newModelsPath);
 
-    var entitiesCopied = false;
-
     try {
         fs.copySync(modelsPath, newModelsPath);
 
@@ -420,7 +415,7 @@ function performContentMigration() {
 
             console.log("Copying Stack Manager assets from " + oldAssetsPath + " to " + newAssetsPath);
 
-            // attempt to copy the assets folder, show correct dialog depending on success/failure
+            // attempt to copy the assets folder
             fs.copySync(oldAssetsPath, newAssetsPath, {
                 preserveTimestamps: true
             });
