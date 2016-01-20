@@ -24,6 +24,11 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
+  # configure a cpack properties file for custom variables in template
+  set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
+  configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})
+  set(CPACK_PROPERTIES_FILE ${CPACK_CONFIGURED_PROP_FILE})
+
   if (WIN32)
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
@@ -41,28 +46,33 @@ macro(GENERATE_INSTALLERS)
     set(_UNINSTALLER_HEADER_BAD_PATH "${HF_CMAKE_DIR}/installer/uninstaller-header.bmp")
     set(UNINSTALLER_HEADER_IMAGE "")
     fix_path_for_nsis(${_UNINSTALLER_HEADER_BAD_PATH} UNINSTALLER_HEADER_IMAGE)
-  endif()
+  elseif (APPLE)
+    # produce a drag and drop DMG on OS X
+    set(CPACK_GENERATOR "DragNDrop")
 
-  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
-
-  # configure a cpack properties file for custom variables in NSIS template
-  set(CPACK_CONFIGURED_PROP_FILE "${CMAKE_CURRENT_BINARY_DIR}/CPackCustomProperties.cmake")
-  configure_file("${HF_CMAKE_DIR}/templates/CPackProperties.cmake.in" ${CPACK_CONFIGURED_PROP_FILE})
-  set(CPACK_PROPERTIES_FILE ${CPACK_CONFIGURED_PROP_FILE})
-
-  if (APPLE)
     set(CPACK_PACKAGE_INSTALL_DIRECTORY "/")
     set(CPACK_PACKAGING_INSTALL_PREFIX /)
     set(CPACK_OSX_PACKAGE_VERSION ${CMAKE_OSX_DEPLOYMENT_TARGET})
+
+    # make sure a High Fidelity directory exists, in case this hits prior to other installs
+    install(CODE "file(MAKE_DIRECTORY \"\${CMAKE_INSTALL_PREFIX}/${DMG_SUBFOLDER_NAME}\")")
+
+    # add the resource file to the Icon file inside the folder
+    install(CODE
+      "execute_process(COMMAND Rez -append ${DMG_SUBFOLDER_ICON} -o \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)"
+    )
+
+    # modify the folder to use that custom icon
+    install(CODE "execute_process(COMMAND SetFile -a C \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME})")
+
+    # hide the special Icon? file
+    install(CODE "execute_process(COMMAND SetFile -a V \${CMAKE_INSTALL_PREFIX}/${ESCAPED_DMG_SUBFOLDER_NAME}/Icon\\r)")
   endif ()
+
+  set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 
   cpack_add_component(${CLIENT_COMPONENT} DISPLAY_NAME "High Fidelity Client")
   cpack_add_component(${SERVER_COMPONENT} DISPLAY_NAME "High Fidelity Server")
-
-  if (APPLE)
-    # we don't want the OS X package to install anywhere but the main volume, so disable relocation
-    set(CPACK_PACKAGE_RELOCATABLE FALSE)
-  endif ()
 
   include(CPack)
 endmacro()
