@@ -62,7 +62,7 @@ void GLBackend::initTransform() {
     glGenBuffers(1, &_transform._objectBuffer);
     glGenBuffers(1, &_transform._cameraBuffer);
     glGenBuffers(1, &_transform._drawCallInfoBuffer);
-#ifndef WIN32
+#ifndef GPU_SSBO_DRAW_CALL_INFO
     glGenTextures(1, &_transform._objectBufferTexture);
 #endif
     size_t cameraSize = sizeof(TransformCamera);
@@ -75,7 +75,7 @@ void GLBackend::killTransform() {
     glDeleteBuffers(1, &_transform._objectBuffer);
     glDeleteBuffers(1, &_transform._cameraBuffer);
     glDeleteBuffers(1, &_transform._drawCallInfoBuffer);
-#ifndef WIN32
+#ifndef GPU_SSBO_DRAW_CALL_INFO
     glDeleteTextures(1, &_transform._objectBufferTexture);
 #endif
 }
@@ -143,7 +143,7 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         bufferData.resize(byteSize);
         memcpy(bufferData.data(), batch._objects.data(), byteSize);
 
-#ifdef WIN32
+#ifdef GPU_SSBO_DRAW_CALL_INFO
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
         glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -169,7 +169,7 @@ void GLBackend::TransformStageState::transfer(const Batch& batch) const {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-#ifdef WIN32
+#ifdef GPU_SSBO_DRAW_CALL_INFO
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
 #else
     glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);

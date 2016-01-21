@@ -30,7 +30,7 @@ namespace gpu {
 
 enum ReservedSlot {
 
-#ifdef WIN32
+#ifdef GPU_SSBO_DRAW_CALL_INFO
     TRANSFORM_OBJECT_SLOT = 6,
 #else
     TRANSFORM_OBJECT_SLOT = 31,
