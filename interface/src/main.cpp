@@ -24,23 +24,6 @@
 #include "InterfaceLogging.h"
 #include "MainWindow.h"
 
-#ifdef Q_OS_WIN
-static BOOL CALLBACK enumWindowsCallback(HWND hWnd, LPARAM lParam) {
-    const UINT TIMEOUT = 200;  // ms
-    DWORD_PTR response;
-    LRESULT result = SendMessageTimeout(hWnd, UWM_IDENTIFY_INSTANCES, 0, 0, SMTO_BLOCK | SMTO_ABORTIFHUNG, TIMEOUT, &response);
-    if (result == 0) {  // Timeout; continue search.
-        return TRUE;
-    }
-    if (response == UWM_IDENTIFY_INSTANCES) {
-        HWND* target = (HWND*)lParam;
-        *target = hWnd;
-        return FALSE;  // Found; terminate search.
-    }
-    return TRUE;  // Not found; continue search.
-}
-#endif
-
 int main(int argc, const char* argv[]) {
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
