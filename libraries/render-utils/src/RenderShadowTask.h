@@ -15,7 +15,6 @@
 #include <gpu/Framebuffer.h>
 #include <gpu/Pipeline.h>
 
-#include <render/Scene.h>
 #include <render/DrawTask.h>
 
 class ViewFrustum;
@@ -33,7 +32,7 @@ protected:
 
 class RenderShadowTask : public render::Task {
 public:
-    RenderShadowTask();
+    RenderShadowTask(render::CullFunctor shouldRender);
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };

@@ -1919,7 +1919,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     entityDescription["Version"] = (int) expectedVersion;
 
     // store the entity data
-    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true, true);
     if (!entityDescriptionSuccess) {
         qCritical("Failed to convert Entities to QVariantMap while saving to json.");
         return;

@@ -78,7 +78,9 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-RenderShadowTask::RenderShadowTask() : Task() {
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
+    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
+
     // Prepare the ShapePipeline
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     {
@@ -105,7 +107,7 @@ RenderShadowTask::RenderShadowTask() : Task() {
     auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems);
+    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
 
     // CPU: Sort by pipeline
     auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
@@ -143,6 +145,7 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
 
     // Set the keylight frustum
     args->_viewFrustum = globalLight->shadow.getFrustum().get();
+    // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);

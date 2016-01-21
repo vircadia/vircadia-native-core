@@ -20,14 +20,15 @@
 
 using namespace render;
 
-void render::cullItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+void render::cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
+                       const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
 
     RenderArgs* args = renderContext->getArgs();
-    auto renderDetails = renderContext->getArgs()->_details._item;
+    ViewFrustum* frustum = args->_viewFrustum;
 
-    renderDetails->_considered += inItems.size();
+    details._considered += inItems.size();
     
     // Culling / LOD
     for (auto item : inItems) {
@@ -41,24 +42,24 @@ void render::cullItems(const SceneContextPointer& sceneContext, const RenderCont
         bool outOfView;
         {
             PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = args->_viewFrustum->boxInFrustum(item.bounds) == ViewFrustum::OUTSIDE;
+            outOfView = frustum->boxInFrustum(item.bounds) == ViewFrustum::OUTSIDE;
         }
         if (!outOfView) {
             bool bigEnoughToRender;
             {
                 PerformanceTimer perfTimer("shouldRender");
-                bigEnoughToRender = (args->_shouldRender) ? args->_shouldRender(args, item.bounds) : true;
+                bigEnoughToRender = cullFunctor(args, item.bounds);
             }
             if (bigEnoughToRender) {
                 outItems.emplace_back(item); // One more Item to render
             } else {
-                renderDetails->_tooSmall++;
+                details._tooSmall++;
             }
         } else {
-            renderDetails->_outOfView++;
+            details._outOfView++;
         }
     }
-    renderDetails->_rendered += outItems.size();
+    details._rendered += outItems.size();
 }
 
 struct ItemBound {
@@ -202,10 +203,10 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
 
     RenderArgs* args = renderContext->getArgs();
 
+    auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
     ItemIDsBounds culledItems;
     culledItems.reserve(inItems.size());
-    args->_details.pointTo(RenderDetails::OTHER_ITEM);
-    cullItems(sceneContext, renderContext, inItems, culledItems);
+    cullItems(renderContext, _cullFunctor, details, inItems, culledItems);
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;

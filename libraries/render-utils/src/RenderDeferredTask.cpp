@@ -71,7 +71,9 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
     _toneMappingEffect.render(renderContext->getArgs());
 }
 
-RenderDeferredTask::RenderDeferredTask() : Task() {
+RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
+    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
+
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
@@ -80,7 +82,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     auto fetchedOpaques = addJob<FetchItems>("FetchOpaque", FetchItems([](const RenderContextPointer& context, int count) {
         context->getItemsConfig().opaque.numFeed = count;
     }));
-    auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques);
+    auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques, cullFunctor);
     auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
 
     // CPU only, create the list of renderedTransparents items
@@ -90,7 +92,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
             context->getItemsConfig().transparent.numFeed = count;
         }
     ));
-    auto culledTransparents = addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents);
+    auto culledTransparents = addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents, cullFunctor);
     auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
 
     // GPU Jobs: Start preparing the deferred and lighting buffer
@@ -111,7 +113,7 @@ RenderDeferredTask::RenderDeferredTask() : Task() {
     _occlusionJobIndex = (int)_jobs.size() - 1;
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
-    addJob<DrawLight>("DrawLight");
+    addJob<DrawLight>("DrawLight", cullFunctor);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred");
@@ -186,6 +188,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setAntialiasingStatus(renderContext->getFxaaStatus());
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
+    // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
     renderContext->getArgs()->_context->syncCache();
 
