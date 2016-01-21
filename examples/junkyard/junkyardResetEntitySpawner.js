@@ -21,13 +21,14 @@
 
   var scriptURL = Script.resolvePath("junkyardResetEntityScript.js?v1" + Math.random());
   var resetEntity = Entities.addEntity({
-      type: "Box",
+      type: "Model",
+      modelURL: "http://hifi-content.s3.amazonaws.com/caitlyn/dev/Blueprint%20Objects/Asylum/Asylum_Table/Asylum_Table.fbx",
       position: center,
       script: scriptURL,
       dimensions: {
-          x: 1,
-          y: 1,
-          z: 1
+          x: 2.8,
+          y: 1.76,
+          z: 1.32
       },
       color: {
           red: 200,

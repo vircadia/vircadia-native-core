@@ -18,13 +18,6 @@
     };
 
     JunkyardResetter.prototype = {
-        startDistantGrab: function() {
-            print("YAAAAAAAA")
-        },
-
-        startNearGrab: function() {
-
-        },
 
         clickReleaseOnEntity: function(entityId, mouseEvent) {
             if (!mouseEvent.isLeftButton) {
@@ -38,7 +31,10 @@
             // Delete everything and re-import the junkyard arf
             var e = Entities.findEntities(MyAvatar.position, 1000);
             for (i = 0; i < e.length; i++) {
-                Entities.deleteEntity(e[i]);
+                // Don't delete our reset entity
+                if (JSON.stringify(this.entityID) !== JSON.stringify(e[i])) {
+                  Entities.deleteEntity(e[i]);  
+                }
             }
             this.importArf();
         },

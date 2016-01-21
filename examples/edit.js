@@ -1355,8 +1355,6 @@ function importSVO(importURL) {
             position = getPositionToCreateEntity();
         }
         if (position != null) {
-
-            print("POSITION OF ENTITIES" + JSON.stringify(position))
             var pastedEntityIDs = Clipboard.pasteEntities(position);
 
             if (isActive) {
