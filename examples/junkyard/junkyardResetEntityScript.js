@@ -12,6 +12,7 @@
 (function() {
     Script.include("../libraries/utils.js");
     var _this;
+    var importURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
     var JunkyardResetter = function() {
         _this = this;
     };
@@ -22,6 +23,33 @@
         },
 
         startNearGrab: function() {
+
+        },
+
+        clickReleaseOnEntity: function(entityId, mouseEvent) {
+            if (!mouseEvent.isLeftButton) {
+                return;
+            }
+            this.reset();
+
+        },
+
+        reset: function() {
+            // Delete everything and re-import the junkyard arf
+            var e = Entities.findEntities(MyAvatar.position, 1000);
+            for (i = 0; i < e.length; i++) {
+                Entities.deleteEntity(e[i]);
+            }
+            this.importArf();
+        },
+
+        importArf: function() {
+            Clipboard.importEntities(importURL);
+            Clipboard.pasteEntities({
+                x: 0,
+                y: 0,
+                z: 0
+            });
         },
 
         preload: function(entityID) {

@@ -19,7 +19,7 @@
   var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
 
-  var scriptURL = Script.resolvePath("junkyardResetEntityScript.js");
+  var scriptURL = Script.resolvePath("junkyardResetEntityScript.js?v1" + Math.random());
   var resetEntity = Entities.addEntity({
       type: "Box",
       position: center,
