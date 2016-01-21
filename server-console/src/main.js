@@ -730,7 +730,7 @@ function maybeShowSplash() {
 const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
 const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
 
-const notificationIcon = path.join(__dirname, '../resources/console-notification-win.png');
+const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
