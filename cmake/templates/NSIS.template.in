@@ -904,7 +904,12 @@ Function PostInstallOptionsPage
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Now"
+  ${If} ${SectionIsSelected} ${@SEVER_COMPONENT_NAME}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Server Console Now"
+  ${Else}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Now"
+  ${EndIf}
+
   Pop $LaunchNowCheckbox
 
   ; set the checkbox state depending on what is present in the registry
