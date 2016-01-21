@@ -668,7 +668,7 @@ function getDomainFromAPI(callback) {
   if (domainID.length > 0) {
     var domainURL = Settings.METAVERSE_URL + "/api/v1/domains/" + domainID;
 
-    $.getJSON(domainURL, function(data){ callback(data) }).fail(callback);
+    $.getJSON(domainURL, callback).fail(callback);
   }
 }
 
