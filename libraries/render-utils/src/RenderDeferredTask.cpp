@@ -67,6 +67,16 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
+void ToneMappingDeferred::configure(const Configuration& configuration) {
+    if (configuration.exposure >= 0) {
+        _toneMappingEffect.setExposure(configuration.curve);
+    }
+    if (configuration.curve >= 0) {
+        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)configuration.curve);
+
+    }
+}
+
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     _toneMappingEffect.render(renderContext->getArgs());
 }
@@ -499,25 +509,9 @@ void RenderDeferredTask::setToneMappingExposure(float exposure) {
     }
 }
 
-float RenderDeferredTask::getToneMappingExposure() const {
-    if (_toneMappingJobIndex >= 0) {
-        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getExposure();
-    } else {
-        return 0.0f; 
-    }
-}
-
 void RenderDeferredTask::setToneMappingToneCurve(int toneCurve) {
     if (_toneMappingJobIndex >= 0) {
         _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)toneCurve);
-    }
-}
-
-int RenderDeferredTask::getToneMappingToneCurve() const {
-    if (_toneMappingJobIndex >= 0) {
-        return _jobs[_toneMappingJobIndex].get<ToneMappingDeferred>()._toneMappingEffect.getToneCurve();
-    } else {
-        return 0.0f;
     }
 }
 

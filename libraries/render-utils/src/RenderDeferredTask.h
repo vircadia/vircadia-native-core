@@ -40,13 +40,24 @@ public:
     using JobModel = render::Task::Job::Model<RenderDeferred>;
 };
 
+class ToneMappingConfiguration : public QObject {
+    Q_OBJECT
+public:
+    Q_PROPERTY(float exposure MEMBER exposure);
+    Q_PROPERTY(int curve MEMBER curve);
+    float exposure;
+    int curve;
+};
+
 class ToneMappingDeferred {
 public:
+    using Configuration = ToneMappingConfiguration;
+    void configure(const Configuration&);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    ToneMappingEffect _toneMappingEffect;
+    using JobModel = render::Task::Job::Model<ToneMappingDeferred, Configuration>;
 
-    using JobModel = render::Task::Job::Model<ToneMappingDeferred>;
+    ToneMappingEffect _toneMappingEffect;
 };
 
 class DrawOpaqueDeferred {
@@ -135,10 +146,8 @@ public:
     bool doAntialiasingStatus() const { return getEnableJob(_antialiasingJobIndex); }
 
     void setToneMappingExposure(float exposure);
-    float getToneMappingExposure() const;
 
     void setToneMappingToneCurve(int toneCurve);
-    int getToneMappingToneCurve() const;
 
 
 protected:

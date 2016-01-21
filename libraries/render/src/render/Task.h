@@ -12,6 +12,8 @@
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
 
+#include <qscriptengine.h> // QObject
+
 #include "Context.h"
 
 #include "gpu/Batch.h"
@@ -48,6 +50,16 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
+class NoConfiguration : public QObject {
+    Q_OBJECT
+};
+
+template <class T, class C> void jobConfigure(T& model, const C& configuration) {
+    model.configure(configuration);
+}
+template<class T> void jobConfigure(T&, const NoConfiguration&) {
+}
+
 // FIXME: In c++17, use default classes of nullptr_t to combine these
 template <class T> void jobRun(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     model.run(sceneContext, renderContext);
@@ -64,7 +76,9 @@ template <class T, class I, class O> void jobRunIO(T& model, const SceneContextP
 
 class Job {
 public:
-    // The guts of a job; jobs are composed of a concept
+    using QObjectPointer = std::shared_ptr<QObject>;
+
+    // The guts of a job
     class Concept {
     public:
         Concept() = default;
@@ -75,22 +89,33 @@ public:
 
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
+        virtual const QObjectPointer getConfiguration() = 0;
+        virtual void setConfiguration(const QObjectPointer& configuration) = 0;
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
     protected:
-
         bool _isEnabled = true;
     };
     using ConceptPointer = std::shared_ptr<Concept>;
 
-    template <class T> class Model : public Concept {
+    template <class T, class C = NoConfiguration> class Model : public Concept {
     public:
-        typedef T Data;
+        using Data = T;
+        using ConfigurationPointer = std::shared_ptr<C>;
 
         Data _data;
+        ConfigurationPointer _configuration;
 
-        Model() {}
-        Model(Data data) : _data(data) {}
+        Model() : _configuration{ std::make_shared<C>() } {}
+        Model(Data data) : _data(data), _configuration{ std::make_shared<C>() } {
+            jobConfigure(_data, *_configuration);
+        }
+
+        const QObjectPointer getConfiguration() { return _configuration; }
+        void setConfiguration(const QObjectPointer& configuration) {
+            _configuration = std::static_pointer_cast<C>(configuration);
+            jobConfigure(_data, *_configuration);
+        }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             if (isEnabled()) {
@@ -99,18 +124,26 @@ public:
         }
     };
 
-    template <class T, class I> class ModelI : public Concept {
+    template <class T, class I, class C = NoConfiguration> class ModelI : public Concept {
     public:
-        typedef T Data;
-        typedef I Input;
+        using Data = T;
+        using ConfigurationPointer = std::shared_ptr<C>;
+        using Input = I;
 
         Data _data;
+        ConfigurationPointer _configuration;
         Varying _input;
 
         const Varying getInput() const { return _input; }
 
         ModelI(const Varying& input, Data data = Data()) : _data(data), _input(input) {}
         ModelI(Data data) : _data(data) {}
+
+        const QObjectPointer getConfiguration() { return _configuration; }
+        void setConfiguration(const QObjectPointer& configuration) {
+            _configuration = std::static_pointer_cast<C>(configuration);
+            jobConfigure(_data, *_configuration);
+        }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             if (isEnabled()) {
@@ -119,18 +152,26 @@ public:
         }
     };
 
-    template <class T, class O> class ModelO : public Concept {
+    template <class T, class O, class C = NoConfiguration> class ModelO : public Concept {
     public:
-        typedef T Data;
-        typedef O Output;
+        using Data = T;
+        using ConfigurationPointer = std::shared_ptr<C>;
+        using Output = O;
 
         Data _data;
+        ConfigurationPointer _configuration;
         Varying _output;
 
         const Varying getOutput() const { return _output; }
 
         ModelO(Data data) : _data(data), _output(Output()) {}
         ModelO() : _output(Output()) {}
+
+        const QObjectPointer getConfiguration() { return _configuration; }
+        void setConfiguration(const QObjectPointer& configuration) {
+            _configuration = std::static_pointer_cast<C>(configuration);
+            jobConfigure(_data, *_configuration);
+        }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             if (isEnabled()) {
@@ -139,13 +180,15 @@ public:
         }
     };
 
-    template <class T, class I, class O> class ModelIO : public Concept {
+    template <class T, class I, class O, class C = NoConfiguration> class ModelIO : public Concept {
     public:
-        typedef T Data;
-        typedef I Input;
-        typedef O Output;
+        using Data = T;
+        using ConfigurationPointer = std::shared_ptr<C>;
+        using Input = I;
+        using Output = O;
 
         Data _data;
+        ConfigurationPointer _configuration;
         Varying _input;
         Varying _output;
 
@@ -155,6 +198,12 @@ public:
         ModelIO(const Varying& input, Data data = Data()) : _data(data), _input(input), _output(Output()) {}
         ModelIO(Data data) : _data(data), _output(Output()) {}
 
+        const QObjectPointer getConfiguration() { return _configuration; }
+        void setConfiguration(const QObjectPointer& configuration) {
+            _configuration = std::static_pointer_cast<C>(configuration);
+            jobConfigure(_data, *_configuration);
+        }
+
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
             if (isEnabled()) {
                 jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
@@ -162,7 +211,7 @@ public:
         }
     };
 
-    Job(ConceptPointer concept) : _concept(concept) {}
+
     Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
 
     bool isEnabled() const { return _concept->isEnabled(); }
@@ -170,13 +219,10 @@ public:
 
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
+    const QObjectPointer getConfiguration() const { return _concept->getConfiguration(); }
+    void setConfiguration(const QObjectPointer& configuration) { return _concept->setConfiguration(configuration); }
 
     template <class T> T& edit() {
-        auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
-        assert(concept);
-        return concept->_data;
-    }
-    template <class T> const T& get() const {
         auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
         assert(concept);
         return concept->_data;
