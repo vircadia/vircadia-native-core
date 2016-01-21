@@ -27,7 +27,7 @@
 extern const char* NUM_FORKS_PARAMETER;
 
 struct ACProcess {
-    QProcess* process;
+    QProcess* process; // looks like a dangling pointer, but is parented by the AssignmentClientMonitor 
     QString logStdoutPath;
     QString logStderrPath;
 };
@@ -46,7 +46,7 @@ private slots:
     void checkSpares();
     void childProcessFinished(qint64 pid);
     void handleChildStatusPacket(QSharedPointer<ReceivedMessage> message);
-    
+
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
 
 public slots:
