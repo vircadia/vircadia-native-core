@@ -27,7 +27,7 @@ var pistol = Entities.addEntity({
     },
     restitution: 0,
     damping:0.5,
-    collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/gundrop.wav",
+    collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/drop.wav",
     userData: JSON.stringify({
         grabbableKey: {
             spatialKey: {
