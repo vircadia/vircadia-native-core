@@ -601,13 +601,6 @@ function updateTrayMenu(serverState) {
 const httpStatusPort = 60332;
 
 function maybeInstallDefaultContentSet(onComplete) {
-    var hasRun = userConfig.get('hasRun', false);
-
-    if (hasRun) {
-        onComplete();
-        return;
-    }
-
     // Check for existing AC data
     const acResourceDirectory = getAssignmentClientResourcesDirectory();
     console.log("Checking for existence of " + acResourceDirectory);
