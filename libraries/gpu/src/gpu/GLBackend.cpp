@@ -214,13 +214,17 @@ void GLBackend::renderPassDraw(Batch& batch) {
             case Batch::COMMAND_drawInstanced:
             case Batch::COMMAND_drawIndexedInstanced:
             case Batch::COMMAND_multiDrawIndirect:
-            case Batch::COMMAND_multiDrawIndexedIndirect:
+            case Batch::COMMAND_multiDrawIndexedIndirect: {
                 // updates for draw calls
                 ++_currentDraw;
                 updateInput();
                 updateTransform(batch);
                 updatePipeline();
-                // Fallthrough to next case
+                
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+                break;
+            }
             default: {
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
