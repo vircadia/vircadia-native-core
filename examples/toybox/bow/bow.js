@@ -540,7 +540,7 @@
                 var arrowProperties = {
                     dynamic: true,
                     collisionless: false,
-                    collisionMask: "static,dynamic,otherAvatar", // workaround: not with kinematic --> no collision with bow
+                    collidesWith: "static,dynamic,otherAvatar", // workaround: not with kinematic --> no collision with bow
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,

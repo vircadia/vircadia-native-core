@@ -108,7 +108,7 @@ var GRABBABLE_PROPERTIES = [
     "position",
     "rotation",
     "gravity",
-    "collisionMask",
+    "collidesWith",
     "collisionsWillMove",
     "locked",
     "name",
@@ -163,9 +163,9 @@ var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var STATE_EQUIP_SPRING = 16;
 
-// collision masks are specified by comma-separated list of group names
-// the possible list of names is:  static, dynamic, kinematic, myAvatar, otherAvatar
-var COLLISION_MASK_WHILE_GRABBED = "dynamic,otherAvatar";
+// "collidesWith" is specified by comma-separated list of group names
+// the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
+var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
 
 function stateToName(state) {
     switch (state) {
@@ -1655,7 +1655,7 @@ function MyController(hand) {
         // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
         if (data["refCount"] == 1) {
             data["gravity"] = grabbedProperties.gravity;
-            data["collisionMask"] = grabbedProperties.collisionMask;
+            data["collidesWith"] = grabbedProperties.collidesWith;
             data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
             data["parentID"] = grabbedProperties.parentID;
             data["parentJointIndex"] = grabbedProperties.parentJointIndex;
@@ -1665,7 +1665,10 @@ function MyController(hand) {
                     y: 0,
                     z: 0
                 },
-                "collisionMask": COLLISION_MASK_WHILE_GRABBED
+                // bummer, it isn't easy to do bitwise collisionMask operations like this:
+                //"collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
+                // when using string values
+                "collidesWith": COLLIDES_WITH_WHILE_GRABBED
             };
             Entities.editEntity(entityID, whileHeldProperties);
         }
@@ -1681,7 +1684,7 @@ function MyController(hand) {
             if (data["refCount"] < 1) {
                 Entities.editEntity(entityID, {
                     gravity: data["gravity"],
-                    collisionMask: data["collisionMask"],
+                    collidesWith: data["collidesWith"],
                     collisionsWillMove: data["collisionsWillMove"],
                     ignoreForCollisions: data["ignoreForCollisions"],
                     parentID: data["parentID"],
