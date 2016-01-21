@@ -125,14 +125,23 @@ void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentLi
         // as of 1/19/2016 this path was moved so we attempt a migration for first run post migration here
 
         // figure out what the old path was
+
+        // if our build version is "dev" we should migrate from a different organization folder
+        auto oldOrganizationName = QCoreApplication::organizationName();
+        if (oldOrganizationName == "High Fidelity - dev") {
+            oldOrganizationName = "High Fidelity";
+        }
+
         auto oldConfigFilename = QString("%1/%2/%3/%4").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
-                                                                     QCoreApplication::organizationName(),
-                                                                     QCoreApplication::applicationName(),
-                                                                     USER_CONFIG_FILE_NAME);
+                                                            oldOrganizationName,
+                                                            QCoreApplication::applicationName(),
+                                                            USER_CONFIG_FILE_NAME);
+
 
         // check if there's already a config file at the new path
         QFile newConfigFile { _userConfigFilename };
         if (!newConfigFile.exists()) {
+
             QFile oldConfigFile { oldConfigFilename };
 
             if (oldConfigFile.exists()) {
