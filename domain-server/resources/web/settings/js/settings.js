@@ -126,6 +126,20 @@ var viewHelpers = {
   }
 }
 
+var qs = (function(a) {
+    if (a == "") return {};
+    var b = {};
+    for (var i = 0; i < a.length; ++i)
+    {
+        var p=a[i].split('=', 2);
+        if (p.length == 1)
+            b[p[0]] = "";
+        else
+            b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+    }
+    return b;
+})(window.location.search.substr(1).split('&'));
+
 $(document).ready(function(){
   /*
   * Clamped-width.
@@ -272,8 +286,79 @@ $(document).ready(function(){
 
   // $('body').scrollspy({ target: '#setup-sidebar'})
 
-  reloadSettings();
+  reloadSettings(function(success){
+    if (success) {
+      handleAction();
+    } else {
+      swal({
+        title: '',
+        type: 'error',
+        text: "There was a problem loading the domain settings.\nPlease refresh the page to try again.",
+      });
+    }
+  });
 });
+
+function handleAction() {
+  // check if we were passed an action to handle
+  var action = qs["action"];
+
+  if (action == "share") {
+    // figure out if we already have a stored domain ID
+    if (Settings.data.values.metaverse.id.length > 0) {
+      // we need to ask the API what a shareable name for this domain is
+      getDomainFromAPI(function(data){
+        // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+        if (data && data.status == "success") {
+          var shareName;
+          if (data.domain.owner_places) {
+            shareName = data.domain.owner_places[0].name
+          } else if (data.domain.name) {
+            shareName = data.domain.name;
+          }
+
+          var shareLink = "hifi://" + shareName;
+
+          console.log(shareLink);
+
+          // show a dialog with a copiable share URL
+          swal({
+            title: "Share",
+            type: "input",
+            inputPlaceholder: shareLink,
+            inputValue: shareLink,
+            text: "Copy this URL to invite friends to your domain.",
+            closeOnConfirm: true
+          });
+
+          $('.sweet-alert input').select();
+
+        } else {
+          // show an error alert
+          swal({
+            title: '',
+            type: 'error',
+            text: "There was a problem retreiving domain information from High Fidelity API.",
+            confirmButtonText: 'Try again',
+            showCancelButton: true,
+            closeOnConfirm: false
+          }, function(isConfirm){
+            if (isConfirm) {
+              // they want to try getting domain share info again
+              showSpinnerAlert("Requesting domain information...")
+              handleAction();
+            } else {
+              swal.close();
+            }
+          });
+        }
+      });
+    } else {
+      // no domain ID present, just show the share dialog
+      createTemporaryDomain();
+    }
+  }
+}
 
 function dynamicButton(button_id, text) {
   return $("<button type='button' id='" + button_id + "' class='btn btn-primary'>" + text + "</button>");
@@ -577,27 +662,31 @@ function placeTableRowForPlaceObject(place) {
   return placeTableRow(place.name, placePathOrIndex, false);
 }
 
-function reloadPlacesOrTemporaryName() {
+function getDomainFromAPI(callback) {
   // we only need to do this if we have a current domain ID
   var domainID = Settings.data.values.metaverse.id;
   if (domainID.length > 0) {
     var domainURL = Settings.METAVERSE_URL + "/api/v1/domains/" + domainID;
 
-    $.getJSON(domainURL, function(data){
-      // check if we have owner_places (for a real domain) or a name (for a temporary domain)
-      if (data.status == "success") {
-        if (data.domain.owner_places) {
-          // add a table row for each of these names
-          _.each(data.domain.owner_places, function(place){
-            $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
-          });
-        } else if (data.domain.name) {
-          // add a table row for this temporary domain name
-          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
-        }
-      }
-    });
+    $.getJSON(domainURL, callback).fail(callback);
   }
+}
+
+function reloadPlacesOrTemporaryName() {
+  getDomainFromAPI(function(data){
+    // check if we have owner_places (for a real domain) or a name (for a temporary domain)
+    if (data.status == "success") {
+      if (data.domain.owner_places) {
+        // add a table row for each of these names
+        _.each(data.domain.owner_places, function(place){
+          $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRowForPlaceObject(place));
+        });
+      } else if (data.domain.name) {
+        // add a table row for this temporary domain name
+        $('#' + Settings.PLACES_TABLE_ID + " tbody").append(placeTableRow(data.domain.name, '/', true));
+      }
+    }
+  })
 }
 
 function appendDomainIDButtons() {
@@ -728,7 +817,7 @@ function createTemporaryDomain() {
   });
 }
 
-function reloadSettings() {
+function reloadSettings(callback) {
   $.getJSON('/settings.json', function(data){
     _.extend(data, viewHelpers)
 
@@ -757,6 +846,12 @@ function reloadSettings() {
       placement: 'right',
       title: 'This setting is in the master config file and cannot be changed'
     });
+
+    // call the callback now that settings are loaded
+    callback(true);
+  }).fail(function() {
+    // call the failure object since settings load faild
+    callback(false)
   });
 }
 

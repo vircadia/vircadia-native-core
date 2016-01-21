@@ -25,3 +25,4 @@
 *.svg binary
 *.ttf binary
 *.wav binary
+*.rsrc binary

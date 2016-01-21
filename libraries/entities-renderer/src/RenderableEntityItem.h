@@ -39,7 +39,7 @@ public:
 };
 
 namespace render {
-   template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload); 
+   template <> const ItemKey payloadGetKey(const RenderableEntityItemProxy::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const RenderableEntityItemProxy::Pointer& payload);
    template <> void payloadRender(const RenderableEntityItemProxy::Pointer& payload, RenderArgs* args);
 }
@@ -73,8 +73,8 @@ private:
 
 #define SIMPLE_RENDERABLE() \
 public: \
-    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { return _renderHelper.addToScene(self, scene, pendingChanges); } \
-    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
+    virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { return _renderHelper.addToScene(self, scene, pendingChanges); } \
+    virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
 private: \
     SimpleRenderableEntityItem _renderHelper;
 

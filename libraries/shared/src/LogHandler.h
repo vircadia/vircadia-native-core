@@ -22,11 +22,12 @@
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
 enum LogMsgType {
+    LogInfo = QtInfoMsg,
     LogDebug = QtDebugMsg,
     LogWarning = QtWarningMsg,
     LogCritical = QtCriticalMsg,
     LogFatal = QtFatalMsg,
-    LogSuppressed
+    LogSuppressed = 100
 };
 
 /// Handles custom message handling and sending of stats/logs to Logstash instance
