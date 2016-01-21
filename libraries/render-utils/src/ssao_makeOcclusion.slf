@@ -84,13 +84,10 @@ float sampleAO(in ivec2 side, in ivec2 ssC, in vec3 C, in vec3 n_C, in float ssD
     float vv = dot(v, v);
     float vn = dot(v, n_C);
 
-    const float bias =  0.01;
-    const float epsilon = 0.01;
-    float radius2 = getRadius2();
-
     // Fall off function as recommended in SAO paper
-    float f = max(radius2 - vv, 0.0);
-    return f * f * f * max((vn - bias) / (epsilon + vv), 0.0);
+    const float epsilon = 0.01;
+    float f = max(getRadius2() - vv, 0.0);
+    return f * f * f * max((vn - getFalloffBias()) / (epsilon + vv), 0.0);
 }
 
 void main(void) {

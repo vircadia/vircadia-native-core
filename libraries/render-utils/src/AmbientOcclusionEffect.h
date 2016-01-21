@@ -37,6 +37,10 @@ public:
     void setDithering(bool enabled);
     bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>()._ditheringInfo.x; }
 
+    // Faloff Bias
+    void setFalloffBias(float bias);
+    int getFalloffBias() const { return (int)_parametersBuffer.get<Parameters>()._ditheringInfo.z; }
+
     // Number of samples per pixel to evaluate the Obscurance
     void setNumSamples(int numSamples);
     int getNumSamples() const { return (int)_parametersBuffer.get<Parameters>()._sampleInfo.x; }
@@ -94,8 +98,8 @@ private:
         glm::vec4 _resolutionInfo{ -1.0, 0.0, 0.0, 0.0 };
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 _radiusInfo{ 0.5, 0.5 * 0.5, 1.0 / (0.25 * 0.25 * 0.25), 1.0 };
-        // Dithering info
-        glm::vec4 _ditheringInfo{ 0.0, 0.0, 0.0, 0.0 };
+        // Dithering info 
+        glm::vec4 _ditheringInfo{ 0.0, 0.0, 0.01, 0.0 };
         // Sampling info
         glm::vec4 _sampleInfo{ 11.0, 1.0/11.0, 7.0, 1.0 };
         // Blurring info

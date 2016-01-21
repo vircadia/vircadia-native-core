@@ -113,6 +113,9 @@ float getFrameDithering() {
     return params._ditheringInfo.y;
 }
 
+float getFalloffBias() {
+    return params._ditheringInfo.z;
+}
 
 float getNumSamples() {
     return params._sampleInfo.x;

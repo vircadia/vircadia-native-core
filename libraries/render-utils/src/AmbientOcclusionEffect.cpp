@@ -246,6 +246,15 @@ void AmbientOcclusionEffect::setDithering(bool enabled) {
     }
 }
 
+void AmbientOcclusionEffect::setFalloffBias(float bias) {
+    bias = std::max(0.0f, std::min(bias, 0.2f));
+    if (bias != getFalloffBias()) {
+        auto& current = _parametersBuffer.edit<Parameters>()._ditheringInfo;
+        current.z = (float)bias;
+    }
+}
+
+
 void AmbientOcclusionEffect::setNumSamples(int numSamples) {
     numSamples = std::max(1.f, (float) numSamples);
     if (numSamples != getNumSamples()) {

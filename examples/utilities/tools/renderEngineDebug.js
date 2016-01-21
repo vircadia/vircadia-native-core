@@ -129,6 +129,11 @@ panel.newCheckbox("Ambient Occlusion Dithering",
     function() { return Render.ambientOcclusion.ditheringEnabled; },
     function (value) { return (value); });
 
+panel.newSlider("Ambient Occlusion Falloff Bias", 0.0, 0.2,
+    function (value) { Render.ambientOcclusion.falloffBias = value; },
+    function() { return Render.ambientOcclusion.falloffBias; },
+    function (value) { return (value.toFixed(2)); });
+
 panel.newSlider("Ambient Occlusion Edge Sharpness", 0.0, 1.0,
     function (value) { Render.ambientOcclusion.edgeSharpness = value; },
     function() { return Render.ambientOcclusion.edgeSharpness; },

@@ -80,6 +80,7 @@ public:
         int numSamples = 11; // Num Samples per pixel
         float numSpiralTurns = 7.0f;
         bool ditheringEnabled = true;
+        float falloffBias = 0.01f;
         float edgeSharpness = 1.0f;
         int blurRadius = 4;
         float blurDeviation = 2.5f;
