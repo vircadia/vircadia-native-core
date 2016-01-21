@@ -422,9 +422,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
-    // to work around the Qt constant wireless scanning, set the env for polling interval very high
-    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
-    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 
     _entityClipboard->createRootElement();
 
