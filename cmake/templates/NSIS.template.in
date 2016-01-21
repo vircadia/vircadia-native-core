@@ -904,7 +904,7 @@ Function PostInstallOptionsPage
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
-  ${If} ${SectionIsSelected} ${@SEVER_COMPONENT_NAME}
+  ${If} ${SectionIsSelected} ${@SEVER_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Server Console Now"
   ${Else}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Now"
