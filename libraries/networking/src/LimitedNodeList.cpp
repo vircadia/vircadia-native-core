@@ -827,6 +827,9 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 
             connect(lookupTimeoutTimer, &QTimer::timeout, this, &LimitedNodeList::possiblyTimeoutSTUNAddressLookup);
 
+            // delete the lookup timeout timer once it has fired
+            connect(lookupTimeoutTimer, &QTimer::timeout, lookupTimeoutTimer, &QTimer::deleteLater);
+
             lookupTimeoutTimer->start(STUN_DNS_LOOKUP_TIMEOUT_MSECS);
         } else {
             _initialSTUNTimer->start();
