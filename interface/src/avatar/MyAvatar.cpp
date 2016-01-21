@@ -50,6 +50,7 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
+#include "EntityEditPacketSender.h"
 
 using namespace std;
 
@@ -352,6 +353,21 @@ void MyAvatar::simulate(float deltaTime) {
 
     // consider updating our billboard
     maybeUpdateBillboard();
+
+    locationChanged();
+    // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
+    forEachDescendant([&](SpatiallyNestablePointer object) {
+        if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+            EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
+            if (packetSender) {
+                EntityItemProperties properties = entity->getProperties();
+                properties.setQueryAACubeDirty();
+                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                entity->setLastBroadcast(usecTimestampNow());
+            }
+        }
+    });
 }
 
 glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
