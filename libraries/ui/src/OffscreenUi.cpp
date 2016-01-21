@@ -16,6 +16,8 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
+#include "VrMenu.h"
+
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
     Q_OBJECT
@@ -192,7 +194,7 @@ QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, cons
     map.insert("buttons", buttons.operator int());
     map.insert("defaultButton", defaultButton);
     QVariant result;
-    bool invokeResult = QMetaObject::invokeMethod(getDesktop(), "messageBox", 
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "messageBox",
         Q_RETURN_ARG(QVariant, result),
         Q_ARG(QVariant, QVariant::fromValue(map)));
 
@@ -231,16 +233,22 @@ void OffscreenUi::setNavigationFocused(bool focused) {
     offscreenFlags->setNavigationFocused(focused);
 }
 
-void OffscreenUi::createDesktop() {
+void OffscreenUi::createDesktop(const QUrl& url) {
     if (_desktop) {
         qDebug() << "Desktop already created";
+        return;
     }
     getRootContext()->setContextProperty("DebugQML", QVariant(false));
-    _desktop = dynamic_cast<QQuickItem*>(load("Root.qml"));
+    _desktop = dynamic_cast<QQuickItem*>(load(url));
     Q_ASSERT(_desktop);
-    getRootContext()->setContextProperty("Desktop", _desktop);
+    getRootContext()->setContextProperty("desktop", _desktop);
+
+    // Enable focus debugging
     _desktop->setProperty("offscreenWindow", QVariant::fromValue(getWindow()));
+
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
+
+    new VrMenu(this);
 }
 
 QQuickItem* OffscreenUi::getDesktop() {
@@ -251,37 +259,14 @@ QQuickItem* OffscreenUi::getToolWindow() {
     return _toolWindow;
 }
 
-Q_DECLARE_METATYPE(std::function<void()>);
-static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
-Q_DECLARE_METATYPE(std::function<QVariant()>);
-static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
-
-
-void OffscreenUi::executeOnUiThread(std::function<void()> function) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenUi::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
-}
-
 void OffscreenUi::unfocusWindows() {
     bool invokeResult = QMetaObject::invokeMethod(_desktop, "unfocusWindows");
     Q_ASSERT(invokeResult);
+}
+
+void OffscreenUi::toggleMenu(const QPoint& screenPosition) {
+    auto virtualPos = mapToVirtualScreen(screenPosition, nullptr);
+    QMetaObject::invokeMethod(_desktop, "toggleMenu",  Q_ARG(QVariant, virtualPos));
 }
 
 

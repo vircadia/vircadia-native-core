@@ -2,74 +2,34 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs;
 
-import "dialogs"
+import "../dialogs"
+import "../menus"
 
 // This is our primary 'desktop' object to which all VR dialogs and
 // windows will be childed.
 FocusScope {
     id: desktop
     anchors.fill: parent;
-
-    // Debugging help for figuring out focus issues
-    property var offscreenWindow;
-    onOffscreenWindowChanged: offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
-    function onWindowFocusChanged() {
-        console.log("Focus item is " + offscreenWindow.activeFocusItem);
-        var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem) {
-            var rect = desktop.mapToItem(desktop, focusedItem.x, focusedItem.y, focusedItem.width, focusedItem.height);
-            focusDebugger.visible = true
-            focusDebugger.x = rect.x;
-            focusDebugger.y = rect.y;
-            focusDebugger.width = rect.width
-            focusDebugger.height = rect.height
-        }
-    }
-
-    Rectangle {
-        id: focusDebugger; 
-        z: 9999; visible: false; color: "red"
-        ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
-    }
+    objectName: "desktop"
 
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
 
     // The VR version of the primary menu
-    property var rootMenu: Menu { objectName: "rootMenu" }
-
-    // The tool window, one instance
-    property alias toolWindow: toolWindow
-    ToolWindow { id: toolWindow }
-
-    // FIXME support always on top flags
-    function raise(item) {
-        d.raiseWindow(item);
-    }
-
-    Component {
-        id: messageDialogBuilder
-        MessageDialog { }
-    }
-
-    Component {
-        id: nativeMessageDialogBuilder
-        OriginalDialogs.MessageDialog { }
-    }
-
-    function messageBox(properties) {
-        // Debugging: native message dialog for comparison
-        // nativeMessageDialogBuilder.createObject(desktop, properties);
-        return messageDialogBuilder.createObject(desktop, properties);
+    property var rootMenu: Menu {
+        id: rootMenu; objectName: "rootMenu"
+        Component.onCompleted: {
+            console.log("ROOT_MENU " + rootMenu);
+        }
     }
 
     QtObject {
         id: d
-
         readonly property int zBasisNormal: 0
         readonly property int zBasisAlwaysOnTop: 4096
         readonly property int zBasisModal: 8192
-
+        readonly property var messageDialogBuilder: Component { MessageDialog { } }
+        readonly property var nativeMessageDialogBuilder: Component { OriginalDialogs.MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -203,12 +163,70 @@ FocusScope {
         }
     }
 
+    MenuMouseHandler { id: menuPopperUpper }
+
+    function raise(item) {
+        d.raiseWindow(item);
+    }
+
+    function messageBox(properties) {
+        // Debugging: native message dialog for comparison
+        // d.nativeMessageDialogBuilder.createObject(desktop, properties);
+        return d.messageDialogBuilder.createObject(desktop, properties);
+    }
+
+    function popupMenu(point) {
+        menuPopperUpper.popup(desktop, rootMenu.items, point);
+    }
+
+    function toggleMenu(point) {
+        menuPopperUpper.toggle(desktop, rootMenu.items, point);
+    }
+
+    Keys.onEscapePressed: {
+        if (menuPopperUpper.closeLastMenu()) {
+            event.accepted = true;
+            return;
+        }
+        event.accepted = false;
+    }
+
+    Keys.onLeftPressed: {
+        if (menuPopperUpper.closeLastMenu()) {
+            event.accepted = true;
+            return;
+        }
+        event.accepted = false;
+    }
+
+
     function unfocusWindows() {
         var windows = d.getTopLevelWindows();
         for (var i = 0; i < windows.length; ++i) {
             windows[i].focus = false;
         }
         desktop.focus = true;
+    }
+
+    // Debugging help for figuring out focus issues
+    property var offscreenWindow;
+    onOffscreenWindowChanged: offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+    function onWindowFocusChanged() {
+        console.log("Focus item is " + offscreenWindow.activeFocusItem);
+        var focusedItem = offscreenWindow.activeFocusItem ;
+        if (DebugQML && focusedItem) {
+            var rect = desktop.mapToItem(null, focusedItem.x, focusedItem.y, focusedItem.width, focusedItem.height);
+            focusDebugger.visible = true
+            focusDebugger.x = rect.x;
+            focusDebugger.y = rect.y;
+            focusDebugger.width = rect.width
+            focusDebugger.height = rect.height
+        }
+    }
+    Rectangle {
+        id: focusDebugger;
+        z: 9999; visible: false; color: "red"
+        ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
 }
 

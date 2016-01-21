@@ -1,16 +1,13 @@
 import QtQuick 2.4
 import QtQuick.Controls 1.3
 import QtQuick.Controls.Styles 1.3
-import "controls"
-import "styles"
+
+import "../controls"
+import "../styles"
 
 Item {
     id: root
-    HifiConstants { 
-        id: hifi 
-    }
-
-    // The model object
+    HifiConstants { id: hifi  }
     property alias text: label.text
     property var source
 

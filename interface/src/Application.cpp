@@ -793,7 +793,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                VrMenu::toggle(); // show context menu even on non-stereo displays
+                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = QCursor::pos();
                 auto newPos = oldPos;
@@ -1176,7 +1176,6 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
-    VrMenu::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
 
@@ -1186,7 +1185,7 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop();
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
     
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -1244,8 +1243,6 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
     _glWidget->installEventFilter(offscreenUi.data());
-    VrMenu::load();
-    VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
@@ -2063,7 +2060,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        VrMenu::toggle(); // show context menu even on non-stereo displays
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     _keysPressed.remove(event->key());
