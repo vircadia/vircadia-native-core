@@ -1186,8 +1186,6 @@ void EntityItem::setDimensions(const glm::vec3& value) {
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
 AACube EntityItem::getMaximumAACube(bool& success) const {
-    assert(!getTree() || !getTree()->getIsServer()); // the entity-server can't reliably use this method.
-
     if (_recalcMaxAACube) {
         // * we know that the position is the center of rotation
         glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
@@ -1220,8 +1218,6 @@ AACube EntityItem::getMaximumAACube(bool& success) const {
 /// This accounts for the registration point (upon which rotation occurs around).
 ///
 AACube EntityItem::getMinimumAACube(bool& success) const {
-    assert(!getTree() || !getTree()->getIsServer()); // the entity-server can't reliably use this method.
-
     if (_recalcMinAACube) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
@@ -1253,8 +1249,6 @@ AACube EntityItem::getMinimumAACube(bool& success) const {
 }
 
 AABox EntityItem::getAABox(bool& success) const {
-    assert(!getTree() || !getTree()->getIsServer()); // the entity-server can't reliably use this method.
-
     if (_recalcAABox) {
         // _position represents the position of the registration point.
         glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;

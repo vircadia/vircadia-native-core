@@ -313,7 +313,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                     // before we consider including it.
                     if (includeThisEntity) {
-                        AABox entityBounds = AABox(entityCube);
+                        AABox entityBounds = entity->getAABox(success);
+                        if (!success) {
+                            // if this entity is a child of an avatar, the entity-server wont be able to determine its
+                            // AABox.  If this happens, fall back to the queryAACube.
+                            entityBounds = AABox(entityCube);
+                        }
                         auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds,
                                                                                           params.octreeElementSizeScale,
                                                                                           params.boundaryLevelAdjust);
