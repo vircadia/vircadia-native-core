@@ -12,8 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var importURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
-
+var IMPORT_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
+var PASTE_ENTITIES_LOCATION = {x: 0, y: 0, z: 0};
 reset();
 
 function reset() {
@@ -26,10 +26,6 @@ function reset() {
 }
 
 function importArf() {
-  Clipboard.importEntities(importURL);
-  Clipboard.pasteEntities({
-    x: 0,
-    y: 0,
-    z: 0
-  });
+  Clipboard.importEntities(IMPORT_URL);
+  Clipboard.pasteEntities(PASTE_ENTITIES_LOCATION);
 }

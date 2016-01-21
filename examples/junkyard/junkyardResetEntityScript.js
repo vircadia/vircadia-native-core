@@ -12,7 +12,8 @@
 (function() {
     Script.include("../libraries/utils.js");
     var _this;
-    var importURL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
+    var IMPORT_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
+    var PASTE_ENTITIES_LOCATION = {x: 0, y: 0, z: 0};
     var JunkyardResetter = function() {
         _this = this;
     };
@@ -40,12 +41,8 @@
         },
 
         importArf: function() {
-            Clipboard.importEntities(importURL);
-            Clipboard.pasteEntities({
-                x: 0,
-                y: 0,
-                z: 0
-            });
+            Clipboard.importEntities(IMPORT_URL);
+            Clipboard.pasteEntities(PASTE_ENTITIES_LOCATION);
         },
 
         preload: function(entityID) {
