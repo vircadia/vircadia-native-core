@@ -126,7 +126,7 @@ void FramebufferCache::resizeAmbientOcclusionBuffers() {
     auto width = _frameBufferSize.width() >> _AOResolutionLevel;
     auto height = _frameBufferSize.height() >> _AOResolutionLevel;
     auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGB);
-    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_POINT_MAG_LINEAR);
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
     auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
 
     _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));

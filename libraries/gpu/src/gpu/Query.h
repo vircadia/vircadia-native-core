@@ -57,7 +57,7 @@ namespace gpu {
 
     protected:
         
-        static const int QUERY_QUEUE_SIZE = 4;
+        static const int QUERY_QUEUE_SIZE { 4 };
 
         gpu::Queries _timerQueries;
         int _headIndex = -1;

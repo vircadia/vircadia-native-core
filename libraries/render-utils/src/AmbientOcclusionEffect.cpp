@@ -48,7 +48,7 @@ public:
         
         // corner case when radius is 0 or under
         if (samplingRadius <= 0) {
-            coefs[0] = 1.0;
+            coefs[0] = 1.0f;
             return coefs;
         }
         
@@ -140,12 +140,11 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        // Stencil test all the ao passes for objects pixels only, not the background
+        // Stencil test the ao passes for objects pixels only, not the background
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         state->setColorWriteMask(true, true, true, false);
-        //state->setColorWriteMask(true, true, true, true);
-        
+
         // Good to go add the brand new pipeline
         _occlusionPipeline = gpu::Pipeline::create(program, state);
     }
@@ -168,7 +167,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         // Stencil test all the ao passes for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        //state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         
         state->setColorWriteMask(true, true, true, false);
         
@@ -194,7 +193,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         // Stencil test all the ao passes for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        //state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         
         // Vertical blur write just the final result Occlusion value in the alpha channel
         state->setColorWriteMask(true, true, true, false);
@@ -207,13 +206,13 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
 
 
 void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
-    _frameTransformBuffer.edit<FrameTransform>()._depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
+    _frameTransformBuffer.edit<FrameTransform>().depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
 }
 
 void AmbientOcclusionEffect::setResolutionLevel(int level) {
     level = std::max(0, std::min(level, 4));
     if (level != getResolutionLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._resolutionInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
         current.x = (float)level;
 
         // Communicate the change to the Framebuffer cache
@@ -222,68 +221,77 @@ void AmbientOcclusionEffect::setResolutionLevel(int level) {
 }
 
 void AmbientOcclusionEffect::setRadius(float radius) {
+    const double RADIUS_POWER = 6.0;
     radius = std::max(0.01f, radius);
     if (radius != getRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
         current.x = radius;
         current.y = radius * radius;
-        current.z = (float)(1.0 / pow((double)radius, 6.0));
+        current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
     }
 }
 
 void AmbientOcclusionEffect::setLevel(float level) {
     level = std::max(0.01f, level);
     if (level != getLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._radiusInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
         current.w = level;
     }
 }
 
 void AmbientOcclusionEffect::setDithering(bool enabled) {
     if (enabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._ditheringInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
         current.x = (float)enabled;
+    }
+}
+
+void AmbientOcclusionEffect::setBordering(bool enabled) {
+    if (enabled != isBorderingEnabled()) {
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+        current.w = (float)enabled;
     }
 }
 
 void AmbientOcclusionEffect::setFalloffBias(float bias) {
     bias = std::max(0.0f, std::min(bias, 0.2f));
     if (bias != getFalloffBias()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._ditheringInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
         current.z = (float)bias;
     }
 }
 
 
 void AmbientOcclusionEffect::setNumSamples(int numSamples) {
-    numSamples = std::max(1.f, (float) numSamples);
+    numSamples = std::max(1.0f, (float) numSamples);
     if (numSamples != getNumSamples()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
         current.x = numSamples;
-        current.y = 1.0 / numSamples;
+        current.y = 1.0f / numSamples;
     }
 }
 
 void AmbientOcclusionEffect::setNumSpiralTurns(float numTurns) {
-    numTurns = std::max(0.f, (float)numTurns);
+    numTurns = std::max(0.0f, (float)numTurns);
     if (numTurns != getNumSpiralTurns()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._sampleInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
         current.z = numTurns;
     }
 }
 
 void AmbientOcclusionEffect::setEdgeSharpness(float sharpness) {
-    sharpness = std::max(0.f, (float)sharpness);
+    sharpness = std::max(0.0f, (float)sharpness);
     if (sharpness != getEdgeSharpness()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
         current.x = sharpness;
     }
 }
 
 void AmbientOcclusionEffect::setBlurRadius(int radius) {
-    radius = std::max(0, std::min(6, radius));
+    const int MAX_BLUR_RADIUS = 6;
+    radius = std::max(0, std::min(MAX_BLUR_RADIUS, radius));
     if (radius != getBlurRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
         current.y = (float)radius;
         updateGaussianDistribution();
     }
@@ -292,7 +300,7 @@ void AmbientOcclusionEffect::setBlurRadius(int radius) {
 void AmbientOcclusionEffect::setBlurDeviation(float deviation) {
     deviation = std::max(0.0f, deviation);
     if (deviation != getBlurDeviation()) {
-        auto& current = _parametersBuffer.edit<Parameters>()._blurInfo;
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
         current.z = deviation;
         updateGaussianDistribution();
     }
@@ -326,7 +334,7 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
     // Update the depth info with near and far (same for stereo)
     setDepthInfo(args->_viewFrustum->getNearClip(), args->_viewFrustum->getFarClip());
 
-    _frameTransformBuffer.edit<FrameTransform>()._pixelInfo = args->_viewport;
+    _frameTransformBuffer.edit<FrameTransform>().pixelInfo = args->_viewport;
     //_parametersBuffer.edit<Parameters>()._ditheringInfo.y += 0.25f;
 
     // Running in stero ?
@@ -335,8 +343,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         // Eval the mono projection
         mat4 monoProjMat;
         args->_viewFrustum->evalProjectionMatrix(monoProjMat);
-        _frameTransformBuffer.edit<FrameTransform>()._projection[0] = monoProjMat;
-        _frameTransformBuffer.edit<FrameTransform>()._stereoInfo = glm::vec4(0.0f, args->_viewport.z, 0.0f, 0.0f);
+        _frameTransformBuffer.edit<FrameTransform>().projection[0] = monoProjMat;
+        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);
 
     } else {
 
@@ -348,10 +356,10 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         for (int i = 0; i < 2; i++) {
             // Compose the mono Eye space to Stereo clip space Projection Matrix
             auto sideViewMat = projMats[i] * eyeViews[i];
-            _frameTransformBuffer.edit<FrameTransform>()._projection[i] = sideViewMat;
+            _frameTransformBuffer.edit<FrameTransform>().projection[i] = sideViewMat;
         }
 
-        _frameTransformBuffer.edit<FrameTransform>()._stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
+        _frameTransformBuffer.edit<FrameTransform>().stereoInfo = glm::vec4(1.0f, (float)(args->_viewport.z >> 1), 0.0f, 1.0f);
 
     }
 
@@ -370,8 +378,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         batch.setViewTransform(Transform());
 
         Transform model;
-        model.setTranslation(glm::vec3(sMin, tMin, 0.0));
-        model.setScale(glm::vec3(sWidth, tHeight, 1.0));
+        model.setTranslation(glm::vec3(sMin, tMin, 0.0f));
+        model.setScale(glm::vec3(sWidth, tHeight, 1.0f));
         batch.setModelTransform(model);
 
         batch.setUniformBuffer(AmbientOcclusionEffect_FrameTransformSlot, _frameTransformBuffer);

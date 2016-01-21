@@ -77,9 +77,9 @@ float getStereoSideWidth() {
     return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
 }
 
-ivec2 getStereoSideInfo(int xPos) {
+ivec3 getStereoSideInfo(int xPos) {
     int sideWidth = int(getStereoSideWidth());
-    return (xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth) );
+    return ivec3(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth);
 }
 
 
@@ -111,6 +111,9 @@ float isDitheringEnabled() {
 }
 float getFrameDithering() {
     return params._ditheringInfo.y;
+}
+float isBorderingEnabled() {
+    return params._ditheringInfo.w;
 }
 
 float getFalloffBias() {
@@ -180,8 +183,13 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 
 const int RADIUS_SCALE = 2;
 
-vec2 evalTapWeightedValue(int r, ivec2 ssC, float key) {
+vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
+    ivec2 ssP = (ssC + tapOffset);
+
+    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight().y))) {
+        return vec2(0.0);
+    }
     vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
 
     // spatial domain: offset gaussian tap
@@ -196,6 +204,9 @@ vec2 evalTapWeightedValue(int r, ivec2 ssC, float key) {
 vec3 getBlurredOcclusion(vec2 coord) {
     ivec2 ssC = ivec2(coord);
 
+    // Stereo side info
+    ivec3 side = getStereoSideInfo(ssC.x);
+
     vec3 rawSample;
     vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
     float key = occlusionDepth.y;
@@ -208,11 +219,11 @@ vec3 getBlurredOcclusion(vec2 coord) {
     int blurRadius = getBlurRadius();
     // negative side first
     for (int r = -blurRadius; r <= -1; ++r) {
-        weightedSums += evalTapWeightedValue(r, ssC, key);
+        weightedSums += evalTapWeightedValue(side, r, ssC, key);
     }
     // then positive side
     for (int r = 1; r <= blurRadius; ++r) {
-        weightedSums += evalTapWeightedValue(r, ssC, key);
+        weightedSums += evalTapWeightedValue(side, r, ssC, key);
     }
 
     // Final normalization
