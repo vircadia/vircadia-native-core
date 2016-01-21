@@ -86,5 +86,6 @@ DISTFILES += \
     ../../interface/resources/qml/menus/MenuMouseHandler.qml \
     ../../interface/resources/qml/menus/VrMenuItem.qml \
     ../../interface/resources/qml/menus/VrMenuView.qml \
-    ../../interface/resources/qml/windows/ModalWindow.qml
+    ../../interface/resources/qml/windows/ModalWindow.qml \
+    ../../interface/resources/qml/desktop/FocusHack.qml
 
