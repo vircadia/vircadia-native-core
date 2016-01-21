@@ -1,3 +1,18 @@
+//
+//  weatherBox.js
+//  examples/widgets/weatherBox
+//
+//  Created by Eric Levin on 1/20/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This script creates a weatherBox widget which (in final version) will display the current weather
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
 Script.include("../libraries/utils.js");
 var weatherBox, boxDimensions;
 var orientation = Camera.getOrientation();
