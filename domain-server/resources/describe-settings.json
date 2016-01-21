@@ -308,7 +308,7 @@
           "type": "checkbox",
           "label": "Dynamic Jitter Buffers",
           "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
-          "default": false,
+          "default": true,
           "advanced": true
         },
         {
