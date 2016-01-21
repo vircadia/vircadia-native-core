@@ -46,7 +46,7 @@ private slots:
 
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant);
+    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
@@ -56,6 +56,8 @@ private:
     double _descriptionVersion;
     QJsonArray _descriptionArray;
     HifiConfigVariantMap _configMap;
+
+    friend class DomainServer;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

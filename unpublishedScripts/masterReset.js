@@ -280,7 +280,8 @@ MasterReset = function() {
             },
             restitution: 0,
             dynamic: true,
-            collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
+            damping: 0.5,
+            collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/drop.wav",
             userData: JSON.stringify({
                 grabbableKey: {
                     spatialKey: {

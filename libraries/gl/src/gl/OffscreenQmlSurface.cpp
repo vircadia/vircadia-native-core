@@ -628,3 +628,30 @@ QQmlContext* OffscreenQmlSurface::getRootContext() {
     return _qmlEngine->rootContext();
 }
 
+Q_DECLARE_METATYPE(std::function<void()>);
+static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+Q_DECLARE_METATYPE(std::function<QVariant()>);
+static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+
+
+void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
+            Q_ARG(std::function<void()>, function));
+        return;
+    }
+
+    function();
+}
+
+QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariant, result),
+            Q_ARG(std::function<QVariant()>, function));
+        return result;
+    }
+
+    return function();
+}

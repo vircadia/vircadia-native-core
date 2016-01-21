@@ -27,6 +27,9 @@
 
 #include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
+#include <QtCore/QStandardPaths>
+#include <ServerPathUtils.h>
+#include <QtCore/QDir>
 
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
@@ -280,10 +283,10 @@ OctreeServer::~OctreeServer() {
 void OctreeServer::initHTTPManager(int port) {
     // setup the embedded web server
 
-    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString documentRoot = QString("%1/web").arg(ServerPathUtils::getDataDirectory());
 
     // setup an httpManager with us as the request handler and the parent
-    _httpManager = new HTTPManager(port, documentRoot, this, this);
+    _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
 }
 
 bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
@@ -1031,6 +1034,7 @@ void OctreeServer::readConfiguration() {
         if (!readOptionString(QString("persistFilename"), settingsSectionObject, persistFilename)) {
             persistFilename = getMyDefaultPersistFilename();
         }
+
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
 
@@ -1096,7 +1100,7 @@ void OctreeServer::run() {
     _tree->setIsServer(true);
     
     qDebug() << "Waiting for connection to domain to request settings from domain-server.";
-    
+   
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &OctreeServer::domainSettingsRequestComplete);
@@ -1139,9 +1143,30 @@ void OctreeServer::domainSettingsRequestComplete() {
     
     // if we want Persistence, set up the local file and persist thread
     if (_wantPersist) {
+        // If persist filename does not exist, let's see if there is one beside the application binary
+        // If there is, let's copy it over to our target persist directory
+        QString oldResourcesDirectory = QCoreApplication::applicationDirPath();
+        auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
+        auto persistPath = ServerPathUtils::getDataFilePath("entities/" + QString(_persistFilename));
+        if (oldPersistPath != persistPath && !QFile::exists(persistPath)) {
+            qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
+            if (QFile::exists(oldPersistPath)) {
+                qDebug() << "Old persist file found, copying from " << oldPersistPath << " to " << persistPath;
+
+                QDir persistFileDirectory = QDir(persistPath).filePath("..");
+
+                if (!persistFileDirectory.exists()) {
+                    qDebug() << "Creating data directory " << persistFileDirectory.path();
+                    persistFileDirectory.mkpath(".");
+                }
+                QFile::copy(oldPersistPath, persistPath);
+            } else {
+                qDebug() << "No existing persist file found";
+            }
+        }
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, persistPath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }

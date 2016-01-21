@@ -14,6 +14,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
+    implicitWidth: 384; implicitHeight: 640
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
@@ -77,7 +78,7 @@ Window {
     }
 
     function loadFromFile() {
-        var fileDialog = fileDialogBuilder.createObject(Desktop, { filterModel: fileFilters });
+        var fileDialog = fileDialogBuilder.createObject(desktop, { filterModel: fileFilters });
         fileDialog.canceled.connect(function(){
             console.debug("Cancelled file open")
         })
@@ -90,7 +91,7 @@ Window {
 
     Rectangle {
         color: "white"
-        implicitWidth: 384; implicitHeight: 640
+        anchors.fill: parent
 
         Item {
             anchors { fill: parent; margins: 8 }

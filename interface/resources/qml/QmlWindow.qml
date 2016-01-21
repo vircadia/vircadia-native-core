@@ -21,16 +21,10 @@ Windows.Window {
     destroyOnCloseButton: false
     property alias source: pageLoader.source 
     
-    function raiseWindow() { Desktop.raise(root) }
-
     Loader { 
         id: pageLoader
         objectName: "Loader"
         focus: true
         property var dialog: root
-            
-        Keys.onPressed: {
-            console.log("QmlWindow pageLoader keypress")
-        }
     }
 } // dialog
