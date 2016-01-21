@@ -17,7 +17,7 @@ public:
     HitEffect();
     
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    using JobModel = render::Task::Job::Model<HitEffect>;
+    using JobModel = render::Job::Model<HitEffect>;
     
     const gpu::PipelinePointer& getHitEffectPipeline();
     

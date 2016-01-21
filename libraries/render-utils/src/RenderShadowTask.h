@@ -25,7 +25,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
              const render::ShapesIDsBounds& inShapes);
 
-    using JobModel = render::Task::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
+    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
 protected:
     render::ShapePlumberPointer _shapePlumber;
 };
@@ -36,7 +36,7 @@ public:
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    using JobModel = render::Task::Job::Model<RenderShadowTask>;
+    using JobModel = Model<RenderShadowTask>;
 };
 
 #endif // hifi_RenderShadowTask_h

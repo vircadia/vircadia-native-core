@@ -22,7 +22,7 @@ public:
     Antialiasing();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    using JobModel = render::Task::Job::Model<Antialiasing>;
+    using JobModel = render::Job::Model<Antialiasing>;
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();

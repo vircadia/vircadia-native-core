@@ -67,7 +67,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
-void ToneMappingDeferred::configure(const Configuration& configuration) {
+void ToneMappingDeferred::configure(const Config& configuration) {
     if (configuration.exposure >= 0) {
         _toneMappingEffect.setExposure(configuration.curve);
     }
@@ -81,7 +81,7 @@ void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const Ren
     _toneMappingEffect.render(renderContext->getArgs());
 }
 
-RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
+RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipelines
