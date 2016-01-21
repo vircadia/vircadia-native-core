@@ -932,6 +932,7 @@ function MyController(hand) {
                                                                  FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
                 this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
+                this.searchSphereOff();
                 return;
             }
 
