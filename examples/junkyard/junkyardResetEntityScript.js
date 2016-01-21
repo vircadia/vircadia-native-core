@@ -1,0 +1,32 @@
+//  junkyardResetEntityScript.js
+//  
+//  Script Type: Entity
+//  Created by Eric Levin on 1/20/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This entity script resets the junkyard when triggered
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+(function() {
+    Script.include("../libraries/utils.js");
+    var _this;
+    var JunkyardResetter = function() {
+        _this = this;
+    };
+
+    JunkyardResetter.prototype = {
+        startDistantGrab: function() {
+            print("YAAAAAAAA")
+        },
+
+        startNearGrab: function() {
+        },
+
+        preload: function(entityID) {
+            this.entityID = entityID;
+        },
+    };
+    return new JunkyardResetter();
+});
