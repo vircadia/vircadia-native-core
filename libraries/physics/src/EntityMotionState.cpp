@@ -144,7 +144,12 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         return MOTION_TYPE_STATIC;
     }
     assert(entityTreeIsLocked());
+
     if (_entity->getDynamic()) {
+        if (!_entity->getParentID().isNull()) {
+            // if something would have been dynamic but is a child of something else, force it to be kinematic, instead.
+            return MOTION_TYPE_KINEMATIC;
+        }
         return MOTION_TYPE_DYNAMIC;
     }
     return (_entity->isMoving() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
