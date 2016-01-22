@@ -18,13 +18,13 @@ FocusScope {
     // The VR version of the primary menu
     property var rootMenu: Menu { objectName: "rootMenu" }
 
+    Component { id: messageDialogBuilder; MessageDialog { } }
+
     QtObject {
         id: d
         readonly property int zBasisNormal: 0
         readonly property int zBasisAlwaysOnTop: 4096
         readonly property int zBasisModal: 8192
-        readonly property var messageDialogBuilder: Component { MessageDialog { } }
-        readonly property var nativeMessageDialogBuilder: Component { OriginalDialogs.MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -165,9 +165,7 @@ FocusScope {
     }
 
     function messageBox(properties) {
-        // Debugging: native message dialog for comparison
-        // d.nativeMessageDialogBuilder.createObject(desktop, properties);
-        return d.messageDialogBuilder.createObject(desktop, properties);
+        return messageDialogBuilder.createObject(desktop, properties);
     }
 
     function popupMenu(point) {
@@ -216,7 +214,7 @@ FocusScope {
         console.log("Focus item is " + offscreenWindow.activeFocusItem);
         var focusedItem = offscreenWindow.activeFocusItem ;
         if (DebugQML && focusedItem) {
-            var rect = desktop.mapToItem(null, focusedItem.x, focusedItem.y, focusedItem.width, focusedItem.height);
+            var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
             focusDebugger.visible = true
             focusDebugger.x = rect.x;
             focusDebugger.y = rect.y;

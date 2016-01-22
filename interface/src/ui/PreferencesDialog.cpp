@@ -58,8 +58,8 @@ void setupPreferences() {
 
     {
         auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { /* FIXME */ };
-        auto preference = new BrowsePreference(AVATAR_BASICS, "Appearance: ", getter, setter);
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance: ", getter, setter);
         preferences->addPreference(preference);
     }
 

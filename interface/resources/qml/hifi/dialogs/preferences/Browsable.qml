@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 import "."
+import "../../../dialogs"
 
 Preference {
     id: root
@@ -38,12 +39,22 @@ Preference {
         }
     }
 
+    Component {
+        id: fileBrowserBuilder;
+        FileDialog { selectDirectory: true }
+    }
+
     Button {
         id: button
-        anchors {
-            right: parent.right;
-            verticalCenter: dataTextField.verticalCenter
-        }
+        anchors { right: parent.right; verticalCenter: dataTextField.verticalCenter }
         text: "Browse"
+        onClicked: {
+            var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
+            browser.selectedFile.connect(function(fileUrl){
+                console.log(fileUrl);
+                dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
+            });
+        }
+
     }
 }

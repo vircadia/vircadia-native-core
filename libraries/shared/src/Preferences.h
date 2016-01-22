@@ -52,6 +52,8 @@ public:
         Spinner,
         Checkbox,
         Button,
+        // Special casing for an unusual preference
+        Avatar
     };
 
     explicit Preference(QObject* parent = nullptr) : QObject(parent) {}
@@ -236,6 +238,17 @@ public:
 protected:
     QString _browseLabel { "Browse" };
 };
+
+class AvatarPreference : public BrowsePreference {
+    Q_OBJECT
+public:
+    AvatarPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : BrowsePreference(category, name, getter, setter) {
+        _browseLabel = "Change";
+    }
+    Type getType() { return Avatar; }
+};
+
 
 class CheckPreference : public BoolPreference {
     Q_OBJECT

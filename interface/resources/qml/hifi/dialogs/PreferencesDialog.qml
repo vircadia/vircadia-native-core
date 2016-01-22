@@ -25,6 +25,14 @@ Window {
         destroy();
     }
 
+    function restoreAll() {
+        for (var i = 0; i < sections.length; ++i) {
+            var section = sections[i];
+            section.restoreAll();
+        }
+        destroy();
+    }
+
     Rectangle {
         anchors.fill: parent
         clip: true
@@ -70,7 +78,12 @@ Window {
         Row {
             id: dialogButtons
             anchors { bottom: parent.bottom; right: parent.right; margins: 8 }
-            Button { text: "Cancel"; onClicked: root.destroy(); }
+
+            Button {
+                text: "Cancel";
+                onClicked: root.restoreAll();
+            }
+
             Button {
                 text: "Save all changes"
                 onClicked: root.saveAll();

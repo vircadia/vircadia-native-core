@@ -21,6 +21,13 @@ Preference {
         }
     }
 
+    function restoreAll() {
+        for (var i = 0; i < d.preferences.length; ++i) {
+            var preference = d.preferences[i];
+            preference.restore();
+        }
+    }
+
     clip: true
     children: [ toggle, header, contentContainer ]
     height: expanded ? header.height + contentContainer.height + root.spacing * 3
@@ -68,6 +75,7 @@ Preference {
         property var spinnerBuilder: Component { SpinBox { } }
         property var checkboxBuilder: Component { CheckBox { } }
         property var sliderBuilder: Component { Slider { } }
+        property var avatarBuilder: Component { Avatar { } }
         property var preferences: []
 
         function buildPreferences() {
@@ -104,6 +112,9 @@ Preference {
                     builder = checkboxBuilder;
                     break;
 
+                case Preference.Avatar:
+                    builder = avatarBuilder;
+                    break;
             };
 
             if (builder) {
