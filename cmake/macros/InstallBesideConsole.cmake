@@ -14,7 +14,8 @@ macro(install_beside_console)
     # install this component beside the installed server-console executable
     if (APPLE)
       set(CONSOLE_APP_CONTENTS "${CONSOLE_INSTALL_APP_PATH}/Contents")
-      set(COMPONENT_DESTINATION "${CONSOLE_APP_CONTENTS}/MacOS/Components.app/Contents/MacOS")
+      set(COMPONENT_APP_PATH "${CONSOLE_APP_CONTENTS}/MacOS/Components.app")
+      set(COMPONENT_DESTINATION "${COMPONENT_APP_PATH}/Contents/MacOS")
     else ()
       set(COMPONENT_DESTINATION ${CONSOLE_INSTALL_DIR})
     endif ()
@@ -55,13 +56,28 @@ macro(install_beside_console)
     endif ()
 
     if (APPLE)
-      # during the install phase, call fixup to drop the shared libraries for these components in the right place
+      find_program(MACDEPLOYQT_COMMAND macdeployqt PATHS "${QT_DIR}/bin" NO_DEFAULT_PATH)
+
+      if (NOT MACDEPLOYQT_COMMAND AND (PRODUCTION_BUILD OR PR_BUILD))
+        message(FATAL_ERROR "Could not find macdeployqt at ${QT_DIR}/bin.\
+          It is required to produce an relocatable interface application.\
+          Check that the environment variable QT_DIR points to your Qt installation.\
+        ")
+      endif ()
+
+      # during the install phase, call macdeployqt to drop the shared libraries for these components in the right place
+      set(COMPONENTS_BUNDLE_PATH "\${CMAKE_INSTALL_PREFIX}/${COMPONENT_APP_PATH}")
+      string(REPLACE " " "\\ " ESCAPED_BUNDLE_NAME ${COMPONENTS_BUNDLE_PATH})
+
       set(EXECUTABLE_NEEDING_FIXUP "\${CMAKE_INSTALL_PREFIX}/${COMPONENT_DESTINATION}/${TARGET_NAME}")
+      string(REPLACE " " "\\ " ESCAPED_EXECUTABLE_NAME ${EXECUTABLE_NEEDING_FIXUP})
+
       install(CODE "
-        include(BundleUtilities)
-        fixup_bundle(\"${EXECUTABLE_NEEDING_FIXUP}\" \"\" \"${FIXUP_LIBS}\")
-      " COMPONENT ${SERVER_COMPONENT})
-    endif ()
+        execute_process(COMMAND ${MACDEPLOYQT_COMMAND} ${ESCAPED_BUNDLE_NAME} -verbose=2 -executable=${ESCAPED_EXECUTABLE_NAME})"
+        COMPONENT ${SERVER_COMPONENT}
+      )
+    endif()
+
   endif ()
 
   # set variables used by manual ssleay library copy
