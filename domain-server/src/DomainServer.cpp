@@ -1878,15 +1878,13 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
         auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
         const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(), keypath);
 
-        // if we didn't match the path BUT this is for the index path then send back our default
-
-
         if (pathMatch || pathQuery == INDEX_PATH) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
 
             QString responseViewpoint;
 
+            // if we didn't match the path BUT this is for the index path then send back our default
             if (pathMatch) {
                 responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
             } else {
