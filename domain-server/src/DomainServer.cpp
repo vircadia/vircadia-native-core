@@ -1148,13 +1148,22 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     return nodeJson;
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+QDir pathForAssignmentScriptsDirectory() {
+    static const QString SCRIPTS_DIRECTORY_NAME = "/scripts/";
+
+    QDir directory(ServerPathUtils::getDataDirectory() + SCRIPTS_DIRECTORY_NAME);
+    if (!directory.exists()) {
+        directory.mkpath(".");
+        qInfo() << "Created path to " << directory.path();
+    }
+
+    return directory;
+}
+
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
-    QString newPath { ServerPathUtils::getDataDirectory() + "/" + QString(ASSIGNMENT_SCRIPT_HOST_LOCATION) };
-    newPath += "/scripts/";
+    QDir directory = pathForAssignmentScriptsDirectory();
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
-    return newPath;
+    return directory.absoluteFilePath(uuidStringWithoutCurlyBraces(assignmentUUID));
 }
 
 const QString URI_OAUTH = "/oauth";
