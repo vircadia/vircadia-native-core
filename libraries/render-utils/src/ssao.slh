@@ -146,12 +146,10 @@ float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
 
 int getBlurRadius() {
     return BLUR_RADIUS;
-    return int(params._blurInfo.y);
 }
 
 float getBlurCoef(int c) {
     return gaussian[c];
-    return params._gaussianCoefs[c];
 }
 #else
 int getBlurRadius() {
@@ -182,8 +180,8 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
     return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
 }
 
-const int RADIUS_SCALE = 2;
-const float BLUR_WEIGHT_OFFSET = 0.3;
+const int RADIUS_SCALE = 1;
+const float BLUR_WEIGHT_OFFSET = 0.05;
 const float BLUR_EDGE_SCALE = 2000.0;
 
 vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
