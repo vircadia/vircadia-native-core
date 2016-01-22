@@ -154,7 +154,8 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (isEnabled()) {
+            std::shared_ptr<Job::Config>& config = std::static_pointer_cast<Job::Config>(_config);
+            if (config->alwaysEnabled || config->enabled) {
                 jobRunI(_data, sceneContext, renderContext, _input.get<I>());
             }
         }
@@ -179,7 +180,8 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (isEnabled()) {
+            std::shared_ptr<Job::Config>& config = std::static_pointer_cast<Job::Config>(_config);
+            if (config->alwaysEnabled || config->enabled) {
                 jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
             }
         }
@@ -207,7 +209,8 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (isEnabled()) {
+            std::shared_ptr<Job::Config>& config = std::static_pointer_cast<Job::Config>(_config);
+            if (config->alwaysEnabled || config->enabled) {
                 jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
             }
         }

@@ -69,7 +69,7 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
 
 void ToneMappingDeferred::configure(const Config& configuration) {
     if (configuration.exposure >= 0) {
-        _toneMappingEffect.setExposure(configuration.curve);
+        _toneMappingEffect.setExposure(configuration.exposure);
     }
     if (configuration.curve >= 0) {
         _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)configuration.curve);
@@ -197,8 +197,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
     
     setAntialiasingStatus(renderContext->getFxaaStatus());
-    setToneMappingExposure(renderContext->getTone().exposure);
-    setToneMappingToneCurve(renderContext->getTone().toneCurve);
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
     // TODO: For now, lighting is controlled through a singleton, so it is distinct

@@ -11,13 +11,20 @@
 
 #include <render/DrawTask.h>
 
+class HitEffectConfig : public render::Job::Config {
+    Q_OBJECT
+public:
+    HitEffectConfig() : render::Job::Config(false) {}
+};
+
 class HitEffect {
 public:
+    using Config = HitEffectConfig;
+    using JobModel = render::Job::Model<HitEffect, Config>;
     
     HitEffect();
-    
+    void configure(const Config&) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    using JobModel = render::Job::Model<HitEffect>;
     
     const gpu::PipelinePointer& getHitEffectPipeline();
     
