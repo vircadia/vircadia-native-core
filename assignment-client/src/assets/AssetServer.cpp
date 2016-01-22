@@ -56,7 +56,7 @@ void AssetServer::run() {
     if (!_resourcesDirectory.exists()) {
         qDebug() << "Asset resources directory not found, searching for existing asset resources";
         QString oldDataDirectory = QCoreApplication::applicationDirPath();
-        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath(RESOURCES_PATH);
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + RESOURCES_PATH);
 
         if (QDir(oldResourcesDirectory).exists()) {
             qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
