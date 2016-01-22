@@ -55,7 +55,7 @@ void AssetServer::run() {
     _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
 
     bool noExistingAssets = !_resourcesDirectory.exists() \
-        || _resourcesDirectory.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files).size() == 0;
+        || _resourcesDirectory.entryList(QDir::Files).size() == 0;
 
     if (noExistingAssets) {
         qDebug() << "Asset resources directory not found, searching for existing asset resources";
