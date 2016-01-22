@@ -1507,6 +1507,33 @@ void EntityItem::updateCreated(uint64_t value) {
     }
 }
 
+void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
+    // TODO: detect attachment status and adopt group of wearer
+    if (_collisionless) {
+        group = BULLET_COLLISION_GROUP_COLLISIONLESS;
+        mask = 0;
+    } else {
+        if (_dynamic) {
+            group = BULLET_COLLISION_GROUP_DYNAMIC;
+        } else if (isMoving() || hasActions()) {
+            group = BULLET_COLLISION_GROUP_KINEMATIC;
+        } else {
+            group = BULLET_COLLISION_GROUP_STATIC;
+        }
+
+        uint8_t userMask = getCollisionMask();
+        if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
+                (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
+            // asymmetric avatar collision mask bits
+            if (!getSimulatorID().isNull() && (!getSimulatorID().isNull()) && getSimulatorID() != Physics::getSessionUUID()) {
+                // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
+                userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
+            }
+        }
+        mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
+    }
+}
+
 void EntityItem::setSimulationOwner(const QUuid& id, quint8 priority) {
     if (wantTerseEditLogging() && (id != _simulationOwner.getID() || priority != _simulationOwner.getPriority())) {
         qCDebug(entities) << "sim ownership for" << getDebugName() << "is now" << id << priority;
