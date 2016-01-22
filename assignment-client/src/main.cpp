@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AssignmentClientApp.h"
-
 #include <QtCore/QDebug>
 
+#include <SharedUtil.h>
+
+#include "AssignmentClientApp.h"
+
 int main(int argc, char* argv[]) {
+    disableQtBearerPoll(); // Fixes wifi ping spikes
+
     AssignmentClientApp app(argc, argv);
     
     int acReturn = app.exec();
