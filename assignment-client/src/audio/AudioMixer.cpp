@@ -828,7 +828,7 @@ void AudioMixer::broadcastMixes() {
         
         usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000; // ns to us
 
-        if (quint64(usecToSleep) > USECS_PER_SECOND) {
+        if (usecToSleep > int(USECS_PER_SECOND)) {
             qDebug() << "DANGER: amount to sleep is" << usecToSleep;
             qDebug() << "NextFrame is" << nextFrame << "and timer nsecs elapsed is" << timer.nsecsElapsed();
         }

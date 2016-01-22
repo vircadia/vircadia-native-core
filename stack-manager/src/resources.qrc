@@ -1,9 +1,0 @@
-<RCC>
-    <qresource prefix="/">
-        <file>../assets/logo-larger.png</file>
-        <file alias="assignment-run.svg">../assets/assignment-run.svg</file>
-        <file alias="assignment-stop.svg">../assets/assignment-stop.svg</file>
-        <file alias="server-start.svg">../assets/server-start.svg</file>
-        <file alias="server-stop.svg">../assets/server-stop.svg</file>
-    </qresource>
-</RCC>

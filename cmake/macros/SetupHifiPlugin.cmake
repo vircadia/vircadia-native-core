@@ -12,12 +12,12 @@ macro(SETUP_HIFI_PLUGIN)
     set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Plugins")
 
     if (APPLE)
-        set(PLUGIN_PATH "interface.app/Contents/MacOS/plugins")
+        set(PLUGIN_PATH "${INTERFACE_BUNDLE_NAME}.app/Contents/PlugIns")
     else()
         set(PLUGIN_PATH "plugins")
     endif()
 
-    IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    if (CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_GENERATOR STREQUAL "Unix Makefiles")
         set(PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/interface/${PLUGIN_PATH}/")
     else()
         set(PLUGIN_FULL_PATH "${CMAKE_BINARY_DIR}/interface/$<CONFIGURATION>/${PLUGIN_PATH}/")
@@ -35,5 +35,4 @@ macro(SETUP_HIFI_PLUGIN)
         "$<TARGET_FILE:${TARGET_NAME}>"
         ${PLUGIN_FULL_PATH}
     )
-
 endmacro()

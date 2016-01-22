@@ -36,6 +36,9 @@
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
 
+#include <QtNetwork/QLocalSocket>
+#include <QtNetwork/QLocalServer>
+
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -57,7 +60,7 @@
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
@@ -302,7 +305,7 @@ bool setupEssentials(int& argc, char** argv) {
         listenPort = atoi(portStr);
     }
     // Set build version
-    QCoreApplication::setApplicationVersion(BUILD_VERSION);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
     Setting::preInit();
 
@@ -5174,4 +5177,31 @@ void Application::setActiveDisplayPlugin(const QString& pluginName) {
         }
     }
     updateDisplayMode();
+}
+
+void Application::handleLocalServerConnection() {
+    auto server = qobject_cast<QLocalServer*>(sender());
+
+    qDebug() << "Got connection on local server from additional instance - waiting for parameters";
+
+    auto socket = server->nextPendingConnection();
+
+    connect(socket, &QLocalSocket::readyRead, this, &Application::readArgumentsFromLocalSocket);
+
+    qApp->getWindow()->raise();
+    qApp->getWindow()->activateWindow();
+}
+
+void Application::readArgumentsFromLocalSocket() {
+    auto socket = qobject_cast<QLocalSocket*>(sender());
+
+    auto message = socket->readAll();
+    socket->deleteLater();
+
+    qDebug() << "Read from connection: " << message;
+
+    // If we received a message, try to open it as a URL
+    if (message.length() > 0) {
+        qApp->openUrl(QString::fromUtf8(message));
+    }
 }

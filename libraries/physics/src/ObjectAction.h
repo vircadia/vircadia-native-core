@@ -40,8 +40,8 @@ public:
     virtual void updateActionWorker(float deltaTimeStep) = 0;
 
     // these are from btActionInterface
-    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep);
-    virtual void debugDraw(btIDebugDraw* debugDrawer);
+    virtual void updateAction(btCollisionWorld* collisionWorld, btScalar deltaTimeStep) override;
+    virtual void debugDraw(btIDebugDraw* debugDrawer) override;
 
     virtual QByteArray serialize() const override = 0;
     virtual void deserialize(QByteArray serializedArguments) override = 0;

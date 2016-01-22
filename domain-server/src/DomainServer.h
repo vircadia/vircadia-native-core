@@ -74,6 +74,9 @@ private slots:
     void sendHeartbeatToIceServer();
     
     void handleConnectedNode(SharedNodePointer newNode);
+
+    void handleTempDomainSuccess(QNetworkReply& requestReply);
+    void handleTempDomainError(QNetworkReply& requestReply);
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -81,10 +84,13 @@ private:
     bool optionallyReadX509KeyAndCertificate();
     bool optionallySetupAssignmentPayment();
 
+    void optionallyGetTemporaryName(const QStringList& arguments);
+
     bool didSetupAccountManagerWithAccessToken();
     bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();
+    void setupICEHeartbeatForFullNetworking();
     void sendHeartbeatToDataServer(const QString& networkAddress);
 
     unsigned int countConnectedUsers();
@@ -144,6 +150,8 @@ private:
     DomainServerSettingsManager _settingsManager;
 
     HifiSockAddr _iceServerSocket;
+
+    QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
     
     friend class DomainGatekeeper;
 };
