@@ -194,9 +194,10 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
     // These two computations must be kept in sync.
+    const float MINIMUM_TIME_REMAINING = 0.005f;
     const float MAX_DISPLACEMENT = 0.5f * _radius;
     _followTimeRemaining -= dt;
-    if (_followTimeRemaining >= 0.005f) {
+    if (_followTimeRemaining >= MINIMUM_TIME_REMAINING) {
         btTransform bodyTransform = _rigidBody->getWorldTransform();
 
         btVector3 startPos = bodyTransform.getOrigin();
@@ -210,9 +211,9 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
         glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
         float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularVel = deltaAngle / _followTimeRemaining;
+        float angularSpeed = deltaAngle / _followTimeRemaining;
         float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
-        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularVel * dt);
+        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
 
         // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.

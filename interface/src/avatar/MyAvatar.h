@@ -377,7 +377,6 @@ private:
     struct FollowHelper {
         glm::mat4 _desiredBodyMatrix;
         float _timeRemaining { 0.0f };
-        float _timeTotal { 0.0f };
 
         void deactivate();
         void activate();

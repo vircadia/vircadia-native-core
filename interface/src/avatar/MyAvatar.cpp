@@ -1767,14 +1767,12 @@ void MyAvatar::lateUpdatePalms() {
 static const float FOLLOW_TIME = 0.5f;
 
 void MyAvatar::FollowHelper::deactivate() {
-    _timeTotal = FOLLOW_TIME;
     _timeRemaining = 0.0f;
 }
 
 void MyAvatar::FollowHelper::activate() {
-    // TODO: the follow time should be proportional to the displacement.
+    // TODO: Perhaps, the follow time should be proportional to the displacement.
     _timeRemaining = FOLLOW_TIME;
-    _timeTotal = FOLLOW_TIME;
 }
 
 bool MyAvatar::FollowHelper::isActive() const {
@@ -1795,10 +1793,10 @@ bool MyAvatar::FollowHelper::shouldActivate(const MyAvatar& myAvatar, const glm:
     const float CYLINDER_RADIUS = 0.15f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    glm::vec3 truncatedOffset(offset.x, 0.0f, offset.y);
-    float truncatedDistance = glm::length(truncatedOffset);
+    glm::vec3 radialOffset(offset.x, 0.0f, offset.y);
+    float radialDistance = glm::length(radialOffset);
 
-    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (truncatedDistance > CYLINDER_RADIUS);
+    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (radialDistance > CYLINDER_RADIUS);
 }
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
