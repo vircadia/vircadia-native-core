@@ -624,8 +624,8 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) { 
-    return value != value; 
+bool isNaN(float value) {
+    return value != value;
 }
 
 QString formatUsecTime(float usecs, int prec) {
@@ -683,5 +683,11 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
     float similarity = 0.5f * (aWordsInB / (float)bWords.size()) + 0.5f * (bWordsInA / (float)aWords.size());
     const float SIMILAR_ENOUGH = 0.5f; // half the words the same is similar enough for us
     return similarity >= SIMILAR_ENOUGH;
+}
+
+void disableQtBearerPoll() {
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 }
 

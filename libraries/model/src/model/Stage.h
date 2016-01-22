@@ -107,60 +107,6 @@ protected:
     static Mat4d evalWorldToGeoLocationMat(double longitude, double latitude, double altitude, double scale);
 };
 
-
-class Atmosphere {
-public:
-
-    Atmosphere();
-    Atmosphere(const Atmosphere& atmosphere);
-    Atmosphere& operator= (const Atmosphere& atmosphere);
-    virtual ~Atmosphere() {};
-
-
-    void setScatteringWavelength(Vec3 wavelength);
-    const Vec3& getScatteringWavelength() const { return _scatteringWavelength; }
-
-    void setRayleighScattering(float scattering);
-    float getRayleighScattering() const { return _rayleighScattering; }
-
-    void setMieScattering(float scattering);
-    float getMieScattering() const { return _mieScattering; }
-
-    void setSunBrightness(float brightness);
-    float getSunBrightness() const { return _sunBrightness; }
-
-    void setInnerOuterRadiuses(float inner, float outer);
-    float getInnerRadius() const { return getData()._radiuses.x; }
-    float getOuterRadius() const { return getData()._radiuses.y; }
-
-    // Data to access the attribute values of the atmosphere
-    class Data {
-    public:
-        Vec4 _invWaveLength = Vec4(0.0f);
-        Vec4 _radiuses = Vec4(6000.0f, 6025.0f, 0.0f, 0.0f);
-        Vec4 _scales = Vec4(0.0f, 0.25f, 0.0f, 0.0f);
-        Vec4 _scatterings = Vec4(0.0f);
-        Vec4 _control = Vec4(2.0f, -0.990f, -0.990f*-0.990f, 0.f);
-
-        Data() {}
-    };
-
-    const UniformBufferView& getDataBuffer() const { return _dataBuffer; }
-
-protected:
-    UniformBufferView _dataBuffer;
-    Vec3 _scatteringWavelength = Vec3(0.650f, 0.570f, 0.475f);
-    float _rayleighScattering = 0.0025f;
-    float _mieScattering = 0.0010f;
-    float _sunBrightness = 20.0f;
-
-    const Data& getData() const { return _dataBuffer.get<Data>(); }
-    Data& editData() { return _dataBuffer.edit<Data>(); }
-
-    void updateScattering();
-};
-typedef std::shared_ptr< Atmosphere > AtmospherePointer;
-
 // Sun sky stage generates the rendering primitives to display a scene realistically
 // at the specified location and time around earth
 class SunSkyStage {
@@ -209,7 +155,6 @@ public:
     const Vec3& getSunDirection() const { return getSunLight()->getDirection(); }
 
     LightPointer getSunLight() const { valid(); return _sunLight;  }
-    AtmospherePointer getAtmosphere() const { valid(); return _atmosphere;  }
  
     enum BackgroundMode {
         NO_BACKGROUND = 0,
@@ -229,7 +174,6 @@ protected:
     BackgroundMode _backgroundMode = SKY_BOX;
 
     LightPointer _sunLight;
-    AtmospherePointer _atmosphere;
     mutable SkyboxPointer _skybox;
 
     float _dayTime = 12.0f;

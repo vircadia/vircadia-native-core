@@ -227,4 +227,7 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
 glm::vec2 getFacingDir2D(const glm::quat& rot);
 glm::vec2 getFacingDir2D(const glm::mat4& m);
 
+bool isNaN(glm::vec3 value);
+bool isNaN(glm::quat value);
+
 #endif // hifi_GLMHelpers_h

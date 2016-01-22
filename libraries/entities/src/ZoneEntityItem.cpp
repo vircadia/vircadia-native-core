@@ -41,26 +41,6 @@ ZoneEntityItem::ZoneEntityItem(const EntityItemID& entityItemID) : EntityItem(en
     _backgroundMode = BACKGROUND_MODE_INHERIT;
 }
 
-
-EnvironmentData ZoneEntityItem::getEnvironmentData() const {
-    EnvironmentData result;
-
-    result.setAtmosphereCenter(_atmosphereProperties.getCenter());
-    result.setAtmosphereInnerRadius(_atmosphereProperties.getInnerRadius());
-    result.setAtmosphereOuterRadius(_atmosphereProperties.getOuterRadius());
-    result.setRayleighScattering(_atmosphereProperties.getRayleighScattering());
-    result.setMieScattering(_atmosphereProperties.getMieScattering());
-    result.setScatteringWavelengths(_atmosphereProperties.getScatteringWavelengths());
-    result.setHasStars(_atmosphereProperties.getHasStars());
-
-    // NOTE: The sunLocation and SunBrightness will be overwritten in the EntityTreeRenderer to use the
-    // keyLight details from the scene interface
-    //result.setSunLocation(1000, 900, 1000));
-    //result.setSunBrightness(20.0f);
-    
-    return result;
-}
-
 EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
     EntityItemProperties properties = EntityItem::getProperties(desiredProperties); // get the properties from our base class
 
@@ -73,7 +53,6 @@ EntityItemProperties ZoneEntityItem::getProperties(EntityPropertyFlags desiredPr
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(compoundShapeURL, getCompoundShapeURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(backgroundMode, getBackgroundMode);
 
-    _atmosphereProperties.getProperties(properties);
     _skyboxProperties.getProperties(properties);
 
     return properties;
@@ -91,10 +70,9 @@ bool ZoneEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(backgroundMode, setBackgroundMode);
 
-    bool somethingChangedInAtmosphere = _atmosphereProperties.setProperties(properties);
     bool somethingChangedInSkybox = _skyboxProperties.setProperties(properties);
 
-    somethingChanged = somethingChanged  || somethingChangedInKeyLight || somethingChangedInStage || somethingChangedInAtmosphere || somethingChangedInSkybox;
+    somethingChanged = somethingChanged  || somethingChangedInKeyLight || somethingChangedInStage || somethingChangedInSkybox;
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -133,12 +111,6 @@ int ZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, 
     READ_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
     READ_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
 
-    int bytesFromAtmosphere = _atmosphereProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
-                                                                               propertyFlags, overwriteLocalData, somethingChanged);
-                                                                               
-    bytesRead += bytesFromAtmosphere;
-    dataAt += bytesFromAtmosphere;
-
     int bytesFromSkybox = _skyboxProperties.readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, 
                                                                            propertyFlags, overwriteLocalData, somethingChanged);
     bytesRead += bytesFromSkybox;
@@ -158,7 +130,6 @@ EntityPropertyFlags ZoneEntityItem::getEntityProperties(EncodeBitstreamParams& p
     requestedProperties += PROP_COMPOUND_SHAPE_URL;
     requestedProperties += PROP_BACKGROUND_MODE;
     requestedProperties += _stageProperties.getEntityProperties(params);
-    requestedProperties += _atmosphereProperties.getEntityProperties(params);
     requestedProperties += _skyboxProperties.getEntityProperties(params);
     
     return requestedProperties;
@@ -185,9 +156,6 @@ void ZoneEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, getCompoundShapeURL());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)getBackgroundMode()); // could this be a uint16??
     
-    _atmosphereProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
-                                    propertyFlags, propertiesDidntFit, propertyCount, appendState);
-
     _skyboxProperties.appendSubclassData(packetData, params, modelTreeElementExtraEncodeData, requestedProperties,
                                     propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
@@ -203,7 +171,6 @@ void ZoneEntityItem::debugDump() const {
 
     _keyLightProperties.debugDump();
     _stageProperties.debugDump();
-    _atmosphereProperties.debugDump();
     _skyboxProperties.debugDump();
 }
 

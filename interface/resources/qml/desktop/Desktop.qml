@@ -16,12 +16,7 @@ FocusScope {
     property bool desktopRoot: true
 
     // The VR version of the primary menu
-    property var rootMenu: Menu {
-        id: rootMenu; objectName: "rootMenu"
-        Component.onCompleted: {
-            console.log("ROOT_MENU " + rootMenu);
-        }
-    }
+    property var rootMenu: Menu { objectName: "rootMenu" }
 
     QtObject {
         id: d
@@ -210,7 +205,13 @@ FocusScope {
 
     // Debugging help for figuring out focus issues
     property var offscreenWindow;
-    onOffscreenWindowChanged: offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+    onOffscreenWindowChanged: {
+        offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+        focusHack.start();
+    }
+
+    FocusHack { id: focusHack; }
+
     function onWindowFocusChanged() {
         console.log("Focus item is " + offscreenWindow.activeFocusItem);
         var focusedItem = offscreenWindow.activeFocusItem ;
@@ -223,11 +224,14 @@ FocusScope {
             focusDebugger.height = rect.height
         }
     }
+
     Rectangle {
         id: focusDebugger;
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
+
+
 }
 
 

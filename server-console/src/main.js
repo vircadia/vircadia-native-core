@@ -336,7 +336,7 @@ LogWindow.prototype = {
 
 function goHomeClicked() {
     if (interfacePath) {
-        startInterface('hifi://localhost/7.91966,23.2104,20.7416/0,-0.476144,0,0.879367');
+        startInterface('hifi://localhost');
     } else {
         // show an error to say that we can't go home without an interface instance
         dialog.showErrorBox("Client Not Found", binaryMissingMessage("High Fidelity client", "Interface", false));

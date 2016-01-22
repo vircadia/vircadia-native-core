@@ -132,11 +132,6 @@ ApplicationWindow {
                     console.log(appWindow.activeFocusItem);
                 }
             }
-            Button {
-                text: "Preferences"
-                property var preferencesComponent: Component { PreferencesDialog { } }
-                onClicked: preferencesComponent.createObject(desktop);
-            }
         }
 
         Window {
@@ -193,25 +188,6 @@ ApplicationWindow {
                 visible: true
                 color: "yellow"
             }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.RightButton
-
-            Component {
-                id: menuBuilder
-                VrMenuView { }
-            }
-
-            onClicked: {
-                console.log("zzz")
-                var menuItems = menuItemsToModel(stubMenu);
-                var newMenu = menuBuilder.createObject(desktop, {  source: stubMenu, items: menuItems });
-                newMenu.x = mouseX
-                newMenu.y = mouseY
-            }
-
         }
     }
 

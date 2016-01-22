@@ -21,6 +21,8 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
+#include "render/Context.h"
+
 #include "LightStage.h"
 
 class RenderArgs;
@@ -42,14 +44,13 @@ public:
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
-    void render(RenderArgs* args);
+    void render(const render::RenderContextPointer& renderContext);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
-    void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
     const LightStage& getLightStage() { return _lightStage; }
@@ -84,7 +85,6 @@ private:
     std::vector<int> _spotLights;
 
     int _ambientLightMode = 0;
-    model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders

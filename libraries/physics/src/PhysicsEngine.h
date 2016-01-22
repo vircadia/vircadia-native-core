@@ -45,16 +45,11 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
-    static int16_t getCollisionMask(int16_t group);
-
-    uint32_t getNumSubsteps();
-
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
 
-    static void setSessionUUID(const QUuid& sessionID);
-    static const QUuid& getSessionID();
+    uint32_t getNumSubsteps();
 
     void removeObjects(const VectorOfMotionStates& objects);
     void removeObjects(const SetOfMotionStates& objects); // only called during teardown
@@ -95,6 +90,8 @@ public:
     void removeAction(const QUuid actionID);
     void forEachAction(std::function<void(EntityActionPointer)> actor);
 
+    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
+
 private:
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
     void removeObjectFromDynamicsWorld(ObjectMotionState* motionState);
@@ -111,23 +108,21 @@ private:
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     btGhostPairCallback* _ghostPairCallback = NULL;
 
-    glm::vec3 _originOffset;
-
     ContactMap _contactMap;
-    uint32_t _numContactFrames = 0;
+    CollisionEvents _collisionEvents;
+    QHash<QUuid, EntityActionPointer> _objectActions;
 
-    /// character collisions
+    glm::vec3 _originOffset;
+    QUuid _sessionID;
+
     CharacterController* _myAvatarController;
+
+    uint32_t _numContactFrames = 0;
+    uint32_t _numSubsteps;
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
 
-    CollisionEvents _collisionEvents;
-
-    QHash<QUuid, EntityActionPointer> _objectActions;
-
-
-    uint32_t _numSubsteps;
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;
