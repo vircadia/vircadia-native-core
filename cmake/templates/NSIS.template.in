@@ -688,8 +688,8 @@ Section "-Core installation"
   ;Delete any server-console files installed before it was placed in sub-folder
   ;This is temporary and can be removed once users who had the initial installer have updated
   Delete "$INSTDIR\server-console.exe"
-  Delete "$INSTDIR\locales"
-  Delete "$INSTDIR\resources\app"
+  RMDir /r "$INSTDIR\locales"
+  RMDir /r "$INSTDIR\resources\app"
   Delete "$INSTDIR\resources\atom.asar"
   Delete "$INSTDIR\build-info.json"
   Delete "$INSTDIR\content_resources_200_percent.pak"
