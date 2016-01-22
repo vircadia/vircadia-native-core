@@ -34,8 +34,10 @@ target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
 # libcrypto uses dlopen in libdl
 if (UNIX)
   target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
-endif (UNIX)
+endif ()
 
-include_application_version()
-package_libraries_for_deployment()
-consolidate_stack_components()
+if (WIN32)
+  package_libraries_for_deployment()
+endif ()
+
+install_beside_console()

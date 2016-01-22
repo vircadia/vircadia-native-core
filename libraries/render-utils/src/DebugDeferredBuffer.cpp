@@ -33,7 +33,10 @@ enum Slots {
     Specular,
     Depth,
     Lighting,
-    Shadow
+    Shadow,
+    Pyramid,
+    AmbientOcclusion,
+    AmbientOcclusionBlurred
 };
 
 static const std::string DEFAULT_DIFFUSE_SHADER {
@@ -41,11 +44,7 @@ static const std::string DEFAULT_DIFFUSE_SHADER {
     "    return vec4(pow(texture(diffuseMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
-static const std::string DEFAULT_ALPHA_SHADER {
-    "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(diffuseMap, uv).a), 1.0);"
-    " }"
-};
+
 static const std::string DEFAULT_SPECULAR_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(texture(specularMap, uv).xyz, 1.0);"
@@ -58,7 +57,7 @@ static const std::string DEFAULT_ROUGHNESS_SHADER {
 };
 static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(normalize(texture(normalMap, uv).xyz), 1.0);"
+    "    return vec4(normalize(texture(normalMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_DEPTH_SHADER {
@@ -83,6 +82,27 @@ static const std::string DEFAULT_SHADOW_SHADER {
     "    return vec4(vec3(0.0), 1.0);"
     " }"
 };
+
+static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(1.0 - texture(pyramidMap, uv).x * 0.01), 1.0);"
+    //"    return vec4(vec3(1.0 - textureLod(pyramidMap, uv, 3).x * 0.01), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(texture(occlusionMap, uv).x), 1.0);"
+    // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
+    // when drawing normal "    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
+    " }"
+};
+static const std::string DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER{
+    "vec4 getFragmentColor() {"
+    "    return vec4(vec3(texture(occlusionBlurredMap, uv).x), 1.0);"
+    " }"
+};
+
 static const std::string DEFAULT_CUSTOM_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(1.0, 0.0, 0.0, 1.0);"
@@ -113,8 +133,6 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
     switch (mode) {
         case DiffuseMode:
             return DEFAULT_DIFFUSE_SHADER;
-        case AlphaMode:
-            return DEFAULT_ALPHA_SHADER;
         case SpecularMode:
             return DEFAULT_SPECULAR_SHADER;
         case RoughnessMode:
@@ -127,6 +145,12 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
             return DEFAULT_LIGHTING_SHADER;
         case ShadowMode:
             return DEFAULT_SHADOW_SHADER;
+        case PyramidDepthMode:
+            return DEFAULT_PYRAMID_DEPTH_SHADER;
+        case AmbientOcclusionMode:
+            return DEFAULT_AMBIENT_OCCLUSION_SHADER;
+        case AmbientOcclusionBlurredMode:
+            return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
         case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
     }
@@ -175,6 +199,9 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
+        slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
+        slotBindings.insert(gpu::Shader::Binding("occlusionMap", AmbientOcclusion));
+        slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
         gpu::Shader::makeProgram(*program, slotBindings);
         
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
@@ -231,7 +258,10 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
-        
+        batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
+        batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
+        batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
+
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
         const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);
         const glm::vec2 topRight(renderContext->_deferredDebugSize.z, renderContext->_deferredDebugSize.w);

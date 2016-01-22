@@ -8,22 +8,19 @@ import "../windows"
 import "../styles"
 
 // Work in progress....
-Window {
+ModalWindow {
     id: root
     HifiConstants { id: hifi }
 
     signal selectedFile(var file);
     signal canceled();
-
-    anchors.centerIn: parent
     resizable: true
     width: 640
     height: 480
-    modality: Qt.ApplicationModal
+
     property string settingsName: ""
     property alias folder: folderModel.folder
     property alias filterModel: selectionType.model
-
 
     Rectangle {
         anchors.fill: parent

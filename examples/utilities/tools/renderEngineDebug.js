@@ -12,7 +12,7 @@
 Script.include("cookies.js");
 
 var MENU = "Developer>Render>Debug Deferred Buffer";
-var ACTIONS = ["Off", "Diffuse", "Alpha", "Specular", "Roughness", "Normal", "Depth", "Lighting", "Custom"];
+var ACTIONS = ["Off", "Diffuse", "Metallic", "Roughness", "Normal", "Depth", "Lighting", "Shadow", "PyramidDepth", "AmbientOcclusion", "OcclusionBlurred", "Custom"];
 var SETTINGS_KEY = "EngineDebugScript.DebugMode";
 
 Number.prototype.clamp = function(min, max) {
@@ -52,6 +52,7 @@ var overlaysCounter = new CounterWidget(panel, "Overlays", Render.overlay3D);
 
 var resizing = false;
 var previousMode = Settings.getValue(SETTINGS_KEY, -1);
+previousMode = 8;
 Menu.addActionGroup(MENU, ACTIONS, ACTIONS[previousMode + 1]);
 Render.deferredDebugMode = previousMode;
 Render.deferredDebugSize = { x: 0.0, y: -1.0, z: 1.0, w: 1.0 }; // Reset to default size
@@ -98,12 +99,70 @@ panel.newSlider("Tone Mapping Exposure", -10, 10,
     function() { return Render.tone.exposure; },
     function (value) { return (value); });
 
+panel.newSlider("Ambient Occlusion Resolution Level", 0.0, 4.0,
+    function (value) { Render.ambientOcclusion.resolutionLevel = value; },
+    function() { return Render.ambientOcclusion.resolutionLevel; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Radius", 0.0, 2.0,
+    function (value) { Render.ambientOcclusion.radius = value; },
+    function() { return Render.ambientOcclusion.radius; },
+    function (value) { return (value.toFixed(2)); });
+
+panel.newSlider("Ambient Occlusion Level", 0.0, 1.0,
+    function (value) { Render.ambientOcclusion.level = value; },
+    function() { return Render.ambientOcclusion.level; },
+    function (value) { return (value.toFixed(2)); });
+
+panel.newSlider("Ambient Occlusion Num Samples", 1, 32,
+    function (value) { Render.ambientOcclusion.numSamples = value; },
+    function() { return Render.ambientOcclusion.numSamples; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Num Spiral Turns", 0.0, 30.0,
+    function (value) { Render.ambientOcclusion.numSpiralTurns = value; },
+    function() { return Render.ambientOcclusion.numSpiralTurns; },
+    function (value) { return (value.toFixed(2)); });
+
+panel.newCheckbox("Ambient Occlusion Dithering",
+    function (value) { Render.ambientOcclusion.ditheringEnabled = value; },
+    function() { return Render.ambientOcclusion.ditheringEnabled; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Falloff Bias", 0.0, 0.2,
+    function (value) { Render.ambientOcclusion.falloffBias = value; },
+    function() { return Render.ambientOcclusion.falloffBias; },
+    function (value) { return (value.toFixed(2)); });
+
+panel.newSlider("Ambient Occlusion Edge Sharpness", 0.0, 1.0,
+    function (value) { Render.ambientOcclusion.edgeSharpness = value; },
+    function() { return Render.ambientOcclusion.edgeSharpness; },
+    function (value) { return (value.toFixed(2)); });
+
+panel.newSlider("Ambient Occlusion Blur Radius", 0.0, 6.0,
+    function (value) { Render.ambientOcclusion.blurRadius = value; },
+    function() { return Render.ambientOcclusion.blurRadius; },
+    function (value) { return (value); });
+
+panel.newSlider("Ambient Occlusion Blur Deviation", 0.0, 3.0,
+    function (value) { Render.ambientOcclusion.blurDeviation = value; },
+    function() { return Render.ambientOcclusion.blurDeviation; },
+    function (value) { return (value.toFixed(2)); });
+
+
+panel.newSlider("Ambient Occlusion GPU time", 0.0, 10.0,
+    function (value) {},
+    function() { return Render.ambientOcclusion.gpuTime; },
+    function (value) { return (value.toFixed(2) + " ms"); });
+
+
 var tickTackPeriod = 500;
 
 function updateCounters() {
     opaquesCounter.update();
     transparentsCounter.update();
     overlaysCounter.update();
+    panel.update("Ambient Occlusion GPU time");
 }
 Script.setInterval(updateCounters, tickTackPeriod);
 

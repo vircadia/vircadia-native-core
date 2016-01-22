@@ -45,6 +45,9 @@ public:
         return load(QUrl(qmlSourceFile), f);
     }
 
+    Q_INVOKABLE void executeOnUiThread(std::function<void()> function, bool blocking = false);
+    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
+
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
     void setProxyWindow(QWindow* window);

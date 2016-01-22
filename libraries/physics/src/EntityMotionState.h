@@ -67,7 +67,7 @@ public:
     virtual glm::vec3 getObjectGravity() const override { return _entity->getGravity(); }
     virtual glm::vec3 getObjectLinearVelocityChange() const override;
 
-    virtual const QUuid& getObjectID() const override { return _entity->getID(); }
+    virtual const QUuid getObjectID() const override { return _entity->getID(); }
 
     virtual quint8 getSimulationPriority() const override;
     virtual QUuid getSimulatorID() const override;

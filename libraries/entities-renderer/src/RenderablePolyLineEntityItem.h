@@ -27,19 +27,19 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static void createPipeline();
     RenderablePolyLineEntityItem(const EntityItemID& entityItemID);
-    
-    virtual void render(RenderArgs* args);
+
+    virtual void render(RenderArgs* args) override;
     virtual void update(const quint64& now) override;
-    virtual bool needsToCallUpdate() const { return true; };
-    
+    virtual bool needsToCallUpdate() const override { return true; };
+
     SIMPLE_RENDERABLE();
-    
+
     NetworkTexturePointer _texture;
 
     static gpu::PipelinePointer _pipeline;
     static gpu::Stream::FormatPointer _format;
     static int32_t PAINTSTROKE_GPU_SLOT;
-    
+
 protected:
     void updateGeometry();
     void updateVertices();

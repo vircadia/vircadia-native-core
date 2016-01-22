@@ -105,7 +105,8 @@
                 alphaStart: 0.5,
                 alphaFinish: 0.5,
                 textures: "https://s3.amazonaws.com/hifi-public/eric/textures/particleSprites/beamParticle.png",
-                emitterShouldTrail: false
+                emitterShouldTrail: false,
+                lifetime: 1000
             }
             this.beam = Entities.addEntity(props);
 

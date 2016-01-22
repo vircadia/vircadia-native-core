@@ -42,6 +42,8 @@ LogHandler::LogHandler() :
 
 const char* stringForLogType(LogMsgType msgType) {
     switch (msgType) {
+        case LogInfo:
+            return "INFO";
         case LogDebug:
             return "DEBUG";
         case LogWarning:

@@ -53,7 +53,7 @@ public:
     virtual glm::vec3 getObjectAngularVelocity() const override;
     virtual glm::vec3 getObjectGravity() const override;
 
-    virtual const QUuid& getObjectID() const override;
+    virtual const QUuid getObjectID() const override;
 
     virtual QUuid getSimulatorID() const override;
 

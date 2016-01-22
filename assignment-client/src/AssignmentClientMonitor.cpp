@@ -12,6 +12,9 @@
 #include <memory>
 #include <signal.h>
 
+#include <QDir>
+#include <QStandardPaths>
+
 #include <AddressManager.h>
 #include <LogHandler.h>
 #include <udt/PacketHeaders.h>
@@ -20,6 +23,7 @@
 #include "AssignmentClientApp.h"
 #include "AssignmentClientChildData.h"
 #include "SharedUtil.h"
+#include <QtCore/QJsonDocument>
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 const int WAIT_FOR_CHILD_MSECS = 1000;
@@ -29,7 +33,9 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
                                                  quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                                                 quint16 assignmentServerPort) :
+                                                 quint16 assignmentServerPort, quint16 httpStatusServerPort, QDir logDirectory) :
+    _logDirectory(logDirectory),
+    _httpManager(QHostAddress::LocalHost, httpStatusServerPort, "", this),
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
     _maxAssignmentClientForks(maxAssignmentClientForks),
@@ -38,6 +44,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
     _assignmentServerPort(assignmentServerPort)
+
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
 
@@ -80,24 +87,21 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
     }
 }
 
-void AssignmentClientMonitor::childProcessFinished() {
-    QProcess* childProcess = qobject_cast<QProcess*>(sender());
-    qint64 processID = _childProcesses.key(childProcess);
-
-    if (processID > 0) {
-        qDebug() << "Child process" << processID << "has finished. Removing from internal map.";
-        _childProcesses.remove(processID);
+void AssignmentClientMonitor::childProcessFinished(qint64 pid) {
+    if (_childProcesses.remove(pid)) {
+        qDebug() << "Child process" << pid << "has finished. Removed from internal map.";
     }
 }
 
 void AssignmentClientMonitor::stopChildProcesses() {
+    qDebug() << "Stopping child processes";
     auto nodeList = DependencyManager::get<NodeList>();
 
     // ask child processes to terminate
-    foreach(QProcess* childProcess, _childProcesses) {
-        if (childProcess->processId() > 0) {
-            qDebug() << "Attempting to terminate child process" << childProcess->processId();
-            childProcess->terminate();
+    for (auto& ac : _childProcesses) {
+        if (ac.process->processId() > 0) {
+            qDebug() << "Attempting to terminate child process" << ac.process->processId();
+            ac.process->terminate();
         }
     }
 
@@ -105,10 +109,10 @@ void AssignmentClientMonitor::stopChildProcesses() {
 
     if (_childProcesses.size() > 0) {
         // ask even more firmly
-        foreach(QProcess* childProcess, _childProcesses) {
-            if (childProcess->processId() > 0) {
-                qDebug() << "Attempting to kill child process" << childProcess->processId();
-                childProcess->kill();
+        for (auto& ac : _childProcesses) {
+            if (ac.process->processId() > 0) {
+                qDebug() << "Attempting to kill child process" << ac.process->processId();
+                ac.process->kill();
             }
         }
 
@@ -155,18 +159,61 @@ void AssignmentClientMonitor::spawnChildClient() {
     _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
     _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
 
+    // Setup log files
+    const QString DATETIME_FORMAT = "yyyyMMdd.hh.mm.ss.zzz";
+
+    if (!_logDirectory.exists()) {
+        qDebug() << "Log directory (" << _logDirectory.absolutePath() << ") does not exist, creating.";
+        _logDirectory.mkpath(_logDirectory.absolutePath());
+    }
+
+    auto nowString = QDateTime::currentDateTime().toString(DATETIME_FORMAT);
+    auto stdoutFilenameTemp = QString("ac-%1-stdout.txt").arg(nowString);
+    auto stderrFilenameTemp = QString("ac-%1-stderr.txt").arg(nowString);
+    QString stdoutPathTemp = _logDirectory.absoluteFilePath(stdoutFilenameTemp);
+    QString stderrPathTemp = _logDirectory.absoluteFilePath(stderrFilenameTemp);
+
+    // reset our output and error files
+    assignmentClient->setStandardOutputFile(stdoutPathTemp);
+    assignmentClient->setStandardErrorFile(stderrPathTemp);
+
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
 
     assignmentClient->start(QCoreApplication::applicationFilePath(), _childArguments);
-    
+
+    // Update log path to use PID in filename
+    auto stdoutFilename = QString("ac-%1_%2-stdout.txt").arg(nowString).arg(assignmentClient->processId());
+    auto stderrFilename = QString("ac-%1_%2-stderr.txt").arg(nowString).arg(assignmentClient->processId());
+    QString stdoutPath = _logDirectory.absoluteFilePath(stdoutFilename);
+    QString stderrPath = _logDirectory.absoluteFilePath(stderrFilename);
+
+    qDebug() << "Renaming " << stdoutPathTemp << " to " << stdoutPath;
+    if (!_logDirectory.rename(stdoutFilenameTemp, stdoutFilename)) {
+        qDebug() << "Failed to rename " << stdoutFilenameTemp;
+        stdoutPath = stdoutPathTemp;
+        stdoutFilename = stdoutFilenameTemp;
+    }
+
+    qDebug() << "Renaming " << stderrPathTemp << " to " << stderrPath;
+    if (!QFile::rename(stderrPathTemp, stderrPath)) {
+        qDebug() << "Failed to rename " << stderrFilenameTemp;
+        stderrPath = stderrPathTemp;
+        stderrFilename = stderrFilenameTemp;
+    }
+
+    qDebug() << "Child stdout being written to: " << stdoutFilename;
+    qDebug() << "Child stderr being written to: " << stderrFilename;
+
     if (assignmentClient->processId() > 0) {
+        auto pid = assignmentClient->processId();
         // make sure we hear that this process has finished when it does
-        connect(assignmentClient, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(childProcessFinished()));
-        
+        connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+                this, [this, pid]() { childProcessFinished(pid); });
+
         qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
-        _childProcesses.insert(assignmentClient->processId(), assignmentClient);
-    }    
+        _childProcesses.insert(assignmentClient->processId(), { assignmentClient, stdoutPath, stderrPath });
+    }
 }
 
 void AssignmentClientMonitor::checkSpares() {
@@ -222,12 +269,12 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
         // The parent only expects to be talking with prorams running on this same machine.
         if (senderSockAddr.getAddress() == QHostAddress::LocalHost ||
                 senderSockAddr.getAddress() == QHostAddress::LocalHostIPv6) {
-             
+
             if (!senderID.isNull()) {
                 // We don't have this node yet - we should add it
                 matchingNode = DependencyManager::get<LimitedNodeList>()->addOrUpdateNode
                     (senderID, NodeType::Unassigned, senderSockAddr, senderSockAddr, false, false);
-                
+
                 auto childData = std::unique_ptr<AssignmentClientChildData>
                     { new AssignmentClientChildData(Assignment::Type::AllTypes) };
                 matchingNode->setLinkedData(std::move(childData));
@@ -252,10 +299,39 @@ void AssignmentClientMonitor::handleChildStatusPacket(QSharedPointer<ReceivedMes
         // get child's assignment type out of the packet
         quint8 assignmentType;
         message->readPrimitive(&assignmentType);
-        
-        childData->setChildType((Assignment::Type) assignmentType);
-        
+
+        childData->setChildType(Assignment::Type(assignmentType));
+
         // note when this child talked
         matchingNode->setLastHeardMicrostamp(usecTimestampNow());
     }
+}
+
+bool AssignmentClientMonitor::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    if (url.path() == "/status") {
+        QByteArray response;
+
+        QJsonObject status;
+        QJsonObject servers;
+        for (auto& ac : _childProcesses) {
+            QJsonObject server;
+
+            server["pid"] = ac.process->processId();
+            server["logStdout"] = ac.logStdoutPath;
+            server["logStderr"] = ac.logStderrPath;
+
+            servers[QString::number(ac.process->processId())] = server;
+        }
+
+        status["servers"] = servers;
+
+        QJsonDocument document { status };
+
+        connection->respond(HTTPConnection::StatusCode200, document.toJson());
+    } else {
+        connection->respond(HTTPConnection::StatusCode404);
+    }
+
+
+    return true;
 }

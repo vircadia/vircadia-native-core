@@ -69,28 +69,9 @@ Fadable {
 
     // Default to a standard frame.  Can be overriden to provide custom
     // frame styles, like a full desktop frame to simulate a modal window
-    property var frame;
+    property var frame: DefaultFrame { }
 
-    Component {
-        id: defaultFrameBuilder;
-        DefaultFrame { anchors.fill: parent }
-    }
-
-    Component {
-        id: modalFrameBuilder;
-        ModalFrame { anchors.fill: parent }
-    }
-
-    Component.onCompleted: {
-        if (!frame) {
-            if (modality === Qt.NonModal) {
-                frame = defaultFrameBuilder.createObject(window);
-            } else {
-                frame = modalFrameBuilder.createObject(window);
-            }
-        }
-        raise();
-    }
+    Component.onCompleted: raise();
 
     children: [ frame, content, activator ]
 
@@ -114,7 +95,7 @@ Fadable {
 
     function raise() {
         if (visible && parent) {
-            Desktop.raise(window)
+            desktop.raise(window)
             if (!focus) {
                 focus = true;
             }

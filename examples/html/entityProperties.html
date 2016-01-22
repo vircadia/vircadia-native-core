@@ -360,20 +360,6 @@
                 var elZoneSkyboxColorBlue = document.getElementById("property-zone-skybox-color-blue");
                 var elZoneSkyboxURL = document.getElementById("property-zone-skybox-url");
     
-                var elZoneAtmosphereCenterX = document.getElementById("property-zone-atmosphere-center-x");
-                var elZoneAtmosphereCenterY = document.getElementById("property-zone-atmosphere-center-y");
-                var elZoneAtmosphereCenterZ = document.getElementById("property-zone-atmosphere-center-z");
-                var elCenterAtmosphereToZone = document.getElementById("center-atmosphere-in-zone");
-    
-                var elZoneAtmosphereInnerRadius = document.getElementById("property-zone-atmosphere-inner-radius");
-                var elZoneAtmosphereOuterRadius = document.getElementById("property-zone-atmosphere-outer-radius");
-                var elZoneAtmosphereMieScattering = document.getElementById("property-zone-atmosphere-mie-scattering");
-                var elZoneAtmosphereRayleighScattering = document.getElementById("property-zone-atmosphere-rayleigh-scattering");
-                var elZoneAtmosphereScatteringWavelengthsX = document.getElementById("property-zone-atmosphere-scattering-wavelengths-x");
-                var elZoneAtmosphereScatteringWavelengthsY = document.getElementById("property-zone-atmosphere-scattering-wavelengths-y");
-                var elZoneAtmosphereScatteringWavelengthsZ = document.getElementById("property-zone-atmosphere-scattering-wavelengths-z");
-                var elZoneAtmosphereHasStars = document.getElementById("property-zone-atmosphere-has-stars");
-    
                 var elPolyVoxSections = document.querySelectorAll(".poly-vox-section");
                 allSections.push(elPolyVoxSections);
                 var elVoxelVolumeSizeX = document.getElementById("property-voxel-volume-size-x");
@@ -606,20 +592,7 @@
                                     elZoneSkyboxColorBlue.value = properties.skybox.color.blue;
                                     elZoneSkyboxURL.value = properties.skybox.url;
     
-                                    elZoneAtmosphereCenterX.value = properties.atmosphere.center.x;
-                                    elZoneAtmosphereCenterY.value = properties.atmosphere.center.y;
-                                    elZoneAtmosphereCenterZ.value = properties.atmosphere.center.z;
-                                    elZoneAtmosphereInnerRadius.value = properties.atmosphere.innerRadius;
-                                    elZoneAtmosphereOuterRadius.value = properties.atmosphere.outerRadius;
-                                    elZoneAtmosphereMieScattering.value = properties.atmosphere.mieScattering;
-                                    elZoneAtmosphereRayleighScattering.value = properties.atmosphere.rayleighScattering;
-                                    elZoneAtmosphereScatteringWavelengthsX.value = properties.atmosphere.scatteringWavelengths.x;
-                                    elZoneAtmosphereScatteringWavelengthsY.value = properties.atmosphere.scatteringWavelengths.y;
-                                    elZoneAtmosphereScatteringWavelengthsZ.value = properties.atmosphere.scatteringWavelengths.z;
-                                    elZoneAtmosphereHasStars.checked = properties.atmosphere.hasStars;
-    
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
-                                    showElements(document.getElementsByClassName('atmosphere-section'), elZoneBackgroundMode.value == 'atmosphere');
                                 } else if (properties.type == "ParticleEffect") {
                                     for (var i = 0; i < elParticleSections.length; i++) {
                                         elParticleSections[i].style.display = 'block';
@@ -874,25 +847,6 @@
     
                 elZoneSkyboxURL.addEventListener('change', createEmitGroupTextPropertyUpdateFunction('skybox','url'));
     
-                var zoneAtmosphereCenterChangeFunction = createEmitGroupVec3PropertyUpdateFunction(
-                    'atmosphere','center', elZoneAtmosphereCenterX, elZoneAtmosphereCenterY, elZoneAtmosphereCenterZ);
-                elZoneAtmosphereCenterX.addEventListener('change', zoneAtmosphereCenterChangeFunction);
-                elZoneAtmosphereCenterY.addEventListener('change', zoneAtmosphereCenterChangeFunction);
-                elZoneAtmosphereCenterZ.addEventListener('change', zoneAtmosphereCenterChangeFunction);
-    
-    
-                elZoneAtmosphereInnerRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','innerRadius'));
-                elZoneAtmosphereOuterRadius.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','outerRadius'));
-                elZoneAtmosphereMieScattering.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','mieScattering'));
-                elZoneAtmosphereRayleighScattering.addEventListener('change', createEmitGroupNumberPropertyUpdateFunction('atmosphere','rayleighScattering'));
-                var zoneAtmosphereScatterWavelengthsChangeFunction = createEmitGroupVec3PropertyUpdateFunction(
-                    'atmosphere','scatteringWavelengths', elZoneAtmosphereScatteringWavelengthsX, 
-                    elZoneAtmosphereScatteringWavelengthsY, elZoneAtmosphereScatteringWavelengthsZ);
-                elZoneAtmosphereScatteringWavelengthsX.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
-                elZoneAtmosphereScatteringWavelengthsY.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
-                elZoneAtmosphereScatteringWavelengthsZ.addEventListener('change', zoneAtmosphereScatterWavelengthsChangeFunction);
-                elZoneAtmosphereHasStars.addEventListener('change', createEmitGroupCheckedPropertyUpdateFunction('atmosphere','hasStars'));
-    
                 var voxelVolumeSizeChangeFunction = createEmitVec3PropertyUpdateFunction(
                     'voxelVolumeSize', elVoxelVolumeSizeX, elVoxelVolumeSizeY, elVoxelVolumeSizeZ);
                 elVoxelVolumeSizeX.addEventListener('change', voxelVolumeSizeChangeFunction);
@@ -932,12 +886,6 @@
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "action",
                         action: "reloadScript"
-                    }));
-                });
-                elCenterAtmosphereToZone.addEventListener("click", function() {
-                    EventBridge.emitWebEvent(JSON.stringify({
-                        type: "action",
-                        action: "centerAtmosphereToZone",
                     }));
                 });
                 elPreviewCameraButton.addEventListener("click", function() {
@@ -1601,7 +1549,6 @@
                 <select name="SelectBackgroundMode" id="property-zone-background-mode">
                     <option value='inherit'>Nothing</option>
                     <option value='skybox'>Skybox</option>
-                    <option value='atmosphere'>Atmosphere</option>
                 </select> 
             </div>
         </div>
@@ -1625,61 +1572,6 @@
             <div class="value">
                 <input type="text" id="property-zone-skybox-url" class="url">
             </div>
-        </div>
-
-
-        <div class="sub-section-header zone-section atmosphere-section">
-            <label>Atmosphere</label>
-        </div>
-
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Center</div>
-            <div class="value">
-                <div class="input-area">X <br><input class="coord" type='number' id="property-zone-atmosphere-center-x"></div>
-                <div class="input-area">Y <br><input class="coord" type='number' id="property-zone-atmosphere-center-y"></div>
-                <div class="input-area">Z <br><input class="coord" type='number' id="property-zone-atmosphere-center-z"></div>
-                <div>
-                    <input type="button" id="center-atmosphere-in-zone" value="Center to Zone">
-                </div>
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Inner Radius</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-inner-radius" step="1">
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Outer Radius</div>
-            <div class="value">
-                <input class="coord" type='number' id="property-zone-atmosphere-outer-radius" step="1">
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Mie Scattering</div>
-            <div class="value">
-                <input class="coord no-spin" type='number' id="property-zone-atmosphere-mie-scattering" min="0" max="0.5" step="any">
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Rayleigh Scattering</div>
-            <div class="value">
-                <input class="coord no-spin" type='number' id="property-zone-atmosphere-rayleigh-scattering" min="0" max="0.5" step="any">
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property">
-            <div class="label">Atmosphere Scattering Wavelenghts</div>
-            <div class="value">
-                <div class="input-area">X <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-x" min="0" max="1" step="any"></div>
-                <div class="input-area">Y <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-y" min="0" max="1" step="any"></div>
-                <div class="input-area">Z <br><input class="coord no-spin" type='number' id="property-zone-atmosphere-scattering-wavelengths-z" min="0" max="1" step="any"></div>
-            </div>
-        </div>
-        <div class="zone-section atmosphere-section property" style="display:none">
-            <span class="label">Atmosphere Has Stars</span>
-            <span class="value">
-                <input type='checkbox' id="property-zone-atmosphere-has-stars">
-            </span>
         </div>
     </div>
 </body>

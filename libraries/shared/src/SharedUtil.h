@@ -172,4 +172,6 @@ uint qHash(const std::shared_ptr<T>& ptr, uint seed = 0)
     return qHash(ptr.get(), seed);
 }
 
+void disableQtBearerPoll();
+
 #endif // hifi_SharedUtil_h

@@ -36,6 +36,9 @@
 #include <QtGui/QMouseEvent>
 #include <QtGui/QDesktopServices>
 
+#include <QtNetwork/QLocalSocket>
+#include <QtNetwork/QLocalServer>
+
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
@@ -57,7 +60,7 @@
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
-#include <ApplicationVersion.h>
+#include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
@@ -303,7 +306,7 @@ bool setupEssentials(int& argc, char** argv) {
         listenPort = atoi(portStr);
     }
     // Set build version
-    QCoreApplication::setApplicationVersion(BUILD_VERSION);
+    QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
     Setting::preInit();
 
@@ -420,9 +423,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>().data();
     _controllerScriptingInterface = dynamic_cast<ControllerScriptingInterface*>(controllerScriptingInterface);
-    // to work around the Qt constant wireless scanning, set the env for polling interval very high
-    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
-    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 
     _entityClipboard->createRootElement();
 
@@ -796,7 +796,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                VrMenu::toggle(); // show context menu even on non-stereo displays
+                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
                 auto oldPos = QCursor::pos();
                 auto newPos = oldPos;
@@ -1179,7 +1179,6 @@ void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
-    VrMenu::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
 
@@ -1189,7 +1188,7 @@ void Application::initializeUi() {
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
-    offscreenUi->createDesktop();
+    offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
     
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -1247,8 +1246,6 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
 
     _glWidget->installEventFilter(offscreenUi.data());
-    VrMenu::load();
-    VrMenu::executeQueuedLambdas();
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
@@ -1886,12 +1883,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_A:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                }
-                break;
-
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
@@ -2066,7 +2057,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
-        VrMenu::toggle(); // show context menu even on non-stereo displays
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
     }
 
     _keysPressed.remove(event->key());
@@ -2697,8 +2689,6 @@ void Application::initDisplay() {
 void Application::init() {
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-
-    _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init();
 
@@ -3620,10 +3610,6 @@ public:
     typedef Payload::DataPointer Pointer;
 
     Stars _stars;
-    Environment* _environment;
-
-    BackgroundRenderData(Environment* environment) : _environment(environment) {
-    }
 
     static render::ItemID _item; // unique WorldBoxRenderData
 };
@@ -3665,63 +3651,8 @@ namespace render {
                         "Application::payloadRender<BackgroundRenderData>() ... stars...");
                     // should be the first rendering pass - w/o depth buffer / lighting
 
-                    // compute starfield alpha based on distance from atmosphere
-                    float alpha = 1.0f;
-                    bool hasStars = true;
-
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                        // TODO: handle this correctly for zones
-                        const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
-
-                        if (closestData.getHasStars()) {
-                            const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                            const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                            glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
-                                                            / closestData.getAtmosphereOuterRadius();
-                            float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
-                            if (height < closestData.getAtmosphereInnerRadius()) {
-                                // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                                alpha = 0.0f;
-
-                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                    float directionY = glm::clamp(sunDirection.y,
-                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                                }
-
-
-                            } else if (height < closestData.getAtmosphereOuterRadius()) {
-                                alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                    float directionY = glm::clamp(sunDirection.y,
-                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                                }
-                            }
-                        } else {
-                            hasStars = false;
-                        }
-                    }
-
-                    // finally render the starfield
-                    if (hasStars) {
-                        background->_stars.render(args, alpha);
-                    }
-
-                    // draw the sky dome
-                    if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                        PerformanceTimer perfTimer("atmosphere");
-                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "Application::displaySide() ... atmosphere...");
-
-                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                    }
-
+                    static const float alpha = 1.0f;
+                    background->_stars.render(args, alpha);
                 }
             }
                 break;
@@ -3761,12 +3692,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Background rendering decision
     if (BackgroundRenderData::_item == 0) {
-        auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
+        auto backgroundRenderData = make_shared<BackgroundRenderData>();
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
         pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
-    } else {
-
     }
 
    // Assuming nothing get's rendered through that
@@ -3806,7 +3735,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         auto skybox = model::SkyboxPointer();
         if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
@@ -3847,6 +3775,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
         auto engineContext = _renderEngine->getRenderContext();
         renderInterface->setItemCounts(engineContext->getItemsConfig());
+        renderInterface->setJobGPUTimes(engineContext->getAmbientOcclusion().gpuTime);
+
     }
 
     activeRenderingThread = nullptr;
@@ -5180,4 +5110,31 @@ void Application::setActiveDisplayPlugin(const QString& pluginName) {
         }
     }
     updateDisplayMode();
+}
+
+void Application::handleLocalServerConnection() {
+    auto server = qobject_cast<QLocalServer*>(sender());
+
+    qDebug() << "Got connection on local server from additional instance - waiting for parameters";
+
+    auto socket = server->nextPendingConnection();
+
+    connect(socket, &QLocalSocket::readyRead, this, &Application::readArgumentsFromLocalSocket);
+
+    qApp->getWindow()->raise();
+    qApp->getWindow()->activateWindow();
+}
+
+void Application::readArgumentsFromLocalSocket() {
+    auto socket = qobject_cast<QLocalSocket*>(sender());
+
+    auto message = socket->readAll();
+    socket->deleteLater();
+
+    qDebug() << "Read from connection: " << message;
+
+    // If we received a message, try to open it as a URL
+    if (message.length() > 0) {
+        qApp->openUrl(QString::fromUtf8(message));
+    }
 }

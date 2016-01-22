@@ -27,14 +27,15 @@ public:
 private:
     enum Modes : uint8_t {
         DiffuseMode = 0,
-        AlphaMode,
         SpecularMode,
         RoughnessMode,
         NormalMode,
         DepthMode,
         LightingMode,
         ShadowMode,
-        
+        PyramidDepthMode,
+        AmbientOcclusionMode,
+        AmbientOcclusionBlurredMode,
         CustomMode // Needs to stay last
     };
     struct CustomPipeline {

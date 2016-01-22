@@ -6,6 +6,8 @@ import Qt.labs.settings 1.0
 import "../../../interface/resources/qml"
 import "../../../interface/resources/qml/windows"
 import "../../../interface/resources/qml/dialogs"
+import "../../../interface/resources/qml/hifi"
+import "../../../interface/resources/qml/hifi/dialogs"
 
 ApplicationWindow {
     id: appWindow
@@ -36,7 +38,7 @@ ApplicationWindow {
         return newListModel;
     }
 
-    Root {
+    Desktop {
         id: desktop
         anchors.fill: parent
         StubMenu { id: stubMenu }
@@ -70,28 +72,6 @@ ApplicationWindow {
                     blue.enabled = !blue.enabled
                 }
             }
-//            Button {
-//                text: "add web tab"
-//                onClicked: {
-//                    testButtons.urls.push("http://slashdot.org?" + testButtons.count++);
-//                    testButtons.tabs.push(desktop.toolWindow.addWebTab({ title: "test", source: testButtons.urls[testButtons.urls.length - 1], width: 500, height: 720 }))
-//                }
-//            }
-//            Button {
-//                text: "toggle tab visible"
-//                onClicked: {
-//                    var lastUrl = testButtons.urls[testButtons.urls.length - 1];
-//                    var tab = desktop.toolWindow.findTabForUrl(lastUrl);
-//                    desktop.toolWindow.showTabForUrl(lastUrl, !tab.enabled)
-//                }
-//            }
-//            Button {
-//                text: "Remove last tab"
-//                onClicked: {
-//                    testButtons.tabs.pop();
-//                    desktop.toolWindow.removeTabForUrl(testButtons.urls.pop());
-//                }
-//            }
             Button {
                 text: "Show Long Error"
                 onClicked: {
@@ -208,25 +188,6 @@ ApplicationWindow {
                 visible: true
                 color: "yellow"
             }
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.RightButton
-
-            Component {
-                id: menuBuilder
-                VrMenuView { }
-            }
-
-            onClicked: {
-                console.log("zzz")
-                var menuItems = menuItemsToModel(stubMenu);
-                var newMenu = menuBuilder.createObject(desktop, {  source: stubMenu, items: menuItems });
-                newMenu.x = mouseX
-                newMenu.y = mouseY
-            }
-
         }
     }
 

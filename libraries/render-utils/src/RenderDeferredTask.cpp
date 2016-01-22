@@ -64,11 +64,10 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->getArgs());
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("ToneMappingDeferred");
     _toneMappingEffect.render(renderContext->getArgs());
 }
 
@@ -108,16 +107,16 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
     // Use Stencil and start drawing background in Lighting buffer
     addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred");
 
+    // AO job
+    addJob<AmbientOcclusionEffect>("AmbientOcclusion");
+    _jobs.back().setEnabled(false);
+    _occlusionJobIndex = (int)_jobs.size() - 1;
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", cullFunctor);
 
     // DeferredBuffer is complete, now let's shade it into the LightingBuffer
     addJob<RenderDeferred>("RenderDeferred");
-
-    // AO job, to be revisited
-    addJob<AmbientOcclusion>("AmbientOcclusion");
-    _occlusionJobIndex = (int)_jobs.size() - 1;
-    enableJob(_occlusionJobIndex, false);
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing");
@@ -173,6 +172,20 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setDrawHitEffect(renderContext->getDrawHitEffect());
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->getOcclusionStatus());
+
+    if (_occlusionJobIndex >= 0) {
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setResolutionLevel(renderContext->getAmbientOcclusion().resolutionLevel);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSamples(renderContext->getAmbientOcclusion().numSamples);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSpiralTurns(renderContext->getAmbientOcclusion().numSpiralTurns);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setDithering(renderContext->getAmbientOcclusion().ditheringEnabled);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setFalloffBias(renderContext->getAmbientOcclusion().falloffBias);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setEdgeSharpness(renderContext->getAmbientOcclusion().edgeSharpness);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setBlurRadius(renderContext->getAmbientOcclusion().blurRadius);
+        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setBlurDeviation(renderContext->getAmbientOcclusion().blurDeviation);
+    }
+    
     setAntialiasingStatus(renderContext->getFxaaStatus());
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
@@ -181,10 +194,17 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     // TODO: For now, lighting is controlled through a singleton, so it is distinct
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
 
+    renderContext->getArgs()->_context->syncCache();
+
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
 
+    if (_occlusionJobIndex >= 0 && renderContext->getOcclusionStatus()) {
+        renderContext->getAmbientOcclusion().gpuTime = _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().getGPUTime();
+    } else {
+        renderContext->getAmbientOcclusion().gpuTime = 0.0;
+    }
 };
 
 void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {

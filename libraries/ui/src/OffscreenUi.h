@@ -27,18 +27,18 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
 public:
     OffscreenUi();
     virtual void create(QOpenGLContext* context) override;
-    void createDesktop();
+    void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
     void unfocusWindows();
+    void toggleMenu(const QPoint& screenCoordinates);
+
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 
-    Q_INVOKABLE void executeOnUiThread(std::function<void()> function);
-    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
 
     /// Same design as QMessageBox::critical(), will block, returns result
     static QMessageBox::StandardButton critical(void* ignored, const QString& title, const QString& text,

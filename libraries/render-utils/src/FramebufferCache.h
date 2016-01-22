@@ -44,7 +44,16 @@ public:
     gpu::TexturePointer getDeferredNormalTexture();
     gpu::TexturePointer getDeferredSpecularTexture();
 
+    gpu::FramebufferPointer getDepthPyramidFramebuffer();
+    gpu::TexturePointer getDepthPyramidTexture();
+
+    void setAmbientOcclusionResolutionLevel(int level);
+    gpu::FramebufferPointer getOcclusionFramebuffer();
+    gpu::TexturePointer getOcclusionTexture();
+    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
+    gpu::TexturePointer getOcclusionBlurredTexture();
     
+
     gpu::TexturePointer getLightingTexture();
     gpu::FramebufferPointer getLightingFramebuffer();
 
@@ -83,7 +92,22 @@ private:
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
+    gpu::FramebufferPointer _depthPyramidFramebuffer;
+    gpu::TexturePointer _depthPyramidTexture;
+    
+    
+    gpu::FramebufferPointer _occlusionFramebuffer;
+    gpu::TexturePointer _occlusionTexture;
+    
+    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
+    gpu::TexturePointer _occlusionBlurredTexture;
+
     QSize _frameBufferSize{ 100, 100 };
+    int _AOResolutionLevel = 1; // AO perform at half res
+
+    // Resize/reallocate the buffers used for AO
+    // the size of the AO buffers is scaled by the AOResolutionScale;
+    void resizeAmbientOcclusionBuffers();
 };
 
 #endif // hifi_FramebufferCache_h

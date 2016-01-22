@@ -12,10 +12,7 @@
 #ifndef hifi_ZoneEntityItem_h
 #define hifi_ZoneEntityItem_h
 
-#include <EnvironmentData.h>
-
 #include "KeyLightPropertyGroup.h"
-#include "AtmospherePropertyGroup.h"
 #include "EntityItem.h"
 #include "EntityTree.h"
 #include "SkyboxPropertyGroup.h"
@@ -70,8 +67,6 @@ public:
     void setBackgroundMode(BackgroundMode value) { _backgroundMode = value; }
     BackgroundMode getBackgroundMode() const { return _backgroundMode; }
 
-    EnvironmentData getEnvironmentData() const;
-    const AtmospherePropertyGroup& getAtmosphereProperties() const { return _atmosphereProperties; }
     const SkyboxPropertyGroup& getSkyboxProperties() const { return _skyboxProperties; }
     const StagePropertyGroup& getStageProperties() const { return _stageProperties; }
 
@@ -95,7 +90,6 @@ protected:
     BackgroundMode _backgroundMode = BACKGROUND_MODE_INHERIT;
 
     StagePropertyGroup _stageProperties;
-    AtmospherePropertyGroup _atmosphereProperties;
     SkyboxPropertyGroup _skyboxProperties;
 
     static bool _drawZoneBoundaries;

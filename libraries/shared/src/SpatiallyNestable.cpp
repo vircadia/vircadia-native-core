@@ -25,6 +25,37 @@ SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _transform.setRotation(glm::quat());
 }
 
+const QUuid SpatiallyNestable::getID() const {
+    QUuid result;
+    _idLock.withReadLock([&] {
+        result = _id;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setID(const QUuid& id) {
+    _idLock.withWriteLock([&] {
+        _id = id;
+    });
+}
+
+const QUuid SpatiallyNestable::getParentID() const {
+    QUuid result;
+    _idLock.withReadLock([&] {
+        result = _parentID;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setParentID(const QUuid& parentID) {
+    _idLock.withWriteLock([&] {
+        if (_parentID != parentID) {
+            _parentID = parentID;
+            _parentKnowsMe = false;
+        }
+    });
+}
+
 Transform SpatiallyNestable::getParentTransform(bool& success) const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer(success);
@@ -40,14 +71,15 @@ Transform SpatiallyNestable::getParentTransform(bool& success) const {
 
 SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) const {
     SpatiallyNestablePointer parent = _parent.lock();
+    QUuid parentID = getParentID(); // used for its locking
 
-    if (!parent && _parentID.isNull()) {
+    if (!parent && parentID.isNull()) {
         // no parent
         success = true;
         return nullptr;
     }
 
-    if (parent && parent->getID() == _parentID) {
+    if (parent && parent->getID() == parentID) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
             parent->beParentOfChild(getThisPointer());
@@ -72,7 +104,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         success = false;
         return nullptr;
     }
-    _parent = parentFinder->find(_parentID, success);
+    _parent = parentFinder->find(parentID, success);
     if (!success) {
         return nullptr;
     }
@@ -83,7 +115,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         _parentKnowsMe = true;
     }
 
-    if (parent || _parentID.isNull()) {
+    if (parent || parentID.isNull()) {
         success = true;
     } else {
         success = false;
@@ -102,13 +134,6 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     _childrenLock.withWriteLock([&] {
         _children.remove(newChild->getID());
     });
-}
-
-void SpatiallyNestable::setParentID(const QUuid& parentID) {
-    if (_parentID != parentID) {
-        _parentID = parentID;
-        _parentKnowsMe = false;
-    }
 }
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {

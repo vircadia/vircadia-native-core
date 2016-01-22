@@ -24,6 +24,9 @@ uniform sampler2D specularMap;
 // the depth texture
 uniform sampler2D depthMap;
 
+// the obscurance texture
+uniform sampler2D obscuranceMap;
+
 // the lighting texture
 uniform sampler2D lightingMap;
 
@@ -68,10 +71,13 @@ struct DeferredFragment {
     vec4 position;
     vec3 normal;
     vec3 diffuse;
-    float opacity;
+    float obscurance;
     vec3 specular;
     float gloss;
+    int mode;
 };
+
+const int LIGHT_MAPPED = 1;
 
 DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec2 texcoord) {
     DeferredFragment frag;
@@ -79,6 +85,7 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     frag.normalVal = texture(normalMap, texcoord);
     frag.diffuseVal = texture(diffuseMap, texcoord);
     frag.specularVal = texture(specularMap, texcoord);
+    frag.obscurance = texture(obscuranceMap, texcoord).x;
 
     if (getStereoMode(deferredTransform)) {
         if (texcoord.x > 0.5) {
@@ -88,13 +95,18 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     }
     frag.position = evalEyePositionFromZ(deferredTransform, frag.depthVal, texcoord);
 
-   // Unpack the normal from the map
+    // Unpack the normal from the map
     frag.normal = normalize(frag.normalVal.xyz * 2.0 - vec3(1.0));
+    
+    frag.mode = 0;
+    if ((frag.normalVal.a >= 0.45) && (frag.normalVal.a <= 0.55)) {
+        frag.mode = LIGHT_MAPPED;
+    }
 
     frag.diffuse = frag.diffuseVal.xyz;
-    frag.opacity = frag.diffuseVal.w;
     frag.specular = frag.specularVal.xyz;
     frag.gloss = frag.specularVal.w;
+
 
     return frag;
 }
