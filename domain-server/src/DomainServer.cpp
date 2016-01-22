@@ -1868,16 +1868,25 @@ void DomainServer::processPathQueryPacket(QSharedPointer<ReceivedMessage> messag
 
         const QString PATHS_SETTINGS_KEYPATH_FORMAT = "%1.%2";
         const QString PATH_VIEWPOINT_KEY = "viewpoint";
+        const QString INDEX_PATH = "/";
 
         // check out paths in the _configMap to see if we have a match
-        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                    QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY)
-                                                                                          .arg(pathQuery));
-        if (pathMatch) {
+        auto keypath = QString(PATHS_SETTINGS_KEYPATH_FORMAT).arg(SETTINGS_PATHS_KEY).arg(pathQuery);
+        const QVariant* pathMatch = valueForKeyPath(_settingsManager.getSettingsMap(), keypath);
+
+        if (pathMatch || pathQuery == INDEX_PATH) {
             // we got a match, respond with the resulting viewpoint
             auto nodeList = DependencyManager::get<LimitedNodeList>();
 
-            QString responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+            QString responseViewpoint;
+
+            // if we didn't match the path BUT this is for the index path then send back our default
+            if (pathMatch) {
+                responseViewpoint = pathMatch->toMap()[PATH_VIEWPOINT_KEY].toString();
+            } else {
+                const QString DEFAULT_INDEX_PATH = "/0,0,0/0,0,0,1";
+                responseViewpoint = DEFAULT_INDEX_PATH;
+            }
 
             if (!responseViewpoint.isEmpty()) {
                 QByteArray viewpointUTF8 = responseViewpoint.toUtf8();
