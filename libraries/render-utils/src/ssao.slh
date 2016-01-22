@@ -134,6 +134,7 @@ float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
 
+#define CONSTANT_GAUSSIAN
 #ifdef CONSTANT_GAUSSIAN
 const int BLUR_RADIUS = 4;
 const float gaussian[BLUR_RADIUS + 1] =
@@ -146,12 +147,10 @@ float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
 
 int getBlurRadius() {
     return BLUR_RADIUS;
-    return int(params._blurInfo.y);
 }
 
 float getBlurCoef(int c) {
     return gaussian[c];
-    return params._gaussianCoefs[c];
 }
 #else
 int getBlurRadius() {
