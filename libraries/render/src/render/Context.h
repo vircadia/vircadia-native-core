@@ -113,7 +113,7 @@ protected:
     int _drawStatus; // bitflag
     bool _drawHitEffect;
     bool _occlusionStatus { false };
-    bool _fxaaStatus = { false };
+    bool _fxaaStatus { false };
 
     ItemsConfig _items;
     Tone _tone;

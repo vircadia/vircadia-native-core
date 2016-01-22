@@ -134,10 +134,10 @@ float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
 
-// KEEP this dead code for eventual performance improvment
 #ifdef CONSTANT_GAUSSIAN
 const int BLUR_RADIUS = 4;
 const float gaussian[BLUR_RADIUS + 1] =
+// KEEP this dead code for eventual performance improvment
 //    float[](0.356642, 0.239400, 0.072410, 0.009869);
 //    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
 float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
@@ -183,6 +183,8 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
 }
 
 const int RADIUS_SCALE = 2;
+const float BLUR_WEIGHT_OFFSET = 0.3;
+const float BLUR_EDGE_SCALE = 2000.0;
 
 vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
@@ -194,10 +196,10 @@ vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
     vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
 
     // spatial domain: offset gaussian tap
-    float weight = 0.3 + getBlurCoef(abs(r));
+    float weight = BLUR_WEIGHT_OFFSET + getBlurCoef(abs(r));
 
     // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
-    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * 2000.0) * abs(tapOZ.y - key));
+    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapOZ.y - key));
     
     return vec2(tapOZ.x * weight, weight);
 }

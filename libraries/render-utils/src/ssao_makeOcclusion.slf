@@ -41,10 +41,12 @@ float getAngleDithering(in ivec2 pixelPos) {
     return isDitheringEnabled() * (3 * pixelPos.x ^ pixelPos.y + pixelPos.x * pixelPos.y) * 10 + getFrameDithering();
 }
 
+const float TWO_PI = 6.28;
+
 vec2 tapLocation(int sampleNumber, float spinAngle, out float ssR){
     // Radius relative to ssR
     float alpha = float(sampleNumber + 0.5) * getInvNumSamples();
-    float angle = alpha * (getNumSpiralTurns() * 6.28) + spinAngle;
+    float angle = alpha * (getNumSpiralTurns() * TWO_PI) + spinAngle;
 
     ssR = alpha;
     return vec2(cos(angle), sin(angle));
@@ -133,12 +135,12 @@ void main(void) {
 
     // Bilateral box-filter over a quad for free, respecting depth edges
     // (the difference that this makes is subtle)
-  /*  if (abs(dFdx(Cp.z)) < 0.02) {
+    if (abs(dFdx(Cp.z)) < 0.02) {
         A -= dFdx(A) * ((ssC.x & 1) - 0.5);
     }
     if (abs(dFdy(Cp.z)) < 0.02) {
         A -= dFdy(A) * ((ssC.y & 1) - 0.5);
-    }*/
+    }
 
     outFragColor = vec4(packOcclusionDepth(A, CSZToDephtKey(Cp.z)), 1.0);
 
