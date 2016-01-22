@@ -309,29 +309,29 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     }
 
                     // Now check the size of the entity, it's possible that a "too small to see" entity is included in a
-                    // larger octree cell because of it's position (for example if it crosses the boundary of a cell it 
-                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen 
+                    // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                     // before we consider including it.
                     if (includeThisEntity) {
                         AABox entityBounds = entity->getAABox(success);
-                        if (success) {
-                            auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds, 
-                                                                            params.octreeElementSizeScale, params.boundaryLevelAdjust);
+                        if (!success) {
+                            // if this entity is a child of an avatar, the entity-server wont be able to determine its
+                            // AABox.  If this happens, fall back to the queryAACube.
+                            entityBounds = AABox(entityCube);
+                        }
+                        auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds,
+                                                                                          params.octreeElementSizeScale,
+                                                                                          params.boundaryLevelAdjust);
+                        if (renderAccuracy <= 0.0f) {
+                            includeThisEntity = false; // too small, don't include it
 
-                            if (renderAccuracy <= 0.0f) {
-                                includeThisEntity = false; // too small, don't include it
-
-                                #ifdef WANT_LOD_DEBUGGING
-                                qDebug() << "skipping entity - TOO SMALL - \n"
-                                         << "......id:" << entity->getID() << "\n" 
-                                         << "....name:" << entity->getName() << "\n"
-                                         << "..bounds:" << entityBounds << "\n"
-                                         << "....cell:" << getAACube();
-                                #endif
-
-                            }
-                        } else {
-                            includeThisEntity = false; // couldn't get box, don't include it
+                            #ifdef WANT_LOD_DEBUGGING
+                            qDebug() << "skipping entity - TOO SMALL - \n"
+                                     << "......id:" << entity->getID() << "\n"
+                                     << "....name:" << entity->getName() << "\n"
+                                     << "..bounds:" << entityBounds << "\n"
+                                     << "....cell:" << getAACube();
+                            #endif
                         }
                     }
                 }
