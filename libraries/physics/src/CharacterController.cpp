@@ -194,6 +194,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
     // These two computations must be kept in sync.
+    const float MAX_DISPLACEMENT = 0.5f * _radius;
     _followTimeRemaining -= dt;
     if (_followTimeRemaining >= 0.005f) {
         btTransform bodyTransform = _rigidBody->getWorldTransform();
@@ -201,7 +202,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         btVector3 startPos = bodyTransform.getOrigin();
         btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
         btVector3 vel = deltaPos / _followTimeRemaining;
-        btVector3 linearDisplacement = vel * dt;
+        btVector3 linearDisplacement = clampLength(vel * dt, MAX_DISPLACEMENT);  // clamp displacement to prevent tunneling.
         btVector3 endPos = startPos + linearDisplacement;
 
         btQuaternion startRot = bodyTransform.getRotation();

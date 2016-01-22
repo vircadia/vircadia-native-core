@@ -74,4 +74,12 @@ inline btVector3 rotateVector(const btQuaternion& q, const btVector3& vec) {
     return glmToBullet(bulletToGLM(q) * bulletToGLM(vec));
 }
 
+inline btVector3 clampLength(const btVector3& v, const float& maxLength) {
+    if (v.length() > maxLength) {
+        return v.normalized() * maxLength;
+    } else {
+        return v;
+    }
+}
+
 #endif // hifi_BulletUtil_h

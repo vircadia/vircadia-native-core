@@ -127,3 +127,37 @@ void BulletUtilTests::fromGLMToBullet() {
     QCOMPARE(gV.y, bV.getY());
     QCOMPARE(gV.z, bV.getZ());
 }
+
+void BulletUtilTests::rotateVectorTest() {
+
+    float angle = 0.317f * PI;
+    btVector3 axis(1.23f, 2.34f, 3.45f);
+    axis.normalize();
+    btQuaternion q(axis, angle);
+
+    btVector3 xAxis(1.0f, 0.0f, 0.0f);
+
+    btVector3 result0 = rotateVector(q, xAxis);
+
+    btTransform m(q);
+    btVector3 result1 = m * xAxis;
+
+    QCOMPARE(result0.getX(), result0.getX());
+    QCOMPARE(result0.getY(), result1.getY());
+    QCOMPARE(result0.getZ(), result1.getZ());
+}
+
+void BulletUtilTests::clampLengthTest() {
+    btVector3 vec(1.0f, 3.0f, 2.0f);
+    btVector3 clampedVec1 = clampLength(vec, 1.0f);
+    btVector3 clampedVec2 = clampLength(vec, 2.0f);
+    btVector3 normalizedVec = vec.normalized();
+
+    QCOMPARE(clampedVec1.getX(), normalizedVec.getX());
+    QCOMPARE(clampedVec1.getY(), normalizedVec.getY());
+    QCOMPARE(clampedVec1.getZ(), normalizedVec.getZ());
+
+    QCOMPARE(clampedVec2.getX(), normalizedVec.getX() * 2.0f);
+    QCOMPARE(clampedVec2.getY(), normalizedVec.getY() * 2.0f);
+    QCOMPARE(clampedVec2.getZ(), normalizedVec.getZ() * 2.0f);
+}
