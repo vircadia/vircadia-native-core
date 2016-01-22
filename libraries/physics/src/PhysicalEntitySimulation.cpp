@@ -142,6 +142,7 @@ void PhysicalEntitySimulation::clearEntitiesInternal() {
     // finally clear all lists maintained by this class
     _physicalObjects.clear();
     _entitiesToRemoveFromPhysics.clear();
+    _entitiesToRelease.clear();
     _entitiesToAddToPhysics.clear();
     _pendingChanges.clear();
     _outgoingChanges.clear();
@@ -157,6 +158,7 @@ void PhysicalEntitySimulation::prepareEntityForDelete(EntityItemPointer entity) 
 // end EntitySimulation overrides
 
 void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
+    _entitiesToRelease.clear();
     result.clear();
     QMutexLocker lock(&_mutex);
     for (auto entity: _entitiesToRemoveFromPhysics) {
@@ -171,7 +173,7 @@ void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionState
             _entitiesToDelete.insert(entity);
         }
     }
-    _entitiesToRemoveFromPhysics.clear();
+    _entitiesToRemoveFromPhysics.swap(_entitiesToRelease);
 }
 
 void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& result) {
