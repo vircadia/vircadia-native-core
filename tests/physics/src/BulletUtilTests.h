@@ -20,6 +20,8 @@ class BulletUtilTests : public QObject {
 private slots:
     void fromBulletToGLM();
     void fromGLMToBullet();
+    void rotateVectorTest();
+    void clampLengthTest();
 };
 
 #endif // hifi_BulletUtilTests_h

@@ -224,6 +224,8 @@ glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
+glm::vec2 getFacingDir2D(const glm::quat& rot);
+glm::vec2 getFacingDir2D(const glm::mat4& m);
 
 bool isNaN(glm::vec3 value);
 bool isNaN(glm::quat value);
