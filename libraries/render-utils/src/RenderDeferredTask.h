@@ -64,26 +64,32 @@ public:
     ToneMappingEffect _toneMappingEffect;
 };
 
-class DrawOpaqueDeferred {
+class DrawConfig : public render::Job::Config {
+    Q_OBJECT
 public:
-    DrawOpaqueDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+    Q_PROPERTY(int numDrawn READ getNumDrawn)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    int getNumDrawn() { return numDrawn; }
 
-    using JobModel = render::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds>;
-
-protected:
-    render::ShapePlumberPointer _shapePlumber;
+    int numDrawn{ 0 };
+    int maxDrawn{ -1 };
+signals:
+    void dirty();
 };
 
-class DrawTransparentDeferred {
+class DrawDeferred {
 public:
-    DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+    using Config = DrawConfig;
+    using JobModel = render::Job::ModelI<DrawDeferred, render::ItemIDsBounds, Config>;
 
-    using JobModel = render::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds>;
+    DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn{ -1 };
 };
 
 class DrawStencilDeferred {
@@ -105,18 +111,38 @@ public:
     using JobModel = render::Job::Model<DrawBackgroundDeferred>;
 };
 
+class DrawOverlay3DConfig : public render::Job::Config {
+    Q_OBJECT
+public:
+    Q_PROPERTY(int numItems READ getNumItems)
+    Q_PROPERTY(int numDrawn READ getNumDrawn)
+    Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    int getNumItems() { return numItems; }
+    int getNumDrawn() { return numDrawn; }
+
+    int numItems{ 0 };
+    int numDrawn{ 0 };
+    int maxDrawn{ -1 };
+signals:
+    void dirty();
+};
+
 class DrawOverlay3D {
 public:
-    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    static const gpu::PipelinePointer& getOpaquePipeline();
+    using Config = DrawOverlay3DConfig;
+    using JobModel = render::Job::Model<DrawOverlay3D, Config>;
 
+    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    using JobModel = render::Job::Model<DrawOverlay3D>;
+    static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
     render::ShapePlumberPointer _shapePlumber;
+    int _maxDrawn{ -1 };
 };
 
 class Blit {

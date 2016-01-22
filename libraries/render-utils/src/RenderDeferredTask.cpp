@@ -103,7 +103,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<PrepareDeferred>("PrepareDeferred");
 
     // Render opaque objects in DeferredBuffer
-    addJob<DrawOpaqueDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
+    addJob<DrawDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
 
     // Once opaque is all rendered create stencil background
     addJob<DrawStencilDeferred>("DrawOpaqueStencil");
@@ -127,9 +127,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     _antialiasingJobIndex = (int)_jobs.size() - 1;
     enableJob(_antialiasingJobIndex, false);
 
-    // Render transparent objects forward in LigthingBuffer
-    addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-
+    // Render transparent objects forward in LightingBuffer
+    addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
+    
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
     _toneMappingJobIndex = (int)_jobs.size() - 1;
@@ -209,9 +209,11 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 };
 
-void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
+
+    auto& config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -219,8 +221,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        auto& opaque = renderContext->getItemsConfig().opaque;
-        opaque.numDrawn = (int)inItems.size();
+        config->numDrawn = (int)inItems.size();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -230,33 +231,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, opaque.maxDrawn);
-        args->_batch = nullptr;
-    });
-}
-
-void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-
-    RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-        args->_batch = &batch;
-    
-        auto& transparent = renderContext->getItemsConfig().transparent;
-        transparent.numDrawn = (int)inItems.size();
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, transparent.maxDrawn);
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, config->maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -287,6 +262,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
 
+    auto& config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     ItemIDsBounds inItems;
     inItems.reserve(items.size());
@@ -296,9 +272,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    auto& overlay3D = renderContext->getItemsConfig().overlay3D;
-    overlay3D.numFeed = (int)inItems.size();
-    overlay3D.numDrawn = (int)inItems.size();
+    config->numItems = (int)inItems.size();
+    config->numDrawn = (int)inItems.size();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->getArgs();
@@ -330,7 +305,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, renderContext->getItemsConfig().overlay3D.maxDrawn);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, config->maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();
