@@ -154,9 +154,7 @@ ready = function() {
     }
 
     function appendLogMessage(pid, msg, name) {
-        console.log(pid, msg, name);
-        var id = "pid-" + pid;
-        id = name == "ds" ? "domain-server" : "assignment-client";
+        var id = name == "ds" ? "domain-server" : "assignment-client";
         var $pidLog = $('#' + id);
 
         var size = ++tabStates[id].size;
@@ -167,8 +165,7 @@ ready = function() {
 
         var wasAtBottom = false;
         if (currentTab == id) {
-            var padding = 15;
-            wasAtBottom = $pidLog[0].scrollTop >= ($pidLog[0].scrollHeight - $pidLog.height() - (2 * padding));
+            wasAtBottom = $pidLog[0].scrollTop >= ($pidLog[0].scrollHeight - $pidLog.height());
         }
 
         var $logLine = $('<div class="log-line">').text(msg);
