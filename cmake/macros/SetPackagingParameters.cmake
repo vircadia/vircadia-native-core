@@ -52,8 +52,18 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(CONSOLE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
     set(INTERFACE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
+
+    set(CONSOLE_APP_CONTENTS "${CONSOLE_INSTALL_APP_PATH}/Contents")
+    set(COMPONENT_APP_PATH "${CONSOLE_APP_CONTENTS}/MacOS/Components.app")
+    set(COMPONENT_INSTALL_DIR "${COMPONENT_APP_PATH}/Contents/MacOS")
   else ()
-    set(CONSOLE_INSTALL_DIR ".")
+    if (WIN32)
+      set(CONSOLE_INSTALL_DIR "server-console")
+    else ()
+      set(CONSOLE_INSTALL_DIR ".")
+    endif ()
+
+    set(COMPONENT_INSTALL_DIR ".")
     set(INTERFACE_INSTALL_DIR ".")
   endif ()
 
