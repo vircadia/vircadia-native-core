@@ -104,7 +104,7 @@ private:
         // radius info is { R, R^2, 1 / R^6, ObscuranceScale}
         glm::vec4 radiusInfo{ 0.5f, 0.5f * 0.5f, 1.0f / (0.25f * 0.25f * 0.25f), 1.0f };
         // Dithering info 
-        glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 0.0f };
+        glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 1.0f };
         // Sampling info
         glm::vec4 sampleInfo { 11.0f, 1.0/11.0f, 7.0f, 1.0f };
         // Blurring info

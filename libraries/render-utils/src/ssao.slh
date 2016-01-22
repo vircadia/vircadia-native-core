@@ -134,6 +134,7 @@ float getBlurEdgeSharpness() {
     return params._blurInfo.x;
 }
 
+// KEEP this dead code for eventual performance improvment
 #ifdef CONSTANT_GAUSSIAN
 const int BLUR_RADIUS = 4;
 const float gaussian[BLUR_RADIUS + 1] =
