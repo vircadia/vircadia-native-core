@@ -44,6 +44,7 @@ public:
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
 public:
+    ToneMappingConfig() : render::Job::Config(true) {}
     Q_PROPERTY(float exposure MEMBER exposure NOTIFY dirty);
     Q_PROPERTY(int curve MEMBER curve NOTIFY dirty);
     float exposure{ 0.0 };

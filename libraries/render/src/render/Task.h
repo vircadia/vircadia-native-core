@@ -53,13 +53,15 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
+// A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
 public:
-    JobConfig() : enabled{ true } {}
-    JobConfig(bool enabled) : enabled{ enabled } {}
+    JobConfig() : alwaysEnabled{ true }, enabled{ true } {}
+    JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     Q_PROPERTY(bool enabled MEMBER enabled)
+    bool alwaysEnabled{ true };
     bool enabled;
 };
 
@@ -126,7 +128,8 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (std::static_pointer_cast<Job::Config>(_config)->enabled) {
+            std::shared_ptr<Job::Config>& config = std::static_pointer_cast<Job::Config>(_config);
+            if (config->alwaysEnabled || config->enabled) {
                 jobRun(_data, sceneContext, renderContext);
             }
         }
