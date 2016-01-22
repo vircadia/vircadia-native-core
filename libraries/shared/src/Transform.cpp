@@ -152,20 +152,13 @@ QJsonObject Transform::toJson(const Transform& transform) {
 }
 
 bool Transform::containsNaN() const {
-    if (_rotation.x != _rotation.x ||
-        _rotation.y != _rotation.y ||
-        _rotation.z != _rotation.z ||
-        _rotation.w != _rotation.w) {
+    if (isNaN(_rotation.x) || isNaN(_rotation.y) || isNaN(_rotation.z) || isNaN(_rotation.w)) {
         return true;
     }
-    if (_scale.x != _scale.x ||
-        _scale.y != _scale.y ||
-        _scale.z != _scale.z) {
+    if (isNaN(_scale.x) || isNaN(_scale.y) || isNaN(_scale.z)) {
         return true;
     }
-    if (_translation.x != _translation.x ||
-        _translation.y != _translation.y ||
-        _translation.z != _translation.z) {
+    if (isNaN(_translation.x) || isNaN(_translation.y) || isNaN(_translation.z)) {
         return true;
     }
     return false;

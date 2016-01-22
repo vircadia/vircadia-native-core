@@ -315,7 +315,7 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
 
 void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
     // guard against introducing NaN into the transform
-    if (position.x != position.x || position.y != position.y || position.z != position.z) {
+    if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
         success = false;
         return;
     }
@@ -364,10 +364,7 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const
 
 void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success) {
     // guard against introducing NaN into the transform
-    if (orientation.x != orientation.x ||
-        orientation.y != orientation.y ||
-        orientation.z != orientation.z ||
-        orientation.w != orientation.w) {
+    if (isNaN(orientation.x) || isNaN(orientation.y) || isNaN(orientation.z) || isNaN(orientation.w)) {
         success = false;
         return;
     }
@@ -451,7 +448,7 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
 
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
-    if (scale.x != scale.x || scale.y != scale.y || scale.z != scale.z) {
+    if (isNaN(scale.x) || isNaN(scale.y) || isNaN(scale.z)) {
         qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }
@@ -492,7 +489,7 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
 
 void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
     // guard against introducing NaN into the transform
-    if (position.x != position.x || position.y != position.y || position.z != position.z) {
+    if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
         qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
         return;
     }
@@ -512,10 +509,7 @@ glm::quat SpatiallyNestable::getLocalOrientation() const {
 
 void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
     // guard against introducing NaN into the transform
-    if (orientation.x != orientation.x ||
-        orientation.y != orientation.y ||
-        orientation.z != orientation.z ||
-        orientation.w != orientation.w) {
+    if (isNaN(orientation.x) || isNaN(orientation.y) || isNaN(orientation.z) || isNaN(orientation.w)) {
         qDebug() << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
         return;
     }
@@ -536,7 +530,7 @@ glm::vec3 SpatiallyNestable::getLocalScale() const {
 
 void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
-    if (scale.x != scale.x || scale.y != scale.y || scale.z != scale.z) {
+    if (isNaN(scale.x) || isNaN(scale.y) || isNaN(scale.z)) {
         qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }
