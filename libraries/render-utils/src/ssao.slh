@@ -182,8 +182,8 @@ vec2 fetchOcclusionDepth(ivec2 coords) {
     return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
 }
 
-const int RADIUS_SCALE = 2;
-const float BLUR_WEIGHT_OFFSET = 0.3;
+const int RADIUS_SCALE = 1;
+const float BLUR_WEIGHT_OFFSET = 0.0;
 const float BLUR_EDGE_SCALE = 2000.0;
 
 vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
