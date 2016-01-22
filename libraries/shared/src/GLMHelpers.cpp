@@ -425,10 +425,10 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 
-bool isVec3NaN(glm::vec3 value) {
+bool isNaN(glm::vec3 value) {
     return isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
 }
 
-bool isQuatNaN(glm::quat value) {
+bool isNaN(glm::quat value) {
     return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
 }

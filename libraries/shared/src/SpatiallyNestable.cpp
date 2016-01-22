@@ -315,7 +315,7 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
 
 void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
     // guard against introducing NaN into the transform
-    if (isVec3NaN(position)) {
+    if (isNaN(position)) {
         success = false;
         return;
     }
@@ -364,7 +364,7 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const
 
 void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success) {
     // guard against introducing NaN into the transform
-    if (isQuatNaN(orientation)) {
+    if (isNaN(orientation)) {
         success = false;
         return;
     }
@@ -448,7 +448,7 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
 
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
-    if (isVec3NaN(scale)) {
+    if (isNaN(scale)) {
         qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }
@@ -489,7 +489,7 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
 
 void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
     // guard against introducing NaN into the transform
-    if (isVec3NaN(position)) {
+    if (isNaN(position)) {
         qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
         return;
     }
@@ -509,7 +509,7 @@ glm::quat SpatiallyNestable::getLocalOrientation() const {
 
 void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
     // guard against introducing NaN into the transform
-    if (isQuatNaN(orientation)) {
+    if (isNaN(orientation)) {
         qDebug() << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
         return;
     }
@@ -530,7 +530,7 @@ glm::vec3 SpatiallyNestable::getLocalScale() const {
 
 void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
     // guard against introducing NaN into the transform
-    if (isVec3NaN(scale)) {
+    if (isNaN(scale)) {
         qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
         return;
     }

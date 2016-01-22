@@ -225,7 +225,7 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
 
 
-bool isVec3NaN(glm::vec3 value);
-bool isQuatNaN(glm::quat value);
+bool isNaN(glm::vec3 value);
+bool isNaN(glm::quat value);
 
 #endif // hifi_GLMHelpers_h

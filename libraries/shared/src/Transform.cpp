@@ -152,14 +152,5 @@ QJsonObject Transform::toJson(const Transform& transform) {
 }
 
 bool Transform::containsNaN() const {
-    if (isQuatNaN(_rotation)) {
-        return true;
-    }
-    if (isVec3NaN(_scale)) {
-        return true;
-    }
-    if (isVec3NaN(_translation)) {
-        return true;
-    }
-    return false;
+    return isNaN(_rotation) || isNaN(_scale) || isNaN(_translation);
 }
