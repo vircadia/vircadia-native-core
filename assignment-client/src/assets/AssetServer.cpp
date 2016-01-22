@@ -54,6 +54,9 @@ void AssetServer::run() {
 
     _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
 
+    qDebug() << "Creating resources directory";
+    _resourcesDirectory.mkpath(".");
+
     bool noExistingAssets = !_resourcesDirectory.exists() \
         || _resourcesDirectory.entryList(QDir::Files).size() == 0;
 
@@ -83,9 +86,6 @@ void AssetServer::run() {
             }
 
         }
-
-        qDebug() << "Creating resources directory";
-        _resourcesDirectory.mkpath(".");
     }
     qDebug() << "Serving files from: " << _resourcesDirectory.path();
 
