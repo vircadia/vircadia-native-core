@@ -210,7 +210,8 @@ void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
 }
 
 void AmbientOcclusionEffect::setResolutionLevel(int level) {
-    level = std::max(0, std::min(level, 4));
+    const int MAX_RESOLUTION_LEVEL = 4;
+    level = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL));
     if (level != getResolutionLevel()) {
         auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
         current.x = (float)level;
