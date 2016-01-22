@@ -2,8 +2,8 @@
 //  Task.h
 //  render/src/render
 //
-//  Created by Zach Pomerantz on 1/6/2015.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Zach Pomerantz on 1/6/2016.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -55,16 +55,17 @@ protected:
 
 class JobConfig : public QObject {
     Q_OBJECT
-};
-
-class DefaultJobConfig: public JobConfig {
-    Q_OBJECT
+public:
+    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
+    bool enabled;
+signals:
+    void dirty();
 };
 
 template <class T, class C> void jobConfigure(T& model, const C& configuration) {
     model.configure(configuration);
 }
-template<class T> void jobConfigure(T&, const DefaultJobConfig&) {
+template<class T> void jobConfigure(T&, const JobConfig&) {
 }
 
 // FIXME: In c++17, use default classes of nullptr_t to combine these
@@ -109,10 +110,9 @@ public:
     };
     using ConceptPointer = std::shared_ptr<Concept>;
 
-    template <class T, class C = DefaultJobConfig> class Model : public Concept {
+    template <class T, class C = Config> class Model : public Concept {
     public:
         using Data = T;
-        using Config = C;
 
         Data _data;
 
@@ -131,10 +131,9 @@ public:
         }
     };
 
-    template <class T, class I, class C = DefaultJobConfig> class ModelI : public Concept {
+    template <class T, class I, class C = Config> class ModelI : public Concept {
     public:
         using Data = T;
-        using Config = C;
         using Input = I;
 
         Data _data;
@@ -157,10 +156,9 @@ public:
         }
     };
 
-    template <class T, class O, class C = DefaultJobConfig> class ModelO : public Concept {
+    template <class T, class O, class C = Config> class ModelO : public Concept {
     public:
         using Data = T;
-        using Config = C;
         using Output = O;
 
         Data _data;
@@ -183,10 +181,9 @@ public:
         }
     };
 
-    template <class T, class I, class O, class C = DefaultJobConfig> class ModelIO : public Concept {
+    template <class T, class I, class O, class C = Config> class ModelIO : public Concept {
     public:
         using Data = T;
-        using Config = C;
         using Input = I;
         using Output = O;
 
@@ -242,15 +239,12 @@ public:
 
 class Task;
 
-class TaskConfig : public QObject {
+class TaskConfig : public Job::Config {
     Q_OBJECT
 public:
     TaskConfig(Task& task) : _task{ task } {}
 public slots:
-    void refresh() {
-        qDebug() << "ATTEMPTING REFRESH";
-        //_task.configure(*this);
-    }
+    void refresh();
 private:
     Task& _task;
 };
@@ -259,15 +253,16 @@ private:
 // It is defined with JobModel = Task::Model<T>
 class Task {
 public:
+    using Config = TaskConfig;
     using QConfig = Job::QConfig;
 
     template <class T> class Model : public Job::Concept {
     public:
         using Data = T;
-        using Config = TaskConfig;
 
         Data _data;
 
+        // The _config is unused; the model delegates to its data's _config
         Model(Data data = Data()) : _data(data), Concept(std::make_shared<QObject>()) {
             _config = _data._config;
         }
@@ -285,7 +280,7 @@ public:
 
     using Jobs = std::vector<Job>;
 
-    Task() : _config{ std::make_shared<TaskConfig>(*this) } {}
+    Task() : _config{ std::make_shared<Config>(*this) } {}
 
     // Queue a new job to the container; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
@@ -293,9 +288,7 @@ public:
         QConfig config = _jobs.back().getConfiguration();
         config->setParent(_config.get());
         config->setObjectName(name.c_str());
-        QObject::connect(
-            config.get(), SIGNAL(dirty()),
-            _config.get(), SLOT(refresh()));
+        QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
         return _jobs.back().getOutput();
     }
 
