@@ -7,19 +7,14 @@ import "../styles"
 import "../windows"
 
 // FIXME respect default button functionality
-// FIXME force active focus at all times (modal dialog)
-Window {
+ModalWindow {
     id: root
     HifiConstants { id: hifi }
-
     implicitWidth: 640
     implicitHeight: 320
     destroyOnCloseButton: true
     destroyOnInvisible: true
     visible: true
-    modality: Qt.ApplicationModal
-    anchors.centerIn: parent
-    frame: ModalFrame {}
 
     signal selected(int button);
 
