@@ -60,7 +60,7 @@ macro(install_beside_console)
 
       if (NOT MACDEPLOYQT_COMMAND AND (PRODUCTION_BUILD OR PR_BUILD))
         message(FATAL_ERROR "Could not find macdeployqt at ${QT_DIR}/bin.\
-          It is required to produce an relocatable interface application.\
+          It is required to produce a relocatable interface application.\
           Check that the environment variable QT_DIR points to your Qt installation.\
         ")
       endif ()
