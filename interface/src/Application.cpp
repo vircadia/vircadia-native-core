@@ -3089,13 +3089,14 @@ void Application::update(float deltaTime) {
             static VectorOfMotionStates motionStates;
             _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
+            _entitySimulation.deleteObjectsRemovedFromPhysics();
 
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
 
             });
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToChange(motionStates);
                 VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
                 _entitySimulation.setObjectsToChange(stillNeedChange);
