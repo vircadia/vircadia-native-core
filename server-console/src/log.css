@@ -82,7 +82,6 @@ ul.tabs li.current {
 }
 
 .search {
-    display: none;
     float: right;
     margin: 10px;
 }
