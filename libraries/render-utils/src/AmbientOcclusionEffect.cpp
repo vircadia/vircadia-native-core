@@ -115,7 +115,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        // Stencil test all the ao passes for objects pixels only, not the background
+        // Stencil test the pyramid passe for objects pixels only, not the background
         state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         state->setColorWriteMask(true, false, false, false);
@@ -140,9 +140,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getOcclusionPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        // Stencil test the ao passes for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-
         state->setColorWriteMask(true, true, true, false);
 
         // Good to go add the brand new pipeline
@@ -165,10 +162,7 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getHBlurPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        // Stencil test all the ao passes for objects pixels only, not the background
-        //state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-        
+
         state->setColorWriteMask(true, true, true, false);
         
         // Good to go add the brand new pipeline
@@ -191,9 +185,6 @@ const gpu::PipelinePointer& AmbientOcclusionEffect::getVBlurPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        // Stencil test all the ao passes for objects pixels only, not the background
-        //state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         
         // Vertical blur write just the final result Occlusion value in the alpha channel
         state->setColorWriteMask(true, true, true, false);

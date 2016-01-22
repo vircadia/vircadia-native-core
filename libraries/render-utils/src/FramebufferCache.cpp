@@ -247,7 +247,8 @@ gpu::TexturePointer FramebufferCache::getDepthPyramidTexture() {
 }
 
 void FramebufferCache::setAmbientOcclusionResolutionLevel(int level) {
-    level = std::max(0, std::min(level, 4));
+    const int MAX_AO_RESOLUTION_LEVEL = 4;
+    level = std::max(0, std::min(level, MAX_AO_RESOLUTION_LEVEL));
     if (level != _AOResolutionLevel) {
         _AOResolutionLevel = level;
         resizeAmbientOcclusionBuffers();
