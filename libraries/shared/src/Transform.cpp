@@ -150,3 +150,23 @@ QJsonObject Transform::toJson(const Transform& transform) {
     }
     return result;
 }
+
+bool Transform::containsNaN() const {
+    if (_rotation.x != _rotation.x ||
+        _rotation.y != _rotation.y ||
+        _rotation.z != _rotation.z ||
+        _rotation.w != _rotation.w) {
+        return true;
+    }
+    if (_scale.x != _scale.x ||
+        _scale.y != _scale.y ||
+        _scale.z != _scale.z) {
+        return true;
+    }
+    if (_translation.x != _translation.x ||
+        _translation.y != _translation.y ||
+        _translation.z != _translation.z) {
+        return true;
+    }
+    return false;
+}
