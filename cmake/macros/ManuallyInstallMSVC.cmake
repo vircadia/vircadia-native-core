@@ -15,7 +15,7 @@
 macro(manually_install_msvc)
   if (WIN32)
     # look for the msvcr DLLs required by this target
-    find_path(MSVC_DLL_PATH msvcr120.dll PATHS "C:/Windows/SysWOW64" NO_DEFAULT_PATH)
+    find_path(MSVC_DLL_PATH msvcr120.dll PATHS "C:/Windows/System32" NO_DEFAULT_PATH)
 
     if (MSVC_DLL_PATH-NOTFOUND)
       # we didn't get the path to the DLLs - on production or PR build this is a fail
