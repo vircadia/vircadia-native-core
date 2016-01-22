@@ -17,7 +17,9 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 
+#include "FileDialogHelper.h"
 #include "VrMenu.h"
+
 
 // Needs to match the constants in resources/qml/Global.js
 class OffscreenFlags : public QObject {
@@ -74,7 +76,6 @@ public:
     }
 };
 
-static UrlHandler * urlHandler { nullptr };
 static OffscreenFlags* offscreenFlags { nullptr };
 
 // This hack allows the QML UI to work with keys that are also bound as 
@@ -102,10 +103,9 @@ void OffscreenUi::create(QOpenGLContext* context) {
     OffscreenQmlSurface::create(context);
     auto rootContext = getRootContext();
 
-    offscreenFlags = new OffscreenFlags();
-    rootContext->setContextProperty("offscreenFlags", offscreenFlags);
-    urlHandler = new UrlHandler();
-    rootContext->setContextProperty("urlHandler", urlHandler);
+    rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {

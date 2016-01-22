@@ -6,6 +6,11 @@ import QtQuick.Controls 1.4
 Item {
 
     Item {
+        objectName: "offscreenFlags"
+        property bool navigationFocused: false
+    }
+
+    Item {
         objectName: "urlHandler"
         function fixupUrl(url) { return url; }
         function canHandleUrl(url) { return false; }

@@ -4,7 +4,8 @@ QT += gui qml quick xml webengine widgets
 
 CONFIG += c++11
 
-SOURCES += src/main.cpp
+SOURCES += src/main.cpp \
+    ../../libraries/ui/src/FileDialogHelper.cpp
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -96,4 +97,10 @@ DISTFILES += \
     ../../interface/resources/qml/hifi/dialogs/preferences/Slider.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/Preference.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/SpinBox.qml \
-    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml
+    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml \
+    ../../interface/resources/qml/dialogs/fileDialog/FileTableView.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Avatar.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarBrowser.qml
+
+HEADERS += \
+    ../../libraries/ui/src/FileDialogHelper.h

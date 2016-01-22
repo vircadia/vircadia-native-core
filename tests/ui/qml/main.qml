@@ -16,33 +16,17 @@ ApplicationWindow {
     height: 720
     title: qsTr("Scratch App")
 
-    Component { id: listModelBuilder; ListModel{} }
-
-    function menuItemsToModel(menu) {
-        var items = menu.items
-        var newListModel = listModelBuilder.createObject(desktop);
-        for (var i = 0; i < items.length; ++i) {
-            var item = items[i];
-            switch (item.type) {
-            case 2:
-                newListModel.append({"type":item.type, "name": item.title, "item": item})
-                break;
-            case 1:
-                newListModel.append({"type":item.type, "name": item.text, "item": item})
-                break;
-            case 0:
-                newListModel.append({"type":item.type, "name": "-----", "item": item})
-                break;
-            }
-        }
-        return newListModel;
-    }
-
     Desktop {
         id: desktop
         anchors.fill: parent
-        StubMenu { id: stubMenu }
+        rootMenu: StubMenu { id: rootMenu }
         Component.onCompleted: offscreenWindow = appWindow
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.RightButton
+            onClicked: desktop.popupMenu(Qt.vector2d(mouseX, mouseY));
+        }
 
         Row {
             id: testButtons
@@ -52,6 +36,7 @@ ApplicationWindow {
 
             property var tabs: [];
             property var urls: [];
+            /*
             Button {
                 text: "restore all"
                 onClicked: {
@@ -72,6 +57,7 @@ ApplicationWindow {
                     blue.enabled = !blue.enabled
                 }
             }
+            */
             Button {
                 text: "Show Long Error"
                 onClicked: {
@@ -93,21 +79,13 @@ ApplicationWindow {
                 }
             }
             Button {
-                text: "Open File"
+                text: "Open Directory"
                 property var builder: Component {
-                    FileDialog { }
+                    FileDialog { selectDirectory: true }
                 }
 
-                ListModel {
-                    id: jsFilters
-                    ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
-                    ListElement { text: "All Files (*.*)"; filter: "*.*" }
-                }
                 onClicked: {
-                    var fileDialogProperties = {
-                        filterModel: jsFilters
-                    }
-                    var fileDialog = builder.createObject(desktop, fileDialogProperties);
+                    var fileDialog = builder.createObject(desktop);
                     fileDialog.canceled.connect(function(){
                         console.log("Cancelled")
                     })
@@ -116,24 +94,31 @@ ApplicationWindow {
                     })
                 }
             }
+
             Button {
-                text: "Focus Test"
+                text: "Open File"
+                property var builder: Component {
+                    FileDialog {
+                        folder: "file:///C:/users/bdavis";
+                        filterModel: ListModel {
+                            ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
+                            ListElement { text: "All Files (*.*)"; filter: "*.*" }
+                        }
+                    }
+                }
+
                 onClicked: {
-                    var item = desktop;
-                    while (item) {
-                        console.log(item);
-                        item = item.parent;
-                    }
-                    item = appWindow
-                    while (item) {
-                        console.log(item);
-                        item = item.parent;
-                    }
-                    console.log(appWindow.activeFocusItem);
+                    var fileDialog = builder.createObject(desktop);
+                    fileDialog.canceled.connect(function(){
+                        console.log("Cancelled")
+                    })
+                    fileDialog.selectedFile.connect(function(file){
+                        console.log("Selected " + file)
+                    })
                 }
             }
         }
-
+/*
         Window {
             id: blue
             closable: true
@@ -189,109 +174,6 @@ ApplicationWindow {
                 color: "yellow"
             }
         }
+        */
     }
-
-    /*
-    Arcane.Test {
-        anchors.centerIn: parent
-        height: 600; width: 600
-    }
-
-
-    Item {
-        id: desktop
-        anchors.fill: parent
-        objectName: Desktop._OFFSCREEN_ROOT_OBJECT_NAME
-        property bool uiVisible: true
-        property variant toolbars: { "_root" : null }
-        focus: true
-
-
-
-        Rectangle {
-            id: root
-            Vr.Constants { id: vr }
-            implicitWidth: 384; implicitHeight: 640
-            anchors.centerIn: parent
-            color: vr.windows.colors.background
-            border.color: vr.controls.colors.background
-            border.width: vr.styles.borderWidth
-            radius: vr.styles.borderRadius
-            RunningScripts { }
-        }
-
-        FileDialog {
-            id: fileDialog
-            width: 800; height: 600
-            anchors.centerIn: parent
-            onSelectedFile: console.log("Chose file " + file)
-        }
-        Timer {
-            id: timer
-            running: false
-            interval: 100
-            onTriggered: wireFrameContainer.enabled = true
-        }
-
-        Item {
-            id: wireFrameContainer
-            objectName: Desktop._OFFSCREEN_DIALOG_OBJECT_NAME
-            anchors.fill: parent
-            onEnabledChanged: if (!enabled) timer.running = true
-
-            NewUi.Main {
-                id: wireFrame
-                anchors.fill: parent
-
-                property var offscreenFlags: Item {
-                    property bool navigationFocused: false
-                }
-
-                property var urlHandler: Item {
-                    function fixupUrl(url) {
-                        var urlString = url.toString();
-                        if (urlString.indexOf("https://metaverse.highfidelity.com/") !== -1 &&
-                            urlString.indexOf("access_token") === -1) {
-                            console.log("metaverse URL, fixing")
-                            return urlString + "?access_token=875885020b1d5f1ea694ce971c8601fa33ffd77f61851be01ed1e3fde8cabbe9"
-                        }
-                        return url
-                    }
-
-                    function canHandleUrl(url) {
-                        var urlString = url.toString();
-                        if (urlString.indexOf("hifi://") === 0) {
-                            console.log("Can handle hifi addresses: " + urlString)
-                            return true;
-                        }
-
-                        if (urlString.indexOf(".svo.json?") !== -1) {
-                            console.log("Can handle svo json addresses: " + urlString)
-                            return true;
-                        }
-
-                        if (urlString.indexOf(".js?") !== -1) {
-                            console.log("Can handle javascript addresses: " + urlString)
-                            return true;
-                        }
-
-                        return false
-                    }
-
-                    function handleUrl(url) {
-                        return true
-                    }
-                }
-
-                property var addressManager: Item {
-                    function navigate(url) {
-                        console.log("Navigate to: " + url);
-                    }
-                }
-            }
-        }
-        Keys.onMenuPressed: desktop.uiVisible = !desktop.uiVisible
-        Keys.onEscapePressed: desktop.uiVisible = !desktop.uiVisible
-        }
-*/
 }

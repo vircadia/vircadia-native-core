@@ -3,6 +3,7 @@
 #include <QtWebEngine>
 #include <QFileSystemModel>
 
+#include "../../../libraries/ui/src/FileDialogHelper.h"
 
 
 class Preference : public QObject {
@@ -82,13 +83,14 @@ int main(int argc, char *argv[]) {
     addImportPath(engine, "../../../interface/resources/qml");
     engine.load(QUrl(QStringLiteral("qml/Stubs.qml")));
 
-    setChild(engine, "rootMenu");
+    setChild(engine, "offscreenFlags");
     setChild(engine, "Account");
     setChild(engine, "Desktop");
     setChild(engine, "ScriptDiscoveryService");
     setChild(engine, "MenuHelper");
     setChild(engine, "urlHandler");
     engine.rootContext()->setContextProperty("DebugQML", true);
+    engine.rootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
 
     //engine.load(QUrl(QStringLiteral("qrc:/qml/gallery/main.qml")));
     engine.load(QUrl(QStringLiteral("qml/main.qml")));
