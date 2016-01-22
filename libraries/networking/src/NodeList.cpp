@@ -60,7 +60,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // in case we don't know how to talk to DS when a path change is requested
     // fire off any pending DS path query when we get socket information
-    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
+    connect(&_domainHandler, &DomainHandler::connectedToDomain, this, &NodeList::sendPendingDSPathQuery);
 
     // send a domain server check in immediately once the DS socket is known
     connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendDomainServerCheckIn);

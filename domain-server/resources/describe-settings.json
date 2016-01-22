@@ -65,7 +65,7 @@
             {
               "name": "viewpoint",
               "label": "Viewpoint",
-              "placeholder": "/512,512,512"
+              "placeholder": "/0,0,0"
             }
           ]
         }
