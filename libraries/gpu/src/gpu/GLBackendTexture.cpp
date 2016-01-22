@@ -146,6 +146,68 @@ public:
                 case gpu::RGB:
                 case gpu::RGBA:
                     texel.internalFormat = GL_RED;
+                    switch (dstFormat.getType()) {
+                        case gpu::UINT32: {
+                            texel.internalFormat = GL_R32UI;
+                            break;
+                            }
+                        case gpu::INT32: {
+                            texel.internalFormat = GL_R32I;
+                            break;
+                            }
+                        case gpu::NUINT32: {
+                            texel.internalFormat = GL_RED;
+                            break;
+                            }
+                        case gpu::NINT32: {
+                            texel.internalFormat = GL_RED_SNORM;
+                            break;
+                            }
+                        case gpu::FLOAT: {
+                            texel.internalFormat = GL_R32F;
+                            break;
+                            }
+                        case gpu::UINT16: {
+                            texel.internalFormat = GL_R16UI;
+                            break;
+                            }
+                        case gpu::INT16: {
+                            texel.internalFormat = GL_R16I;
+                            break;
+                            }
+                        case gpu::NUINT16: {
+                            texel.internalFormat = GL_R16;
+                            break;
+                            }
+                        case gpu::NINT16: {
+                            texel.internalFormat = GL_R16_SNORM;
+                            break;
+                            }
+                        case gpu::HALF: {
+                            texel.internalFormat = GL_R16F;
+                            break;
+                            }
+                        case gpu::UINT8: {
+                            texel.internalFormat = GL_R8UI;
+                            break;
+                            }
+                        case gpu::INT8: {
+                            texel.internalFormat = GL_R8I;
+                            break;
+                            }
+                        case gpu::NUINT8: {
+                            texel.internalFormat = GL_R8;
+                            break;
+                            }
+                        case gpu::NINT8: {
+                            texel.internalFormat = GL_R8_SNORM;
+                            break;
+                            }
+                        case gpu::NUM_TYPES: { // quiet compiler
+                            Q_UNREACHABLE();
+                            }
+                        
+                    }
                     break;
                 case gpu::DEPTH:
                     texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
