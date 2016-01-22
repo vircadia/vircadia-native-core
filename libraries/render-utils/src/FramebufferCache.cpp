@@ -45,6 +45,12 @@ void FramebufferCache::setFrameBufferSize(QSize frameBufferSize) {
         _cachedFramebuffers.clear();
         _lightingTexture.reset();
         _lightingFramebuffer.reset();
+        _depthPyramidFramebuffer.reset();
+        _depthPyramidTexture.reset();
+        _occlusionFramebuffer.reset();
+        _occlusionTexture.reset();
+        _occlusionBlurredFramebuffer.reset();
+        _occlusionBlurredTexture.reset();
     }
 }
 
@@ -96,6 +102,42 @@ void FramebufferCache::createPrimaryFramebuffer() {
     _lightingFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     _lightingFramebuffer->setRenderBuffer(0, _lightingTexture);
     _lightingFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
+
+    // For AO:
+    auto pointMipSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_POINT);
+    _depthPyramidTexture = gpu::TexturePointer(gpu::Texture::create2D(gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RGB), width, height, pointMipSampler));
+    _depthPyramidFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _depthPyramidFramebuffer->setRenderBuffer(0, _depthPyramidTexture);
+    _depthPyramidFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+    
+    
+    resizeAmbientOcclusionBuffers();
+}
+
+
+void FramebufferCache::resizeAmbientOcclusionBuffers() {
+    _occlusionFramebuffer.reset();
+    _occlusionTexture.reset();
+    _occlusionBlurredFramebuffer.reset();
+    _occlusionBlurredTexture.reset();
+
+
+    auto width = _frameBufferSize.width() >> _AOResolutionLevel;
+    auto height = _frameBufferSize.height() >> _AOResolutionLevel;
+    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGB);
+    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+    auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL); // Depth24_Stencil8 texel format
+
+    _occlusionTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _occlusionFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionFramebuffer->setRenderBuffer(0, _occlusionTexture);
+    _occlusionFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
+
+    _occlusionBlurredTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
+    _occlusionBlurredFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    _occlusionBlurredFramebuffer->setRenderBuffer(0, _occlusionBlurredTexture);
+    _occlusionBlurredFramebuffer->setDepthStencilBuffer(_primaryDepthTexture, depthFormat);
 }
 
 gpu::FramebufferPointer FramebufferCache::getPrimaryFramebuffer() {
@@ -188,4 +230,55 @@ gpu::FramebufferPointer FramebufferCache::getSelfieFramebuffer() {
         createPrimaryFramebuffer();
     }
     return _selfieFramebuffer;
+}
+
+gpu::FramebufferPointer FramebufferCache::getDepthPyramidFramebuffer() {
+    if (!_depthPyramidFramebuffer) {
+        createPrimaryFramebuffer();
+    }
+    return _depthPyramidFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getDepthPyramidTexture() {
+    if (!_depthPyramidTexture) {
+        createPrimaryFramebuffer();
+    }
+    return _depthPyramidTexture;
+}
+
+void FramebufferCache::setAmbientOcclusionResolutionLevel(int level) {
+    const int MAX_AO_RESOLUTION_LEVEL = 4;
+    level = std::max(0, std::min(level, MAX_AO_RESOLUTION_LEVEL));
+    if (level != _AOResolutionLevel) {
+        _AOResolutionLevel = level;
+        resizeAmbientOcclusionBuffers();
+    }
+}
+
+gpu::FramebufferPointer FramebufferCache::getOcclusionFramebuffer() {
+    if (!_occlusionFramebuffer) {
+        resizeAmbientOcclusionBuffers();
+    }
+    return _occlusionFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getOcclusionTexture() {
+    if (!_occlusionTexture) {
+        resizeAmbientOcclusionBuffers();
+    }
+    return _occlusionTexture;
+}
+
+gpu::FramebufferPointer FramebufferCache::getOcclusionBlurredFramebuffer() {
+    if (!_occlusionBlurredFramebuffer) {
+        resizeAmbientOcclusionBuffers();
+    }
+    return _occlusionBlurredFramebuffer;
+}
+
+gpu::TexturePointer FramebufferCache::getOcclusionBlurredTexture() {
+    if (!_occlusionBlurredTexture) {
+        resizeAmbientOcclusionBuffers();
+    }
+    return _occlusionBlurredTexture;
 }

@@ -17,9 +17,10 @@ Frame {
         color: "#7f7f7f7f";
         radius: 3;
         MouseArea {
+            enabled: window.visible
             anchors.fill: parent
             acceptedButtons: Qt.AllButtons
-            onClicked: { }
+            onClicked: {}
             onDoubleClicked: {}
             onPressAndHold: {}
             onReleased: {}

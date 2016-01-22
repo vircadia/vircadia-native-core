@@ -218,7 +218,13 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
         QString collisionSoundURLBefore = entity->getCollisionSoundURL();
         uint32_t preFlags = entity->getDirtyFlags();
 
-        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, properties.getQueryAACube());
+        AACube newQueryAACube;
+        if (properties.queryAACubeChanged()) {
+            newQueryAACube = properties.getQueryAACube();
+        } else {
+            newQueryAACube = entity->getQueryAACube();
+        }
+        UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newQueryAACube);
         recurseTreeWithOperator(&theOperator);
         entity->setProperties(properties);
 

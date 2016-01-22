@@ -43,7 +43,6 @@
 #include "Application.h"
 #include "devices/Faceshift.h"
 #include "AvatarManager.h"
-#include "Environment.h"
 #include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"

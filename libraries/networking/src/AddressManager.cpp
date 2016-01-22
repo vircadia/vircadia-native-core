@@ -149,8 +149,15 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl, LookupTrigger trigger) {
             // check if it is a network address first
             if (handleNetworkAddress(lookupUrl.host()
                                       + (lookupUrl.port() == -1 ? "" : ":" + QString::number(lookupUrl.port())), trigger)) {
+
+                // if we were not passed a path, use the index path
+                auto path = lookupUrl.path();
+                if (path.isEmpty()) {
+                    path = INDEX_PATH;
+                }
+
                 // we may have a path that defines a relative viewpoint - if so we should jump to that now
-                handlePath(lookupUrl.path(), trigger);
+                handlePath(path, trigger);
             } else if (handleDomainID(lookupUrl.host())){
                 // no place name - this is probably a domain ID
                 // try to look up the domain ID on the metaverse API

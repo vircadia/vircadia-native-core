@@ -72,13 +72,30 @@ public:
         float exposure = 0.0;
     };
     
-    RenderContext(ItemsConfig items, Tone tone, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
-    RenderContext() {}
+    class AmbientOcclusion {
+    public:
+        int resolutionLevel { 1 };
+        float radius { 0.5f }; // radius in meters of the AO effect
+        float level { 0.5f }; // Level of the obscrance value
+        int numSamples { 11 }; // Num Samples per pixel
+        float numSpiralTurns { 7.0f };
+        bool ditheringEnabled { true };
+        float falloffBias { 0.01f };
+        float edgeSharpness { 1.0f };
+        int blurRadius { 4 };
+        float blurDeviation { 2.5f};
+
+        double gpuTime { 0.0 };
+    };
+
+    RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
+    RenderContext() {};
 
     void setArgs(RenderArgs* args) { _args = args; }
     RenderArgs* getArgs() { return _args; }
     ItemsConfig& getItemsConfig() { return _items; }
     Tone& getTone() { return _tone; }
+    AmbientOcclusion& getAmbientOcclusion() { return _ambientOcclusion; }
     int getDrawStatus() { return _drawStatus; }
     bool getDrawHitEffect() { return _drawHitEffect; }
     bool getOcclusionStatus() { return _occlusionStatus; }
@@ -96,10 +113,11 @@ protected:
     int _drawStatus; // bitflag
     bool _drawHitEffect;
     bool _occlusionStatus { false };
-    bool _fxaaStatus = { false };
+    bool _fxaaStatus { false };
 
     ItemsConfig _items;
     Tone _tone;
+    AmbientOcclusion _ambientOcclusion;
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
 

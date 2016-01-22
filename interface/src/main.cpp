@@ -25,6 +25,8 @@
 #include "MainWindow.h"
 
 int main(int argc, const char* argv[]) {
+    disableQtBearerPoll(); // Fixes wifi ping spikes
+    
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
     bool instanceMightBeRunning = true;
@@ -80,7 +82,6 @@ int main(int argc, const char* argv[]) {
         return EXIT_SUCCESS;
 #endif
     }
-
 
     QElapsedTimer startupTime;
     startupTime.start();

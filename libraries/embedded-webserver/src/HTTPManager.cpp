@@ -184,13 +184,15 @@ bool HTTPManager::bindSocket() {
         
         return true;
     } else {
-        qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
-        QMetaObject::invokeMethod(this, "queuedExit", Qt::QueuedConnection);
-        
+        QString errorMessage = "Failed to open HTTP server socket: " + errorString() + ", can't continue";
+        QMetaObject::invokeMethod(this, "queuedExit", Qt::QueuedConnection, Q_ARG(QString, errorMessage));
         return false;
     }
 }
 
-void HTTPManager::queuedExit() {
+void HTTPManager::queuedExit(QString errorMessage) {
+    if (!errorMessage.isEmpty()) {
+        qCCritical(embeddedwebserver) << qPrintable(errorMessage);
+    }
     QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
 }

@@ -1145,13 +1145,35 @@ void OctreeServer::domainSettingsRequestComplete() {
     if (_wantPersist) {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
-        QString oldResourcesDirectory = QCoreApplication::applicationDirPath();
-        auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
         auto persistPath = ServerPathUtils::getDataFilePath("entities/" + QString(_persistFilename));
-        if (oldPersistPath != persistPath && !QFile::exists(persistPath)) {
+        if (!QFile::exists(persistPath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
+
+            static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
+            QString oldResourcesDirectory = QCoreApplication::applicationDirPath();
+
+            // This is the old persist path, based on the current persist filename, which could
+            // be a custom filename set by the user.
+            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
+
+            // This is the old default persist path.
+            auto oldDefaultPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(OLD_DEFAULT_PERSIST_FILENAME);
+
+            qDebug() << "Checking for existing persist file at " << oldPersistPath << " and " << oldDefaultPersistPath;
+
+            QString pathToCopyFrom;
+            bool shouldCopy = false;
+
             if (QFile::exists(oldPersistPath)) {
-                qDebug() << "Old persist file found, copying from " << oldPersistPath << " to " << persistPath;
+                shouldCopy = true;
+                pathToCopyFrom = oldPersistPath;
+            } else if (QFile::exists(oldDefaultPersistPath)) {
+                shouldCopy = true;
+                pathToCopyFrom = oldDefaultPersistPath;
+            }
+
+            if (shouldCopy) {
+                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistPath;
 
                 QDir persistFileDirectory = QDir(persistPath).filePath("..");
 
@@ -1159,7 +1181,7 @@ void OctreeServer::domainSettingsRequestComplete() {
                     qDebug() << "Creating data directory " << persistFileDirectory.path();
                     persistFileDirectory.mkpath(".");
                 }
-                QFile::copy(oldPersistPath, persistPath);
+                QFile::copy(pathToCopyFrom, persistPath);
             } else {
                 qDebug() << "No existing persist file found";
             }

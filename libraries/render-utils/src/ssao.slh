@@ -1,0 +1,241 @@
+<!
+//  AmbientOcclusion.slh
+//  libraries/render-utils/src
+//
+//  Created by Sam Gateau on 1/1/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not SSAO_SLH@>
+<@def SSAO_SLH@>
+
+<@func declarePackOcclusionDepth()@>
+
+const float FAR_PLANE_Z = -300.0;
+
+float CSZToDephtKey(float z) {
+    return clamp(z * (1.0 / FAR_PLANE_Z), 0.0, 1.0);
+}
+vec3 packOcclusionDepth(float occlusion, float depth) {
+    // Round to the nearest 1/256.0
+    float temp = floor(depth * 256.0);
+    return vec3(occlusion, temp * (1.0 / 256.0), depth * 256.0 - temp);
+}
+vec2 unpackOcclusionDepth(vec3 raw) {
+    float z = raw.y * (256.0 / 257.0) + raw.z * (1.0 / 257.0);
+    return vec2(raw.x, z);
+}
+<@endfunc@>
+
+<@func declareAmbientOcclusion()@>
+
+struct AmbientOcclusionFrameTransform {
+    vec4 _pixelInfo;
+    vec4 _depthInfo;
+    vec4 _stereoInfo;
+    mat4 _projection[2];
+};
+
+struct AmbientOcclusionParams {
+    vec4 _resolutionInfo;
+    vec4 _radiusInfo;
+    vec4 _ditheringInfo;
+    vec4 _sampleInfo;
+    vec4 _blurInfo;
+    float _gaussianCoefs[8];
+};
+
+uniform ambientOcclusionFrameTransformBuffer {
+    AmbientOcclusionFrameTransform frameTransform;
+};
+uniform ambientOcclusionParamsBuffer {
+    AmbientOcclusionParams params;
+};
+
+
+int getResolutionLevel() {
+    return int(params._resolutionInfo.x);
+}
+
+vec2 getWidthHeight() {
+    return vec2(ivec2(frameTransform._pixelInfo.zw) >> getResolutionLevel());
+}
+float getProjScale() {
+    return getWidthHeight().y * frameTransform._projection[0][1][1] * 0.5;
+}
+mat4 getProjection(int side) {
+    return frameTransform._projection[side];
+}
+
+bool isStereo() {
+    return frameTransform._stereoInfo.x > 0.0f;
+}
+
+float getStereoSideWidth() {
+    return float(int(frameTransform._stereoInfo.y) >>  getResolutionLevel());
+}
+
+ivec3 getStereoSideInfo(int xPos) {
+    int sideWidth = int(getStereoSideWidth());
+    return ivec3(xPos < sideWidth ? ivec2(0, 0) : ivec2(1, sideWidth), sideWidth);
+}
+
+
+float evalZeyeFromZdb(float depth) {
+    return frameTransform._depthInfo.x / (depth * frameTransform._depthInfo.y + frameTransform._depthInfo.z);
+}
+
+vec3 evalEyeNormal(vec3 C) {
+    //return normalize(cross(dFdy(C), dFdx(C)));
+    return normalize(cross(dFdx(C), dFdy(C)));
+}
+
+
+float getRadius() {
+    return params._radiusInfo.x;
+}
+float getRadius2() {
+    return params._radiusInfo.y;
+}
+float getInvRadius6() {
+    return params._radiusInfo.z;
+}
+float getObscuranceScaling() {
+    return params._radiusInfo.z * params._radiusInfo.w;
+}
+
+float isDitheringEnabled() {
+    return params._ditheringInfo.x;
+}
+float getFrameDithering() {
+    return params._ditheringInfo.y;
+}
+float isBorderingEnabled() {
+    return params._ditheringInfo.w;
+}
+
+float getFalloffBias() {
+    return params._ditheringInfo.z;
+}
+
+float getNumSamples() {
+    return params._sampleInfo.x;
+}
+float getInvNumSamples() {
+    return params._sampleInfo.y;
+}
+float getNumSpiralTurns() {
+    return params._sampleInfo.z;
+}
+
+float getBlurEdgeSharpness() {
+    return params._blurInfo.x;
+}
+
+#ifdef CONSTANT_GAUSSIAN
+const int BLUR_RADIUS = 4;
+const float gaussian[BLUR_RADIUS + 1] =
+// KEEP this dead code for eventual performance improvment
+//    float[](0.356642, 0.239400, 0.072410, 0.009869);
+//    float[](0.398943, 0.241971, 0.053991, 0.004432, 0.000134);  // stddev = 1.0
+float[](0.153170, 0.144893, 0.122649, 0.092902, 0.062970);  // stddev = 2.0
+//float[](0.197413, 0.17467, 0.12098,0.065591,0.040059);
+//      float[](0.111220, 0.107798, 0.098151, 0.083953, 0.067458, 0.050920, 0.036108); // stddev = 3.0
+
+int getBlurRadius() {
+    return BLUR_RADIUS;
+}
+
+float getBlurCoef(int c) {
+    return gaussian[c];
+}
+#else
+int getBlurRadius() {
+    return int(params._blurInfo.y);
+}
+
+float getBlurCoef(int c) {
+    return params._gaussianCoefs[c];
+}
+#endif
+
+<@endfunc@>
+
+<@func declareBlurPass(axis)@>
+
+<$declarePackOcclusionDepth()$>
+<$declareAmbientOcclusion()$>
+
+// the source occlusion texture
+uniform sampler2D occlusionMap;
+
+vec2 fetchOcclusionDepthRaw(ivec2 coords, out vec3 raw) {
+    raw = texelFetch(occlusionMap, coords, 0).xyz;
+    return unpackOcclusionDepth(raw);
+}
+
+vec2 fetchOcclusionDepth(ivec2 coords) {
+    return unpackOcclusionDepth(texelFetch(occlusionMap, coords, 0).xyz);
+}
+
+const int RADIUS_SCALE = 1;
+const float BLUR_WEIGHT_OFFSET = 0.05;
+const float BLUR_EDGE_SCALE = 2000.0;
+
+vec2 evalTapWeightedValue(ivec3 side, int r, ivec2 ssC, float key) {
+    ivec2 tapOffset = <$axis$> * (r * RADIUS_SCALE);
+    ivec2 ssP = (ssC + tapOffset);
+
+    if ((ssP.x < side.y || ssP.x >= side.z + side.y) || (ssP.y < 0 || ssP.y >= int(getWidthHeight().y))) {
+        return vec2(0.0);
+    }
+    vec2 tapOZ = fetchOcclusionDepth(ssC + tapOffset);
+
+    // spatial domain: offset gaussian tap
+    float weight = BLUR_WEIGHT_OFFSET + getBlurCoef(abs(r));
+
+    // range domain (the "bilateral" weight). As depth difference increases, decrease weight.
+    weight *= max(0.0, 1.0 - (getBlurEdgeSharpness() * BLUR_EDGE_SCALE) * abs(tapOZ.y - key));
+    
+    return vec2(tapOZ.x * weight, weight);
+}
+
+vec3 getBlurredOcclusion(vec2 coord) {
+    ivec2 ssC = ivec2(coord);
+
+    // Stereo side info
+    ivec3 side = getStereoSideInfo(ssC.x);
+
+    vec3 rawSample;
+    vec2 occlusionDepth = fetchOcclusionDepthRaw(ssC, rawSample);
+    float key = occlusionDepth.y;
+    
+    // Central pixel contribution
+    float mainWeight = getBlurCoef(0);
+    vec2 weightedSums = vec2(occlusionDepth.x * mainWeight, mainWeight);
+
+    // Accumulate weighted contributions along the bluring axis in the [-radius, radius] range
+    int blurRadius = getBlurRadius();
+    // negative side first
+    for (int r = -blurRadius; r <= -1; ++r) {
+        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+    }
+    // then positive side
+    for (int r = 1; r <= blurRadius; ++r) {
+        weightedSums += evalTapWeightedValue(side, r, ssC, key);
+    }
+
+    // Final normalization
+    const float epsilon = 0.0001;
+    float result = weightedSums.x / (weightedSums.y + epsilon);
+    
+    rawSample.x = result;
+    return rawSample;
+}
+
+<@endfunc@>
+
+
+<@endif@>

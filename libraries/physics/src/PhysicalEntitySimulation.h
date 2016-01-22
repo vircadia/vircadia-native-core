@@ -60,6 +60,7 @@ public:
 
 private:
     SetOfEntities _entitiesToRemoveFromPhysics;
+    SetOfEntities _entitiesToRelease;
     SetOfEntities _entitiesToAddToPhysics;
 
     SetOfEntityMotionStates _pendingChanges; // EntityMotionStates already in PhysicsEngine that need their physics changed
@@ -70,7 +71,7 @@ private:
     PhysicsEnginePointer _physicsEngine = nullptr;
     EntityEditPacketSender* _entityPacketSender = nullptr;
 
-    uint32_t _lastStepSendPackets = 0;
+    uint32_t _lastStepSendPackets { 0 };
 };
 
 
