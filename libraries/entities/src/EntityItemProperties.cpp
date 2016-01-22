@@ -25,7 +25,6 @@
 #include "PolyLineEntityItem.h"
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
-AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
@@ -79,7 +78,6 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
 
     getAnimation().debugDump();
-    getAtmosphere().debugDump();
     getSkybox().debugDump();
     getKeyLight().debugDump();
 
@@ -186,39 +184,26 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* backgroundModeNames[] = {"inherit", "atmosphere", "skybox" };
-
-QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
-
-void addBackgroundMode(BackgroundMode type) {
-    stringToBackgroundModeLookup[backgroundModeNames[type]] = type;
-}
-
-void buildStringToBackgroundModeLookup() {
-    addBackgroundMode(BACKGROUND_MODE_INHERIT);
-    addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
-    addBackgroundMode(BACKGROUND_MODE_SKYBOX);
-}
+using BackgroundPair = std::pair<const BackgroundMode, const QString>;
+const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = {
+    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
+    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
+};
 
 QString EntityItemProperties::getBackgroundModeAsString() const {
-    if (_backgroundMode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[_backgroundMode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[_backgroundMode].second;
 }
 
 QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    if (mode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[mode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[mode].second;
 }
 
 void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    if (stringToBackgroundModeLookup.empty()) {
-        buildStringToBackgroundModeLookup();
-    }
-    auto backgroundModeItr = stringToBackgroundModeLookup.find(backgroundMode.toLower());
-    if (backgroundModeItr != stringToBackgroundModeLookup.end()) {
-        _backgroundMode = backgroundModeItr.value();
+    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
+        return (pair.second == backgroundMode);
+    });
+    if (result != BACKGROUND_MODES.end()) {
+        _backgroundMode = result->first;
         _backgroundModeChanged = true;
     }
 }
@@ -326,7 +311,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
-    changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
 
@@ -475,7 +459,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        _atmosphere.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
@@ -668,7 +651,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     _animation.copyFromScriptValue(object, _defaultSettings);
     _keyLight.copyFromScriptValue(object, _defaultSettings);
-    _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
 
@@ -853,14 +835,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_OUTER_RADIUS, Atmosphere, atmosphere, OuterRadius, outerRadius);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_MIE_SCATTERING, Atmosphere, atmosphere, MieScattering, mieScattering);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_HAS_STARS, Atmosphere, atmosphere, HasStars, hasStars);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
@@ -1109,9 +1083,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
 
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
-
-                _staticAtmosphere.setProperties(properties);
-                _staticAtmosphere.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -1397,7 +1368,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-        properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
 
@@ -1549,7 +1519,6 @@ void EntityItemProperties::markAllChanged() {
     _backgroundModeChanged = true;
 
     _animation.markAllChanged();
-    _atmosphere.markAllChanged();
     _skybox.markAllChanged();
     _stage.markAllChanged();
 
@@ -1910,7 +1879,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
-    getAtmosphere().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
     getStage().listChangedProperties(out);
 

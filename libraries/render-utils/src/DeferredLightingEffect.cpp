@@ -42,7 +42,6 @@ struct LightLocations {
     int radius;
     int ambientSphere;
     int lightBufferUnit;
-    int atmosphereBufferUnit;
     int texcoordMat;
     int coneParam;
     int deferredTransformBuffer;
@@ -329,10 +328,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     if (locations->lightBufferUnit >= 0) {
                         batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
                     }
-        
-                    if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
-                        batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
-                    }
+
                 }
 
                 {
@@ -497,10 +493,8 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
 
     static const int LIGHT_GPU_SLOT = 3;
-    static const int ATMOSPHERE_GPU_SLOT = 4;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DEFERRED_TRANSFORM_BUFFER_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -512,7 +506,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 

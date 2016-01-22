@@ -1880,12 +1880,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             }
 
-            case Qt::Key_A:
-                if (isShifted) {
-                    Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
-                }
-                break;
-
             case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
@@ -2692,8 +2686,6 @@ void Application::initDisplay() {
 void Application::init() {
     // Make sure Login state is up to date
     DependencyManager::get<DialogsManager>()->toggleLoginDialog();
-
-    _environment.init();
 
     DependencyManager::get<DeferredLightingEffect>()->init();
 
@@ -3615,10 +3607,6 @@ public:
     typedef Payload::DataPointer Pointer;
 
     Stars _stars;
-    Environment* _environment;
-
-    BackgroundRenderData(Environment* environment) : _environment(environment) {
-    }
 
     static render::ItemID _item; // unique WorldBoxRenderData
 };
@@ -3660,63 +3648,8 @@ namespace render {
                         "Application::payloadRender<BackgroundRenderData>() ... stars...");
                     // should be the first rendering pass - w/o depth buffer / lighting
 
-                    // compute starfield alpha based on distance from atmosphere
-                    float alpha = 1.0f;
-                    bool hasStars = true;
-
-                    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                        // TODO: handle this correctly for zones
-                        const EnvironmentData& closestData = background->_environment->getClosestData(args->_viewFrustum->getPosition()); // was theCamera instead of  _viewFrustum
-
-                        if (closestData.getHasStars()) {
-                            const float APPROXIMATE_DISTANCE_FROM_HORIZON = 0.1f;
-                            const float DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON = 0.2f;
-
-                            glm::vec3 sunDirection = (args->_viewFrustum->getPosition()/*getAvatarPosition()*/ - closestData.getSunLocation())
-                                                            / closestData.getAtmosphereOuterRadius();
-                            float height = glm::distance(args->_viewFrustum->getPosition()/*theCamera.getPosition()*/, closestData.getAtmosphereCenter());
-                            if (height < closestData.getAtmosphereInnerRadius()) {
-                                // If we're inside the atmosphere, then determine if our keyLight is below the horizon
-                                alpha = 0.0f;
-
-                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                    float directionY = glm::clamp(sunDirection.y,
-                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                                }
-
-
-                            } else if (height < closestData.getAtmosphereOuterRadius()) {
-                                alpha = (height - closestData.getAtmosphereInnerRadius()) /
-                                    (closestData.getAtmosphereOuterRadius() - closestData.getAtmosphereInnerRadius());
-
-                                if (sunDirection.y > -APPROXIMATE_DISTANCE_FROM_HORIZON) {
-                                    float directionY = glm::clamp(sunDirection.y,
-                                                        -APPROXIMATE_DISTANCE_FROM_HORIZON, APPROXIMATE_DISTANCE_FROM_HORIZON)
-                                                        + APPROXIMATE_DISTANCE_FROM_HORIZON;
-                                    alpha = (directionY / DOUBLE_APPROXIMATE_DISTANCE_FROM_HORIZON);
-                                }
-                            }
-                        } else {
-                            hasStars = false;
-                        }
-                    }
-
-                    // finally render the starfield
-                    if (hasStars) {
-                        background->_stars.render(args, alpha);
-                    }
-
-                    // draw the sky dome
-                    if (/*!selfAvatarOnly &&*/ Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
-                        PerformanceTimer perfTimer("atmosphere");
-                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "Application::displaySide() ... atmosphere...");
-
-                        background->_environment->renderAtmospheres(batch, *(args->_viewFrustum));
-                    }
-
+                    static const float alpha = 1.0f;
+                    background->_stars.render(args, alpha);
                 }
             }
                 break;
@@ -3756,12 +3689,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Background rendering decision
     if (BackgroundRenderData::_item == 0) {
-        auto backgroundRenderData = make_shared<BackgroundRenderData>(&_environment);
+        auto backgroundRenderData = make_shared<BackgroundRenderData>();
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
         pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
-    } else {
-
     }
 
    // Assuming nothing get's rendered through that
@@ -3801,7 +3732,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
         auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
         DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalAtmosphere(skyStage->getAtmosphere());
 
         auto skybox = model::SkyboxPointer();
         if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
