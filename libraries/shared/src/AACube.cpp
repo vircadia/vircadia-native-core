@@ -480,7 +480,7 @@ AACube& AACube::operator += (const glm::vec3& point) {
 }
 
 bool AACube::containsNaN() const {
-    if (isNaN(_corner.x) || isNaN(_corner.y) || isNaN(_corner.z)) {
+    if (isVec3NaN(_corner)) {
         return true;
     }
     if (isNaN(_scale)) {

@@ -624,8 +624,8 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) { 
-    return value != value; 
+bool isNaN(float value) {
+    return value != value;
 }
 
 QString formatUsecTime(float usecs, int prec) {
