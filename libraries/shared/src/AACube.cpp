@@ -483,7 +483,7 @@ bool AACube::containsNaN() const {
     if (isNaN(_corner.x) || isNaN(_corner.y) || isNaN(_corner.z)) {
         return true;
     }
-    if (_scale != _scale) {
+    if (isNaN(_scale)) {
         return true;
     }
     return false;
