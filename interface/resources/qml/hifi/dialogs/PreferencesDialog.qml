@@ -42,7 +42,6 @@ Window {
         }
 
         Component.onCompleted: {
-            Preferences.loadAll();
             var categories = Preferences.categories;
             for (var i = 0; i < categories.length; ++i) {
                 var category = categories[i];

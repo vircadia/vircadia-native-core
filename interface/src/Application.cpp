@@ -117,6 +117,7 @@
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <QmlWebWindowClass.h>
+#include <Preferences.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -324,6 +325,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     // Set dependencies
     DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
@@ -1182,6 +1184,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
@@ -1213,6 +1216,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+    rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());

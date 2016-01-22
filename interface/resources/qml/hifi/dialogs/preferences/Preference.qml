@@ -6,4 +6,5 @@ Item {
     anchors { left: parent.left; right: parent.right }
     property var preference;
     property string label: preference ? preference.name : "";
+    Component.onCompleted: preference.load();
 }

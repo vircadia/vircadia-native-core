@@ -16,9 +16,11 @@
 #include <QtCore/QList>
 #include <QtCore/QString>
 
+#include "DependencyManager.h"
+
 class Preference;
 
-class Preferences : public QObject {
+class Preferences : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(QVariantMap preferencesByCategory READ getPreferencesByCategory CONSTANT)
     Q_PROPERTY(QList<QString> categories READ getCategories CONSTANT)
@@ -88,8 +90,8 @@ protected:
 class ButtonPreference : public Preference {
     Q_OBJECT
 public:
-    ButtonPreference(const QString& category, const QString& name, Preferences* parent = nullptr)
-        : Preference(category, name, parent) { }
+    ButtonPreference(const QString& category, const QString& name)
+        : Preference(category, name) { }
     Type getType() { return Button; }
 
 };
@@ -101,8 +103,8 @@ public:
     using Getter = std::function<T()>;
     using Setter = std::function<void(const T&)>;
 
-    TypedPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : Preference(category, name, parent), _getter(getter), _setter(setter) { }
+    TypedPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : Preference(category, name), _getter(getter), _setter(setter) { }
 
     T getValue() const { return _getter(); }
     void setValue(const T& value) { if (_value != value) { _value = value; emitValueChanged(); } }
@@ -125,8 +127,8 @@ class BoolPreference : public TypedPreference<bool> {
     Q_PROPERTY(bool value READ getValue WRITE setValue NOTIFY valueChanged)
 
 public:
-    BoolPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : TypedPreference(category, name, getter, setter, parent) { }
+    BoolPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : TypedPreference(category, name, getter, setter) { }
 
 signals:
     void valueChanged();
@@ -144,8 +146,8 @@ class FloatPreference : public TypedPreference<float> {
     Q_PROPERTY(float decimals READ getDecimals CONSTANT)
 
 public:
-    FloatPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : TypedPreference(category, name, getter, setter, parent) { }
+    FloatPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : TypedPreference(category, name, getter, setter) { }
 
     float getMin() const { return _min; }
     void setMin(float min) { _min = min; };
@@ -176,8 +178,8 @@ class StringPreference : public TypedPreference<QString> {
     Q_PROPERTY(QString value READ getValue WRITE setValue NOTIFY valueChanged)
 
 public:
-    StringPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : TypedPreference(category, name, getter, setter, parent) { }
+    StringPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : TypedPreference(category, name, getter, setter) { }
 
 signals:
     void valueChanged();
@@ -189,8 +191,8 @@ protected:
 class SliderPreference : public FloatPreference {
     Q_OBJECT
 public:
-    SliderPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : FloatPreference(category, name, getter, setter, parent) { }
+    SliderPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : FloatPreference(category, name, getter, setter) { }
 
     Type getType() { return Slider; }
 };
@@ -198,8 +200,8 @@ public:
 class SpinnerPreference : public FloatPreference {
     Q_OBJECT
 public:
-    SpinnerPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : FloatPreference(category, name, getter, setter, parent) { }
+    SpinnerPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : FloatPreference(category, name, getter, setter) { }
 
     Type getType() { return Spinner; }
 };
@@ -209,8 +211,8 @@ class EditPreference : public StringPreference {
     Q_PROPERTY(QString placeholderText READ getPlaceholderText CONSTANT)
 
 public:
-    EditPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : StringPreference(category, name, getter, setter, parent) { }
+    EditPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : StringPreference(category, name, getter, setter) { }
     Type getType() { return Editable; }
     const QString& getPlaceholderText() const { return _placeholderText; }
     void setPlaceholderText(const QString& placeholderText) { _placeholderText = placeholderText; }
@@ -224,8 +226,8 @@ class BrowsePreference : public EditPreference {
     Q_PROPERTY(QString browseLabel READ getBrowseLabel CONSTANT)
 
 public:
-    BrowsePreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : EditPreference(category, name, getter, setter, parent) { }
+    BrowsePreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : EditPreference(category, name, getter, setter) { }
     Type getType() { return Browsable; }
 
     const QString& getBrowseLabel() { return _browseLabel; }
@@ -238,8 +240,8 @@ protected:
 class CheckPreference : public BoolPreference {
     Q_OBJECT
 public:
-    CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter, Preferences* parent = nullptr)
-        : BoolPreference(category, name, getter, setter, parent) { }
+    CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : BoolPreference(category, name, getter, setter) { }
     Type getType() { return Checkbox; }
 };
 

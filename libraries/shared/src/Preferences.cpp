@@ -10,15 +10,20 @@
 
 
 void Preferences::addPreference(Preference* preference) {
+    preference->setParent(this);
+
     const QString& category = preference->getCategory();
+
+    // Use this structure to maintain the order of the categories
+    if (!_categories.contains(category)) {
+        _categories.append(category);
+    }
+    
     QVariantList categoryPreferences;
     // FIXME is there an easier way to do this with less copying?
     if (_preferencesByCategory.contains(category)) {
         categoryPreferences = qvariant_cast<QVariantList>(_preferencesByCategory[category]);
-    } else {
-        // Use this property to maintain the order of the categories
-        _categories.append(category);
-    }
+    } 
     categoryPreferences.append(QVariant::fromValue(preference));
     _preferencesByCategory[category] = categoryPreferences;
 }

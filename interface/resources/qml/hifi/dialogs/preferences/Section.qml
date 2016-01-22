@@ -49,6 +49,7 @@ Preference {
         font.pointSize: 16
         color: "#0e7077"
         text: root.name
+        MouseArea { anchors.fill: parent; onClicked: root.toggleExpanded() }
     }
 
     Column {
