@@ -39,7 +39,7 @@ public:
 
 private slots:
     void isTcpServerListening();
-    void queuedExit();
+    void queuedExit(QString errorMessage);
     
 private:
     bool bindSocket();
