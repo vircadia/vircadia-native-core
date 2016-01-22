@@ -70,5 +70,6 @@ macro(install_beside_console)
   set(TARGET_INSTALL_DIR ${COMPONENT_INSTALL_DIR})
   set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
   manually_install_ssl_eay()
+  manually_install_msvc()
 
 endmacro()
