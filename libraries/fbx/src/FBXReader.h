@@ -402,7 +402,6 @@ public:
     QHash<QString, QString> specularTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
-    QHash<QString, QString> opacityTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 

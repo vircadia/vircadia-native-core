@@ -182,8 +182,6 @@ public:
     QSharedPointer<NetworkTexture> specularTexture;
     QString emissiveTextureName;
     QSharedPointer<NetworkTexture> emissiveTexture;
-    QString opacityTextureName;
-    QSharedPointer<NetworkTexture> opacityTexture;
 };
 
 
