@@ -106,7 +106,7 @@ private:
         // Dithering info 
         glm::vec4 ditheringInfo { 0.0f, 0.0f, 0.01f, 1.0f };
         // Sampling info
-        glm::vec4 sampleInfo { 11.0f, 1.0/11.0f, 7.0f, 1.0f };
+        glm::vec4 sampleInfo { 11.0f, 1.0f/11.0f, 7.0f, 1.0f };
         // Blurring info
         glm::vec4 blurInfo { 1.0f, 3.0f, 2.0f, 0.0f };
          // gaussian distribution coefficients first is the sampling radius (max is 6)

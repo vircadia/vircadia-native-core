@@ -13,7 +13,6 @@
 const ivec2 vertical = ivec2(0,1);
 <$declareBlurPass(vertical)$>
 
-in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main(void) {
