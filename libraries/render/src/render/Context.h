@@ -28,6 +28,8 @@ using SceneContextPointer = std::shared_ptr<SceneContext>;
 const int showDisplayStatusFlag = 1;
 const int showNetworkStatusFlag = 2;
 
+class JobConfig;
+
 class RenderContext {
 public:
     class ItemsConfig {
@@ -107,6 +109,7 @@ public:
     int _deferredDebugMode;
     glm::vec4 _deferredDebugSize;
 
+    std::shared_ptr<JobConfig> jobConfig{ nullptr };
 protected:
     RenderArgs* _args;
 
