@@ -177,9 +177,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
         }
     }
 
-    if (_probeNumItems) {
-        _probeNumItems(renderContext, (int)outItems.size());
-    }
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }
 
 void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {

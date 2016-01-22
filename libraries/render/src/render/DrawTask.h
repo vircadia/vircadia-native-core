@@ -27,21 +27,29 @@ void depthSortItems(const SceneContextPointer& sceneContext, const RenderContext
 void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
 
-class FetchItems {
+class FetchItemsConfig : public Job::Config {
+    Q_OBJECT
 public:
-    typedef std::function<void (const RenderContextPointer& context, int count)> ProbeNumItems;
-    FetchItems() {}
-    FetchItems(const ProbeNumItems& probe): _probeNumItems(probe) {}
-    FetchItems(const ItemFilter& filter, const ProbeNumItems& probe): _filter(filter), _probeNumItems(probe) {}
-
-    ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
-    ProbeNumItems _probeNumItems;
-
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
-    using JobModel = Job::ModelO<FetchItems, ItemIDsBounds>;
+    Q_PROPERTY(int numItems READ getNumItems)
+    int getNumItems() { return numItems; }
+    int numItems{ 0 };
 };
 
-template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
+class FetchItems {
+public:
+    using Config = FetchItemsConfig;
+    using JobModel = Job::ModelO<FetchItems, ItemIDsBounds, Config>;
+
+    FetchItems() {}
+    FetchItems(const ItemFilter& filter) : _filter(filter) {}
+
+    ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
+
+    void configure(const Config&) {}
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
+};
+
+template<RenderDetails::Type T>
 class CullItems {
 public:
     CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}

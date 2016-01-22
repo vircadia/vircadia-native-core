@@ -89,19 +89,13 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     initDeferredPipelines(*shapePlumber);
     
     // CPU: Fetch the renderOpaques
-    auto fetchedOpaques = addJob<FetchItems>("FetchOpaque", FetchItems([](const RenderContextPointer& context, int count) {
-        context->getItemsConfig().opaque.numFeed = count;
-    }));
+    auto fetchedOpaques = addJob<FetchItems>("FetchOpaque");
     auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques, cullFunctor);
     auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
 
     // CPU only, create the list of renderedTransparents items
     auto fetchedTransparents = addJob<FetchItems>("FetchTransparent", FetchItems(
-        ItemFilter::Builder::transparentShape().withoutLayered(),
-        [](const RenderContextPointer& context, int count) {
-            context->getItemsConfig().transparent.numFeed = count;
-        }
-    ));
+        ItemFilter::Builder::transparentShape().withoutLayered()));
     auto culledTransparents = addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents, cullFunctor);
     auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
 
