@@ -25,6 +25,11 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
   if (WIN32)
+    # include CMake module that will install compiler system libraries
+    # so that we have msvcr120 and msvcp120 installed with targets
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
+    include(InstallRequiredSystemLibraries)
+
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
     # install and reference the Add/Remove icon
