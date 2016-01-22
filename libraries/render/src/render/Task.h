@@ -56,10 +56,11 @@ protected:
 class JobConfig : public QObject {
     Q_OBJECT
 public:
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
+    JobConfig() : enabled{ true } {}
+    JobConfig(bool enabled) : enabled{ enabled } {}
+
+    Q_PROPERTY(bool enabled MEMBER enabled)
     bool enabled;
-signals:
-    void dirty();
 };
 
 template <class T, class C> void jobConfigure(T& model, const C& configuration) {
@@ -125,7 +126,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (isEnabled()) {
+            if (std::static_pointer_cast<Job::Config>(_config)->enabled) {
                 jobRun(_data, sceneContext, renderContext);
             }
         }
@@ -242,11 +243,11 @@ class Task;
 class TaskConfig : public Job::Config {
     Q_OBJECT
 public:
-    TaskConfig(Task& task) : _task{ task } {}
+    void init(Task* task) { _task = task; }
 public slots:
     void refresh();
 private:
-    Task& _task;
+    Task* _task;
 };
 
 // A task is a specialized job to run a collection of other jobs
@@ -260,11 +261,18 @@ public:
     public:
         using Data = T;
 
+        // TODO: Make Data a shared_ptr, and give Config a weak_ptr
         Data _data;
 
         // The _config is unused; the model delegates to its data's _config
         Model(Data data = Data()) : _data(data), Concept(std::make_shared<QObject>()) {
             _config = _data._config;
+        }
+
+        virtual QConfig& getConfiguration() {
+            // Hook up the configuration if it is to be used
+            std::static_pointer_cast<Config>(_config)->init(&_data);
+            return _config;
         }
 
         void applyConfiguration() {
@@ -280,7 +288,7 @@ public:
 
     using Jobs = std::vector<Job>;
 
-    Task() : _config{ std::make_shared<Config>(*this) } {}
+    Task() : _config{ std::make_shared<Config>() } {}
 
     // Queue a new job to the container; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
@@ -293,6 +301,7 @@ public:
     }
 
     QConfig getConfiguration() { return _config; }
+
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
             job.applyConfiguration();

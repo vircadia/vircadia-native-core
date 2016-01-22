@@ -21,5 +21,5 @@
 using namespace render;
 
 void TaskConfig::refresh() {
-    _task.configure(*this);
+    _task->configure(*this);
 }

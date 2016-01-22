@@ -16,12 +16,20 @@
 
 #include <render/DrawTask.h>
 
+class DebugDeferredBufferConfig : public render::Job::Config {
+    Q_OBJECT
+public:
+    DebugDeferredBufferConfig() : render::Job::Config(false) {}
+};
+
 class DebugDeferredBuffer {
 public:
-    using JobModel = render::Job::Model<DebugDeferredBuffer>;
+    using Config = DebugDeferredBufferConfig;
+    using JobModel = render::Job::Model<DebugDeferredBuffer, Config>;
     
     DebugDeferredBuffer();
     
+    void configure(const Config&) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 private:
