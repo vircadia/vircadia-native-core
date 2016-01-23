@@ -92,14 +92,15 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 }
 
 void Antialiasing::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
-    if (renderContext->getArgs()->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+    RenderArgs* args = renderContext->args;
+
+    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
         return;
     }
 
-    RenderArgs* args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);

@@ -21,6 +21,7 @@
 #include <gpu/StandardShaderLib.h>
 #include "RenderUtilsLogging.h"
 
+#include "DeferredLightingEffect.h"
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
@@ -139,6 +140,8 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 }
 
 void AmbientOcclusionEffect::configure(const Config& configuration) {
+    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(configuration.enabled);
+
     bool shouldUpdateGaussion = false;
 
     const double RADIUS_POWER = 6.0;
@@ -318,10 +321,10 @@ void AmbientOcclusionEffect::updateGaussianDistribution() {
 }
 
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = framebufferCache->getPrimaryDepthTexture();

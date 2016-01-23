@@ -21,6 +21,7 @@ class AmbientOcclusionEffectConfig : public render::Job::Config {
 public:
     AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
 
+    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(float radius MEMBER radius WRITE setRadius NOTIFY dirty)
     Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel NOTIFY dirty)
     Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias NOTIFY dirty)

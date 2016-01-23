@@ -55,12 +55,15 @@ public:
 
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapStatus(bool enable) { _shadowMapStatus = enable; };
+    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
 
 private:
+    DeferredLightingEffect() = default;
+
     LightStage _lightStage;
     bool _shadowMapStatus{ false };
 
-    DeferredLightingEffect() = default;
+    bool _ambientOcclusionEnabled{ false };
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();

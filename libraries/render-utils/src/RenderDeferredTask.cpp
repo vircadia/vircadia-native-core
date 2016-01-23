@@ -60,7 +60,7 @@ using namespace render;
 void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->getArgs());
+    DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -78,7 +78,7 @@ void ToneMappingDeferred::configure(const Config& configuration) {
 }
 
 void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    _toneMappingEffect.render(renderContext->getArgs());
+    _toneMappingEffect.render(renderContext->args);
 }
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
@@ -167,17 +167,14 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
 
     // Is it possible that we render without a viewFrustum ?
-    if (!(renderContext->getArgs() && renderContext->getArgs()->_viewFrustum)) {
+    if (!(renderContext->args && renderContext->args->_viewFrustum)) {
         return;
     }
-
-    setAntialiasingStatus(renderContext->getFxaaStatus());
-    // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
     // TODO: For now, lighting is controlled through a singleton, so it is distinct
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
 
-    renderContext->getArgs()->_context->syncCache();
+    renderContext->args->_context->syncCache();
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
@@ -185,12 +182,12 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 };
 
 void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     auto& config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -230,8 +227,8 @@ const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
 }
 
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
@@ -251,7 +248,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     config->numDrawn = (int)inItems.size();
 
     if (!inItems.empty()) {
-        RenderArgs* args = renderContext->getArgs();
+        RenderArgs* args = renderContext->args;
 
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
@@ -309,11 +306,11 @@ const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
 }
 
 void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     // from the touched pixel generate the stencil buffer 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -335,8 +332,8 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 }
 
 void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
@@ -348,7 +345,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     for (auto id : items) {
         inItems.emplace_back(id);
     }
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -375,10 +372,10 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
 }
 
 void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_context);
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
 
-    RenderArgs* renderArgs = renderContext->getArgs();
+    RenderArgs* renderArgs = renderContext->args;
     auto blitFbo = renderArgs->_blitFramebuffer;
 
     if (!blitFbo) {

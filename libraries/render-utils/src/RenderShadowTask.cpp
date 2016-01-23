@@ -29,15 +29,15 @@ using namespace render;
 
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
                           const render::ShapesIDsBounds& inShapes) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
     const auto& shadow = globalLight->shadow;
     const auto& fbo = shadow.framebuffer;
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -121,7 +121,7 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
 
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
 
     // This feature is in a debugging stage - it must be turned on explicitly
     if (!renderContext->getShadowMapStatus()) {

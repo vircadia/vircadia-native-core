@@ -3768,22 +3768,12 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         PerformanceTimer perfTimer("EngineRun");
 
         renderArgs->_viewFrustum = getDisplayViewFrustum();
-        auto renderContext = _renderEngine->getRenderContext();
-        renderContext->setArgs(renderArgs);
-
-        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
-        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
-        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
+        _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
         myAvatar->startRenderRun();
         _renderEngine->run();
         myAvatar->endRenderRun();
-
-        auto engineContext = _renderEngine->getRenderContext();
-        //zzmp renderInterface->setJobGPUTimes(engineContext->getAmbientOcclusion().gpuTime);
-
     }
 
     activeRenderingThread = nullptr;

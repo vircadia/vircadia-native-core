@@ -60,7 +60,8 @@ public:
     JobConfig() : alwaysEnabled{ true }, enabled{ true } {}
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
-    Q_PROPERTY(bool enabled MEMBER enabled)
+    Q_PROPERTY(bool enabled MEMBER enabled READ isEnabled)
+    bool isEnabled() { return alwaysEnabled || enabled; }
     bool alwaysEnabled{ true };
     bool enabled;
 };

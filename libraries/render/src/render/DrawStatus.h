@@ -16,7 +16,38 @@
 #include "gpu/Batch.h"
 
 namespace render {
+    class DrawStatusConfig : public Job::Config {
+        Q_OBJECT
+    public:
+        Q_PROPERTY(bool showDisplay MEMBER showDisplay NOTIFY dirty)
+        Q_PROPERTY(bool showNetwork MEMBER showDisplay NOTIFY dirty)
+        bool showDisplay{ false };
+        bool showNetwork{ false };
+    signals:
+        void dirty();
+    };
+
     class DrawStatus {
+    public:
+        using Config = DrawStatusConfig;
+        using JobModel = Job::ModelI<DrawStatus, ItemIDsBounds, Config>;
+
+        DrawStatus() {}
+        DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
+
+        void configure(const Config& configuration);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
+
+        const gpu::PipelinePointer getDrawItemBoundsPipeline();
+        const gpu::PipelinePointer getDrawItemStatusPipeline();
+
+        void setStatusIconMap(const gpu::TexturePointer& map);
+        const gpu::TexturePointer getStatusIconMap() const;
+
+    protected:
+        bool _showDisplay{ false };
+        bool _showNetwork{ false };
+
         int _drawItemBoundPosLoc = -1;
         int _drawItemBoundDimLoc = -1;
         int _drawItemStatusPosLoc = -1;
@@ -30,21 +61,6 @@ namespace render {
         gpu::BufferPointer _itemBounds;
         gpu::BufferPointer _itemStatus;
         gpu::TexturePointer _statusIconMap;
-
-    public:
-
-        DrawStatus() {}
-        DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
-
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
-
-        using JobModel = Job::ModelI<DrawStatus, ItemIDsBounds>;
-
-        const gpu::PipelinePointer getDrawItemBoundsPipeline();
-        const gpu::PipelinePointer getDrawItemStatusPipeline();
-
-        void setStatusIconMap(const gpu::TexturePointer& map);
-        const gpu::TexturePointer getStatusIconMap() const;
     };
 }
 

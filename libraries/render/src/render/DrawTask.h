@@ -55,7 +55,7 @@ public:
     CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-        const auto& args = renderContext->getArgs();
+        const auto& args = renderContext->args;
         auto& details = args->_details.edit(T);
         outItems.clear();
         outItems.reserve(inItems.size());

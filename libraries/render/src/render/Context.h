@@ -24,33 +24,13 @@ public:
 };
 using SceneContextPointer = std::shared_ptr<SceneContext>;
 
-// see examples/utilities/tools/renderEngineDebug.js
-const int showDisplayStatusFlag = 1;
-const int showNetworkStatusFlag = 2;
-
 class JobConfig;
 
 class RenderContext {
 public:
-    RenderContext(int drawStatus);
-    RenderContext() {};
-
-    void setArgs(RenderArgs* args) { _args = args; }
-    RenderArgs* getArgs() { return _args; }
-    int getDrawStatus() { return _drawStatus; }
-    bool getOcclusionStatus() { return _occlusionStatus; }
-    bool getFxaaStatus() { return _fxaaStatus; }
-    bool getShadowMapStatus() { return _shadowMapStatus; }
-    void setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap);
-
+    RenderArgs* args;
     std::shared_ptr<JobConfig> jobConfig{ nullptr };
-protected:
-    RenderArgs* _args;
-
-    // Options
-    int _drawStatus; // bitflag
-    bool _occlusionStatus { false };
-    bool _fxaaStatus { false };
+    // TODO: gut this
     bool _shadowMapStatus { false };
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
