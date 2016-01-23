@@ -285,14 +285,12 @@ private:
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
-    bool _entityFound;
-
     float _glowLevel;
     float _localRenderAlpha;
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _defaultSettings;
-    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
+    bool _dimensionsInitialized = true; // Only false if creating an entity locally with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
@@ -302,6 +300,8 @@ private:
     glm::vec3 _naturalPosition;
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
+
+    bool _entityFound;
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
