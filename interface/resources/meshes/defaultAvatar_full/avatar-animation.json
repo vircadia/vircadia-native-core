@@ -246,7 +246,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -261,7 +262,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -275,7 +277,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -289,7 +292,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -303,7 +307,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -317,7 +322,8 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -331,7 +337,8 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -345,7 +352,8 @@
                                                                 { "var": "isMovingRight", "state": "strafeRight" },
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
-                                                                { "var": "isAway", "state": "awayIntro" }
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" }
                                                             ]
                                                         },
                                                         {
@@ -370,6 +378,14 @@
                                                             "interpDuration": 3,
                                                             "transitions": [
                                                                 { "var": "awayOutroOnDone", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "fly",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isNotFlying", "state": "idle" }
                                                             ]
                                                         }
                                                     ]
@@ -655,6 +671,18 @@
                                                             "endFrame": 167.0,
                                                             "timeScale": 1.0,
                                                             "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "fly",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims/fly.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 80.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": true
                                                         },
                                                         "children": []
                                                     }

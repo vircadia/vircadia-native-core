@@ -141,7 +141,7 @@ public:
     glm::mat4 getJointTransform(int jointIndex) const;
 
     // Start or stop animations as needed.
-    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
+    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, bool isHovering);
 
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, glm::mat4 rootTransform);
@@ -268,7 +268,8 @@ public:
     enum class RigRole {
         Idle = 0,
         Turn,
-        Move
+        Move,
+        Hover
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
