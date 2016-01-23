@@ -13,9 +13,8 @@
 
 using namespace render;
 
-RenderContext::RenderContext(AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode)
-    : _deferredDebugMode{ deferredDebugMode }, _deferredDebugSize{ deferredDebugSize },
-    _args{ nullptr },
+RenderContext::RenderContext(AmbientOcclusion ao, int drawStatus, bool drawHitEffect)
+    : _args{ nullptr },
     _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
     _ambientOcclusion{ ao } {}
 

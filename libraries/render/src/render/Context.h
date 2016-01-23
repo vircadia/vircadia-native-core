@@ -48,7 +48,7 @@ public:
         double gpuTime { 0.0 };
     };
 
-    RenderContext(AmbientOcclusion ao, int drawStatus, bool drawHitEffect, glm::vec4 deferredDebugSize, int deferredDebugMode);
+    RenderContext(AmbientOcclusion ao, int drawStatus, bool drawHitEffect);
     RenderContext() {};
 
     void setArgs(RenderArgs* args) { _args = args; }
@@ -60,10 +60,6 @@ public:
     bool getFxaaStatus() { return _fxaaStatus; }
     bool getShadowMapStatus() { return _shadowMapStatus; }
     void setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap);
-
-    // Debugging
-    int _deferredDebugMode;
-    glm::vec4 _deferredDebugSize;
 
     std::shared_ptr<JobConfig> jobConfig{ nullptr };
 protected:

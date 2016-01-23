@@ -27,6 +27,14 @@
 
 using namespace render;
 
+void DebugDeferredBufferConfig::setMode(int newMode) {
+    if (newMode > (int)DebugDeferredBuffer::Custom || newMode < 0) {
+        mode = (int)DebugDeferredBuffer::Custom;
+    } else {
+        mode = newMode;
+    }
+}
+
 enum Slots {
     Diffuse = 0,
     Normal,
@@ -129,37 +137,37 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
     _customPipelines.emplace(CUSTOM_FILE, pipeline);
 }
 
-std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string customFile) {
+std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
     switch (mode) {
-        case DiffuseMode:
+        case Diffuse:
             return DEFAULT_DIFFUSE_SHADER;
-        case SpecularMode:
+        case Specular:
             return DEFAULT_SPECULAR_SHADER;
-        case RoughnessMode:
+        case Roughness:
             return DEFAULT_ROUGHNESS_SHADER;
-        case NormalMode:
+        case Normal:
             return DEFAULT_NORMAL_SHADER;
-        case DepthMode:
+        case Depth:
             return DEFAULT_DEPTH_SHADER;
-        case LightingMode:
+        case Lighting:
             return DEFAULT_LIGHTING_SHADER;
-        case ShadowMode:
+        case Shadow:
             return DEFAULT_SHADOW_SHADER;
-        case PyramidDepthMode:
+        case PyramidDepth:
             return DEFAULT_PYRAMID_DEPTH_SHADER;
-        case AmbientOcclusionMode:
+        case AmbientOcclusion:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
-        case AmbientOcclusionBlurredMode:
+        case AmbientOcclusionBlurred:
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
-        case CustomMode:
+        case Custom:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
     }
     Q_UNREACHABLE();
     return std::string();
 }
 
-bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile) const {
-    if (mode != CustomMode) {
+bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile) const {
+    if (mode != Custom) {
         return !_pipelines[mode];
     }
     
@@ -175,7 +183,7 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile
     return true;
 }
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::string customFile) {
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
         static const std::string VERTEX_SHADER { debug_deferred_buffer_vert };
         static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag };
@@ -207,14 +215,14 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
         
         // Good to go add the brand new pipeline
-        if (mode != CustomMode) {
+        if (mode != Custom) {
             _pipelines[mode] = pipeline;
         } else {
             _customPipelines[customFile].pipeline = pipeline;
         }
     }
     
-    if (mode != CustomMode) {
+    if (mode != Custom) {
         return _pipelines[mode];
     } else {
         return _customPipelines[customFile].pipeline;
@@ -226,13 +234,6 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
     RenderArgs* args = renderContext->getArgs();
-
-    // Guard against unspecified modes
-    auto mode = renderContext->_deferredDebugMode;
-    if (mode > (int)CustomMode) {
-        renderContext->_deferredDebugMode = -1;
-        return;
-    }
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
@@ -250,7 +251,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
         
-        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode), first));
+        batch.setPipeline(getPipeline(_mode, first));
         
         batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
@@ -263,8 +264,8 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
 
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);
-        const glm::vec2 topRight(renderContext->_deferredDebugSize.z, renderContext->_deferredDebugSize.w);
+        const glm::vec2 bottomLeft(_size.x, _size.y);
+        const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
     });
 }
