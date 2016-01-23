@@ -32,13 +32,12 @@ class JobConfig;
 
 class RenderContext {
 public:
-    RenderContext(int drawStatus, bool drawHitEffect);
+    RenderContext(int drawStatus);
     RenderContext() {};
 
     void setArgs(RenderArgs* args) { _args = args; }
     RenderArgs* getArgs() { return _args; }
     int getDrawStatus() { return _drawStatus; }
-    bool getDrawHitEffect() { return _drawHitEffect; }
     bool getOcclusionStatus() { return _occlusionStatus; }
     bool getFxaaStatus() { return _fxaaStatus; }
     bool getShadowMapStatus() { return _shadowMapStatus; }
@@ -50,7 +49,6 @@ protected:
 
     // Options
     int _drawStatus; // bitflag
-    bool _drawHitEffect;
     bool _occlusionStatus { false };
     bool _fxaaStatus { false };
     bool _shadowMapStatus { false };

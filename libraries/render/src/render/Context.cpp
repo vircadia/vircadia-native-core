@@ -13,9 +13,9 @@
 
 using namespace render;
 
-RenderContext::RenderContext(int drawStatus, bool drawHitEffect)
+RenderContext::RenderContext(int drawStatus)
     : _args{ nullptr },
-    _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect } {
+    _drawStatus{ drawStatus } {
 }
 
 void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap) {

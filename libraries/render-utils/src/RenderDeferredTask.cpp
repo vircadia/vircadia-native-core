@@ -171,9 +171,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    setDrawHitEffect(renderContext->getDrawHitEffect());
-    // TODO: turn on/off AO through menu item
-
     setAntialiasingStatus(renderContext->getFxaaStatus());
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
