@@ -9,8 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Task.h"
-
+#include <QtCore/QThread>
 #include <qscriptengine.h> // QObject
 
 #include "Context.h"
@@ -18,9 +17,15 @@
 #include "gpu/Batch.h"
 #include <PerfStat.h>
 
+#include "Task.h"
+
 using namespace render;
 
 void TaskConfig::refresh() {
-    // FIXME: Only configure when on own thread (see RecordingInterface for example)
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "refresh", Qt::BlockingQueuedConnection);
+        return;
+    }
+
     _task->configure(*this);
 }
