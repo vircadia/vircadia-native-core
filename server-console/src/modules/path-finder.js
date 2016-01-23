@@ -23,15 +23,21 @@ exports.searchPaths = function(name, binaryType, releaseType) {
 
     if (!releaseType) {
         // check in the developer build tree for binaries
+        var typeSpecificPath = (binaryType == "local-release" ? "Release/" : "Debug/")
         paths = [
             devBasePath + name + extension,
-            devBasePath + (binaryType == "local-release" ? "Release/" : "Debug/") + name + extension
+            devBasePath + typeSpecificPath + name + extension
         ]
     } else {
         // check directly beside the binary
         paths = [
             path.join(path.dirname(process.execPath), name + extension)
         ];
+
+        if (process.platform == "win32") {
+            // check a level back in case we're packaged on windows
+            paths.push(path.resolve(path.dirname(process.execPath), '../' +  name + extension))
+        }
 
         // assume we're inside an app bundle on OS X
         if (process.platform == "darwin") {
