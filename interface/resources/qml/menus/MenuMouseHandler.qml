@@ -5,7 +5,7 @@ import "."
 
 Item {
     id: root
-    property int zBasis: 8192 - 1024
+    property int zBasis: 9000
     anchors.fill: parent
 
     MouseArea {
@@ -93,7 +93,8 @@ Item {
 
         function buildMenu(items, targetPosition) {
             var model = toModel(items);
-            var newMenu = menuViewMaker.createObject(menuRoot, { model: model, z: topMenu ? topMenu.z + 1 : zBasis });
+            // Menu's must be childed to desktop for Z-ordering
+            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : zBasis });
             if (targetPosition) {
                 newMenu.x = targetPosition.x
                 newMenu.y = targetPosition.y - newMenu.height / 3 * 1
