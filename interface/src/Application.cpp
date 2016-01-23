@@ -678,6 +678,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
     _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
     _renderEngine->registerScene(_main3DScene);
+    // TODO: Load a cached config file
 
     _offscreenContext->makeCurrent();
 

@@ -21,5 +21,6 @@
 using namespace render;
 
 void TaskConfig::refresh() {
+    // FIXME: Only configure when on own thread (see RecordingInterface for example)
     _task->configure(*this);
 }
