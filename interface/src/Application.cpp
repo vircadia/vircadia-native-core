@@ -1841,9 +1841,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isShifted && isMeta) {
-                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-                    offscreenUi->getRootContext()->engine()->clearComponentCache();
-                    offscreenUi->show(QString("hifi/dialogs/PreferencesDialog.qml"), "PreferencesDialog");
+                    // placeholder for dialogs being converted to QML.
                 }
                 break;
 

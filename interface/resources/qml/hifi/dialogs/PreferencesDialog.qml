@@ -9,7 +9,7 @@ import "./preferences"
 
 Window {
     id: root
-    objectName: "Preferences"
+    objectName: "PreferencesDialog"
     title: "Preferences"
     resizable: true
     destroyOnInvisible: true

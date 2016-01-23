@@ -123,13 +123,16 @@ void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(
 
 void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
-    // First load?
-    if (!item) {
-        load(url, f);
-        item = getRootItem()->findChild<QQuickItem*>(name);
-    }
+    // Already loaded?  
     if (item) {
         item->setVisible(!item->isVisible());
+        return;
+    }
+
+    load(url, f);
+    item = getRootItem()->findChild<QQuickItem*>(name);
+    if (!item->isVisible()) {
+        item->setVisible(true);
     }
 }
 
