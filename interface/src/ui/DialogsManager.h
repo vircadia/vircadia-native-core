@@ -48,7 +48,6 @@ public slots:
     void showLoginDialog();
     void octreeStatsDetails();
     void cachesSizeDialog();
-    void editPreferences();
     void editAttachments();
     void audioStatsDetails();
     void bandwidthDetails();

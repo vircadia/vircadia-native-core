@@ -3,19 +3,19 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../../controls" as HifiControls
-import "../../windows"
-import "./preferences"
+import "../controls" as HifiControls
+import "../windows"
+import "preferences"
 
 Window {
     id: root
-    objectName: "PreferencesDialog"
     title: "Preferences"
     resizable: true
     destroyOnInvisible: true
     width: 500
     height: 577
     property var sections: []
+    property var showCategories: []
 
     function saveAll() {
         for (var i = 0; i < sections.length; ++i) {
@@ -38,12 +38,6 @@ Window {
         clip: true
         color: "white"
 
-        Settings {
-            category: "Overlay.Preferences"
-            property alias x: root.x
-            property alias y: root.y
-        }
-
         Component {
             id: sectionBuilder
             Section { }
@@ -51,8 +45,21 @@ Window {
 
         Component.onCompleted: {
             var categories = Preferences.categories;
-            for (var i = 0; i < categories.length; ++i) {
+            var categoryMap;
+            var i;
+            if (showCategories && showCategories.length) {
+                categoryMap = {};
+                for (i = 0; i < showCategories.length; ++i) {
+                    categoryMap[showCategories[i]] = true;
+                }
+            }
+
+            for (i = 0; i < categories.length; ++i) {
                 var category = categories[i];
+                if (categoryMap && !categoryMap[category]) {
+                    continue;
+                }
+
                 sections.push(sectionBuilder.createObject(prefControls, { name: category }));
             }
         }

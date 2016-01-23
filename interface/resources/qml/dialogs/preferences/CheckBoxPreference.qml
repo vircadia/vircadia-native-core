@@ -1,6 +1,5 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4 as Original
-import "."
+import QtQuick.Controls 1.4
 
 Preference {
     id: root
@@ -16,7 +15,7 @@ Preference {
         preference.save();
     }
 
-    Original.CheckBox {
+    CheckBox {
         id: checkBox
         anchors.fill: parent
         text: root.label
