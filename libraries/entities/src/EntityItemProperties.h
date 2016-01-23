@@ -272,6 +272,8 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+    void setEntityFound() { _entityFound = true; }
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
@@ -282,6 +284,8 @@ private:
     quint64 _lastEdited;
     EntityTypes::EntityType _type;
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
+
+    bool _entityFound;
 
     float _glowLevel;
     float _localRenderAlpha;

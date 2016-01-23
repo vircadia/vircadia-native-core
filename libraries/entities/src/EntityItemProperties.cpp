@@ -47,7 +47,9 @@ _localRenderAlphaChanged(false),
 _defaultSettings(true),
 _naturalDimensions(1.0f, 1.0f, 1.0f),
 _naturalPosition(0.0f, 0.0f, 0.0f),
-_desiredProperties(desiredProperties)
+_desiredProperties(desiredProperties),
+
+_entityFound(false)
 {
 }
 
@@ -320,6 +322,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
+
+    if (!_entityFound) {
+        // Return without setting any default property values so that properties are reported in JavaScript as undefined.
+        return properties;
+    }
 
     if (_idSet) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(id, _id.toString());
