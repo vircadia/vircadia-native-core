@@ -191,6 +191,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
+    // TODO: For now, lighting is controlled through a singleton, so it is distinct
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
+
     renderContext->getArgs()->_context->syncCache();
 
     for (auto job : _jobs) {
