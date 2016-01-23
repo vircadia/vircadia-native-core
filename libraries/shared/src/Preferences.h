@@ -35,6 +35,8 @@ private:
     QList<QString> _categories;
 };
 
+class BoolPreference;
+
 class Preference : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString category READ getCategory CONSTANT)
@@ -73,6 +75,8 @@ public:
         }
     }
 
+    void setEnabler(BoolPreference* enabler, bool inverse = false);
+
     virtual Type getType() { return Invalid; };
 
     Q_INVOKABLE virtual void load() {};
@@ -81,21 +85,30 @@ public:
 signals:
     void enabledChanged();
 
+private slots:
+    void onEnablerValueChanged();
+
 protected:
     virtual void emitValueChanged() {};
 
+    BoolPreference* _enabler { nullptr };
     const QString _category;
     const QString _name;
     bool _enabled { true };
+    bool _enablerInverted { false };
 };
 
 class ButtonPreference : public Preference {
     Q_OBJECT
 public:
-    ButtonPreference(const QString& category, const QString& name)
-        : Preference(category, name) { }
+    using Lambda = std::function<void()>;
+    ButtonPreference(const QString& category, const QString& name, Lambda triggerHandler)
+        : Preference(category, name), _triggerHandler(triggerHandler) { }
     Type getType() { return Button; }
+    Q_INVOKABLE void trigger() { _triggerHandler(); }
 
+protected:
+    const Lambda _triggerHandler;
 };
 
 
@@ -108,7 +121,7 @@ public:
     TypedPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : Preference(category, name), _getter(getter), _setter(setter) { }
 
-    T getValue() const { return _getter(); }
+    T getValue() const { return _value; }
     void setValue(const T& value) { if (_value != value) { _value = value; emitValueChanged(); } }
     void load() override { _value = _getter(); }
     void save() const override { 

@@ -1,7 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 
-import "."
 import "../../../dialogs"
 
 Preference {
@@ -10,10 +9,27 @@ Preference {
     property alias text: dataTextField.text
     property alias placeholderText: dataTextField.placeholderText
     property real spacing: 8
+    property var browser;
     height: labelText.height + Math.max(dataTextField.height, button.height) + spacing
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
+        console.log("MyAvatar modelName " + MyAvatar.getFullAvatarModelName())
+        console.log("Application : " + ApplicationInterface)
+        ApplicationInterface.fullAvatarURLChanged.connect(processNewAvatar);
+    }
+
+    Component.onDestruction: {
+        ApplicationInterface.fullAvatarURLChanged.disconnect(processNewAvatar);
+    }
+
+    function processNewAvatar(url, modelName) {
+        if (browser) {
+            browser.destroy();
+            browser = null
+        }
+
+        dataTextField.text = url;
     }
 
     function save() {
@@ -21,8 +37,14 @@ Preference {
         preference.save();
     }
 
+    // Restores the original avatar URL
+    function restore() {
+        preference.save();
+    }
+
     Text {
         id: labelText
+        color: enabled ? "black" : "gray"
         text:  root.label
     }
 
@@ -40,8 +62,8 @@ Preference {
     }
 
     Component {
-        id: fileBrowserBuilder;
-        FileDialog { selectDirectory: true }
+        id: avatarBrowserBuilder;
+        AvatarBrowser { }
     }
 
     Button {
@@ -49,12 +71,10 @@ Preference {
         anchors { right: parent.right; verticalCenter: dataTextField.verticalCenter }
         text: "Browse"
         onClicked: {
-            var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
-            browser.selectedFile.connect(function(fileUrl){
-                console.log(fileUrl);
-                dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
-            });
+            root.browser = avatarBrowserBuilder.createObject(desktop);
+            root.browser.windowDestroyed.connect(function(){
+                root.browser = null;
+            })
         }
-
     }
 }

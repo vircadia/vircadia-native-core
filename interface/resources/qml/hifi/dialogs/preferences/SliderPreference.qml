@@ -20,6 +20,7 @@ Preference {
 
     Text {
         text: root.label
+        color: enabled ? "black" : "gray"
         anchors.verticalCenter: slider.verticalCenter
     }
 

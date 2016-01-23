@@ -19,6 +19,7 @@ Preference {
 
     Text {
         text: root.label
+        color: root.enabled ? "black" : "gray"
         anchors.verticalCenter: spinner.verticalCenter
     }
 

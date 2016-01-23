@@ -8,6 +8,7 @@ Preference {
 
     Component.onCompleted: {
         checkBox.checked = preference.value;
+        preference.value = Qt.binding(function(){ return checkBox.checked; });
     }
 
     function save() {

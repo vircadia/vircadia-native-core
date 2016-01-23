@@ -17,6 +17,7 @@ Preference {
 
     Text {
         id: labelText
+        color: enabled ? "black" : "gray"
         text: root.label
     }
 

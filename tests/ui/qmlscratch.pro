@@ -96,12 +96,19 @@ DISTFILES += \
     ../../interface/resources/qml/hifi/dialogs/preferences/Editable.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/Slider.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/Preference.qml \
-    ../../interface/resources/qml/hifi/dialogs/preferences/SpinBox.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml \
     ../../interface/resources/qml/dialogs/fileDialog/FileTableView.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/Avatar.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/AvatarBrowser.qml \
-    ../../interface/resources/qml/dialogs/QueryDialog.qml
+    ../../interface/resources/qml/dialogs/QueryDialog.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Button.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/BrowsablePreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/ButtonPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBoxPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/EditablePreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/SliderPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/SpinBoxPreference.qml
 
 HEADERS += \
     ../../libraries/ui/src/FileDialogHelper.h

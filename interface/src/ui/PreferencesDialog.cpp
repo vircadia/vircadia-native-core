@@ -77,8 +77,9 @@ void setupPreferences() {
         preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory:", getter, setter));
     }
 
-    preferences->addPreference(new ButtonPreference("Scripts", "Load Default Scripts"));
-
+    preferences->addPreference(new ButtonPreference("Scripts", "Load Default Scripts", [] {
+        DependencyManager::get<ScriptEngines>()->loadDefaultScripts();
+    }));
 
     {
         auto getter = []()->bool {return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
@@ -87,10 +88,11 @@ void setupPreferences() {
     }
     
     static const QString LOD_TUNING("Level of Detail Tuning");
+    CheckPreference* acuityToggle;
     {
         auto getter = []()->bool { return DependencyManager::get<LODManager>()->getUseAcuity(); };
         auto setter = [](bool value) { DependencyManager::get<LODManager>()->setUseAcuity(value); };
-        preferences->addPreference(new CheckPreference(LOD_TUNING, "Render based on visual acuity", getter, setter));
+        preferences->addPreference(acuityToggle = new CheckPreference(LOD_TUNING, "Render based on visual acuity", getter, setter));
     }
 
     {
@@ -100,6 +102,7 @@ void setupPreferences() {
         preference->setMin(0);
         preference->setMax(120);
         preference->setStep(1);
+        preference->setEnabler(acuityToggle);
         preferences->addPreference(preference);
     }
 
@@ -110,6 +113,7 @@ void setupPreferences() {
         preference->setMin(0);
         preference->setMax(120);
         preference->setStep(1);
+        preference->setEnabler(acuityToggle);
         preferences->addPreference(preference);
     }
 
@@ -120,6 +124,7 @@ void setupPreferences() {
         preference->setMin(5);
         preference->setMax(32768);
         preference->setStep(1);
+        preference->setEnabler(acuityToggle, true);
         preferences->addPreference(preference);
     }
 

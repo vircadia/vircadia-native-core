@@ -28,3 +28,24 @@ void Preferences::addPreference(Preference* preference) {
     _preferencesByCategory[category] = categoryPreferences;
 }
 
+void Preference::setEnabler(BoolPreference* enabler, bool inverse) {
+    if (_enabler) {
+        disconnect(_enabler);
+        _enabler = nullptr;
+    }
+
+    _enabler = enabler;
+    _enablerInverted = inverse;
+    if (_enabler) {
+        connect(_enabler, &BoolPreference::valueChanged, this, &Preference::onEnablerValueChanged);
+        onEnablerValueChanged();
+    }
+}
+
+void Preference::onEnablerValueChanged() {
+    bool value = _enabler->getValue();
+    if (_enablerInverted) {
+        value = !value;
+    }
+    setEnabled(value);
+}

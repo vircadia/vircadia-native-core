@@ -70,12 +70,13 @@ Preference {
 
     QtObject {
         id: d
-        property var editableBuilder: Component { Editable { } }
-        property var browsableBuilder: Component { Browsable { } }
-        property var spinnerBuilder: Component { SpinBox { } }
-        property var checkboxBuilder: Component { CheckBox { } }
-        property var sliderBuilder: Component { Slider { } }
-        property var avatarBuilder: Component { Avatar { } }
+        property var editableBuilder: Component { EditablePreference { } }
+        property var browsableBuilder: Component { BrowsablePreference { } }
+        property var spinnerBuilder: Component { SpinBoxPreference { } }
+        property var checkboxBuilder: Component { CheckBoxPreference { } }
+        property var sliderBuilder: Component { SliderPreference { } }
+        property var avatarBuilder: Component { AvatarPreference { } }
+        property var buttonBuilder: Component { ButtonPreference { } }
         property var preferences: []
 
         function buildPreferences() {
@@ -115,6 +116,10 @@ Preference {
                 case Preference.Avatar:
                     builder = avatarBuilder;
                     break;
+
+                case Preference.Button:
+                    builder = buttonBuilder;
+                    break
             };
 
             if (builder) {
