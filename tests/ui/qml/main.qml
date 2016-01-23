@@ -72,10 +72,30 @@ ApplicationWindow {
             Button {
                 text: "Show Error"
                 onClicked: {
-                    desktop.messageBox({
-                                           text: "Diagnostic cycle will be complete in 30 seconds",
-                                           icon: OriginalDialogs.StandardIcon.Critical,
-                                       });
+                    var messageBox = desktop.messageBox({
+                                                            text: "Diagnostic cycle will be complete in 30 seconds",
+                                                            icon: OriginalDialogs.StandardIcon.Critical,
+                                                        });
+                    messageBox.selected.connect(function(button) {
+                        console.log("You clicked " + button)
+                    })
+                }
+            }
+            Button {
+                text: "Show Query"
+                onClicked: {
+                    var queryBox = desktop.queryBox({
+                                                          text: "Have you stopped beating your wife?",
+                                                          placeholderText: "Are you sure?",
+                                                         // icon: OriginalDialogs.StandardIcon.Critical,
+                                                      });
+                    queryBox.selected.connect(function(result) {
+                        console.log("User responded with " + result);
+                    });
+
+                    queryBox.canceled.connect(function() {
+                        console.log("User cancelled query box ");
+                    })
                 }
             }
             Button {
@@ -118,7 +138,7 @@ ApplicationWindow {
                 }
             }
         }
-/*
+
         Window {
             id: blue
             closable: true
@@ -143,7 +163,7 @@ ApplicationWindow {
                 Component.onDestruction: console.log("Blue destroyed")
             }
         }
-
+        /*
         Window {
             id: green
             alwaysOnTop: true

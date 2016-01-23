@@ -4554,22 +4554,8 @@ void Application::loadDialog() {
 }
 
 void Application::loadScriptURLDialog() {
-    // To be migratd to QML
-    QInputDialog scriptURLDialog(getWindow());
-    scriptURLDialog.setWindowTitle("Open and Run Script URL");
-    scriptURLDialog.setLabelText("Script:");
-    scriptURLDialog.setWindowFlags(Qt::Sheet);
-    const float DIALOG_RATIO_OF_WINDOW = 0.30f;
-    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-                        scriptURLDialog.size().height());
-
-    int dialogReturn = scriptURLDialog.exec();
-    QString newScript;
-    if (dialogReturn == QDialog::Accepted) {
-        if (scriptURLDialog.textValue().size() > 0) {
-            // the user input a new hostname, use that
-            newScript = scriptURLDialog.textValue();
-        }
+    auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
+    if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
 }

@@ -100,7 +100,8 @@ DISTFILES += \
     ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml \
     ../../interface/resources/qml/dialogs/fileDialog/FileTableView.qml \
     ../../interface/resources/qml/hifi/dialogs/preferences/Avatar.qml \
-    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarBrowser.qml
+    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarBrowser.qml \
+    ../../interface/resources/qml/dialogs/QueryDialog.qml
 
 HEADERS += \
     ../../libraries/ui/src/FileDialogHelper.h

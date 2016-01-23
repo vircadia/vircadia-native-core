@@ -10,9 +10,10 @@
 //
 #include "OffscreenUi.h"
 
-#include <QtQml/QtQml>
-#include <QtQuick/QQuickWindow>
+#include <QtCore/QVariant>
 #include <QtGui/QGuiApplication>
+#include <QtQuick/QQuickWindow>
+#include <QtQml/QtQml>
 
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
@@ -132,47 +133,64 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     }
 }
 
-class MessageBoxListener : public QObject {
+class ModalDialogListener : public QObject {
     Q_OBJECT
-
     friend class OffscreenUi;
 
-    MessageBoxListener(QQuickItem* messageBox) : _messageBox(messageBox) {
-        if (!_messageBox) {
+protected:
+    ModalDialogListener(QQuickItem* dialog) : _dialog(dialog) {
+        if (!dialog) {
             _finished = true;
             return;
-        } 
-        connect(_messageBox, SIGNAL(selected(int)), this, SLOT(onSelected(int)));
-        connect(_messageBox, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
+        }
+        connect(_dialog, SIGNAL(destroyed()), this, SLOT(onDestroyed()));
     }
 
-    ~MessageBoxListener() {
-        disconnect(_messageBox);
+    ~ModalDialogListener() {
+        disconnect(_dialog);
     }
 
-    QMessageBox::StandardButton waitForResult() {
+    virtual QVariant waitForResult() {
         while (!_finished) {
             QCoreApplication::processEvents();
         }
         return _result;
     }
 
-private slots:
-    void onSelected(int button) {
-        _result = static_cast<QMessageBox::StandardButton>(button);
-        _finished = true;
-        disconnect(_messageBox);
-    }
-
+protected slots:
     void onDestroyed() {
         _finished = true;
-        disconnect(_messageBox);
+        disconnect(_dialog);
     }
 
-private:
+protected:
+    QQuickItem* const _dialog;
     bool _finished { false };
-    QMessageBox::StandardButton _result { QMessageBox::StandardButton::NoButton };
-    QQuickItem* const _messageBox;
+    QVariant _result;
+};
+
+class MessageBoxListener : public ModalDialogListener {
+    Q_OBJECT
+
+    friend class OffscreenUi;
+    MessageBoxListener(QQuickItem* messageBox) : ModalDialogListener(messageBox) {
+        if (_finished) {
+            return;
+        }
+        connect(_dialog, SIGNAL(selected(int)), this, SLOT(onSelected(int)));
+    }
+
+    virtual QMessageBox::StandardButton waitForButtonResult() {
+        ModalDialogListener::waitForResult();
+        return static_cast<QMessageBox::StandardButton>(_result.toInt());
+    }
+
+private slots:
+    void onSelected(int button) {
+        _result = button;
+        _finished = true;
+        disconnect(_dialog);
+    }
 };
 
 QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
@@ -204,7 +222,7 @@ QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, cons
         return QMessageBox::StandardButton::NoButton;
     }
     
-    auto resultButton = MessageBoxListener(qvariant_cast<QQuickItem*>(result)).waitForResult();
+    QMessageBox::StandardButton resultButton = MessageBoxListener(qvariant_cast<QQuickItem*>(result)).waitForButtonResult();
     qDebug() << "Message box got a result of " << resultButton;
     return resultButton;
 }
@@ -225,6 +243,66 @@ QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QSt
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
 }
+
+
+
+class InputDialogListener : public ModalDialogListener {
+    Q_OBJECT
+
+    friend class OffscreenUi;
+    InputDialogListener(QQuickItem* queryBox) : ModalDialogListener(queryBox) {
+        if (_finished) {
+            return;
+        }
+        connect(_dialog, SIGNAL(selected(QVariant)), this, SLOT(onSelected(const QVariant&)));
+    }
+
+private slots:
+    void onSelected(const QVariant& result) {
+        _result = result;
+        _finished = true;
+        disconnect(_dialog);
+    }
+};
+
+// FIXME many input parameters currently ignored
+QString OffscreenUi::getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode, const QString & text, bool * ok, Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints) {
+    QVariant result = DependencyManager::get<OffscreenUi>()->inputDialog(title, label, text).toString();
+    if (ok && result.isValid()) {
+        *ok = true;
+    }
+    return result.toString();
+}
+
+
+QVariant OffscreenUi::inputDialog(const QString& query, const QString& placeholderText, const QString& currentValue) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "queryBox", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariant, result),
+            Q_ARG(QString, query),
+            Q_ARG(QString, placeholderText),
+            Q_ARG(QString, currentValue));
+        return result;
+    }
+
+    QVariantMap map;
+    map.insert("text", query);
+    map.insert("placeholderText", placeholderText);
+    map.insert("result", currentValue);
+    QVariant result;
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "queryBox",
+        Q_RETURN_ARG(QVariant, result),
+        Q_ARG(QVariant, QVariant::fromValue(map)));
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create message box";
+        return QVariant();
+    }
+
+    return InputDialogListener(qvariant_cast<QQuickItem*>(result)).waitForResult();
+}
+
 
 bool OffscreenUi::navigationFocused() {
     return offscreenFlags->isNavigationFocused();

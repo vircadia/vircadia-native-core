@@ -18,8 +18,6 @@ FocusScope {
     // The VR version of the primary menu
     property var rootMenu: Menu { objectName: "rootMenu" }
 
-    Component { id: messageDialogBuilder; MessageDialog { } }
-
     QtObject {
         id: d
         readonly property int zBasisNormal: 0
@@ -158,16 +156,22 @@ FocusScope {
         }
     }
 
-    MenuMouseHandler { id: menuPopperUpper }
-
     function raise(item) {
         d.raiseWindow(item);
     }
 
+
+    Component { id: messageDialogBuilder; MessageDialog { } }
     function messageBox(properties) {
         return messageDialogBuilder.createObject(desktop, properties);
     }
 
+    Component { id: queryDialogBuilder; QueryDialog { } }
+    function queryBox(properties) {
+        return queryDialogBuilder.createObject(desktop, properties);
+    }
+
+    MenuMouseHandler { id: menuPopperUpper }
     function popupMenu(point) {
         menuPopperUpper.popup(desktop, rootMenu.items, point);
     }
@@ -213,7 +217,7 @@ FocusScope {
     function onWindowFocusChanged() {
         console.log("Focus item is " + offscreenWindow.activeFocusItem);
         var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem) {
+        if (DebugQML && focusedItem && false) {
             var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
             focusDebugger.visible = true
             focusDebugger.x = rect.x;
