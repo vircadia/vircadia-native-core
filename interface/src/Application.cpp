@@ -95,9 +95,11 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
+#include <PhysicsHelpers.h>
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
 #include <RenderableWebEntityItem.h>
+#include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <RenderScriptingInterface.h>
@@ -672,7 +674,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
 
     // Start rendering
-    _renderEngine->addTask(make_shared<RenderDeferredTask>(LODManager::shouldRender));
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
+    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
     _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
@@ -3089,13 +3093,14 @@ void Application::update(float deltaTime) {
             static VectorOfMotionStates motionStates;
             _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
+            _entitySimulation.deleteObjectsRemovedFromPhysics();
 
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
 
             });
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToChange(motionStates);
                 VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
                 _entitySimulation.setObjectsToChange(stillNeedChange);
@@ -3125,7 +3130,7 @@ void Application::update(float deltaTime) {
             PerformanceTimer perfTimer("havestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
-                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), _physicsEngine->getSessionID());
+                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), Physics::getSessionUUID());
                     avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
                 });
 
@@ -3758,9 +3763,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext.setArgs(renderArgs);
 
         bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
-        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus, shadowStatus);
 
         _renderEngine->setRenderContext(renderContext);
 
@@ -4225,6 +4231,9 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) {
+    // HACK: until we swap the library dependency order between physics and entities
+    // we cache the sessionID in two distinct places for physics.
+    Physics::setSessionUUID(sessionUUID); // TODO: remove this one
     _physicsEngine->setSessionUUID(sessionUUID);
 }
 

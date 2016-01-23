@@ -215,7 +215,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -442,25 +442,25 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
     // Still relying on the raw data from the model
     const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
 
     Transform transform;
     if (state.clusterBuffer) {
-        if (_model->_cauterizeBones) {
+        if (canCauterize && _model->getCauterizeBones()) {
             batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.cauterizedClusterBuffer);
         } else {
             batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.clusterBuffer);
         }
     } else {
-        if (_model->_cauterizeBones) {
+        if (canCauterize && _model->getCauterizeBones()) {
             transform = Transform(state.cauterizedClusterMatrices[0]);
         } else {
             transform = Transform(state.clusterMatrices[0]);
         }
     }
-  //  transform.preTranslate(_modelPosition);
+
     transform.preTranslate(_transform.getTranslation());
     batch.setModelTransform(transform);
 }
@@ -507,8 +507,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
+    bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
-    bindTransform(batch, locations);
+    bindTransform(batch, locations, canCauterize);
     
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);

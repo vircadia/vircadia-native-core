@@ -160,8 +160,8 @@ QString EntityItemProperties::getCollisionMaskAsString() const {
 void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
     QVector<QStringRef> groups = maskString.splitRef(',');
     uint8_t mask = 0x00;
-    for (auto group : groups) {
-        mask |= getCollisionGroupAsBitMask(group);
+    for (auto groupName : groups) {
+        mask |= getCollisionGroupAsBitMask(groupName);
     }
     _collisionMask = mask;
     _collisionMaskChanged = true;

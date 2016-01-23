@@ -221,15 +221,13 @@ QByteArray MyAvatar::toByteArray(bool cullSmallChanges, bool sendAll) {
 }
 
 void MyAvatar::reset(bool andReload) {
-
     if (andReload) {
         qApp->setRawAvatarUpdateThreading(false);
     }
 
     // Reset dynamic state.
     _wasPushing = _isPushing = _isBraking = _billboardValid = false;
-    _followVelocity = Vectors::ZERO;
-    _followSpeed = 0.0f;
+    _follow.deactivate();
     _skeletonModel.reset();
     getHead()->reset();
     _targetVelocity = glm::vec3(0.0f);
@@ -262,9 +260,22 @@ void MyAvatar::reset(bool andReload) {
 
 void MyAvatar::update(float deltaTime) {
 
+    // update moving average of HMD facing in xz plane.
+    const float HMD_FACING_TIMESCALE = 4.0f; // very slow average
+    float tau = deltaTime / HMD_FACING_TIMESCALE;
+    _hmdSensorFacingMovingAverage = lerp(_hmdSensorFacingMovingAverage, _hmdSensorFacing, tau);
+
+#ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
+    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacingMovingAverage.x, 0.0f, _hmdSensorFacingMovingAverage.y));
+    DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
+    p = transformPoint(getSensorToWorldMatrix(), _hmdSensorPosition + glm::vec3(_hmdSensorFacing.x, 0.0f, _hmdSensorFacing.y));
+    DebugDraw::getInstance().addMarker("facing", getOrientation(), p, glm::vec4(1.0f));
+#endif
+
     if (_goToPending) {
         setPosition(_goToPosition);
         setOrientation(_goToOrientation);
+        _hmdSensorFacingMovingAverage = _hmdSensorFacing;  // reset moving average
         _goToPending = false;
         // updateFromHMDSensorMatrix (called from paintGL) expects that the sensorToWorldMatrix is updated for any position changes
         // that happen between render and Application::update (which calls updateSensorToWorldMatrix to do so).
@@ -365,46 +376,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
     _hmdSensorMatrix = hmdSensorMatrix;
     _hmdSensorPosition = extractTranslation(hmdSensorMatrix);
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
-}
-
-void MyAvatar::updateHMDFollowVelocity() {
-    // compute offset to body's target position (in sensor-frame)
-    auto sensorBodyMatrix = deriveBodyFromHMDSensor();
-    glm::vec3 offset = extractTranslation(sensorBodyMatrix) - extractTranslation(_bodySensorMatrix);
-    _followOffsetDistance = glm::length(offset);
-
-    const float FOLLOW_TIMESCALE = 0.5f;
-    const float FOLLOW_THRESHOLD_SPEED = 0.2f;
-    const float FOLLOW_MIN_DISTANCE = 0.01f;
-    const float FOLLOW_THRESHOLD_DISTANCE = 0.2f;
-    const float FOLLOW_MAX_IDLE_DISTANCE = 0.1f;
-
-    bool hmdIsAtRest = _hmdAtRestDetector.update(_hmdSensorPosition, _hmdSensorOrientation);
-
-    _followOffsetDistance = glm::length(offset);
-    if (_followOffsetDistance < FOLLOW_MIN_DISTANCE) {
-        // close enough
-        _followOffsetDistance = 0.0f;
-    } else {
-        bool avatarIsMoving = glm::length(_velocity - _followVelocity) > FOLLOW_THRESHOLD_SPEED;
-        bool shouldFollow = (hmdIsAtRest || avatarIsMoving) && _followOffsetDistance > FOLLOW_MAX_IDLE_DISTANCE;
-
-        glm::vec3 truncatedOffset = offset;
-        if (truncatedOffset.y < 0.0f) {
-            truncatedOffset.y = 0.0f;
-        }
-        float truncatedDistance = glm::length(truncatedOffset);
-        bool needsNewSpeed = truncatedDistance > FOLLOW_THRESHOLD_DISTANCE;
-        if (needsNewSpeed || (shouldFollow && _followSpeed == 0.0f)) {
-            // compute new speed
-            _followSpeed = _followOffsetDistance / FOLLOW_TIMESCALE;
-        }
-        if (_followSpeed > 0.0f) {
-            // to compute new velocity we must rotate offset into the world-frame
-            glm::quat sensorToWorldRotation = glm::normalize(glm::quat_cast(_sensorToWorldMatrix));
-            _followVelocity = _followSpeed * glm::normalize(sensorToWorldRotation * offset);
-        }
-    }
+    _hmdSensorFacing = getFacingDir2D(_hmdSensorOrientation);
 }
 
 // best called at end of main loop, just before rendering.
@@ -1057,63 +1029,21 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
-        updateHMDFollowVelocity();
-    } else if (_followSpeed > 0.0f) {
-        _followVelocity = Vectors::ZERO;
-        _followSpeed = 0.0f;
+        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix);
+    } else {
+        _follow.deactivate();
     }
-    _characterController.setFollowVelocity(_followVelocity);
 }
 
-void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaType) {
+void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position = getPosition();
     glm::quat orientation = getOrientation();
     _characterController.getPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
-    if (_followSpeed > 0.0f) {
-        adjustSensorTransform();
-        setVelocity(_characterController.getLinearVelocity() + _followVelocity);
-    } else {
-        setVelocity(_characterController.getLinearVelocity());
-    }
+    _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
     // now that physics has adjusted our position, we can update attachements.
-    Avatar::simulateAttachments(deltaType);
-}
-
-void MyAvatar::adjustSensorTransform() {
-    // compute blendFactor of latest hmdShift
-    // which we'll use to blend the rotation part
-    float linearDistance = _characterController.getFollowTime() * _followSpeed;
-    float blendFactor = linearDistance < _followOffsetDistance ? linearDistance / _followOffsetDistance : 1.0f;
-
-    auto newBodySensorMatrix = deriveBodyFromHMDSensor();
-    auto worldBodyMatrix = _sensorToWorldMatrix * newBodySensorMatrix;
-    glm::quat finalBodyRotation = glm::normalize(glm::quat_cast(worldBodyMatrix));
-    if (blendFactor >= 0.99f) {
-        // the "adjustment" is more or less complete so stop following
-        _followVelocity = Vectors::ZERO;
-        _followSpeed = 0.0f;
-        // and slam the body's transform anyway to eliminate any slight errors
-        glm::vec3 finalBodyPosition = extractTranslation(worldBodyMatrix);
-        nextAttitude(finalBodyPosition, finalBodyRotation);
-        _bodySensorMatrix = newBodySensorMatrix;
-    } else {
-        // physics already did the positional blending for us
-        glm::vec3 newBodyPosition = getPosition();
-        // but the rotational part must be done manually
-        glm::quat newBodyRotation = glm::normalize(safeMix(getOrientation(), finalBodyRotation, blendFactor));
-        nextAttitude(newBodyPosition, newBodyRotation);
-
-        // interp sensor matrix toward the desired
-        glm::vec3 prevPosition = extractTranslation(_bodySensorMatrix);
-        glm::quat prevRotation = glm::normalize(glm::quat_cast(_bodySensorMatrix));
-        glm::vec3 nextPosition = extractTranslation(newBodySensorMatrix);
-        glm::quat nextRotation = glm::normalize(glm::quat_cast(newBodySensorMatrix));
-        _bodySensorMatrix = createMatFromQuatAndPos(
-                glm::normalize(safeMix(prevRotation, nextRotation, blendFactor)),
-                lerp(prevPosition, nextPosition, blendFactor));
-    }
+    Avatar::simulateAttachments(deltaTime);
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {
@@ -1538,9 +1468,7 @@ void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
-
-    bool isHovering = _characterController.isHovering();
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering());
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
@@ -1634,6 +1562,10 @@ void MyAvatar::doUpdateBillboard() {
     _billboardValid = true;
 
     sendBillboardPacket();
+}
+
+bool MyAvatar::isHovering() const {
+    return _characterController.isHovering();
 }
 
 void MyAvatar::increaseSize() {
@@ -1831,3 +1763,78 @@ void audioListenModeFromScriptValue(const QScriptValue& object, AudioListenerMod
 void MyAvatar::lateUpdatePalms() {
     Avatar::updatePalms();
 }
+
+
+static const float FOLLOW_TIME = 0.5f;
+
+void MyAvatar::FollowHelper::deactivate() {
+    _timeRemaining = 0.0f;
+}
+
+void MyAvatar::FollowHelper::activate() {
+    // TODO: Perhaps, the follow time should be proportional to the displacement.
+    _timeRemaining = FOLLOW_TIME;
+}
+
+bool MyAvatar::FollowHelper::isActive() const {
+    return _timeRemaining > 0.0f;
+}
+
+bool MyAvatar::FollowHelper::shouldActivate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 4.0f);
+
+    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    if (glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD) {
+        return true;
+    }
+
+    const float CYLINDER_TOP = 0.1f;
+    const float CYLINDER_BOTTOM = -0.5f;
+    const float CYLINDER_RADIUS = 0.15f;
+
+    glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
+    glm::vec3 radialOffset(offset.x, 0.0f, offset.y);
+    float radialDistance = glm::length(radialOffset);
+
+    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (radialDistance > CYLINDER_RADIUS);
+}
+
+void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
+    _desiredBodyMatrix = desiredBodyMatrix;
+    if (!isActive() && shouldActivate(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        activate();
+    }
+
+    if (isActive()) {
+        glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
+        myAvatar.getCharacterController()->setFollowParameters(desiredWorldMatrix, _timeRemaining);
+    } else {
+        glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
+        myAvatar.getCharacterController()->setFollowParameters(currentWorldMatrix, 0.0f);
+    }
+}
+
+glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix) {
+    if (isActive()) {
+        float dt = myAvatar.getCharacterController()->getFollowTime();
+        _timeRemaining -= dt;
+
+        // apply follow displacement to the body matrix.
+        glm::vec3 worldLinearDisplacement = myAvatar.getCharacterController()->getFollowLinearDisplacement();
+        glm::quat worldAngularDisplacement = myAvatar.getCharacterController()->getFollowAngularDisplacement();
+        glm::quat sensorToWorld = glmExtractRotation(myAvatar.getSensorToWorldMatrix());
+        glm::quat worldToSensor = glm::inverse(sensorToWorld);
+
+        glm::vec3 sensorLinearDisplacement = worldToSensor * worldLinearDisplacement;
+        glm::quat sensorAngularDisplacement = worldToSensor * worldAngularDisplacement * sensorToWorld;
+
+        glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
+                                                       sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
+        return newBodyMat;
+
+    } else {
+        return currentBodyMatrix;
+    }
+}
+

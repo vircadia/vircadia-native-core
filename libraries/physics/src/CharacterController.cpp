@@ -13,14 +13,12 @@
 
 #include <NumericalConstants.h>
 
-#include "BulletUtil.h"
 #include "PhysicsCollisionGroups.h"
 #include "ObjectMotionState.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
-
 
 // helper class for simple ray-traces from character
 class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
@@ -50,7 +48,8 @@ CharacterController::CharacterController() {
     _floorDistance = MAX_FALL_HEIGHT;
 
     _walkVelocity.setValue(0.0f, 0.0f, 0.0f);
-    _followVelocity.setValue(0.0f, 0.0f, 0.0f);
+    _followDesiredBodyTransform.setIdentity();
+    _followTimeRemaining = 0.0f;
     _jumpSpeed = JUMP_SPEED;
     _isOnGround = false;
     _isJumping = false;
@@ -59,6 +58,8 @@ CharacterController::CharacterController() {
     _isPushingUp = false;
     _jumpToHoverStart = 0;
     _followTime = 0.0f;
+    _followLinearDisplacement = btVector3(0, 0, 0);
+    _followAngularDisplacement = btQuaternion::getIdentity();
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
 
@@ -189,12 +190,40 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         }
     }
 
-    // Rather than add _followVelocity to the velocity of the RigidBody, we explicitly teleport
-    // the RigidBody forward according to the formula: distance = rate * time
-    if (_followVelocity.length2() > 0.0f) {
+    // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
+    // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
+    // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
+    // These two computations must be kept in sync.
+    const float MINIMUM_TIME_REMAINING = 0.005f;
+    const float MAX_DISPLACEMENT = 0.5f * _radius;
+    _followTimeRemaining -= dt;
+    if (_followTimeRemaining >= MINIMUM_TIME_REMAINING) {
         btTransform bodyTransform = _rigidBody->getWorldTransform();
-        bodyTransform.setOrigin(bodyTransform.getOrigin() + dt * _followVelocity);
-        _rigidBody->setWorldTransform(bodyTransform);
+
+        btVector3 startPos = bodyTransform.getOrigin();
+        btVector3 deltaPos = _followDesiredBodyTransform.getOrigin() - startPos;
+        btVector3 vel = deltaPos / _followTimeRemaining;
+        btVector3 linearDisplacement = clampLength(vel * dt, MAX_DISPLACEMENT);  // clamp displacement to prevent tunneling.
+        btVector3 endPos = startPos + linearDisplacement;
+
+        btQuaternion startRot = bodyTransform.getRotation();
+        glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
+        glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
+        glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
+        float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
+        float angularSpeed = deltaAngle / _followTimeRemaining;
+        float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
+        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
+        btQuaternion endRot = angularDisplacement * startRot;
+
+        // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.
+        btVector3 shapeLocalOffset = glmToBullet(_shapeLocalOffset);
+        btVector3 swingDisplacement = rotateVector(endRot, -shapeLocalOffset) - rotateVector(startRot, -shapeLocalOffset);
+
+        _followLinearDisplacement = linearDisplacement + swingDisplacement + _followLinearDisplacement;
+        _followAngularDisplacement = angularDisplacement * _followAngularDisplacement;
+
+        _rigidBody->setWorldTransform(btTransform(endRot, endPos));
     }
     _followTime += dt;
 }
@@ -323,8 +352,17 @@ void CharacterController::setTargetVelocity(const glm::vec3& velocity) {
     _walkVelocity = glmToBullet(velocity);
 }
 
-void CharacterController::setFollowVelocity(const glm::vec3& velocity) {
-    _followVelocity = glmToBullet(velocity);
+void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix, float timeRemaining) {
+    _followTimeRemaining = timeRemaining;
+    _followDesiredBodyTransform = glmToBullet(desiredWorldBodyMatrix) * btTransform(btQuaternion::getIdentity(), glmToBullet(_shapeLocalOffset));
+}
+
+glm::vec3 CharacterController::getFollowLinearDisplacement() const {
+    return bulletToGLM(_followLinearDisplacement);
+}
+
+glm::quat CharacterController::getFollowAngularDisplacement() const {
+    return bulletToGLM(_followAngularDisplacement);
 }
 
 glm::vec3 CharacterController::getLinearVelocity() const {
@@ -378,6 +416,9 @@ void CharacterController::preSimulation() {
         }
     }
     _followTime = 0.0f;
+
+    _followLinearDisplacement = btVector3(0, 0, 0);
+    _followAngularDisplacement = btQuaternion::getIdentity();
 }
 
 void CharacterController::postSimulation() {

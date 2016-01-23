@@ -23,6 +23,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
     // has finished simulating it.
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
+    QMutexLocker lock(&_mutex);
     SetOfEntities::iterator itemItr = _entitiesWithSimulator.begin();
     while (itemItr != _entitiesWithSimulator.end()) {
         EntityItemPointer entity = *itemItr;
@@ -48,18 +49,21 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     EntitySimulation::addEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
+        QMutexLocker lock(&_mutex);
         _entitiesWithSimulator.insert(entity);
     }
 }
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::removeEntityInternal(entity);
+    QMutexLocker lock(&_mutex);
     _entitiesWithSimulator.remove(entity);
 }
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::changeEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
+        QMutexLocker lock(&_mutex);
         _entitiesWithSimulator.insert(entity);
     }
     entity->clearDirtyFlags();

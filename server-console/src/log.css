@@ -52,6 +52,7 @@ ul.tabs li.current {
     display: none;
     background-color: #ededed;
     width: 100%;
+    height: 100%;
     overflow: auto;
     margin: 0;
     padding: 0;
@@ -63,7 +64,7 @@ ul.tabs li.current {
 }
 
 .tab-content {
-    overflow: auto;
+    overflow: hidden;
     padding: 10px;
     background-color: #ededed;
 }
@@ -81,7 +82,11 @@ ul.tabs li.current {
 }
 
 .search {
-    display: none;
     float: right;
     margin: 10px;
+}
+
+.log-line {
+    font-family: "Consolas", monospace;
+    font-size: 9.5pt;
 }

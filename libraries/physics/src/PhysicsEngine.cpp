@@ -18,47 +18,10 @@
 #include "ThreadSafeDynamicsWorld.h"
 #include "PhysicsLogging.h"
 
-uint32_t PhysicsEngine::getNumSubsteps() {
-    return _numSubsteps;
-}
-
-btHashMap<btHashInt, int16_t> _collisionMasks;
-
-void initCollisionMaskTable() {
-    if (_collisionMasks.size() == 0) {
-        // build table of masks with their group as the key
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_DYNAMIC), BULLET_COLLISION_MASK_DYNAMIC);
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_STATIC), BULLET_COLLISION_MASK_STATIC);
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_KINEMATIC), BULLET_COLLISION_MASK_KINEMATIC);
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_MY_AVATAR), BULLET_COLLISION_MASK_MY_AVATAR);
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_OTHER_AVATAR), BULLET_COLLISION_MASK_OTHER_AVATAR);
-        _collisionMasks.insert(btHashInt((int)BULLET_COLLISION_GROUP_COLLISIONLESS), BULLET_COLLISION_MASK_COLLISIONLESS);
-    }
-}
-
-// static
-int16_t PhysicsEngine::getCollisionMask(int16_t group) {
-    const int16_t* mask = _collisionMasks.find(btHashInt((int)group));
-    return mask ? *mask : BULLET_COLLISION_MASK_DEFAULT;
-}
-
-QUuid _sessionID;
-
-// static
-void PhysicsEngine::setSessionUUID(const QUuid& sessionID) {
-    _sessionID = sessionID;
-}
-
-// static
-const QUuid& PhysicsEngine::getSessionID() {
-    return _sessionID;
-}
-
-
 PhysicsEngine::PhysicsEngine(const glm::vec3& offset) :
         _originOffset(offset),
+        _sessionID(),
         _myAvatarController(nullptr) {
-    initCollisionMaskTable();
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -88,6 +51,10 @@ void PhysicsEngine::init() {
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
     }
+}
+
+uint32_t PhysicsEngine::getNumSubsteps() {
+    return _numSubsteps;
 }
 
 // private

@@ -500,7 +500,7 @@ static const std::vector<float> FORWARD_SPEEDS = { 0.4f, 1.4f, 4.5f }; // m/s
 static const std::vector<float> BACKWARD_SPEEDS = { 0.6f, 1.45f }; // m/s
 static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
 
-void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation) {
+void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, bool isHovering) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
 
@@ -568,36 +568,43 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         const float TURN_ENTER_SPEED_THRESHOLD = 0.5f; // rad/sec
         const float TURN_EXIT_SPEED_THRESHOLD = 0.2f; // rad/sec
 
-        float moveThresh;
-        if (_state != RigRole::Move) {
-            moveThresh = MOVE_ENTER_SPEED_THRESHOLD;
-        } else {
-            moveThresh = MOVE_EXIT_SPEED_THRESHOLD;
-        }
-
-        float turnThresh;
-        if (_state != RigRole::Turn) {
-            turnThresh = TURN_ENTER_SPEED_THRESHOLD;
-        } else {
-            turnThresh = TURN_EXIT_SPEED_THRESHOLD;
-        }
-
-        if (glm::length(localVel) > moveThresh) {
-            if (_desiredState != RigRole::Move) {
+        if (isHovering) {
+            if (_desiredState != RigRole::Hover) {
                 _desiredStateAge = 0.0f;
             }
-            _desiredState = RigRole::Move;
+            _desiredState = RigRole::Hover;
         } else {
-            if (fabsf(turningSpeed) > turnThresh) {
-                if (_desiredState != RigRole::Turn) {
+            float moveThresh;
+            if (_state != RigRole::Move) {
+                moveThresh = MOVE_ENTER_SPEED_THRESHOLD;
+            } else {
+                moveThresh = MOVE_EXIT_SPEED_THRESHOLD;
+            }
+
+            float turnThresh;
+            if (_state != RigRole::Turn) {
+                turnThresh = TURN_ENTER_SPEED_THRESHOLD;
+            } else {
+                turnThresh = TURN_EXIT_SPEED_THRESHOLD;
+            }
+
+            if (glm::length(localVel) > moveThresh) {
+                if (_desiredState != RigRole::Move) {
                     _desiredStateAge = 0.0f;
                 }
-                _desiredState = RigRole::Turn;
-            } else { // idle
-                if (_desiredState != RigRole::Idle) {
-                    _desiredStateAge = 0.0f;
+                _desiredState = RigRole::Move;
+            } else {
+                if (fabsf(turningSpeed) > turnThresh) {
+                    if (_desiredState != RigRole::Turn) {
+                        _desiredStateAge = 0.0f;
+                    }
+                    _desiredState = RigRole::Turn;
+                } else { // idle
+                    if (_desiredState != RigRole::Idle) {
+                        _desiredStateAge = 0.0f;
+                    }
+                    _desiredState = RigRole::Idle;
                 }
-                _desiredState = RigRole::Idle;
             }
         }
 
@@ -649,6 +656,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _animVars.set("isTurningLeft", false);
                 _animVars.set("isTurningRight", false);
                 _animVars.set("isNotTurning", true);
+                _animVars.set("isFlying", false);
+                _animVars.set("isNotFlying", true);
             }
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
@@ -667,7 +676,9 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isMovingRight", false);
             _animVars.set("isMovingLeft", false);
             _animVars.set("isNotMoving", true);
-        } else {
+            _animVars.set("isFlying", false);
+            _animVars.set("isNotFlying", true);
+        } else if (_state == RigRole::Idle ) {
             // default anim vars to notMoving and notTurning
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
@@ -677,6 +688,20 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isTurningLeft", false);
             _animVars.set("isTurningRight", false);
             _animVars.set("isNotTurning", true);
+            _animVars.set("isFlying", false);
+            _animVars.set("isNotFlying", true);
+        } else {
+            // flying.
+            _animVars.set("isMovingForward", false);
+            _animVars.set("isMovingBackward", false);
+            _animVars.set("isMovingLeft", false);
+            _animVars.set("isMovingRight", false);
+            _animVars.set("isNotMoving", true);
+            _animVars.set("isTurningLeft", false);
+            _animVars.set("isTurningRight", false);
+            _animVars.set("isNotTurning", true);
+            _animVars.set("isFlying", true);
+            _animVars.set("isNotFlying", false);
         }
 
         t += deltaTime;

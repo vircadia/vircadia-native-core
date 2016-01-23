@@ -54,27 +54,37 @@ public:
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
     const LightStage& getLightStage() { return _lightStage; }
+    void setShadowMapStatus(bool enable) { _shadowMapStatus = enable; };
 
 private:
     LightStage _lightStage;
+    bool _shadowMapStatus{ false };
 
     DeferredLightingEffect() = default;
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
-    
+
     gpu::PipelinePointer _directionalSkyboxLight;
-    LightLocationsPtr _directionalSkyboxLightLocations;
-
     gpu::PipelinePointer _directionalAmbientSphereLight;
-    LightLocationsPtr _directionalAmbientSphereLightLocations;
-
     gpu::PipelinePointer _directionalLight;
-    LightLocationsPtr _directionalLightLocations;
+
+    gpu::PipelinePointer _directionalSkyboxLightShadow;
+    gpu::PipelinePointer _directionalAmbientSphereLightShadow;
+    gpu::PipelinePointer _directionalLightShadow;
 
     gpu::PipelinePointer _pointLight;
-    LightLocationsPtr _pointLightLocations;
     gpu::PipelinePointer _spotLight;
+
+    LightLocationsPtr _directionalSkyboxLightLocations;
+    LightLocationsPtr _directionalAmbientSphereLightLocations;
+    LightLocationsPtr _directionalLightLocations;
+
+    LightLocationsPtr _directionalSkyboxLightShadowLocations;
+    LightLocationsPtr _directionalAmbientSphereLightShadowLocations;
+    LightLocationsPtr _directionalLightShadowLocations;
+
+    LightLocationsPtr _pointLightLocations;
     LightLocationsPtr _spotLightLocations;
 
     using Lights = std::vector<model::LightPointer>;

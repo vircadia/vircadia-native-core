@@ -12,6 +12,7 @@
 
 #include <QtQml/QtQml>
 #include <QtQuick/QQuickWindow>
+#include <QtGui/QGuiApplication>
 
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
@@ -233,6 +234,58 @@ void OffscreenUi::setNavigationFocused(bool focused) {
     offscreenFlags->setNavigationFocused(focused);
 }
 
+// FIXME HACK....
+// This hack is an attempt to work around the 'offscreen UI can't gain keyboard focus' bug
+// https://app.asana.com/0/27650181942747/83176475832393
+// The problem seems related to https://bugreports.qt.io/browse/QTBUG-50309 
+//
+// The workaround seems to be to give some other window (same process or another process doesn't seem to matter)
+// focus and then put focus back on the interface main window.  
+//
+// If I could reliably reproduce this bug I could eventually track down what state change is occuring 
+// during the process of the main window losing and then gaining focus, but failing that, here's a 
+// brute force way of triggering that state change at application start in a way that should be nearly
+// imperceptible to the user.
+class KeyboardFocusHack : public QObject {
+    Q_OBJECT
+public:
+    KeyboardFocusHack() {
+        Q_ASSERT(_mainWindow);
+        QTimer::singleShot(200, [=] {
+            _hackWindow = new QWindow();
+            _hackWindow->setFlags(Qt::FramelessWindowHint);
+            _hackWindow->setGeometry(_mainWindow->x(), _mainWindow->y(), 10, 10);
+            _hackWindow->show();
+            _hackWindow->requestActivate();
+            QTimer::singleShot(200, [=] {
+                _hackWindow->hide();
+                _hackWindow->deleteLater();
+                _hackWindow = nullptr;
+                _mainWindow->requestActivate();
+                this->deleteLater();
+            });
+        });
+    }
+
+private:
+    
+    static QWindow* findMainWindow() {
+        auto windows = qApp->topLevelWindows();
+        QWindow* result = nullptr;
+        for (auto window : windows) {
+            QVariant isMainWindow = window->property("MainWindow");
+            if (!qobject_cast<QQuickWindow*>(window)) {
+                result = window;
+                break;
+            }
+        }
+        return result;
+    }
+
+    QWindow* const _mainWindow { findMainWindow() };
+    QWindow* _hackWindow { nullptr };
+};
+
 void OffscreenUi::createDesktop(const QUrl& url) {
     if (_desktop) {
         qDebug() << "Desktop already created";
@@ -254,6 +307,8 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
     new VrMenu(this);
+
+    new KeyboardFocusHack();
 }
 
 QQuickItem* OffscreenUi::getDesktop() {

@@ -64,13 +64,20 @@ void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
 
+    _directionalLightShadowLocations = std::make_shared<LightLocations>();
+    _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
+    _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
+
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
-    // TODO: To use shadowmaps, replace directional_*_light_frag with directional_*_light_shadow_frag shaders.
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+
+    loadLightProgram(deferred_light_vert, directional_light_shadow_frag, false, _directionalLightShadow, _directionalLightShadowLocations);
+    loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
+    loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
@@ -306,18 +313,27 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             {
                 bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
-                auto& program = _directionalLight;
-                LightLocationsPtr locations = _directionalLightLocations;
+                auto& program = _shadowMapStatus ? _directionalLightShadow : _directionalLight;
+                LightLocationsPtr locations = _shadowMapStatus ? _directionalLightShadowLocations : _directionalLightLocations;
 
-                // TODO: At some point bring back the shadows...
                 // Setup the global directional pass pipeline
                 {
-                    if (useSkyboxCubemap) {
-                        program = _directionalSkyboxLight;
-                        locations = _directionalSkyboxLightLocations;
-                    } else if (_ambientLightMode > -1) {
-                        program = _directionalAmbientSphereLight;
-                        locations = _directionalAmbientSphereLightLocations;
+                    if (_shadowMapStatus) {
+                        if (useSkyboxCubemap) {
+                            program = _directionalSkyboxLightShadow;
+                            locations = _directionalSkyboxLightShadowLocations;
+                        } else if (_ambientLightMode > -1) {
+                            program = _directionalAmbientSphereLightShadow;
+                            locations = _directionalAmbientSphereLightShadowLocations;
+                        }
+                    } else {
+                        if (useSkyboxCubemap) {
+                            program = _directionalSkyboxLight;
+                            locations = _directionalSkyboxLightLocations;
+                        } else if (_ambientLightMode > -1) {
+                            program = _directionalAmbientSphereLight;
+                            locations = _directionalAmbientSphereLightLocations;
+                        }
                     }
 
                     if (locations->shadowTransformBuffer >= 0) {

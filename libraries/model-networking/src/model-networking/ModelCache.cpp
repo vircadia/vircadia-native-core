@@ -155,8 +155,6 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 material->specularTexture = textureCache->getTexture(url);
             } else if (material->emissiveTextureName == name) {
                 material->emissiveTexture = textureCache->getTexture(url);
-            } else if (material->opacityTextureName == name) {
-                material->opacityTexture = textureCache->getTexture(url);
             }
         }
     } else {
@@ -287,16 +285,6 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         diffuseMap->setTextureTransform(material.diffuseTexture.transform);
 
         material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
-    }
-    if (!material.opacityTexture.filename.isEmpty()) {
-        networkMaterial->opacityTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.opacityTexture.filename)), DEFAULT_TEXTURE, material.opacityTexture.content);
-        networkMaterial->opacityTextureName = material.opacityTexture.name;
-
-        auto opacityMap = model::TextureMapPointer(new model::TextureMap());
-        opacityMap->setTextureSource(networkMaterial->opacityTexture->_textureSource);
-        opacityMap->setTextureTransform(material.opacityTexture.transform);
-
-        material._material->setTextureMap(model::MaterialKey::TRANSPARENT_MAP, opacityMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
         networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);

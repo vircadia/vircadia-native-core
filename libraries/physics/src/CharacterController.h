@@ -18,6 +18,7 @@
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
 #include <GLMHelpers.h>
+#include "BulletUtil.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -66,8 +67,10 @@ public:
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setTargetVelocity(const glm::vec3& velocity);
-    void setFollowVelocity(const glm::vec3& velocity);
+    void setFollowParameters(const glm::mat4& desiredWorldMatrix, float timeRemaining);
     float getFollowTime() const { return _followTime; }
+    glm::vec3 getFollowLinearDisplacement() const;
+    glm::quat getFollowAngularDisplacement() const;
 
     glm::vec3 getLinearVelocity() const;
 
@@ -87,7 +90,8 @@ protected:
 protected:
     btVector3 _currentUp;
     btVector3 _walkVelocity;
-    btVector3 _followVelocity;
+    btTransform _followDesiredBodyTransform;
+    btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;
 
     glm::vec3 _shapeLocalOffset;
@@ -105,6 +109,8 @@ protected:
 
     btScalar _jumpSpeed;
     btScalar _followTime;
+    btVector3 _followLinearDisplacement;
+    btQuaternion _followAngularDisplacement;
 
     bool _enabled;
     bool _isOnGround;

@@ -150,3 +150,7 @@ QJsonObject Transform::toJson(const Transform& transform) {
     }
     return result;
 }
+
+bool Transform::containsNaN() const {
+    return isNaN(_rotation) || isNaN(_scale) || isNaN(_translation);
+}
