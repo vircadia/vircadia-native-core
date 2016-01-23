@@ -173,21 +173,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     setDrawHitEffect(renderContext->getDrawHitEffect());
     // TODO: turn on/off AO through menu item
-    setOcclusionStatus(renderContext->getOcclusionStatus());
 
-    if (_occlusionJobIndex >= 0) {
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setResolutionLevel(renderContext->getAmbientOcclusion().resolutionLevel);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setRadius(renderContext->getAmbientOcclusion().radius);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setLevel(renderContext->getAmbientOcclusion().level);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSamples(renderContext->getAmbientOcclusion().numSamples);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setNumSpiralTurns(renderContext->getAmbientOcclusion().numSpiralTurns);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setDithering(renderContext->getAmbientOcclusion().ditheringEnabled);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setFalloffBias(renderContext->getAmbientOcclusion().falloffBias);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setEdgeSharpness(renderContext->getAmbientOcclusion().edgeSharpness);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setBlurRadius(renderContext->getAmbientOcclusion().blurRadius);
-        _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().setBlurDeviation(renderContext->getAmbientOcclusion().blurDeviation);
-    }
-    
     setAntialiasingStatus(renderContext->getFxaaStatus());
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
@@ -198,12 +184,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
-    }
-
-    if (_occlusionJobIndex >= 0 && renderContext->getOcclusionStatus()) {
-        renderContext->getAmbientOcclusion().gpuTime = _jobs[_occlusionJobIndex].edit<AmbientOcclusionEffect>().getGPUTime();
-    } else {
-        renderContext->getAmbientOcclusion().gpuTime = 0.0;
     }
 };
 

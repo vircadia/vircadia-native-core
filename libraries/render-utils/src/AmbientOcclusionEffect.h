@@ -16,63 +16,75 @@
 
 #include "render/DrawTask.h"
 
+class AmbientOcclusionEffectConfig : public render::Job::Config {
+    Q_OBJECT
+public:
+    AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
+
+    Q_PROPERTY(float radius MEMBER radius WRITE setRadius NOTIFY dirty)
+    Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel NOTIFY dirty)
+    Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias NOTIFY dirty)
+    Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness NOTIFY dirty)
+    Q_PROPERTY(float blurDeviation MEMBER blurDeviation WRITE setBlurDeviation NOTIFY dirty)
+    Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns WRITE setNumSpiralTurns NOTIFY dirty)
+    Q_PROPERTY(int numSamples MEMBER numSamples WRITE setNumSamples NOTIFY dirty)
+    Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel WRITE setResolutionLevel NOTIFY dirty)
+    Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius NOTIFY dirty)
+    Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
+    Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
+    Q_PROPERTY(double gpuTime READ getGpuTime)
+
+    void setRadius(float radius);
+    void setObscuranceLevel(float obscuranceLevel);
+    void setFalloffBias(float falloffBias);
+    void setEdgeSharpness(float edgeSharpness);
+    void setBlurDeviation(float blurDeviation);
+    void setNumSpiralTurns(float numSpiralTurns);
+    void setNumSamples(int numSamples);
+    void setResolutionLevel(int resolutionLevel);
+    void setBlurRadius(int blurRadius);
+    double getGpuTime() { return gpuTime; }
+
+    float radius{ 0.5f };
+    float obscuranceLevel{ 0.5f }; // intensify or dim down the obscurance effect
+    float falloffBias{ 0.01f };
+    float edgeSharpness{ 1.0f };
+    float blurDeviation{ 2.5f };
+    float numSpiralTurns{ 7.0f }; // defining an angle span to distribute the samples ray directions
+    int numSamples{ 11 };
+    int resolutionLevel{ 1 };
+    int blurRadius{ 4 }; // 0 means no blurring
+    bool ditheringEnabled{ true }; // randomize the distribution of rays per pixel, should always be true
+    bool borderingEnabled{ true }; // avoid evaluating information from non existing pixels out of the frame, should always be true
+    double gpuTime{ 0.0 };
+
+signals:
+    void dirty();
+};
 
 class AmbientOcclusionEffect {
 public:
+    using Config = AmbientOcclusionEffectConfig;
+    using JobModel = render::Job::Model<AmbientOcclusionEffect, Config>;
 
     AmbientOcclusionEffect();
 
+    void configure(const Config& configuration);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
-    void setResolutionLevel(int level);
-    int getResolutionLevel() const { return _parametersBuffer.get<Parameters>().resolutionInfo.x; }
-
-    void setRadius(float radius);
     float getRadius() const { return _parametersBuffer.get<Parameters>().radiusInfo.x; }
-    
-    // Obscurance level which intensify or dim down the obscurance effect
-    void setLevel(float level);
-    float getLevel() const { return _parametersBuffer.get<Parameters>().radiusInfo.w; }
-
-    // On to randomize the distribution of rays per pixel, should always be true
-    void setDithering(bool enabled);
-    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>().ditheringInfo.x; }
-
-    // On to avoid evaluating information from non existing pixels Out of the frame, should always be true
-    void setBordering(bool enabled);
-    bool isBorderingEnabled() const { return _parametersBuffer.get<Parameters>().ditheringInfo.w; }
-
-    // Faloff Bias
-    void setFalloffBias(float bias);
-    int getFalloffBias() const { return (int)_parametersBuffer.get<Parameters>().ditheringInfo.z; }
-
-    // Number of samples per pixel to evaluate the Obscurance
-    void setNumSamples(int numSamples);
-    int getNumSamples() const { return (int)_parametersBuffer.get<Parameters>().sampleInfo.x; }
-
-    // Number of spiral turns defining an angle span to distribute the samples ray directions
-    void setNumSpiralTurns(float numTurns);
-    float getNumSpiralTurns() const { return _parametersBuffer.get<Parameters>().sampleInfo.z; }
-
-    // Edge blurring setting
-    void setEdgeSharpness(float sharpness);
-    int getEdgeSharpness() const { return (int)_parametersBuffer.get<Parameters>().blurInfo.x; }
-
-    // Blurring Radius
-    // 0 means no blurring
-    const int MAX_BLUR_RADIUS = 6;
-    void setBlurRadius(int radius);
-    int getBlurRadius() const { return (int)_parametersBuffer.get<Parameters>().blurInfo.y; }
-
-    void setBlurDeviation(float deviation);
+    float getObscuranceLevel() const { return _parametersBuffer.get<Parameters>().radiusInfo.w; }
+    float getFalloffBias() const { return (float)_parametersBuffer.get<Parameters>().ditheringInfo.z; }
+    float getEdgeSharpness() const { return (float)_parametersBuffer.get<Parameters>().blurInfo.x; }
     float getBlurDeviation() const { return _parametersBuffer.get<Parameters>().blurInfo.z; }
-
-    double getGPUTime() const { return _gpuTimer.getAverage(); }
+    float getNumSpiralTurns() const { return _parametersBuffer.get<Parameters>().sampleInfo.z; }
+    int getNumSamples() const { return (int)_parametersBuffer.get<Parameters>().sampleInfo.x; }
+    int getResolutionLevel() const { return _parametersBuffer.get<Parameters>().resolutionInfo.x; }
+    int getBlurRadius() const { return (int)_parametersBuffer.get<Parameters>().blurInfo.y; }
+    bool isDitheringEnabled() const { return _parametersBuffer.get<Parameters>().ditheringInfo.x; }
+    bool isBorderingEnabled() const { return _parametersBuffer.get<Parameters>().ditheringInfo.w; }
     
-    using JobModel = render::Job::Model<AmbientOcclusionEffect>;
-
 private:
-
     void updateGaussianDistribution();
     void setDepthInfo(float nearZ, float farZ);
     
