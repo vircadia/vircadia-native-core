@@ -78,7 +78,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_shared<Config>()) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline
@@ -119,14 +119,13 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) {
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
+void RenderShadowTask::configure(const Config& configuration) {
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+}
+
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
     RenderArgs* args = renderContext->args;
-
-    // This feature is in a debugging stage - it must be turned on explicitly
-    if (!renderContext->getShadowMapStatus()) {
-        return;
-    }
 
     // sanity checks
     if (!sceneContext->_scene || !args) {

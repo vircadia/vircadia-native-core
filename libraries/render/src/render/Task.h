@@ -61,15 +61,38 @@ public:
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     Q_PROPERTY(bool enabled MEMBER enabled READ isEnabled)
+    Q_PROPERTY(bool alwaysEnabled READ isAlwaysEnabled)
+
     bool isEnabled() { return alwaysEnabled || enabled; }
+    bool isAlwaysEnabled() { return alwaysEnabled; }
+
     bool alwaysEnabled{ true };
     bool enabled;
+};
+
+class Task;
+
+class TaskConfig : public JobConfig {
+    Q_OBJECT
+public:
+    TaskConfig() : JobConfig() {}
+    TaskConfig(bool enabled) : JobConfig(enabled) {}
+
+    void init(Task* task) { _task = task; }
+
+public slots:
+    void refresh();
+
+private:
+    Task* _task;
 };
 
 template <class T, class C> void jobConfigure(T& model, const C& configuration) {
     model.configure(configuration);
 }
 template<class T> void jobConfigure(T&, const JobConfig&) {
+}
+template<class T> void jobConfigure(T&, const TaskConfig&) {
 }
 
 // FIXME: In c++17, use default classes of nullptr_t to combine these
@@ -249,26 +272,16 @@ public:
     std::string _name = "";
 };
 
-class Task;
-
-class TaskConfig : public Job::Config {
-    Q_OBJECT
-public:
-    void init(Task* task) { _task = task; }
-public slots:
-    void refresh();
-private:
-    Task* _task;
-};
-
 // A task is a specialized job to run a collection of other jobs
 // It is defined with JobModel = Task::Model<T>
+//
+// A task with a custom config *must* use the templated constructor
 class Task {
 public:
     using Config = TaskConfig;
     using QConfig = Job::QConfig;
 
-    template <class T> class Model : public Job::Concept {
+    template <class T, class C = Config> class Model : public Job::Concept {
     public:
         using Data = T;
 
@@ -276,18 +289,15 @@ public:
         Data _data;
 
         // The _config is unused; the model delegates to its data's _config
-        Model(Data data = Data()) : _data(data), Concept(std::make_shared<QObject>()) {
+        Model(Data data = Data()) : _data(data), Concept(std::make_shared<C>()) {
             _config = _data._config;
-        }
-
-        virtual QConfig& getConfiguration() {
-            // Hook up the configuration if it is to be used
             std::static_pointer_cast<Config>(_config)->init(&_data);
-            return _config;
+
+            applyConfiguration();
         }
 
         void applyConfiguration() {
-            jobConfigure(_data, *_config);
+            jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -299,7 +309,9 @@ public:
 
     using Jobs = std::vector<Job>;
 
+    // A task must use its Config for construction
     Task() : _config{ std::make_shared<Config>() } {}
+    template <class C> Task(std::shared_ptr<C> config) : _config{ config } {}
 
     // Queue a new job to the container; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
@@ -311,7 +323,11 @@ public:
         return _jobs.back().getOutput();
     }
 
-    QConfig getConfiguration() { return _config; }
+    QConfig getConfiguration() {
+        // If we are here, we were not made by a Model, so we must initialize our own config
+        std::static_pointer_cast<Config>(_config)->init(this);
+        return _config;
+    }
 
     void configure(const QObject& configuration) {
         for (auto& job : _jobs) {
@@ -322,9 +338,9 @@ public:
     bool getEnableJob(size_t jobIndex) const { return _jobs.at(jobIndex).isEnabled(); }
 
 protected:
-    template <class T> friend class Model;
+    template <class T, class C> friend class Model;
 
-    QConfig _config;
+    QConfig _config { nullptr };
     Jobs _jobs;
 };
 

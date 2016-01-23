@@ -17,8 +17,7 @@ using namespace render;
 
 Engine::Engine() :
     _sceneContext(std::make_shared<SceneContext>()),
-    _renderContext(std::make_shared<RenderContext>())
-{
+    _renderContext(std::make_shared<RenderContext>()) {
 }
 
 void Engine::run() {

@@ -313,12 +313,12 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             {
                 bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
-                auto& program = _shadowMapStatus ? _directionalLightShadow : _directionalLight;
-                LightLocationsPtr locations = _shadowMapStatus ? _directionalLightShadowLocations : _directionalLightLocations;
+                auto& program = _shadowMapEnabled ? _directionalLightShadow : _directionalLight;
+                LightLocationsPtr locations = _shadowMapEnabled ? _directionalLightShadowLocations : _directionalLightLocations;
 
                 // Setup the global directional pass pipeline
                 {
-                    if (_shadowMapStatus) {
+                    if (_shadowMapEnabled) {
                         if (useSkyboxCubemap) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;

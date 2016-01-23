@@ -19,19 +19,11 @@
 
 class ViewFrustum;
 
-class RenderShadowMapConfig : public render::Job::Config {
-    Q_OBJECT
-public:
-    RenderShadowMapConfig() : render::Job::Config(false) {}
-};
-
 class RenderShadowMap {
 public:
-    using Config = RenderShadowMapConfig;
-    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds, Config>;
+    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void configure(const Config&) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
              const render::ShapesIDsBounds& inShapes);
 
@@ -39,13 +31,26 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
 };
 
+class RenderShadowTaskConfig : public render::Task::Config {
+    Q_OBJECT
+public:
+    RenderShadowTaskConfig() : render::Task::Config(false) {}
+
+    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
+
+signals:
+    void dirty();
+};
+
 class RenderShadowTask : public render::Task {
 public:
+    using Config = RenderShadowTaskConfig;
+    using JobModel = Model<RenderShadowTask, Config>;
+
     RenderShadowTask(render::CullFunctor shouldRender);
 
+    void configure(const Config& configuration);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    using JobModel = Model<RenderShadowTask>;
 };
 
 #endif // hifi_RenderShadowTask_h

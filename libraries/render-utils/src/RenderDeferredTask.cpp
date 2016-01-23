@@ -171,11 +171,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    // TODO: For now, lighting is controlled through a singleton, so it is distinct
-    DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
-
-    renderContext->args->_context->syncCache();
-
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }

@@ -30,8 +30,6 @@ class RenderContext {
 public:
     RenderArgs* args;
     std::shared_ptr<JobConfig> jobConfig{ nullptr };
-    // TODO: gut this
-    bool _shadowMapStatus { false };
 };
 typedef std::shared_ptr<RenderContext> RenderContextPointer;
 
