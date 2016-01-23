@@ -7,7 +7,6 @@ import "../../../interface/resources/qml"
 import "../../../interface/resources/qml/windows"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
-import "../../../interface/resources/qml/hifi/dialogs"
 
 ApplicationWindow {
     id: appWindow
@@ -184,6 +183,7 @@ ApplicationWindow {
 
         Window {
             id: yellow
+            objectName: "Yellow"
             closable: true
             visible: true
             resizable: true

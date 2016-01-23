@@ -1,6 +1,7 @@
 import QtQuick 2.5
 
 import "../controls"
+import "../js/Utils.js" as Utils
 
 Item {
     id: frame
@@ -34,7 +35,7 @@ Item {
 
     function deltaSize(dx, dy) {
         var newSize = Qt.vector2d(window.width + dx, window.height + dy);
-        newSize = clampVector(newSize, window.minSize, window.maxSize);
+        newSize = Utils.clampVector(newSize, window.minSize, window.maxSize);
         window.width = newSize.x
         window.height = newSize.y
     }

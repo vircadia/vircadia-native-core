@@ -4,6 +4,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs;
 
 import "../dialogs"
 import "../menus"
+import "../js/Utils.js" as Utils
 
 // This is our primary 'desktop' object to which all VR dialogs and
 // windows will be childed.
@@ -18,11 +19,18 @@ FocusScope {
     // The VR version of the primary menu
     property var rootMenu: Menu { objectName: "rootMenu" }
 
+    readonly property alias zLevels: zLevels
+    QtObject {
+        id: zLevels;
+        readonly property real normal: 0
+        readonly property real top: 2000
+        readonly property real modal: 4000
+        readonly property real menu: 8000
+    }
+
     QtObject {
         id: d
-        readonly property int zBasisNormal: 0
-        readonly property int zBasisAlwaysOnTop: 4096
-        readonly property int zBasisModal: 8192
+        readonly property var messageDialogBuilder: Component { MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -75,15 +83,12 @@ FocusScope {
             return currentWindows;
         }
 
-
         function getDesktopWindow(item) {
             return findParentMatching(item, isTopLevelWindow)
         }
 
         function fixupZOrder(windows, basis, topWindow) {
-            windows.sort(function(a, b){
-                return a.z - b.z;
-            });
+            windows.sort(function(a, b){ return a.z - b.z; });
 
             if ((topWindow.z >= basis)  &&  (windows[windows.length - 1] === topWindow)) {
                 return;
@@ -122,33 +127,22 @@ FocusScope {
             return lastTargetZ;
         }
 
-        function raiseWindow(item) {
-            var targetWindow = getDesktopWindow(item);
-            if (!targetWindow) {
-                console.warn("Could not find top level window for " + item);
-                return;
-            }
-
-            if (!desktop) {
-                console.warn("Could not find desktop for window " + targetWindow);
-                return;
-            }
-
+        function raiseWindow(targetWindow) {
             var predicate;
             var zBasis;
             if (isModalWindow(targetWindow)) {
                 predicate = isModalWindow;
-                zBasis = zBasisModal
+                zBasis = zLevels.modal
             } else if (isAlwaysOnTopWindow(targetWindow)) {
                 predicate = function(window) {
                     return (isAlwaysOnTopWindow(window) && !isModalWindow(window));
                 }
-                zBasis = zBasisAlwaysOnTop
+                zBasis = zLevels.top
             } else {
                 predicate = function(window) {
                     return (!isAlwaysOnTopWindow(window) && !isModalWindow(window));
                 }
-                zBasis = zBasisNormal
+                zBasis = zLevels.normal
             }
 
             var windows = getTopLevelWindows(predicate);
@@ -157,11 +151,64 @@ FocusScope {
     }
 
     function raise(item) {
-        d.raiseWindow(item);
+        var targetWindow = d.getDesktopWindow(item);
+        if (!targetWindow) {
+            console.warn("Could not find top level window for " + item);
+            return;
+        }
+
+        // Fix up the Z-order (takes into account if this is a modal window)
+        d.raiseWindow(targetWindow);
+        var setFocus = true;
+        if (!d.isModalWindow(targetWindow)) {
+            var modalWindows = d.getTopLevelWindows(d.isModalWindow);
+            if (modalWindows.length) {
+                setFocus = false;
+            }
+        }
+
+        if (setFocus) {
+            focus = true;
+        }
+
+        reposition(targetWindow);
     }
 
+    function reposition(item) {
+        if (desktop.width === 0 || desktop.height === 0) {
+            return;
+        }
 
-    Component { id: messageDialogBuilder; MessageDialog { } }
+        var targetWindow = d.getDesktopWindow(item);
+        if (!targetWindow) {
+            console.warn("Could not find top level window for " + item);
+            return;
+        }
+
+        var windowRect = targetWindow.framedRect();
+        var minPosition = Qt.vector2d(-windowRect.x, -windowRect.y);
+        var maxPosition = Qt.vector2d(desktop.width - windowRect.width, desktop.height - windowRect.height);
+        var newPosition;
+        if (targetWindow.x === -1 && targetWindow.y === -1) {
+            // Set initial window position
+            newPosition = Utils.randomPosition(minPosition, maxPosition);
+        } else {
+            newPosition = Utils.clampVector(Qt.vector2d(targetWindow.x, targetWindow.y), minPosition, maxPosition);
+        }
+        targetWindow.x = newPosition.x;
+        targetWindow.y = newPosition.y;
+    }
+
+    function repositionAll() {
+        var windows = d.getTopLevelWindows();
+        for (var i = 0; i < windows.length; ++i) {
+            reposition(windows[i]);
+        }
+    }
+
+    onHeightChanged: repositionAll();
+    onWidthChanged: repositionAll();
+
     function messageBox(properties) {
         return messageDialogBuilder.createObject(desktop, properties);
     }
@@ -232,8 +279,6 @@ FocusScope {
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
-
-
 }
 
 
