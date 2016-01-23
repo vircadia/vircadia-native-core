@@ -125,7 +125,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
 
     // Render transparent objects forward in LigthingBuffer
     addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-    
+
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
     _toneMappingJobIndex = (int)_jobs.size() - 1;
