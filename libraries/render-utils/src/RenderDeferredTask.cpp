@@ -171,8 +171,6 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    setDrawDebugDeferredBuffer(renderContext->_deferredDebugMode);
-    setDrawItemStatus(renderContext->getDrawStatus());
     setDrawHitEffect(renderContext->getDrawHitEffect());
     // TODO: turn on/off AO through menu item
     setOcclusionStatus(renderContext->getOcclusionStatus());
@@ -231,7 +229,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, config->maxDrawn);
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
     });
 }
@@ -305,7 +303,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
-            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, config->maxDrawn);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         });
         args->_batch = nullptr;
         args->_whiteTexture.reset();
