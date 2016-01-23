@@ -264,9 +264,8 @@ FocusScope {
     function onWindowFocusChanged() {
         console.log("Focus item is " + offscreenWindow.activeFocusItem);
         var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem && false) {
+        if (DebugQML && focusedItem) {
             var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
-            focusDebugger.visible = true
             focusDebugger.x = rect.x;
             focusDebugger.y = rect.y;
             focusDebugger.width = rect.width
@@ -278,6 +277,13 @@ FocusScope {
         id: focusDebugger;
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
+    }
+    
+    Action {
+        text: "Toggle Focus Debugger"
+        shortcut: "Ctrl+Shift+F"
+        enabled: DebugQML
+        onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
 }
 
