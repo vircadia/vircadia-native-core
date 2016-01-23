@@ -236,6 +236,9 @@ void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const Rend
 }
 
 void DepthSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes) {
+    outShapes.clear();
+    outShapes.reserve(inShapes.size());
+
     for (auto& pipeline : inShapes) {
         auto& inItems = pipeline.second;
         auto outItems = outShapes.find(pipeline.first);

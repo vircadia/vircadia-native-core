@@ -685,6 +685,31 @@ FunctionEnd
 ;Installer Sections
 
 Section "-Core installation"
+  ;The following delete blocks are temporary and can be removed once users who had the initial installer have updated
+
+  ;Delete any server-console files installed before it was placed in sub-folder
+  Delete "$INSTDIR\server-console.exe"
+  RMDir /r "$INSTDIR\locales"
+  RMDir /r "$INSTDIR\resources\app"
+  Delete "$INSTDIR\resources\atom.asar"
+  Delete "$INSTDIR\build-info.json"
+  Delete "$INSTDIR\content_resources_200_percent.pak"
+  Delete "$INSTDIR\content_shell.pak"
+  Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\LICENSES.chromium.html"
+  Delete "$INSTDIR\natives_blob.bin"
+  Delete "$INSTDIR\node.dll"
+  Delete "$INSTDIR\pdf.dll"
+  Delete "$INSTDIR\snapshot_blob.bin"
+  Delete "$INSTDIR\ui_resources_200_percent.pak"
+  Delete "$INSTDIR\vccorlib120.dll"
+  Delete "$INSTDIR\version"
+  Delete "$INSTDIR\xinput1_3.dll"
+
+  ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
+  RMDir /r "$INSTDIR\Interface"
+  Delete "$INSTDIR\vcredist_x64.exe"
+
   ;Use the entire tree produced by the INSTALL target.  Keep the
   ;list of directories here in sync with the RMDir commands below.
   SetOutPath "$INSTDIR"
@@ -769,7 +794,7 @@ Section "-Core installation"
   ; Conditional handling for server console shortcut
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
-      "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
   ${EndIf}
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
@@ -958,7 +983,7 @@ Function HandlePostInstallOptions
     ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
 
     ${If} $DesktopServerState == ${BST_CHECKED}
-      CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+      CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
     ${Else}
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
@@ -968,7 +993,7 @@ Function HandlePostInstallOptions
     ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
 
     ${If} $ServerStartupState == ${BST_CHECKED}
-      CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"
+      CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
 
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
     ${Else}
@@ -1012,7 +1037,7 @@ Function HandlePostInstallOptions
     ; both launches use the explorer trick in case the user has elevated permissions for the installer
     ; it won't be possible to use this approach if either application should be launched with a command line param
     ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-      Exec '"$WINDIR\explorer.exe" "$INSTDIR\@CONSOLE_WIN_EXEC_NAME@"'
+      Exec '"$WINDIR\explorer.exe" "$INSTDIR\\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"'
     ${Else}
       Exec '"$WINDIR\explorer.exe" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"'
     ${EndIf}

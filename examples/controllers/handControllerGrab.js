@@ -165,6 +165,7 @@ var STATE_EQUIP_SPRING = 16;
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
 var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
+var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 
 function stateToName(state) {
     switch (state) {
@@ -1636,6 +1637,13 @@ function MyController(hand) {
                 "collidesWith": COLLIDES_WITH_WHILE_GRABBED
             };
             Entities.editEntity(entityID, whileHeldProperties);
+        } else if (data["refCount"] > 1) {
+            // if an object is being grabbed by more than one person (or the same person twice, but nevermind), switch
+            // the collision groups so that it wont collide with "other" avatars.  This avoids a situation where two
+            // people are holding something and one of them will be able (if the other releases at the right time) to
+            // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
+            // the collision mask hinges on who the physics simulation owner is.
+            Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
         }
 
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);

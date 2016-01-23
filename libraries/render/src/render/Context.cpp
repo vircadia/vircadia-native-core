@@ -19,9 +19,10 @@ RenderContext::RenderContext(ItemsConfig items, Tone tone, AmbientOcclusion ao, 
     _drawStatus{ drawStatus }, _drawHitEffect{ drawHitEffect },
     _items{ items }, _tone{ tone }, _ambientOcclusion{ ao } {}
 
-void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned) {
+void RenderContext::setOptions(bool occlusion, bool fxaa, bool showOwned, bool shadowMap) {
     _occlusionStatus = occlusion;
     _fxaaStatus = fxaa;
+    _shadowMapStatus = shadowMap;
 
     if (showOwned) {
         _drawStatus |= render::showNetworkStatusFlag;
