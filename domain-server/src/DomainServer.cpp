@@ -1148,13 +1148,22 @@ QJsonObject DomainServer::jsonObjectForNode(const SharedNodePointer& node) {
     return nodeJson;
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
+QDir pathForAssignmentScriptsDirectory() {
+    static const QString SCRIPTS_DIRECTORY_NAME = "/scripts/";
+
+    QDir directory(ServerPathUtils::getDataDirectory() + SCRIPTS_DIRECTORY_NAME);
+    if (!directory.exists()) {
+        directory.mkpath(".");
+        qInfo() << "Created path to " << directory.path();
+    }
+
+    return directory;
+}
+
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
-    QString newPath { ServerPathUtils::getDataDirectory() + "/" + QString(ASSIGNMENT_SCRIPT_HOST_LOCATION) };
-    newPath += "/scripts/";
+    QDir directory = pathForAssignmentScriptsDirectory();
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
-    return newPath;
+    return directory.absoluteFilePath(uuidStringWithoutCurlyBraces(assignmentUUID));
 }
 
 const QString URI_OAUTH = "/oauth";
@@ -1162,7 +1171,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
-    const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
 
@@ -1203,13 +1211,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
             // we have a matching assignment and it is for the right type, have the HTTP manager handle it
             // via correct URL for the script so the client can download
-            
-            QUrl scriptURL = url;
-            scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
-                              + uuidStringWithoutCurlyBraces(matchingAssignment->getUUID()));
-            
-            // have the HTTPManager serve the appropriate script file
-            return _httpManager.handleHTTPRequest(connection, scriptURL, true);
+            QFile scriptFile(pathForAssignmentScript(matchingAssignment->getUUID()));
+
+            if (scriptFile.exists() && scriptFile.open(QIODevice::ReadOnly)) {
+                connection->respond(HTTPConnection::StatusCode200, scriptFile.readAll(), "application/javascript");
+            } else {
+                connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
+            }
+            return true;
         }
         
         // request not handled
