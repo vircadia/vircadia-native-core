@@ -11,7 +11,7 @@ Frame {
 
     // FIXME needed?
     Rectangle {
-        anchors { margins: -iconSize; topMargin: -iconSize * (window.closable ? 2 : 1); }
+        anchors { margins: -iconSize; topMargin: -iconSize * ((window && window.closable) ? 2 : 1); }
         anchors.fill: parent;
         color: "#7f7f7f7f";
         radius: 3;
@@ -46,7 +46,7 @@ Frame {
                 }
             }
             FontAwesome {
-                visible: window.closable
+                visible: window ? window.closable : false
                 text: closeClickArea.containsMouse ? "\uf057" : "\uf05c"
                 style: Text.Outline;
                 styleColor: "white"

@@ -23,8 +23,6 @@ FocusScope {
         readonly property int zBasisNormal: 0
         readonly property int zBasisAlwaysOnTop: 4096
         readonly property int zBasisModal: 8192
-        readonly property var messageDialogBuilder: Component { MessageDialog { } }
-        readonly property var nativeMessageDialogBuilder: Component { OriginalDialogs.MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -158,18 +156,22 @@ FocusScope {
         }
     }
 
-    MenuMouseHandler { id: menuPopperUpper }
-
     function raise(item) {
         d.raiseWindow(item);
     }
 
+
+    Component { id: messageDialogBuilder; MessageDialog { } }
     function messageBox(properties) {
-        // Debugging: native message dialog for comparison
-        // d.nativeMessageDialogBuilder.createObject(desktop, properties);
-        return d.messageDialogBuilder.createObject(desktop, properties);
+        return messageDialogBuilder.createObject(desktop, properties);
     }
 
+    Component { id: queryDialogBuilder; QueryDialog { } }
+    function queryBox(properties) {
+        return queryDialogBuilder.createObject(desktop, properties);
+    }
+
+    MenuMouseHandler { id: menuPopperUpper }
     function popupMenu(point) {
         menuPopperUpper.popup(desktop, rootMenu.items, point);
     }
@@ -215,8 +217,8 @@ FocusScope {
     function onWindowFocusChanged() {
         console.log("Focus item is " + offscreenWindow.activeFocusItem);
         var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem) {
-            var rect = desktop.mapToItem(null, focusedItem.x, focusedItem.y, focusedItem.width, focusedItem.height);
+        if (DebugQML && focusedItem && false) {
+            var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
             focusDebugger.visible = true
             focusDebugger.x = rect.x;
             focusDebugger.y = rect.y;

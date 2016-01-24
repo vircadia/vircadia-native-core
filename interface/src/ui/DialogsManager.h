@@ -26,7 +26,6 @@ class CachesSizeDialog;
 class DiskCacheEditor;
 class LodToolsDialog;
 class OctreeStatsDialog;
-class PreferencesDialog;
 class ScriptEditorWindow;
 class QMessageBox;
 class DomainConnectionDialog;
@@ -41,7 +40,6 @@ public:
     QPointer<HMDToolsDialog> getHMDToolsDialog() const { return _hmdToolsDialog; }
     QPointer<LodToolsDialog> getLodToolsDialog() const { return _lodToolsDialog; }
     QPointer<OctreeStatsDialog> getOctreeStatsDialog() const { return _octreeStatsDialog; }
-    QPointer<PreferencesDialog> getPreferencesDialog() const { return _preferencesDialog; }
 
 public slots:
     void toggleAddressBar();
@@ -84,7 +82,6 @@ private:
     QPointer<HMDToolsDialog> _hmdToolsDialog;
     QPointer<LodToolsDialog> _lodToolsDialog;
     QPointer<OctreeStatsDialog> _octreeStatsDialog;
-    QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<ScriptEditorWindow> _scriptEditor;
     QPointer<DomainConnectionDialog> _domainConnectionDialog;
 };

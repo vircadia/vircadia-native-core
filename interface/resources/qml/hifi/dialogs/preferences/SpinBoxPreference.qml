@@ -1,0 +1,34 @@
+import QtQuick 2.5
+import QtQuick.Controls 1.4 as Original
+import "."
+
+Preference {
+    id: root
+    property alias spinner: spinner
+    height: spinner.height
+
+
+    Component.onCompleted: {
+        spinner.value = preference.value;
+    }
+
+    function save() {
+        preference.value = spinner.value;
+        preference.save();
+    }
+
+    Text {
+        text: root.label
+        color: root.enabled ? "black" : "gray"
+        anchors.verticalCenter: spinner.verticalCenter
+    }
+
+    Original.SpinBox {
+        id: spinner
+        decimals: preference.decimals
+        minimumValue: preference.min
+        maximumValue: preference.max
+        width: 100
+        anchors { right: parent.right }
+    }
+}
