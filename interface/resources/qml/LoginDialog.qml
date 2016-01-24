@@ -282,7 +282,7 @@ Window {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.close();
+                root.visible = false;
                 event.accepted = true;
                 break;
 

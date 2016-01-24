@@ -19,7 +19,9 @@ Window {
     HifiConstants { id: hifi }
     anchors.centerIn: parent
     objectName: "AddressBarDialog"
+    frame: HiddenFrame {}
 
+    visible: false
     destroyOnInvisible: false
     resizable: false
     scale: 1.25  // Make this dialog a little larger than normal
@@ -34,7 +36,6 @@ Window {
 
         Image {
             id: backgroundImage
-
             source: "../images/address-bar.svg"
             width: 576 * root.scale
             height: 80 * root.scale
@@ -55,12 +56,12 @@ Window {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
-                    onClicked: {  
+                    onClicked: {
                         addressBarDialog.loadBack()
                     }
                 }
             }
-            
+
             Image {
                 id: forwardArrow
                 source: addressBarDialog.forwardEnabled ? "../images/right-arrow.svg" : "../images/right-arrow-disabled.svg"
@@ -84,7 +85,7 @@ Window {
             // FIXME replace with TextField
             TextInput {
                 id: addressLine
-
+                focus: true
                 anchors {
                     fill: parent
                     leftMargin: parent.height + parent.height + hifi.layout.spacing * 5
@@ -106,19 +107,19 @@ Window {
             addressLine.text = ""
         }
     }
-    
+
     function toggleOrGo() {
-        if (addressLine.text != "") {
+        if (addressLine.text !== "") {
             addressBarDialog.loadAddress(addressLine.text)
         }
-        root.close();
+        root.visible = false;
     }
 
     Keys.onPressed: {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.close()
+                root.visible = false
                 event.accepted = true
                 break
             case Qt.Key_Enter:
