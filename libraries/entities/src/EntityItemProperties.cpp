@@ -32,24 +32,7 @@ KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
 EntityPropertyList PROP_LAST_ITEM = (EntityPropertyList)(PROP_AFTER_LAST_ITEM - 1);
 
 EntityItemProperties::EntityItemProperties(EntityPropertyFlags desiredProperties) :
-
-_id(UNKNOWN_ENTITY_ID),
-_idSet(false),
-_lastEdited(0),
-_type(EntityTypes::Unknown),
-
-_glowLevel(0.0f),
-_localRenderAlpha(1.0f),
-
-_glowLevelChanged(false),
-_localRenderAlphaChanged(false),
-
-_defaultSettings(true),
-_naturalDimensions(1.0f, 1.0f, 1.0f),
-_naturalPosition(0.0f, 0.0f, 0.0f),
-_desiredProperties(desiredProperties),
-
-_entityFound(false)
+    _desiredProperties(desiredProperties) //,
 {
 }
 
