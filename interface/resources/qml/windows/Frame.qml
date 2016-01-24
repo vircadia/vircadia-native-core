@@ -5,6 +5,9 @@ import "../js/Utils.js" as Utils
 
 Item {
     id: frame
+    // Frames always fill their parents, but their decorations may extend
+    // beyond the window via negative margin sizes
+    anchors.fill: parent
 
     // Convenience accessor for the window
     property alias window: frame.parent
