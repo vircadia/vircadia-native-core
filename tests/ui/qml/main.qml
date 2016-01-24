@@ -7,6 +7,7 @@ import "../../../interface/resources/qml"
 import "../../../interface/resources/qml/windows"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
+import "../../../interface/resources/qml/hifi/dialogs"
 
 ApplicationWindow {
     id: appWindow
@@ -195,5 +196,16 @@ ApplicationWindow {
             }
         }
         */
+    }
+
+    Action {
+        text: "Open Browser"
+        shortcut: "Ctrl+Shift+X"
+        onTriggered: {
+            builder.createObject(desktop);
+        }
+        property var builder: Component {
+            ModelBrowserDialog{}
+        }
     }
 }
