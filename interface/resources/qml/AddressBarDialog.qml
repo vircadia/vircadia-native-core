@@ -32,17 +32,6 @@ Window {
         implicitWidth: backgroundImage.width
         implicitHeight: backgroundImage.height
 
-        Timer {
-            running: root.visible
-            interval: 500
-            repeat: true
-            onTriggered: {
-                if (root.enabled && !addressLine.activeFocus) {
-                    addressLine.forceActiveFocus()
-                }
-            }
-        }
-        
         Image {
             id: backgroundImage
 

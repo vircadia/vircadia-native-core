@@ -19,6 +19,7 @@ Fadable {
     // decorations can extend outside it.
     implicitHeight: content.height
     implicitWidth: content.width
+    x: -1; y: -1
 
     property int modality: Qt.NonModal
 
@@ -71,15 +72,11 @@ Fadable {
     // frame styles, like a full desktop frame to simulate a modal window
     property var frame: DefaultFrame { }
 
-    Component.onCompleted: raise();
 
     children: [ frame, content, activator ]
 
-    Component.onDestruction: {
-        content.destroy();
-        console.log("Destroyed " + window);
-        windowDestroyed();
-    }
+    Component.onCompleted: raise();
+    Component.onDestruction: windowDestroyed();
     onParentChanged: raise();
 
     onVisibleChanged: {
@@ -96,9 +93,6 @@ Fadable {
     function raise() {
         if (visible && parent) {
             desktop.raise(window)
-            if (!focus) {
-                focus = true;
-            }
         }
     }
 
@@ -118,15 +112,15 @@ Fadable {
         visible = false;
     }
 
-    function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
+    function framedRect() {
+        if (!frame || !frame.decoration) {
+            return Qt.rect(0, 0, window.width, window.height)
+        }
+        return Qt.rect(frame.decoration.anchors.leftMargin, frame.decoration.anchors.topMargin,
+                       window.width - frame.decoration.anchors.leftMargin - frame.decoration.anchors.rightMargin,
+                       window.height - frame.decoration.anchors.topMargin - frame.decoration.anchors.bottomMargin)
     }
 
-    function clampVector(value, min, max) {
-        return Qt.vector2d(
-                    clamp(value.x, min.x, max.x),
-                    clamp(value.y, min.y, max.y))
-    }
 
     Keys.onPressed: {
         switch(event.key) {
