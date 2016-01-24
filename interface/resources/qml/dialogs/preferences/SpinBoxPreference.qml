@@ -1,12 +1,10 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4 as Original
-import "."
+import QtQuick.Controls 1.4
 
 Preference {
     id: root
     property alias spinner: spinner
     height: spinner.height
-
 
     Component.onCompleted: {
         spinner.value = preference.value;
@@ -23,7 +21,7 @@ Preference {
         anchors.verticalCenter: spinner.verticalCenter
     }
 
-    Original.SpinBox {
+    SpinBox {
         id: spinner
         decimals: preference.decimals
         minimumValue: preference.min

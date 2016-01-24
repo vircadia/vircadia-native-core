@@ -91,10 +91,6 @@ void DialogsManager::cachesSizeDialog() {
     _cachesSizeDialog->raise();
 }
 
-void DialogsManager::editPreferences() {
-    DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/PreferencesDialog.qml"), "PreferencesDialog");
-}
-
 void DialogsManager::editAttachments() {
     if (!_attachmentsDialog) {
         maybeCreateDialog(_attachmentsDialog);

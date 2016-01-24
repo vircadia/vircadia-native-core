@@ -131,7 +131,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
 
     load(url, f);
     item = getRootItem()->findChild<QQuickItem*>(name);
-    if (!item->isVisible()) {
+    if (item && !item->isVisible()) {
         item->setVisible(true);
     }
 }

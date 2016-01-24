@@ -1,7 +1,5 @@
 import QtQuick 2.5
-import QtQuick.Controls 1.4 as Original
-
-import "."
+import QtQuick.Controls 1.4
 
 Preference {
     id: root
@@ -17,14 +15,13 @@ Preference {
         preference.save();
     }
 
-
     Text {
         text: root.label
         color: enabled ? "black" : "gray"
         anchors.verticalCenter: slider.verticalCenter
     }
 
-    Original.Slider {
+    Slider {
         id: slider
         value: preference.value
         width: 130
