@@ -14,8 +14,7 @@
 #include <QApplication>
 #include <QMainWindow>
 #include <QDockWidget>
-#include <QWebFrame>
-#include <QWebView>
+#include <QWebEngineView>
 #include <QListWidget>
 #include <QStyleFactory>
 
@@ -48,7 +47,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     layout->setContentsMargins(0, 0, 0, 0);
     dialogWidget->setLayout(layout);
 
-    _webView = new QWebView(dialogWidget);
+    _webView = new QWebEngineView(dialogWidget);
 
     layout->addWidget(_webView);
 
@@ -69,8 +68,8 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     }
 
     connect(this, &WebWindowClass::destroyed, _windowWidget, &QWidget::deleteLater);
-    connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
-            this, &WebWindowClass::addEventBridgeToWindowObject);
+    //connect(_webView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
+    //        this, &WebWindowClass::addEventBridgeToWindowObject);
 }
 
 WebWindowClass::~WebWindowClass() {
@@ -94,7 +93,7 @@ void WebWindowClass::hasClosed() {
 }
 
 void WebWindowClass::addEventBridgeToWindowObject() {
-    _webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
+//    _webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
 }
 
 void WebWindowClass::setVisible(bool visible) {

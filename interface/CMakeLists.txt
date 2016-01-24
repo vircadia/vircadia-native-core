@@ -42,12 +42,12 @@ endif ()
 if (ANDROID)
   set(PLATFORM_QT_COMPONENTS AndroidExtras)
 else ()
-  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets WebKitWidgets)
+  set(PLATFORM_QT_COMPONENTS WebEngine WebEngineWidgets)
 endif ()
 
 find_package(
   Qt5 COMPONENTS
-  Gui Multimedia Network OpenGL Qml Quick Script ScriptTools Svg
+  Gui Multimedia Network OpenGL Qml Quick Script Svg
   ${PLATFORM_QT_COMPONENTS}
   WebChannel WebSockets
 )
@@ -241,8 +241,8 @@ include_directories("${PROJECT_SOURCE_DIR}/src")
 target_link_libraries(
   ${TARGET_NAME}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL
-  Qt5::Qml Qt5::Quick Qt5::Script Qt5::ScriptTools Qt5::Svg
-  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets Qt5::WebKitWidgets
+  Qt5::Qml Qt5::Quick Qt5::Script Qt5::Svg
+  Qt5::WebChannel Qt5::WebEngine Qt5::WebEngineWidgets 
 )
 
 # Issue causes build failure unless we add this directory.

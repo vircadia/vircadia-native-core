@@ -14,7 +14,7 @@
 
 #include <QScriptContext>
 #include <QScriptEngine>
-#include <QWebView>
+#include <QWebEngineView>
 
 class ScriptEventBridge : public QObject {
     Q_OBJECT
@@ -73,7 +73,7 @@ private slots:
 
 private:
     QWidget* _windowWidget;
-    QWebView* _webView;
+    QWebEngineView* _webView;
     ScriptEventBridge* _eventBridge;
 };
 

@@ -12,15 +12,15 @@
 #ifndef hifi_DataWebPage_h
 #define hifi_DataWebPage_h
 
-#include <qwebpage.h>
+#include <qwebenginepage.h>
 
-class DataWebPage : public QWebPage {
+class DataWebPage : public QWebEnginePage {
 public:
     DataWebPage(QObject* parent = 0);
 protected:
-    void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID) override;
-    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type) override;
-    virtual QString userAgentForUrl(const QUrl& url) const override;
+    //virtual void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID) override;
+    virtual bool acceptNavigationRequest(const QUrl & url, NavigationType type, bool isMainFrame) override;
+    //virtual QString userAgentForUrl(const QUrl& url) const override;
 };
 
 #endif // hifi_DataWebPage_h
