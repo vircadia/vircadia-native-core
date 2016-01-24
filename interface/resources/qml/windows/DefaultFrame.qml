@@ -5,11 +5,7 @@ import "../controls"
 
 Frame {
     id: frame
-    // The frame fills the parent, which should be the size of the content.
-    // The frame decorations use negative anchor margins to extend beyond 
-    anchors.fill: parent
 
-    // FIXME needed?
     Rectangle {
         anchors { margins: -iconSize; topMargin: -iconSize * ((window && window.closable) ? 2 : 1); }
         anchors.fill: parent;
@@ -18,8 +14,6 @@ Frame {
 
         // Allow dragging of the window
         MouseArea {
-            id: dragMouseArea
-            hoverEnabled: true
             anchors.fill: parent
             drag.target: window
         }
