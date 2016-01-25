@@ -117,9 +117,7 @@
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
             var userData = Entities.getEntityProperties(this.entityID).userData;
             this.userData = JSON.parse(userData);
-            print('THIS USERDATA::: ' + userData)
             this.preNotchString = this.userData.bowKey.preNotchString;
-            print('PRE NOTCH STRING:::' + this.preNotchString)
         },
 
         unload: function() {
