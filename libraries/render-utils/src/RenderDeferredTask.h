@@ -159,34 +159,6 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = Model<RenderDeferredTask>;
-
-    void setDrawDebugDeferredBuffer(int draw) { enableJob(_drawDebugDeferredBufferIndex, draw >= 0); }
-    bool doDrawDebugDeferredBuffer() const { return getEnableJob(_drawDebugDeferredBufferIndex); }
-    
-    void setDrawItemStatus(int draw) { enableJob(_drawStatusJobIndex, draw > 0); }
-    bool doDrawItemStatus() const { return getEnableJob(_drawStatusJobIndex); }
-    
-    void setDrawHitEffect(bool draw) { enableJob(_drawHitEffectJobIndex, draw); }
-    bool doDrawHitEffect() const { return getEnableJob(_drawHitEffectJobIndex); }
-
-    void setOcclusionStatus(bool draw) { enableJob(_occlusionJobIndex, draw); }
-    bool doOcclusionStatus() const { return getEnableJob(_occlusionJobIndex); }
-
-    void setAntialiasingStatus(bool draw) { enableJob(_antialiasingJobIndex, draw); }
-    bool doAntialiasingStatus() const { return getEnableJob(_antialiasingJobIndex); }
-
-    void setToneMappingExposure(float exposure);
-
-    void setToneMappingToneCurve(int toneCurve);
-
-
-protected:
-    int _drawDebugDeferredBufferIndex;
-    int _drawStatusJobIndex;
-    int _drawHitEffectJobIndex;
-    int _occlusionJobIndex;
-    int _antialiasingJobIndex;
-    int _toneMappingJobIndex;
 };
 
 #endif // hifi_RenderDeferredTask_h

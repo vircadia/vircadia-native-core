@@ -19,6 +19,8 @@ namespace render {
     class DrawStatusConfig : public Job::Config {
         Q_OBJECT
     public:
+        DrawStatusConfig() : Job::Config(false) {}
+
         Q_PROPERTY(bool showDisplay MEMBER showDisplay NOTIFY dirty)
         Q_PROPERTY(bool showNetwork MEMBER showDisplay NOTIFY dirty)
         bool showDisplay{ false };

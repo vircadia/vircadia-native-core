@@ -113,8 +113,6 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
-    _jobs.back().setEnabled(false);
-    _occlusionJobIndex = (int)_jobs.size() - 1;
 
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     addJob<DrawLight>("DrawLight", cullFunctor);
@@ -124,20 +122,15 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // AA job to be revisited
     addJob<Antialiasing>("Antialiasing");
-    _antialiasingJobIndex = (int)_jobs.size() - 1;
-    enableJob(_antialiasingJobIndex, false);
 
     // Render transparent objects forward in LightingBuffer
     addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
     
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
-    _toneMappingJobIndex = (int)_jobs.size() - 1;
 
     // Debugging Deferred buffer job
     addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
-    _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
-    enableJob(_drawDebugDeferredBufferIndex, false);
 
     // Status icon rendering job
     {
@@ -145,15 +138,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
         auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
         addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
-        _drawStatusJobIndex = (int)_jobs.size() - 1;
-        enableJob(_drawStatusJobIndex, false);
     }
 
     addJob<DrawOverlay3D>("DrawOverlay3D", shapePlumber);
 
     addJob<HitEffect>("HitEffect");
-    _drawHitEffectJobIndex = (int)_jobs.size() -1;
-    enableJob(_drawHitEffectJobIndex, false);
 
     addJob<Blit>("Blit");
 }
@@ -435,18 +424,6 @@ void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPoint
             batch.blit(primaryFbo, rect, blitFbo, rect);
         }
     });
-}
-
-void RenderDeferredTask::setToneMappingExposure(float exposure) {
-    if (_toneMappingJobIndex >= 0) {
-        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setExposure(exposure);
-    }
-}
-
-void RenderDeferredTask::setToneMappingToneCurve(int toneCurve) {
-    if (_toneMappingJobIndex >= 0) {
-        _jobs[_toneMappingJobIndex].edit<ToneMappingDeferred>()._toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)toneCurve);
-    }
 }
 
 void pipelineBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {

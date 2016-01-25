@@ -82,7 +82,7 @@ public:
     }
 
     template <class T> void setJobEnabled(bool enable = true, std::string job = "") const {
-        getConfig<T>(name)->enabled = enable;
+        getConfig<T>(job)->enabled = enable;
         refresh(); // trigger a Job->configure
     }
     template <class T> bool isJobEnabled(bool enable = true, std::string job = "") const {
@@ -129,9 +129,6 @@ public:
         Concept(QConfigPointer config) : _config(config) {}
         virtual ~Concept() = default;
 
-        bool isEnabled() const { return _isEnabled; }
-        void setEnabled(bool isEnabled) { _isEnabled = isEnabled; }
-
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
 
@@ -142,7 +139,6 @@ public:
 
     protected:
         QConfigPointer _config;
-        bool _isEnabled = true;
     };
     using ConceptPointer = std::shared_ptr<Concept>;
 
@@ -161,7 +157,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            renderContext->jobConfig = std::static_pointer_cast<Job::Config>(_config);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext);
             }
@@ -188,7 +184,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            renderContext->jobConfig = std::static_pointer_cast<Job::Config>(_config);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRunI(_data, sceneContext, renderContext, _input.get<I>());
             }
@@ -215,7 +211,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            renderContext->jobConfig = std::static_pointer_cast<Job::Config>(_config);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
             }
@@ -245,7 +241,7 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            renderContext->jobConfig = std::static_pointer_cast<Job::Config>(_config);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
             if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
             }
@@ -254,9 +250,6 @@ public:
     };
 
     Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
-
-    bool isEnabled() const { return _concept->isEnabled(); }
-    void setEnabled(bool isEnabled) { _concept->setEnabled(isEnabled); }
 
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
@@ -310,9 +303,11 @@ public:
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            if (isEnabled()) {
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
+            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
                 jobRun(_data, sceneContext, renderContext);
             }
+            renderContext->jobConfig.reset();
         }
     };
 
@@ -344,8 +339,6 @@ public:
             job.applyConfiguration();
         }
     }
-    void enableJob(size_t jobIndex, bool enable = true) { _jobs.at(jobIndex).setEnabled(enable); }
-    bool getEnableJob(size_t jobIndex) const { return _jobs.at(jobIndex).isEnabled(); }
 
 protected:
     template <class T, class C> friend class Model;
