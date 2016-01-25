@@ -112,12 +112,12 @@ template <class T, class I, class O> void jobRunIO(T& model, const SceneContextP
 class Job {
 public:
     using Config = JobConfig;
-    using QConfig = std::shared_ptr<QObject>;
+    using QConfigPointer = std::shared_ptr<QObject>;
 
     // The guts of a job
     class Concept {
     public:
-        Concept(QConfig config) : _config(config) {}
+        Concept(QConfigPointer config) : _config(config) {}
         virtual ~Concept() = default;
 
         bool isEnabled() const { return _isEnabled; }
@@ -126,13 +126,13 @@ public:
         virtual const Varying getInput() const { return Varying(); }
         virtual const Varying getOutput() const { return Varying(); }
 
-        virtual QConfig& getConfiguration() { return _config; }
+        virtual QConfigPointer& getConfiguration() { return _config; }
         virtual void applyConfiguration() = 0;
 
         virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
     protected:
-        QConfig _config;
+        QConfigPointer _config;
         bool _isEnabled = true;
     };
     using ConceptPointer = std::shared_ptr<Concept>;
@@ -251,7 +251,7 @@ public:
 
     const Varying getInput() const { return _concept->getInput(); }
     const Varying getOutput() const { return _concept->getOutput(); }
-    QConfig& getConfiguration() const { return _concept->getConfiguration(); }
+    QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
     void applyConfiguration() { return _concept->applyConfiguration(); }
 
     template <class T> T& edit() {
@@ -279,7 +279,7 @@ public:
 class Task {
 public:
     using Config = TaskConfig;
-    using QConfig = Job::QConfig;
+    using QConfigPointer = Job::QConfigPointer;
 
     template <class T, class C = Config> class Model : public Job::Concept {
     public:
@@ -316,7 +316,7 @@ public:
     // Queue a new job to the container; returns the job's output
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
         _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(std::forward<A>(args)...));
-        QConfig config = _jobs.back().getConfiguration();
+        QConfigPointer config = _jobs.back().getConfiguration();
         config->setParent(_config.get());
         config->setObjectName(name.c_str());
         QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
@@ -340,7 +340,7 @@ public:
 protected:
     template <class T, class C> friend class Model;
 
-    QConfig _config { nullptr };
+    QConfigPointer _config { nullptr };
     Jobs _jobs;
 };
 
