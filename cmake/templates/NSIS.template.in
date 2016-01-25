@@ -826,6 +826,9 @@ FunctionEnd
 !ifdef INNER
 Section "Uninstall"
 
+  ; use user for context of data/startup folders
+  SetShellVarContext current
+
   ReadRegStr $START_MENU SHCTX \
    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "StartMenu"
   ;MessageBox MB_OK "Start menu is in: $START_MENU"
