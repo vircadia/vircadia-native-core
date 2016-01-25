@@ -202,11 +202,13 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                     }
                 }
 
+                results = convertLocationToScriptSemantics(results);
+                results.setEntityFound();
             }
         });
     }
 
-    return convertLocationToScriptSemantics(results);
+    return results;
 }
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {

@@ -1515,7 +1515,6 @@ SelectionDisplay = (function() {
         }
 
         that.updateRotationHandles();
-        that.highlightSelectable();
 
         var rotation, dimensions, position, registrationPoint;
 

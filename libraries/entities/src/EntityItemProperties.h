@@ -272,32 +272,36 @@ public:
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
 
+    void setEntityFound() { _entityFound = true; }
+
 protected:
     QString getCollisionMaskAsString() const;
     void setCollisionMaskFromString(const QString& maskString);
 
 private:
-    QUuid _id;
-    bool _idSet;
-    quint64 _lastEdited;
-    EntityTypes::EntityType _type;
+    QUuid _id { UNKNOWN_ENTITY_ID };
+    bool _idSet { false };
+    quint64 _lastEdited { 0 };
+    EntityTypes::EntityType _type { EntityTypes::Unknown };
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
 
-    float _glowLevel;
-    float _localRenderAlpha;
-    bool _glowLevelChanged;
-    bool _localRenderAlphaChanged;
-    bool _defaultSettings;
-    bool _dimensionsInitialized = true; // Only false if creating an entity localy with no dimensions properties
+    float _glowLevel { 0.0f };
+    float _localRenderAlpha { 1.0f };
+    bool _glowLevelChanged { false };
+    bool _localRenderAlphaChanged { false };
+    bool _defaultSettings { true };
+    bool _dimensionsInitialized { true }; // Only false if creating an entity locally with no dimensions properties
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
     QVector<SittingPoint> _sittingPoints;
     QStringList _textureNames;
-    glm::vec3 _naturalDimensions;
-    glm::vec3 _naturalPosition;
+    glm::vec3 _naturalDimensions { 1.0f, 1.0f, 1.0f };
+    glm::vec3 _naturalPosition { 0.0f, 0.0f, 0.0f };
 
     EntityPropertyFlags _desiredProperties; // if set will narrow scopes of copy/to/from to just these properties
+
+    bool _entityFound { false };
 };
 
 Q_DECLARE_METATYPE(EntityItemProperties);
