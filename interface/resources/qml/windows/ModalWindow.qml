@@ -6,6 +6,8 @@ Window {
     id: root
     anchors.centerIn: parent
     modality: Qt.ApplicationModal
+    destroyOnCloseButton: true
+    destroyOnInvisible: true
     frame: ModalFrame{}
 }
 

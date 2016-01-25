@@ -87,8 +87,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
         renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderRearView(renderArgs); // renders the mirror view selfie
-        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 

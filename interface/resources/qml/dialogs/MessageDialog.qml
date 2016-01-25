@@ -19,7 +19,6 @@ ModalWindow {
     signal selected(int button);
 
     function click(button) {
-        console.log("User clicked " + button)
         clickedButton = button;
         selected(button);
         destroy();

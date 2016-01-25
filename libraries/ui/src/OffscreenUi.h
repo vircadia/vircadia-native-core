@@ -13,9 +13,11 @@
 #define hifi_OffscreenUi_h
 
 #include <QtCore/QVariant>
-#include <gl/OffscreenQmlSurface.h>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QInputDialog>
 
-#include <QMessageBox>
+#include <gl/OffscreenQmlSurface.h>
 #include <DependencyManager.h>
 
 #include "OffscreenQmlElement.h"
@@ -78,7 +80,18 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
-    QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QVariant inputDialog(const QString& query, const QString& placeholderText = QString(), const QString& currentValue = QString());
+
+    // FIXME implement
+    static QVariant query(const QString& query, const QString& placeholderText = QString(), const QString& currentValue = QString());
+
+    // FIXME implement
+    // Compatibility with QFileDialog::getOpenFileName
+    static QString getOpenFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+
+    // Compatibility with QInputDialog::getText
+    static QString getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
 
 private:
     QQuickItem* _desktop { nullptr };
