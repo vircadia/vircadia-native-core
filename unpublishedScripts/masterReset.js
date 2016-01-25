@@ -399,7 +399,7 @@ MasterReset = function() {
                 name: 'Hifi-Bow-Pre-Notch-String',
                 type: 'Line',
                 position: topStringPosition,
-                rotation:BOW_ROTATION,
+                rotation:bowProperties.rotation,
                 linePoints: [{
                     x: 0,
                     y: 0,
