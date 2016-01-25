@@ -101,8 +101,6 @@ template <class T, class C> void jobConfigure(T& model, const C& configuration) 
 }
 template<class T> void jobConfigure(T&, const JobConfig&) {
 }
-template<class T> void jobConfigure(T&, const TaskConfig&) {
-}
 
 // FIXME: In c++17, use default classes of nullptr_t to combine these
 template <class T> void jobRun(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
