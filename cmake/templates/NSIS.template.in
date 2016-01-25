@@ -12,13 +12,7 @@
 
   Var MUI_TEMP
   Var STARTMENU_FOLDER
-  Var SV_ALLUSERS
   Var START_MENU
-  Var DO_NOT_ADD_TO_PATH
-  Var ADD_TO_PATH_ALL_USERS
-  Var ADD_TO_PATH_CURRENT_USER
-  Var INSTALL_DESKTOP
-  Var IS_DEFAULT_INSTALLDIR
 
 ;--------------------------------
 ;Include Modern UI
@@ -678,7 +672,6 @@ FunctionEnd
   ;Keep these lines before any File command
   ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
 
-  ReserveFile "NSIS.InstallOptions.ini"
   ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
 
 ;--------------------------------
@@ -768,7 +761,6 @@ Section "-Core installation"
   Push "Contact"
   Push "@CPACK_NSIS_CONTACT@"
   Call ConditionalAddToRegisty
-  !insertmacro INSTALLOPTIONS_READ $INSTALL_DESKTOP "NSIS.InstallOptions.ini" "Field 5" "State"
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
 
   ;Create shortcuts
@@ -799,26 +791,9 @@ Section "-Core installation"
 
   CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
 
-  ;Read a value from an InstallOptions INI file
-  !insertmacro INSTALLOPTIONS_READ $DO_NOT_ADD_TO_PATH "NSIS.InstallOptions.ini" "Field 2" "State"
-  !insertmacro INSTALLOPTIONS_READ $ADD_TO_PATH_ALL_USERS "NSIS.InstallOptions.ini" "Field 3" "State"
-  !insertmacro INSTALLOPTIONS_READ $ADD_TO_PATH_CURRENT_USER "NSIS.InstallOptions.ini" "Field 4" "State"
-
   ; Write special uninstall registry entries
   Push "StartMenu"
   Push "$STARTMENU_FOLDER"
-  Call ConditionalAddToRegisty
-  Push "DoNotAddToPath"
-  Push "$DO_NOT_ADD_TO_PATH"
-  Call ConditionalAddToRegisty
-  Push "AddToPathAllUsers"
-  Push "$ADD_TO_PATH_ALL_USERS"
-  Call ConditionalAddToRegisty
-  Push "AddToPathCurrentUser"
-  Push "$ADD_TO_PATH_CURRENT_USER"
-  Call ConditionalAddToRegisty
-  Push "InstallToDesktop"
-  Push "$INSTALL_DESKTOP"
   Call ConditionalAddToRegisty
 
   !insertmacro MUI_STARTMENU_WRITE_END
@@ -834,14 +809,6 @@ Section "-Add to path"
     Call AddToPath
   doNotAddToPath:
 SectionEnd
-
-;--------------------------------
-; Create custom pages
-Function InstallOptionsPage
-  !insertmacro MUI_HEADER_TEXT "Install Options" "Choose options for installing @CPACK_NSIS_PACKAGE_NAME@"
-  !insertmacro INSTALLOPTIONS_DISPLAY "NSIS.InstallOptions.ini"
-
-FunctionEnd
 
 ; Make sure nsDialogs is included before we use it
 !include "nsdialogs.nsh"
@@ -1012,8 +979,6 @@ Function HandlePostInstallOptions
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
 
     ${If} $CopyFromProductionState == ${BST_CHECKED}
-      SetShellVarContext current
-
       StrCpy $0 "$APPDATA\@BUILD_ORGANIZATION@"
 
       ; we need to copy whatever is in the data folder for production build to the data folder for this build
@@ -1115,26 +1080,6 @@ Function un.onInit
     Quit
   ${EndSwitch}
 
-  ClearErrors
-  UserInfo::GetName
-  IfErrors noLM
-  Pop $0
-  UserInfo::GetAccountType
-  Pop $1
-  StrCmp $1 "Admin" 0 +3
-    SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Admin group'
-    Goto done
-  StrCmp $1 "Power" 0 +3
-    SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Power Users group'
-    Goto done
-
-  noLM:
-    ;Get installation folder from registry if available
-
-  done:
-
 FunctionEnd
 
 ;--- Add/Remove callback functions: ---
@@ -1195,16 +1140,6 @@ Section "Uninstall"
   ReadRegStr $START_MENU SHCTX \
    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "StartMenu"
   ;MessageBox MB_OK "Start menu is in: $START_MENU"
-  ReadRegStr $DO_NOT_ADD_TO_PATH SHCTX \
-    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "DoNotAddToPath"
-  ReadRegStr $ADD_TO_PATH_ALL_USERS SHCTX \
-    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "AddToPathAllUsers"
-  ReadRegStr $ADD_TO_PATH_CURRENT_USER SHCTX \
-    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "AddToPathCurrentUser"
-  ;MessageBox MB_OK "Add to path: $DO_NOT_ADD_TO_PATH all users: $ADD_TO_PATH_ALL_USERS"
-  ReadRegStr $INSTALL_DESKTOP SHCTX \
-    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "InstallToDesktop"
-  ;MessageBox MB_OK "Install to desktop: $INSTALL_DESKTOP "
 
 @CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS@
 
@@ -1294,16 +1229,6 @@ Section "Uninstall"
 SectionEnd
 !endif
 
-;--------------------------------
-; determine admin versus local install
-; Is install for "AllUsers" or "JustMe"?
-; Default to "JustMe" - set to "AllUsers" if admin or on Win9x
-; This function is used for the very first "custom page" of the installer.
-; This custom page does not show up visibly, but it executes prior to the
-; first visible page and sets up $INSTDIR properly...
-; Choose different default installation folder based on SV_ALLUSERS...
-; "Program Files" for AllUsers, "My Documents" for JustMe...
-
 Function .onInit
 
   !ifdef INNER
@@ -1348,48 +1273,6 @@ inst:
   ; Reads components status for registry
   !insertmacro SectionList "InitSection"
 
-  ; check to see if /D has been used to change
-  ; the install directory by comparing it to the
-  ; install directory that is expected to be the
-  ; default
-  StrCpy $IS_DEFAULT_INSTALLDIR 0
-  StrCmp "$INSTDIR" "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@" 0 +2
-    StrCpy $IS_DEFAULT_INSTALLDIR 1
-
-  StrCpy $SV_ALLUSERS "JustMe"
-  ; if default install dir then change the default
-  ; if it is installed for JustMe
-  StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
-    StrCpy $INSTDIR "$DOCUMENTS\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
-
-  ClearErrors
-  UserInfo::GetName
-  IfErrors noLM
-  Pop $0
-  UserInfo::GetAccountType
-  Pop $1
-  StrCmp $1 "Admin" 0 +4
-    SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Admin group'
-    StrCpy $SV_ALLUSERS "AllUsers"
-    Goto done
-  StrCmp $1 "Power" 0 +4
-    SetShellVarContext all
-    ;MessageBox MB_OK 'User "$0" is in the Power Users group'
-    StrCpy $SV_ALLUSERS "AllUsers"
-    Goto done
-
-  noLM:
-    StrCpy $SV_ALLUSERS "AllUsers"
-    ;Get installation folder from registry if available
-
-  done:
-  StrCmp $SV_ALLUSERS "AllUsers" 0 +3
-    StrCmp "$IS_DEFAULT_INSTALLDIR" "1" 0 +2
-      StrCpy $INSTDIR "@CPACK_NSIS_INSTALL_ROOT@\@CPACK_PACKAGE_INSTALL_DIRECTORY@"
-
-  StrCmp "@CPACK_NSIS_MODIFY_PATH@" "ON" 0 noOptionsPage
-    !insertmacro INSTALLOPTIONS_EXTRACT "NSIS.InstallOptions.ini"
-
-  noOptionsPage:
+  ; use user for context of data/startup folders
+  SetShellVarContext current
 FunctionEnd
