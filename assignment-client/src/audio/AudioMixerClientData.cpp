@@ -113,13 +113,14 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
         // check the overflow count before we parse data
         auto overflowBefore = matchingStream->getOverflowCount();
-        matchingStream->parseData(message);
+        auto parseResult = matchingStream->parseData(message);
 
         if (matchingStream->getOverflowCount() > overflowBefore) {
             qDebug() << "Just overflowed on stream from" << message.getSourceID() << "at" << message.getSenderSockAddr();
             qDebug() << "This stream is for" << (isMicStream ? "microphone audio" : "injected audio");
-
         }
+
+        return parseResult;
     }
     return 0;
 }
