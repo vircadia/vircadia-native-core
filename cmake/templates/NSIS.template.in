@@ -432,12 +432,21 @@ Section "-Core installation"
   !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
 
   ;Create shortcuts
+
+  ; in case the user has any shortcuts from prior to when we were using the user context, remove those now
+  SetShellVarContext all
+  RMDir /r "$SMPROGRAMS\$STARTMENU_FOLDER"
+
+  ; go back to current user context before setting up the startmenu folder
+  SetShellVarContext current
+
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
   ; Conditional handling for Interface specific options
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
@@ -592,6 +601,15 @@ Var LaunchNowState
 Var CopyFromProductionState
 
 Function HandlePostInstallOptions
+  ; If the user created shortcuts from a time prior to when we using current user context, pull them now
+  SetShellVarContext all
+
+  Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
+
+  ; return the context to the current user so the shortcuts are correct
+  SetShellVarContext current
+
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
