@@ -22,7 +22,7 @@ public:
     DebugDeferredBufferConfig() : render::Job::Config(false) {}
 
     Q_PROPERTY(bool enabled MEMBER enabled)
-    Q_PROPERTY(int mode MEMBER mode WRITE setMode NOTIFY dirty)
+    Q_PROPERTY(int mode MEMBER mode WRITE setMode)
     Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
     void setMode(int newMode);
  

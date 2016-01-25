@@ -22,28 +22,31 @@ public:
     AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
 
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
-    Q_PROPERTY(float radius MEMBER radius WRITE setRadius NOTIFY dirty)
-    Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel NOTIFY dirty)
-    Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias NOTIFY dirty)
-    Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness NOTIFY dirty)
-    Q_PROPERTY(float blurDeviation MEMBER blurDeviation WRITE setBlurDeviation NOTIFY dirty)
-    Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns WRITE setNumSpiralTurns NOTIFY dirty)
-    Q_PROPERTY(int numSamples MEMBER numSamples WRITE setNumSamples NOTIFY dirty)
-    Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel WRITE setResolutionLevel NOTIFY dirty)
-    Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
+    Q_PROPERTY(float radius MEMBER radius WRITE setRadius)
+    Q_PROPERTY(float obscuranceLevel MEMBER obscuranceLevel WRITE setObscuranceLevel)
+    Q_PROPERTY(float falloffBias MEMBER falloffBias WRITE setFalloffBias)
+    Q_PROPERTY(float edgeSharpness MEMBER edgeSharpness WRITE setEdgeSharpness)
+    Q_PROPERTY(float blurDeviation MEMBER blurDeviation WRITE setBlurDeviation)
+    Q_PROPERTY(float numSpiralTurns MEMBER numSpiralTurns WRITE setNumSpiralTurns)
+    Q_PROPERTY(int numSamples MEMBER numSamples WRITE setNumSamples)
+    Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel WRITE setResolutionLevel)
+    Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
     Q_PROPERTY(double gpuTime READ getGpuTime)
 
-    void setRadius(float radius);
-    void setObscuranceLevel(float obscuranceLevel);
-    void setFalloffBias(float falloffBias);
-    void setEdgeSharpness(float edgeSharpness);
-    void setBlurDeviation(float blurDeviation);
-    void setNumSpiralTurns(float numSpiralTurns);
-    void setNumSamples(int numSamples);
-    void setResolutionLevel(int resolutionLevel);
-    void setBlurRadius(int blurRadius);
+    const int MAX_RESOLUTION_LEVEL = 4;
+    const int MAX_BLUR_RADIUS = 6;
+
+    void setRadius(float newRadius) { radius = std::max(0.01f, newRadius); emit dirty(); }
+    void setObscuranceLevel(float level) { obscuranceLevel = std::max(0.01f, level); emit dirty(); }
+    void setFalloffBias(float bias) { falloffBias = std::max(0.0f, std::min(bias, 0.2f)); emit dirty(); }
+    void setEdgeSharpness(float sharpness) { edgeSharpness = std::max(0.0f, (float)sharpness); emit dirty(); }
+    void setBlurDeviation(float deviation) { blurDeviation = std::max(0.0f, deviation); emit dirty(); }
+    void setNumSpiralTurns(float turns) { numSpiralTurns = std::max(0.0f, (float)turns); emit dirty(); }
+    void setNumSamples(int samples) { numSamples = std::max(1.0f, (float)samples); emit dirty(); }
+    void setResolutionLevel(int level) { resolutionLevel = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL)); emit dirty(); }
+    void setBlurRadius(int radius) { blurRadius = std::max(0, std::min(MAX_BLUR_RADIUS, radius)); emit dirty(); }
     double getGpuTime() { return gpuTime; }
 
     float radius{ 0.5f };

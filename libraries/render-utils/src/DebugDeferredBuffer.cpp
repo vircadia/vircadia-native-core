@@ -28,11 +28,14 @@
 using namespace render;
 
 void DebugDeferredBufferConfig::setMode(int newMode) {
-    if (newMode > (int)DebugDeferredBuffer::Custom || newMode < 0) {
+    if (newMode == mode) {
+        return;
+    } else if (newMode > (int)DebugDeferredBuffer::Custom || newMode < 0) {
         mode = (int)DebugDeferredBuffer::Custom;
     } else {
         mode = newMode;
     }
+    emit dirty();
 }
 
 enum Slots {

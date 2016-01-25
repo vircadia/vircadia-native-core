@@ -33,44 +33,6 @@
 #include "ssao_makeHorizontalBlur_frag.h"
 #include "ssao_makeVerticalBlur_frag.h"
 
-void AmbientOcclusionEffectConfig::setRadius(float newRadius) {
-    radius = std::max(0.01f, radius);
-}
- 
-void AmbientOcclusionEffectConfig::setObscuranceLevel(float level) {
-    level = std::max(0.01f, level);
-}
-
-void AmbientOcclusionEffectConfig::setFalloffBias(float bias) {
-    bias = std::max(0.0f, std::min(bias, 0.2f));
-}
-
-void AmbientOcclusionEffectConfig::setEdgeSharpness(float sharpness) {
-    sharpness = std::max(0.0f, (float)sharpness);
-}
-
-void AmbientOcclusionEffectConfig::setBlurDeviation(float deviation) {
-    deviation = std::max(0.0f, deviation);
-}
-
-void AmbientOcclusionEffectConfig::setNumSpiralTurns(float numTurns) {
-    numTurns = std::max(0.0f, (float)numTurns);
-}
-
-void AmbientOcclusionEffectConfig::setNumSamples(int numSamples) {
-    numSamples = std::max(1.0f, (float) numSamples);
-}
-
-void AmbientOcclusionEffectConfig::setResolutionLevel(int level) {
-    const int MAX_RESOLUTION_LEVEL = 4;
-    level = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL));
-}
-
-void AmbientOcclusionEffectConfig::setBlurRadius(int radius) {
-    const int MAX_BLUR_RADIUS = 6;
-    radius = std::max(0, std::min(MAX_BLUR_RADIUS, radius));
-}
-
 class GaussianDistribution {
 public:
     
