@@ -691,7 +691,7 @@ FunctionEnd
 
       ; the process is running, ask the user to close it
       MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
-        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it to continue." \
+        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and click Retry to continue." \
         /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
 
       ; If the user decided to cancel, stop the current installer/uninstaller
