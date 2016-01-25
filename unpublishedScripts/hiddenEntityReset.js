@@ -415,6 +415,7 @@
                 name: 'Hifi-Bow-Pre-Notch-String',
                 type: 'Line',
                 position: topStringPosition,
+                rotation:BOW_ROTATION,
                 linePoints: [{
                     x: 0,
                     y: 0,
