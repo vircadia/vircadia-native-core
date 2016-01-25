@@ -60,11 +60,7 @@ public:
     JobConfig() : alwaysEnabled{ true }, enabled{ true } {}
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
-    Q_PROPERTY(bool enabled MEMBER enabled READ isEnabled)
-    Q_PROPERTY(bool alwaysEnabled READ isAlwaysEnabled)
-
     bool isEnabled() { return alwaysEnabled || enabled; }
-    bool isAlwaysEnabled() { return alwaysEnabled; }
 
     bool alwaysEnabled{ true };
     bool enabled;
@@ -79,6 +75,19 @@ public:
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
     void init(Task* task) { _task = task; }
+
+    template <class T> typename T::Config* getConfig(std::string job = "") const {
+        QString name = job.empty() ? QString() : QString(job.c_str()); // an empty string is not a null string
+        return findChild<typename T::Config*>(name);
+    }
+
+    template <class T> void setJobEnabled(bool enable = true, std::string job = "") const {
+        getConfig<T>(name)->enabled = enable;
+        refresh(); // trigger a Job->configure
+    }
+    template <class T> bool isJobEnabled(bool enable = true, std::string job = "") const {
+        return getConfig<T>(job)->isEnabled();
+    }
 
 public slots:
     void refresh();
@@ -323,10 +332,11 @@ public:
         return _jobs.back().getOutput();
     }
 
-    QConfig getConfiguration() {
+    std::shared_ptr<Config> getConfiguration() {
+        auto config = std::static_pointer_cast<Config>(_config);
         // If we are here, we were not made by a Model, so we must initialize our own config
-        std::static_pointer_cast<Config>(_config)->init(this);
-        return _config;
+        config->init(this);
+        return config;
     }
 
     void configure(const QObject& configuration) {
