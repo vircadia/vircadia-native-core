@@ -20,6 +20,8 @@ class AntiAliasingConfig : public render::Job::Config {
     Q_OBJECT
 public:
     AntiAliasingConfig() : render::Job::Config(false) {}
+
+    Q_PROPERTY(bool enabled MEMBER enabled)
 };
 
 class Antialiasing {

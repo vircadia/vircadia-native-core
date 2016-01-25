@@ -15,6 +15,8 @@ class HitEffectConfig : public render::Job::Config {
     Q_OBJECT
 public:
     HitEffectConfig() : render::Job::Config(false) {}
+
+    Q_PROPERTY(bool enabled MEMBER enabled)
 };
 
 class HitEffect {

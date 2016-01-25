@@ -81,7 +81,7 @@ public:
         return findChild<typename T::Config*>(name);
     }
 
-    template <class T> void setJobEnabled(bool enable = true, std::string job = "") const {
+    template <class T> void setJobEnabled(bool enable = true, std::string job = "") {
         getConfig<T>(job)->enabled = enable;
         refresh(); // trigger a Job->configure
     }
