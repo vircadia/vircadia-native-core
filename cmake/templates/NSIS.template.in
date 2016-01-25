@@ -993,6 +993,12 @@ Function HandlePostInstallOptions
     ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
 
     ${If} $ServerStartupState == ${BST_CHECKED}
+      ; in case we added a shortcut in the global context, pull that now
+      SetShellVarContext all
+      Delete "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk"
+
+      ; make a startup shortcut in this user's current context
+      SetShellVarContext current
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
 
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
