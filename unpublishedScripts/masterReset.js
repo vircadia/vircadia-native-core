@@ -399,7 +399,7 @@ MasterReset = function() {
                 name: 'Hifi-Bow-Pre-Notch-String',
                 type: 'Line',
                 position: topStringPosition,
-                rotation:bowProperties.rotation,
+                rotation: Quat.fromPitchYawRollDegrees(164.6, 164.5, -72),
                 linePoints: [{
                     x: 0,
                     y: 0,
@@ -438,6 +438,7 @@ MasterReset = function() {
 
         makeBow();
     }
+    
     function createFire() {
 
 
