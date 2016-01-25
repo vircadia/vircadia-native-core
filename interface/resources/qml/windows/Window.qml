@@ -33,6 +33,8 @@ Fadable {
     property bool alwaysOnTop: false
     // Should hitting the close button hide or destroy the window?
     property bool destroyOnCloseButton: true
+    // Should hiding the window destroy it or just hide it?
+    property bool destroyOnInvisible: false
     // FIXME support for pinned / unpinned pending full design
     // property bool pinnable: false
     // property bool pinned: false
@@ -117,13 +119,15 @@ Fadable {
     // don't do anything but manipulate the targetVisible flag and let the other
     // mechanisms decide if the window should be destroyed after the close
     // animation completes
-    function close() {
-        console.log("Closing " + window)
-        if (destroyOnCloseButton) {
-            destroyOnInvisible = true
-        }
-        visible = false;
-    }
+    // FIXME using this close function messes up the visibility signals received by the
+    // type and it's derived types
+//    function close() {
+//        console.log("Closing " + window)
+//        if (destroyOnCloseButton) {
+//            destroyOnInvisible = true
+//        }
+//        visible = false;
+//    }
 
     function framedRect() {
         if (!frame || !frame.decoration) {
