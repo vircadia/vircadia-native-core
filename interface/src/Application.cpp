@@ -4253,12 +4253,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
     if (realUrl.isLocalFile()) {
         QString message = "You can not use local files for avatar components.";
-
-        QMessageBox msgBox;
-        msgBox.setText(message);
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.exec();
+        OffscreenUi::warning("", message);
         return false;
     }
 
@@ -4267,32 +4262,22 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
 
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setWindowTitle("Set Avatar");
-    QPushButton* bodyAndHeadButton = NULL;
-
     QString modelName = fstMapping["name"].toString();
-    QString message;
-    QString typeInfo;
+    bool ok = false;
     switch (modelType) {
 
         case FSTReader::HEAD_AND_BODY_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
-            bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+             ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
+							   QString("Would you like to use '") + modelName + "' for your avatar?",
+							   QMessageBox::Ok | QMessageBox::Cancel);
         break;
 
         default:
-            message = QString(modelName + QString("Does not support a head and body as required."));
+            OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
         break;
     }
 
-    msgBox.setText(message);
-    msgBox.addButton(QMessageBox::Cancel);
-
-    msgBox.exec();
-
-    if (msgBox.clickedButton() == bodyAndHeadButton) {
+    if (ok) {
         getMyAvatar()->useFullAvatarURL(url, modelName);
         emit fullAvatarURLChanged(url, modelName);
     } else {
