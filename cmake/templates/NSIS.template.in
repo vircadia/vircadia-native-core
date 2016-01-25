@@ -682,14 +682,25 @@ FunctionEnd
 !include nsProcess.nsh
 
 !macro PromptForRunningApplication applicationName displayName action prompter
-  ${nsProcess::FindProcess} ${applicationName} $R0
+  !define UniqueID ${__LINE__}
 
-  ${If} $R0 == 0
-    ; the process is running, ask the user if they want us to close it
-    MessageBox MB_OK|MB_ICONEXCLAMATION \
-      "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it and try again."
-    Abort
-  ${EndIf}
+  Prompt_${UniqueID}:
+
+    ${nsProcess::FindProcess} ${applicationName} $R0
+
+    ${If} $R0 == 0
+
+      ; the process is running, ask the user to close it
+      MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
+        "${displayName} cannot be ${action} while ${displayName} is running.$\r$\nPlease close it to continue." \
+        /SD IDCANCEL IDRETRY Prompt_${UniqueID} IDCANCEL 0
+
+      ; If the user decided to cancel, stop the current installer/uninstaller
+      Abort
+
+    ${EndIf}
+
+  !undef UniqueID
 !macroend
 
 !macro CheckForRunningApplications action prompter
