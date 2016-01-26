@@ -84,7 +84,7 @@ private slots:
     
 private:
     void setupInjection();
-    uint64_t injectNextFrame();
+    int64_t injectNextFrame();
     bool injectLocally();
     
     QByteArray _audioData;

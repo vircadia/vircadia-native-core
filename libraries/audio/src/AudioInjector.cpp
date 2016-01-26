@@ -158,10 +158,10 @@ bool AudioInjector::injectLocally() {
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
-static const uint64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = 0;
-static const uint64_t NEXT_FRAME_DELTA_IMMEDIATELY = 1;
+static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
+static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
-uint64_t AudioInjector::injectNextFrame() {
+int64_t AudioInjector::injectNextFrame() {
     
     if (_state == AudioInjector::State::Finished) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
@@ -198,110 +198,123 @@ uint64_t AudioInjector::injectNextFrame() {
             
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
-            
+
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();
-            
+
             // pack the stereo/mono type of the stream
             audioPacketStream << _options.stereo;
-            
+
             // pack the flag for loopback
-            uchar loopbackFlag = (uchar) true;
+            uchar loopbackFlag = (uchar)true;
             audioPacketStream << loopbackFlag;
-            
+
             // pack the position for injected audio
             positionOptionOffset = _currentPacket->pos();
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
-                                           sizeof(_options.position));
-            
+                sizeof(_options.position));
+
             // pack our orientation for injected audio
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
-                                           sizeof(_options.orientation));
-            
+                sizeof(_options.orientation));
+
             // pack zero for radius
             float radius = 0;
             audioPacketStream << radius;
-            
+
             // pack 255 for attenuation byte
             volumeOptionOffset = _currentPacket->pos();
             quint8 volume = MAX_INJECTOR_VOLUME;
             audioPacketStream << volume;
-            
+
             audioPacketStream << _options.ignorePenumbra;
-            
+
             audioDataOffset = _currentPacket->pos();
-            
-        } else {
+
+        }
+        else {
             // no samples to inject, return immediately
             qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
-    
+
     int bytesToCopy = std::min((_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
-                               _audioData.size() - _currentSendOffset);
-    
+        _audioData.size() - _currentSendOffset);
+
     //  Measure the loudness of this frame
     _loudness = 0.0f;
     for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
         _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendOffset + i)) /
-        (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
+            (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
     }
     _loudness /= (float)(bytesToCopy / sizeof(int16_t));
-    
+
     _currentPacket->seek(0);
-    
+
     // pack the sequence number
     _currentPacket->writePrimitive(_outgoingSequenceNumber);
-    
+
     _currentPacket->seek(positionOptionOffset);
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
-    
+
     quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
     _currentPacket->seek(volumeOptionOffset);
     _currentPacket->writePrimitive(volume);
-    
+
     _currentPacket->seek(audioDataOffset);
-    
+
     // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
     _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
-    
+
     // set the correct size used for this packet
     _currentPacket->setPayloadSize(_currentPacket->pos());
-    
+
     // grab our audio mixer from the NodeList, if it exists
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    
+
     if (audioMixer) {
         // send off this audio packet
         nodeList->sendUnreliablePacket(*_currentPacket, *audioMixer);
         _outgoingSequenceNumber++;
     }
-    
+
     _currentSendOffset += bytesToCopy;
-    
+
     if (_currentSendOffset >= _audioData.size()) {
         // we're at the end of the audio data to send
         if (_options.loop) {
             // we were asked to loop, set our send offset to 0
             _currentSendOffset = 0;
-        } else {
+        }
+        else {
             // we weren't to loop, say that we're done now
             finish();
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
-    
+
     if (_currentSendOffset == bytesToCopy) {
         // ask AudioInjectorManager to call us right away again to
         // immediately send the first two frames so the mixer can start using the audio right away
         return NEXT_FRAME_DELTA_IMMEDIATELY;
-    } else {
-        return (++_nextFrame * AudioConstants::NETWORK_FRAME_USECS) - _frameTimer->nsecsElapsed() / 1000;
     }
-    
+
+    const int MAX_ALLOWED_FRAMES_TO_FALL_BEHIND = 7;
+    int64_t currentTime = _frameTimer->nsecsElapsed() / 1000;
+    auto currentFrameBasedOnElapsedTime = currentTime / AudioConstants::NETWORK_FRAME_USECS;
+
+    if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
+        // If we are falling behind by more frames than our threshold, let's skip the frames ahead
+        _nextFrame = currentFrameBasedOnElapsedTime - MAX_ALLOWED_FRAMES_TO_FALL_BEHIND;
+    } else {
+        ++_nextFrame;
+    }
+
+    int64_t playNextFrameAt = _nextFrame * AudioConstants::NETWORK_FRAME_USECS;
+    return std::max(0LL, playNextFrameAt - currentTime);
 }
 
 void AudioInjector::stop() {
