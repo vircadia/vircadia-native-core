@@ -313,7 +313,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     int64_t playNextFrameAt = _nextFrame * AudioConstants::NETWORK_FRAME_USECS;
-    return std::max(0LL, playNextFrameAt - currentTime);
+    return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
 void AudioInjector::stop() {
