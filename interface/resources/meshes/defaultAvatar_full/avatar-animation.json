@@ -420,7 +420,7 @@
                                                                 "id": "idleStand",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/idle.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 90.0,
                                                                     "timeScale": 1.0,
@@ -432,7 +432,7 @@
                                                                 "id": "idleTalk",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/talk/talk.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/talk.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 801.0,
                                                                     "timeScale": 1.0,
@@ -457,7 +457,7 @@
                                                                 "id": "walkFwdShort",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_short_fwd.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/walk_short_fwd.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 39.0,
                                                                     "timeScale": 1.0,
@@ -469,7 +469,7 @@
                                                                 "id": "walkFwdNormal",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_fwd.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/walk_fwd.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 35.0,
                                                                     "timeScale": 1.0,
@@ -481,7 +481,7 @@
                                                                 "id": "walkFwdRun",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/run_fwd.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/run_fwd.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 21.0,
                                                                     "timeScale": 1.0,
@@ -495,7 +495,7 @@
                                                         "id": "idleToWalkFwd",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims/idle_to_walk.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/idle_to_walk.fbx",
                                                             "startFrame": 1.0,
                                                             "endFrame": 19.0,
                                                             "timeScale": 1.0,
@@ -518,7 +518,7 @@
                                                                 "id": "walkBwdShort",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_short_bwd.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/walk_short_bwd.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 38.0,
                                                                     "timeScale": 1.0,
@@ -530,7 +530,7 @@
                                                                 "id": "walkBwdNormal",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/walk_bwd.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/walk_bwd.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 36.0,
                                                                     "timeScale": 1.0,
@@ -544,7 +544,7 @@
                                                         "id": "turnLeft",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_left.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/turn_left.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 28.0,
                                                             "timeScale": 1.0,
@@ -556,7 +556,7 @@
                                                         "id": "turnRight",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/turn_right.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/turn_right.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 30.0,
                                                             "timeScale": 1.0,
@@ -579,7 +579,7 @@
                                                                 "id": "strafeLeftShort",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_short_left.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/side_step_short_left.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 28.0,
                                                                     "timeScale": 1.0,
@@ -591,7 +591,7 @@
                                                                 "id": "strafeLeftNormal",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_left.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/side_step_left.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 30.0,
                                                                     "timeScale": 1.0,
@@ -616,7 +616,7 @@
                                                                 "id": "strafeRightShort",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_short_right.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/side_step_short_right.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 28.0,
                                                                     "timeScale": 1.0,
@@ -628,7 +628,7 @@
                                                                 "id": "strafeRightNormal",
                                                                 "type": "clip",
                                                                 "data": {
-                                                                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/side_step_right.fbx",
+                                                                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/side_step_right.fbx",
                                                                     "startFrame": 0.0,
                                                                     "endFrame": 30.0,
                                                                     "timeScale": 1.0,
@@ -642,7 +642,7 @@
                                                         "id": "awayIntro",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/kneel.fbx",
                                                             "startFrame": 0.0,
                                                             "endFrame": 83.0,
                                                             "timeScale": 1.0,
@@ -654,7 +654,7 @@
                                                         "id": "away",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/kneel.fbx",
                                                             "startFrame": 83.0,
                                                             "endFrame": 84.0,
                                                             "timeScale": 1.0,
@@ -666,7 +666,7 @@
                                                         "id": "awayOutro",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-public.s3.amazonaws.com/ozan/anim/kneel/kneel.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/kneel.fbx",
                                                             "startFrame": 84.0,
                                                             "endFrame": 167.0,
                                                             "timeScale": 1.0,
@@ -678,7 +678,7 @@
                                                         "id": "fly",
                                                         "type": "clip",
                                                         "data": {
-                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims/fly.fbx",
+                                                            "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/fly.fbx",
                                                             "startFrame": 1.0,
                                                             "endFrame": 80.0,
                                                             "timeScale": 1.0,
@@ -700,7 +700,7 @@
                 "id": "userAnimA",
                 "type": "clip",
                 "data": {
-                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/idle.fbx",
                     "startFrame": 0.0,
                     "endFrame": 90.0,
                     "timeScale": 1.0,
@@ -712,7 +712,7 @@
                 "id": "userAnimB",
                 "type": "clip",
                 "data": {
-                    "url": "http://hifi-public.s3.amazonaws.com/ozan/anim/standard_anims/idle.fbx",
+                    "url": "https://s3-us-west-1.amazonaws.com/hifi-content/ozan/dev/anim/standard_anims_160127/idle.fbx",
                     "startFrame": 0.0,
                     "endFrame": 90.0,
                     "timeScale": 1.0,
