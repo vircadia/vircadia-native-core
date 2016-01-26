@@ -146,9 +146,9 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     RenderArgs::RenderMode mode = args->_renderMode;
 
     auto nearClip = viewFrustum->getNearClip();
-    const int SHADOW_NEAR_DEPTH = -2;
+    float nearDepth = -args->_boomOffset.z;
     const int SHADOW_FAR_DEPTH = 20;
-    globalLight->shadow.setKeylightFrustum(viewFrustum, nearClip + SHADOW_NEAR_DEPTH, nearClip + SHADOW_FAR_DEPTH);
+    globalLight->shadow.setKeylightFrustum(viewFrustum, nearDepth, nearClip + SHADOW_FAR_DEPTH);
 
     // Set the keylight render args
     args->_viewFrustum = globalLight->shadow.getFrustum().get();

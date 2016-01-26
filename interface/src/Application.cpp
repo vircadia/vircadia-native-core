@@ -1380,10 +1380,12 @@ void Application::paintGL() {
 
     }
 
+    glm::vec3 boomOffset;
     {
         PerformanceTimer perfTimer("CameraUpdates");
 
         auto myAvatar = getMyAvatar();
+        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
 
         myAvatar->startCapture();
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -1411,18 +1413,16 @@ void Application::paintGL() {
             if (isHMDMode()) {
                 auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                 _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
-                auto worldBoomOffset = myAvatar->getOrientation() * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f));
-                _myCamera.setPosition(extractTranslation(hmdWorldMat) + worldBoomOffset);
+                _myCamera.setPosition(extractTranslation(hmdWorldMat) +
+                    myAvatar->getOrientation() * boomOffset);
             } else {
                 _myCamera.setRotation(myAvatar->getHead()->getOrientation());
                 if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + _myCamera.getRotation()
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                        + _myCamera.getRotation() * boomOffset);
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + myAvatar->getOrientation()
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                        + myAvatar->getOrientation() * boomOffset);
                 }
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -1488,6 +1488,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         PerformanceTimer perfTimer("mainRender");
+        renderArgs._boomOffset = boomOffset;
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
