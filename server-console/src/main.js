@@ -110,8 +110,8 @@ function shutdown() {
             dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
-                title: 'Are you sure?',
-                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.'
+                title: 'Stopping Server Console',
+                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.\nDo you wish to continue?'
             }, shutdownCallback);
         } else {
             shutdownCallback(0);
