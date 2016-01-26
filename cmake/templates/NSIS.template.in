@@ -639,10 +639,13 @@ Function HandlePostInstallOptions
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
+
     ; check if we need to copy settings/content from production for this PR build
     ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
 
     ${If} $CopyFromProductionState == ${BST_CHECKED}
+      SetShellVarContext current
+
       StrCpy $0 "$APPDATA\@BUILD_ORGANIZATION@"
 
       ; we need to copy whatever is in the data folder for production build to the data folder for this build
@@ -660,6 +663,8 @@ Function HandlePostInstallOptions
       "There was a problem copying your production content and settings to $0 for this PR build.$\r$\n$\r$\nPlease copy them manually."
 
       NoError:
+
+      SetShellVarContext all
     ${EndIf}
   ${EndIf}
 
