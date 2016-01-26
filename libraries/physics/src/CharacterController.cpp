@@ -60,6 +60,7 @@ CharacterController::CharacterController() {
     _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
+    _hasSupport = false;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
 
@@ -106,6 +107,28 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }
 
+bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) const {
+    int numManifolds = collisionWorld->getDispatcher()->getNumManifolds();
+    for (int i = 0; i < numManifolds; i++) {
+        btPersistentManifold* contactManifold = collisionWorld->getDispatcher()->getManifoldByIndexInternal(i);
+        const btCollisionObject* obA = static_cast<const btCollisionObject*>(contactManifold->getBody0());
+        const btCollisionObject* obB = static_cast<const btCollisionObject*>(contactManifold->getBody1());
+        if (obA == _rigidBody || obB == _rigidBody) {
+            int numContacts = contactManifold->getNumContacts();
+            for (int j = 0; j < numContacts; j++) {
+                btManifoldPoint& pt = contactManifold->getContactPoint(j);
+
+                // check to see if contact point is touching the bottom sphere of the capsule.
+                float contactPointY = (obA == _rigidBody) ? pt.m_localPointA.getY() : pt.m_localPointB.getY();
+                if (contactPointY < -_halfHeight) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     // trace a ray straight down to see if we're standing on the ground
     const btTransform& xform = _rigidBody->getWorldTransform();
@@ -125,6 +148,8 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
     if (rayCallback.hasHit()) {
         _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
     }
+
+    _hasSupport = checkForSupport(collisionWorld);
 }
 
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
@@ -248,7 +273,7 @@ void CharacterController::jump() {
 
 bool CharacterController::onGround() const {
     const btScalar FLOOR_PROXIMITY_THRESHOLD = 0.3f * _radius;
-    return _floorDistance < FLOOR_PROXIMITY_THRESHOLD;
+    return _floorDistance < FLOOR_PROXIMITY_THRESHOLD || _hasSupport;
 }
 
 void CharacterController::setHovering(bool hover) {
@@ -400,7 +425,7 @@ void CharacterController::preSimulation() {
             if (_floorDistance < JUMP_PROXIMITY_THRESHOLD) {
                 _isJumping = false;
             }
-        } else {
+        } else if (!_hasSupport) {
             _floorDistance = FLT_MAX;
             setHovering(true);
         }
