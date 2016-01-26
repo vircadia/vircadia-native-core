@@ -10,11 +10,13 @@
 //
 #include "Query.h"
 
-#include <QDebug>
+#include "GPULogging.h"
+#include "Batch.h"
 
 using namespace gpu;
 
-Query::Query()
+Query::Query(const Handler& returnHandler) :
+    _returnHandler(returnHandler)
 {
 }
 
@@ -22,6 +24,48 @@ Query::~Query()
 {
 }
 
-double Query::getElapsedTime() {
-    return 0.0;
+double Query::getElapsedTime() const {
+    return ((double) _queryResult) * 0.000001;
+}
+
+void Query::triggerReturnHandler(uint64_t queryResult) {
+    _queryResult = queryResult;
+    if (_returnHandler) {
+        _returnHandler(*this);
+    }
+}
+
+
+RangeTimer::RangeTimer() {
+    for (int i = 0; i < QUERY_QUEUE_SIZE; i++) {
+        _timerQueries.push_back(std::make_shared<gpu::Query>([&, i] (const Query& query) {
+            _tailIndex ++;
+            auto elapsedTime = query.getElapsedTime();
+            _movingAverage.addSample(elapsedTime);
+        }));
+    }
+}
+
+void RangeTimer::begin(gpu::Batch& batch) {
+    _headIndex++;
+    batch.beginQuery(_timerQueries[rangeIndex(_headIndex)]);
+}
+void RangeTimer::end(gpu::Batch& batch) {
+    if (_headIndex < 0) {
+        return;
+    }
+    batch.endQuery(_timerQueries[rangeIndex(_headIndex)]);
+    
+    if (_tailIndex < 0) {
+        _tailIndex = _headIndex;
+    }
+    
+    // Pull the previous tail query hopping to see it return
+    if (_tailIndex != _headIndex) {
+        batch.getQuery(_timerQueries[rangeIndex(_tailIndex)]);
+    }
+}
+
+double RangeTimer::getAverage() const {
+    return _movingAverage.average;
 }

@@ -65,7 +65,7 @@
             {
               "name": "viewpoint",
               "label": "Viewpoint",
-              "placeholder": "/512,512,512"
+              "placeholder": "/0,0,0"
             }
           ]
         }
@@ -308,7 +308,7 @@
           "type": "checkbox",
           "label": "Dynamic Jitter Buffers",
           "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
-          "default": false,
+          "default": true,
           "advanced": true
         },
         {
@@ -386,8 +386,8 @@
           "name": "persistFilename",
           "label": "Entities Filename",
           "help": "the path to the file entities are stored in. Make sure the path exists.",
-          "placeholder": "resources/models.json.gz",
-          "default": "resources/models.json.gz",
+          "placeholder": "models.json.gz",
+          "default": "models.json.gz",
           "advanced": true
         },
         {

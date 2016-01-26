@@ -13,6 +13,7 @@
 
 #include <ViewFrustum.h>
 
+#include "render/Context.h"
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
 
@@ -77,7 +78,9 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-RenderShadowTask::RenderShadowTask() : Task() {
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
+    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
+
     // Prepare the ShapePipeline
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     {
@@ -104,7 +107,7 @@ RenderShadowTask::RenderShadowTask() : Task() {
     auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems);
+    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
 
     // CPU: Sort by pipeline
     auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
@@ -116,9 +119,14 @@ RenderShadowTask::RenderShadowTask() : Task() {
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
-void RenderShadowTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
     RenderArgs* args = renderContext->getArgs();
+
+    // This feature is in a debugging stage - it must be turned on explicitly
+    if (!renderContext->getShadowMapStatus()) {
+        return;
+    }
 
     // sanity checks
     if (!sceneContext->_scene || !args) {
@@ -133,20 +141,26 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const Render
         return;
     }
 
+    // Cache old render args
     ViewFrustum* viewFrustum = args->_viewFrustum;
+    RenderArgs::RenderMode mode = args->_renderMode;
 
     auto nearClip = viewFrustum->getNearClip();
     const int SHADOW_NEAR_DEPTH = -2;
     const int SHADOW_FAR_DEPTH = 20;
     globalLight->shadow.setKeylightFrustum(viewFrustum, nearClip + SHADOW_NEAR_DEPTH, nearClip + SHADOW_FAR_DEPTH);
 
-    // Set the keylight frustum
+    // Set the keylight render args
     args->_viewFrustum = globalLight->shadow.getFrustum().get();
+    args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
+
+    // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
 
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
 
-    // Reset the view frustum
+    // Reset the render args
     args->_viewFrustum = viewFrustum;
+    args->_renderMode = mode;
 };

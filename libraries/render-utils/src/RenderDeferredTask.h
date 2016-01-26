@@ -12,9 +12,9 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "render/Engine.h"
-
 #include "gpu/Pipeline.h"
+
+#include "render/DrawTask.h"
 
 #include "ToneMappingEffect.h"
 
@@ -113,15 +113,8 @@ public:
 
 class RenderDeferredTask : public render::Task {
 public:
-    RenderDeferredTask();
+    RenderDeferredTask(render::CullFunctor cullFunctor);
 
-    int _drawDebugDeferredBufferIndex;
-    int _drawStatusJobIndex;
-    int _drawHitEffectJobIndex;
-    int _occlusionJobIndex;
-    int _antialiasingJobIndex;
-    int _toneMappingJobIndex;
-    
     void setDrawDebugDeferredBuffer(int draw) { enableJob(_drawDebugDeferredBufferIndex, draw >= 0); }
     bool doDrawDebugDeferredBuffer() const { return getEnableJob(_drawDebugDeferredBufferIndex); }
     
@@ -131,14 +124,11 @@ public:
     void setDrawHitEffect(bool draw) { enableJob(_drawHitEffectJobIndex, draw); }
     bool doDrawHitEffect() const { return getEnableJob(_drawHitEffectJobIndex); }
 
-
     void setOcclusionStatus(bool draw) { enableJob(_occlusionJobIndex, draw); }
     bool doOcclusionStatus() const { return getEnableJob(_occlusionJobIndex); }
 
-
     void setAntialiasingStatus(bool draw) { enableJob(_antialiasingJobIndex, draw); }
     bool doAntialiasingStatus() const { return getEnableJob(_antialiasingJobIndex); }
-
 
     void setToneMappingExposure(float exposure);
     float getToneMappingExposure() const;
@@ -147,6 +137,14 @@ public:
     int getToneMappingToneCurve() const;
 
     virtual void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+
+protected:
+    int _drawDebugDeferredBufferIndex;
+    int _drawStatusJobIndex;
+    int _drawHitEffectJobIndex;
+    int _occlusionJobIndex;
+    int _antialiasingJobIndex;
+    int _toneMappingJobIndex;
 };
 
 #endif // hifi_RenderDeferredTask_h

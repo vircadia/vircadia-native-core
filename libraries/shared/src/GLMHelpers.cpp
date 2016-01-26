@@ -425,3 +425,33 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 
+glm::vec2 getFacingDir2D(const glm::quat& rot) {
+    glm::vec3 facing3D = rot * Vectors::UNIT_NEG_Z;
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+glm::vec2 getFacingDir2D(const glm::mat4& m) {
+    glm::vec3 facing3D = transformVector(m, Vectors::UNIT_NEG_Z);
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+bool isNaN(glm::vec3 value) {
+    return isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
+}
+
+bool isNaN(glm::quat value) {
+    return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
+}
+

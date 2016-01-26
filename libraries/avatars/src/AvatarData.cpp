@@ -216,15 +216,14 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    bool success;
-    SpatiallyNestablePointer parent = getParentPointer(success);
-    if (parent && success) {
+    QUuid parentID = getParentID();
+    if (!parentID.isNull()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
 
-    if (parent) {
-        QByteArray referentialAsBytes = parent->getID().toRfc4122();
+    if (!parentID.isNull()) {
+        QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
         destinationBuffer += referentialAsBytes.size();
         memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));
@@ -492,10 +491,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // avatar's SkeletonModel might fall into the CPU expensive part of Model::updateClusterMatrices() when otherwise it
         // would not have required it.  However, we know we can update many simultaneously animating avatars, and most
         // avatars will be moving constantly anyway, so I don't think we need to worry.
-        if (getBodyYaw() != yaw || getBodyPitch() != pitch || getBodyRoll() != roll) {
+        glm::quat currentOrientation = getLocalOrientation();
+        glm::vec3 newEulerAngles(pitch, yaw, roll);
+        glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
+        if (currentOrientation != newOrientation) {
             _hasNewJointRotations = true;
-            glm::vec3 eulerAngles(pitch, yaw, roll);
-            setLocalOrientation(glm::quat(glm::radians(eulerAngles)));
+            setLocalOrientation(newOrientation);
         }
 
         // scale

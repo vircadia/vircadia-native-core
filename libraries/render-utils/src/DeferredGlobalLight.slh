@@ -70,7 +70,7 @@ uniform SphericalHarmonics ambientSphere;
 <@include model/Light.slh@>
 
 <@func declareEvalAmbientGlobalColor()@>
-vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
 
     // Need the light now
     Light light = getLight();
@@ -79,11 +79,11 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 posit
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
 
-    vec3 color = diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * getLightColor(light) * obscurance * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
@@ -93,7 +93,7 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 posit
 
 <$declareSphericalHarmonics()$>
 
-vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
     
@@ -102,11 +102,11 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
     vec3 ambientNormal = fragNormal.xyz;
-    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, ambientNormal).xyz * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, ambientNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
@@ -117,7 +117,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3
 <$declareSkyboxMap()$>
 <$declareSphericalHarmonics()$>
 
-vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
+vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
     
@@ -125,18 +125,18 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, vec3 positi
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
-    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
-    color += vec3(diffuse * shading.w + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+    color += vec3(diffuse * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 
     return color;
 }
 <@endfunc@>
 
 <@func declareEvalLightmappedColor()@>
-vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal, vec3 diffuse, vec3 lightmap) {
+vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 diffuse, vec3 lightmap) {
     
     Light light = getLight();
 
@@ -156,7 +156,7 @@ vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, vec3 normal,
     // ambient is a tiny percentage of the lightmap and only when in the shadow
     vec3 ambientLight = (1 - lightAttenuation) * lightmap * getLightAmbientIntensity(light); 
 
-    return diffuse * (ambientLight +  diffuseLight);
+    return  obscurance * diffuse * (ambientLight +  diffuseLight);
 }
 <@endfunc@>
 

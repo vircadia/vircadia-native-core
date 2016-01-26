@@ -9,9 +9,6 @@ FocusScope {
     id: root
     HifiConstants { id: hifi }
 
-    // Should hiding the window destroy it or just hide it?
-    property bool destroyOnInvisible: false
-
     Component.onCompleted: {
         fadeTargetProperty = visible ? 1.0 : 0.0
     }
@@ -35,10 +32,6 @@ FocusScope {
             visible = !visible;
             fadeTargetProperty = target ? 1.0 : 0.0;
             return;
-        }
-
-        if (!visible && destroyOnInvisible) {
-            destroy();
         }
     }
 

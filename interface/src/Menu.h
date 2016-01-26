@@ -154,7 +154,6 @@ namespace MenuOption {
     const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
-    const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
     const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
@@ -187,7 +186,8 @@ namespace MenuOption {
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
     const QString CrashInterface = "Crash Interface";
-    const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
+    const QString DebugShadows = "Shadows";
+    const QString DebugAmbientOcclusion = "Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";

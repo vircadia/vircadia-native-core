@@ -133,7 +133,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation());
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), myAvatar->isHovering());
 
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);

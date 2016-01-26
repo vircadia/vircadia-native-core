@@ -13,9 +13,11 @@
 #define hifi_OffscreenUi_h
 
 #include <QtCore/QVariant>
-#include <gl/OffscreenQmlSurface.h>
+#include <QtWidgets/QFileDialog>
+#include <QtWidgets/QMessageBox>
+#include <QtWidgets/QInputDialog>
 
-#include <QMessageBox>
+#include <gl/OffscreenQmlSurface.h>
 #include <DependencyManager.h>
 
 #include "OffscreenQmlElement.h"
@@ -27,18 +29,18 @@ class OffscreenUi : public OffscreenQmlSurface, public Dependency {
 public:
     OffscreenUi();
     virtual void create(QOpenGLContext* context) override;
-    void createDesktop();
+    void createDesktop(const QUrl& url);
     void show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     void toggle(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     bool shouldSwallowShortcut(QEvent* event);
     bool navigationFocused();
     void setNavigationFocused(bool focused);
     void unfocusWindows();
+    void toggleMenu(const QPoint& screenCoordinates);
+
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 
-    Q_INVOKABLE void executeOnUiThread(std::function<void()> function);
-    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
 
     /// Same design as QMessageBox::critical(), will block, returns result
     static QMessageBox::StandardButton critical(void* ignored, const QString& title, const QString& text,
@@ -78,7 +80,18 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
 
-    QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QVariant inputDialog(const QString& query, const QString& placeholderText = QString(), const QString& currentValue = QString());
+
+    // FIXME implement
+    static QVariant query(const QString& query, const QString& placeholderText = QString(), const QString& currentValue = QString());
+
+    // FIXME implement
+    // Compatibility with QFileDialog::getOpenFileName
+    static QString getOpenFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
+
+    // Compatibility with QInputDialog::getText
+    static QString getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
 
 private:
     QQuickItem* _desktop { nullptr };

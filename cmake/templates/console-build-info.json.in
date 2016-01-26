@@ -1,0 +1,4 @@
+{
+    "releaseType": "@RELEASE_TYPE@",
+    "buildIdentifier": "@BUILD_VERSION@" 
+}

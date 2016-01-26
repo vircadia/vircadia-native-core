@@ -98,7 +98,11 @@ void GLBackend::do_getQuery(Batch& batch, size_t paramOffset) {
             glGetQueryObjectui64vEXT(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
             #endif
         #else
-            glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+            glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT_AVAILABLE, &glquery->_result);
+            if (glquery->_result == GL_TRUE) {
+                glGetQueryObjectui64v(glquery->_qo, GL_QUERY_RESULT, &glquery->_result);
+                query->triggerReturnHandler(glquery->_result);
+            }
         #endif
         (void)CHECK_GL_ERROR();
     }

@@ -42,13 +42,21 @@ struct LightLocations {
     int radius;
     int ambientSphere;
     int lightBufferUnit;
-    int atmosphereBufferUnit;
     int texcoordMat;
     int coneParam;
     int deferredTransformBuffer;
     int shadowTransformBuffer;
 };
 
+enum {
+    DEFERRED_BUFFER_COLOR_UNIT = 0,
+    DEFERRED_BUFFER_NORMAL_UNIT = 1,
+    DEFERRED_BUFFER_EMISSIVE_UNIT = 2,
+    DEFERRED_BUFFER_DEPTH_UNIT = 3,
+    DEFERRED_BUFFER_OBSCURANCE_UNIT = 4,
+    SHADOW_MAP_UNIT = 5,
+    SKYBOX_MAP_UNIT = 6,
+};
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& program, LightLocationsPtr& locations);
 
 void DeferredLightingEffect::init() {
@@ -56,13 +64,20 @@ void DeferredLightingEffect::init() {
     _directionalAmbientSphereLightLocations = std::make_shared<LightLocations>();
     _directionalSkyboxLightLocations = std::make_shared<LightLocations>();
 
+    _directionalLightShadowLocations = std::make_shared<LightLocations>();
+    _directionalAmbientSphereLightShadowLocations = std::make_shared<LightLocations>();
+    _directionalSkyboxLightShadowLocations = std::make_shared<LightLocations>();
+
     _pointLightLocations = std::make_shared<LightLocations>();
     _spotLightLocations = std::make_shared<LightLocations>();
 
-    // TODO: To use shadowmaps, replace directional_*_light_frag with directional_*_light_shadow_frag shaders.
     loadLightProgram(deferred_light_vert, directional_light_frag, false, _directionalLight, _directionalLightLocations);
     loadLightProgram(deferred_light_vert, directional_ambient_light_frag, false, _directionalAmbientSphereLight, _directionalAmbientSphereLightLocations);
     loadLightProgram(deferred_light_vert, directional_skybox_light_frag, false, _directionalSkyboxLight, _directionalSkyboxLightLocations);
+
+    loadLightProgram(deferred_light_vert, directional_light_shadow_frag, false, _directionalLightShadow, _directionalLightShadowLocations);
+    loadLightProgram(deferred_light_vert, directional_ambient_light_shadow_frag, false, _directionalAmbientSphereLightShadow, _directionalAmbientSphereLightShadowLocations);
+    loadLightProgram(deferred_light_vert, directional_skybox_light_shadow_frag, false, _directionalSkyboxLightShadow, _directionalSkyboxLightShadowLocations);
 
     loadLightProgram(deferred_light_limited_vert, point_light_frag, true, _pointLight, _pointLightLocations);
     loadLightProgram(deferred_light_spot_vert, spot_light_frag, true, _spotLight, _spotLightLocations);
@@ -146,7 +161,8 @@ void DeferredLightingEffect::prepare(RenderArgs* args) {
     });
 }
 
-void DeferredLightingEffect::render(RenderArgs* args) {
+void DeferredLightingEffect::render(const render::RenderContextPointer& renderContext) {
+    auto args = renderContext->getArgs();
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         
         // Allocate the parameters buffer used by all the deferred shaders
@@ -161,6 +177,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
 
         // perform deferred lighting, rendering to free fbo
         auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        auto textureCache = DependencyManager::get<TextureCache>();
     
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
     
@@ -172,16 +189,23 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         batch.setStateScissorRect(args->_viewport);
 
         // BInd the G-Buffer surfaces
-        batch.setResourceTexture(0, framebufferCache->getDeferredColorTexture());
-        batch.setResourceTexture(1, framebufferCache->getDeferredNormalTexture());
-        batch.setResourceTexture(2, framebufferCache->getDeferredSpecularTexture());
-        batch.setResourceTexture(3, framebufferCache->getPrimaryDepthTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, framebufferCache->getDeferredNormalTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, framebufferCache->getDeferredSpecularTexture());
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, framebufferCache->getPrimaryDepthTexture());
+
+        // need to assign the white texture if ao is off
+        if (renderContext->getOcclusionStatus()) {
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, framebufferCache->getOcclusionTexture());
+        } else {
+            batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, textureCache->getWhiteTexture());
+        }
 
         assert(_lightStage.lights.size() > 0);
         const auto& globalShadow = _lightStage.lights[0]->shadow;
 
         // Bind the shadow buffer
-        batch.setResourceTexture(4, globalShadow.map);
+        batch.setResourceTexture(SHADOW_MAP_UNIT, globalShadow.map);
 
         // THe main viewport is assumed to be the mono viewport (or the 2 stereo faces side by side within that viewport)
         auto monoViewport = args->_viewport;
@@ -289,18 +313,27 @@ void DeferredLightingEffect::render(RenderArgs* args) {
             {
                 bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
 
-                auto& program = _directionalLight;
-                LightLocationsPtr locations = _directionalLightLocations;
+                auto& program = _shadowMapStatus ? _directionalLightShadow : _directionalLight;
+                LightLocationsPtr locations = _shadowMapStatus ? _directionalLightShadowLocations : _directionalLightLocations;
 
-                // TODO: At some point bring back the shadows...
                 // Setup the global directional pass pipeline
                 {
-                    if (useSkyboxCubemap) {
-                        program = _directionalSkyboxLight;
-                        locations = _directionalSkyboxLightLocations;
-                    } else if (_ambientLightMode > -1) {
-                        program = _directionalAmbientSphereLight;
-                        locations = _directionalAmbientSphereLightLocations;
+                    if (_shadowMapStatus) {
+                        if (useSkyboxCubemap) {
+                            program = _directionalSkyboxLightShadow;
+                            locations = _directionalSkyboxLightShadowLocations;
+                        } else if (_ambientLightMode > -1) {
+                            program = _directionalAmbientSphereLightShadow;
+                            locations = _directionalAmbientSphereLightShadowLocations;
+                        }
+                    } else {
+                        if (useSkyboxCubemap) {
+                            program = _directionalSkyboxLight;
+                            locations = _directionalSkyboxLightLocations;
+                        } else if (_ambientLightMode > -1) {
+                            program = _directionalAmbientSphereLight;
+                            locations = _directionalAmbientSphereLightLocations;
+                        }
                     }
 
                     if (locations->shadowTransformBuffer >= 0) {
@@ -323,16 +356,13 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                     }
     
                     if (useSkyboxCubemap) {
-                        batch.setResourceTexture(5, _skybox->getCubemap());
+                        batch.setResourceTexture(SKYBOX_MAP_UNIT, _skybox->getCubemap());
                     }
 
                     if (locations->lightBufferUnit >= 0) {
                         batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
                     }
-        
-                    if (_atmosphere && (locations->atmosphereBufferUnit >= 0)) {
-                        batch.setUniformBuffer(locations->atmosphereBufferUnit, _atmosphere->getDataBuffer());
-                    }
+
                 }
 
                 {
@@ -345,7 +375,7 @@ void DeferredLightingEffect::render(RenderArgs* args) {
                 }
 
                 if (useSkyboxCubemap) {
-                    batch.setResourceTexture(5, nullptr);
+                    batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
                 }
             }
 
@@ -461,10 +491,14 @@ void DeferredLightingEffect::render(RenderArgs* args) {
         }
 
         // Probably not necessary in the long run because the gpu layer would unbound this texture if used as render target
-        batch.setResourceTexture(0, nullptr);
-        batch.setResourceTexture(1, nullptr);
-        batch.setResourceTexture(2, nullptr);
-        batch.setResourceTexture(3, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_COLOR_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_NORMAL_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_EMISSIVE_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_DEPTH_UNIT, nullptr);
+        batch.setResourceTexture(DEFERRED_BUFFER_OBSCURANCE_UNIT, nullptr);
+        batch.setResourceTexture(SHADOW_MAP_UNIT, nullptr);
+        batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
+
         batch.setUniformBuffer(_directionalLightLocations->deferredTransformBuffer, nullptr);
     });
 
@@ -489,18 +523,17 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), 0));
-    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), 1));
-    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), 2));
-    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), 3));
-    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), 4));
-    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), 5));
+    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DEFERRED_BUFFER_COLOR_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("obscuranceMap"), DEFERRED_BUFFER_OBSCURANCE_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("shadowMap"), SHADOW_MAP_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), SKYBOX_MAP_UNIT));
 
     static const int LIGHT_GPU_SLOT = 3;
-    static const int ATMOSPHERE_GPU_SLOT = 4;
     static const int DEFERRED_TRANSFORM_BUFFER_SLOT = 2;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), LIGHT_GPU_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("atmosphereBufferUnit"), ATMOSPHERE_GPU_SLOT));
     slotBindings.insert(gpu::Shader::Binding(std::string("deferredTransformBuffer"), DEFERRED_TRANSFORM_BUFFER_SLOT));
 
     gpu::Shader::makeProgram(*program, slotBindings);
@@ -512,7 +545,6 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     locations->coneParam = program->getUniforms().findLocation("coneParam");
 
     locations->lightBufferUnit = program->getBuffers().findLocation("lightBuffer");
-    locations->atmosphereBufferUnit = program->getBuffers().findLocation("atmosphereBufferUnit");
     locations->deferredTransformBuffer = program->getBuffers().findLocation("deferredTransformBuffer");
     locations->shadowTransformBuffer = program->getBuffers().findLocation("shadowTransformBuffer");
 

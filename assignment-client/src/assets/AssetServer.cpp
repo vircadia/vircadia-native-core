@@ -24,6 +24,7 @@
 #include "NodeType.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
+#include <ServerPathUtils.h>
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
@@ -49,10 +50,42 @@ void AssetServer::run() {
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    _resourcesDirectory = QDir(QCoreApplication::applicationDirPath()).filePath("resources/assets");
-    if (!_resourcesDirectory.exists()) {
-        qDebug() << "Creating resources directory";
-        _resourcesDirectory.mkpath(".");
+    const QString RESOURCES_PATH = "assets";
+
+    _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
+
+    qDebug() << "Creating resources directory";
+    _resourcesDirectory.mkpath(".");
+
+    bool noExistingAssets = !_resourcesDirectory.exists() \
+        || _resourcesDirectory.entryList(QDir::Files).size() == 0;
+
+    if (noExistingAssets) {
+        qDebug() << "Asset resources directory not found, searching for existing asset resources";
+        QString oldDataDirectory = QCoreApplication::applicationDirPath();
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + RESOURCES_PATH);
+
+
+        if (QDir(oldResourcesDirectory).exists()) {
+            qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
+
+
+            QDir resourcesParentDirectory = _resourcesDirectory.filePath("..");
+            if (!resourcesParentDirectory.exists()) {
+                qDebug() << "Creating data directory " << resourcesParentDirectory.absolutePath();
+                resourcesParentDirectory.mkpath(".");
+            }
+
+            auto files = QDir(oldResourcesDirectory).entryList(QDir::Files);
+
+            for (auto& file : files) {
+                auto from = oldResourcesDirectory + QDir::separator() + file;
+                auto to = _resourcesDirectory.absoluteFilePath(file);
+                qDebug() << "\tCopying from " << from << " to " << to;
+                QFile::copy(from, to);
+            }
+
+        }
     }
     qDebug() << "Serving files from: " << _resourcesDirectory.path();
 

@@ -78,6 +78,7 @@ Window {
                     source: webview.icon;
                     x: (parent.height - height) / 2
                     y: (parent.width - width) / 2
+                    sourceSize: Qt.size(width, height);
                     verticalAlignment: Image.AlignVCenter;
                     horizontalAlignment: Image.AlignHCenter
                     onSourceChanged: console.log("Icon url: " + source)

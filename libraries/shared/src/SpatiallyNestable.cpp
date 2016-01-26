@@ -25,6 +25,37 @@ SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _transform.setRotation(glm::quat());
 }
 
+const QUuid SpatiallyNestable::getID() const {
+    QUuid result;
+    _idLock.withReadLock([&] {
+        result = _id;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setID(const QUuid& id) {
+    _idLock.withWriteLock([&] {
+        _id = id;
+    });
+}
+
+const QUuid SpatiallyNestable::getParentID() const {
+    QUuid result;
+    _idLock.withReadLock([&] {
+        result = _parentID;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setParentID(const QUuid& parentID) {
+    _idLock.withWriteLock([&] {
+        if (_parentID != parentID) {
+            _parentID = parentID;
+            _parentKnowsMe = false;
+        }
+    });
+}
+
 Transform SpatiallyNestable::getParentTransform(bool& success) const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer(success);
@@ -40,14 +71,15 @@ Transform SpatiallyNestable::getParentTransform(bool& success) const {
 
 SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) const {
     SpatiallyNestablePointer parent = _parent.lock();
+    QUuid parentID = getParentID(); // used for its locking
 
-    if (!parent && _parentID.isNull()) {
+    if (!parent && parentID.isNull()) {
         // no parent
         success = true;
         return nullptr;
     }
 
-    if (parent && parent->getID() == _parentID) {
+    if (parent && parent->getID() == parentID) {
         // parent pointer is up-to-date
         if (!_parentKnowsMe) {
             parent->beParentOfChild(getThisPointer());
@@ -72,7 +104,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         success = false;
         return nullptr;
     }
-    _parent = parentFinder->find(_parentID, success);
+    _parent = parentFinder->find(parentID, success);
     if (!success) {
         return nullptr;
     }
@@ -83,7 +115,7 @@ SpatiallyNestablePointer SpatiallyNestable::getParentPointer(bool& success) cons
         _parentKnowsMe = true;
     }
 
-    if (parent || _parentID.isNull()) {
+    if (parent || parentID.isNull()) {
         success = true;
     } else {
         success = false;
@@ -102,13 +134,6 @@ void SpatiallyNestable::forgetChild(SpatiallyNestablePointer newChild) const {
     _childrenLock.withWriteLock([&] {
         _children.remove(newChild->getID());
     });
-}
-
-void SpatiallyNestable::setParentID(const QUuid& parentID) {
-    if (_parentID != parentID) {
-        _parentID = parentID;
-        _parentKnowsMe = false;
-    }
 }
 
 void SpatiallyNestable::setParentJointIndex(quint16 parentJointIndex) {
@@ -289,6 +314,11 @@ glm::vec3 SpatiallyNestable::getPosition(int jointIndex, bool& success) const {
 }
 
 void SpatiallyNestable::setPosition(const glm::vec3& position, bool& success) {
+    // guard against introducing NaN into the transform
+    if (isNaN(position)) {
+        success = false;
+        return;
+    }
     Transform parentTransform = getParentTransform(success);
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
@@ -333,6 +363,12 @@ glm::quat SpatiallyNestable::getOrientation(int jointIndex, bool& success) const
 }
 
 void SpatiallyNestable::setOrientation(const glm::quat& orientation, bool& success) {
+    // guard against introducing NaN into the transform
+    if (isNaN(orientation)) {
+        success = false;
+        return;
+    }
+
     Transform parentTransform = getParentTransform(success);
     Transform myWorldTransform;
     _transformLock.withWriteLock([&] {
@@ -383,6 +419,10 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success) c
 }
 
 void SpatiallyNestable::setTransform(const Transform& transform, bool& success) {
+    if (transform.containsNaN()) {
+        success = false;
+        return;
+    }
     Transform parentTransform = getParentTransform(success);
     _transformLock.withWriteLock([&] {
         Transform::inverseMult(_transform, parentTransform, transform);
@@ -407,6 +447,11 @@ glm::vec3 SpatiallyNestable::getScale(int jointIndex) const {
 }
 
 void SpatiallyNestable::setScale(const glm::vec3& scale) {
+    // guard against introducing NaN into the transform
+    if (isNaN(scale)) {
+        qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
+        return;
+    }
     // TODO: scale
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
@@ -423,6 +468,11 @@ const Transform SpatiallyNestable::getLocalTransform() const {
 }
 
 void SpatiallyNestable::setLocalTransform(const Transform& transform) {
+    // guard against introducing NaN into the transform
+    if (transform.containsNaN()) {
+        qDebug() << "SpatiallyNestable::setLocalTransform -- transform contains NaN";
+        return;
+    }
     _transformLock.withWriteLock([&] {
         _transform = transform;
     });
@@ -438,6 +488,11 @@ glm::vec3 SpatiallyNestable::getLocalPosition() const {
 }
 
 void SpatiallyNestable::setLocalPosition(const glm::vec3& position) {
+    // guard against introducing NaN into the transform
+    if (isNaN(position)) {
+        qDebug() << "SpatiallyNestable::setLocalPosition -- position contains NaN";
+        return;
+    }
     _transformLock.withWriteLock([&] {
         _transform.setTranslation(position);
     });
@@ -453,6 +508,11 @@ glm::quat SpatiallyNestable::getLocalOrientation() const {
 }
 
 void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
+    // guard against introducing NaN into the transform
+    if (isNaN(orientation)) {
+        qDebug() << "SpatiallyNestable::setLocalOrientation -- orientation contains NaN";
+        return;
+    }
     _transformLock.withWriteLock([&] {
         _transform.setRotation(orientation);
     });
@@ -469,6 +529,11 @@ glm::vec3 SpatiallyNestable::getLocalScale() const {
 }
 
 void SpatiallyNestable::setLocalScale(const glm::vec3& scale) {
+    // guard against introducing NaN into the transform
+    if (isNaN(scale)) {
+        qDebug() << "SpatiallyNestable::setLocalScale -- scale contains NaN";
+        return;
+    }
     // TODO: scale
     _transformLock.withWriteLock([&] {
         _transform.setScale(scale);
@@ -536,6 +601,10 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
+    if (queryAACube.containsNaN()) {
+        qDebug() << "SpatiallyNestable::setQueryAACube -- cube contains NaN";
+        return;
+    }
     _queryAACube = queryAACube;
     if (queryAACube.getScale() > 0.0f) {
         _queryAACubeSet = true;

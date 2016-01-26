@@ -4,7 +4,8 @@ QT += gui qml quick xml webengine widgets
 
 CONFIG += c++11
 
-SOURCES += src/main.cpp
+SOURCES += src/main.cpp \
+    ../../libraries/ui/src/FileDialogHelper.cpp
 
 # Additional import path used to resolve QML modules in Qt Creator's code model
 QML_IMPORT_PATH =
@@ -80,5 +81,34 @@ DISTFILES += \
     ../../interface/resources/qml/VrMenu.qml \
     ../../interface/resources/qml/VrMenuItem.qml \
     ../../interface/resources/qml/VrMenuView.qml \
-    ../../interface/resources/qml/WebEntity.qml
+    ../../interface/resources/qml/WebEntity.qml \
+    ../../interface/resources/qml/desktop/Desktop.qml \
+    ../../interface/resources/qml/hifi/Desktop.qml \
+    ../../interface/resources/qml/menus/MenuMouseHandler.qml \
+    ../../interface/resources/qml/menus/VrMenuItem.qml \
+    ../../interface/resources/qml/menus/VrMenuView.qml \
+    ../../interface/resources/qml/windows/ModalWindow.qml \
+    ../../interface/resources/qml/desktop/FocusHack.qml \
+    ../../interface/resources/qml/hifi/dialogs/PreferencesDialog.qml \
+    ../../interface/resources/qml/hifi/dialogs/Section.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Browsable.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Section.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Editable.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Slider.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Preference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBox.qml \
+    ../../interface/resources/qml/dialogs/fileDialog/FileTableView.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Avatar.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarBrowser.qml \
+    ../../interface/resources/qml/dialogs/QueryDialog.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/Button.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/AvatarPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/BrowsablePreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/ButtonPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/CheckBoxPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/EditablePreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/SliderPreference.qml \
+    ../../interface/resources/qml/hifi/dialogs/preferences/SpinBoxPreference.qml
 
+HEADERS += \
+    ../../libraries/ui/src/FileDialogHelper.h

@@ -82,7 +82,7 @@ EntityMotionState::~EntityMotionState() {
 
 void EntityMotionState::updateServerPhysicsVariables() {
     assert(entityTreeIsLocked());
-    if (_entity->getSimulatorID() == PhysicsEngine::getSessionID()) {
+    if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
         // don't slam these values if we are the simulation owner
         return;
     }
@@ -113,7 +113,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
             _outgoingPriority = NO_PRORITY;
         } else  {
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
-            if (PhysicsEngine::getSessionID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
+            if (Physics::getSessionUUID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
                 // we own the simulation or our priority looses to (or ties with) remote
                 _outgoingPriority = NO_PRORITY;
             }
@@ -527,7 +527,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         if (dirtyFlags | Simulation::DIRTY_SIMULATOR_ID) {
             // when SIMULATOR_ID changes we must check for reinterpretation of asymmetric collision mask
             // bits for the avatar groups (e.g. MY_AVATAR vs OTHER_AVATAR)
-            uint8_t entityCollisionMask = _entity->getCollisionMask();
+            uint8_t entityCollisionMask = _entity->getCollisionless() ? 0 : _entity->getCollisionMask();
             if ((bool)(entityCollisionMask & USER_COLLISION_GROUP_MY_AVATAR) !=
                     (bool)(entityCollisionMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
                 // bits are asymmetric --> flag for reinsertion in physics simulation
@@ -622,39 +622,8 @@ QString EntityMotionState::getName() const {
 
 // virtual
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
-    group = BULLET_COLLISION_GROUP_STATIC;
-    if (_entity) {
-        if (_entity->getCollisionless()) {
-            group = BULLET_COLLISION_GROUP_COLLISIONLESS;
-        }
-        switch (computePhysicsMotionType()){
-            case MOTION_TYPE_STATIC:
-                group =  BULLET_COLLISION_GROUP_STATIC;
-                break;
-            case MOTION_TYPE_DYNAMIC:
-                group = BULLET_COLLISION_GROUP_DYNAMIC;
-                break;
-            case MOTION_TYPE_KINEMATIC:
-                group = BULLET_COLLISION_GROUP_KINEMATIC;
-                break;
-            default:
-                break;
-        }
-    }
-
-    mask = PhysicsEngine::getCollisionMask(group);
-    if (_entity) {
-        uint8_t entityCollisionMask = _entity->getFinalCollisionMask();
-        if ((bool)(entityCollisionMask & USER_COLLISION_GROUP_MY_AVATAR) !=
-                (bool)(entityCollisionMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
-            // asymmetric avatar collision mask bits
-            if (!_entity->getSimulatorID().isNull() && _entity->getSimulatorID() != PhysicsEngine::getSessionID()) {
-                // someone else owns the simulation, so we swap the interpretation of the bits
-                entityCollisionMask ^= USER_COLLISION_MASK_AVATARS | ~entityCollisionMask;
-            }
-        }
-        mask &= (int16_t)(entityCollisionMask);
-    }
+    assert(_entity);
+    _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
 void EntityMotionState::setOutgoingPriority(quint8 priority) {

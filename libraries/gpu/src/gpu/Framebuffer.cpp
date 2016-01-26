@@ -63,10 +63,6 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     depthTexture->setSampler(Sampler(samplerDesc));
     framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
 
-    // Use a render buffer to allow use of the DebugDeferredBuffer Job
-    gpu::TexturePointer colorbuffer{gpu::Texture::create2D(gpu::Element::COLOR_RGBA_32, width, width)};
-    framebuffer->setRenderBuffer(0, colorbuffer);
-
     return framebuffer;
 }
 

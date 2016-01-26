@@ -21,6 +21,8 @@
 #include "model/Stage.h"
 #include "model/Geometry.h"
 
+#include "render/Context.h"
+
 #include "LightStage.h"
 
 class RenderArgs;
@@ -42,38 +44,47 @@ public:
         float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
-    void render(RenderArgs* args);
+    void render(const render::RenderContextPointer& renderContext);
 
     void setupTransparent(RenderArgs* args, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);
     void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
-    void setGlobalAtmosphere(const model::AtmospherePointer& atmosphere) { _atmosphere = atmosphere; }
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
     const LightStage& getLightStage() { return _lightStage; }
+    void setShadowMapStatus(bool enable) { _shadowMapStatus = enable; };
 
 private:
     LightStage _lightStage;
+    bool _shadowMapStatus{ false };
 
     DeferredLightingEffect() = default;
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();
-    
+
     gpu::PipelinePointer _directionalSkyboxLight;
-    LightLocationsPtr _directionalSkyboxLightLocations;
-
     gpu::PipelinePointer _directionalAmbientSphereLight;
-    LightLocationsPtr _directionalAmbientSphereLightLocations;
-
     gpu::PipelinePointer _directionalLight;
-    LightLocationsPtr _directionalLightLocations;
+
+    gpu::PipelinePointer _directionalSkyboxLightShadow;
+    gpu::PipelinePointer _directionalAmbientSphereLightShadow;
+    gpu::PipelinePointer _directionalLightShadow;
 
     gpu::PipelinePointer _pointLight;
-    LightLocationsPtr _pointLightLocations;
     gpu::PipelinePointer _spotLight;
+
+    LightLocationsPtr _directionalSkyboxLightLocations;
+    LightLocationsPtr _directionalAmbientSphereLightLocations;
+    LightLocationsPtr _directionalLightLocations;
+
+    LightLocationsPtr _directionalSkyboxLightShadowLocations;
+    LightLocationsPtr _directionalAmbientSphereLightShadowLocations;
+    LightLocationsPtr _directionalLightShadowLocations;
+
+    LightLocationsPtr _pointLightLocations;
     LightLocationsPtr _spotLightLocations;
 
     using Lights = std::vector<model::LightPointer>;
@@ -84,7 +95,6 @@ private:
     std::vector<int> _spotLights;
 
     int _ambientLightMode = 0;
-    model::AtmospherePointer _atmosphere;
     model::SkyboxPointer _skybox;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders

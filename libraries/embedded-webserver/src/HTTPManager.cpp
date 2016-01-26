@@ -23,8 +23,9 @@
 const int SOCKET_ERROR_EXIT_CODE = 2;
 const int SOCKET_CHECK_INTERVAL_IN_MS = 30000;
 
-HTTPManager::HTTPManager(quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
+HTTPManager::HTTPManager(const QHostAddress& listenAddress, quint16 port, const QString& documentRoot, HTTPRequestHandler* requestHandler, QObject* parent) :
     QTcpServer(parent),
+    _listenAddress(listenAddress),
     _documentRoot(documentRoot),
     _requestHandler(requestHandler),
     _port(port)
@@ -178,18 +179,20 @@ void HTTPManager::isTcpServerListening() {
 bool HTTPManager::bindSocket() {
     qCDebug(embeddedwebserver) << "Attempting to bind TCP socket on port " << QString::number(_port);
     
-    if (listen(QHostAddress::AnyIPv4, _port)) {
+    if (listen(_listenAddress, _port)) {
         qCDebug(embeddedwebserver) << "TCP socket is listening on" << serverAddress() << "and port" << serverPort();
         
         return true;
     } else {
-        qCritical() << "Failed to open HTTP server socket:" << errorString() << " can't continue";
-        QMetaObject::invokeMethod(this, "queuedExit", Qt::QueuedConnection);
-        
+        QString errorMessage = "Failed to open HTTP server socket: " + errorString() + ", can't continue";
+        QMetaObject::invokeMethod(this, "queuedExit", Qt::QueuedConnection, Q_ARG(QString, errorMessage));
         return false;
     }
 }
 
-void HTTPManager::queuedExit() {
+void HTTPManager::queuedExit(QString errorMessage) {
+    if (!errorMessage.isEmpty()) {
+        qCCritical(embeddedwebserver) << qPrintable(errorMessage);
+    }
     QCoreApplication::exit(SOCKET_ERROR_EXIT_CODE);
 }

@@ -275,8 +275,9 @@ public:
     void setCollisionless(bool value) { _collisionless = value; }
 
     uint8_t getCollisionMask() const { return _collisionMask; }
-    uint8_t getFinalCollisionMask() const { return _collisionless ? 0 : _collisionMask; }
     void setCollisionMask(uint8_t value) { _collisionMask = value; }
+
+    void computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const;
 
     bool getDynamic() const { return _dynamic; }
     void setDynamic(bool value) { _dynamic = value; }
@@ -370,8 +371,8 @@ public:
     bool clearActions(EntitySimulation* simulation);
     void setActionData(QByteArray actionData);
     const QByteArray getActionData() const;
-    bool hasActions() { return !_objectActions.empty(); }
-    QList<QUuid> getActionIDs() { return _objectActions.keys(); }
+    bool hasActions() const { return !_objectActions.empty(); }
+    QList<QUuid> getActionIDs() const { return _objectActions.keys(); }
     QVariantMap getActionArguments(const QUuid& actionID) const;
     void deserializeActions();
 

@@ -1,9 +1,13 @@
 import QtQuick 2.5
 
 import "../controls"
+import "../js/Utils.js" as Utils
 
 Item {
     id: frame
+    // Frames always fill their parents, but their decorations may extend
+    // beyond the window via negative margin sizes
+    anchors.fill: parent
 
     // Convenience accessor for the window
     property alias window: frame.parent
@@ -20,42 +24,34 @@ Item {
     Text {
         id: debugZ
         visible: DebugQML
-        text: "Z: " + window.z
+        text: window ? "Z: " + window.z : ""
         y: -height
-    }
-
-    function close() {
-        window.close();
-    }
-
-    function raise() {
-        window.raise();
     }
 
     function deltaSize(dx, dy) {
         var newSize = Qt.vector2d(window.width + dx, window.height + dy);
-        newSize = clampVector(newSize, window.minSize, window.maxSize);
+        newSize = Utils.clampVector(newSize, window.minSize, window.maxSize);
         window.width = newSize.x
         window.height = newSize.y
     }
 
     Rectangle {
         id: sizeOutline
-        width: window.width
-        height: window.height
+        width: window ? window.width : 0
+        height: window ? window.height : 0
         color: "#00000000"
         border.width: 4
         radius: 10
-        visible: !window.content.visible
+        visible: window ? !window.content.visible : false
     }
 
     MouseArea {
         id: sizeDrag
         width: iconSize
         height: iconSize
-        enabled: window.resizable
-        x: window.width
-        y: window.height
+        enabled: window ? window.resizable : false
+        x: window ? window.width : 0
+        y: window ? window.height : 0
         property vector2d pressOrigin
         property vector2d sizeOrigin
         property bool hid: false

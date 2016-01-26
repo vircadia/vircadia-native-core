@@ -1230,3 +1230,33 @@ void Avatar::updatePalms() {
     _leftPalmPositionCache.set(getUncachedLeftPalmPosition());
     _rightPalmPositionCache.set(getUncachedRightPalmPosition());
 }
+
+void Avatar::setParentID(const QUuid& parentID) {
+    if (!isMyAvatar()) {
+        return;
+    }
+    bool success;
+    Transform beforeChangeTransform = getTransform(success);
+    SpatiallyNestable::setParentID(parentID);
+    if (success) {
+        setTransform(beforeChangeTransform, success);
+        if (!success) {
+            qDebug() << "Avatar::setParentID failed to reset avatar's location.";
+        }
+    }
+}
+
+void Avatar::setParentJointIndex(quint16 parentJointIndex) {
+    if (!isMyAvatar()) {
+        return;
+    }
+    bool success;
+    Transform beforeChangeTransform = getTransform(success);
+    SpatiallyNestable::setParentJointIndex(parentJointIndex);
+    if (success) {
+        setTransform(beforeChangeTransform, success);
+        if (!success) {
+            qDebug() << "Avatar::setParentJointIndex failed to reset avatar's location.";
+        }
+    }
+}
