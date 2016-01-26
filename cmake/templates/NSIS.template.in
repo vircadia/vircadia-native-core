@@ -378,7 +378,7 @@ Section "-Core installation"
   @CPACK_NSIS_FULL_INSTALL@
 
   ;Store installation folder
-  WriteRegStr SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
+  WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
 
   ;Package the signed uninstaller produced by the inner loop
   !ifndef INNER
@@ -918,6 +918,8 @@ Section "Uninstall"
 
 SectionEnd
 !endif
+
+InstallDirRegKey HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" ""
 
 Function .onInit
 
