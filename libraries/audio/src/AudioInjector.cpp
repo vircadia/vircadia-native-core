@@ -240,7 +240,7 @@ int64_t AudioInjector::injectNextFrame() {
     }
 
     int bytesToCopy = std::min((_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
-        _audioData.size() - _currentSendOffset);
+                               _audioData.size() - _currentSendOffset);
 
     //  Measure the loudness of this frame
     _loudness = 0.0f;
