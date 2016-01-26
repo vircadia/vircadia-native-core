@@ -288,8 +288,7 @@ int64_t AudioInjector::injectNextFrame() {
         if (_options.loop) {
             // we were asked to loop, set our send offset to 0
             _currentSendOffset = 0;
-        }
-        else {
+        } else {
             // we weren't to loop, say that we're done now
             finish();
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
