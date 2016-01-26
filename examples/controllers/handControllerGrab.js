@@ -365,7 +365,8 @@ function MyController(hand) {
 
     this.setState = function(newState) {
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
-            print("STATE: " + stateToName(this.state) + " --> " + stateToName(newState) + ", hand: " + this.hand);
+            print("STATE (" + this.hand + "): " + stateToName(this.state) + " --> " +
+                  stateToName(newState) + ", hand: " + this.hand);
         }
         this.state = newState;
     };
@@ -1249,7 +1250,9 @@ function MyController(hand) {
             var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
             Entities.editEntity(this.grabbedEntity, {
                 parentID: MyAvatar.sessionUUID,
-                parentJointIndex: handJointIndex
+                parentJointIndex: handJointIndex,
+                localPosition: this.offsetPosition,
+                localRotation: this.offsetRotation
             });
         }
 
