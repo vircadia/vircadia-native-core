@@ -1153,7 +1153,6 @@
 
         }
 
-
         function createGates() {
             var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/ryan/fence.fbx';
 
