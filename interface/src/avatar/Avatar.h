@@ -255,7 +255,7 @@ protected:
 private:
     bool _initialized;
     NetworkTexturePointer _billboardTexture;
-    bool _shouldRenderBillboard;
+    bool _shouldRenderBillboard { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget;
 

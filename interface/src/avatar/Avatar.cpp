@@ -121,7 +121,6 @@ void Avatar::init() {
     getHead()->init();
     _skeletonModel.init();
     _initialized = true;
-    _shouldRenderBillboard = false;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
