@@ -30,7 +30,6 @@ FocusScope {
 
     QtObject {
         id: d
-        readonly property var messageDialogBuilder: Component { MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -209,6 +208,7 @@ FocusScope {
     onHeightChanged: repositionAll();
     onWidthChanged: repositionAll();
 
+    Component { id: messageDialogBuilder; MessageDialog { } }
     function messageBox(properties) {
         return messageDialogBuilder.createObject(desktop, properties);
     }

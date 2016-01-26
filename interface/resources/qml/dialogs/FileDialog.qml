@@ -146,7 +146,7 @@ ModalWindow {
                     currentRow = -1;
                 } else {
                     root.selectedFile(file);
-                    root.close();
+                    root.visible = false;
                 }
             }
         }
@@ -182,14 +182,14 @@ ModalWindow {
                 KeyNavigation.left: openButton
                 KeyNavigation.right: fileTableView.contentItem
                 Keys.onReturnPressed: { canceled(); root.enabled = false }
-                onClicked: { canceled(); close() }
+                onClicked: { canceled(); root.visible = false; }
             }
             Button {
                 id: openButton
                 text: root.selectDirectory ? "Choose" : "Open"
                 enabled: currentSelection.text ? true : false
-                onClicked: { selectedFile(d.currentSelectionUrl); close(); }
-                Keys.onReturnPressed: { selectedFile(d.currentSelectionUrl); close(); }
+                onClicked: { selectedFile(d.currentSelectionUrl); root.visible = false; }
+                Keys.onReturnPressed: { selectedFile(d.currentSelectionUrl); root.visible = false; }
 
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType

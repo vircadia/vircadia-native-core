@@ -138,9 +138,10 @@ void DiskCacheEditor::refresh() {
 void DiskCacheEditor::clear() {
     QMessageBox::StandardButton buttonClicked =
                                     OffscreenUi::question(_dialog, "Clearing disk cache",
-                                              "You are about to erase all the content of the disk cache,"
-                                              "are you sure you want to do that?");
-    if (buttonClicked == QMessageBox::Yes) {
+                                              "You are about to erase all the content of the disk cache, "
+                                              "are you sure you want to do that?",
+                                              QMessageBox::Ok | QMessageBox::Cancel);
+    if (buttonClicked == QMessageBox::Ok) {
         if (auto cache = NetworkAccessManager::getInstance().cache()) {
             qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
             cache->clear();

@@ -50,7 +50,7 @@ Frame {
                     id: closeClickArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: frame.close();
+                    onClicked: window.visible = false;
                 }
             }
         }

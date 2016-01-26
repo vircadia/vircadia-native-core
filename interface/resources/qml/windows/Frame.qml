@@ -28,14 +28,6 @@ Item {
         y: -height
     }
 
-    function close() {
-        window.close();
-    }
-
-    function raise() {
-        window.raise();
-    }
-
     function deltaSize(dx, dy) {
         var newSize = Qt.vector2d(window.width + dx, window.height + dy);
         newSize = Utils.clampVector(newSize, window.minSize, window.maxSize);

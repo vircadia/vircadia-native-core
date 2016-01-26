@@ -115,12 +115,13 @@
             this.shootArrowSound = SoundCache.getSound(SHOOT_ARROW_SOUND_URL);
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
-
+            var userData = Entities.getEntityProperties(this.entityID).userData;
+            this.userData = JSON.parse(userData);
+            this.preNotchString = this.userData.bowKey.preNotchString;
         },
 
         unload: function() {
             this.deleteStrings();
-            Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
         },
 
@@ -174,18 +175,6 @@
 
             this.bowProperties = Entities.getEntityProperties(this.entityID);
 
-            //create a string across the bow when we pick it up
-            if (this.preNotchString === null) {
-                this.createPreNotchString();
-            }
-
-            if (this.preNotchString !== null && this.aiming === false) {
-                //   print('DRAW PRE NOTCH STRING')
-                this.drawPreNotchStrings();
-            }
-
-            // create the notch detector that arrows will look for
-
             if (this.aiming === true) {
                 Entities.editEntity(this.preNotchString, {
                     visible: false
@@ -213,11 +202,9 @@
                 var data = getEntityCustomData('grabbableKey', this.entityID, {});
                 data.grabbable = true;
                 setEntityCustomData('grabbableKey', this.entityID, data);
-                Entities.deleteEntity(this.preNotchString);
                 Entities.deleteEntity(this.arrow);
                 this.aiming = false;
                 this.hasArrowNotched = false;
-                this.preNotchString = null;
 
             }
         },
@@ -334,10 +321,6 @@
             var bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
             this.bottomStringPosition = Vec3.sum(bottomStringPosition, backOffset);
 
-            Entities.editEntity(this.preNotchString, {
-                position: this.topStringPosition
-            });
-
             Entities.editEntity(this.topString, {
                 position: this.topStringPosition
             });
@@ -379,50 +362,6 @@
             var topVector = Vec3.subtract(this.arrowRearPosition, this.topStringPosition);
             var bottomVector = Vec3.subtract(this.arrowRearPosition, this.bottomStringPosition);
             return [topVector, bottomVector];
-        },
-
-        createPreNotchString: function() {
-            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
-
-            var stringProperties = {
-                type: 'Line',
-                position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS,
-                visible: true,
-                dynamic: false,
-                collisionless: true,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                })
-            };
-
-            this.preNotchString = Entities.addEntity(stringProperties);
-        },
-
-        drawPreNotchStrings: function() {
-            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
-
-            this.updateStringPositions();
-
-            var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
-            var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET * 2);
-
-            Entities.editEntity(this.preNotchString, {
-                name: 'Hifi-Pre-Notch-String',
-                linePoints: [{
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }, Vec3.sum({
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }, downOffset)],
-                lineWidth: 5,
-                color: this.stringData.currentColor,
-            });
         },
 
         checkStringHand: function() {

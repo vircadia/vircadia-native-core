@@ -480,12 +480,17 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         } else { // we already have the model we want...
             result = _model;
         }
-    } else { // if our desired URL is empty, we may need to delete our existing model
-        if (_model) {
-            _myRenderer->releaseModel(_model);
-            result = _model = NULL;
-            _needsInitialSimulation = true;
-        }
+    } else if (_model) {
+        // remove from scene
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        _model->removeFromScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+
+        // release interest
+        _myRenderer->releaseModel(_model);
+        result = _model = NULL;
+        _needsInitialSimulation = true;
     }
 
     return result;

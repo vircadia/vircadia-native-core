@@ -70,6 +70,7 @@ Window {
                     source: "../images/login-username.svg"
                     width: loginDialog.inputHeight * 0.65
                     height: width
+                    sourceSize: Qt.size(width, height);
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left
@@ -103,6 +104,7 @@ Window {
                     source: "../images/login-password.svg"
                     width: loginDialog.inputHeight * 0.65
                     height: width
+                    sourceSize: Qt.size(width, height);
                     anchors {
                         verticalCenter: parent.verticalCenter
                         left: parent.left
@@ -215,67 +217,53 @@ Window {
 
                 MouseArea {
                     anchors.fill: parent
-                    cursorShape: "PointingHandCursor"
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         loginDialog.login(username.text, password.text)
                     }
                 }
             }
 
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
+            Item {
+                anchors { left: parent.left; right: parent.right; }
+                height: loginDialog.inputHeight
+
+                Image {
+                    id: hifiIcon
+                    source: "../images/hifi-logo-blackish.svg"
+                    width: loginDialog.inputHeight
+                    height: width
+                    sourceSize: Qt.size(width, height);
+                    anchors { verticalCenter: parent.verticalCenter; horizontalCenter: parent.horizontalCenter }
+                }
 
                 Text {
+                    anchors { verticalCenter: parent.verticalCenter; right: hifiIcon.left; margins: loginDialog.inputSpacing }
                     text: "Password?"
-                    font.pixelSize: hifi.fonts.pixelSize * 0.8
+                    scale: 0.8
                     font.underline: true
                     color: "#e0e0e0"
-                    width: loginDialog.inputHeight * 4
-                    horizontalAlignment: Text.AlignRight
-                    anchors.verticalCenter: parent.verticalCenter
-
                     MouseArea {
-                        anchors.fill: parent
-                        cursorShape: "PointingHandCursor"
-                        onClicked: {
-                            loginDialog.openUrl(loginDialog.rootUrl + "/users/password/new")
-                        }
-                    }
-                }
-
-                Item {
-                    width: loginDialog.inputHeight + loginDialog.inputSpacing * 2
-                    height: loginDialog.inputHeight
-
-                    Image {
-                        id: hifiIcon
-                        source: "../images/hifi-logo-blackish.svg"
-                        width: loginDialog.inputHeight
-                        height: width
-                        anchors {
-                            horizontalCenter: parent.horizontalCenter
-                            verticalCenter: parent.verticalCenter
-                        }
+                        anchors { fill: parent; margins: -loginDialog.inputSpacing / 2 }
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: loginDialog.openUrl(loginDialog.rootUrl + "/users/password/new")
                     }
                 }
 
                 Text {
+                    anchors { verticalCenter: parent.verticalCenter; left: hifiIcon.right; margins: loginDialog.inputSpacing }
                     text: "Register"
-                    font.pixelSize: hifi.fonts.pixelSize * 0.8
+                    scale: 0.8
                     font.underline: true
                     color: "#e0e0e0"
-                    width: loginDialog.inputHeight * 4
-                    horizontalAlignment: Text.AlignLeft
-                    anchors.verticalCenter: parent.verticalCenter
 
                     MouseArea {
-                        anchors.fill: parent
-                        cursorShape: "PointingHandCursor"
-                        onClicked: {
-                            loginDialog.openUrl(loginDialog.rootUrl + "/signup")
-                        }
+                        anchors { fill: parent; margins: -loginDialog.inputSpacing / 2 }
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: loginDialog.openUrl(loginDialog.rootUrl + "/signup")
                     }
                 }
+
             }
         }
     }
@@ -294,7 +282,7 @@ Window {
         switch (event.key) {
             case Qt.Key_Escape:
             case Qt.Key_Back:
-                root.close();
+                root.visible = false;
                 event.accepted = true;
                 break;
 
