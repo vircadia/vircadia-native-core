@@ -26,7 +26,6 @@ public:
     friend class AnimTests;
 
     static bool usePreAndPostPoseFromAnim;
-    static bool useTransFromAnim;
 
     AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
     virtual ~AnimClip() override;
