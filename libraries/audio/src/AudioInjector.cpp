@@ -231,8 +231,7 @@ int64_t AudioInjector::injectNextFrame() {
 
             audioDataOffset = _currentPacket->pos();
 
-        }
-        else {
+        } else {
             // no samples to inject, return immediately
             qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
