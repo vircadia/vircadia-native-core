@@ -156,7 +156,10 @@ void AnimClip::copyFromNetworkAnim() {
                 }
 
                 AnimPose trans;
-                if (usePreAndPostPoseFromAnim) {
+                if (_skeleton->getJointName(skeletonJoint) == "RightEye" || _skeleton->getJointName(skeletonJoint) == "LeftEye") {
+                    // preserve model eye translation
+                    trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans);
+                } else if (usePreAndPostPoseFromAnim) {
                     trans = AnimPose(glm::vec3(1.0f), glm::quat(), boneLengthScale * (fbxAnimTrans + (fbxAnimTrans - fbxZeroTrans)));
                 } else {
                     trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
