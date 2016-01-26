@@ -14,12 +14,6 @@
 using namespace render;
 
 Octree::Indices Octree::allocateCellPath(const CellPath& path) {
-    
-
-    CellPoint point{ Coord3{ 2, 4, 3 }, 3 };
-
-    auto ppath = CellPoint::rootTo(point);
-
     Indices cellPath;
 
     Index currentIndex = 0;
@@ -27,14 +21,15 @@ Octree::Indices Octree::allocateCellPath(const CellPath& path) {
     int d = 0;
     cellPath.push_back(currentIndex);
 
-    for (; d < path.back().depth; d++) {
+    for (; d <= path.back().depth; d++) {
         auto& cellPoint = path[d];
 
         auto currentIndex = currentCell->child(cellPoint.octant());
         if (currentIndex == INVALID) {
-            break;
+            currentIndex = _cells.size();
+            currentCell->links[cellPoint.octant()] = currentIndex;
+            _cells.push_back(Cell(cellPath.back(), cellPoint));
         }
-
         cellPath.push_back(currentIndex);
         currentCell = _cells.data() + currentIndex;
     }

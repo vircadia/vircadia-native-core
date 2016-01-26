@@ -25,8 +25,6 @@
 
 using namespace render;
 
-const int DrawSceneOctree_CellsSlot = 0;
-const int DrawSceneOctree_OctreeInfoSlot = 1;
 
 const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     if (!_drawCellBoundsPipeline) {
@@ -35,10 +33,11 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("cellsBuffer"), DrawSceneOctree_CellsSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("octreeInfoBuffer"), DrawSceneOctree_OctreeInfoSlot));
         gpu::Shader::makeProgram(*program, slotBindings);
         
+        _drawBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
+        _drawBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+
         auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -69,9 +68,19 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         if (!_cells) {
             _cells = std::make_shared<gpu::Buffer>();
         }
-        if (!_octreeInfo) {
+       /* if (!_octreeInfo) {
             _octreeInfo = std::make_shared<gpu::Buffer>();;
+        }*/
+        
+        const auto& inCells = scene->_spatialTree._cells;
+        _cells->resize(inCells.size() * sizeof(AABox));
+        AABox* cellAABox = reinterpret_cast<AABox*> (_cells->editData());
+        for (const auto& cell : inCells) {
+            (*cellAABox) = scene->_spatialTree.evalBound(cell.cellpos);
+            nbCells++;
+            cellAABox++;
         }
+        
         /*
         _cells->resize((inItems.size() * sizeof(AABox)));
         _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
@@ -108,9 +117,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
                     itemStatus++;
                 }
 
-                nbItems++;
-                itemAABox++;
-            }
+                            }
         }*/
     }
 
@@ -119,7 +126,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
     }
 
     // Allright, something to render let's do it
-   /* gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
@@ -133,18 +140,15 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
 
-        AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-        glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        AABox* cellAABox = reinterpret_cast<AABox*> (_cells->editData());
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-        if ((renderContext->getDrawStatus() & showDisplayStatusFlag) > 0) {
-            for (int i = 0; i < nbCells; i++) {
-                batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
-                batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+        for (int i = 0; i < nbCells; i++) {
+            batch._glUniform3fv(_drawBoundPosLoc, 1, (const float*) (cellAABox + i));
+            batch._glUniform3fv(_drawBoundDimLoc, 1, ((const float*) (cellAABox + i)) + VEC3_ADRESS_OFFSET);
 
-                batch.draw(gpu::LINES, 24, 0);
-            }
+            batch.draw(gpu::LINES, 24, 0);
         }
-    });*/
+    });
 }

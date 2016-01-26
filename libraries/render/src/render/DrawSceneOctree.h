@@ -18,9 +18,10 @@
 namespace render {
     class DrawSceneOctree {
 
+        int _drawBoundPosLoc;
+        int _drawBoundDimLoc;
         gpu::PipelinePointer _drawCellBoundsPipeline;
         gpu::BufferPointer _cells;
-        gpu::BufferPointer _octreeInfo;
 
     public:
 
