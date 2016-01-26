@@ -2,6 +2,7 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 import "../../../windows"
+import "../../../controls" as VrControls
 import "."
 import ".."
 
@@ -69,7 +70,7 @@ Item {
                 text: "Joint:";
                 anchors.verticalCenter: jointChooser.verticalCenter;
             }
-            ComboBox {
+            VrControls.ComboBox {
                 id: jointChooser;
                 anchors { left: jointLabel.right; leftMargin: 8; right: parent.right }
                 model: MyAvatar.jointNames
