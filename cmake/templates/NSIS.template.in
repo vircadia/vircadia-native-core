@@ -897,6 +897,8 @@ Section "Uninstall"
   ; try to fix it.
   StrCpy $MUI_TEMP "$START_MENU"
   Delete "$SMPROGRAMS\$MUI_TEMP\Uninstall.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@INTERFACE_SHORTCUT_NAME@.lnk"
+  Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
   ;Delete empty start menu parent diretories
