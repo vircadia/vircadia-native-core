@@ -50,6 +50,7 @@
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
 #include "EntityEditPacketSender.h"
+#include "MovingEntitiesOperator.h"
 
 using namespace std;
 
@@ -355,18 +356,34 @@ void MyAvatar::simulate(float deltaTime) {
 
     locationChanged();
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
-    forEachDescendant([&](SpatiallyNestablePointer object) {
-        if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
-            EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
-            EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
-            if (packetSender) {
-                EntityItemProperties properties = entity->getProperties();
-                properties.setQueryAACubeDirty();
-                packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
-                entity->setLastBroadcast(usecTimestampNow());
+    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
+        MovingEntitiesOperator moveOperator(entityTree);
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            // if the queryBox has changed, tell the entity-server
+            if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                bool success;
+                AACube newCube = entity->getQueryAACube(success);
+                if (success) {
+                    moveOperator.addEntityToMoveList(entity, newCube);
+                }
+                if (packetSender) {
+                    EntityItemProperties properties = entity->getProperties();
+                    properties.setQueryAACubeDirty();
+                    packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                    entity->setLastBroadcast(usecTimestampNow());
+                }
             }
+        });
+        // also update the position of children in our local octree
+        if (moveOperator.hasMovingEntities()) {
+            PerformanceTimer perfTimer("recurseTreeWithOperator");
+            entityTree->recurseTreeWithOperator(&moveOperator);
         }
-    });
+    }
 }
 
 glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
