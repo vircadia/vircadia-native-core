@@ -139,6 +139,12 @@ void PendingChanges::merge(PendingChanges& changes) {
 Scene::Scene() {
     _items.push_back(Item()); // add the itemID #0 to nothing
     _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
+
+
+    _spatialTree;
+    Octree::CellPoint point{ Octree::Coord3{ 2, 4, 3 }, 3 };
+    auto path = Octree::CellPoint::rootTo(point);
+
 }
 
 ItemID Scene::allocateID() {

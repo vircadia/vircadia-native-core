@@ -25,6 +25,7 @@
 
 #include "render/DrawTask.h"
 #include "render/DrawStatus.h"
+#include "render/DrawSceneOctree.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 
@@ -134,6 +135,13 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
     addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
     _drawDebugDeferredBufferIndex = (int)_jobs.size() - 1;
     enableJob(_drawDebugDeferredBufferIndex, false);
+
+    // Scene Octree Debuging job
+    {
+        addJob<DrawSceneOctree>("DrawSceneOctree");
+       // _drawStatusJobIndex = (int)_jobs.size() - 1;
+       // enableJob(_drawStatusJobIndex, false);
+    }
 
     // Status icon rendering job
     {

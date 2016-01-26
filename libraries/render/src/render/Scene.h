@@ -27,6 +27,8 @@
 #include "model/Material.h"
 #include "ShapePipeline.h"
 
+#include "Octree.h"
+
 namespace render {
 
 class Context;
@@ -526,6 +528,8 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
+
+    Octree _spatialTree;
 
     friend class Engine;
 };

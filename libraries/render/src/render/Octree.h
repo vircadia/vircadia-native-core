@@ -1,29 +1,57 @@
+//
+//  Octree.h
+//  render/src/render
+//
+//  Created by Sam Gateau on 1/25/16.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
+#ifndef hifi_render_Octree_h
+#define hifi_render_Octree_h
+
+#include <vector>
+#include <memory>
+#include <cassert>
+#include <array>
+#include <glm/glm.hpp>
+#include <glm/gtx/bit.hpp>
 
 namespace render {
     
     class Octree {
     public:
-        enum Octant {
-            L_B_N = 0,
-            R_B_N = 1,
-            L_T_N = 2,
-            R_T_N = 3,
-            L_B_F = 4,
-            R_B_F = 5,
-            L_T_F = 6,
-            R_T_F = 7,
-            
+
+        using LinkStorage = int8_t;
+        enum Link : LinkStorage {
+
+            Octant_L_B_N = 0,
+            Octant_R_B_N = 1,
+            Octant_L_T_N = 2,
+            Octant_R_T_N = 3,
+            Octant_L_B_F = 4,
+            Octant_R_B_F = 5,
+            Octant_L_T_F = 6,
+            Octant_R_T_F = 7,
+
             NUM_OCTANTS,
-        };
-        
-        enum OctantBits {
+
+            Parent = NUM_OCTANTS,
+
+            NUM_LINKS = NUM_OCTANTS + 1,
+
             XAxis = 0x01,
             YAxis = 0x02,
-            ZAXis = 0x04,
-            
+            ZAxis = 0x04,
+
+            NoLink = 0x0F,
         };
-        
+
+        using Octant = Link;
+
+
         // Depth, Width, Volume
         // {0,  1,     1}
         // {1,  2,     8}
@@ -44,96 +72,106 @@ namespace render {
         // {16, 65536, 281474976710656}
         
         using Depth = int8_t; // Max depth is 15 => 32Km root down to 1m cells
-        using Coord = int16_t// Need 16bits integer coordinates on each axes: 32768 cell positions
-        using Pos = glm::vec3<Coord>;
+        using Coord = int16_t;// Need 16bits integer coordinates on each axes: 32768 cell positions
+        using Coord3 = glm::i16vec3;
+        using Coord4 = glm::i16vec4;
         
-        class CellCoord {
+        class CellPoint {
+            void assertValid() {
+                assert((pos.x >= 0) && (pos.y >= 0) && (pos.z >= 0));
+                assert((pos.x < (2 << depth)) && (pos.y < (2 << depth)) && (pos.z < (2 << depth)));
+            }
         public:
-            CellCoord() {}
-            CellCoord(const Pos& xyz, Depth d) : pos(xyz), depth(d) {}
-            CellCoord(Depth d) : pos(0), depth(d) {}
-            
-            union {
-                glm::vec4<Coord> raw;
-                struct {
-                    Pos pos { 0 };
-                    int8_t spare { 0 };
-                    Depth depth { 0 };
-                };
-            };
-            
-            CellCoord parent() const { return CellCoord{ pos >> 1, (d <= 0? 0 : d-1) }; }
-            CellCoord child(Octant octant) const { return CellCoord{ Pos((pos.x << 1) | (octant & XAxis),
-                                                                         (pos.y << 1) | (octant & YAxis),
-                                                                         (pos.z << 1) | (octant & ZAxis)), d+1 }; }
+            CellPoint() {}
+            CellPoint(const Coord3& xyz, Depth d) : pos(xyz), depth(d) { assertValid(); }
+            CellPoint(Depth d) : pos(0), depth(d) { assertValid(); }
+
+            Coord3 pos{ 0 };
+            uint8_t spare{ 0 };
+            Depth depth{ 0 };
+
+
+            // Eval the octant of this cell relative to its parent
+            Octant octant() const { return  Octant((pos.x & XAxis) | (pos.y & YAxis) | (pos.z & ZAxis)); }
+
+            // Get the Parent cell pos of this cell
+            CellPoint parent() const {
+                return CellPoint{ pos >> Coord3(1), Depth(depth <= 0 ? 0 : depth - 1) };
+            }
+            CellPoint child(Link octant) const {
+                return CellPoint{ pos << Coord3(1) | Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)), Depth(depth + 1) };
+            }
+
+            using vector = std::vector< CellPoint >;
+            static vector rootTo(const CellPoint& dest) {
+                CellPoint current{ dest };
+                vector path(dest.depth + 1);
+                path[dest.depth] = dest;
+                while (current.depth > 0) {
+                    current = current.parent();
+                    path[current.depth] = current;
+                }
+                return path;
+            }
         };
+        using CellPath = CellPoint::vector;
+
         
         class Range {
         public:
-            Pos _min;
-            Pos _max;
-        }
-        
-        
+            Coord3 _min;
+            Coord3 _max;
+        };
+
+        // Cell or Brick Indexing
+        using Index = int32_t;
+        static const Index INVALID = -1;
+        using Indices = std::vector<Index>;
+
         // the cell description
         class Cell {
         public:
-            using Index = int32_t;
-            static const Index INVALID = -1;
 
-            
-            Index children[NUM_OCTANTS] = { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID };
-            Index parent{ INVALID };
-            
+            CellPoint cellpos;
+
+            std::array<Index, NUM_LINKS> links;
+
+            Index parent() const { return links[Parent]; }
+            bool asParent() const { return parent() != INVALID; }
+
+            Index child(Link octant) const { return links[octant]; }
+            bool asChild(Link octant) const { return child(octant) != INVALID; }
+
             Index brick{ INVALID };
-            
-            CellPos cellpos;
+
+            Cell() :
+                links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
+            {}
         };
         using Cells = std::vector< Cell >;
         
-        class CellPath {
-        public:
-            using PosArray = std::vector< CellPos >;
-            PosArray cellCoords;
-            
-        };
-        
+
         class Brick {
         public:
             
-        }
-        using Bricks = std::vector< Block >;
+        };
+        using Bricks = std::vector< Brick >;
         
         
         
         // Octree members
-        Cells _cells;
+        Cells _cells = Cells(1, Cell()); // start with only the Cell root
         Bricks _bricks;
         
-        
-        CellPath rootTo(const CellPos& dest) {
-            CellPos current{ dest };
-            CellPath path(dest.depth + 1)
-            path[dest.depth] = dest;
-            while (current.depth > 0) {
-                current = current.parent();
-                path[current.depth] = current);
-            }
-            return path;
-        }
-        
-        CellPath rootTo(const CellPos& dest) {
-            CellPos current{ dest };
-            CellPath path(dest.depth + 1)
-            path[dest.depth] = dest;
-            while (current.depth > 0) {
-                current = current.parent();
-                path[current.depth] = current);
-            }
-            return path;
-        }
+        Octree() {};
+
+        // allocatePath
+        Indices allocateCellPath(const CellPath& path);
+
     };
     
     
     
 }
+
+#endif // hifi_render_Octree_h
