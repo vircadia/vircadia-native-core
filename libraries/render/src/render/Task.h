@@ -146,7 +146,7 @@ public:
 
         Data _data;
 
-        Model(Data data = Data()) : _data(data), Concept(std::make_shared<C>()) {
+        Model(Data data = Data()) : Concept(std::make_shared<C>()), _data(data) {
             applyConfiguration();
         }
 
@@ -173,7 +173,7 @@ public:
 
         const Varying getInput() const { return _input; }
 
-        ModelI(const Varying& input, Data data = Data()) : _input(input), _data(data), Concept(std::make_shared<C>()) {
+        ModelI(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input) {
             applyConfiguration();
         }
 
@@ -200,7 +200,7 @@ public:
 
         const Varying getOutput() const { return _output; }
 
-        ModelO(Data data = Data()) : _data(data), _output(Output()), Concept(std::make_shared<C>()) {
+        ModelO(Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _output(Output()) {
             applyConfiguration();
         }
 
@@ -230,7 +230,7 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        ModelIO(const Varying& input, Data data = Data()) : _data(data), _input(input), _output(Output()), Concept(std::make_shared<C>()) {
+        ModelIO(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
             applyConfiguration();
         }
 
