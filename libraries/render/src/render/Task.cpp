@@ -10,12 +10,6 @@
 //
 
 #include <QtCore/QThread>
-#include <qscriptengine.h> // QObject
-
-#include "Context.h"
-
-#include "gpu/Batch.h"
-#include <PerfStat.h>
 
 #include "Task.h"
 

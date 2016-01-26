@@ -13,10 +13,9 @@
 
 class HitEffectConfig : public render::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled)
 public:
     HitEffectConfig() : render::Job::Config(false) {}
-
-    Q_PROPERTY(bool enabled MEMBER enabled)
 };
 
 class HitEffect {
@@ -25,7 +24,7 @@ public:
     using JobModel = render::Job::Model<HitEffect, Config>;
     
     HitEffect();
-    void configure(const Config&) {}
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
     const gpu::PipelinePointer& getHitEffectPipeline();

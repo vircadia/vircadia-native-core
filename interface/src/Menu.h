@@ -244,7 +244,6 @@ namespace MenuOption {
     const QString OutputMenu = "Display";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
-    const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString PhysicsShowHulls = "Draw Collision Hulls";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";

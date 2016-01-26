@@ -232,6 +232,10 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
     }
 }
 
+void DebugDeferredBuffer::configure(const Config& config) {
+    _mode = (Mode)config.mode;
+    _size = config.size;
+}
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     assert(renderContext->args);

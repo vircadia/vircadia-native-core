@@ -18,14 +18,15 @@
 namespace render {
     class DrawStatusConfig : public Job::Config {
         Q_OBJECT
-    public:
-        DrawStatusConfig() : Job::Config(false) {}
-
         Q_PROPERTY(bool enabled MEMBER enabled)
         Q_PROPERTY(bool showDisplay MEMBER showDisplay NOTIFY dirty)
         Q_PROPERTY(bool showNetwork MEMBER showDisplay NOTIFY dirty)
+    public:
+        DrawStatusConfig() : Job::Config(false) {}
+
         bool showDisplay{ false };
         bool showNetwork{ false };
+
     signals:
         void dirty();
     };
@@ -38,7 +39,7 @@ namespace render {
         DrawStatus() {}
         DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
 
-        void configure(const Config& configuration);
+        void configure(const Config& config);
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
 
         const gpu::PipelinePointer getDrawItemBoundsPipeline();
@@ -48,8 +49,8 @@ namespace render {
         const gpu::TexturePointer getStatusIconMap() const;
 
     protected:
-        bool _showDisplay{ false };
-        bool _showNetwork{ false };
+        bool _showDisplay; // initialized by Config
+        bool _showNetwork; // initialized by Config
 
         int _drawItemBoundPosLoc = -1;
         int _drawItemBoundDimLoc = -1;

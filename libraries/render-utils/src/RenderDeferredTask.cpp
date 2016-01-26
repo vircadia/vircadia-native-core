@@ -67,13 +67,13 @@ void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderCo
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
-void ToneMappingDeferred::configure(const Config& configuration) {
-    if (configuration.exposure >= 0) {
-        _toneMappingEffect.setExposure(configuration.exposure);
+void ToneMappingDeferred::configure(const Config& config) {
+    if (config.exposure >= 0.0f) {
+        _toneMappingEffect.setExposure(config.exposure);
     }
-    if (configuration.curve >= 0) {
-        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)configuration.curve);
 
+    if (config.curve >= 0) {
+        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
     }
 }
 
@@ -169,7 +169,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    auto& config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -218,7 +218,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     auto& scene = sceneContext->_scene;
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
 
-    auto& config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
     ItemIDsBounds inItems;
     inItems.reserve(items.size());

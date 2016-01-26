@@ -94,9 +94,9 @@ const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
     return _statusIconMap;
 }
 
-void DrawStatus::configure(const Config& configuration) {
-    _showDisplay = configuration.showDisplay;
-    _showNetwork = configuration.showNetwork;
+void DrawStatus::configure(const Config& config) {
+    _showDisplay = config.showDisplay;
+    _showNetwork = config.showNetwork;
 }
 
 void DrawStatus::run(const SceneContextPointer& sceneContext,

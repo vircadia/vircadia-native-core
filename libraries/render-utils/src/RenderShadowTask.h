@@ -33,10 +33,9 @@ protected:
 
 class RenderShadowTaskConfig : public render::Task::Config {
     Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
 public:
     RenderShadowTaskConfig() : render::Task::Config(false) {}
-
-    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
 
 signals:
     void dirty();

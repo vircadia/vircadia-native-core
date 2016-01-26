@@ -31,7 +31,7 @@ public:
     RenderArgs* args;
     std::shared_ptr<JobConfig> jobConfig{ nullptr };
 };
-typedef std::shared_ptr<RenderContext> RenderContextPointer;
+using RenderContextPointer = std::shared_ptr<RenderContext>;
 
 }
 

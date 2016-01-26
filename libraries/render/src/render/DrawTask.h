@@ -29,9 +29,10 @@ void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPo
 
 class FetchItemsConfig : public Job::Config {
     Q_OBJECT
-public:
     Q_PROPERTY(int numItems READ getNumItems)
+public:
     int getNumItems() { return numItems; }
+
     int numItems{ 0 };
 };
 
@@ -45,7 +46,7 @@ public:
 
     ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
-    void configure(const Config&) {}
+    void configure(const Config& config) {}
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
 };
 

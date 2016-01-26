@@ -19,9 +19,6 @@
 #include "gpu/Batch.h"
 #include <PerfStat.h>
 
-// Prepare Qt for auto configurations
-Q_DECLARE_METATYPE(std::shared_ptr<QObject>)
-
 namespace render {
 
 // A varying piece of data, to be used as Job/Task I/O
@@ -53,25 +50,26 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
+class Job;
+class Task;
+
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
 public:
-    JobConfig() : alwaysEnabled{ true }, enabled{ true } {}
+    JobConfig() = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
 
     bool alwaysEnabled{ true };
-    bool enabled;
+    bool enabled{ true };
 };
-
-class Task;
 
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
-    TaskConfig() : JobConfig() {}
+    TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
     void init(Task* task) { _task = task; }
@@ -82,6 +80,7 @@ public:
     }
 
     template <class T> void setJobEnabled(bool enable = true, std::string job = "") {
+        assert(getConfig<T>(job)->alwaysEnabled != true);
         getConfig<T>(job)->enabled = enable;
         refresh(); // trigger a Job->configure
     }
@@ -96,24 +95,23 @@ private:
     Task* _task;
 };
 
-template <class T, class C> void jobConfigure(T& model, const C& configuration) {
-    model.configure(configuration);
+template <class T, class C> void jobConfigure(T& data, const C& configuration) {
+    data.configure(configuration);
 }
 template<class T> void jobConfigure(T&, const JobConfig&) {
+    // nop, as the default JobConfig was used, so the data does not need a configure method
 }
-
-// FIXME: In c++17, use default classes of nullptr_t to combine these
-template <class T> void jobRun(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    model.run(sceneContext, renderContext);
+template <class T> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    data.run(sceneContext, renderContext);
 }
-template <class T, class I> void jobRunI(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
-    model.run(sceneContext, renderContext, input);
+template <class T, class I> void jobRunI(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
+    data.run(sceneContext, renderContext, input);
 }
-template <class T, class O> void jobRunO(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
-    model.run(sceneContext, renderContext, output);
+template <class T, class O> void jobRunO(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
+    data.run(sceneContext, renderContext, output);
 }
-template <class T, class I, class O> void jobRunIO(T& model, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
-    model.run(sceneContext, renderContext, input, output);
+template <class T, class I, class O> void jobRunIO(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
+    data.run(sceneContext, renderContext, input, output);
 }
 
 class Job {
@@ -285,12 +283,10 @@ public:
     public:
         using Data = T;
 
-        // TODO: Make Data a shared_ptr, and give Config a weak_ptr
         Data _data;
 
-        // The _config is unused; the model delegates to its data's _config
-        Model(Data data = Data()) : _data(data), Concept(std::make_shared<C>()) {
-            _config = _data._config;
+        Model(Data data = Data()) : Concept(std::make_shared<C>()), _data(data) {
+            _config = _data._config; // use the data's config
             std::static_pointer_cast<Config>(_config)->init(&_data);
 
             applyConfiguration();
@@ -341,7 +337,7 @@ public:
 protected:
     template <class T, class C> friend class Model;
 
-    QConfigPointer _config { nullptr };
+    QConfigPointer _config;
     Jobs _jobs;
 };
 

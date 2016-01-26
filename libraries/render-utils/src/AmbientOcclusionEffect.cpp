@@ -101,13 +101,13 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
 }
 
-void AmbientOcclusionEffect::configure(const Config& configuration) {
-    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(configuration.enabled);
+void AmbientOcclusionEffect::configure(const Config& config) {
+    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
 
     bool shouldUpdateGaussion = false;
 
     const double RADIUS_POWER = 6.0;
-    const auto& radius = configuration.radius;
+    const auto& radius = config.radius;
     if (radius != getRadius()) {
         auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
         current.x = radius;
@@ -115,39 +115,39 @@ void AmbientOcclusionEffect::configure(const Config& configuration) {
         current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
     }
 
-    if (configuration.obscuranceLevel != getObscuranceLevel()) {
+    if (config.obscuranceLevel != getObscuranceLevel()) {
         auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
-        current.w = configuration.obscuranceLevel;
+        current.w = config.obscuranceLevel;
     }
 
-    if (configuration.falloffBias != getFalloffBias()) {
+    if (config.falloffBias != getFalloffBias()) {
         auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.z = configuration.falloffBias;
+        current.z = config.falloffBias;
     }
 
-    if (configuration.edgeSharpness != getEdgeSharpness()) {
+    if (config.edgeSharpness != getEdgeSharpness()) {
         auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.x = configuration.edgeSharpness;
+        current.x = config.edgeSharpness;
     }
 
-    if (configuration.blurDeviation != getBlurDeviation()) {
+    if (config.blurDeviation != getBlurDeviation()) {
         auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.z = configuration.blurDeviation;
+        current.z = config.blurDeviation;
         shouldUpdateGaussion = true;
     }
 
-    if (configuration.numSpiralTurns != getNumSpiralTurns()) {
+    if (config.numSpiralTurns != getNumSpiralTurns()) {
         auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
-        current.z = configuration.numSpiralTurns;
+        current.z = config.numSpiralTurns;
     }
 
-    if (configuration.numSamples != getNumSamples()) {
+    if (config.numSamples != getNumSamples()) {
         auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
-        current.x = configuration.numSamples;
-        current.y = 1.0f / configuration.numSamples;
+        current.x = config.numSamples;
+        current.y = 1.0f / config.numSamples;
     }
 
-    const auto& resolutionLevel = configuration.resolutionLevel;
+    const auto& resolutionLevel = config.resolutionLevel;
     if (resolutionLevel != getResolutionLevel()) {
         auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
         current.x = (float)resolutionLevel;
@@ -156,20 +156,20 @@ void AmbientOcclusionEffect::configure(const Config& configuration) {
         DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(resolutionLevel);
     }
 
-    if (configuration.blurRadius != getBlurRadius()) {
+    if (config.blurRadius != getBlurRadius()) {
         auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.y = (float)configuration.blurRadius;
+        current.y = (float)config.blurRadius;
         shouldUpdateGaussion = true;
     }
 
-    if (configuration.ditheringEnabled != isDitheringEnabled()) {
+    if (config.ditheringEnabled != isDitheringEnabled()) {
         auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.x = (float)configuration.ditheringEnabled;
+        current.x = (float)config.ditheringEnabled;
     }
 
-    if (configuration.borderingEnabled != isBorderingEnabled()) {
+    if (config.borderingEnabled != isBorderingEnabled()) {
         auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.w = (float)configuration.borderingEnabled;
+        current.w = (float)config.borderingEnabled;
     }
 
     if (shouldUpdateGaussion) {

@@ -18,16 +18,16 @@
 
 class DebugDeferredBufferConfig : public render::Job::Config {
     Q_OBJECT
-public:
-    DebugDeferredBufferConfig() : render::Job::Config(false) {}
-
     Q_PROPERTY(bool enabled MEMBER enabled)
     Q_PROPERTY(int mode MEMBER mode WRITE setMode)
     Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
+public:
+    DebugDeferredBufferConfig() : render::Job::Config(false) {}
+
     void setMode(int newMode);
  
     int mode{ 0 };
-    glm::vec4 size{ 0, 0, 0, 0 };
+    glm::vec4 size{ 0.0f, 0.0f, 0.0f, 0.0f };
 signals:
     void dirty();
 };
@@ -39,10 +39,7 @@ public:
     
     DebugDeferredBuffer();
 
-    void configure(const Config& config) {
-        _mode = (Mode)config.mode;
-        _size = config.size;
-    }
+    void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 protected:

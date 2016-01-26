@@ -78,6 +78,7 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
+// The shadow task *must* use this base ctor to initialize with its own Config, see Task.h
 RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_shared<Config>()) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
@@ -121,6 +122,7 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_sha
 
 void RenderShadowTask::configure(const Config& configuration) {
     DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    // This is a task, so must still propogate configure() to its Jobs
     Task::configure(configuration);
 }
 

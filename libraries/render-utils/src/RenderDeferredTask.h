@@ -43,13 +43,13 @@ public:
 
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
-public:
-    ToneMappingConfig() : render::Job::Config(true) {}
-
     Q_PROPERTY(bool enabled MEMBER enabled)
     Q_PROPERTY(float exposure MEMBER exposure NOTIFY dirty);
     Q_PROPERTY(int curve MEMBER curve NOTIFY dirty);
-    float exposure{ 0.0 };
+public:
+    ToneMappingConfig() : render::Job::Config(true) {}
+
+    float exposure{ 0.0f };
     int curve{ 3 };
 signals:
     void dirty();
@@ -60,7 +60,7 @@ public:
     using Config = ToneMappingConfig;
     using JobModel = render::Job::Model<ToneMappingDeferred, Config>;
 
-    void configure(const Config&);
+    void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     ToneMappingEffect _toneMappingEffect;
@@ -68,9 +68,9 @@ public:
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
-public:
     Q_PROPERTY(int numDrawn READ getNumDrawn)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
     int getNumDrawn() { return numDrawn; }
 
     int numDrawn{ 0 };
@@ -91,7 +91,7 @@ public:
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
-    int _maxDrawn{ -1 };
+    int _maxDrawn; // initialized by Config
 };
 
 class DrawStencilDeferred {
@@ -115,10 +115,10 @@ public:
 
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
-public:
     Q_PROPERTY(int numItems READ getNumItems)
     Q_PROPERTY(int numDrawn READ getNumDrawn)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+public:
     int getNumItems() { return numItems; }
     int getNumDrawn() { return numDrawn; }
 
@@ -144,7 +144,7 @@ public:
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
     render::ShapePlumberPointer _shapePlumber;
-    int _maxDrawn{ -1 };
+    int _maxDrawn; // initialized by Config
 };
 
 class Blit {

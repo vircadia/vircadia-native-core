@@ -18,9 +18,6 @@
 
 class AmbientOcclusionEffectConfig : public render::Job::Config {
     Q_OBJECT
-public:
-    AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
-
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
     Q_PROPERTY(bool borderingEnabled MEMBER borderingEnabled NOTIFY dirty)
@@ -34,6 +31,8 @@ public:
     Q_PROPERTY(int resolutionLevel MEMBER resolutionLevel WRITE setResolutionLevel)
     Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
     Q_PROPERTY(double gpuTime READ getGpuTime)
+public:
+    AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
 
     const int MAX_RESOLUTION_LEVEL = 4;
     const int MAX_BLUR_RADIUS = 6;
@@ -73,7 +72,7 @@ public:
 
     AmbientOcclusionEffect();
 
-    void configure(const Config& configuration);
+    void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
     float getRadius() const { return _parametersBuffer.get<Parameters>().radiusInfo.x; }
