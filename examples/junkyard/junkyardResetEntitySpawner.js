@@ -19,12 +19,13 @@
   var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
 
-  var scriptURL = Script.resolvePath("junkyardResetEntityScript.js?v1" + Math.random());
+  var SCRIPT_URL = Script.resolvePath("junkyardResetEntityScript.js");
+  var MODEL_URL = "http://hifi-content.s3.amazonaws.com/caitlyn/dev/Blueprint%20Objects/Asylum/Asylum_Table/Asylum_Table.fbx";
   var resetEntity = Entities.addEntity({
       type: "Model",
-      modelURL: "http://hifi-content.s3.amazonaws.com/caitlyn/dev/Blueprint%20Objects/Asylum/Asylum_Table/Asylum_Table.fbx",
+      modelURL: MODEL_URL,
       position: center,
-      script: scriptURL,
+      script: SCRIPT_URL,
       dimensions: {
           x: 2.8,
           y: 1.76,

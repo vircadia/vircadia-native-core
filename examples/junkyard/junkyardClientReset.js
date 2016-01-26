@@ -22,10 +22,10 @@ function reset() {
   for (i = 0; i < e.length; i++) {
     Entities.deleteEntity(e[i]);
   }
-  importArf();
+  importAssetResourceFile();
 }
 
-function importArf() {
+function importAssetResourceFile() {
   Clipboard.importEntities(IMPORT_URL);
   Clipboard.pasteEntities(PASTE_ENTITIES_LOCATION);
 }
