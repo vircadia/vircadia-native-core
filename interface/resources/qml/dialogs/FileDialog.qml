@@ -6,11 +6,19 @@ import Qt.labs.settings 1.0
 import ".."
 import "../windows"
 import "../styles"
+import "../controls" as VrControls
+import "fileDialog"
 
-// Work in progress....
+//FIXME implement shortcuts for favorite location
 ModalWindow {
     id: root
-    HifiConstants { id: hifi }
+
+    property bool selectDirectory: false;
+    property bool showHidden: false;
+    // FIXME implement
+    property bool multiSelect: false;
+    // FIXME implement
+    property bool saveDialog: false;
 
     signal selectedFile(var file);
     signal canceled();
@@ -18,149 +26,144 @@ ModalWindow {
     width: 640
     height: 480
 
-    property string settingsName: ""
-    property alias folder: folderModel.folder
+    property var helper: fileDialogHelper
+    property alias model: fileTableView.model
     property alias filterModel: selectionType.model
+    property alias folder: model.folder
 
     Rectangle {
         anchors.fill: parent
         color: "white"
 
-        Settings {
-            // fixme, combine with a property to allow different saved locations
-            category: "FileOpenLastFolder." + settingsName
-            property alias folder: folderModel.folder
+        Row {
+            id: navControls
+            anchors { left: parent.left; top: parent.top; margins: 8 }
+            spacing: 8
+            // FIXME implement back button
+//            VrControls.FontAwesome {
+//                id: backButton
+//                text: "\uf0a8"
+//                size: currentDirectory.height
+//                enabled: d.backStack.length != 0
+//                MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
+//            }
+            VrControls.FontAwesome {
+                id: upButton
+                text: "\uf0aa"
+                size: currentDirectory.height
+                color: enabled ? "black" : "gray"
+                MouseArea { anchors.fill: parent; onClicked: d.navigateUp() }
+            }
+            VrControls.FontAwesome {
+                id: homeButton
+                property var destination: helper.home();
+                visible: destination ? true : false
+                text: "\uf015"
+                size: currentDirectory.height
+                MouseArea { anchors.fill: parent; onClicked: model.folder = parent.destination }
+            }
         }
 
         TextField {
             id: currentDirectory
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 8
-            readOnly: true
-            text: folderModel.folder
+            anchors { left: navControls.right; right: parent.right; top: parent.top; margins: 8 }
+            property var lastValidFolder: helper.urlToPath(model.folder)
+            onLastValidFolderChanged: text = lastValidFolder;
+
+            // FIXME add support auto-completion
+            onAccepted: {
+                if (!helper.validFolder(text)) {
+                    text = lastValidFolder;
+                    return
+                }
+                model.folder = helper.pathToUrl(text);
+            }
+
         }
 
-        Component {
-            id: fileItemDelegate
-            Item {
-                clip: true
-                Text {
-                    x: 3
-                    id: columnText
-                    anchors.verticalCenter: parent.verticalCenter
-//                    font.pointSize: 12
-                    color: tableView.activeFocus && styleData.row === tableView.currentRow ? "yellow" : styleData.textColor
-                    elide: styleData.elideMode
-                    text: getText();
-                    font.italic: folderModel.get(styleData.row, "fileIsDir") ? true : false
+        QtObject {
+            id: d
+            property var currentSelectionUrl;
+            readonly property string currentSelectionPath: helper.urlToPath(currentSelectionUrl);
+            property bool currentSelectionIsFolder;
+            property var backStack: []
+            property var tableViewConnection: Connections { target: fileTableView; onCurrentRowChanged: d.update(); }
+            property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }
+            Component.onCompleted: update();
 
+            function update() {
+                var row = fileTableView.currentRow;
+                if (row === -1 && root.selectDirectory) {
+                    currentSelectionUrl = fileTableView.model.folder;
+                    currentSelectionIsFolder = true;
+                    return;
+                }
 
-                    Connections {
-                        target: tableView
-                        //onCurrentRowChanged: columnText.color = (tableView.activeFocus && styleData.row === tableView.currentRow ? "yellow" : styleData.textColor)
-                    }
+                currentSelectionUrl = fileTableView.model.get(row, "fileURL");
+                currentSelectionIsFolder = fileTableView.model.isFolder(row);
+                if (root.selectDirectory || !currentSelectionIsFolder) {
+                    currentSelection.text = helper.urlToPath(currentSelectionUrl);
+                }
+            }
 
-                    function getText() {
-                        switch (styleData.column) {
-                            //case 1: return Date.fromLocaleString(locale, styleData.value, "yyyy-MM-dd hh:mm:ss");
-                            case 2: return folderModel.get(styleData.row, "fileIsDir") ? "" : formatSize(styleData.value);
-                            default: return styleData.value;
-                        }
-                    }
-
-                    function formatSize(size) {
-                        var suffixes = [ "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" ];
-                        var suffixIndex = 0
-                        while ((size / 1024.0) > 1.1) {
-                            size /= 1024.0;
-                            ++suffixIndex;
-                        }
-
-                        size = Math.round(size*1000)/1000;
-                        size = size.toLocaleString()
-
-                        return size + " " + suffixes[suffixIndex];
-                    }
+            function navigateUp() {
+                if (model.parentFolder && model.parentFolder !== "") {
+                    model.folder = model.parentFolder
+                    return true;
                 }
             }
         }
 
-        TableView {
-            id: tableView
-            focus: true
+        FileTableView {
+            id: fileTableView
+            anchors { left: parent.left; right: parent.right; top: currentDirectory.bottom; bottom: currentSelection.top; margins: 8 }
+            onDoubleClicked: navigateToRow(row);
             model: FolderListModel {
-                id: folderModel
-                showDotAndDotDot: true
+                id: model
                 showDirsFirst: true
-                onFolderChanged: {
-                    tableView.currentRow = -1;
-                    tableView.positionViewAtRow(0, ListView.Beginning)
+                showDotAndDotDot: false
+                showFiles: !root.selectDirectory
+                // For some reason, declaring these bindings directly in the targets doesn't
+                // work for setting the initial state
+                Component.onCompleted: {
+                    currentDirectory.lastValidFolder  = Qt.binding(function() { return helper.urlToPath(model.folder); });
+                    upButton.enabled = Qt.binding(function() { return (model.parentFolder && model.parentFolder != "") ? true : false; });
+                    showFiles = !root.selectDirectory
                 }
             }
-            anchors.top: currentDirectory.bottom
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: selectionType.top
-            anchors.margins: 8
-            itemDelegate: fileItemDelegate
-//            rowDelegate: Rectangle {
-//                id: rowDelegate
-//                color: styleData.selected  ? "#7f0000ff" : "#00000000"
-//                Connections { target: folderModel; onFolderChanged: rowDelegate.visible = false }
-//                Connections { target: tableView;  onCurrentRowChanged: rowDelegate.visible = true; }
-//            }
 
-            TableViewColumn {
-                role: "fileName"
-                title: "Name"
-                width: 400
-            }
-            TableViewColumn {
-                role: "fileModified"
-                title: "Date Modified"
-                width: 200
-            }
-            TableViewColumn {
-                role: "fileSize"
-                title: "Size"
-                width: 200
+            function navigateToRow(row) {
+                currentRow = row;
+                navigateToCurrentRow();
             }
 
-            Keys.onReturnPressed: selectCurrentFile();
-            onDoubleClicked: { currentRow = row; selectCurrentFile(); }
-            onCurrentRowChanged: currentSelection.text = model.get(currentRow, "fileName");
-            KeyNavigation.left: cancelButton
-            KeyNavigation.right: selectionType
+            function navigateToCurrentRow() {
+                var row = fileTableView.currentRow
+                var isFolder = model.isFolder(row);
+                var file = model.get(row, "fileURL");
+                if (isFolder) {
+                    fileTableView.model.folder = file
+                    currentRow = -1;
+                } else {
+                    root.selectedFile(file);
+                    root.visible = false;
+                }
+            }
         }
-
 
         TextField {
             id: currentSelection
-            anchors.right: selectionType.left
-            anchors.rightMargin: 8
-            anchors.left: parent.left
-            anchors.leftMargin: 8
-            anchors.top: selectionType.top
+            anchors { right: root.selectDirectory ? parent.right : selectionType.left; rightMargin: 8; left: parent.left; leftMargin: 8; top: selectionType.top }
+            readOnly: true
         }
 
         ComboBox {
             id: selectionType
-            anchors.bottom: buttonRow.top
-            anchors.bottomMargin: 8
-            anchors.right: parent.right
-            anchors.rightMargin: 8
-            anchors.left: buttonRow.left
-
-            model: ListModel {
-                ListElement { text: "All Files (*.*)"; filter: "*.*" }
-            }
-
-            onCurrentIndexChanged: {
-                folderModel.nameFilters = [ filterModel.get(currentIndex).filter ]
-            }
-            KeyNavigation.left: tableView
+            anchors { bottom: buttonRow.top; bottomMargin: 8; right: parent.right; rightMargin: 8; left: buttonRow.left }
+            visible: !selectDirectory
+            model: ListModel { ListElement { text: "All Files (*.*)"; filter: "*.*" } }
+//            onCurrentIndexChanged: model.nameFilters = [ filterModel.get(currentIndex).filter ]
+            KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
         }
 
@@ -177,16 +180,16 @@ ModalWindow {
                 text: "Cancel"
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: openButton
-                KeyNavigation.right: tableView.contentItem
+                KeyNavigation.right: fileTableView.contentItem
                 Keys.onReturnPressed: { canceled(); root.enabled = false }
-                onClicked: { canceled(); close() }
+                onClicked: { canceled(); root.visible = false; }
             }
             Button {
                 id: openButton
-                text: "Open"
-                enabled: tableView.currentRow != -1 && !folderModel.get(tableView.currentRow, "fileIsDir")
-                onClicked: selectCurrentFile();
-                Keys.onReturnPressed: selectCurrentFile();
+                text: root.selectDirectory ? "Choose" : "Open"
+                enabled: currentSelection.text ? true : false
+                onClicked: { selectedFile(d.currentSelectionUrl); root.visible = false; }
+                Keys.onReturnPressed: { selectedFile(d.currentSelectionUrl); root.visible = false; }
 
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
@@ -195,26 +198,8 @@ ModalWindow {
         }
     }
 
-    function selectCurrentFile() {
-        var row = tableView.currentRow
-        console.log("Selecting row " + row)
-        var fileName = folderModel.get(row, "fileName");
-        if (fileName === "..") {
-            folderModel.folder = folderModel.parentFolder
-        } else if (folderModel.isFolder(row)) {
-            folderModel.folder = folderModel.get(row, "fileURL");
-        } else {
-            selectedFile(folderModel.get(row, "fileURL"));
-            close();
-        }
-
-    }
-
-
     Keys.onPressed: {
-        if (event.key === Qt.Key_Backspace && folderModel.parentFolder && folderModel.parentFolder != "") {
-            console.log("Navigating to " + folderModel.parentFolder)
-            folderModel.folder = folderModel.parentFolder
+        if (event.key === Qt.Key_Backspace && d.navigateUp()) {
             event.accepted = true
         }
     }

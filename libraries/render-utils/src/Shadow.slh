@@ -60,44 +60,39 @@ float fetchShadow(vec3 shadowTexcoord) {
     return texture(shadowMap, shadowTexcoord);
 }
 
-vec2 samples[8] = vec2[8](
-    vec2(-2.0, -2.0),
-    vec2(2.0, -2.0),
-    vec2(2.0, 2.0),
-    vec2(-2.0, 2.0),
-    vec2(1.0, 0.0),
-    vec2(0.0, 1.0),
-    vec2(-1.0, 0.0),
-    vec2(0.0, -1.0)
+vec2 PCFkernel[4] = vec2[4](
+    vec2(-1.5, 0.5),
+    vec2(0.5, 0.5),
+    vec2(-1.5, -1.5),
+    vec2(0.5, -1.5)
 );
 
-float evalShadowAttenuationSampling(vec4 shadowTexcoord) {
+float evalShadowAttenuationPCF(vec4 position, vec4 shadowTexcoord) {
+    float pcfRadius = 3.0;
 	float shadowScale = getShadowScale();
 
-    float shadowAttenuation = (0.25 * (
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[0], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[1], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[2], 0.0)) +
-        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[3], 0.0))
-    ));
+    // Offset for efficient PCF, see http://http.developer.nvidia.com/GPUGems/gpugems_ch11.html
+    vec2 offset = pcfRadius * step(fract(position.xy), vec2(0.5, 0.5));
 
-	// Check for early bailing
-    if ((shadowAttenuation > 0) && (shadowAttenuation < 1.0)) {
-        shadowAttenuation = 0.5 * shadowAttenuation + (0.125 * (
-            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[4], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[5], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[6], 0.0)) +
-            fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(samples[7], 0.0))
-        ));
-    }
+    float shadowAttenuation = (0.25 * (
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[0], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[1], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[2], 0.0)) +
+        fetchShadow(shadowTexcoord.xyz + shadowScale * vec3(offset + PCFkernel[3], 0.0))
+    ));
 
     return shadowAttenuation;
 }
 
 float evalShadowAttenuation(vec4 position) {
 	vec4 shadowTexcoord = evalShadowTexcoord(position);
+    if (shadowTexcoord.x < 0.0 || shadowTexcoord.x > 1.0 ||
+        shadowTexcoord.y < 0.0 || shadowTexcoord.y > 1.0) {
+        // If a point is not in the map, do not attenuate
+        return 1.0;
+    }
 
-    return evalShadowAttenuationSampling(shadowTexcoord);
+    return evalShadowAttenuationPCF(position, shadowTexcoord);
 }
 
 <@endif@>

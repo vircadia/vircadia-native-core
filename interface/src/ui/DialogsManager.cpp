@@ -91,15 +91,6 @@ void DialogsManager::cachesSizeDialog() {
     _cachesSizeDialog->raise();
 }
 
-void DialogsManager::editPreferences() {
-    if (!_preferencesDialog) {
-        maybeCreateDialog(_preferencesDialog);
-        _preferencesDialog->show();
-    } else {
-        _preferencesDialog->close();
-    }
-}
-
 void DialogsManager::editAttachments() {
     if (!_attachmentsDialog) {
         maybeCreateDialog(_attachmentsDialog);

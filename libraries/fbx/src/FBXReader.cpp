@@ -1035,7 +1035,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 
                         } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
                             // THis is how Maya assign a texture that affect diffuse color AND transparency ?
-                            opacityTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("normal")) {

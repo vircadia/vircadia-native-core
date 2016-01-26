@@ -52,8 +52,24 @@ macro(SET_PACKAGING_PARAMETERS)
 
     set(CONSOLE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
     set(INTERFACE_INSTALL_DIR ${DMG_SUBFOLDER_NAME})
+
+    set(CONSOLE_EXEC_NAME "Server Console.app")
+    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}")
+
+    set(CONSOLE_APP_CONTENTS "${CONSOLE_INSTALL_APP_PATH}/Contents")
+    set(COMPONENT_APP_PATH "${CONSOLE_APP_CONTENTS}/MacOS/Components.app")
+    set(COMPONENT_INSTALL_DIR "${COMPONENT_APP_PATH}/Contents/MacOS")
+
+    set(INTERFACE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
+    set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.icns")
   else ()
-    set(CONSOLE_INSTALL_DIR ".")
+    if (WIN32)
+      set(CONSOLE_INSTALL_DIR "server-console")
+    else ()
+      set(CONSOLE_INSTALL_DIR ".")
+    endif ()
+
+    set(COMPONENT_INSTALL_DIR ".")
     set(INTERFACE_INSTALL_DIR ".")
   endif ()
 
@@ -87,15 +103,6 @@ macro(SET_PACKAGING_PARAMETERS)
     set(CONSOLE_STARTUP_REG_KEY "ConsoleStartupShortcut")
     set(LAUNCH_NOW_REG_KEY "LaunchAfterInstall")
   endif ()
-
-  if (APPLE)
-
-    set(CONSOLE_EXEC_NAME "Server Console.app")
-    set(CONSOLE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${CONSOLE_EXEC_NAME}")
-
-    set(INTERFACE_INSTALL_APP_PATH "${CONSOLE_INSTALL_DIR}/${INTERFACE_BUNDLE_NAME}.app")
-    set(INTERFACE_ICON_FILENAME "${INTERFACE_ICON_PREFIX}.icns")
-  endif()
 
   # setup component categories for installer
   set(DDE_COMPONENT dde)

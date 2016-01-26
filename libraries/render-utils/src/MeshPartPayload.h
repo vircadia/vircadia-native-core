@@ -46,7 +46,7 @@ public:
     void drawCall(gpu::Batch& batch) const;
     virtual void bindMesh(gpu::Batch& batch) const;
     virtual void bindMaterial(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
-    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const;
+    virtual void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize = true) const;
 
     // Payload resource cached values
     model::MeshPointer _drawMesh;
@@ -88,15 +88,17 @@ public:
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) const override;
-    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations) const override;
-
+    void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, bool canCauterize) const override;
 
     void initCache();
+
     Model* _model;
+
     int _meshIndex;
     int _shapeID;
-    bool _isSkinned = false;
-    bool _isBlendShaped = false;
+
+    bool _isSkinned{ false };
+    bool _isBlendShaped{ false };
 };
 
 #endif // hifi_MeshPartPayload_h

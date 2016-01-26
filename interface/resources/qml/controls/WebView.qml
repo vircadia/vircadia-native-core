@@ -3,8 +3,7 @@ import QtWebEngine 1.1
 
 WebEngineView {
     id: root
-    property var originalUrl
-    property int lastFixupTime: 0
+    property var newUrl;
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
@@ -14,19 +13,26 @@ WebEngineView {
         });
     }
 
+    // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
+    Timer {
+        id: urlReplacementTimer
+        running: false
+        repeat: false
+        interval: 50
+        onTriggered: url = newUrl;
+    }
 
     onUrlChanged: {
-        var currentUrl = url.toString();
-        var newUrl = urlHandler.fixupUrl(currentUrl).toString();
-        if (newUrl != currentUrl) {
-            var now = new Date().valueOf();
-            if (url === originalUrl && (now - lastFixupTime < 100))  {
-                console.warn("URL fixup loop detected")
+        console.log("Url changed to " + url);
+        var originalUrl = url.toString();
+        newUrl = urlHandler.fixupUrl(originalUrl).toString();
+        if (newUrl !== originalUrl) {
+            root.stop();
+            if (urlReplacementTimer.running) {
+                console.warn("Replacement timer already running");
                 return;
             }
-            originalUrl = url
-            lastFixupTime = now
-            url = newUrl;
+            urlReplacementTimer.start();
         }
     }
 

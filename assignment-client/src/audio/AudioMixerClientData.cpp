@@ -65,6 +65,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
     } else {
         PositionalAudioStream* matchingStream = NULL;
 
+        bool isMicStream = false;
+
         if (packetType == PacketType::MicrophoneAudioWithEcho
             || packetType == PacketType::MicrophoneAudioNoEcho
             || packetType == PacketType::SilentAudioFrame) {
@@ -85,6 +87,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             } else {
                 matchingStream = _audioStreams.value(nullUUID);
             }
+
+            isMicStream = true;
         } else if (packetType == PacketType::InjectAudio) {
             // this is injected audio
 
@@ -107,7 +111,16 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         // seek to the beginning of the packet so that the next reader is in the right spot
         message.seek(0);
 
-        return matchingStream->parseData(message);
+        // check the overflow count before we parse data
+        auto overflowBefore = matchingStream->getOverflowCount();
+        auto parseResult = matchingStream->parseData(message);
+
+        if (matchingStream->getOverflowCount() > overflowBefore) {
+            qDebug() << "Just overflowed on stream from" << message.getSourceID() << "at" << message.getSenderSockAddr();
+            qDebug() << "This stream is for" << (isMicStream ? "microphone audio" : "injected audio");
+        }
+
+        return parseResult;
     }
     return 0;
 }

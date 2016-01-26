@@ -124,14 +124,11 @@ public:
     void setDrawHitEffect(bool draw) { enableJob(_drawHitEffectJobIndex, draw); }
     bool doDrawHitEffect() const { return getEnableJob(_drawHitEffectJobIndex); }
 
-
     void setOcclusionStatus(bool draw) { enableJob(_occlusionJobIndex, draw); }
     bool doOcclusionStatus() const { return getEnableJob(_occlusionJobIndex); }
 
-
     void setAntialiasingStatus(bool draw) { enableJob(_antialiasingJobIndex, draw); }
     bool doAntialiasingStatus() const { return getEnableJob(_antialiasingJobIndex); }
-
 
     void setToneMappingExposure(float exposure);
     float getToneMappingExposure() const;

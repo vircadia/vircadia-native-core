@@ -99,6 +99,7 @@
 #include <plugins/PluginContainer.h>
 #include <plugins/PluginManager.h>
 #include <RenderableWebEntityItem.h>
+#include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
 #include <RenderScriptingInterface.h>
@@ -116,6 +117,7 @@
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <QmlWebWindowClass.h>
+#include <Preferences.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -323,6 +325,7 @@ bool setupEssentials(int& argc, char** argv) {
 
     // Set dependencies
     DependencyManager::set<ScriptEngines>();
+    DependencyManager::set<Preferences>();
     DependencyManager::set<recording::Deck>();
     DependencyManager::set<recording::Recorder>();
     DependencyManager::set<AddressManager>();
@@ -673,7 +676,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     initializeGL();
 
     // Start rendering
-    _renderEngine->addTask(make_shared<RenderDeferredTask>(LODManager::shouldRender));
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
+    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
+    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
     _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
@@ -1172,13 +1177,14 @@ void Application::initializeGL() {
 
     InfoView::show(INFO_HELP_PATH, true);
 }
-
+extern void setupPreferences();
 void Application::initializeUi() {
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
@@ -1198,6 +1204,8 @@ void Application::initializeUi() {
         qApp->quit();
     });
 
+    setupPreferences();
+
     // For some reason there is already an "Application" object in the QML context, 
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("ApplicationInterface", this); 
@@ -1208,6 +1216,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("MyAvatar", getMyAvatar());
     rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
     rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+    rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
 
     rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
     rootContext->setContextProperty("Quat", new Quat());
@@ -1830,6 +1839,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
 
+            case Qt::Key_X:
+                if (isShifted && isMeta) {
+                    // placeholder for dialogs being converted to QML.
+                }
+                break;
+
             case Qt::Key_B:
                 if (isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -2359,12 +2374,8 @@ bool Application::acceptSnapshot(const QString& urlString) {
             DependencyManager::get<AddressManager>()->handleLookupString(snapshotData->getURL().toString());
         }
     } else {
-        QMessageBox msgBox;
-        msgBox.setText("No location details were found in the file "
-                        + snapshotPath + ", try dragging in an authentic Hifi snapshot.");
-
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.exec();
+        OffscreenUi::warning("", "No location details were found in the file\n" +
+                             snapshotPath + "\nTry dragging in an authentic Hifi snapshot.");
     }
     return true;
 }
@@ -3090,13 +3101,14 @@ void Application::update(float deltaTime) {
             static VectorOfMotionStates motionStates;
             _entitySimulation.getObjectsToRemoveFromPhysics(motionStates);
             _physicsEngine->removeObjects(motionStates);
+            _entitySimulation.deleteObjectsRemovedFromPhysics();
 
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToAddToPhysics(motionStates);
                 _physicsEngine->addObjects(motionStates);
 
             });
-            getEntities()->getTree()->withWriteLock([&] {
+            getEntities()->getTree()->withReadLock([&] {
                 _entitySimulation.getObjectsToChange(motionStates);
                 VectorOfMotionStates stillNeedChange = _physicsEngine->changeObjects(motionStates);
                 _entitySimulation.setObjectsToChange(stillNeedChange);
@@ -3759,9 +3771,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         renderContext.setArgs(renderArgs);
 
         bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
+        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
         bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
         bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
-        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus);
+        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus, shadowStatus);
 
         _renderEngine->setRenderContext(renderContext);
 
@@ -4235,13 +4248,7 @@ void Application::setSessionUUID(const QUuid& sessionUUID) {
 bool Application::askToSetAvatarUrl(const QString& url) {
     QUrl realUrl(url);
     if (realUrl.isLocalFile()) {
-        QString message = "You can not use local files for avatar components.";
-
-        QMessageBox msgBox;
-        msgBox.setText(message);
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.exec();
+        OffscreenUi::warning("", "You can not use local files for avatar components.");
         return false;
     }
 
@@ -4250,32 +4257,22 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
     FSTReader::ModelType modelType = FSTReader::predictModelType(fstMapping);
 
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setWindowTitle("Set Avatar");
-    QPushButton* bodyAndHeadButton = NULL;
-
     QString modelName = fstMapping["name"].toString();
-    QString message;
-    QString typeInfo;
+    bool ok = false;
     switch (modelType) {
 
         case FSTReader::HEAD_AND_BODY_MODEL:
-            message = QString("Would you like to use '") + modelName + QString("' for your avatar?");
-            bodyAndHeadButton = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
+             ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
+							   "Would you like to use '" + modelName + "' for your avatar?",
+							   QMessageBox::Ok | QMessageBox::Cancel);
         break;
 
         default:
-            message = QString(modelName + QString("Does not support a head and body as required."));
+            OffscreenUi::warning("", modelName + "Does not support a head and body as required.");
         break;
     }
 
-    msgBox.setText(message);
-    msgBox.addButton(QMessageBox::Cancel);
-
-    msgBox.exec();
-
-    if (msgBox.clickedButton() == bodyAndHeadButton) {
+    if (ok) {
         getMyAvatar()->useFullAvatarURL(url, modelName);
         emit fullAvatarURLChanged(url, modelName);
     } else {
@@ -4439,27 +4436,16 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 
 void Application::displayAvatarAttachmentWarning(const QString& message) const {
     auto avatarAttachmentWarningTitle = tr("Avatar Attachment Failure");
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Warning);
-    msgBox.setWindowTitle(avatarAttachmentWarningTitle);
-    msgBox.setText(message);
-    msgBox.exec();
-    msgBox.addButton(QMessageBox::Ok);
-    msgBox.exec();
+    OffscreenUi::warning(avatarAttachmentWarningTitle, message);
 }
 
 bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name) const {
     auto avatarAttachmentConfirmationTitle = tr("Avatar Attachment Confirmation");
-    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?");
-    QMessageBox msgBox;
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setWindowTitle(avatarAttachmentConfirmationTitle);
-    QPushButton* button = msgBox.addButton(tr("Yes"), QMessageBox::ActionRole);
-    QString message = avatarAttachmentConfirmationMessage.arg(name);
-    msgBox.setText(message);
-    msgBox.addButton(QMessageBox::Cancel);
-    msgBox.exec();
-    if (msgBox.clickedButton() == button) {
+    auto avatarAttachmentConfirmationMessage = tr("Would you like to wear '%1' on your avatar?").arg(name);
+    auto reply = OffscreenUi::question(avatarAttachmentConfirmationTitle,
+                                       avatarAttachmentConfirmationMessage,
+                                       QMessageBox::Ok | QMessageBox::Cancel);
+    if (QMessageBox::Ok == reply) {
         return true;
     } else {
         return false;
@@ -4535,22 +4521,8 @@ void Application::loadDialog() {
 }
 
 void Application::loadScriptURLDialog() {
-    // To be migratd to QML
-    QInputDialog scriptURLDialog(getWindow());
-    scriptURLDialog.setWindowTitle("Open and Run Script URL");
-    scriptURLDialog.setLabelText("Script:");
-    scriptURLDialog.setWindowFlags(Qt::Sheet);
-    const float DIALOG_RATIO_OF_WINDOW = 0.30f;
-    scriptURLDialog.resize(scriptURLDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-                        scriptURLDialog.size().height());
-
-    int dialogReturn = scriptURLDialog.exec();
-    QString newScript;
-    if (dialogReturn == QDialog::Accepted) {
-        if (scriptURLDialog.textValue().size() > 0) {
-            // the user input a new hostname, use that
-            newScript = scriptURLDialog.textValue();
-        }
+    auto newScript = OffscreenUi::getText(nullptr, "Open and Run Script", "Script URL");
+    if (!newScript.isEmpty()) {
         DependencyManager::get<ScriptEngines>()->loadScript(newScript);
     }
 }
@@ -4637,11 +4609,7 @@ void Application::notifyPacketVersionMismatch() {
         QString message = "The location you are visiting is running an incompatible server version.\n";
         message += "Content may not display properly.";
 
-        QMessageBox msgBox;
-        msgBox.setText(message);
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.exec();
+        OffscreenUi::warning("", message);
     }
 }
 
@@ -4650,11 +4618,7 @@ void Application::checkSkeleton() {
         qCDebug(interfaceapp) << "MyAvatar model has no skeleton";
 
         QString message = "Your selected avatar body has no skeleton.\n\nThe default body will be loaded...";
-        QMessageBox msgBox;
-        msgBox.setText(message);
-        msgBox.setStandardButtons(QMessageBox::Ok);
-        msgBox.setIcon(QMessageBox::Warning);
-        msgBox.exec();
+        OffscreenUi::warning("", message);
 
         getMyAvatar()->useFullAvatarURL(AvatarData::defaultFullAvatarModelUrl(), DEFAULT_FULL_AVATAR_MODEL_NAME);
     } else {

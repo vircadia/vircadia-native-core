@@ -125,7 +125,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) : Task() {
 
     // Render transparent objects forward in LigthingBuffer
     addJob<DrawTransparentDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
-    
+
     // Lighting Buffer ready for tone mapping
     addJob<ToneMappingDeferred>("ToneMapping");
     _toneMappingJobIndex = (int)_jobs.size() - 1;
@@ -190,6 +190,9 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     setToneMappingExposure(renderContext->getTone().exposure);
     setToneMappingToneCurve(renderContext->getTone().toneCurve);
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
+
+    // TODO: For now, lighting is controlled through a singleton, so it is distinct
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapStatus(renderContext->getShadowMapStatus());
 
     renderContext->getArgs()->_context->syncCache();
 

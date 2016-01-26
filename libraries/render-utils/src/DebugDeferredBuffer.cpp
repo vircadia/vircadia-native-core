@@ -70,12 +70,16 @@ static const std::string DEFAULT_LIGHTING_SHADER {
     "    return vec4(pow(texture(lightingMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
-
-static const std::string DEFAULT_SHADOW_SHADER{
-    "uniform sampler2D shadowMapColor;"
-    // The actual shadowMap is a sampler2DShadow, so we cannot normally sample it
+static const std::string DEFAULT_SHADOW_SHADER {
+    "uniform sampler2DShadow shadowMap;"
     "vec4 getFragmentColor() {"
-    "    return vec4(texture(shadowMapColor, uv).xyz, 1.0);"
+    "    for (int i = 255; i >= 0; --i) {"
+    "        float depth = i / 255.0;"
+    "        if (texture(shadowMap, vec3(uv, depth)) > 0.5) {"
+    "            return vec4(vec3(depth), 1.0);"
+    "        }"
+    "    }"
+    "    return vec4(vec3(0.0), 1.0);"
     " }"
 };
 
@@ -194,7 +198,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
-        slotBindings.insert(gpu::Shader::Binding("shadowMapColor", Shadow));
+        slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
         slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
         slotBindings.insert(gpu::Shader::Binding("occlusionMap", AmbientOcclusion));
         slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
@@ -253,7 +257,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
-        batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getRenderBuffer(0));
+        batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
         batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
         batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());

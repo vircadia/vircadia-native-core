@@ -96,7 +96,9 @@ public:
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
+    const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
     glm::mat4 getSensorToWorldMatrix() const;
+
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
@@ -204,10 +206,10 @@ public:
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     MyCharacterController* getCharacterController() { return &_characterController; }
+    const MyCharacterController* getCharacterController() const { return &_characterController; }
 
     void prepareForPhysicsSimulation();
     void harvestResultsFromPhysicsSimulation(float deltaTime);
-    void adjustSensorTransform();
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
     void setCollisionSoundURL(const QString& url);
@@ -230,6 +232,8 @@ public:
     void setCustomListenPosition(glm::vec3 customListenPosition) { _customListenPosition = customListenPosition; }
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
     void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
+
+    bool isHovering() const;
 
 public slots:
     void increaseSize();
@@ -294,11 +298,6 @@ private:
                         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
                         float scale = 1.0f, bool isSoft = false,
                         bool allowDuplicates = false, bool useSaved = true) override;
-
-    //void beginFollowingHMD();
-    //bool shouldFollowHMD() const;
-    //void followHMD(float deltaTime);
-    void updateHMDFollowVelocity();
 
     bool cameraInsideHead() const;
 
@@ -367,6 +366,8 @@ private:
     glm::mat4 _hmdSensorMatrix;
     glm::quat _hmdSensorOrientation;
     glm::vec3 _hmdSensorPosition;
+    glm::vec2 _hmdSensorFacing;  // facing vector in xz plane
+    glm::vec2 _hmdSensorFacingMovingAverage { 0, 0 };   // facing vector in xz plane
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.
@@ -375,9 +376,18 @@ private:
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
 
-    glm::vec3 _followVelocity { Vectors::ZERO };
-    float _followSpeed { 0.0f };
-    float _followOffsetDistance { 0.0f };
+    struct FollowHelper {
+        glm::mat4 _desiredBodyMatrix;
+        float _timeRemaining { 0.0f };
+
+        void deactivate();
+        void activate();
+        bool isActive() const;
+        bool shouldActivate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix);
+        glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
+    };
+    FollowHelper _follow;
 
     bool _goToPending;
     glm::vec3 _goToPosition;

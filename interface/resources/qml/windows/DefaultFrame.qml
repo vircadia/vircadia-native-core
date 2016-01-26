@@ -5,21 +5,15 @@ import "../controls"
 
 Frame {
     id: frame
-    // The frame fills the parent, which should be the size of the content.
-    // The frame decorations use negative anchor margins to extend beyond 
-    anchors.fill: parent
 
-    // FIXME needed?
     Rectangle {
-        anchors { margins: -iconSize; topMargin: -iconSize * (window.closable ? 2 : 1); }
+        anchors { margins: -iconSize; topMargin: -iconSize * ((window && window.closable) ? 2 : 1); }
         anchors.fill: parent;
         color: "#7f7f7f7f";
         radius: 3;
 
         // Allow dragging of the window
         MouseArea {
-            id: dragMouseArea
-            hoverEnabled: true
             anchors.fill: parent
             drag.target: window
         }
@@ -46,7 +40,7 @@ Frame {
                 }
             }
             FontAwesome {
-                visible: window.closable
+                visible: window ? window.closable : false
                 text: closeClickArea.containsMouse ? "\uf057" : "\uf05c"
                 style: Text.Outline;
                 styleColor: "white"
@@ -56,7 +50,7 @@ Frame {
                     id: closeClickArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: frame.close();
+                    onClicked: window.visible = false;
                 }
             }
         }

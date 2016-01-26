@@ -15,6 +15,6 @@
 layout(location = 0) out vec4 _fragColor;
 
 void main(void) {
-    // stencil in solid color for debugging
-    _fragColor = vec4(0.0, 0.0, 1.0, 1.0);
+    // pass-through to set z-buffer
+    _fragColor = vec4(1.0, 1.0, 1.0, 0.0);
 }

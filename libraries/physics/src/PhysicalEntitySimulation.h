@@ -49,6 +49,7 @@ public:
     virtual void prepareEntityForDelete(EntityItemPointer entity) override;
 
     void getObjectsToRemoveFromPhysics(VectorOfMotionStates& result);
+    void deleteObjectsRemovedFromPhysics();
     void getObjectsToAddToPhysics(VectorOfMotionStates& result);
     void setObjectsToChange(const VectorOfMotionStates& objectsToChange);
     void getObjectsToChange(VectorOfMotionStates& result);

@@ -19,9 +19,12 @@ Fadable {
     // decorations can extend outside it.
     implicitHeight: content.height
     implicitWidth: content.width
+    x: -1; y: -1
+    enabled: visible
+
+    signal windowDestroyed();
 
     property int modality: Qt.NonModal
-
     readonly property bool topLevelWindow: true
     property string title
     // Should the window be closable control?
@@ -30,13 +33,14 @@ Fadable {
     property bool alwaysOnTop: false
     // Should hitting the close button hide or destroy the window?
     property bool destroyOnCloseButton: true
+    // Should hiding the window destroy it or just hide it?
+    property bool destroyOnInvisible: false
     // FIXME support for pinned / unpinned pending full design
     // property bool pinnable: false
     // property bool pinned: false
     property bool resizable: false
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 720)
-    enabled: visible
 
     // The content to place inside the window, determined by the client
     default property var content
@@ -52,34 +56,42 @@ Fadable {
         propagateComposedEvents: true
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
+        enabled: window.visible
         onPressed: {
             //console.log("Pressed on activator area");
             window.raise();
             mouse.accepted = false;
         }
-        // Debugging
-//        onEntered: console.log("activator entered")
-//        onExited: console.log("activator exited")
-//        onContainsMouseChanged: console.log("Activator contains mouse " + containsMouse)
-//        onPositionChanged: console.log("Activator mouse position " + mouse.x + " x " + mouse.y)
-//        Rectangle { anchors.fill:parent; color: "#7f00ff00" }
     }
 
-    signal windowDestroyed();
+    // This mouse area serves to swallow mouse events while the mouse is over the window
+    // to prevent things like mouse wheel events from reaching the application and changing
+    // the camera if the user is scrolling through a list and gets to the end.
+    property var swallower: MouseArea {
+        width: frame.decoration.width
+        height: frame.decoration.height
+        x: frame.decoration.anchors.margins
+        y: frame.decoration.anchors.topMargin
+        hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
+        enabled: window.visible
+        onClicked: {}
+        onDoubleClicked: {}
+        onPressAndHold: {}
+        onReleased: {}
+        onWheel: {}
+    }
+
 
     // Default to a standard frame.  Can be overriden to provide custom
     // frame styles, like a full desktop frame to simulate a modal window
     property var frame: DefaultFrame { }
 
+
+    children: [ swallower, frame, content, activator ]
+
     Component.onCompleted: raise();
-
-    children: [ frame, content, activator ]
-
-    Component.onDestruction: {
-        content.destroy();
-        console.log("Destroyed " + window);
-        windowDestroyed();
-    }
+    Component.onDestruction: windowDestroyed();
     onParentChanged: raise();
 
     onVisibleChanged: {
@@ -96,9 +108,6 @@ Fadable {
     function raise() {
         if (visible && parent) {
             desktop.raise(window)
-            if (!focus) {
-                focus = true;
-            }
         }
     }
 
@@ -110,32 +119,49 @@ Fadable {
     // don't do anything but manipulate the targetVisible flag and let the other
     // mechanisms decide if the window should be destroyed after the close
     // animation completes
-    function close() {
-        console.log("Closing " + window)
-        if (destroyOnCloseButton) {
-            destroyOnInvisible = true
+    // FIXME using this close function messes up the visibility signals received by the
+    // type and it's derived types
+//    function close() {
+//        console.log("Closing " + window)
+//        if (destroyOnCloseButton) {
+//            destroyOnInvisible = true
+//        }
+//        visible = false;
+//    }
+
+    function framedRect() {
+        if (!frame || !frame.decoration) {
+            return Qt.rect(0, 0, window.width, window.height)
         }
-        visible = false;
+        return Qt.rect(frame.decoration.anchors.leftMargin, frame.decoration.anchors.topMargin,
+                       window.width - frame.decoration.anchors.leftMargin - frame.decoration.anchors.rightMargin,
+                       window.height - frame.decoration.anchors.topMargin - frame.decoration.anchors.bottomMargin)
     }
 
-    function clamp(value, min, max) {
-        return Math.min(Math.max(value, min), max);
-    }
-
-    function clampVector(value, min, max) {
-        return Qt.vector2d(
-                    clamp(value.x, min.x, max.x),
-                    clamp(value.y, min.y, max.y))
-    }
 
     Keys.onPressed: {
         switch(event.key) {
+            case Qt.Key_Control:
+            case Qt.Key_Shift:
+            case Qt.Key_Meta:
+            case Qt.Key_Alt:
+                break;
+
+
             case Qt.Key_W:
                 if (window.closable && (event.modifiers === Qt.ControlModifier)) {
                     visible = false
                     event.accepted = true
                 }
-                break
+                // fall through
+
+            default:
+                // Consume unmodified keyboard entries while the window is focused, to prevent them
+                // from propagating to the application
+                if (event.modifiers === Qt.NoModifier) {
+                    event.accepted = true;
+                }
+                break;
         }
     }
 }
