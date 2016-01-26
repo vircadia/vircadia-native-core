@@ -46,8 +46,8 @@ public slots:
     glm::quat slerp(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h);
     float dot(const glm::quat& q1, const glm::quat& q2);
-    void print(const QString& lable, const glm::quat& q);
-    bool equal(const glm::vec3& q1, const glm::vec3& q2);
+    void print(const QString& label, const glm::quat& q);
+    bool equal(const glm::quat& q1, const glm::quat& q2);
 };
 
 #endif // hifi_Quat_h
