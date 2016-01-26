@@ -536,7 +536,6 @@ Function PostInstallOptionsPage
 
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
-
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
@@ -569,6 +568,16 @@ Function PostInstallOptionsPage
   !insertmacro SetPostInstallOption $LaunchNowCheckbox @LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
 
   ${If} @PR_BUILD@ == 1
+    ; a PR build defaults all install options expect LaunchNowCheckbox and the settings copy to unchecked
+    ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+      ${NSD_SetState} $DesktopClientCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+
+    ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+      ${NSD_SetState} $DesktopServerCheckbox ${BST_UNCHECKED}
+      ${NSD_SetState} $ServerStartupCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+
     ; push the offset
     IntOp $CurrentOffset $CurrentOffset + 15
 
