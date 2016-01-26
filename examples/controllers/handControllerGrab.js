@@ -160,7 +160,6 @@ var STATE_EQUIP = 12
 var STATE_CONTINUE_EQUIP_BD = 13; // equip while bumper is still held down
 var STATE_CONTINUE_EQUIP = 14;
 var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
-var STATE_EQUIP_SPRING = 16;
 
 // "collidesWith" is specified by comma-separated list of group names
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
@@ -201,8 +200,6 @@ function stateToName(state) {
             return "continue_equip";
         case STATE_WAITING_FOR_BUMPER_RELEASE:
             return "waiting_for_bumper_release";
-        case STATE_EQUIP_SPRING:
-            return "state_equip_spring";
     }
 
     return "unknown";
@@ -342,9 +339,6 @@ function MyController(hand) {
                 break;
             case STATE_WAITING_FOR_BUMPER_RELEASE:
                 this.waitingForBumperRelease();
-                break;
-            case STATE_EQUIP_SPRING:
-                this.pullTowardEquipPosition()
                 break;
             case STATE_CONTINUE_NEAR_GRABBING:
             case STATE_CONTINUE_EQUIP_BD:
@@ -786,7 +780,9 @@ function MyController(hand) {
 
         var distantPickRay = {
             origin: PICK_WITH_HAND_RAY ? handPosition : Camera.position,
-            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : Vec3.mix(Quat.getUp(this.getHandRotation()), Quat.getFront(Camera.orientation), HAND_HEAD_MIX_RATIO),
+            direction: PICK_WITH_HAND_RAY ? Quat.getUp(this.getHandRotation()) : Vec3.mix(Quat.getUp(this.getHandRotation()),
+                                                                                          Quat.getFront(Camera.orientation),
+                                                                                          HAND_HEAD_MIX_RATIO),
             length: PICK_MAX_DISTANCE
         };
 
@@ -836,7 +832,7 @@ function MyController(hand) {
         candidateEntities = rayPickedCandidateEntities.concat(nearPickedCandidateEntities);
 
         var forbiddenNames = ["Grab Debug Entity", "grab pointer"];
-        var forbiddenTyes = ['Unknown', 'Light', 'ParticleEffect', 'PolyLine', 'Zone'];
+        var forbiddenTypes = ['Unknown', 'Light', 'ParticleEffect', 'PolyLine', 'Zone'];
 
         var minDistance = PICK_MAX_DISTANCE;
         var i, props, distance, grabbableData;
@@ -849,7 +845,7 @@ function MyController(hand) {
             if (!grabbable && !grabbableDataForCandidate.wantsTrigger) {
                 continue;
             }
-            if (forbiddenTyes.indexOf(propsForCandidate.type) >= 0) {
+            if (forbiddenTypes.indexOf(propsForCandidate.type) >= 0) {
                 continue;
             }
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
@@ -1243,7 +1239,7 @@ function MyController(hand) {
         }
 
         var isPhysical = this.propsArePhysical(grabbedProperties);
-        if (isPhysical) {
+        if (isPhysical && this.state == STATE_NEAR_GRABBING) {
             // grab entity via action
             if (!this.setupHoldAction()) {
                 return;
@@ -1321,8 +1317,7 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "continueEquip");
         }
 
-        //// jbp::: SEND UPDATE MESSAGE TO WEARABLES MANAGER
-        Messages.sendMessage('Hifi-Wearables-Manager', JSON.stringify({
+        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'update',
             grabbedEntity: this.grabbedEntity
         }))
@@ -1354,60 +1349,6 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             Entities.callEntityMethod(this.grabbedEntity, "releaseGrab");
             Entities.callEntityMethod(this.grabbedEntity, "unequip");
-        }
-    };
-
-    this.pullTowardEquipPosition = function() {
-
-        this.turnOffVisualizations();
-
-        var grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
-        var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-
-        // use a spring to pull the object to where it will be when equipped
-        var relativeRotation = getSpatialOffsetRotation(this.hand, grabbableData.spatialKey);
-        var relativePosition = getSpatialOffsetPosition(this.hand, grabbableData.spatialKey);
-        var ignoreIK = grabbableData.spatialKey.ignoreIK ? grabbableData.spatialKey.ignoreIK : false;
-        var handRotation = this.getHandRotation();
-        var handPosition = this.getHandPosition();
-        var targetRotation = Quat.multiply(handRotation, relativeRotation);
-        var offset = Vec3.multiplyQbyV(targetRotation, relativePosition);
-        var targetPosition = Vec3.sum(handPosition, offset);
-
-        if (typeof this.equipSpringID === 'undefined' ||
-            this.equipSpringID === null ||
-            this.equipSpringID === NULL_UUID) {
-            this.equipSpringID = Entities.addAction("spring", this.grabbedEntity, {
-                targetPosition: targetPosition,
-                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
-                targetRotation: targetRotation,
-                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
-                ttl: ACTION_TTL,
-                ignoreIK: ignoreIK
-            });
-            if (this.equipSpringID === NULL_UUID) {
-                this.equipSpringID = null;
-                this.setState(STATE_OFF);
-                return;
-            }
-        } else {
-            var success = Entities.updateAction(this.grabbedEntity, this.equipSpringID, {
-                targetPosition: targetPosition,
-                linearTimeScale: EQUIP_SPRING_TIMEFRAME,
-                targetRotation: targetRotation,
-                angularTimeScale: EQUIP_SPRING_TIMEFRAME,
-                ttl: ACTION_TTL,
-                ignoreIK: ignoreIK
-            });
-            if (!success) {
-                print("pullTowardEquipPosition -- updateActionfailed");
-            }
-        }
-
-        if (Vec3.distance(grabbedProperties.position, targetPosition) < EQUIP_SPRING_SHUTOFF_DISTANCE) {
-            Entities.deleteAction(this.grabbedEntity, this.equipSpringID);
-            this.equipSpringID = null;
-            this.setState(STATE_EQUIP);
         }
     };
 
@@ -1595,12 +1536,10 @@ function MyController(hand) {
         this.actionID = null;
         this.setState(STATE_OFF);
 
-        //// jbp::: SEND RELEASE MESSAGE TO WEARABLES MANAGER
-
-        Messages.sendMessage('Hifi-Wearables-Manager', JSON.stringify({
-            action: 'checkIfWearable',
+        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+            action: 'release',
             grabbedEntity: this.grabbedEntity
-        }))
+        }));
 
         this.grabbedEntity = null;
     };
@@ -1670,6 +1609,24 @@ function MyController(hand) {
         }
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
     };
+
+    this.checkNewlyLoaded = function(loadedEntityID) {
+        if (this.state == STATE_OFF ||
+            this.state == STATE_SEARCHING ||
+            this.state == STATE_EQUIP_SEARCHING) {
+            var loadedProps = Entities.getEntityProperties(loadedEntityID, ["parentID", "parentJointIndex"]);
+            if (loadedProps.parentID != MyAvatar.sessionUUID) {
+                return;
+            }
+            var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+            if (loadedProps.parentJointIndex != handJointIndex) {
+                return;
+            }
+            // an entity has been loaded and it's where this script would have equipped something, so switch states.
+            this.grabbedEntity = loadedEntityID;
+            this.setState(STATE_EQUIP);
+        }
+    }
 };
 
 var rightController = new MyController(RIGHT_HAND);
@@ -1701,6 +1658,7 @@ function update() {
 Messages.subscribe('Hifi-Hand-Disabler');
 Messages.subscribe('Hifi-Hand-Grab');
 Messages.subscribe('Hifi-Hand-RayPick-Blacklist');
+Messages.subscribe('Hifi-Object-Manipulation');
 
 handleHandMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
@@ -1741,6 +1699,23 @@ handleHandMessages = function(channel, message, sender) {
                 }
 
             } catch (e) {}
+        } else if (channel === 'Hifi-Object-Manipulation') {
+            if (sender !== MyAvatar.sessionUUID) {
+                return;
+            }
+
+            var parsedMessage = null;
+            try {
+                parsedMessage = JSON.parse(message);
+            } catch (e) {
+                print('error parsing Hifi-Object-Manipulation message');
+                return;
+            }
+
+            if (parsedMessage.action === 'loaded') {
+                rightController.checkNewlyLoaded(parsedMessage['grabbedEntity']);
+                leftController.checkNewlyLoaded(parsedMessage['grabbedEntity']);
+            }
         }
     }
 }
