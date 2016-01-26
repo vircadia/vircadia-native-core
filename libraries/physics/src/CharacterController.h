@@ -86,6 +86,7 @@ public:
 
 protected:
     void updateUpAxis(const glm::quat& rotation);
+    bool checkForSupport(btCollisionWorld* collisionWorld) const;
 
 protected:
     btVector3 _currentUp;
@@ -104,6 +105,7 @@ protected:
     btScalar _radius;
 
     btScalar _floorDistance;
+    bool _hasSupport;
 
     btScalar _gravity;
 
