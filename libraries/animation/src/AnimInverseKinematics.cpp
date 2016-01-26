@@ -153,7 +153,6 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 continue;
             }
 
-            // cache tip absolute transform
             int tipIndex = target.getIndex();
             int pivotIndex = _skeleton->getParentIndex(tipIndex);
             if (pivotIndex == -1 || pivotIndex == _hipsIndex) {
@@ -165,12 +164,30 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 continue;
             }
 
-            glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
-            glm::quat tipRotation = absolutePoses[tipIndex].rot;
+            // cache tip's absolute orientation
+            glm::quat tipOrientation = absolutePoses[tipIndex].rot;
 
-            // cache tip's parent's absolute rotation so we can recompute the tip's parent-relative
-            // as we proceed walking down the joint chain
-            glm::quat tipParentRotation = absolutePoses[pivotIndex].rot;
+            // also cache tip's parent's absolute orientation so we can recompute 
+            // the tip's parent-relative as we proceed up the chain
+            glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot;
+
+            if (targetType == IKTarget::Type::HmdHead) {
+                // rotate tip directly to target orientation
+                tipOrientation = target.getRotation();
+
+                // enforce tip's constraint
+                RotationConstraint* constraint = getConstraint(tipIndex);
+                if (constraint) {
+                    glm::quat tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+                    bool constrained = constraint->apply(tipRelativeRotation);
+                    if (constrained) {
+                        tipOrientation = glm::normalize(tipRelativeRotation * tipParentOrientation);
+                    }
+                }
+            }
+
+            // cache tip absolute position
+            glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
 
             // descend toward root, pivoting each joint to get tip closer to target
             while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
@@ -201,9 +218,9 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                             deltaRotation = glm::angleAxis(angle, axis);
 
                             // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
-                            // new rotation and its target.  This is the final parent-relative rotation that the tip joint have
-                            // make to achieve its target rotation.
-                            glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentRotation) * target.getRotation();
+                            // new orientation and its target.  This is the final parent-relative orientation that the tip joint have
+                            // make to achieve its target orientation.
+                            glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentOrientation) * target.getRotation();
 
                             // enforce tip's constraint
                             RotationConstraint* constraint = getConstraint(tipIndex);
@@ -212,7 +229,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                                 if (constrained) {
                                     // The tip's final parent-relative rotation would violate its constraint
                                     // so we try to pre-twist this pivot to compensate.
-                                    glm::quat constrainedTipRotation = deltaRotation * tipParentRotation * tipRelativeRotation;
+                                    glm::quat constrainedTipRotation = deltaRotation * tipParentOrientation * tipRelativeRotation;
                                     glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
                                     glm::quat swingPart;
                                     glm::quat twistPart;
@@ -227,9 +244,9 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 } else if (targetType == IKTarget::Type::HmdHead) {
                     // An HmdHead target slaves the orientation of the end-effector by distributing rotation
                     // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
-                    deltaRotation = target.getRotation() * glm::inverse(tipRotation);
+                    deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
                     float dotSign = copysignf(1.0f, deltaRotation.w);
-                    const float ANGLE_DISTRIBUTION_FACTOR = 0.15f;
+                    const float ANGLE_DISTRIBUTION_FACTOR = 0.35f;
                     deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
                 }
 
@@ -245,12 +262,11 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                 if (constraint) {
                     bool constrained = constraint->apply(newRot);
                     if (constrained) {
-                        // the constraint will modify the movement of the tip so we have to compute the modified
-                        // model-frame deltaRotation
+                        // the constraint will modify the local rotation of the tip so we must 
+                        // compute the corresponding model-frame deltaRotation
                         // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
                         deltaRotation = absolutePoses[pivotsParentIndex].rot *
-                            newRot *
-                            glm::inverse(absolutePoses[pivotIndex].rot);
+                            newRot * glm::inverse(absolutePoses[pivotIndex].rot);
                     }
                 }
 
@@ -264,8 +280,8 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
                 // keep track of tip's new transform as we descend towards root
                 tipPosition = jointPosition + deltaRotation * leverArm;
-                tipRotation = glm::normalize(deltaRotation * tipRotation);
-                tipParentRotation = glm::normalize(deltaRotation * tipParentRotation);
+                tipOrientation = glm::normalize(deltaRotation * tipOrientation);
+                tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
 
                 pivotIndex = pivotsParentIndex;
                 pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
@@ -629,11 +645,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_NECK_TWIST = PI / 4.0f;
+            const float MAX_NECK_TWIST = PI / 6.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_NECK_SWING = PI / 3.0f;
+            const float MAX_NECK_SWING = PI / 4.0f;
             minDots.push_back(cosf(MAX_NECK_SWING));
             stConstraint->setSwingLimits(minDots);
 
@@ -641,11 +657,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Head", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_HEAD_TWIST = PI / 4.0f;
+            const float MAX_HEAD_TWIST = PI / 8.0f;
             stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_HEAD_SWING = PI / 4.0f;
+            const float MAX_HEAD_SWING = PI / 6.0f;
             minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
