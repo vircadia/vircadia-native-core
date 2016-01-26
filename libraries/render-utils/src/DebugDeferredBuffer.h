@@ -46,7 +46,7 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
 protected:
-    friend class Config;
+    friend class DebugDeferredBufferConfig;
 
     enum Mode : uint8_t {
         Diffuse = 0,
