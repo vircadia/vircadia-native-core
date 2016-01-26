@@ -207,7 +207,7 @@ Function ConditionalAddToRegisty
   Pop $0
   Pop $1
   StrCmp "$0" "" ConditionalAddToRegisty_EmptyString
-    WriteRegStr SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" \
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" \
     "$1" "$0"
     ;MessageBox MB_OK "Set Registry: '$1' to '$0'"
     DetailPrint "Set install registry entry: '$1' to '$0'"
@@ -264,7 +264,7 @@ FunctionEnd
   !insertmacro MUI_PAGE_DIRECTORY
 
   ;Start Menu Folder Page Configuration
-  !define MUI_STARTMENUPAGE_REGISTRY_ROOT "SHCTX"
+  !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
   !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
   !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
   !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
@@ -433,20 +433,12 @@ Section "-Core installation"
 
   ;Create shortcuts
 
-  ; in case the user has any shortcuts from prior to when we were using the user context, remove those now
-  SetShellVarContext all
-  RMDir /r "$SMPROGRAMS\$STARTMENU_FOLDER"
-
-  ; go back to current user context before setting up the startmenu folder
-  SetShellVarContext current
-
   CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
 @CPACK_NSIS_CREATE_ICONS@
 @CPACK_NSIS_CREATE_ICONS_EXTRA@
 
   ; Conditional handling for Interface specific options
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-
     CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
       "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
 
@@ -601,15 +593,6 @@ Var LaunchNowState
 Var CopyFromProductionState
 
 Function HandlePostInstallOptions
-  ; If the user created shortcuts from a time prior to when we using current user context, pull them now
-  SetShellVarContext all
-
-  Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
-  Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
-
-  ; return the context to the current user so the shortcuts are correct
-  SetShellVarContext current
-
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
@@ -645,6 +628,9 @@ Function HandlePostInstallOptions
       ; make a startup shortcut in this user's current context
       SetShellVarContext current
       CreateShortCut "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+
+      ; reset the shell var context back
+      SetShellVarContext all
 
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
     ${Else}
@@ -826,10 +812,10 @@ FunctionEnd
 !ifdef INNER
 Section "Uninstall"
 
-  ; use user for context of data/startup folders
-  SetShellVarContext current
+  ; use all users context for data/startup folders
+  SetShellVarContext all
 
-  ReadRegStr $START_MENU SHCTX \
+  ReadRegStr $START_MENU HKLM \
    "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "StartMenu"
   ;MessageBox MB_OK "Start menu is in: $START_MENU"
 
@@ -850,13 +836,13 @@ Section "Uninstall"
 
   ;Remove the uninstaller itself.
   Delete "$INSTDIR\@UNINSTALLER_NAME@"
-  DeleteRegKey SHCTX "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
 
   ;Remove the installation directory if it is empty.
   RMDir "$INSTDIR"
 
   ; Remove the registry entries.
-  DeleteRegKey SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+  DeleteRegKey HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
 
   ; Removes all optional components
   !insertmacro SectionList "RemoveSection_CPack"
@@ -914,7 +900,7 @@ Section "Uninstall"
     StrCmp "$MUI_TEMP" "$SMPROGRAMS" secondStartMenuDeleteLoopDone secondStartMenuDeleteLoop
   secondStartMenuDeleteLoopDone:
 
-  DeleteRegKey /ifempty SHCTX "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
+  DeleteRegKey /ifempty HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
 
 SectionEnd
 !endif
@@ -965,6 +951,6 @@ inst:
   ; Reads components status for registry
   !insertmacro SectionList "InitSection"
 
-  ; use user for context of data/startup folders
-  SetShellVarContext current
+  ; use all users for context of data/startup folders
+  SetShellVarContext all
 FunctionEnd
