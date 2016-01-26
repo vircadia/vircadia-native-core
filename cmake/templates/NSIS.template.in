@@ -868,7 +868,12 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\$MUI_TEMP\@CONSOLE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk"
   Delete "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk"
+
+  ; if it exists, delete the startup shortcut for the current user
+  SetShellVarContext current
   Delete "$SMSTARTUP\@CONSOLE_SHORTCUT_NAME@.lnk"
+  SetShellVarContext all
+
 @CPACK_NSIS_DELETE_ICONS@
 @CPACK_NSIS_DELETE_ICONS_EXTRA@
 
