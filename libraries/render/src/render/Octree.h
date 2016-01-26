@@ -19,6 +19,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/bit.hpp>
 
+
+#include <AABox.h>
+
 namespace render {
     
     class Octree {
@@ -147,6 +150,11 @@ namespace render {
             Cell() :
                 links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
             {}
+            
+            Cell(Index parent, CellPoint pos) :
+                cellpos(pos),
+                links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent } })
+            {}
         };
         using Cells = std::vector< Cell >;
         
@@ -163,11 +171,20 @@ namespace render {
         Cells _cells = Cells(1, Cell()); // start with only the Cell root
         Bricks _bricks;
         
+        float _size = 320.0f;
+        
         Octree() {};
 
         // allocatePath
         Indices allocateCellPath(const CellPath& path);
 
+        AABox evalBound(const CellPoint& point) const {
+            
+            float width = (float) (_size / double(1 << point.depth));
+            glm::vec3 corner = glm::vec3(-_size * 0.5f) + glm::vec3(point.pos) * width;
+            return AABox(corner, width);
+            
+        }
     };
     
     

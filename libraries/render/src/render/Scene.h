@@ -513,6 +513,9 @@ public:
 
     void processPendingChangesQueue();
 
+    
+    Octree _spatialTree;
+    
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
@@ -528,8 +531,6 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
-
-    Octree _spatialTree;
 
     friend class Engine;
 };

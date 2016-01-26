@@ -142,9 +142,9 @@ Scene::Scene() {
 
 
     _spatialTree;
-    Octree::CellPoint point{ Octree::Coord3{ 2, 4, 3 }, 3 };
+    Octree::CellPoint point{ Octree::Coord3{ 2, 4, 3 }, 15};
     auto path = Octree::CellPoint::rootTo(point);
-
+    auto indices = _spatialTree.allocateCellPath(path);
 }
 
 ItemID Scene::allocateID() {
