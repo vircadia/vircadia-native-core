@@ -1110,9 +1110,9 @@
                 collisionSoundURL: "http://s3.amazonaws.com/hifi-public/sounds/dice/diceCollide.wav",
                 name: "dice",
                 position: {
-                    x: 541,
-                    y: 494.96,
-                    z: 509.1
+                    x: 541.61,
+                    y: 495.21,
+                    z: 508.52
                 },
                 dimensions: {
                     x: 0.09,
@@ -1144,9 +1144,9 @@
             var dice1 = Entities.addEntity(diceProps);
 
             diceProps.position = {
-                x: 541.05,
-                y: 494.96,
-                z: 509.0
+                x: 541.52,
+                y: 495.21,
+                z: 508.41
             };
 
             var dice2 = Entities.addEntity(diceProps);
