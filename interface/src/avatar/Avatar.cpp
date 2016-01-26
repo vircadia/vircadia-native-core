@@ -121,7 +121,7 @@ void Avatar::init() {
     getHead()->init();
     _skeletonModel.init();
     _initialized = true;
-    _shouldRenderBillboard = (getLODDistance() >= BILLBOARD_LOD_DISTANCE);
+    _shouldRenderBillboard = false;
 }
 
 glm::vec3 Avatar::getChestPosition() const {
@@ -141,7 +141,8 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 }
 
 AABox Avatar::getBounds() const {
-    return AABox();
+    // Our skeleton models are rigged, and this method call safely produces the static bounds of the model.
+    return _skeletonModel.getPartBounds(0, 0, getPosition(), getOrientation());
 }
 
 float Avatar::getLODDistance() const {
@@ -176,16 +177,18 @@ void Avatar::simulate(float deltaTime) {
     }
     animateScaleChanges(deltaTime);
 
-    // update the billboard render flag
-    const float BILLBOARD_HYSTERESIS_PROPORTION = 0.1f;
+    // update the billboard render flag. Currently used only for whether or not we animate: we do so IFF we will render the avatar.
+    const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
+    const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
+    float visibility = qApp->getViewFrustum()->calculateRenderAccuracy(getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
     if (_shouldRenderBillboard) {
-        if (getLODDistance() < BILLBOARD_LOD_DISTANCE * (1.0f - BILLBOARD_HYSTERESIS_PROPORTION)) {
+        if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
             _shouldRenderBillboard = false;
-            qCDebug(interfaceapp) << "Unbillboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
+            qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
         }
-    } else if (getLODDistance() > BILLBOARD_LOD_DISTANCE * (1.0f + BILLBOARD_HYSTERESIS_PROPORTION)) {
+    } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
         _shouldRenderBillboard = true;
-        qCDebug(interfaceapp) << "Billboarding" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for LOD" << getLODDistance();
+        qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
     }
 
     // simple frustum check
