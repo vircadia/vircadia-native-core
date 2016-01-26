@@ -34,6 +34,7 @@
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
+#include <AnimClip.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -645,6 +646,15 @@ void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel.setVisibleInScene(isEnabled, scene);
+}
+
+void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
+    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
+    reset(true);
+}
+
+void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
+    _rig->setEnableInverseKinematics(isEnabled);
 }
 
 void MyAvatar::loadData() {
