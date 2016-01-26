@@ -37,10 +37,10 @@
                   Entities.deleteEntity(e[i]);  
                 }
             }
-            this.importArf();
+            this.importAssetResourceFile();
         },
 
-        importArf: function() {
+        importAssetResourceFile: function() {
             Clipboard.importEntities(IMPORT_URL);
             Clipboard.pasteEntities(PASTE_ENTITIES_LOCATION);
         },
