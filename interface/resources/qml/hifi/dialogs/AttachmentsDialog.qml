@@ -8,6 +8,7 @@ import "attachments"
 Window {
     id: root
     title: "Edit Attachments"
+    objectName: "AttachmentsDialog"
     width: 600
     height: 600
     resizable: true

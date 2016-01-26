@@ -1845,8 +1845,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->getRootContext()->engine()->clearComponentCache();
-                    offscreenUi->load("hifi/dialogs/AttachmentsDialog.qml");
-                    // OffscreenUi::information("Debugging", "Component cache cleared");
+                    OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
                 break;

@@ -70,8 +70,8 @@ Menu::Menu() {
     }
 
     // File > Update -- FIXME: needs implementation
-    auto updateAction = addActionToQMenuAndActionHash(fileMenu, "Update");
-    updateAction->setDisabled(true);
+    auto action = addActionToQMenuAndActionHash(fileMenu, "Update");
+    action->setDisabled(true);
 
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
@@ -166,8 +166,11 @@ Menu::Menu() {
     QObject* avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments, 0,
-        dialogsManager.data(), SLOT(editAttachments()));
+    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
+    });
+
 
     // Avatar > Size
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
@@ -285,7 +288,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
 
     // Settings > General...
-    auto action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
     });
