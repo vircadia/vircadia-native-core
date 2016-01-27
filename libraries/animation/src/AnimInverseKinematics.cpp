@@ -246,7 +246,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                     // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
                     deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
                     float dotSign = copysignf(1.0f, deltaRotation.w);
-                    const float ANGLE_DISTRIBUTION_FACTOR = 0.35f;
+                    const float ANGLE_DISTRIBUTION_FACTOR = 0.45f;
                     deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
                 }
 
@@ -634,7 +634,7 @@ void AnimInverseKinematics::initConstraints() {
         } else if (baseName.startsWith("Spine", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_SPINE_TWIST = PI / 8.0f;
+            const float MAX_SPINE_TWIST = PI / 12.0f;
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
             std::vector<float> minDots;
@@ -658,11 +658,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_NECK_TWIST = PI / 6.0f;
+            const float MAX_NECK_TWIST = PI / 9.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_NECK_SWING = PI / 4.0f;
+            const float MAX_NECK_SWING = PI / 8.0f;
             minDots.push_back(cosf(MAX_NECK_SWING));
             stConstraint->setSwingLimits(minDots);
 
@@ -670,11 +670,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Head", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_HEAD_TWIST = PI / 8.0f;
+            const float MAX_HEAD_TWIST = PI / 9.0f;
             stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_HEAD_SWING = PI / 6.0f;
+            const float MAX_HEAD_SWING = PI / 10.0f;
             minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
