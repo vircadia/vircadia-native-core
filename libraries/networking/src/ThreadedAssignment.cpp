@@ -107,8 +107,6 @@ void ThreadedAssignment::sendStatsPacket() {
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-    qDebug() << "WE ARE AT" << _numQueuedCheckIns << "queued check-ins";
-    
     // verify that the number of queued check-ins is not >= our max
     // the number of queued check-ins is cleared anytime we get a response from the domain-server
     if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
