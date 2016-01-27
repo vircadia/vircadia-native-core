@@ -167,7 +167,7 @@ FocusScope {
         }
 
         if (setFocus) {
-            focus = true;
+            targetWindow.focus = true;
         }
 
         reposition(targetWindow);
