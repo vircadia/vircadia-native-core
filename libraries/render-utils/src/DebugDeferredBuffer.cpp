@@ -30,15 +30,15 @@ using namespace render;
 void DebugDeferredBufferConfig::setMode(int newMode) {
     if (newMode == mode) {
         return;
-    } else if (newMode > (int)DebugDeferredBuffer::Custom || newMode < 0) {
-        mode = (int)DebugDeferredBuffer::Custom;
+    } else if (newMode > DebugDeferredBuffer::CustomMode || newMode < 0) {
+        mode = DebugDeferredBuffer::CustomMode;
     } else {
         mode = newMode;
     }
     emit dirty();
 }
 
-enum Slots {
+enum Slot {
     Diffuse = 0,
     Normal,
     Specular,
@@ -49,6 +49,8 @@ enum Slots {
     AmbientOcclusion,
     AmbientOcclusionBlurred
 };
+
+
 
 static const std::string DEFAULT_DIFFUSE_SHADER {
     "vec4 getFragmentColor() {"
@@ -142,27 +144,27 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
 
 std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
     switch (mode) {
-        case Diffuse:
+        case DiffuseMode:
             return DEFAULT_DIFFUSE_SHADER;
-        case Specular:
+        case SpecularMode:
             return DEFAULT_SPECULAR_SHADER;
-        case Roughness:
+        case RoughnessMode:
             return DEFAULT_ROUGHNESS_SHADER;
-        case Normal:
+        case NormalMode:
             return DEFAULT_NORMAL_SHADER;
-        case Depth:
+        case DepthMode:
             return DEFAULT_DEPTH_SHADER;
-        case Lighting:
+        case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
-        case Shadow:
+        case ShadowMode:
             return DEFAULT_SHADOW_SHADER;
-        case PyramidDepth:
+        case PyramidDepthMode:
             return DEFAULT_PYRAMID_DEPTH_SHADER;
-        case AmbientOcclusion:
+        case AmbientOcclusionMode:
             return DEFAULT_AMBIENT_OCCLUSION_SHADER;
-        case AmbientOcclusionBlurred:
+        case AmbientOcclusionBlurredMode:
             return DEFAULT_AMBIENT_OCCLUSION_BLURRED_SHADER;
-        case Custom:
+        case CustomMode:
             return getFileContent(customFile, DEFAULT_CUSTOM_SHADER);
     }
     Q_UNREACHABLE();
@@ -170,7 +172,7 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
 }
 
 bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile) const {
-    if (mode != Custom) {
+    if (mode != CustomMode) {
         return !_pipelines[mode];
     }
     
@@ -218,14 +220,14 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         auto pipeline = gpu::Pipeline::create(program, std::make_shared<gpu::State>());
         
         // Good to go add the brand new pipeline
-        if (mode != Custom) {
+        if (mode != CustomMode) {
             _pipelines[mode] = pipeline;
         } else {
             _customPipelines[customFile].pipeline = pipeline;
         }
     }
     
-    if (mode != Custom) {
+    if (mode != CustomMode) {
         return _pipelines[mode];
     } else {
         return _customPipelines[customFile].pipeline;

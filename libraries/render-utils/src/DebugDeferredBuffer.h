@@ -46,17 +46,18 @@ protected:
     friend class DebugDeferredBufferConfig;
 
     enum Mode : uint8_t {
-        Diffuse = 0,
-        Specular,
-        Roughness,
-        Normal,
-        Depth,
-        Lighting,
-        Shadow,
-        PyramidDepth,
-        AmbientOcclusion,
-        AmbientOcclusionBlurred,
-        Custom // Needs to stay last
+        // Use Mode suffix to avoid collisions
+        DiffuseMode = 0,
+        SpecularMode,
+        RoughnessMode,
+        NormalMode,
+        DepthMode,
+        LightingMode,
+        ShadowMode,
+        PyramidDepthMode,
+        AmbientOcclusionMode,
+        AmbientOcclusionBlurredMode,
+        CustomMode // Needs to stay last
     };
 
 private:
@@ -67,7 +68,7 @@ private:
         gpu::PipelinePointer pipeline;
         mutable QFileInfo info;
     };
-    using StandardPipelines = std::array<gpu::PipelinePointer, Custom>;
+    using StandardPipelines = std::array<gpu::PipelinePointer, CustomMode>;
     using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
     
     bool pipelineNeedsUpdate(Mode mode, std::string customFile = std::string()) const;
