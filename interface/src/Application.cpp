@@ -1186,6 +1186,7 @@ void Application::initializeUi() {
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
     offscreenUi->setProxyWindow(_window->windowHandle());
@@ -1842,6 +1843,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isShifted && isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
                 break;
