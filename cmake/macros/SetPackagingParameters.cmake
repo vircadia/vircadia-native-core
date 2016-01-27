@@ -82,10 +82,14 @@ macro(SET_PACKAGING_PARAMETERS)
     set(DS_EXEC_NAME "domain-server.exe")
     set(AC_EXEC_NAME "assignment-client.exe")
 
-    # start menu shortcuts
-    set(INTERFACE_SM_SHORTCUT_NAME "High Fidelity")
-    set(CONSOLE_SM_SHORTCUT_NAME "Server Console")
-
+    # shortcut names
+    if (PRODUCTION_BUILD)
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity")
+      set(CONSOLE_SHORTCUT_NAME "Server Console")
+    else ()
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity - ${BUILD_VERSION}")
+      set(CONSOLE_SHORTCUT_NAME "Server Console - ${BUILD_VERSION}")
+    endif ()
     # check if we need to find signtool
     if (PRODUCTION_BUILD OR PR_BUILD)
       find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")

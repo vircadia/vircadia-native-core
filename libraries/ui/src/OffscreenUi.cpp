@@ -150,7 +150,9 @@ protected:
     }
 
     ~ModalDialogListener() {
-        disconnect(_dialog);
+        if (_dialog) {
+            disconnect(_dialog);
+        }
     }
 
     virtual QVariant waitForResult() {
@@ -164,10 +166,11 @@ protected slots:
     void onDestroyed() {
         _finished = true;
         disconnect(_dialog);
+        _dialog = nullptr;
     }
 
 protected:
-    QQuickItem* const _dialog;
+    QQuickItem* _dialog;
     bool _finished { false };
     QVariant _result;
 };
@@ -372,6 +375,7 @@ void OffscreenUi::createDesktop(const QUrl& url) {
         qDebug() << "Desktop already created";
         return;
     }
+
 #ifdef DEBUG
     getRootContext()->setContextProperty("DebugQML", QVariant(true));
 #else 
@@ -381,9 +385,6 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     _desktop = dynamic_cast<QQuickItem*>(load(url));
     Q_ASSERT(_desktop);
     getRootContext()->setContextProperty("desktop", _desktop);
-
-    // Enable focus debugging
-    _desktop->setProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 

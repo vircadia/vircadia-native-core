@@ -277,6 +277,9 @@ public:
 
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
+    Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+    Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
+
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -448,6 +451,9 @@ public:
 
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json);
+
+    QVariant toVariant() const;
+    void fromVariant(const QVariant& variant);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
