@@ -181,6 +181,15 @@ int64_t AudioInjector::injectNextFrame() {
         // make sure we actually have samples downloaded to inject
         if (_audioData.size()) {
 
+            auto sampleSize = (_options.stereo ? 2 : 1) * sizeof(AudioConstants::AudioSample);
+            auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
+            auto targetSize = numSamples * sampleSize;
+            if (targetSize != _audioData.size()) {
+                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                    << _audioData.size() << " to " << targetSize;
+                _audioData.resize(targetSize);
+            }
+
             _outgoingSequenceNumber = 0;
             _nextFrame = 0;
 
