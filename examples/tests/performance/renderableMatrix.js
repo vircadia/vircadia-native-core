@@ -12,11 +12,11 @@ var Entities, Script, print, Vec3, MyAvatar, Camera, Quat;
 //  Useful for testing the rendering, LOD, and octree storage aspects of the system.
 //
 
-var LIFETIME = 60;
+var LIFETIME = 20;
 // Matrix will be axis-aligned, approximately all in this field of view.
 // As special case, if zero, grid is centered above your head.
 var MINIMUM_VIEW_ANGLE_IN_RADIANS = 30 * Math.PI / 180; // 30 degrees
-var ROWS_X = 10;
+var ROWS_X = 17;
 var ROWS_Y = 10;
 var ROWS_Z = 10;
 var SEPARATION = 10;
@@ -55,7 +55,9 @@ var o = Vec3.sum(MyAvatar.position,
 var totalCreated = 0;
 var startTime = new Date();
 var totalToCreate = ROWS_X * ROWS_Y * ROWS_Z;
-print("Creating " + totalToCreate + " entities starting at " + startTime);
+print("Creating " + totalToCreate + " " + JSON.stringify(TYPES_TO_USE) +
+      " entities extending in positive x/y/z from " + JSON.stringify(o) +
+      ", starting at " + startTime);
 
 Script.setInterval(function () {
     if (!Entities.serversExist() || !Entities.canRez()) {
