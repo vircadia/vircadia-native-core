@@ -47,7 +47,7 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, entitiesPing, 0)
     STATS_PROPERTY(int, assetPing, 0)
     STATS_PROPERTY(QVector3D, position, QVector3D(0, 0, 0) )
-    STATS_PROPERTY(float, velocity, 0)
+    STATS_PROPERTY(float, speed, 0)
     STATS_PROPERTY(float, yaw, 0)
     STATS_PROPERTY(int, avatarMixerInKbps, 0)
     STATS_PROPERTY(int, avatarMixerInPps, 0)
@@ -138,7 +138,7 @@ signals:
     void entitiesPingChanged();
     void assetPingChanged();
     void positionChanged();
-    void velocityChanged();
+    void speedChanged();
     void yawChanged();
     void avatarMixerInKbpsChanged();
     void avatarMixerInPpsChanged();
