@@ -77,19 +77,21 @@ namespace render {
         static const Depth MAX_DEPTH { 15 };
         static const double INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
 
-        static int getDepthDimension(Depth depth) { return 2 << depth; }
+        static int getDepthDimension(Depth depth) { return 1 << depth; }
         static double getInvDepthDimension(Depth depth) { return INV_DEPTH_DIM[depth]; }
-
 
         // Need 16bits integer coordinates on each axes: 32768 cell positions
         using Coord = int16_t;
         using Coord3 = glm::i16vec3;
         using Coord4 = glm::i16vec4;
 
+        static Coord depthBitmask(Depth depth) { return Coord(1 << (MAX_DEPTH - depth)); }
+
+
         class Location {
             void assertValid() {
                 assert((pos.x >= 0) && (pos.y >= 0) && (pos.z >= 0));
-                assert((pos.x < (2 << depth)) && (pos.y < (2 << depth)) && (pos.z < (2 << depth)));
+                assert((pos.x < (1 << depth)) && (pos.y < (1 << depth)) && (pos.z < (1 << depth)));
             }
         public:
             Location() {}
@@ -103,35 +105,17 @@ namespace render {
 
             // Eval the octant of this cell relative to its parent
             Octant octant() const { return  Octant((pos.x & XAxis) | (pos.y & YAxis) | (pos.z & ZAxis)); }
+            Coord3 octantAxes(Link octant) const { Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)); }
 
             // Get the Parent cell Location of this cell
-            Location parent() const {
-                return Location{ pos >> Coord3(1), Depth(depth <= 0 ? 0 : depth - 1) };
-            }
-            Location child(Link octant) const {
-                return Location{ pos << Coord3(1) | Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)), Depth(depth + 1) };
-            }
+            Location parent() const { return Location{ (pos >> Coord3(1)), Depth(depth <= 0 ? 0 : depth - 1) }; }
+            Location child(Link octant) const { return Location{ (pos << Coord3(1)) | octantAxes(octant), Depth(depth + 1) }; }
 
             using vector = std::vector< Location >;
-            static vector rootTo(const Location& dest) {
-                Location current{ dest };
-                vector path(dest.depth + 1);
-                path[dest.depth] = dest;
-                while (current.depth > 0) {
-                    current = current.parent();
-                    path[current.depth] = current;
-                }
-                return path;
-            }
+            static vector rootTo(const Location& dest);
+            static Location evalFromRange(const Coord3& minCoord, const Coord3& maxCoord, Depth rangeDepth = MAX_DEPTH);
         };
-        using CellPath = Location::vector;
-
-
-        class Range {
-        public:
-            Coord3 _min;
-            Coord3 _max;
-        };
+        using Locations = Location::vector;
 
         // Cell or Brick Indexing
         using Index = int32_t;
@@ -184,7 +168,7 @@ namespace render {
         Octree() {};
 
         // allocatePath
-        Indices allocateCellPath(const CellPath& path);
+        Indices allocateCellPath(const Locations& path);
 
         // reach to Cell and allocate the cell path to it if needed
         Index editCell(const Location& loc) {
@@ -228,7 +212,8 @@ namespace render {
         }
 
         Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
-            return Coord3((pos - getOrigin()) * getInvCellWidth(depth));
+            auto npos = (pos - getOrigin());
+            return Coord3(npos * getInvCellWidth(depth));
         }
 
         
@@ -242,22 +227,10 @@ namespace render {
             auto minVec = bound.getMinimumPoint();
             auto maxVec = bound.getMaximumPoint();
             
-            Depth depth = MAX_DEPTH;
             auto minPos = evalCoord(minVec);
             auto maxPos = evalCoord(maxVec);
-            
-            while ((depth > 0) &&
-                   !((maxPos.x == minPos.x) && (maxPos.y == minPos.y) && (maxPos.z == minPos.z))) {
-                depth--;
-                minPos >>= 1;
-                maxPos >>= 1;
-            }
-            
-            if (depth == 0) {
-                return Location();
-            } else {
-                return Location(minPos, depth);
-            }
+
+            return Location::evalFromRange(minPos, maxPos);
         }
 
         ItemSpatialTree() {}

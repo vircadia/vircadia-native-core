@@ -32,7 +32,42 @@ const double Octree::INV_DEPTH_DIM[] = {
     1.0 / 16384.0,
     1.0 / 32768.0 };
 
-Octree::Indices Octree::allocateCellPath(const CellPath& path) {
+
+Octree::Location::vector Octree::Location::rootTo(const Location& dest) {
+    Location current{ dest };
+    vector path(dest.depth + 1);
+    path[dest.depth] = dest;
+    while (current.depth > 0) {
+        current = current.parent();
+        path[current.depth] = current;
+    }
+    return path;
+}
+
+Octree::Location Octree::Location::evalFromRange(const Coord3& minCoord, const Coord3& maxCoord, Depth rangeDepth) {
+    Depth depthOffset = MAX_DEPTH - rangeDepth;
+    Depth depth = depthOffset;
+    Coord3 mask(depthBitmask(depth));
+
+    while (depth < rangeDepth) {
+        Coord3 nextMask = mask | depthBitmask(depth + 1);
+        if ((minCoord & nextMask) != (maxCoord & nextMask)) {
+            break;
+        }
+        mask = nextMask;
+        depth++;
+    }
+
+    if (depth == 0) {
+        return Location();
+    } else {
+        // Location depth and coordinate are found, need to bring the coordinate from sourceDepth to destinationDepth
+        auto sourceCoord = (minCoord & mask);
+        return Location(sourceCoord >> Coord3(rangeDepth - depth), depth);
+    }
+}
+
+Octree::Indices Octree::allocateCellPath(const Locations& path) {
     Indices cellPath;
 
     Index currentIndex = 0;
