@@ -83,7 +83,7 @@ macro(SET_PACKAGING_PARAMETERS)
     set(AC_EXEC_NAME "assignment-client.exe")
 
     # shortcut names
-    if (NOT PR_BUILD)
+    if (PRODUCTION_BUILD)
       set(INTERFACE_SHORTCUT_NAME "High Fidelity")
       set(CONSOLE_SHORTCUT_NAME "Server Console")
     else ()
