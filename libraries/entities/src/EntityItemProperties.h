@@ -252,6 +252,8 @@ public:
 
     void setLinePointsDirty() {_linePointsChanged = true; }
 
+    void setQueryAACubeDirty() { _queryAACubeChanged = true; }
+
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;

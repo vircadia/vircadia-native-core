@@ -28,6 +28,15 @@ macro(GENERATE_INSTALLERS)
     # include CMake module that will install compiler system libraries
     # so that we have msvcr120 and msvcp120 installed with targets
     set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
+
+    # as long as we're including sixense plugin with installer
+    # we need re-distributables for VS 2011 as well
+    # this should be removed if/when sixense support is pulled
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
+      "${EXTERNALS_BINARY_DIR}/sixense/project/src/sixense/samples/win64/msvcr100.dll"
+      "${EXTERNALS_BINARY_DIR}/sixense/project/src/sixense/samples/win64/msvcp100.dll"
+    )
+
     include(InstallRequiredSystemLibraries)
 
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")

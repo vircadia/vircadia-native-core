@@ -142,7 +142,6 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(menuQml);
     QQuickMenuItem* returnedValue { nullptr };
     
-    qDebug() << menuQml;
     bool invokeResult = QMetaObject::invokeMethod(menuQml, "addItem", Qt::DirectConnection,
         Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
         Q_ARG(QString, action->text()));

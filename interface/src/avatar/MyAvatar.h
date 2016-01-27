@@ -260,6 +260,8 @@ public slots:
     void setEnableDebugDrawPosition(bool isEnabled);
     bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
+    void setUseAnimPreAndPostRotations(bool isEnabled);
+    void setEnableInverseKinematics(bool isEnabled);
     Q_INVOKABLE void setAnimGraphUrl(const QUrl& url);
 
     glm::vec3 getPositionForAudio();
