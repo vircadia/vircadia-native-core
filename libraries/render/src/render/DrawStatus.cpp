@@ -27,7 +27,10 @@
 
 using namespace render;
 
-
+void DrawStatusConfig::dirtyHelper() {
+    enabled = showNetwork || showDisplay;
+    emit dirty();
+}
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {

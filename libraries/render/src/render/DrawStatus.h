@@ -18,14 +18,19 @@
 namespace render {
     class DrawStatusConfig : public Job::Config {
         Q_OBJECT
-        Q_PROPERTY(bool enabled MEMBER enabled)
-        Q_PROPERTY(bool showDisplay MEMBER showDisplay NOTIFY dirty)
-        Q_PROPERTY(bool showNetwork MEMBER showDisplay NOTIFY dirty)
+        Q_PROPERTY(bool showDisplay MEMBER showDisplay WRITE setShowDisplay)
+        Q_PROPERTY(bool showNetwork MEMBER showNetwork WRITE setShowNetwork)
     public:
         DrawStatusConfig() : Job::Config(false) {}
 
+        void dirtyHelper();
+
         bool showDisplay{ false };
         bool showNetwork{ false };
+
+    public slots:
+        void setShowDisplay(bool enabled) { showDisplay = enabled; dirtyHelper(); }
+        void setShowNetwork(bool enabled) { showNetwork = enabled; dirtyHelper(); }
 
     signals:
         void dirty();
