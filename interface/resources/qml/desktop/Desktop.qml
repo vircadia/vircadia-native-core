@@ -154,6 +154,28 @@ FocusScope {
 
         function onWindowFocusChanged() {
             console.log("Focus item is " + offscreenWindow.activeFocusItem);
+
+            // FIXME this needs more testing before it can go into production
+            // and I already cant produce any way to have a modal dialog lose focus
+            // to a non-modal one.
+            /*
+            var focusedWindow = getDesktopWindow(offscreenWindow.activeFocusItem);
+
+            if (isModalWindow(focusedWindow)) {
+                return;
+            }
+
+            // new focused window is not modal... check if there are any modal windows
+            var windows = getTopLevelWindows(isModalWindow);
+            if (0 === windows.length) {
+                return;
+            }
+
+            // There are modal windows present, force focus back to the top-most modal window
+            windows.sort(function(a, b){ return a.z - b.z; });
+            windows[windows.length - 1].focus = true;
+            */
+
 //            var focusedItem = offscreenWindow.activeFocusItem ;
 //            if (DebugQML && focusedItem) {
 //                var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
