@@ -211,15 +211,16 @@ FocusScope {
         var windowRect = targetWindow.framedRect();
         var minPosition = Qt.vector2d(-windowRect.x, -windowRect.y);
         var maxPosition = Qt.vector2d(desktop.width - windowRect.width, desktop.height - windowRect.height);
-        var newPosition;
-        if (targetWindow.x === -1 && targetWindow.y === -1) {
+        var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);
+        if (newPosition.x === -1 && newPosition.y === -1) {
             // Set initial window position
             // newPosition = Utils.randomPosition(minPosition, maxPosition);
+            console.log("Target has no defined position, putting in center of the screen")
             newPosition = Qt.vector2d(desktop.width / 2 - windowRect.width / 2,
                                       desktop.height / 2 - windowRect.height / 2);
         }
 
-        newPosition = Utils.clampVector(Qt.vector2d(targetWindow.x, targetWindow.y), minPosition, maxPosition);
+        newPosition = Utils.clampVector(newPosition, minPosition, maxPosition);
         targetWindow.x = newPosition.x;
         targetWindow.y = newPosition.y;
     }
