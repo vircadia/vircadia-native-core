@@ -281,7 +281,7 @@ int64_t AudioInjector::injectNextFrame() {
         _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
         _currentSendOffset += bytesToCopy;
         totalBytesLeftToCopy -= bytesToCopy;
-        if (_currentSendOffset >= _audioData.size()) {
+        if (_options.loop && _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
     }
