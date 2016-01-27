@@ -98,10 +98,22 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 
     int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
 
-    int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
-    if (_isStereo && numSourceSamples % 2 != 0) {
-        numDestinationBytes += sizeof(AudioConstants::AudioSample);
+    if (_isStereo && numSourceSamples % 2 != 0){
+        // in the unlikely case that we have stereo audio but we seem to be missing a sample
+        // (the sample for one channel is missing in a set of interleaved samples)
+        // then drop the odd sample
+        --numSourceSamples;
     }
+
+    int numDestinationSamples = numSourceSamples / 2.0f;
+
+    if (_isStereo && numDestinationSamples % 2 != 0) {
+        // if this is stereo we need to make sure we produce stereo output
+        // which means we should have an even number of output samples
+        numDestinationSamples += 1;
+    }
+
+    int numDestinationBytes = numDestinationSamples * sizeof(AudioConstants::AudioSample);
 
     _byteArray.resize(numDestinationBytes);
 
