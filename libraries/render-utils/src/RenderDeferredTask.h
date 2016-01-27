@@ -52,9 +52,9 @@ public:
 class DrawOpaqueDeferred {
 public:
     DrawOpaqueDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
 
-    using JobModel = render::Task::Job::ModelI<DrawOpaqueDeferred, render::ItemIDsBounds>;
+    using JobModel = render::Task::Job::ModelI<DrawOpaqueDeferred, render::ItemBounds>;
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
@@ -63,9 +63,9 @@ protected:
 class DrawTransparentDeferred {
 public:
     DrawTransparentDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemIDsBounds& inItems);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
 
-    using JobModel = render::Task::Job::ModelI<DrawTransparentDeferred, render::ItemIDsBounds>;
+    using JobModel = render::Task::Job::ModelI<DrawTransparentDeferred, render::ItemBounds>;
 
 protected:
     render::ShapePlumberPointer _shapePlumber;

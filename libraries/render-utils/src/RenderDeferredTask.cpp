@@ -215,7 +215,7 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
     }
 };
 
-void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
 
@@ -241,7 +241,7 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
     });
 }
 
-void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
 
@@ -294,7 +294,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
 
 
-    ItemIDsBounds inItems;
+    ItemBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         auto& item = scene->getItem(id);
@@ -399,7 +399,7 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
     auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
 
 
-    ItemIDsBounds inItems;
+    ItemBounds inItems;
     inItems.reserve(items.size());
     for (auto id : items) {
         inItems.emplace_back(id);

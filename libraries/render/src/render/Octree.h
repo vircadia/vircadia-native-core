@@ -18,12 +18,10 @@
 #include <array>
 #include <glm/glm.hpp>
 #include <glm/gtx/bit.hpp>
-
-
 #include <AABox.h>
 
 namespace render {
-    
+
     class Octree {
     public:
 
@@ -55,7 +53,7 @@ namespace render {
         using Octant = Link;
 
 
-        // Depth, Width, Volume
+        // Depth, Dim, Volume
         // {0,  1,     1}
         // {1,  2,     8}
         // {2,  4,     64}
@@ -73,21 +71,30 @@ namespace render {
         // {14, 16384, 4398046511104}
         // {15, 32768, 35184372088832}
         // {16, 65536, 281474976710656}
-        
-        using Depth = int8_t; // Max depth is 15 => 32Km root down to 1m cells
-        using Coord = int16_t;// Need 16bits integer coordinates on each axes: 32768 cell positions
+
+        // Max depth is 15 => 32Km root down to 1m cells
+        using Depth = int8_t;
+        static const Depth MAX_DEPTH { 15 };
+        static const double INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
+
+        static int getDepthDimension(Depth depth) { return 2 << depth; }
+        static double getInvDepthDimension(Depth depth) { return INV_DEPTH_DIM[depth]; }
+
+
+        // Need 16bits integer coordinates on each axes: 32768 cell positions
+        using Coord = int16_t;
         using Coord3 = glm::i16vec3;
         using Coord4 = glm::i16vec4;
-        
-        class CellPoint {
+
+        class Location {
             void assertValid() {
                 assert((pos.x >= 0) && (pos.y >= 0) && (pos.z >= 0));
                 assert((pos.x < (2 << depth)) && (pos.y < (2 << depth)) && (pos.z < (2 << depth)));
             }
         public:
-            CellPoint() {}
-            CellPoint(const Coord3& xyz, Depth d) : pos(xyz), depth(d) { assertValid(); }
-            CellPoint(Depth d) : pos(0), depth(d) { assertValid(); }
+            Location() {}
+            Location(const Coord3& xyz, Depth d) : pos(xyz), depth(d) { assertValid(); }
+            Location(Depth d) : pos(0), depth(d) { assertValid(); }
 
             Coord3 pos{ 0 };
             uint8_t spare{ 0 };
@@ -97,17 +104,17 @@ namespace render {
             // Eval the octant of this cell relative to its parent
             Octant octant() const { return  Octant((pos.x & XAxis) | (pos.y & YAxis) | (pos.z & ZAxis)); }
 
-            // Get the Parent cell pos of this cell
-            CellPoint parent() const {
-                return CellPoint{ pos >> Coord3(1), Depth(depth <= 0 ? 0 : depth - 1) };
+            // Get the Parent cell Location of this cell
+            Location parent() const {
+                return Location{ pos >> Coord3(1), Depth(depth <= 0 ? 0 : depth - 1) };
             }
-            CellPoint child(Link octant) const {
-                return CellPoint{ pos << Coord3(1) | Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)), Depth(depth + 1) };
+            Location child(Link octant) const {
+                return Location{ pos << Coord3(1) | Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)), Depth(depth + 1) };
             }
 
-            using vector = std::vector< CellPoint >;
-            static vector rootTo(const CellPoint& dest) {
-                CellPoint current{ dest };
+            using vector = std::vector< Location >;
+            static vector rootTo(const Location& dest) {
+                Location current{ dest };
                 vector path(dest.depth + 1);
                 path[dest.depth] = dest;
                 while (current.depth > 0) {
@@ -117,9 +124,9 @@ namespace render {
                 return path;
             }
         };
-        using CellPath = CellPoint::vector;
+        using CellPath = Location::vector;
 
-        
+
         class Range {
         public:
             Coord3 _min;
@@ -129,66 +136,113 @@ namespace render {
         // Cell or Brick Indexing
         using Index = int32_t;
         static const Index INVALID = -1;
+        static const Index ROOT = 0;
         using Indices = std::vector<Index>;
 
         // the cell description
         class Cell {
         public:
+            const Location& getlocation() const { return _location; }
 
-            CellPoint cellpos;
-
-            std::array<Index, NUM_LINKS> links;
-
-            Index parent() const { return links[Parent]; }
+            Index parent() const { return _links[Parent]; }
             bool asParent() const { return parent() != INVALID; }
 
-            Index child(Link octant) const { return links[octant]; }
+            Index child(Link octant) const { return _links[octant]; }
             bool asChild(Link octant) const { return child(octant) != INVALID; }
+            void setChild(Link octant, Index child) { _links[octant] = child; }
+
+            Cell() :
+                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
+            {}
+
+            Cell(Index parent, Location loc) :
+                _location(loc),
+                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent } })
+            {}
 
             Index brick{ INVALID };
 
-            Cell() :
-                links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
-            {}
-            
-            Cell(Index parent, CellPoint pos) :
-                cellpos(pos),
-                links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent } })
-            {}
+        private:
+            Location _location;
+            std::array<Index, NUM_LINKS> _links;
         };
         using Cells = std::vector< Cell >;
-        
+
 
         class Brick {
         public:
-            
+
         };
         using Bricks = std::vector< Brick >;
-        
-        
-        
+
+
+
         // Octree members
         Cells _cells = Cells(1, Cell()); // start with only the Cell root
         Bricks _bricks;
-        
-        float _size = 320.0f;
-        
+
         Octree() {};
 
         // allocatePath
         Indices allocateCellPath(const CellPath& path);
 
-        AABox evalBound(const CellPoint& point) const {
-            
-            float width = (float) (_size / double(1 << point.depth));
-            glm::vec3 corner = glm::vec3(-_size * 0.5f) + glm::vec3(point.pos) * width;
-            return AABox(corner, width);
-            
+        // reach to Cell and allocate the cell path to it if needed
+        Index editCell(const Location& loc) {
+            auto cells = allocateCellPath(Location::rootTo(loc));
+            return cells.back();
         }
     };
-    
-    
-    
+}
+// CLose the namespace here before including the Item in the picture, maybe Octre could stay pure of it
+#include "Item.h"
+
+namespace render {
+
+    // An octree of Items organizing them efficiently for culling
+    // The octree only cares about the bound & the key of an item to store it a the right cell location
+    class ItemSpatialTree : public Octree {
+        float _size{ 32000.0f };
+        double _invSize{ 1.0 / _size };
+        glm::vec3 _origin{ -_size };
+    public:
+
+
+        float getSize() const { _size; }
+        glm::vec3 getOrigin() const { _origin; }
+
+        float getCellWidth(Depth depth) const { return (float) _size * getInvDepthDimension(depth); }
+        float getInvCellWidth(Depth depth) const { return (float) getDepthDimension(depth) * _invSize; }
+
+        glm::vec3 evalPos(const Coord3& coord, Depth depth = Octree::MAX_DEPTH) const {
+            return getOrigin() + glm::vec3(coord) * getCellWidth(depth);
+        }
+        glm::vec3 evalPos(const Coord3& coord, float cellWidth) const {
+            return getOrigin() + glm::vec3(coord) * cellWidth;
+        }
+
+        Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
+            return Coord3((pos - getOrigin()) * getInvCellWidth(depth));
+        }
+
+        AABox evalBound(const Location& loc) const {
+            float cellWidth = getCellWidth(loc.depth);
+            return AABox(evalPos(loc.pos, cellWidth), cellWidth);
+        }
+
+
+        Location evalLocation(const AABox& bound) const {
+            auto minPos = evalCoord(bound.getMinimumPoint());
+            auto maxPos = evalCoord(bound.getMaximumPoint());
+            auto range = maxPos - minPos;
+            //range
+                return Location(minPos, 4);
+        }
+
+        ItemSpatialTree() {}
+
+        void insert(const ItemBounds& items);
+        void erase(const ItemBounds& items);
+    };
 }
 
 #endif // hifi_render_Octree_h

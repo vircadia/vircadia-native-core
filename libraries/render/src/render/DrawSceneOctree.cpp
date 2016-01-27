@@ -72,53 +72,14 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
             _octreeInfo = std::make_shared<gpu::Buffer>();;
         }*/
         
-        const auto& inCells = scene->_spatialTree._cells;
+        const auto& inCells = scene->getSpatialTree()._cells;
         _cells->resize(inCells.size() * sizeof(AABox));
         AABox* cellAABox = reinterpret_cast<AABox*> (_cells->editData());
         for (const auto& cell : inCells) {
-            (*cellAABox) = scene->_spatialTree.evalBound(cell.cellpos);
+            (*cellAABox) = scene->getSpatialTree().evalBound(cell.getlocation());
             nbCells++;
             cellAABox++;
         }
-        
-        /*
-        _cells->resize((inItems.size() * sizeof(AABox)));
-        _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
-        AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
-        glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
-        for (auto& item : inItems) {
-            if (!item.bounds.isInvalid()) {
-                if (!item.bounds.isNull()) {
-                    (*itemAABox) = item.bounds;
-                } else {
-                    (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
-                }
-                auto& itemScene = scene->getItem(item.id);
-
-                auto itemStatusPointer = itemScene.getStatus();
-                if (itemStatusPointer) {
-                    // Query the current status values, this is where the statusGetter lambda get called
-                    auto&& currentStatusValues = itemStatusPointer->getCurrentValues();
-                    int valueNum = 0;
-                    for (int vec4Num = 0; vec4Num < NUM_STATUS_VEC4_PER_ITEM; vec4Num++) {
-                        (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
-                        for (int component = 0; component < VEC4_LENGTH; component++) {
-                            valueNum = vec4Num * VEC4_LENGTH + component;
-                            if (valueNum < (int)currentStatusValues.size()) {
-                                (*itemStatus)[component] = currentStatusValues[valueNum].getPackedData();
-                            }
-                        }
-                        itemStatus++;
-                    }
-                } else {
-                    (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
-                    itemStatus++;
-                    (*itemStatus) = glm::ivec4(Item::Status::Value::INVALID.getPackedData());
-                    itemStatus++;
-                }
-
-                            }
-        }*/
     }
 
     if (nbCells == 0) {

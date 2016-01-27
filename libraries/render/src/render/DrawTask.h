@@ -22,10 +22,10 @@ namespace render {
 using CullFunctor = std::function<bool(const RenderArgs*, const AABox&)>;
 
 void cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
-               const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
-void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems = -1);
+               const ItemBounds& inItems, ItemBounds& outItems);
+void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
+void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
+void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1);
 
 class FetchItems {
 public:
@@ -37,8 +37,8 @@ public:
     ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
     ProbeNumItems _probeNumItems;
 
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems);
-    using JobModel = Task::Job::ModelO<FetchItems, ItemIDsBounds>;
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
+    using JobModel = Task::Job::ModelO<FetchItems, ItemBounds>;
 };
 
 template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
@@ -46,7 +46,7 @@ class CullItems {
 public:
     CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
 
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
         const auto& args = renderContext->getArgs();
         auto& details = args->_details.edit(T);
         outItems.clear();
@@ -54,7 +54,7 @@ public:
         render::cullItems(renderContext, _cullFunctor, details, inItems, outItems);
     }
 
-    using JobModel = Task::Job::ModelIO<CullItems<T>, ItemIDsBounds, ItemIDsBounds>;
+    using JobModel = Task::Job::ModelIO<CullItems<T>, ItemBounds, ItemBounds>;
 
 protected:
     CullFunctor _cullFunctor;
@@ -65,8 +65,8 @@ public:
     bool _frontToBack;
     DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems);
-    using JobModel = Task::Job::ModelIO<DepthSortItems, ItemIDsBounds, ItemIDsBounds>;
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
+    using JobModel = Task::Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
 };
 
 class DrawLight {
@@ -81,8 +81,8 @@ protected:
 
 class PipelineSortShapes {
 public:
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ShapesIDsBounds& outShapes);
-    using JobModel = Task::Job::ModelIO<PipelineSortShapes, ItemIDsBounds, ShapesIDsBounds>;
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes);
+    using JobModel = Task::Job::ModelIO<PipelineSortShapes, ItemBounds, ShapesIDsBounds>;
 };
 
 class DepthSortShapes {

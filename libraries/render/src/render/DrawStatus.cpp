@@ -96,7 +96,7 @@ const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
 
 void DrawStatus::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext,
-                     const ItemIDsBounds& inItems) {
+                     const ItemBounds& inItems) {
     assert(renderContext->getArgs());
     assert(renderContext->getArgs()->_viewFrustum);
     RenderArgs* args = renderContext->getArgs();
@@ -119,11 +119,11 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
         for (auto& item : inItems) {
-            if (!item.bounds.isInvalid()) {
-                if (!item.bounds.isNull()) {
-                    (*itemAABox) = item.bounds;
+            if (!item.bound.isInvalid()) {
+                if (!item.bound.isNull()) {
+                    (*itemAABox) = item.bound;
                 } else {
-                    (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
+                    (*itemAABox).setBox(item.bound.getCorner(), 0.1f);
                 }
                 auto& itemScene = scene->getItem(item.id);
 

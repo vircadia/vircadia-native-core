@@ -36,9 +36,9 @@ namespace render {
         DrawStatus() {}
         DrawStatus(const gpu::TexturePointer statusIconMap) { setStatusIconMap(statusIconMap); }
 
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
 
-        using JobModel = Task::Job::ModelI<DrawStatus, ItemIDsBounds>;
+        using JobModel = Task::Job::ModelI<DrawStatus, ItemBounds>;
 
         const gpu::PipelinePointer getDrawItemBoundsPipeline();
         const gpu::PipelinePointer getDrawItemStatusPipeline();
