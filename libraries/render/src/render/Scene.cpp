@@ -131,6 +131,9 @@ void Scene::processPendingChangesQueue() {
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
     auto resetID = ids.begin();
     auto resetPayload = payloads.begin();
+    ItemBounds itemBounds;
+    itemBounds.reserve(ids.size());
+    
     for (;resetID != ids.end(); resetID++, resetPayload++) {
         auto& item = _items[(*resetID)];
         auto oldKey = item.getKey();
@@ -138,8 +141,10 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
 
         _masterBucketMap.reset((*resetID), oldKey, item.getKey());
 
-
+        itemBounds.emplace_back(ItemBound((*resetID), item.getBound()));
     }
+    
+    _masterSpatialTree.insert(itemBounds);
 }
 
 void Scene::removeItems(const ItemIDs& ids) {

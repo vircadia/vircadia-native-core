@@ -203,12 +203,19 @@ namespace render {
     class ItemSpatialTree : public Octree {
         float _size{ 32000.0f };
         double _invSize{ 1.0 / _size };
-        glm::vec3 _origin{ -_size };
+        glm::vec3 _origin{ -0.5f * _size };
     public:
+        Depth coordToDepth(Coord length) const {
+            Depth d = MAX_DEPTH;
+            while(length) {
+                length >>= 1;
+                d--;
+            }
+            return d;
+        }
 
-
-        float getSize() const { _size; }
-        glm::vec3 getOrigin() const { _origin; }
+        float getSize() const { return _size; }
+        const glm::vec3& getOrigin() const { return _origin; }
 
         float getCellWidth(Depth depth) const { return (float) _size * getInvDepthDimension(depth); }
         float getInvCellWidth(Depth depth) const { return (float) getDepthDimension(depth) * _invSize; }
@@ -224,6 +231,7 @@ namespace render {
             return Coord3((pos - getOrigin()) * getInvCellWidth(depth));
         }
 
+        
         AABox evalBound(const Location& loc) const {
             float cellWidth = getCellWidth(loc.depth);
             return AABox(evalPos(loc.pos, cellWidth), cellWidth);
@@ -231,11 +239,25 @@ namespace render {
 
 
         Location evalLocation(const AABox& bound) const {
-            auto minPos = evalCoord(bound.getMinimumPoint());
-            auto maxPos = evalCoord(bound.getMaximumPoint());
-            auto range = maxPos - minPos;
-            //range
-                return Location(minPos, 4);
+            auto minVec = bound.getMinimumPoint();
+            auto maxVec = bound.getMaximumPoint();
+            
+            Depth depth = MAX_DEPTH;
+            auto minPos = evalCoord(minVec);
+            auto maxPos = evalCoord(maxVec);
+            
+            while ((depth > 0) &&
+                   !((maxPos.x == minPos.x) && (maxPos.y == minPos.y) && (maxPos.z == minPos.z))) {
+                depth--;
+                minPos >>= 1;
+                maxPos >>= 1;
+            }
+            
+            if (depth == 0) {
+                return Location();
+            } else {
+                return Location(minPos, depth);
+            }
         }
 
         ItemSpatialTree() {}

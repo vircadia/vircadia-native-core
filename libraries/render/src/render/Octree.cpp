@@ -57,8 +57,11 @@ Octree::Indices Octree::allocateCellPath(const CellPath& path) {
 
 
 void ItemSpatialTree::insert(const ItemBounds& items) {
-    
-
+    for (auto& item : items) {
+        if (!item.bound.isNull()) {
+            editCell(evalLocation(item.bound));
+        }
+    }
 }
 
 void ItemSpatialTree::erase(const ItemBounds& items) {
