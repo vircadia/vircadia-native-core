@@ -314,10 +314,11 @@ MasterReset = function() {
             z: 506.46
         };
 
+        var SCRIPT_URL = Script.resolvePath('bow.js');
         var BOW_ROTATION = Quat.fromPitchYawRollDegrees(-103.05, -178.60, -87.27);
-
         var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow-deadly.fbx";
         var COLLISION_HULL_URL = "https://hifi-public.s3.amazonaws.com/models/bow/new/bow_collision_hull.obj";
+        
         var BOW_DIMENSIONS = {
             x: 0.04,
             y: 1.3,
@@ -330,40 +331,113 @@ MasterReset = function() {
             z: 0
         };
 
-        var bow = Entities.addEntity({
-            name: 'Hifi-Bow',
-            type: "Model",
-            modelURL: MODEL_URL,
-            position: startPosition,
-            rotation: BOW_ROTATION,
-            dimensions: BOW_DIMENSIONS,
-            dynamic: true,
-            gravity: BOW_GRAVITY,
-            shapeType: 'compound',
-            compoundShapeURL: COLLISION_HULL_URL,
-            script: bowScriptURL,
-            userData: JSON.stringify({
-                resetMe: {
-                    resetMe: true
-                },
-                grabbableKey: {
-                    invertSolidWhileHeld: true,
-                    spatialKey: {
-                        rightRelativePosition: {
-                            x: 0.03,
-                            y: 0.08,
-                            z: 0.11
-                        },
-                        leftRelativePosition: {
-                            x: -0.03,
-                            y: 0.08,
-                            z: 0.11
-                        },
-                        relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 90)
+        var TOP_NOTCH_OFFSET = 0.6;
+
+        var BOTTOM_NOTCH_OFFSET = 0.6;
+
+        var LINE_DIMENSIONS = {
+            x: 5,
+            y: 5,
+            z: 5
+        };
+
+        var bow;
+
+        function makeBow() {
+
+            var bowProperties = {
+                name: 'Hifi-Bow',
+                type: "Model",
+                modelURL: MODEL_URL,
+                position: startPosition,
+                dimensions: BOW_DIMENSIONS,
+                dynamic: true,
+                gravity: BOW_GRAVITY,
+                rotation: BOW_ROTATION,
+                shapeType: 'compound',
+                compoundShapeURL: COLLISION_HULL_URL,
+                script: bowScriptURL,
+                userData: JSON.stringify({
+                    resetMe: {
+                        resetMe: true
+                    },
+                    grabbableKey: {
+                        invertSolidWhileHeld: true,
+                        spatialKey: {
+                            rightRelativePosition: {
+                                x: 0.03,
+                                y: 0.08,
+                                z: 0.11
+                            },
+                            leftRelativePosition: {
+                                x: -0.03,
+                                y: 0.08,
+                                z: 0.11
+                            },
+                            relativeRotation: Quat.fromPitchYawRollDegrees(180, 90, 90)
+                        }
                     }
-                }
-            })
-        });
+                })
+            }
+            bow = Entities.addEntity(bowProperties);
+            createPreNotchString();
+        }
+        var preNotchString;
+
+        function createPreNotchString() {
+
+            var bowProperties = Entities.getEntityProperties(bow, ["position", "rotation", "userData"]);
+            var downVector = Vec3.multiply(-1, Quat.getUp(bowProperties.rotation));
+            var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET * 2);
+            var upVector = Quat.getUp(bowProperties.rotation);
+            var upOffset = Vec3.multiply(upVector, TOP_NOTCH_OFFSET);
+
+            var backOffset = Vec3.multiply(-0.1, Quat.getFront(bowProperties.rotation));
+            var topStringPosition = Vec3.sum(bowProperties.position, upOffset);
+            topStringPosition = Vec3.sum(topStringPosition, backOffset);
+
+            var stringProperties = {
+                name: 'Hifi-Bow-Pre-Notch-String',
+                type: 'Line',
+                position: topStringPosition,
+                rotation: Quat.fromPitchYawRollDegrees(164.6, 164.5, -72),
+                linePoints: [{
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }, Vec3.sum({
+                    x: 0,
+                    y: 0,
+                    z: 0
+                }, downOffset)],
+                lineWidth: 5,
+                color: {
+                    red: 255,
+                    green: 255,
+                    blue: 255
+                },
+                dimensions: LINE_DIMENSIONS,
+                visible: true,
+                dynamic: false,
+                collisionless: true,
+                parentID: bow,
+                userData: JSON.stringify({
+                    grabbableKey: {
+                        grabbable: false
+                    }
+                })
+            };
+
+            preNotchString = Entities.addEntity(stringProperties);
+
+            var data = {
+                preNotchString: preNotchString
+            };
+
+            setEntityCustomData('bowKey', bow, data);
+        }
+
+        makeBow();
     }
 
     function createFire() {

@@ -105,46 +105,49 @@ const ipcMain = electron.ipcMain;
 var isShuttingDown = false;
 function shutdown() {
     if (!isShuttingDown) {
-        var idx = 0;
-
         // if the home server is running, show a prompt before quit to ask if the user is sure
         if (homeServer.state == ProcessGroupStates.STARTED) {
-            idx = dialog.showMessageBox({
+            dialog.showMessageBox({
                 type: 'question',
                 buttons: ['Yes', 'No'],
-                title: 'Are you sure?',
-                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.'
-            });
+                title: 'Stopping Server Console',
+                message: 'Quitting will stop your Server Console and your Home domain will no longer be running.\nDo you wish to continue?'
+            }, shutdownCallback);
+        } else {
+            shutdownCallback(0);
         }
 
-        if (idx == 0) {
-            isShuttingDown = true;
+    }
+}
 
-            userConfig.save(configPath);
+function shutdownCallback(idx) {
+    if (idx == 0 && !isShuttingDown) {
+        isShuttingDown = true;
 
-            if (logWindow) {
-                logWindow.close();
-            }
-            if (homeServer) {
-                homeServer.stop();
-            }
+        userConfig.save(configPath);
 
-            updateTrayMenu(null);
+        if (logWindow) {
+            logWindow.close();
+        }
+        if (homeServer) {
+            homeServer.stop();
+        }
 
-            if (homeServer.state == ProcessGroupStates.STOPPED) {
-                // if the home server is already down, take down the server console now
-                app.quit();
-            } else {
-                // if the home server is still running, wait until we get a state change or timeout
-                // before quitting the app
-                var timeoutID = setTimeout(app.quit, 5000);
-                homeServer.on('state-update', function(processGroup) {
-                    if (processGroup.state == ProcessGroupStates.STOPPED) {
-                        clearTimeout(timeoutID);
-                        app.quit();
-                    }
-                });
-            }
+        updateTrayMenu(null);
+
+        if (homeServer.state == ProcessGroupStates.STOPPED) {
+            // if the home server is already down, take down the server console now
+            app.quit();
+        } else {
+            // if the home server is still running, wait until we get a state change or timeout
+            // before quitting the app
+            var timeoutID = setTimeout(app.quit, 5000);
+            homeServer.on('state-update', function(processGroup) {
+                if (processGroup.state == ProcessGroupStates.STOPPED) {
+                    clearTimeout(timeoutID);
+                    app.quit();
+                }
+            });
         }
     }
 }

@@ -13,7 +13,7 @@ Windows.Window {
     objectName: "ToolWindow"
     destroyOnCloseButton: false
     destroyOnInvisible: false
-    closable: false
+    closable: true
     visible: false
     width: 384; height: 640;
     property string newTabSource
@@ -54,17 +54,12 @@ Windows.Window {
     }
 
     function updateVisiblity() {
-        var newVisible = false
-        console.log("Checking " + tabView.count + " children")
         for (var i = 0; i < tabView.count; ++i) {
             if (tabView.getTab(i).enabled) {
-                console.log("Tab " + i + " enabled");
-                newVisible = true;
-                break;
+                return;
             }
         }
-        console.log("Setting toolWindow visible: " + newVisible);
-        visible = newVisible
+        visible = false;
     }
 
     function findIndexForUrl(source) {
@@ -108,6 +103,8 @@ Windows.Window {
         if (index < 0) {
             return;
         }
+        var tab = tabView.getTab(index);
+        tab.enabledChanged.disconnect(updateVisiblity);
         tabView.removeTab(index);
         console.log("Updating visibility based on child tab removed");
         updateVisiblity();
@@ -127,7 +124,6 @@ Windows.Window {
 
         var title = properties.title || "Unknown";
         newTabSource = properties.source;
-        console.log(typeof(properties.source))
         var newTab = tabView.addTab(title, webTabCreator);
         newTab.active = true;
         newTab.enabled = false;
@@ -143,10 +139,7 @@ Windows.Window {
         }
 
         console.log("Updating visibility based on child tab added");
-        newTab.enabledChanged.connect(function() {
-            console.log("Updating visibility based on child tab enabled change");
-            updateVisiblity();
-        })
+        newTab.enabledChanged.connect(updateVisiblity)
         updateVisiblity();
         return newTab
     }

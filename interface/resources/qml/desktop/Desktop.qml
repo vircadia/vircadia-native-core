@@ -13,6 +13,9 @@ FocusScope {
     anchors.fill: parent;
     objectName: "desktop"
 
+    onHeightChanged: d.repositionAll();
+    onWidthChanged: d.repositionAll();
+
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
 
@@ -30,7 +33,6 @@ FocusScope {
 
     QtObject {
         id: d
-        readonly property var messageDialogBuilder: Component { MessageDialog { } }
 
         function findChild(item, name) {
             for (var i = 0; i < item.children.length; ++i) {
@@ -49,10 +51,6 @@ FocusScope {
                 item = item.parent;
             }
             return item;
-        }
-
-        function isDesktop(item) {
-            return item.desktopRoot;
         }
 
         function isTopLevelWindow(item) {
@@ -148,6 +146,53 @@ FocusScope {
             var windows = getTopLevelWindows(predicate);
             fixupZOrder(windows, zBasis, targetWindow);
         }
+
+        Component.onCompleted: {
+            offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+            focusHack.start();
+        }
+
+        function onWindowFocusChanged() {
+            console.log("Focus item is " + offscreenWindow.activeFocusItem);
+
+            // FIXME this needs more testing before it can go into production
+            // and I already cant produce any way to have a modal dialog lose focus
+            // to a non-modal one.
+            /*
+            var focusedWindow = getDesktopWindow(offscreenWindow.activeFocusItem);
+
+            if (isModalWindow(focusedWindow)) {
+                return;
+            }
+
+            // new focused window is not modal... check if there are any modal windows
+            var windows = getTopLevelWindows(isModalWindow);
+            if (0 === windows.length) {
+                return;
+            }
+
+            // There are modal windows present, force focus back to the top-most modal window
+            windows.sort(function(a, b){ return a.z - b.z; });
+            windows[windows.length - 1].focus = true;
+            */
+
+//            var focusedItem = offscreenWindow.activeFocusItem ;
+//            if (DebugQML && focusedItem) {
+//                var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
+//                focusDebugger.x = rect.x;
+//                focusDebugger.y = rect.y;
+//                focusDebugger.width = rect.width
+//                focusDebugger.height = rect.height
+//            }
+        }
+
+
+        function repositionAll() {
+            var windows = d.getTopLevelWindows();
+            for (var i = 0; i < windows.length; ++i) {
+                reposition(windows[i]);
+            }
+        }
     }
 
     function raise(item) {
@@ -168,7 +213,7 @@ FocusScope {
         }
 
         if (setFocus) {
-            focus = true;
+            targetWindow.focus = true;
         }
 
         reposition(targetWindow);
@@ -188,27 +233,21 @@ FocusScope {
         var windowRect = targetWindow.framedRect();
         var minPosition = Qt.vector2d(-windowRect.x, -windowRect.y);
         var maxPosition = Qt.vector2d(desktop.width - windowRect.width, desktop.height - windowRect.height);
-        var newPosition;
-        if (targetWindow.x === -1 && targetWindow.y === -1) {
+        var newPosition = Qt.vector2d(targetWindow.x, targetWindow.y);
+        if (newPosition.x === -1 && newPosition.y === -1) {
             // Set initial window position
-            newPosition = Utils.randomPosition(minPosition, maxPosition);
-        } else {
-            newPosition = Utils.clampVector(Qt.vector2d(targetWindow.x, targetWindow.y), minPosition, maxPosition);
+            // newPosition = Utils.randomPosition(minPosition, maxPosition);
+            console.log("Target has no defined position, putting in center of the screen")
+            newPosition = Qt.vector2d(desktop.width / 2 - windowRect.width / 2,
+                                      desktop.height / 2 - windowRect.height / 2);
         }
+
+        newPosition = Utils.clampVector(newPosition, minPosition, maxPosition);
         targetWindow.x = newPosition.x;
         targetWindow.y = newPosition.y;
     }
 
-    function repositionAll() {
-        var windows = d.getTopLevelWindows();
-        for (var i = 0; i < windows.length; ++i) {
-            reposition(windows[i]);
-        }
-    }
-
-    onHeightChanged: repositionAll();
-    onWidthChanged: repositionAll();
-
+    Component { id: messageDialogBuilder; MessageDialog { } }
     function messageBox(properties) {
         return messageDialogBuilder.createObject(desktop, properties);
     }
@@ -252,39 +291,21 @@ FocusScope {
         desktop.focus = true;
     }
 
-    // Debugging help for figuring out focus issues
-    property var offscreenWindow;
-    onOffscreenWindowChanged: {
-        offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
-        focusHack.start();
-    }
-
     FocusHack { id: focusHack; }
-
-    function onWindowFocusChanged() {
-        console.log("Focus item is " + offscreenWindow.activeFocusItem);
-        var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem) {
-            var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
-            focusDebugger.x = rect.x;
-            focusDebugger.y = rect.y;
-            focusDebugger.width = rect.width
-            focusDebugger.height = rect.height
-        }
-    }
 
     Rectangle {
         id: focusDebugger;
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
-    
+
     Action {
         text: "Toggle Focus Debugger"
         shortcut: "Ctrl+Shift+F"
         enabled: DebugQML
         onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
+
 }
 
 

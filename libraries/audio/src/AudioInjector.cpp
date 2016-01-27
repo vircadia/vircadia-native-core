@@ -36,7 +36,7 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _audioData(sound->getByteArray()),
     _options(injectorOptions)
 {
-    
+
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
@@ -49,15 +49,15 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 void AudioInjector::finish() {
     bool shouldDelete = (_state == State::NotFinishedWithPendingDelete);
     _state = State::Finished;
-    
+
     emit finished();
-    
+
     if (_localBuffer) {
         _localBuffer->stop();
         _localBuffer->deleteLater();
         _localBuffer = NULL;
     }
-    
+
     if (shouldDelete) {
         // we've been asked to delete after finishing, trigger a deleteLater here
         deleteLater();
@@ -67,7 +67,7 @@ void AudioInjector::finish() {
 void AudioInjector::setupInjection() {
     if (!_hasSetup) {
         _hasSetup = true;
-        
+
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
 
@@ -87,31 +87,31 @@ void AudioInjector::setupInjection() {
 void AudioInjector::restart() {
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-    
+
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "restart");
-        
+
         if (!_options.localOnly) {
             // notify the AudioInjectorManager to wake up in case it's waiting for new injectors
             injectorManager->notifyInjectorReadyCondition();
         }
-        
+
         return;
     }
-    
+
     // reset the current send offset to zero
     _currentSendOffset = 0;
-    
+
     // check our state to decide if we need extra handling for the restart request
     if (_state == State::Finished) {
         // we finished playing, need to reset state so we can get going again
         _hasSetup = false;
         _shouldStop = false;
         _state = State::NotFinished;
-        
+
         // call inject audio to start injection over again
         setupInjection();
-        
+
         // if we're a local injector call inject locally to start injecting again
         if (_options.localOnly) {
             injectLocally();
@@ -153,7 +153,7 @@ bool AudioInjector::injectLocally() {
         // we never started so we are finished, call our stop method
         stop();
     }
-    
+
     return success;
 }
 
@@ -162,40 +162,39 @@ static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
 static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
 int64_t AudioInjector::injectNextFrame() {
-    
     if (_state == AudioInjector::State::Finished) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
-    
+
     // if we haven't setup the packet to send then do so now
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
-    
+
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
             _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
-        
+
         // make sure we actually have samples downloaded to inject
         if (_audioData.size()) {
-            
+
             _outgoingSequenceNumber = 0;
             _nextFrame = 0;
-            
+
             if (!_frameTimer) {
                 _frameTimer = std::unique_ptr<QElapsedTimer>(new QElapsedTimer);
             }
-            
+
             _frameTimer->restart();
-            
+
             _currentPacket = NLPacket::create(PacketType::InjectAudio);
-            
+
             // setup the packet for injected audio
             QDataStream audioPacketStream(_currentPacket.get());
-            
+
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
 
@@ -212,11 +211,11 @@ int64_t AudioInjector::injectNextFrame() {
             // pack the position for injected audio
             positionOptionOffset = _currentPacket->pos();
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
-                sizeof(_options.position));
+                                           sizeof(_options.position));
 
             // pack our orientation for injected audio
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
-                sizeof(_options.orientation));
+                                           sizeof(_options.orientation));
 
             // pack zero for radius
             float radius = 0;
@@ -328,7 +327,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
         QMetaObject::invokeMethod(this, "triggerDeleteAfterFinish", Qt::QueuedConnection);
         return;
     }
-    
+
     if (_state == State::Finished) {
         stopAndDeleteLater();
     } else {
@@ -384,11 +383,11 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
 
 AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     AudioInjector* sound = playSound(buffer, options, localInterface);
-    
+
     if (sound) {
         sound->_state = AudioInjector::State::NotFinishedWithPendingDelete;
     }
-    
+
     return sound;
 }
 
@@ -396,13 +395,13 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
 AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     AudioInjector* injector = new AudioInjector(buffer, options);
     injector->setLocalAudioInterface(localInterface);
-    
+
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-    
+
     // setup parameters required for injection
     injector->setupInjection();
-    
+
     if (options.localOnly) {
         if (injector->injectLocally()) {
             // local injection succeeded, return the pointer to injector
