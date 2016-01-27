@@ -30,6 +30,10 @@ ThreadedAssignment::ThreadedAssignment(ReceivedMessage& message) :
 
     connect(&_domainServerTimer, &QTimer::timeout, this, &ThreadedAssignment::checkInWithDomainServerOrExit);
     _domainServerTimer.setInterval(DOMAIN_SERVER_CHECK_IN_MSECS);
+
+    // if the NL tells us we got a DS response, clear our member variable of queued check-ins
+    auto nodeList = DependencyManager::get<NodeList>();
+    connect(nodeList.data(), &NodeList::receivedDomainServerList, this, &ThreadedAssignment::clearQueuedCheckIns);
 }
 
 void ThreadedAssignment::setFinished(bool isFinished) {
@@ -103,11 +107,18 @@ void ThreadedAssignment::sendStatsPacket() {
 }
 
 void ThreadedAssignment::checkInWithDomainServerOrExit() {
-    if (DependencyManager::get<NodeList>()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+    qDebug() << "WE ARE AT" << _numQueuedCheckIns << "queued check-ins";
+    
+    // verify that the number of queued check-ins is not >= our max
+    // the number of queued check-ins is cleared anytime we get a response from the domain-server
+    if (_numQueuedCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
         setFinished(true);
     } else {
         auto nodeList = DependencyManager::get<NodeList>();
         QMetaObject::invokeMethod(nodeList.data(), "sendDomainServerCheckIn");
+
+        // increase the number of queued check ins
+        _numQueuedCheckIns++;
     }
 }
 
