@@ -260,12 +260,8 @@ public:
         QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
         return _jobs.back().getOutput();
     }
-    template <class T, class... A> const Varying addJob(std::string name, Varying& input, A&&... args) {
-        const auto& in = input;
-        return addJob<T>(name, in, std::forward<A>(args)...);
-    }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
-        auto input = Varying(typename T::JobModel::Input());
+        const auto input = Varying(typename T::JobModel::Input());
         return addJob<T>(name, input, std::forward<A>(args)...);
     }
 
