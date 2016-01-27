@@ -105,7 +105,8 @@ public:
     std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
     OctreeRenderer* _renderer = nullptr;
     ViewFrustum* _viewFrustum = nullptr;
-    glm::ivec4 _viewport{ 0, 0, 1, 1 };
+    glm::ivec4 _viewport{ 0.0f, 0.0f, 1.0f, 1.0f };
+    glm::vec3 _boomOffset{ 0.0f, 0.0f, 1.0f };
     float _sizeScale = 1.0f;
     int _boundaryLevelAdjust = 0;
     RenderMode _renderMode = DEFAULT_RENDER_MODE;

@@ -184,9 +184,28 @@ Window {
                 anchors.bottom: filterEdit.top
                 anchors.bottomMargin: 8
                 anchors.right: parent.right
+
+                // For some reason trigginer an API that enters
+                // an internal event loop directly from the button clicked
+                // trigger below causes the appliction to behave oddly.
+                // Most likely because the button onClicked handling is never
+                // completed until the function returns.
+                // FIXME find a better way of handling the input dialogs that
+                // doesn't trigger this.
+                Timer {
+                    id: asyncAction
+                    interval: 50
+                    repeat: false
+                    running: false
+                    onTriggered: ApplicationInterface.loadScriptURLDialog();
+                }
+
                 Button {
                     text: "from URL";
-                    onClicked: ApplicationInterface.loadScriptURLDialog();
+                    onClicked: {
+                        focus = false;
+                        asyncAction.running = true;
+                    }
                 }
                 Button {
                     text: "from Disk"

@@ -208,6 +208,8 @@ public:
 
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
 
+    void setEnableInverseKinematics(bool enable);
+
  protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
     void updateAnimationStateHandlers();
@@ -289,6 +291,8 @@ public:
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
     std::vector<AnimNode::Pointer> _prefetchedAnimations;
+
+    bool _enableInverseKinematics { true };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

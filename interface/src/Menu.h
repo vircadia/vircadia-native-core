@@ -208,6 +208,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -302,6 +303,7 @@ namespace MenuOption {
     const QString UploadAsset = "Upload File to Asset Server";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
+    const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";
