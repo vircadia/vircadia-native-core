@@ -104,7 +104,7 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
 void AmbientOcclusionEffect::configure(const Config& config) {
     DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
 
-    bool shouldUpdateGaussion = false;
+    bool shouldUpdateGaussian = false;
 
     const double RADIUS_POWER = 6.0;
     const auto& radius = config.radius;
@@ -133,7 +133,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.blurDeviation != getBlurDeviation()) {
         auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
         current.z = config.blurDeviation;
-        shouldUpdateGaussion = true;
+        shouldUpdateGaussian = true;
     }
 
     if (config.numSpiralTurns != getNumSpiralTurns()) {
@@ -159,7 +159,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
     if (config.blurRadius != getBlurRadius()) {
         auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
         current.y = (float)config.blurRadius;
-        shouldUpdateGaussion = true;
+        shouldUpdateGaussian = true;
     }
 
     if (config.ditheringEnabled != isDitheringEnabled()) {
@@ -172,7 +172,7 @@ void AmbientOcclusionEffect::configure(const Config& config) {
         current.w = (float)config.borderingEnabled;
     }
 
-    if (shouldUpdateGaussion) {
+    if (shouldUpdateGaussian) {
         updateGaussianDistribution();
     }
 }
