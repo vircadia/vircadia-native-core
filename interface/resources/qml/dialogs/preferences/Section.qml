@@ -7,6 +7,7 @@ import "."
 
 Preference {
     id: root
+    property bool expandable: true
     property bool expanded: false
     property string name: "Header"
     property real spacing: 8
@@ -42,7 +43,10 @@ Preference {
 
     VrControls.FontAwesome {
         id: toggle
+        width: root.expandable ? height : 0
         anchors { left: parent.left; top: parent.top; margins: root.spacing }
+        visible: root.expandable
+        enabled: root.expandable
         rotation: root.expanded ? 0 : -90
         text: "\uf078"
         Behavior on rotation { PropertyAnimation {} }
