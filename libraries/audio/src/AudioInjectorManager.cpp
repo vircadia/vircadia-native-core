@@ -82,7 +82,8 @@ void AudioInjectorManager::run() {
 
                 // create an InjectorQueue to hold injectors to be queued
                 // this allows us to call processEvents even if a single injector wants to be re-queued immediately
-                InjectorQueue holdingQueue;
+                std::vector<TimeInjectorPointerPair> heldInjectors;
+                heldInjectors.reserve(_injectors.size());
 
                 while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
                     // either way we're popping this injector off - get a copy first
@@ -95,7 +96,7 @@ void AudioInjectorManager::run() {
 
                         if (nextCallDelta >= 0 && !injector->isFinished()) {
                             // enqueue the injector with the correct timing in our holding queue
-                            holdingQueue.emplace(usecTimestampNow() + nextCallDelta, injector);
+                            heldInjectors.emplace(heldInjectors.end(), usecTimestampNow() + nextCallDelta, injector);
                         }
                     }
                     
@@ -108,9 +109,9 @@ void AudioInjectorManager::run() {
                 }
 
                 // if there are injectors in the holding queue, push them to our persistent queue now
-                while (!holdingQueue.empty()) {
-                    _injectors.push(holdingQueue.top());
-                    holdingQueue.pop();
+                while (!heldInjectors.empty()) {
+                    _injectors.push(heldInjectors.back());
+                    heldInjectors.pop_back();
                 }
             }
 
