@@ -338,6 +338,7 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _updateTimer.start();
 
     _qmlComponent = new QQmlComponent(_qmlEngine);
+    _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 }
 
 void OffscreenQmlSurface::resize(const QSize& newSize_) {
