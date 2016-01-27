@@ -13,6 +13,9 @@ FocusScope {
     anchors.fill: parent;
     objectName: "desktop"
 
+    onHeightChanged: d.repositionAll();
+    onWidthChanged: d.repositionAll();
+
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
 
@@ -48,10 +51,6 @@ FocusScope {
                 item = item.parent;
             }
             return item;
-        }
-
-        function isDesktop(item) {
-            return item.desktopRoot;
         }
 
         function isTopLevelWindow(item) {
@@ -147,6 +146,31 @@ FocusScope {
             var windows = getTopLevelWindows(predicate);
             fixupZOrder(windows, zBasis, targetWindow);
         }
+
+        Component.onCompleted: {
+            offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+            focusHack.start();
+        }
+
+        function onWindowFocusChanged() {
+            console.log("Focus item is " + offscreenWindow.activeFocusItem);
+//            var focusedItem = offscreenWindow.activeFocusItem ;
+//            if (DebugQML && focusedItem) {
+//                var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
+//                focusDebugger.x = rect.x;
+//                focusDebugger.y = rect.y;
+//                focusDebugger.width = rect.width
+//                focusDebugger.height = rect.height
+//            }
+        }
+
+
+        function repositionAll() {
+            var windows = d.getTopLevelWindows();
+            for (var i = 0; i < windows.length; ++i) {
+                reposition(windows[i]);
+            }
+        }
     }
 
     function raise(item) {
@@ -190,23 +214,15 @@ FocusScope {
         var newPosition;
         if (targetWindow.x === -1 && targetWindow.y === -1) {
             // Set initial window position
-            newPosition = Utils.randomPosition(minPosition, maxPosition);
-        } else {
-            newPosition = Utils.clampVector(Qt.vector2d(targetWindow.x, targetWindow.y), minPosition, maxPosition);
+            // newPosition = Utils.randomPosition(minPosition, maxPosition);
+            newPosition = Qt.vector2d(desktop.width / 2 - windowRect.width / 2,
+                                      desktop.height / 2 - windowRect.height / 2);
         }
+
+        newPosition = Utils.clampVector(Qt.vector2d(targetWindow.x, targetWindow.y), minPosition, maxPosition);
         targetWindow.x = newPosition.x;
         targetWindow.y = newPosition.y;
     }
-
-    function repositionAll() {
-        var windows = d.getTopLevelWindows();
-        for (var i = 0; i < windows.length; ++i) {
-            reposition(windows[i]);
-        }
-    }
-
-    onHeightChanged: repositionAll();
-    onWidthChanged: repositionAll();
 
     Component { id: messageDialogBuilder; MessageDialog { } }
     function messageBox(properties) {
@@ -252,39 +268,21 @@ FocusScope {
         desktop.focus = true;
     }
 
-    // Debugging help for figuring out focus issues
-    property var offscreenWindow;
-    onOffscreenWindowChanged: {
-        offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
-        focusHack.start();
-    }
-
     FocusHack { id: focusHack; }
-
-    function onWindowFocusChanged() {
-        console.log("Focus item is " + offscreenWindow.activeFocusItem);
-        var focusedItem = offscreenWindow.activeFocusItem ;
-        if (DebugQML && focusedItem) {
-            var rect = desktop.mapFromItem(focusedItem, 0, 0, focusedItem.width, focusedItem.height);
-            focusDebugger.x = rect.x;
-            focusDebugger.y = rect.y;
-            focusDebugger.width = rect.width
-            focusDebugger.height = rect.height
-        }
-    }
 
     Rectangle {
         id: focusDebugger;
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
-    
+
     Action {
         text: "Toggle Focus Debugger"
         shortcut: "Ctrl+Shift+F"
         enabled: DebugQML
         onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
+
 }
 
 
