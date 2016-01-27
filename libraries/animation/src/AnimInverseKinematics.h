@@ -82,7 +82,7 @@ protected:
     glm::vec3 _hipsOffset { Vectors::ZERO };
     int _headIndex { -1 };
     int _hipsIndex { -1 };
-    int _rootIndex { -1 };
+    int _hipsParentIndex { -1 };
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm

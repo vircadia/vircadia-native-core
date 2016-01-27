@@ -382,7 +382,20 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                _relativePoses[_rootIndex].trans = underPoses[_rootIndex].trans + scaleFactor * _hipsOffset;
+                if (_hipsParentIndex == -1) {
+                    // the hips are the root so _hipsOffset is in the correct frame
+                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
+                } else {
+                    // the hips are NOT the root so we need to transform _hipsOffset into hips local-frame
+                    glm::quat hipsFrameRotation = _relativePoses[_hipsParentIndex].rot;
+                    int index = _skeleton->getParentIndex(_hipsParentIndex);
+                    while (index != -1) {
+                        hipsFrameRotation *= _relativePoses[index].rot;
+                        index = _skeleton->getParentIndex(index);
+                    }
+                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans 
+                        + glm::inverse(glm::normalize(hipsFrameRotation)) * (scaleFactor * _hipsOffset);
+                }
             }
 
             solveWithCyclicCoordinateDescent(targets);
@@ -776,17 +789,12 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _headIndex = _skeleton->nameToJointIndex("Head");
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
 
-        // walk up the hierarchy until we find the root and cache its index
-        _rootIndex = _hipsIndex;
-        int parentIndex = _skeleton->getParentIndex(_hipsIndex);
-        while (parentIndex != -1) {
-            _rootIndex = parentIndex;
-            parentIndex = _skeleton->getParentIndex(_rootIndex);
-        }
+        // also cache the _hipsParentIndex for later
+        _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
-        _rootIndex = -1;
+        _hipsParentIndex = -1;
     }
 }
