@@ -21,6 +21,7 @@
 #include <gpu/StandardShaderLib.h>
 #include "RenderUtilsLogging.h"
 
+#include "DeferredLightingEffect.h"
 #include "AmbientOcclusionEffect.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
@@ -98,6 +99,82 @@ AmbientOcclusionEffect::AmbientOcclusionEffect() {
     _frameTransformBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(FrameTransform), (const gpu::Byte*) &frameTransform));
     Parameters parameters;
     _parametersBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Parameters), (const gpu::Byte*) &parameters));
+}
+
+void AmbientOcclusionEffect::configure(const Config& config) {
+    DependencyManager::get<DeferredLightingEffect>()->setAmbientOcclusionEnabled(config.enabled);
+
+    bool shouldUpdateGaussian = false;
+
+    const double RADIUS_POWER = 6.0;
+    const auto& radius = config.radius;
+    if (radius != getRadius()) {
+        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+        current.x = radius;
+        current.y = radius * radius;
+        current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
+    }
+
+    if (config.obscuranceLevel != getObscuranceLevel()) {
+        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
+        current.w = config.obscuranceLevel;
+    }
+
+    if (config.falloffBias != getFalloffBias()) {
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+        current.z = config.falloffBias;
+    }
+
+    if (config.edgeSharpness != getEdgeSharpness()) {
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+        current.x = config.edgeSharpness;
+    }
+
+    if (config.blurDeviation != getBlurDeviation()) {
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+        current.z = config.blurDeviation;
+        shouldUpdateGaussian = true;
+    }
+
+    if (config.numSpiralTurns != getNumSpiralTurns()) {
+        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+        current.z = config.numSpiralTurns;
+    }
+
+    if (config.numSamples != getNumSamples()) {
+        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
+        current.x = config.numSamples;
+        current.y = 1.0f / config.numSamples;
+    }
+
+    const auto& resolutionLevel = config.resolutionLevel;
+    if (resolutionLevel != getResolutionLevel()) {
+        auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
+        current.x = (float)resolutionLevel;
+
+        // Communicate the change to the Framebuffer cache
+        DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(resolutionLevel);
+    }
+
+    if (config.blurRadius != getBlurRadius()) {
+        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
+        current.y = (float)config.blurRadius;
+        shouldUpdateGaussian = true;
+    }
+
+    if (config.ditheringEnabled != isDitheringEnabled()) {
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+        current.x = (float)config.ditheringEnabled;
+    }
+
+    if (config.borderingEnabled != isBorderingEnabled()) {
+        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
+        current.w = (float)config.borderingEnabled;
+    }
+
+    if (shouldUpdateGaussian) {
+        updateGaussianDistribution();
+    }
 }
 
 const gpu::PipelinePointer& AmbientOcclusionEffect::getPyramidPipeline() {
@@ -200,113 +277,16 @@ void AmbientOcclusionEffect::setDepthInfo(float nearZ, float farZ) {
     _frameTransformBuffer.edit<FrameTransform>().depthInfo = glm::vec4(nearZ*farZ, farZ -nearZ, -farZ, 0.0f);
 }
 
-void AmbientOcclusionEffect::setResolutionLevel(int level) {
-    const int MAX_RESOLUTION_LEVEL = 4;
-    level = std::max(0, std::min(level, MAX_RESOLUTION_LEVEL));
-    if (level != getResolutionLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().resolutionInfo;
-        current.x = (float)level;
-
-        // Communicate the change to the Framebuffer cache
-        DependencyManager::get<FramebufferCache>()->setAmbientOcclusionResolutionLevel(level);
-    }
-}
-
-void AmbientOcclusionEffect::setRadius(float radius) {
-    const double RADIUS_POWER = 6.0;
-    radius = std::max(0.01f, radius);
-    if (radius != getRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
-        current.x = radius;
-        current.y = radius * radius;
-        current.z = (float)(1.0 / pow((double)radius, RADIUS_POWER));
-    }
-}
-
-void AmbientOcclusionEffect::setLevel(float level) {
-    level = std::max(0.01f, level);
-    if (level != getLevel()) {
-        auto& current = _parametersBuffer.edit<Parameters>().radiusInfo;
-        current.w = level;
-    }
-}
-
-void AmbientOcclusionEffect::setDithering(bool enabled) {
-    if (enabled != isDitheringEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.x = (float)enabled;
-    }
-}
-
-void AmbientOcclusionEffect::setBordering(bool enabled) {
-    if (enabled != isBorderingEnabled()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.w = (float)enabled;
-    }
-}
-
-void AmbientOcclusionEffect::setFalloffBias(float bias) {
-    bias = std::max(0.0f, std::min(bias, 0.2f));
-    if (bias != getFalloffBias()) {
-        auto& current = _parametersBuffer.edit<Parameters>().ditheringInfo;
-        current.z = (float)bias;
-    }
-}
-
-
-void AmbientOcclusionEffect::setNumSamples(int numSamples) {
-    numSamples = std::max(1.0f, (float) numSamples);
-    if (numSamples != getNumSamples()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
-        current.x = numSamples;
-        current.y = 1.0f / numSamples;
-    }
-}
-
-void AmbientOcclusionEffect::setNumSpiralTurns(float numTurns) {
-    numTurns = std::max(0.0f, (float)numTurns);
-    if (numTurns != getNumSpiralTurns()) {
-        auto& current = _parametersBuffer.edit<Parameters>().sampleInfo;
-        current.z = numTurns;
-    }
-}
-
-void AmbientOcclusionEffect::setEdgeSharpness(float sharpness) {
-    sharpness = std::max(0.0f, (float)sharpness);
-    if (sharpness != getEdgeSharpness()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.x = sharpness;
-    }
-}
-
-void AmbientOcclusionEffect::setBlurRadius(int radius) {
-    const int MAX_BLUR_RADIUS = 6;
-    radius = std::max(0, std::min(MAX_BLUR_RADIUS, radius));
-    if (radius != getBlurRadius()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.y = (float)radius;
-        updateGaussianDistribution();
-    }
-}
-
-void AmbientOcclusionEffect::setBlurDeviation(float deviation) {
-    deviation = std::max(0.0f, deviation);
-    if (deviation != getBlurDeviation()) {
-        auto& current = _parametersBuffer.edit<Parameters>().blurInfo;
-        current.z = deviation;
-        updateGaussianDistribution();
-    }
-}
 void AmbientOcclusionEffect::updateGaussianDistribution() {
     auto coefs = _parametersBuffer.edit<Parameters>()._gaussianCoefs;
     GaussianDistribution::evalSampling(coefs, Parameters::GAUSSIAN_COEFS_LENGTH, getBlurRadius(), getBlurDeviation());
 }
 
 void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
@@ -417,6 +397,8 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
         }
         
         _gpuTimer.end(batch);
-
     });
+
+    // Update the timer
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
 }

@@ -29,15 +29,15 @@ using namespace render;
 
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
                           const render::ShapesIDsBounds& inShapes) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
     const auto& shadow = globalLight->shadow;
     const auto& fbo = shadow.framebuffer;
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -78,7 +78,8 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
+// The shadow task *must* use this base ctor to initialize with its own Config, see Task.h
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_shared<Config>()) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline
@@ -119,14 +120,15 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
+void RenderShadowTask::configure(const Config& configuration) {
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    // This is a task, so must still propogate configure() to its Jobs
+    Task::configure(configuration);
+}
+
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
-    RenderArgs* args = renderContext->getArgs();
-
-    // This feature is in a debugging stage - it must be turned on explicitly
-    if (!renderContext->getShadowMapStatus()) {
-        return;
-    }
+    RenderArgs* args = renderContext->args;
 
     // sanity checks
     if (!sceneContext->_scene || !args) {
