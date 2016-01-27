@@ -763,7 +763,7 @@ void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew)
     // lastEdited
     quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    quint64 lastEditedInServerTime = lastEditedInLocalTime > 0 ? lastEditedInLocalTime + clockSkew : 0;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     #ifdef WANT_DEBUG
         qCDebug(entities, "EntityItem::adjustEditPacketForClockSkew()...");
