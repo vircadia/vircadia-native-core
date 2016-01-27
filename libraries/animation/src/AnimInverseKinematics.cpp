@@ -376,13 +376,13 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 ++constraintItr;
             }
         } else {
-            // shift the hips according to the offset from the previous frame
+            // shift the everything according to the _hipsOffset from the previous frame
             float offsetLength = glm::length(_hipsOffset);
             const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
+                _relativePoses[_rootIndex].trans = underPoses[_rootIndex].trans + scaleFactor * _hipsOffset;
             }
 
             solveWithCyclicCoordinateDescent(targets);
@@ -775,9 +775,18 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         initConstraints();
         _headIndex = _skeleton->nameToJointIndex("Head");
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
+
+        // walk up the hierarchy until we find the root and cache its index
+        _rootIndex = _hipsIndex;
+        int parentIndex = _skeleton->getParentIndex(_hipsIndex);
+        while (parentIndex != -1) {
+            _rootIndex = parentIndex;
+            parentIndex = _skeleton->getParentIndex(_rootIndex);
+        }
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
+        _rootIndex = -1;
     }
 }
