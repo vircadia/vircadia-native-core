@@ -128,7 +128,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
     }
 
-    addJob<DrawOverlay3D>("DrawOverlay3D", shapePlumber);
+    addJob<DrawOverlay3D>("DrawOverlay3D");
 
     addJob<HitEffect>("HitEffect");
 
@@ -180,22 +180,26 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     });
 }
 
-// TODO: Move this to the shapePlumber
-gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
-const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
-    if (!_opaquePipeline) {
-        auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
-        auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
-        auto program = gpu::Shader::createProgram(vs, ps);
-        
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(false);
-        // additive blending
-        state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+DrawOverlay3D::DrawOverlay3D() : _shapePlumber{ std::make_shared<ShapePlumber>() } {
+    auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
+    auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
+    auto program = gpu::Shader::createProgram(vs, ps);
 
-        _opaquePipeline = gpu::Pipeline::create(program, state);
-    }
-    return _opaquePipeline;
+    auto opaqueState = std::make_shared<gpu::State>();
+    opaqueState->setDepthTest(false);
+    opaqueState->setBlendFunction(true,
+        // Additive blending
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    auto transparentState = std::make_shared<gpu::State>();
+    transparentState->setDepthTest(false);
+    transparentState->setBlendFunction(true,
+        // For transparency, keep the highlight intensity
+        gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    _shapePlumber->addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState);
+    _shapePlumber->addPipeline(ShapeKey::Filter::Builder().withTranslucent(), program, transparentState);
 }
 
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -246,9 +250,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             batch.setViewTransform(viewMat);
             batch.setViewportTransform(args->_viewport);
             batch.setStateScissorRect(args->_viewport);
-
-            batch.setPipeline(getOpaquePipeline());
             batch.setResourceTexture(0, args->_whiteTexture);
+
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         });
         args->_batch = nullptr;

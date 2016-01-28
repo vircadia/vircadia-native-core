@@ -106,15 +106,12 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::Model<DrawOverlay3D, Config>;
 
-    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawOverlay3D();
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    static const gpu::PipelinePointer& getOpaquePipeline();
-
 protected:
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
 };
