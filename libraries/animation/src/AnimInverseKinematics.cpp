@@ -246,7 +246,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
                     // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
                     deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
                     float dotSign = copysignf(1.0f, deltaRotation.w);
-                    const float ANGLE_DISTRIBUTION_FACTOR = 0.35f;
+                    const float ANGLE_DISTRIBUTION_FACTOR = 0.45f;
                     deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
                 }
 
@@ -376,13 +376,26 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 ++constraintItr;
             }
         } else {
-            // shift the hips according to the offset from the previous frame
+            // shift the everything according to the _hipsOffset from the previous frame
             float offsetLength = glm::length(_hipsOffset);
             const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
                 // but only if offset is long enough
                 float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
+                if (_hipsParentIndex == -1) {
+                    // the hips are the root so _hipsOffset is in the correct frame
+                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans + scaleFactor * _hipsOffset;
+                } else {
+                    // the hips are NOT the root so we need to transform _hipsOffset into hips local-frame
+                    glm::quat hipsFrameRotation = _relativePoses[_hipsParentIndex].rot;
+                    int index = _skeleton->getParentIndex(_hipsParentIndex);
+                    while (index != -1) {
+                        hipsFrameRotation *= _relativePoses[index].rot;
+                        index = _skeleton->getParentIndex(index);
+                    }
+                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans 
+                        + glm::inverse(glm::normalize(hipsFrameRotation)) * (scaleFactor * _hipsOffset);
+                }
             }
 
             solveWithCyclicCoordinateDescent(targets);
@@ -621,7 +634,7 @@ void AnimInverseKinematics::initConstraints() {
         } else if (baseName.startsWith("Spine", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_SPINE_TWIST = PI / 8.0f;
+            const float MAX_SPINE_TWIST = PI / 12.0f;
             stConstraint->setTwistLimits(-MAX_SPINE_TWIST, MAX_SPINE_TWIST);
 
             std::vector<float> minDots;
@@ -645,11 +658,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_NECK_TWIST = PI / 6.0f;
+            const float MAX_NECK_TWIST = PI / 9.0f;
             stConstraint->setTwistLimits(-MAX_NECK_TWIST, MAX_NECK_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_NECK_SWING = PI / 4.0f;
+            const float MAX_NECK_SWING = PI / 8.0f;
             minDots.push_back(cosf(MAX_NECK_SWING));
             stConstraint->setSwingLimits(minDots);
 
@@ -657,11 +670,11 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Head", Qt::CaseInsensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
-            const float MAX_HEAD_TWIST = PI / 8.0f;
+            const float MAX_HEAD_TWIST = PI / 9.0f;
             stConstraint->setTwistLimits(-MAX_HEAD_TWIST, MAX_HEAD_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_HEAD_SWING = PI / 6.0f;
+            const float MAX_HEAD_SWING = PI / 10.0f;
             minDots.push_back(cosf(MAX_HEAD_SWING));
             stConstraint->setSwingLimits(minDots);
 
@@ -775,9 +788,13 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         initConstraints();
         _headIndex = _skeleton->nameToJointIndex("Head");
         _hipsIndex = _skeleton->nameToJointIndex("Hips");
+
+        // also cache the _hipsParentIndex for later
+        _hipsParentIndex = _skeleton->getParentIndex(_hipsIndex);
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
+        _hipsParentIndex = -1;
     }
 }

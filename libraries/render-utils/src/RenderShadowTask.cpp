@@ -105,16 +105,16 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_sha
     }
 
     // CPU: Fetch shadow-casting opaques
-    auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
+    const auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
+    const auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
 
     // CPU: Sort by pipeline
-    auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
+    const auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
 
     // CPU: Sort front to back
-    auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
+    const auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
 
     // GPU: Render to shadow map
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
