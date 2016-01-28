@@ -12,6 +12,27 @@ import "fileDialog"
 //FIXME implement shortcuts for favorite location
 ModalWindow {
     id: root
+    resizable: true
+    width: 640
+    height: 480
+
+    Settings {
+        category: "FileDialog"
+        property alias width: root.width
+        property alias height: root.height
+        property alias x: root.x
+        property alias y: root.y
+    }
+
+
+    // Set from OffscreenUi::getOpenFile()
+    property alias caption: root.title;
+    // Set from OffscreenUi::getOpenFile()
+    property alias dir: model.folder;
+    // Set from OffscreenUi::getOpenFile()
+    property alias filter: selectionType.filtersString;
+    // Set from OffscreenUi::getOpenFile()
+    property int options; // <-- FIXME unused
 
     property bool selectDirectory: false;
     property bool showHidden: false;
@@ -19,17 +40,11 @@ ModalWindow {
     property bool multiSelect: false;
     // FIXME implement
     property bool saveDialog: false;
+    property var helper: fileDialogHelper
+    property alias model: fileTableView.model
 
     signal selectedFile(var file);
     signal canceled();
-    resizable: true
-    width: 640
-    height: 480
-
-    property var helper: fileDialogHelper
-    property alias model: fileTableView.model
-    property alias filterModel: selectionType.model
-    property alias folder: model.folder
 
     Rectangle {
         anchors.fill: parent
@@ -120,6 +135,7 @@ ModalWindow {
             onDoubleClicked: navigateToRow(row);
             model: FolderListModel {
                 id: model
+                nameFilters: selectionType.currentFilter
                 showDirsFirst: true
                 showDotAndDotDot: false
                 showFiles: !root.selectDirectory
@@ -157,12 +173,10 @@ ModalWindow {
             readOnly: true
         }
 
-        ComboBox {
+        FileTypeSelection {
             id: selectionType
             anchors { bottom: buttonRow.top; bottomMargin: 8; right: parent.right; rightMargin: 8; left: buttonRow.left }
             visible: !selectDirectory
-            model: ListModel { ListElement { text: "All Files (*.*)"; filter: "*.*" } }
-//            onCurrentIndexChanged: model.nameFilters = [ filterModel.get(currentIndex).filter ]
             KeyNavigation.left: fileTableView
             KeyNavigation.right: openButton
         }

@@ -412,4 +412,66 @@ void OffscreenUi::toggleMenu(const QPoint& screenPosition) {
 }
 
 
+class FileDialogListener : public ModalDialogListener {
+    Q_OBJECT
+
+    friend class OffscreenUi;
+    FileDialogListener(QQuickItem* messageBox) : ModalDialogListener(messageBox) {
+        if (_finished) {
+            return;
+        }
+        connect(_dialog, SIGNAL(selectedFile(QVariant)), this, SLOT(onSelectedFile(QVariant)));
+    }
+
+private slots:
+    void onSelectedFile(QVariant file) {
+        _result = file;
+        _finished = true;
+        disconnect(_dialog);
+    }
+};
+
+QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        QMetaObject::invokeMethod(this, "fileOpenDialog", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QString, result),
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return result;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+
+    QVariant buildDialogResult;
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "fileOpenDialog",
+        Q_RETURN_ARG(QVariant, buildDialogResult),
+        Q_ARG(QVariant, QVariant::fromValue(map)));
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create file open dialog";
+        return QString();
+    }
+
+    QVariant result = FileDialogListener(qvariant_cast<QQuickItem*>(buildDialogResult)).waitForResult();
+    if (!result.isValid()) {
+        return QString();
+    }
+    qDebug() << result.toString();
+    return result.toUrl().toLocalFile();
+}
+
+QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
+}
+
+
 #include "OffscreenUi.moc"
