@@ -1,6 +1,6 @@
 //
 //  OpenGLVersionChecker.h
-//  interface/src
+//  libraries/gl/src/gl
 //
 //  Created by David Rowe on 28 Jan 2016.
 //  Copyright 2016 High Fidelity, Inc.

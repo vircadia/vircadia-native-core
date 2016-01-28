@@ -1,6 +1,6 @@
 //
 //  OpenGLVersionChecker.cpp
-//  interface/src
+//  libraries/gl/src/gl
 //
 //  Created by David Rowe on 28 Jan 2016.
 //  Copyright 2016 High Fidelity, Inc.
@@ -14,7 +14,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 
-#include "GLCanvas.h"
+#include "GLWidget.h"
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
@@ -25,10 +25,10 @@ bool OpenGLVersionChecker::isValidVersion() {
     bool valid = true;
 
     // Retrieve OpenGL version
-    GLCanvas* glCanvas = new GLCanvas();
-    glCanvas->initializeGL();
+    GLWidget* glWidget = new GLWidget();
+    glWidget->initializeGL();
     QString glVersion = QString((const char*)glGetString(GL_VERSION));
-    delete glCanvas;
+    delete glWidget;
 
     // Compare against minimum
     // The GL_VERSION string begins with a version number in one of these forms:

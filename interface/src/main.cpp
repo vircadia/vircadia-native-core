@@ -17,12 +17,12 @@
 #include <QSharedMemory>
 #include <QTranslator>
 
+#include <gl/OpenGLVersionChecker.h>
 #include <SharedUtil.h>
 
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
-#include "OpenGLVersionChecker.h"
 #include "MainWindow.h"
 
 int main(int argc, const char* argv[]) {
