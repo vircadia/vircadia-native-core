@@ -183,7 +183,8 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newPolyVoxButton;
+        newPolyVoxButton,
+        newParticleButton
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
@@ -321,6 +322,20 @@ var toolBar = (function() {
             visible: false
         });
 
+        newParticleButton = toolBar.addTool({
+            imageURL: toolIconUrl + "polyvox.svg",
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 256,
+                height: 256
+            },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -367,6 +382,7 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
+        toolBar.showTool(newParticleButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -621,6 +637,11 @@ var toolBar = (function() {
 
 
             return true;
+        }
+
+        if (newParticleButton === toolBar.clicked(clickedOverlay)) {
+            print("EBL: NEW PARTICLES");
+            Script.load('particle_explorer/particleExplorer.js');
         }
 
         return false;
