@@ -66,10 +66,14 @@ private:
 class ToneMappingConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(bool enabled MEMBER enabled)
-        Q_PROPERTY(float exposure MEMBER exposure NOTIFY dirty);
-    Q_PROPERTY(int curve MEMBER curve NOTIFY dirty);
+        Q_PROPERTY(float exposure MEMBER exposure WRITE setExposure);
+    Q_PROPERTY(int curve MEMBER curve WRITE setCurve);
 public:
     ToneMappingConfig() : render::Job::Config(true) {}
+
+    void setExposure(float newExposure) { exposure = std::max(0.0f, newExposure); emit dirty(); }
+    void setCurve(int newCurve) { curve = std::max((int)ToneMappingEffect::None, std::min((int)ToneMappingEffect::Filmic, newCurve)); emit dirty(); }
+
 
     float exposure{ 0.0f };
     int curve{ ToneMappingEffect::Gamma22 };
