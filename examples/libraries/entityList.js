@@ -71,13 +71,31 @@ EntityListTool = function(opts) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     }
 
+    that.enableParticleTab = function(entityID) {
+        var data = {
+            type: "enableParticleTab",
+            entity: entityID
+        };
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    }
+
     webView.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.type == "selectionUpdate") {
+            print("EBL CLICKED ON SOME SHIT " + JSON.stringify(data))
             var ids = data.entityIds;
             var entityIDs = [];
             for (var i = 0; i < ids.length; i++) {
                 entityIDs.push(ids[i]);
+            }
+            if (entityIDs.length === 1) {
+                //We selected just one entity, so see if that entity is a particle entity 
+                var type = Entities.getEntityProperties(entityIDs[0], "type").type;
+                if (type === "ParticleEffect") {
+                    that.enableParticleTab(entityIDs[0]);
+                }
+
+                
             }
             selectionManager.setSelections(entityIDs);
             if (data.focus) {

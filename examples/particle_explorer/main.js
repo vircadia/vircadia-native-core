@@ -82,7 +82,6 @@ window.onload = function() {
 
         listenForSettingsUpdates();
         window.onresize = setGUIWidthToWindowWidth;
-        console.log('JBP HAS EVENT BRIDGE');
     })
 
 };
@@ -128,9 +127,6 @@ function loadGUI() {
                 individualKeys.push(key);
             }
         }
-
-
-
     });
 
     //alphabetize our keys
@@ -345,14 +341,6 @@ function writeVec3ToInterface(obj) {
 function listenForSettingsUpdates() {
     EventBridge.scriptEventReceived.connect(function(data) {
         data = JSON.parse(data);
-
-        //2-way
-        // if (data.messageType === 'object_update') {
-        //     _.each(data.objectSettings, function(value, key) {
-        //          settings[key] = value;
-        //     });
-        // }
-
         if (data.messageType === 'initial_settings') {
             _.each(data.initialSettings, function(value, key) {
                 settings[key] = {};
@@ -360,6 +348,10 @@ function listenForSettingsUpdates() {
             });
 
             loadGUI();
+        }
+
+        if (date.type === "enableParticleTab") {
+            console.log("EBL JUST GOT AN ENABLE MESSAGE!");
         }
     });
 }

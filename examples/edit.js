@@ -27,6 +27,7 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "particle_explorer/particleExplorerTool.js",
     "libraries/lightOverlayManager.js",
 ]);
 
@@ -141,9 +142,9 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
-    title: 'Marketplace', 
-    source: "about:blank", 
-    width: 900, 
+    title: 'Marketplace',
+    source: "about:blank",
+    width: 900,
     height: 700,
     visible: false
 });
@@ -194,7 +195,7 @@ var toolBar = (function() {
             };
         });
 
-  
+
 
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
@@ -450,8 +451,8 @@ var toolBar = (function() {
             newModelButtonDown = true;
             return true;
         }
-        
-     
+
+
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Box",
@@ -640,8 +641,13 @@ var toolBar = (function() {
         }
 
         if (newParticleButton === toolBar.clicked(clickedOverlay)) {
-            print("EBL: NEW PARTICLES");
-            Script.load('particle_explorer/particleExplorer.js');
+            createNewEntity({
+                type: "ParticleEffect",
+                isEmitting: true,
+                particleRadius: 0.1,
+                emitRate: 100,
+                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+            });
         }
 
         return false;
@@ -664,7 +670,7 @@ var toolBar = (function() {
         }
 
         newModelButtonDown = false;
-     
+
 
         return handled;
     }
@@ -1524,8 +1530,8 @@ PropertiesTool = function(opts) {
 
     var url = Script.resolvePath('html/entityProperties.html');
     var webView = new OverlayWebWindow({
-        title: 'Entity Properties', 
-        source: url, 
+        title: 'Entity Properties',
+        source: url,
         toolWindow: true
     });
 
@@ -1579,8 +1585,16 @@ PropertiesTool = function(opts) {
             } else {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties["velocity"] = {x: 0, y: 0, z: 0};
-                    data.properties["angularVelocity"] = {x: 0, y: 0, z: 0};
+                    data.properties["velocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
+                    data.properties["angularVelocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
                 }
                 if (data.properties.rotation !== undefined) {
                     var rotation = data.properties.rotation;
@@ -1863,3 +1877,4 @@ propertyMenu.onSelectMenuItem = function(name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
+var particleExplorerTool = ParticleExplorerTool();
