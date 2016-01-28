@@ -27,34 +27,43 @@ void depthSortItems(const SceneContextPointer& sceneContext, const RenderContext
 void renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems);
 void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems = -1);
 
-class FetchItems {
+class FetchItemsConfig : public Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int numItems READ getNumItems)
 public:
-    typedef std::function<void (const RenderContextPointer& context, int count)> ProbeNumItems;
-    FetchItems() {}
-    FetchItems(const ProbeNumItems& probe): _probeNumItems(probe) {}
-    FetchItems(const ItemFilter& filter, const ProbeNumItems& probe): _filter(filter), _probeNumItems(probe) {}
+    int getNumItems() { return numItems; }
 
-    ItemFilter _filter = ItemFilter::Builder::opaqueShape().withoutLayered();
-    ProbeNumItems _probeNumItems;
-
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
-    using JobModel = Task::Job::ModelO<FetchItems, ItemBounds>;
+    int numItems{ 0 };
 };
 
-template<RenderDetails::Type T = RenderDetails::Type::OTHER_ITEM>
+class FetchItems {
+public:
+    using Config = FetchItemsConfig;
+    using JobModel = Job::ModelO<FetchItems, ItemBounds, Config>;
+
+    FetchItems() {}
+    FetchItems(const ItemFilter& filter) : _filter(filter) {}
+
+    ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
+
+    void configure(const Config& config) {}
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
+};
+
+template<RenderDetails::Type T>
 class CullItems {
 public:
+    using JobModel = Job::ModelIO<CullItems<T>, ItemBounds, ItemBounds>;
+  
     CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-        const auto& args = renderContext->getArgs();
+        const auto& args = renderContext->args;
         auto& details = args->_details.edit(T);
         outItems.clear();
         outItems.reserve(inItems.size());
         render::cullItems(renderContext, _cullFunctor, details, inItems, outItems);
     }
-
-    using JobModel = Task::Job::ModelIO<CullItems<T>, ItemBounds, ItemBounds>;
 
 protected:
     CullFunctor _cullFunctor;
@@ -62,36 +71,38 @@ protected:
 
 class DepthSortItems {
 public:
+    using JobModel = Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
+ 
     bool _frontToBack;
     DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
-    using JobModel = Task::Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
 };
 
 class DrawLight {
 public:
+    using JobModel = Job::Model<DrawLight>;
+
     DrawLight(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-    using JobModel = Task::Job::Model<DrawLight>;
-
 protected:
     CullFunctor _cullFunctor;
 };
 
 class PipelineSortShapes {
 public:
+    using JobModel = Job::ModelIO<PipelineSortShapes, ItemBounds, ShapesIDsBounds>;
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes);
-    using JobModel = Task::Job::ModelIO<PipelineSortShapes, ItemBounds, ShapesIDsBounds>;
 };
 
 class DepthSortShapes {
 public:
+    using JobModel = Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
+ 
     bool _frontToBack;
     DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes);
-    using JobModel = Task::Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
 };
 
 }

@@ -158,11 +158,10 @@ bool AudioInjector::injectLocally() {
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
-static const uint64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = 0;
-static const uint64_t NEXT_FRAME_DELTA_IMMEDIATELY = 1;
+static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
+static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
-uint64_t AudioInjector::injectNextFrame() {
-
+int64_t AudioInjector::injectNextFrame() {
     if (_state == AudioInjector::State::Finished) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
@@ -206,7 +205,7 @@ uint64_t AudioInjector::injectNextFrame() {
             audioPacketStream << _options.stereo;
 
             // pack the flag for loopback
-            uchar loopbackFlag = (uchar) true;
+            uchar loopbackFlag = (uchar)true;
             audioPacketStream << loopbackFlag;
 
             // pack the position for injected audio
@@ -238,16 +237,19 @@ uint64_t AudioInjector::injectNextFrame() {
         }
     }
 
-    int bytesToCopy = std::min((_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
-                               _audioData.size() - _currentSendOffset);
+    int totalBytesLeftToCopy = (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    if (!_options.loop) {
+        // If we aren't looping, let's make sure we don't read past the end
+        totalBytesLeftToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
+    }
 
     //  Measure the loudness of this frame
     _loudness = 0.0f;
-    for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
-        _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendOffset + i)) /
-        (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
+    for (int i = 0; i < totalBytesLeftToCopy; i += sizeof(int16_t)) {
+        _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + ((_currentSendOffset + i) % _audioData.size()))) /
+            (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
     }
-    _loudness /= (float)(bytesToCopy / sizeof(int16_t));
+    _loudness /= (float)(totalBytesLeftToCopy/ sizeof(int16_t));
 
     _currentPacket->seek(0);
 
@@ -264,8 +266,16 @@ uint64_t AudioInjector::injectNextFrame() {
 
     _currentPacket->seek(audioDataOffset);
 
-    // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-    _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
+    while (totalBytesLeftToCopy > 0) {
+        int bytesToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
+
+        _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
+        _currentSendOffset += bytesToCopy;
+        totalBytesLeftToCopy -= bytesToCopy;
+        if (_currentSendOffset >= _audioData.size()) {
+            _currentSendOffset = 0;
+        }
+    }
 
     // set the correct size used for this packet
     _currentPacket->setPayloadSize(_currentPacket->pos());
@@ -280,33 +290,30 @@ uint64_t AudioInjector::injectNextFrame() {
         _outgoingSequenceNumber++;
     }
 
-    _currentSendOffset += bytesToCopy;
-
-    if (_currentSendOffset >= _audioData.size()) {
-        // we're at the end of the audio data to send
-        if (_options.loop) {
-            // we were asked to loop, set our send offset to 0
-            _currentSendOffset = 0;
-        } else {
-            // we weren't to loop, say that we're done now
-            finish();
-            return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
-        }
+    if (_currentSendOffset >= _audioData.size() && !_options.loop) {
+        finish();
+        return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
 
-    if (_currentSendOffset == bytesToCopy) {
+    if (!_hasSentFirstFrame) {
+        _hasSentFirstFrame = true;
         // ask AudioInjectorManager to call us right away again to
         // immediately send the first two frames so the mixer can start using the audio right away
         return NEXT_FRAME_DELTA_IMMEDIATELY;
-    } else {
-        uint64_t untilNextFrame = (++_nextFrame * AudioConstants::NETWORK_FRAME_USECS) - _frameTimer->nsecsElapsed() / 1000;
-        if (untilNextFrame >= 10 * AudioConstants::NETWORK_FRAME_USECS) {
-            qDebug() << "AudioInjector returning delta to next frame that is very large -" << untilNextFrame;
-            qDebug() << "Next Frame is " << _nextFrame << "frameTimer nsecsElapsed is" << _frameTimer->nsecsElapsed();
-        }
-        return untilNextFrame;
     }
 
+    const int MAX_ALLOWED_FRAMES_TO_FALL_BEHIND = 7;
+    int64_t currentTime = _frameTimer->nsecsElapsed() / 1000;
+    auto currentFrameBasedOnElapsedTime = currentTime / AudioConstants::NETWORK_FRAME_USECS;
+    if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
+        // If we are falling behind by more frames than our threshold, let's skip the frames ahead
+        qDebug() << "AudioInjector::injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        _nextFrame = currentFrameBasedOnElapsedTime;
+        _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
+    }
+
+    int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
+    return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
 void AudioInjector::stop() {

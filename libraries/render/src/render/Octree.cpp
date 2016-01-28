@@ -33,7 +33,7 @@ const double Octree::INV_DEPTH_DIM[] = {
     1.0 / 32768.0 };
 
 
-Octree::Location::vector Octree::Location::rootTo(const Location& dest) {
+Octree::Location::vector Octree::Location::pathTo(const Location& dest) {
     Location current{ dest };
     vector path(dest.depth + 1);
     path[dest.depth] = dest;
@@ -67,24 +67,58 @@ Octree::Location Octree::Location::evalFromRange(const Coord3& minCoord, const C
     }
 }
 
-Octree::Indices Octree::allocateCellPath(const Locations& path) {
-    Indices cellPath;
+Octree::Indices Octree::indexAllocatedCellPath(const Locations& path) const {
+    Index currentIndex = ROOT;
+    Indices cellPath(1, currentIndex);
 
-    Index currentIndex = 0;
-    Cell* currentCell = _cells.data();
-    cellPath.push_back(currentIndex);
-
-    for (int d = 0; d <= path.back().depth; d++) {
-        auto& location = path[d];
-
-        auto currentIndex = currentCell->child(location.octant());
-        if (currentIndex == INVALID) {
-            currentIndex = _cells.size();
-            currentCell->setChild(location.octant(), currentIndex);
-            _cells.push_back(Cell(cellPath.back(), location));
+    for (int l = 1; l < path.size(); l++) {
+        auto& location = path[l];
+        auto nextIndex = getCell(currentIndex).child(location.octant());
+        if (nextIndex == INVALID) {
+            break;
         }
+
+        // One more cell index on the path, moving on
+        currentIndex = nextIndex;
         cellPath.push_back(currentIndex);
-        currentCell = _cells.data() + currentIndex;
+    }
+
+    return cellPath;
+}
+
+Octree::Index Octree::allocateCell(Index parent, const Location& location) {
+
+    if (_cells[parent].asChild(location.octant())) {
+        assert(_cells[parent].child(location.octant()) == INVALID);
+        return _cells[parent].child(location.octant());
+    }
+
+    assert(_cells[parent].getlocation().child(location.octant()) == location);
+
+    auto newIndex = _cells.size();
+    _cells.push_back(Cell(parent, location));
+    _cells[parent].setChild(location.octant(), newIndex);
+
+    return newIndex;
+}
+
+
+Octree::Indices Octree::indexCellPath(const Locations& path) {
+    // First through the aallocated cells
+    Indices cellPath = indexAllocatedCellPath(path);
+
+    // Catch up from the last allocated cell on the path
+    auto currentIndex = cellPath.back();
+
+    for (int l = cellPath.size(); l < path.size(); l++) {
+        auto& location = path[l];
+
+        // Allocate the new index & connect it to the parent
+        auto newIndex = allocateCell(currentIndex, location);
+
+        // One more cell index on the path, moving on
+        currentIndex = newIndex;
+        cellPath.push_back(currentIndex);
     }
 
     return cellPath;
@@ -94,7 +128,8 @@ Octree::Indices Octree::allocateCellPath(const Locations& path) {
 void ItemSpatialTree::insert(const ItemBounds& items) {
     for (auto& item : items) {
         if (!item.bound.isNull()) {
-            editCell(evalLocation(item.bound));
+            auto cellIdx = indexCell(evalLocation(item.bound));
+
         }
     }
 }

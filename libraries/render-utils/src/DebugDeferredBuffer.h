@@ -16,16 +16,37 @@
 
 #include <render/DrawTask.h>
 
+class DebugDeferredBufferConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled)
+    Q_PROPERTY(int mode MEMBER mode WRITE setMode)
+    Q_PROPERTY(glm::vec4 size MEMBER size NOTIFY dirty)
+public:
+    DebugDeferredBufferConfig() : render::Job::Config(false) {}
+
+    void setMode(int newMode);
+ 
+    int mode{ 0 };
+    glm::vec4 size{ 0.0f, 0.0f, 0.0f, 0.0f };
+signals:
+    void dirty();
+};
+
 class DebugDeferredBuffer {
 public:
-    using JobModel = render::Task::Job::Model<DebugDeferredBuffer>;
+    using Config = DebugDeferredBufferConfig;
+    using JobModel = render::Job::Model<DebugDeferredBuffer, Config>;
     
     DebugDeferredBuffer();
-    
+
+    void configure(const Config& config);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
     
-private:
-    enum Modes : uint8_t {
+protected:
+    friend class DebugDeferredBufferConfig;
+
+    enum Mode : uint8_t {
+        // Use Mode suffix to avoid collisions
         DiffuseMode = 0,
         SpecularMode,
         RoughnessMode,
@@ -38,6 +59,11 @@ private:
         AmbientOcclusionBlurredMode,
         CustomMode // Needs to stay last
     };
+
+private:
+    Mode _mode;
+    glm::vec4 _size;
+
     struct CustomPipeline {
         gpu::PipelinePointer pipeline;
         mutable QFileInfo info;
@@ -45,9 +71,9 @@ private:
     using StandardPipelines = std::array<gpu::PipelinePointer, CustomMode>;
     using CustomPipelines = std::unordered_map<std::string, CustomPipeline>;
     
-    bool pipelineNeedsUpdate(Modes mode, std::string customFile = std::string()) const;
-    const gpu::PipelinePointer& getPipeline(Modes mode, std::string customFile = std::string());
-    std::string getShaderSourceCode(Modes mode, std::string customFile = std::string());
+    bool pipelineNeedsUpdate(Mode mode, std::string customFile = std::string()) const;
+    const gpu::PipelinePointer& getPipeline(Mode mode, std::string customFile = std::string());
+    std::string getShaderSourceCode(Mode mode, std::string customFile = std::string());
     
     StandardPipelines _pipelines;
     CustomPipelines _customPipelines;

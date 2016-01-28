@@ -94,6 +94,8 @@ namespace render {
                 assert((pos.x < (1 << depth)) && (pos.y < (1 << depth)) && (pos.z < (1 << depth)));
             }
         public:
+            using vector = std::vector< Location >;
+
             Location() {}
             Location(const Coord3& xyz, Depth d) : pos(xyz), depth(d) { assertValid(); }
             Location(Depth d) : pos(0), depth(d) { assertValid(); }
@@ -102,17 +104,21 @@ namespace render {
             uint8_t spare{ 0 };
             Depth depth{ 0 };
 
+            bool operator== (const Location& right) const { return pos == right.pos && depth == right.depth; }
 
             // Eval the octant of this cell relative to its parent
-            Octant octant() const { return  Octant((pos.x & XAxis) | (pos.y & YAxis) | (pos.z & ZAxis)); }
+            Octant octant() const { return  Octant((pos.x & 1) | (pos.y & 1) | (pos.z & 1)); }
             Coord3 octantAxes(Link octant) const { Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)); }
 
             // Get the Parent cell Location of this cell
             Location parent() const { return Location{ (pos >> Coord3(1)), Depth(depth <= 0 ? 0 : depth - 1) }; }
             Location child(Link octant) const { return Location{ (pos << Coord3(1)) | octantAxes(octant), Depth(depth + 1) }; }
 
-            using vector = std::vector< Location >;
-            static vector rootTo(const Location& dest);
+            // Eval the list of locations (the path) from root to the destination.
+            // the root cell is included
+            static vector pathTo(const Location& destination);
+
+            // Eval the location best fitting the specified range
             static Location evalFromRange(const Coord3& minCoord, const Coord3& maxCoord, Depth rangeDepth = MAX_DEPTH);
         };
         using Locations = Location::vector;
@@ -152,13 +158,11 @@ namespace render {
         };
         using Cells = std::vector< Cell >;
 
-
         class Brick {
         public:
 
         };
         using Bricks = std::vector< Brick >;
-
 
 
         // Octree members
@@ -167,14 +171,24 @@ namespace render {
 
         Octree() {};
 
-        // allocatePath
-        Indices allocateCellPath(const Locations& path);
+        // Indexing/Allocating the cells as the tree gets populated
+        // Return the cell Index/Indices at the specified location/path, allocate all the cells on the path from the root if needed
+        Indices indexCellPath(const Locations& path);
+        Index indexCell(const Location& loc) { return indexCellPath(Location::pathTo(loc)).back(); }
 
-        // reach to Cell and allocate the cell path to it if needed
-        Index editCell(const Location& loc) {
-            auto cells = allocateCellPath(Location::rootTo(loc));
-            return cells.back();
+        // Same as indexCellPath except that NO cells are allocated,
+        // the returned indices stops at the last existing cell on the requested path.
+        Indices indexAllocatedCellPath(const Locations& path) const;
+
+        // Reach a concrete cell
+        const Cell& getCell(Index index) const {
+            assert(index < _cells.size());
+            return _cells[index];
         }
+        Index allocateCell(Index parent, const Location& location);
+
+
+
     };
 }
 // CLose the namespace here before including the Item in the picture, maybe Octre could stay pure of it
@@ -185,9 +199,9 @@ namespace render {
     // An octree of Items organizing them efficiently for culling
     // The octree only cares about the bound & the key of an item to store it a the right cell location
     class ItemSpatialTree : public Octree {
-        float _size{ 32000.0f };
+        float _size{ 32768.0f };
         double _invSize{ 1.0 / _size };
-        glm::vec3 _origin{ -0.5f * _size };
+        glm::vec3 _origin{ -16384.0f };
     public:
         Depth coordToDepth(Coord length) const {
             Depth d = MAX_DEPTH;

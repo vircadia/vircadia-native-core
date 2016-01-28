@@ -24,12 +24,11 @@ namespace render {
         gpu::BufferPointer _cells;
 
     public:
+        using JobModel = Job::Model<DrawSceneOctree>;
 
         DrawSceneOctree() {}
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
-
-        using JobModel = Task::Job::Model<DrawSceneOctree>;
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
     };

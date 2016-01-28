@@ -55,9 +55,9 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
 
 void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-    RenderArgs* args = renderContext->getArgs();
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
     const int NUM_STATUS_VEC4_PER_ITEM = 2;
     const int VEC4_LENGTH = 4;
