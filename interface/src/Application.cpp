@@ -57,6 +57,8 @@
 #include <gl/Config.h>
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/JSONHelpers.h>
+
 #include <ResourceScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
