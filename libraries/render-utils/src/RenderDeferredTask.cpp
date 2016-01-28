@@ -256,25 +256,19 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     }
 }
 
-gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
-const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
-    if (!_opaquePipeline) {
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
-        auto program = gpu::Shader::createProgram(vs, ps);
-        
+DrawStencilDeferred::DrawStencilDeferred() : _shapePlumber{ std::make_shared<ShapePlumber>() } {
+    const gpu::int8 STENCIL_OPAQUE = 1;
+    auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+    auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
+    auto program = gpu::Shader::createProgram(vs, ps);
+    gpu::Shader::makeProgram((*program));
 
-        gpu::Shader::makeProgram((*program));
+    auto state = std::make_shared<gpu::State>();
+    state->setDepthTest(true, false, gpu::LESS_EQUAL);
+    state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
+    state->setColorWriteMask(0);
 
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE)); 
-        state->setColorWriteMask(0);
-
-        _opaquePipeline = gpu::Pipeline::create(program, state);
-    }
-    return _opaquePipeline;
+    _shapePlumber->addPipeline(ShapeKey::Filter::Builder(), program, state);
 }
 
 void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -294,11 +288,12 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        batch.setPipeline(getOpaquePipeline());
+        // We only need to fetch this once
+        static const auto& pipeline = _shapePlumber->pickPipeline(args, ShapeKey());
 
+        batch.setPipeline(pipeline->pipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(0, nullptr);
-
     });
     args->_batch = nullptr;
 }

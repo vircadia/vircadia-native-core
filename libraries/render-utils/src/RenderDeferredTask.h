@@ -68,14 +68,14 @@ protected:
 
 class DrawStencilDeferred {
 public:
-    static const gpu::PipelinePointer& getOpaquePipeline();
+    DrawStencilDeferred();
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = render::Job::Model<DrawStencilDeferred>;
 
 protected:
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    render::ShapePlumberPointer _shapePlumber;
 };
 
 class DrawBackgroundDeferred {
