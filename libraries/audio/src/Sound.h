@@ -38,7 +38,6 @@ private:
     bool _isStereo;
     bool _isReady;
     
-    void trimFrames();
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
     
