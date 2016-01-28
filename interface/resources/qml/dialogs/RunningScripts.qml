@@ -123,26 +123,42 @@ Window {
                 }
 
                 ListView {
+                    id: listView
                     clip: true
                     anchors { fill: parent; margins: 0 }
 
                     model: runningScriptsModel
 
                     delegate: Rectangle {
+                        id: rectangle
+                        clip: true
                         radius: 3
                         anchors { left: parent.left; right: parent.right }
 
-                        height: scriptName.height + 12
-                        color: index % 2 ? "#ddd" : "#eee"
+                        height: scriptName.height + 12 + (ListView.isCurrentItem ? scriptName.height + 6 : 0)
+                        color: ListView.isCurrentItem ? "#39f" :
+                                   index % 2 ? "#ddd" : "#eee"
 
                         Text {
-                            anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
                             id: scriptName
+                            anchors { left: parent.left; leftMargin: 4; top: parent.top; topMargin:6 }
                             text: name
                         }
 
+                        Text {
+                            id: scriptUrl
+                            anchors { left: scriptName.left; right: parent.right; rightMargin: 4; top: scriptName.bottom; topMargin: 6 }
+                            text: url
+                            elide: Text.ElideMiddle
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: listView.currentIndex = index
+                        }
+
                         Row {
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.verticalCenter: scriptName.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 4
                             spacing: 4
