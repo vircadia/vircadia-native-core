@@ -34,49 +34,34 @@ var updateInterval;
 
 var currentInputField;
 var storedController;
-var keysToIgnore = [
-    'importSettings',
-    'exportSettings',
-    'script',
-    'visible',
-    'locked',
-    'userData',
-    'position',
-    'dimensions',
-    'rotation',
-    'id',
-    'description',
-    'type',
-    'created',
-    'age',
-    'ageAsText',
-    'boundingBox',
-    'naturalDimensions',
-    'naturalPosition',
-    'velocity',
-    'gravity',
-    'acceleration',
-    'damping',
-    'restitution',
-    'friction',
-    'density',
-    'lifetime',
-    'scriptTimestamp',
-    'registrationPoint',
-    'angularVelocity',
-    'angularDamping',
-    'collisionless',
-    'dynamic',
-    'href',
-    'actionData',
-    'marketplaceID',
-    'collisionSoundURL',
-    'shapeType',
+//CHANGE TO WHITELIST
+var keysToAllow = [
     'isEmitting',
-    'sittingPoints',
-    'originalTextures',
-    'parentJointIndex',
-    'parentID'
+    'maxParticles',
+    'lifespan',
+    'emitRate',
+    'emitSpeed',
+    'speedSpread',
+    'emitOrientation',
+    'emitDimensios',
+    'emitRadiusStart',
+    'polarStart',
+    'polarFinish',
+    'azimuthFinish',
+    'emitAcceleration',
+    'accelerationSpread',
+    'particleRadius',
+    'radiusSpread',
+    'radiusStart',
+    'radiusFinish',
+    'color',
+    'colorSpread',
+    'colorStart',
+    'colorFinish',
+    'alpha',
+    'alphaSpread',
+    'alphaFinish',
+    'emitterShouldTrail'
 ];
 
 var individualKeys = [];
@@ -85,8 +70,8 @@ var quatKeys = [];
 var colorKeys = [];
 
 window.onload = function() {
-    if (typeof EventBridge !== 'undefined') {
 
+    openEventBridge(function() {
         var stringifiedData = JSON.stringify({
             messageType: 'page_loaded'
         });
@@ -97,9 +82,9 @@ window.onload = function() {
 
         listenForSettingsUpdates();
         window.onresize = setGUIWidthToWindowWidth;
-    } else {
-        console.log('No event bridge, probably not in interface.');
-    }
+        console.log('JBP HAS EVENT BRIDGE');
+    })
+
 };
 
 function loadGUI() {
@@ -120,31 +105,31 @@ function loadGUI() {
     var keys = _.keys(settings);
 
     _.each(keys, function(key) {
-        var shouldIgnore = _.contains(keysToIgnore, key);
+        var shouldAllow = _.contains(keysToAllow, key);
 
-        if (shouldIgnore) {
-            return;
+        if (shouldAllow) {
+            var subKeys = _.keys(settings[key]);
+            var hasX = _.contains(subKeys, 'x');
+            var hasY = _.contains(subKeys, 'y');
+            var hasZ = _.contains(subKeys, 'z');
+            var hasW = _.contains(subKeys, 'w');
+            var hasRed = _.contains(subKeys, 'red');
+            var hasGreen = _.contains(subKeys, 'green');
+            var hasBlue = _.contains(subKeys, 'blue');
+
+            if ((hasX && hasY && hasZ) && hasW === false) {
+                vec3Keys.push(key);
+            } else if (hasX && hasY && hasZ && hasW) {
+                quatKeys.push(key);
+            } else if (hasRed || hasGreen || hasBlue) {
+                colorKeys.push(key);
+
+            } else {
+                individualKeys.push(key);
+            }
         }
 
-        var subKeys = _.keys(settings[key]);
-        var hasX = _.contains(subKeys, 'x');
-        var hasY = _.contains(subKeys, 'y');
-        var hasZ = _.contains(subKeys, 'z');
-        var hasW = _.contains(subKeys, 'w');
-        var hasRed = _.contains(subKeys, 'red');
-        var hasGreen = _.contains(subKeys, 'green');
-        var hasBlue = _.contains(subKeys, 'blue');
 
-        if ((hasX && hasY && hasZ) && hasW === false) {
-            vec3Keys.push(key);
-        } else if (hasX && hasY && hasZ && hasW) {
-            quatKeys.push(key);
-        } else if (hasRed || hasGreen || hasBlue) {
-            colorKeys.push(key);
-
-        } else {
-            individualKeys.push(key);
-        }
 
     });
 
@@ -182,7 +167,7 @@ function addIndividualKeys() {
             controller = gui.add(settings, key);
 
         }
-        
+
         //2-way - need to fix not being able to input exact values if constantly listening
         //controller.listen();
 
@@ -469,6 +454,7 @@ function removeListenerFromGUI(key) {
 }
 
 //the section below is to try to work at achieving two way bindings;
+
 function addListenersBackToGUI() {
     gui.__listening.push(storedController);
     storedController = null;
@@ -501,4 +487,3 @@ function registerDOMElementsForListenerBlocking() {
         });
     });
 }
-

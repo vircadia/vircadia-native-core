@@ -141,8 +141,19 @@ SettingsWindow = function() {
     this.webWindow = null;
 
     this.init = function() {
+        var url = Script.resolvePath('index.html');
+        _this.shnur = "bdur";
         Script.update.connect(waitForObjectAuthorization);
-        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, false);
+        _this.webWindow = new OverlayWebWindow({
+            title: 'Particle Explorer',
+            source: url,
+            toolWindow: true
+        });
+        // _this.webWindow.setVisible(false);
+        Script.setTimeout(function() {
+            print("EBL IN TIMEOUT! " + _this.shnur);
+            _this.webWindow.setVisible(true);
+        }, 2000)
         _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
     };
 
@@ -161,7 +172,6 @@ SettingsWindow = function() {
             editEntity(_data.updatedSettings);
             return;
         }
-
     };
 };
 
