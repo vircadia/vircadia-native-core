@@ -321,14 +321,16 @@ int64_t AudioInjector::injectNextFrame() {
     const int MAX_ALLOWED_FRAMES_TO_FALL_BEHIND = 7;
     int64_t currentTime = _frameTimer->nsecsElapsed() / 1000;
     auto currentFrameBasedOnElapsedTime = currentTime / AudioConstants::NETWORK_FRAME_USECS;
+
     if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
-        qDebug() << "AudioInjector::injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
         _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
     }
 
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
+    
     return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
