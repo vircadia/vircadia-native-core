@@ -812,6 +812,14 @@ void EntityItem::setMass(float mass) {
     }
 }
 
+void EntityItem::setHref(QString value) {
+    auto href = value.toLower();
+    if (! (value.toLower().startsWith("hifi://")) ) {
+        return;
+    }
+    _href = value;
+}
+
 void EntityItem::simulate(const quint64& now) {
     if (_lastSimulated == 0) {
         _lastSimulated = now;
