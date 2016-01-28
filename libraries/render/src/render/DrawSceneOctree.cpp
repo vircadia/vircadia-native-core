@@ -37,6 +37,7 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
         
         _drawBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -104,10 +105,16 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         AABox* cellAABox = reinterpret_cast<AABox*> (_cells->editData());
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
+        const auto& inCells = scene->getSpatialTree()._cells;
 
         for (int i = 0; i < nbCells; i++) {
             batch._glUniform3fv(_drawBoundPosLoc, 1, (const float*) (cellAABox + i));
-            batch._glUniform3fv(_drawBoundDimLoc, 1, ((const float*) (cellAABox + i)) + VEC3_ADRESS_OFFSET);
+            batch._glUniform3fv(_drawBoundDimLoc, 1, ((const float*)(cellAABox + i)) + VEC3_ADRESS_OFFSET);
+
+            auto& cellLoc = inCells[i].getlocation();
+            glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
+
+            batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
 
             batch.draw(gpu::LINES, 24, 0);
         }
