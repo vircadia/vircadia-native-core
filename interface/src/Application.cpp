@@ -416,7 +416,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-    _lastFaceTrackerUpdate(0)
+    _lastFaceTrackerUpdate(0),
+    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION)
 {
     thread()->setObjectName("Main Thread");
 
@@ -4501,12 +4502,22 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 }
 
 void Application::loadDialog() {
-    // To be migratd to QML
-    QString fileNameString = QFileDialog::getOpenFileName(
-        _glWidget, tr("Open Script"), "", tr("JavaScript Files (*.js)"));
-    if (!fileNameString.isEmpty()) {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    QString fileNameString = OffscreenUi::getOpenFileName(
+        _glWidget, tr("Open Script"), getPreviousScriptLocation(), tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty() && QFile(fileNameString).exists()) {
+        setPreviousScriptLocation(QFileInfo(fileNameString).absolutePath());
         DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
     }
+}
+
+QString Application::getPreviousScriptLocation() {
+    QString result = _previousScriptLocation.get();
+    return result;
+}
+
+void Application::setPreviousScriptLocation(const QString& location) {
+    _previousScriptLocation.set(location);
 }
 
 void Application::loadScriptURLDialog() {
