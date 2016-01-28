@@ -1,5 +1,5 @@
 //
-//  OpenGLInfo.cpp
+//  OpenGLVersionChecker.cpp
 //  interface/src
 //
 //  Created by David Rowe on 28 Jan 2016.
@@ -9,19 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "OpenGLInfo.h"
+#include "OpenGLVersionChecker.h"
 
 #include <QMessageBox>
 #include <QRegularExpression>
 
 #include "GLCanvas.h"
 
-OpenGLInfo::OpenGLInfo(int& argc, char** argv) :
+OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
     QApplication(argc, argv)
 {
 }
 
-bool OpenGLInfo::isValidVersion() {
+bool OpenGLVersionChecker::isValidVersion() {
     bool valid = true;
 
     // Retrieve OpenGL version

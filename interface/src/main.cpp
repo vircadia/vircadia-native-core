@@ -22,7 +22,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
-#include "OpenGLInfo.h"
+#include "OpenGLVersionChecker.h"
 #include "MainWindow.h"
 
 int main(int argc, const char* argv[]) {
@@ -88,8 +88,8 @@ int main(int argc, const char* argv[]) {
     // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
     // not made more complicated than it already is.
     {
-        OpenGLInfo openGLInfo(argc, const_cast<char**>(argv));
-        if (!openGLInfo.isValidVersion()) {
+        OpenGLVersionChecker openGLVersionChecker(argc, const_cast<char**>(argv));
+        if (!openGLVersionChecker.isValidVersion()) {
             qCDebug(interfaceapp, "Early exit due to OpenGL version.");
             return 0;
         }

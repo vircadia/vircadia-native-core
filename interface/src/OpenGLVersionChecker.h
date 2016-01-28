@@ -1,5 +1,5 @@
 //
-//  OpenGLInfo.h
+//  OpenGLVersionChecker.h
 //  interface/src
 //
 //  Created by David Rowe on 28 Jan 2016.
@@ -9,17 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_OpenGLInfo_h
-#define hifi_OpenGLInfo_h
+#ifndef hifi_OpenGLVersionChecker_h
+#define hifi_OpenGLVersionChecker_h
 
 #include <QApplication>
 
-class OpenGLInfo : public QApplication {
+class OpenGLVersionChecker : public QApplication {
 
 public:
-    OpenGLInfo(int& argc, char** argv);
+    OpenGLVersionChecker(int& argc, char** argv);
 
     static bool isValidVersion();
 };
 
-#endif // hifi_OpenGLInfo_h
+#endif // hifi_OpenGLVersionChecker_h
