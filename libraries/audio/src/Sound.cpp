@@ -26,7 +26,6 @@
 #include "AudioRingBuffer.h"
 #include "AudioFormat.h"
 #include "AudioBuffer.h"
-#include "AudioEditBuffer.h"
 #include "AudioLogging.h"
 #include "Sound.h"
 
@@ -69,7 +68,6 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         interpretAsWav(rawAudioByteArray, outputAudioByteArray);
         downSample(outputAudioByteArray);
-        trimFrames();
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
@@ -80,7 +78,6 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         // Process as RAW file
         downSample(rawAudioByteArray);
-        trimFrames();
     } else {
         qCDebug(audio) << "Unknown sound file type";
     }
@@ -139,26 +136,6 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
             }
         }
     }
-}
-
-void Sound::trimFrames() {
-
-    const uint32_t inputFrameCount = _byteArray.size() / sizeof(int16_t);
-    const uint32_t trimCount = 1024;  // number of leading and trailing frames to trim
-
-    if (inputFrameCount <= (2 * trimCount)) {
-        return;
-    }
-
-    int16_t* inputFrameData = (int16_t*)_byteArray.data();
-
-    AudioEditBufferFloat32 editBuffer(1, inputFrameCount);
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
-
-    editBuffer.linearFade(0, trimCount, true);
-    editBuffer.linearFade(inputFrameCount - trimCount, inputFrameCount, false);
-
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
 }
 
 //
