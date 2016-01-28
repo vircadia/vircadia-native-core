@@ -27,6 +27,7 @@
 #include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
+#include "ToneMappingEffect.h"
 
 #include "RenderDeferredTask.h"
 
@@ -65,20 +66,6 @@ void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderC
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
-}
-
-void ToneMappingDeferred::configure(const Config& config) {
-    if (config.exposure >= 0.0f) {
-        _toneMappingEffect.setExposure(config.exposure);
-    }
-
-    if (config.curve >= 0) {
-        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
-    }
-}
-
-void ToneMappingDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    _toneMappingEffect.render(renderContext->args);
 }
 
 RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
