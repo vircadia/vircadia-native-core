@@ -72,7 +72,7 @@ public:
     ToneMappingConfig() : render::Job::Config(true) {}
 
     float exposure{ 0.0f };
-    int curve{ 1 };
+    int curve{ ToneMappingEffect::Gamma22 };
 signals:
     void dirty();
 };
