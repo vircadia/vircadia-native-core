@@ -87,6 +87,15 @@ namespace render {
 
         static Coord depthBitmask(Depth depth) { return Coord(1 << (MAX_DEPTH - depth)); }
 
+        static Depth coordToDepth(Coord length) {
+            Depth d = MAX_DEPTH;
+            while (length) {
+                length >>= 1;
+                d--;
+            }
+            return d;
+        }
+
 
         class Location {
             void assertValid() {
@@ -203,14 +212,6 @@ namespace render {
         double _invSize{ 1.0 / _size };
         glm::vec3 _origin{ -16384.0f };
     public:
-        Depth coordToDepth(Coord length) const {
-            Depth d = MAX_DEPTH;
-            while(length) {
-                length >>= 1;
-                d--;
-            }
-            return d;
-        }
 
         float getSize() const { return _size; }
         const glm::vec3& getOrigin() const { return _origin; }
