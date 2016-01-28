@@ -94,7 +94,6 @@ Avatar::Avatar(RigPointer rig) :
     _worldUpDirection(DEFAULT_UP_DIRECTION),
     _moving(false),
     _initialized(false),
-    _shouldRenderBillboard(true),
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -114,8 +113,6 @@ Avatar::~Avatar() {
         _motionState = nullptr;
     }
 }
-
-const float BILLBOARD_LOD_DISTANCE = 40.0f;
 
 void Avatar::init() {
     getHead()->init();
@@ -141,12 +138,13 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 AABox Avatar::getBounds() const {
     // Our skeleton models are rigged, and this method call safely produces the static bounds of the model.
+    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed, 
+    // and we want a centered one. NOTE: There is code that may never try to render, and thus never load and get the
+    // real model bounds, if this is unrealistically small.
+    if (!_skeletonModel.isRenderable()) {
+        return AABox(getPosition(), getUniformScale()); // approximately 2m tall, scaled to user request.
+    }
     return _skeletonModel.getPartBounds(0, 0, getPosition(), getOrientation());
-}
-
-float Avatar::getLODDistance() const {
-    return DependencyManager::get<LODManager>()->getAvatarLODDistanceMultiplier() *
-        glm::distance(qApp->getCamera()->getPosition(), getPosition()) / getUniformScale();
 }
 
 void Avatar::animateScaleChanges(float deltaTime) {
@@ -176,22 +174,22 @@ void Avatar::simulate(float deltaTime) {
     }
     animateScaleChanges(deltaTime);
 
-    // update the billboard render flag. Currently used only for whether or not we animate: we do so IFF we will render the avatar.
+    // update the shouldAnimate flag to match whether or not we will render the avatar.
     const float MINIMUM_VISIBILITY_FOR_ON = 0.4f;
     const float MAXIMUM_VISIBILITY_FOR_OFF = 0.6f;
     float visibility = qApp->getViewFrustum()->calculateRenderAccuracy(getBounds(), DependencyManager::get<LODManager>()->getOctreeSizeScale());
-    if (_shouldRenderBillboard) {
+    if (!_shouldAnimate) {
         if (visibility > MINIMUM_VISIBILITY_FOR_ON) {
-            _shouldRenderBillboard = false;
+            _shouldAnimate = true;
             qCDebug(interfaceapp) << "Restoring" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
         }
     } else if (visibility < MAXIMUM_VISIBILITY_FOR_OFF) {
-        _shouldRenderBillboard = true;
+        _shouldAnimate = false;
         qCDebug(interfaceapp) << "Optimizing" << (isMyAvatar() ? "myself" : getSessionUUID()) << "for visibility" << visibility;
     }
 
     // simple frustum check
-    float boundingRadius = getBillboardSize();
+    float boundingRadius = getBoundingRadius();
     bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
@@ -200,7 +198,7 @@ void Avatar::simulate(float deltaTime) {
         getHand()->simulate(deltaTime, false);
     }
 
-    if (!_shouldRenderBillboard && !_shouldSkipRender && inViewFrustum) {
+    if (_shouldAnimate && !_shouldSkipRender && inViewFrustum) {
         {
             PerformanceTimer perfTimer("skeleton");
             _skeletonModel.getRig()->copyJointsFromJointData(_jointData);
@@ -216,7 +214,7 @@ void Avatar::simulate(float deltaTime) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            head->simulate(deltaTime, false, _shouldRenderBillboard);
+            head->simulate(deltaTime, false, _shouldAnimate);
         }
     }
 
@@ -391,7 +389,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     }
 
     // simple frustum check
-    float boundingRadius = getBillboardSize();
+    float boundingRadius = getBoundingRadius();
     ViewFrustum* frustum = nullptr;
     if (renderArgs->_renderMode == RenderArgs::SHADOW_RENDER_MODE) {
         frustum = qApp->getShadowViewFrustum();
@@ -569,10 +567,7 @@ void Avatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, floa
     fixupModelsInScene();
 
     {
-        if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
-            // render the billboard until both models are loaded
-            renderBillboard(renderArgs);
-        } else {
+        if (_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable()) {
             getHead()->render(renderArgs, 1.0f, renderFrustum);
         }
 
@@ -619,50 +614,8 @@ void Avatar::updateJointMappings() {
     // no-op; joint mappings come from skeleton model
 }
 
-void Avatar::renderBillboard(RenderArgs* renderArgs) {
-    // FIXME disabling the billboard because it doesn't appear to work reliably
-    // the billboard is ending up with a random texture and position.
-    return;
-    if (_billboard.isEmpty()) {
-        return;
-    }
-    if (!_billboardTexture) {
-        // Using a unique URL ensures we don't get another avatar's texture from TextureCache
-        QUrl uniqueUrl = QUrl(QUuid::createUuid().toString());
-        _billboardTexture = DependencyManager::get<TextureCache>()->getTexture(
-            uniqueUrl, DEFAULT_TEXTURE, _billboard);
-    }
-    if (!_billboardTexture || !_billboardTexture->isLoaded()) {
-        return;
-    }
-    // rotate about vertical to face the camera
-    glm::quat rotation = getOrientation();
-    glm::vec3 cameraVector = glm::inverse(rotation) * (qApp->getCamera()->getPosition() - getPosition());
-    rotation = rotation * glm::angleAxis(atan2f(-cameraVector.x, -cameraVector.z), glm::vec3(0.0f, 1.0f, 0.0f));
-
-    // compute the size from the billboard camera parameters and scale
-    float size = getBillboardSize();
-
-    Transform transform;
-    transform.setTranslation(getPosition());
-    transform.setRotation(rotation);
-    transform.setScale(size);
-
-    glm::vec2 topLeft(-1.0f, -1.0f);
-    glm::vec2 bottomRight(1.0f, 1.0f);
-    glm::vec2 texCoordTopLeft(0.0f, 0.0f);
-    glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-
-    gpu::Batch& batch = *renderArgs->_batch;
-    PROFILE_RANGE_BATCH(batch, __FUNCTION__);
-    batch.setResourceTexture(0, _billboardTexture->getGPUTexture());
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, true);
-    DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
-                                                        glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-}
-
-float Avatar::getBillboardSize() const {
-    return getUniformScale() * BILLBOARD_DISTANCE * glm::tan(glm::radians(BILLBOARD_FIELD_OF_VIEW / 2.0f));
+float Avatar::getBoundingRadius() const {
+    return getBounds().getLargestDimension() / 2.0f;
 }
 
 #ifdef DEBUG
@@ -674,7 +627,7 @@ void debugValue(const QString& str, const glm::vec3& value) {
 void debugValue(const QString& str, const float& value) {
     if (glm::isnan(value) || glm::isinf(value)) {
         qCWarning(interfaceapp) << "debugValue() " << str << value;
-    }
+   }
 };
 #define DEBUG_VALUE(str, value) debugValue(str, value)
 #else
@@ -695,11 +648,11 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
         namePosition += bodyUpDirection * headHeight * SLIGHTLY_ABOVE;
     } else {
         const float HEAD_PROPORTION = 0.75f;
-        float billboardSize = getBillboardSize();
+        float size = getBoundingRadius();
 
         DEBUG_VALUE("_position =", getPosition());
-        DEBUG_VALUE("billboardSize =", billboardSize);
-        namePosition = getPosition() + bodyUpDirection * (billboardSize * HEAD_PROPORTION);
+        DEBUG_VALUE("size =", size);
+        namePosition = getPosition() + bodyUpDirection * (size * HEAD_PROPORTION);
     }
 
     if (glm::any(glm::isnan(namePosition)) || glm::any(glm::isinf(namePosition))) {
@@ -1003,12 +956,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     */
 }
 
-void Avatar::setBillboard(const QByteArray& billboard) {
-    AvatarData::setBillboard(billboard);
-
-    // clear out any existing billboard texture
-    _billboardTexture.reset();
-}
 
 int Avatar::parseDataFromBuffer(const QByteArray& buffer) {
     startUpdate();

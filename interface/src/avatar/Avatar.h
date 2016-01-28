@@ -38,9 +38,6 @@ namespace render {
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.56f;       // meters
-
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
@@ -119,7 +116,6 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
-    virtual void setBillboard(const QByteArray& billboard) override;
 
     void setShowDisplayName(bool showDisplayName);
 
@@ -254,14 +250,11 @@ protected:
 
 private:
     bool _initialized;
-    NetworkTexturePointer _billboardTexture;
-    bool _shouldRenderBillboard { true };
+    bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget;
 
-    void renderBillboard(RenderArgs* renderArgs);
-
-    float getBillboardSize() const;
+    float getBoundingRadius() const;
 
     static int _jointConesID;
 

@@ -97,7 +97,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -229,7 +228,7 @@ void MyAvatar::reset(bool andReload) {
     }
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = false;
+    _wasPushing = _isPushing = _isBraking = false;
     _follow.deactivate();
     _skeletonModel.reset();
     getHead()->reset();
@@ -362,9 +361,6 @@ void MyAvatar::simulate(float deltaTime) {
         static const recording::FrameType FRAME_TYPE = recording::Frame::registerFrameType(AvatarData::FRAME_NAME);
         recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
-
-    // consider updating our billboard
-    maybeUpdateBillboard();
 
     locationChanged();
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
@@ -982,14 +978,12 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
     getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
-    _billboardValid = false;
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
-    _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
 }
@@ -1042,7 +1036,6 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         return;
     }
     Avatar::setAttachmentData(attachmentData);
-    _billboardValid = false;
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
@@ -1578,33 +1571,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
         }
     }
     return false;
-}
-
-void MyAvatar::maybeUpdateBillboard() {
-    qApp->getAvatarUpdater()->setRequestBillboardUpdate(false);
-    if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
-        return;
-    }
-    for (auto& model : _attachmentModels) {
-        if (!model->isLoadedWithTextures()) {
-            return;
-        }
-    }
-    qApp->getAvatarUpdater()->setRequestBillboardUpdate(true);
-}
-void MyAvatar::doUpdateBillboard() {
-    RenderArgs renderArgs(qApp->getGPUContext());
-    QImage image = qApp->renderAvatarBillboard(&renderArgs);
-    _billboard.clear();
-    QBuffer buffer(&_billboard);
-    buffer.open(QIODevice::WriteOnly);
-    image.save(&buffer, "PNG");
-#ifdef DEBUG
-    image.save("billboard.png", "PNG");
-#endif
-    _billboardValid = true;
-
-    sendBillboardPacket();
 }
 
 bool MyAvatar::isHovering() const {

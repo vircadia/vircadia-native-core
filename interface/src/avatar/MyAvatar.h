@@ -223,7 +223,6 @@ public:
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
 
-    void doUpdateBillboard();
     void destroyAnimGraph();
 
     AudioListenerMode getAudioListenerMode() { return _audioListenerMode; }
@@ -339,7 +338,6 @@ private:
     AvatarWeakPointer _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
-    bool _billboardValid;
     float _oculusYawOffset;
 
     eyeContactTarget _eyeContactTarget;
@@ -354,7 +352,6 @@ private:
     glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void maybeUpdateBillboard();
     void initHeadBones();
     void initAnimGraph();
 
