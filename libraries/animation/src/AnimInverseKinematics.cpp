@@ -105,7 +105,12 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 }
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
-                targets.push_back(target);
+                if (target.getType() == IKTarget::Type::HmdHead) {
+                    // HmdHead target always goes to beginning of the list
+                    targets.insert(targets.begin(), target);
+                } else {
+                    targets.push_back(target);
+                }
                 if (targetVar.jointIndex > _maxTargetIndex) {
                     _maxTargetIndex = targetVar.jointIndex;
                 }
@@ -137,6 +142,18 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     absolutePoses.resize(_relativePoses.size());
     computeAbsolutePoses(absolutePoses);
 
+    #if 0
+    // TODO: implement this
+    if (targets[0].getType() == IKTarget::Type::HmdHead) {
+        // first solve HmdHead rotation
+        IKTarget& target = targets[0];
+
+        // measure the head's position error
+
+        // update hipsOffset to compensate for error
+    }
+    #endif
+
     // clear the accumulators before we start the IK solver
     for (auto& accumulator: _accumulators) {
         accumulator.clearAndClean();
@@ -144,168 +161,34 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
     int numLoops = 0;
     const int MAX_IK_LOOPS = 4;
-    do {
+    while (numLoops < MAX_IK_LOOPS) {
         int lowestMovedIndex = (int)_relativePoses.size();
         for (auto& target: targets) {
-            IKTarget::Type targetType = target.getType();
-            if (targetType == IKTarget::Type::RotationOnly) {
-                // the final rotation will be enforced after the iterations
+            lowestMovedIndex = solveTargetWithCCD(target, absolutePoses);
+            ++numLoops;
+
+            if (lowestMovedIndex >= (int)_relativePoses.size()) {
                 continue;
             }
 
-            int tipIndex = target.getIndex();
-            int pivotIndex = _skeleton->getParentIndex(tipIndex);
-            if (pivotIndex == -1 || pivotIndex == _hipsIndex) {
-                continue;
-            }
-            int pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
-            if (pivotsParentIndex == -1) {
-                // TODO?: handle case where tip's parent is root?
-                continue;
-            }
-
-            // cache tip's absolute orientation
-            glm::quat tipOrientation = absolutePoses[tipIndex].rot;
-
-            // also cache tip's parent's absolute orientation so we can recompute 
-            // the tip's parent-relative as we proceed up the chain
-            glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot;
-
-            if (targetType == IKTarget::Type::HmdHead) {
-                // rotate tip directly to target orientation
-                tipOrientation = target.getRotation();
-
-                // enforce tip's constraint
-                RotationConstraint* constraint = getConstraint(tipIndex);
-                if (constraint) {
-                    glm::quat tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
-                    bool constrained = constraint->apply(tipRelativeRotation);
-                    if (constrained) {
-                        tipOrientation = glm::normalize(tipRelativeRotation * tipParentOrientation);
-                    }
+            // harvest accumulated rotations and apply the average
+            const int numJoints = (int)_accumulators.size();
+            for (int i = 0; i < numJoints; ++i) {
+                if (_accumulators[i].size() > 0) {
+                    _relativePoses[i].rot = _accumulators[i].getAverage();
+                    _accumulators[i].clear();
                 }
             }
 
-            // cache tip absolute position
-            glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
-
-            // descend toward root, pivoting each joint to get tip closer to target
-            while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
-                // compute the two lines that should be aligned
-                glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
-                glm::vec3 leverArm = tipPosition - jointPosition;
-
-                glm::quat deltaRotation;
-                if (targetType == IKTarget::Type::RotationAndPosition ||
-                        targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
-                    // compute the swing that would get get tip closer
-                    glm::vec3 targetLine = target.getTranslation() - jointPosition;
-                    glm::vec3 axis = glm::cross(leverArm, targetLine);
-                    float axisLength = glm::length(axis);
-                    const float MIN_AXIS_LENGTH = 1.0e-4f;
-                    if (axisLength > MIN_AXIS_LENGTH) {
-                        // compute deltaRotation for alignment (swings tip closer to target)
-                        axis /= axisLength;
-                        float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
-
-                        // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
-                        // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
-                        const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
-                        if (angle > MIN_ADJUSTMENT_ANGLE) {
-                            // reduce angle by a fraction (for stability)
-                            const float fraction = 0.5f;
-                            angle *= fraction;
-                            deltaRotation = glm::angleAxis(angle, axis);
-
-                            // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
-                            // new orientation and its target.  This is the final parent-relative orientation that the tip joint have
-                            // make to achieve its target orientation.
-                            glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentOrientation) * target.getRotation();
-
-                            // enforce tip's constraint
-                            RotationConstraint* constraint = getConstraint(tipIndex);
-                            if (constraint) {
-                                bool constrained = constraint->apply(tipRelativeRotation);
-                                if (constrained) {
-                                    // The tip's final parent-relative rotation would violate its constraint
-                                    // so we try to pre-twist this pivot to compensate.
-                                    glm::quat constrainedTipRotation = deltaRotation * tipParentOrientation * tipRelativeRotation;
-                                    glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
-                                    glm::quat swingPart;
-                                    glm::quat twistPart;
-                                    glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
-                                    swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
-                                    float dotSign = copysignf(1.0f, twistPart.w);
-                                    deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, fraction)) * deltaRotation;
-                                }
-                            }
-                        }
-                    }
-                } else if (targetType == IKTarget::Type::HmdHead) {
-                    // An HmdHead target slaves the orientation of the end-effector by distributing rotation
-                    // deltas up the hierarchy.  Its target position is enforced later by shifting the hips.
-                    deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
-                    float dotSign = copysignf(1.0f, deltaRotation.w);
-                    const float ANGLE_DISTRIBUTION_FACTOR = 0.45f;
-                    deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
+            // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
+            for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+                auto parentIndex = _skeleton->getParentIndex((int)i);
+                if (parentIndex != -1) {
+                    absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
                 }
-
-                // compute joint's new parent-relative rotation after swing
-                // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
-                glm::quat newRot = glm::normalize(glm::inverse(
-                        absolutePoses[pivotsParentIndex].rot) *
-                        deltaRotation *
-                        absolutePoses[pivotIndex].rot);
-
-                // enforce pivot's constraint
-                RotationConstraint* constraint = getConstraint(pivotIndex);
-                if (constraint) {
-                    bool constrained = constraint->apply(newRot);
-                    if (constrained) {
-                        // the constraint will modify the local rotation of the tip so we must 
-                        // compute the corresponding model-frame deltaRotation
-                        // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
-                        deltaRotation = absolutePoses[pivotsParentIndex].rot *
-                            newRot * glm::inverse(absolutePoses[pivotIndex].rot);
-                    }
-                }
-
-                // store the rotation change in the accumulator
-                _accumulators[pivotIndex].add(newRot, target.getWeight());
-
-                // this joint has been changed so we check to see if it has the lowest index
-                if (pivotIndex < lowestMovedIndex) {
-                    lowestMovedIndex = pivotIndex;
-                }
-
-                // keep track of tip's new transform as we descend towards root
-                tipPosition = jointPosition + deltaRotation * leverArm;
-                tipOrientation = glm::normalize(deltaRotation * tipOrientation);
-                tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
-
-                pivotIndex = pivotsParentIndex;
-                pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
             }
         }
-        ++numLoops;
-
-        // harvest accumulated rotations and apply the average
-        const int numJoints = (int)_accumulators.size();
-        for (int i = 0; i < numJoints; ++i) {
-            if (_accumulators[i].size() > 0) {
-                _relativePoses[i].rot = _accumulators[i].getAverage();
-                _accumulators[i].clear();
-            }
-        }
-
-        // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
-        for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
-            auto parentIndex = _skeleton->getParentIndex((int)i);
-            if (parentIndex != -1) {
-                absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
-            }
-        }
-    } while (numLoops < MAX_IK_LOOPS);
+    }
 
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
@@ -327,6 +210,153 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
             absolutePoses[tipIndex].rot = targetRotation;
         }
     }
+}
+
+int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses) {
+    int lowestMovedIndex = (int)_relativePoses.size();
+    IKTarget::Type targetType = target.getType();
+    if (targetType == IKTarget::Type::RotationOnly) {
+        // the final rotation will be enforced after the iterations
+        // TODO: solve this correctly
+        return lowestMovedIndex;
+    }
+
+    int tipIndex = target.getIndex();
+    int pivotIndex = _skeleton->getParentIndex(tipIndex);
+    if (pivotIndex == -1 || pivotIndex == _hipsIndex) {
+        return lowestMovedIndex;
+    }
+    int pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
+    if (pivotsParentIndex == -1) {
+        // TODO?: handle case where tip's parent is root?
+        return lowestMovedIndex;
+    }
+
+    // cache tip's absolute orientation
+    glm::quat tipOrientation = absolutePoses[tipIndex].rot;
+
+    // also cache tip's parent's absolute orientation so we can recompute
+    // the tip's parent-relative as we proceed up the chain
+    glm::quat tipParentOrientation = absolutePoses[pivotIndex].rot;
+
+    if (targetType == IKTarget::Type::HmdHead) {
+        // rotate tip directly to target orientation
+        tipOrientation = target.getRotation();
+        glm::quat tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+
+        // enforce tip's constraint
+        RotationConstraint* constraint = getConstraint(tipIndex);
+        if (constraint) {
+            bool constrained = constraint->apply(tipRelativeRotation);
+            if (constrained) {
+                tipOrientation = glm::normalize(tipRelativeRotation * tipParentOrientation);
+                tipRelativeRotation = glm::normalize(tipOrientation * glm::inverse(tipParentOrientation));
+            }
+        }
+        // store the relative rotation change in the accumulator
+        _accumulators[tipIndex].add(tipRelativeRotation, target.getWeight());
+    }
+
+    // cache tip absolute position
+    glm::vec3 tipPosition = absolutePoses[tipIndex].trans;
+
+    // descend toward root, pivoting each joint to get tip closer to target position
+    while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
+        // compute the two lines that should be aligned
+        glm::vec3 jointPosition = absolutePoses[pivotIndex].trans;
+        glm::vec3 leverArm = tipPosition - jointPosition;
+
+        glm::quat deltaRotation;
+        if (targetType == IKTarget::Type::RotationAndPosition ||
+                targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
+            // compute the swing that would get get tip closer
+            glm::vec3 targetLine = target.getTranslation() - jointPosition;
+            glm::vec3 axis = glm::cross(leverArm, targetLine);
+            float axisLength = glm::length(axis);
+            const float MIN_AXIS_LENGTH = 1.0e-4f;
+            if (axisLength > MIN_AXIS_LENGTH) {
+                // compute deltaRotation for alignment (swings tip closer to target)
+                axis /= axisLength;
+                float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
+
+                // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
+                // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
+                const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
+                if (angle > MIN_ADJUSTMENT_ANGLE) {
+                    // reduce angle by a fraction (for stability)
+                    const float fraction = 0.5f;
+                    angle *= fraction;
+                    deltaRotation = glm::angleAxis(angle, axis);
+
+                    // The swing will re-orient the tip but there will tend to be be a non-zero delta between the tip's
+                    // new orientation and its target.  This is the final parent-relative orientation that the tip joint have
+                    // make to achieve its target orientation.
+                    glm::quat tipRelativeRotation = glm::inverse(deltaRotation * tipParentOrientation) * target.getRotation();
+
+                    // enforce tip's constraint
+                    RotationConstraint* constraint = getConstraint(tipIndex);
+                    if (constraint) {
+                        bool constrained = constraint->apply(tipRelativeRotation);
+                        if (constrained) {
+                            // The tip's final parent-relative rotation would violate its constraint
+                            // so we try to pre-twist this pivot to compensate.
+                            glm::quat constrainedTipRotation = deltaRotation * tipParentOrientation * tipRelativeRotation;
+                            glm::quat missingRotation = target.getRotation() * glm::inverse(constrainedTipRotation);
+                            glm::quat swingPart;
+                            glm::quat twistPart;
+                            glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
+                            swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
+                            float dotSign = copysignf(1.0f, twistPart.w);
+                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, fraction)) * deltaRotation;
+                        }
+                    }
+                }
+            }
+        } else if (targetType == IKTarget::Type::HmdHead) {
+            // An HmdHead target slaves the orientation of the end-effector by distributing rotation
+            // deltas up the hierarchy.  Its target position is enforced later (by shifting the hips).
+            deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
+            float dotSign = copysignf(1.0f, deltaRotation.w);
+            const float ANGLE_DISTRIBUTION_FACTOR = 0.45f;
+            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
+        }
+
+        // compute joint's new parent-relative rotation after swing
+        // Q' = dQ * Q   and   Q = Qp * q   -->   q' = Qp^ * dQ * Q
+        glm::quat newRot = glm::normalize(glm::inverse(
+                absolutePoses[pivotsParentIndex].rot) *
+                deltaRotation *
+                absolutePoses[pivotIndex].rot);
+
+        // enforce pivot's constraint
+        RotationConstraint* constraint = getConstraint(pivotIndex);
+        if (constraint) {
+            bool constrained = constraint->apply(newRot);
+            if (constrained) {
+                // the constraint will modify the local rotation of the tip so we must
+                // compute the corresponding model-frame deltaRotation
+                // Q' = Qp^ * dQ * Q  -->  dQ =   Qp * Q' * Q^
+                deltaRotation = absolutePoses[pivotsParentIndex].rot * newRot * glm::inverse(absolutePoses[pivotIndex].rot);
+            }
+        }
+
+        // store the relative rotation change in the accumulator
+        _accumulators[pivotIndex].add(newRot, target.getWeight());
+
+        // this joint has been changed so we check to see if it has the lowest index
+        if (pivotIndex < lowestMovedIndex) {
+            lowestMovedIndex = pivotIndex;
+        }
+
+        // keep track of tip's new transform as we descend towards root
+        tipPosition = jointPosition + deltaRotation * leverArm;
+        tipOrientation = glm::normalize(deltaRotation * tipOrientation);
+        tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
+
+        pivotIndex = pivotsParentIndex;
+        pivotsParentIndex = _skeleton->getParentIndex(pivotIndex);
+    }
+    return lowestMovedIndex;
 }
 
 //virtual
