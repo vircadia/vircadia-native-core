@@ -107,7 +107,7 @@ namespace render {
             bool operator== (const Location& right) const { return pos == right.pos && depth == right.depth; }
 
             // Eval the octant of this cell relative to its parent
-            Octant octant() const { return  Octant((pos.x & 1) | (pos.y & 1) | (pos.z & 1)); }
+            Octant octant() const { return  Octant((pos.x & 1) | ((pos.y & 1) << 1) | ((pos.z & 1) << 2)); }
             Coord3 octantAxes(Link octant) const { return Coord3((Coord)bool(octant & XAxis), (Coord)bool(octant & YAxis), (Coord)bool(octant & ZAxis)); }
 
             // Get the Parent cell Location of this cell
