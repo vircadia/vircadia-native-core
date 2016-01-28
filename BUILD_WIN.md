@@ -98,3 +98,7 @@ If you need to debug Interface, you can run interface from within Visual Studio 
 * In the Solution Explorer, right click interface and click Set as StartUp Project
 * Set the "Working Directory" for the Interface debugging sessions to the Debug output directory so that your application can load resources. Do this: right click interface and click Properties, choose Debugging from Configuration Properties, set Working Directory to .\Debug
 * Now you can run and debug interface through Visual Studio
+
+For better performance when running debug builds, set the environment variable ```_NO_DEBUG_HEAP``` to ```1```
+
+http://preshing.com/20110717/the-windows-heap-is-slow-when-launched-from-the-debugger/
