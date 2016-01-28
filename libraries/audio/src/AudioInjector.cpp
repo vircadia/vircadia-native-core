@@ -295,14 +295,7 @@ int64_t AudioInjector::injectNextFrame() {
 
     if (audioMixer) {
         // send off this audio packet
-        auto bytesWritten = nodeList->sendUnreliablePacket(*_currentPacket, *audioMixer);
-        if (bytesWritten < 0) {
-            auto currentTime = _frameTimer->nsecsElapsed() / 1000;
-            qDebug() << this << "error sending audio injector packet. NF:"
-                << _nextFrame << "CT:" << currentTime
-                << "CF:" << currentTime / AudioConstants::NETWORK_FRAME_USECS;
-        }
-
+        nodeList->sendUnreliablePacket(*_currentPacket, *audioMixer);
         _outgoingSequenceNumber++;
     }
 
