@@ -76,7 +76,15 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     opaqueState->setDepthTest(false);
     opaqueState->setBlendFunction(false);
 
+    auto transparentState = std::make_shared<gpu::State>();
+    transparentState->setDepthTest(false);
+    transparentState->setBlendFunction(true,
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+
     plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState, &batchSetter);
+    plumber.addPipeline(ShapeKey::Filter::Builder().withTranslucent(), program, transparentState, &batchSetter);
 }
 
 void initDeferredPipelines(render::ShapePlumber& plumber) {

@@ -87,14 +87,11 @@ public:
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numItems READ getNumItems)
-    Q_PROPERTY(int numDrawn READ getNumDrawn)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
     int getNumItems() { return numItems; }
-    int getNumDrawn() { return numDrawn; }
 
     int numItems{ 0 };
-    int numDrawn{ 0 };
     int maxDrawn{ -1 };
 signals:
     void dirty();
@@ -105,13 +102,14 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::Model<DrawOverlay3D, Config>;
 
-    DrawOverlay3D();
+    DrawOverlay3D(render::ItemFilter filter);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
+    render::ItemFilter _filter;
     int _maxDrawn; // initialized by Config
 };
 
