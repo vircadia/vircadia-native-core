@@ -25,7 +25,7 @@
 #include "text/FontFamilies.h"
 
 QString const TextOverlay::TYPE = "text";
-QUrl const TextOverlay::URL = "hifi/overlays/TextOverlay.qml";
+QUrl const TextOverlay::URL(QString("hifi/overlays/TextOverlay.qml"));
 
 TextOverlay::TextOverlay() : QmlOverlay(URL) { }
 

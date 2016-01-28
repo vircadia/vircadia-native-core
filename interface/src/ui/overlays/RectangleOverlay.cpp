@@ -9,7 +9,7 @@
 #include "RectangleOverlay.h"
 
 QString const RectangleOverlay::TYPE = "rectangle";
-QUrl const RectangleOverlay::URL = "hifi/overlays/RectangleOverlay.qml";
+QUrl const RectangleOverlay::URL(QString("hifi/overlays/RectangleOverlay.qml"));
 
 RectangleOverlay::RectangleOverlay() : QmlOverlay(URL) {}
 

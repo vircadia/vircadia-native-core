@@ -17,7 +17,7 @@
 
 
 QString const ImageOverlay::TYPE = "image";
-QUrl const ImageOverlay::URL = "hifi/overlays/ImageOverlay.qml";
+QUrl const ImageOverlay::URL(QString("hifi/overlays/ImageOverlay.qml"));
 
 ImageOverlay::ImageOverlay() 
     : QmlOverlay(URL) { }
