@@ -16,8 +16,6 @@
 
 #include "render/DrawTask.h"
 
-#include "ToneMappingEffect.h"
-
 class SetupDeferred {
 public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
@@ -38,32 +36,6 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
     using JobModel = render::Job::Model<RenderDeferred>;
-};
-
-
-class ToneMappingConfig : public render::Job::Config {
-    Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled)
-    Q_PROPERTY(float exposure MEMBER exposure NOTIFY dirty);
-    Q_PROPERTY(int curve MEMBER curve NOTIFY dirty);
-public:
-    ToneMappingConfig() : render::Job::Config(true) {}
-
-    float exposure{ 0.0f };
-    int curve{ 3 };
-signals:
-    void dirty();
-};
-
-class ToneMappingDeferred {
-public:
-    using Config = ToneMappingConfig;
-    using JobModel = render::Job::Model<ToneMappingDeferred, Config>;
-
-    void configure(const Config& config);
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    ToneMappingEffect _toneMappingEffect;
 };
 
 class DrawConfig : public render::Job::Config {

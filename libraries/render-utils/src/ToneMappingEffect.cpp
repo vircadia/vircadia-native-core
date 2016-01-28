@@ -146,3 +146,18 @@ void ToneMappingEffect::render(RenderArgs* args) {
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
 }
+
+
+void ToneMappingDeferred::configure(const Config& config) {
+    if (config.exposure >= 0.0f) {
+        _toneMappingEffect.setExposure(config.exposure);
+    }
+
+    if (config.curve >= 0) {
+        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
+    }
+}
+
+void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+    _toneMappingEffect.render(renderContext->args);
+}
