@@ -22,6 +22,7 @@
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
+#include "OpenGLInfo.h"
 #include "MainWindow.h"
 
 int main(int argc, const char* argv[]) {
@@ -83,6 +84,17 @@ int main(int argc, const char* argv[]) {
 #endif
     }
 
+    // Check OpenGL version.
+    // This is done separately from the main Application so that start-up and shut-down logic within the main Application is
+    // not made more complicated than it already is.
+    {
+        OpenGLInfo openGLInfo(argc, const_cast<char**>(argv));
+        if (!openGLInfo.isValidVersion()) {
+            qCDebug(interfaceapp, "Early exit due to OpenGL version.");
+            return 0;
+        }
+    }
+
     QElapsedTimer startupTime;
     startupTime.start();
 
@@ -96,6 +108,7 @@ int main(int argc, const char* argv[]) {
         usecTimestampNowForceClockSkew(clockSkew);
         qCDebug(interfaceapp, "clockSkewOption=%s clockSkew=%d", clockSkewOption, clockSkew);
     }
+
     // Oculus initialization MUST PRECEDE OpenGL context creation.
     // The nature of the Application constructor means this has to be either here,
     // or in the main window ctor, before GL startup.
