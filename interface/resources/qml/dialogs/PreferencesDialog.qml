@@ -66,7 +66,7 @@ Window {
             if (sections.length) {
                 sections[0].expanded = true;
                 if (sections.length === 1) {
-                    sections[0].expandable = false
+                    sections[0].collapsable = false
                 }
             }
         }
