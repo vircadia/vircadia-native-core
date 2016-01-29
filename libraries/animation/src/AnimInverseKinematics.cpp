@@ -164,14 +164,14 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
 
         // harvest accumulated rotations and apply the average
         const int numJoints = (int)_accumulators.size();
-        for (int i = 0; i < numJoints; ++i) {
+        for (int i = lowestMovedIndex; i < _maxTargetIndex; ++i) {
             if (_accumulators[i].size() > 0) {
                 _relativePoses[i].rot = _accumulators[i].getAverage();
                 _accumulators[i].clear();
             }
         }
 
-        // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
+        // update the absolutePoses that need it (from lowestMovedIndex to _maxTargetIndex)
         for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
             auto parentIndex = _skeleton->getParentIndex((int)i);
             if (parentIndex != -1) {
