@@ -73,6 +73,12 @@ public:
         glm::quat rightOrientation = glm::quat(); // rig space (z forward)
     };
 
+    enum class CharacterControllerState {
+        Ground = 0,
+        Jump,
+        Hover
+    };
+
     virtual ~Rig() {}
 
     void destroyAnimGraph();
@@ -141,7 +147,7 @@ public:
     glm::mat4 getJointTransform(int jointIndex) const;
 
     // Start or stop animations as needed.
-    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, bool isHovering);
+    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, glm::mat4 rootTransform);
@@ -271,7 +277,8 @@ public:
         Idle = 0,
         Turn,
         Move,
-        Hover
+        Hover,
+        Jump
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };

@@ -75,6 +75,7 @@ public:
 
     glm::vec3 getLinearVelocity() const;
 
+    bool isJumping() const { return _isJumping; }
     bool isHovering() const { return _isHovering; }
     void setHovering(bool enabled);
 

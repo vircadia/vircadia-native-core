@@ -247,7 +247,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -263,7 +264,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -278,7 +280,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -293,7 +296,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -308,7 +312,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -323,7 +328,8 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -338,7 +344,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -353,7 +360,8 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -385,7 +393,17 @@
                                                             "interpTarget": 6,
                                                             "interpDuration": 6,
                                                             "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotFlying", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "inAir",
+                                                            "interpTarget": 3,
+                                                            "interpDuration": 3,
+                                                            "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isNotInAir", "state": "idle" }
                                                             ]
                                                         }
                                                     ]
@@ -685,6 +703,52 @@
                                                             "loopFlag": true
                                                         },
                                                         "children": []
+                                                    },
+                                                    {
+                                                        "id": "inAir",
+                                                        "type": "blendLinear",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "inAirAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "inAirPreApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 0.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 6.0,
+                                                                    "endFrame": 6.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirPostApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 11.0,
+                                                                    "endFrame": 11.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": true
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             }
