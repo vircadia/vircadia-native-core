@@ -105,12 +105,7 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 }
                 target.setPose(rotation, translation);
                 target.setIndex(targetVar.jointIndex);
-                if (target.getType() == IKTarget::Type::HmdHead) {
-                    // HmdHead target always goes to beginning of the list
-                    targets.insert(targets.begin(), target);
-                } else {
-                    targets.push_back(target);
-                }
+                targets.push_back(target);
                 if (targetVar.jointIndex > _maxTargetIndex) {
                     _maxTargetIndex = targetVar.jointIndex;
                 }
@@ -142,7 +137,6 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     absolutePoses.resize(_relativePoses.size());
     computeAbsolutePoses(absolutePoses);
 
-    //if (targets[0].getType() == IKTarget::Type::HmdHead) {
     // clear the accumulators before we start the IK solver
     for (auto& accumulator: _accumulators) {
         accumulator.clearAndClean();
