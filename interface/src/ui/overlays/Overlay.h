@@ -39,6 +39,7 @@ public:
     virtual void render(RenderArgs* args) = 0;
     
     virtual AABox getBounds() const = 0;
+    virtual bool supportsGetProperty() const { return true; }
 
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);

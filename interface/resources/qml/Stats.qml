@@ -136,7 +136,7 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Velocity: " + root.velocity.toFixed(1)
+                        text: "Speed: " + root.speed.toFixed(1)
                     }
                     Text {
                         color: root.fontColor;

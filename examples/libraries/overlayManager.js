@@ -236,16 +236,8 @@
         "dimensions"
     ]);
 
-    ImageOverlay = generateOverlayClass(Overlay2D, "image", [
-        "subImage", "imageURL"
-    ]);
-
     Image3DOverlay = generateOverlayClass(Billboard3DOverlay, "image3d", [
         "url", "subImage"
-    ]);
-
-    TextOverlay = generateOverlayClass(Overlay2D, "text", [
-        "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
     ]);
 
     Text3DOverlay = generateOverlayClass(Billboard3DOverlay, "text3d", [

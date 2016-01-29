@@ -103,6 +103,9 @@ public:
 
     void postLambdaEvent(std::function<void()> f) override;
 
+    QString getPreviousScriptLocation();
+    void setPreviousScriptLocation(const QString& previousScriptLocation);
+
     void initializeGL();
     void initializeUi();
     void paintGL();
@@ -429,6 +432,7 @@ private:
     Camera _mirrorCamera;                        // Cammera for mirror view
     QRect _mirrorViewRect;
 
+    Setting::Handle<QString> _previousScriptLocation;
     Setting::Handle<float> _fieldOfView;
 
     float _scaleMirror;

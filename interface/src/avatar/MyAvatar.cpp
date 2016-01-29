@@ -1078,6 +1078,8 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
 
+    setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
+
     // now that physics has adjusted our position, we can update attachements.
     Avatar::simulateAttachments(deltaTime);
 }

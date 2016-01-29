@@ -162,7 +162,7 @@ void Stats::updateStats(bool force) {
     MyAvatar* myAvatar = avatarManager->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
-    STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
+    STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getVelocity()), 0.1f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);

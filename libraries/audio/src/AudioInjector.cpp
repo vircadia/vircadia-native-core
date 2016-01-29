@@ -181,6 +181,15 @@ int64_t AudioInjector::injectNextFrame() {
         // make sure we actually have samples downloaded to inject
         if (_audioData.size()) {
 
+            int sampleSize = (_options.stereo ? 2 : 1) * sizeof(AudioConstants::AudioSample);
+            auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
+            auto targetSize = numSamples * sampleSize;
+            if (targetSize != _audioData.size()) {
+                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                    << _audioData.size() << " to " << targetSize;
+                _audioData.resize(targetSize);
+            }
+
             _outgoingSequenceNumber = 0;
             _nextFrame = 0;
 
@@ -272,7 +281,7 @@ int64_t AudioInjector::injectNextFrame() {
         _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
         _currentSendOffset += bytesToCopy;
         totalBytesLeftToCopy -= bytesToCopy;
-        if (_currentSendOffset >= _audioData.size()) {
+        if (_options.loop && _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
     }
@@ -305,14 +314,16 @@ int64_t AudioInjector::injectNextFrame() {
     const int MAX_ALLOWED_FRAMES_TO_FALL_BEHIND = 7;
     int64_t currentTime = _frameTimer->nsecsElapsed() / 1000;
     auto currentFrameBasedOnElapsedTime = currentTime / AudioConstants::NETWORK_FRAME_USECS;
+
     if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
         // If we are falling behind by more frames than our threshold, let's skip the frames ahead
-        qDebug() << "AudioInjector::injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
         _nextFrame = currentFrameBasedOnElapsedTime;
         _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
     }
 
     int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
+    
     return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
