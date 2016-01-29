@@ -339,6 +339,7 @@ function writeVec3ToInterface(obj) {
 }
 
 function listenForSettingsUpdates() {
+    console.log("EBL sLISTENING FOR EVENTS")
     EventBridge.scriptEventReceived.connect(function(data) {
         data = JSON.parse(data);
         if (data.messageType === 'initial_settings') {
@@ -349,8 +350,8 @@ function listenForSettingsUpdates() {
 
             loadGUI();
         }
-
-        if (date.type === "enableParticleTab") {
+        console.log("EBL RECIEVED EVENT - " + JSON.stringify(data));
+        if (data.type === "enableParticleTab") {
             console.log("EBL JUST GOT AN ENABLE MESSAGE!");
         }
     });

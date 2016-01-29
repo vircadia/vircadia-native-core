@@ -27,7 +27,7 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
-    "particle_explorer/particleExplorerTool.js",
+    "particle_explorer/particleExplorerTool.js?v1" + Math.random(),
     "libraries/lightOverlayManager.js",
 ]);
 

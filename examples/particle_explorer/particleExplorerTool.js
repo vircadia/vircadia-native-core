@@ -1,4 +1,4 @@
-var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
+var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html?v1' + Math.random());
 
 ParticleExplorerTool = function() {
     var that = {};
@@ -11,9 +11,18 @@ ParticleExplorerTool = function() {
     var visible = false;
     webView.setVisible(visible);
 
+    webView.eventBridge.webEventReceived.connect(function(data) {
+
+        print("EBL GOT AN EVENT!");
+    });
+
     that.setVisible = function(newVisible) {
         visible = newVisible;
         webView.setVisible(visible);
+    }
+
+    that.getWebView = function() {
+        return webView;
     }
 
 
