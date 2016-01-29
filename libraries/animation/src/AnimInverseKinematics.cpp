@@ -142,18 +142,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     absolutePoses.resize(_relativePoses.size());
     computeAbsolutePoses(absolutePoses);
 
-    #if 0
-    // TODO: implement this
-    if (targets[0].getType() == IKTarget::Type::HmdHead) {
-        // first solve HmdHead rotation
-        IKTarget& target = targets[0];
-
-        // measure the head's position error
-
-        // update hipsOffset to compensate for error
-    }
-    #endif
-
+    //if (targets[0].getType() == IKTarget::Type::HmdHead) {
     // clear the accumulators before we start the IK solver
     for (auto& accumulator: _accumulators) {
         accumulator.clearAndClean();
@@ -162,30 +151,28 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
     int numLoops = 0;
     const int MAX_IK_LOOPS = 4;
     while (numLoops < MAX_IK_LOOPS) {
+        ++numLoops;
+
+        // solve all targets
         int lowestMovedIndex = (int)_relativePoses.size();
         for (auto& target: targets) {
             lowestMovedIndex = solveTargetWithCCD(target, absolutePoses);
-            ++numLoops;
+        }
 
-            if (lowestMovedIndex >= (int)_relativePoses.size()) {
-                continue;
+        // harvest accumulated rotations and apply the average
+        const int numJoints = (int)_accumulators.size();
+        for (int i = 0; i < numJoints; ++i) {
+            if (_accumulators[i].size() > 0) {
+                _relativePoses[i].rot = _accumulators[i].getAverage();
+                _accumulators[i].clear();
             }
+        }
 
-            // harvest accumulated rotations and apply the average
-            const int numJoints = (int)_accumulators.size();
-            for (int i = 0; i < numJoints; ++i) {
-                if (_accumulators[i].size() > 0) {
-                    _relativePoses[i].rot = _accumulators[i].getAverage();
-                    _accumulators[i].clear();
-                }
-            }
-
-            // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
-            for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
-                auto parentIndex = _skeleton->getParentIndex((int)i);
-                if (parentIndex != -1) {
-                    absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
-                }
+        // only update the absolutePoses that need it: those between lowestMovedIndex and _maxTargetIndex
+        for (auto i = lowestMovedIndex; i <= _maxTargetIndex; ++i) {
+            auto parentIndex = _skeleton->getParentIndex((int)i);
+            if (parentIndex != -1) {
+                absolutePoses[i] = absolutePoses[parentIndex] * _relativePoses[i];
             }
         }
     }
@@ -371,7 +358,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
-        // relax toward underpose
+        // relax toward underPoses
         // HACK: this relaxation needs to be constant per-frame rather than per-realtime
         // in order to prevent IK "flutter" for bad FPS.  The bad news is that the good parts
         // of this relaxation will be FPS dependent (low FPS will make the limbs align slower
@@ -382,8 +369,10 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         for (int i = 0; i < numJoints; ++i) {
             float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot, underPoses[i].rot));
             if (_accumulators[i].isDirty()) {
+                // this joint is affected by IK --> blend toward underPose rotation
                 _relativePoses[i].rot = glm::normalize(glm::lerp(_relativePoses[i].rot, dotSign * underPoses[i].rot, blend));
             } else {
+                // this joint is NOT affected by IK --> slam to underPose rotation
                 _relativePoses[i].rot = underPoses[i].rot;
             }
             _relativePoses[i].trans = underPoses[i].trans;
@@ -406,7 +395,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 ++constraintItr;
             }
         } else {
-            // shift the everything according to the _hipsOffset from the previous frame
+            // shift hips according to the _hipsOffset from the previous frame
             float offsetLength = glm::length(_hipsOffset);
             const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
             if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
@@ -423,14 +412,14 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         hipsFrameRotation *= _relativePoses[index].rot;
                         index = _skeleton->getParentIndex(index);
                     }
-                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans 
+                    _relativePoses[_hipsIndex].trans = underPoses[_hipsIndex].trans
                         + glm::inverse(glm::normalize(hipsFrameRotation)) * (scaleFactor * _hipsOffset);
                 }
             }
 
             solveWithCyclicCoordinateDescent(targets);
 
-            // compute the new target hips offset (for next frame)
+            // measure new _hipsOffset for next frame
             // by looking for discrepancies between where a targeted endEffector is
             // and where it wants to be (after IK solutions are done)
             glm::vec3 newHipsOffset = Vectors::ZERO;
@@ -439,7 +428,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 if (targetIndex == _headIndex && _headIndex != -1) {
                     // special handling for headTarget
                     if (target.getType() == IKTarget::Type::RotationOnly) {
-                        // we want to shift the hips to bring the underpose closer
+                        // we want to shift the hips to bring the underPose closer
                         // to where the head happens to be (overpose)
                         glm::vec3 under = _skeleton->getAbsolutePose(_headIndex, underPoses).trans;
                         glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans;
