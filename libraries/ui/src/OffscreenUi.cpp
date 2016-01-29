@@ -199,19 +199,7 @@ private slots:
     }
 };
 
-QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    if (QThread::currentThread() != thread()) {
-        QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
-        QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QMessageBox::StandardButton, result),
-            Q_ARG(QMessageBox::Icon, icon),
-            Q_ARG(QString, title),
-            Q_ARG(QString, text),
-            Q_ARG(QMessageBox::StandardButtons, buttons),
-            Q_ARG(QMessageBox::StandardButton, defaultButton));
-        return result;
-    }
-
+QQuickItem* OffscreenUi::createMessageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     QVariantMap map;
     map.insert("title", title);
     map.insert("text", text);
@@ -225,12 +213,34 @@ QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, cons
 
     if (!invokeResult) {
         qWarning() << "Failed to create message box";
-        return QMessageBox::StandardButton::NoButton;
+        return nullptr;
+    }
+    return qvariant_cast<QQuickItem*>(result);
+}
+
+QMessageBox::StandardButton OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
+    if (!messageBox) {
+        return QMessageBox::NoButton;
     }
     
-    QMessageBox::StandardButton resultButton = MessageBoxListener(qvariant_cast<QQuickItem*>(result)).waitForButtonResult();
-    qDebug() << "Message box got a result of " << resultButton;
-    return resultButton;
+    return MessageBoxListener(messageBox).waitForButtonResult();
+}
+
+
+QMessageBox::StandardButton OffscreenUi::messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    if (QThread::currentThread() != thread()) {
+        QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
+        QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QMessageBox::StandardButton, result),
+            Q_ARG(QMessageBox::Icon, icon),
+            Q_ARG(QString, title),
+            Q_ARG(QString, text),
+            Q_ARG(QMessageBox::StandardButtons, buttons),
+            Q_ARG(QMessageBox::StandardButton, defaultButton));
+        return result;
+    }
+
+    return waitForMessageBoxResult(createMessageBox(icon, title, text, buttons, defaultButton));
 }
 
 QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QString& text,
@@ -273,6 +283,7 @@ private slots:
 
 // FIXME many input parameters currently ignored
 QString OffscreenUi::getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode, const QString & text, bool * ok, Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints) {
+    if (ok) { *ok = false; }
     QVariant result = DependencyManager::get<OffscreenUi>()->inputDialog(title, label, text).toString();
     if (ok && result.isValid()) {
         *ok = true;
@@ -280,35 +291,70 @@ QString OffscreenUi::getText(void* ignored, const QString & title, const QString
     return result.toString();
 }
 
+// FIXME many input parameters currently ignored
+QString OffscreenUi::getItem(void *ignored, const QString & title, const QString & label, const QStringList & items, int current, bool editable, bool * ok, Qt::WindowFlags flags, Qt::InputMethodHints inputMethodHints) {
+    if (ok) { 
+        *ok = false; 
+    }
 
-QVariant OffscreenUi::inputDialog(const QString& query, const QString& placeholderText, const QString& currentValue) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto inputDialog = offscreenUi->createInputDialog(title, label, current);
+    if (!inputDialog) {
+        return QString();
+    }
+    inputDialog->setProperty("items", items);
+    inputDialog->setProperty("editable", editable);
+
+    QVariant result = offscreenUi->waitForInputDialogResult(inputDialog);
+    if (!result.isValid()) {
+        return QString();
+    }
+
+    if (ok) {
+        *ok = true;
+    }
+    return result.toString();
+}
+
+QVariant OffscreenUi::inputDialog(const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "queryBox", Qt::BlockingQueuedConnection,
+        QMetaObject::invokeMethod(this, "inputDialog", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QVariant, result),
-            Q_ARG(QString, query),
-            Q_ARG(QString, placeholderText),
-            Q_ARG(QString, currentValue));
+            Q_ARG(QString, title),
+            Q_ARG(QString, label),
+            Q_ARG(QVariant, current));
         return result;
     }
 
+    return waitForInputDialogResult(createInputDialog(title, label, current));
+}
+
+
+QQuickItem* OffscreenUi::createInputDialog(const QString& title, const QString& label, const QVariant& current) {
     QVariantMap map;
-    map.insert("text", query);
-    map.insert("placeholderText", placeholderText);
-    map.insert("result", currentValue);
+    map.insert("title", title);
+    map.insert("label", label);
+    map.insert("current", current);
     QVariant result;
-    bool invokeResult = QMetaObject::invokeMethod(_desktop, "queryBox",
+    bool invokeResult = QMetaObject::invokeMethod(_desktop, "inputDialog",
         Q_RETURN_ARG(QVariant, result),
         Q_ARG(QVariant, QVariant::fromValue(map)));
 
     if (!invokeResult) {
         qWarning() << "Failed to create message box";
-        return QVariant();
+        return nullptr;
     }
 
-    return InputDialogListener(qvariant_cast<QQuickItem*>(result)).waitForResult();
+    return qvariant_cast<QQuickItem*>(result);
 }
 
+QVariant OffscreenUi::waitForInputDialogResult(QQuickItem* inputDialog) {
+    if (!inputDialog) {
+        return QVariant();
+    }
+    return InputDialogListener(inputDialog).waitForResult();
+}
 
 bool OffscreenUi::navigationFocused() {
     return offscreenFlags->isNavigationFocused();
