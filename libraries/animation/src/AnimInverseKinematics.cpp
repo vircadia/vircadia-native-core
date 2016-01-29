@@ -156,7 +156,10 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         // solve all targets
         int lowestMovedIndex = (int)_relativePoses.size();
         for (auto& target: targets) {
-            lowestMovedIndex = solveTargetWithCCD(target, absolutePoses);
+            int lowIndex = solveTargetWithCCD(target, absolutePoses);
+            if (lowIndex < lowestMovedIndex) {
+                lowestMovedIndex = lowIndex;
+            }
         }
 
         // harvest accumulated rotations and apply the average
