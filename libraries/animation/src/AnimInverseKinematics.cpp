@@ -163,7 +163,6 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const std::vector<I
         }
 
         // harvest accumulated rotations and apply the average
-        const int numJoints = (int)_accumulators.size();
         for (int i = lowestMovedIndex; i < _maxTargetIndex; ++i) {
             if (_accumulators[i].size() > 0) {
                 _relativePoses[i].rot = _accumulators[i].getAverage();
@@ -261,16 +260,32 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
                 targetType == IKTarget::Type::HipsRelativeRotationAndPosition) {
             // compute the swing that would get get tip closer
             glm::vec3 targetLine = target.getTranslation() - jointPosition;
+
+            const float MIN_AXIS_LENGTH = 1.0e-4f;
+            RotationConstraint* constraint = getConstraint(pivotIndex);
+            if (constraint && constraint->isLowerSpine()) {
+                // for these types of targets we only allow twist at the lower-spine
+                // (this prevents the hand targets from bending the spine too much and thereby driving the hips too far)
+                glm::vec3 twistAxis = absolutePoses[pivotIndex].trans - absolutePoses[pivotsParentIndex].trans;
+                float twistAxisLength = glm::length(twistAxis);
+                if (twistAxisLength > MIN_AXIS_LENGTH) {
+                    // project leverArm and targetLine to the plane
+                    twistAxis /= twistAxisLength;
+                    leverArm -= glm::dot(leverArm, twistAxis) * twistAxis;
+                    targetLine -= glm::dot(targetLine, twistAxis) * twistAxis;
+                } else {
+                    leverArm = Vectors::ZERO;
+                    targetLine = Vectors::ZERO;
+                }
+            }
+
             glm::vec3 axis = glm::cross(leverArm, targetLine);
             float axisLength = glm::length(axis);
-            const float MIN_AXIS_LENGTH = 1.0e-4f;
             if (axisLength > MIN_AXIS_LENGTH) {
-                // compute deltaRotation for alignment (swings tip closer to target)
+                // compute angle of rotation that brings tip closer to target
                 axis /= axisLength;
                 float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
 
-                // NOTE: even when axisLength is not zero (e.g. lever-arm and pivot-arm are not quite aligned) it is
-                // still possible for the angle to be zero so we also check that to avoid unnecessary calculations.
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a fraction (for stability)
@@ -663,6 +678,10 @@ void AnimInverseKinematics::initConstraints() {
             const float MAX_SPINE_SWING = PI / 14.0f;
             minDots.push_back(cosf(MAX_SPINE_SWING));
             stConstraint->setSwingLimits(minDots);
+            if (0 == baseName.compare("Spine1", Qt::CaseInsensitive)
+                    || 0 == baseName.compare("Spine", Qt::CaseInsensitive)) {
+                stConstraint->setLowerSpine(true);
+            }
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
         } else if (baseName.startsWith("Hips2", Qt::CaseInsensitive)) {
