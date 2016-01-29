@@ -1510,7 +1510,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering());
+    bool isHovering = _characterController.getState() == CharacterController::State::Hover;
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
@@ -1577,10 +1578,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
         }
     }
     return false;
-}
-
-bool MyAvatar::isHovering() const {
-    return _characterController.isHovering();
 }
 
 void MyAvatar::increaseSize() {

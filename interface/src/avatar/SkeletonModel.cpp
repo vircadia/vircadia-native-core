@@ -72,6 +72,18 @@ void SkeletonModel::initJointStates() {
     emit skeletonLoaded();
 }
 
+Rig::CharacterControllerState convertCharacterControllerState(CharacterController::State state) {
+    switch (state) {
+    default:
+    case CharacterController::State::Ground:
+        return Rig::CharacterControllerState::Ground;
+    case CharacterController::State::InAir:
+        return Rig::CharacterControllerState::InAir;
+    case CharacterController::State::Hover:
+        return Rig::CharacterControllerState::Hover;
+    };
+}
+
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Head* head = _owningAvatar->getHead();
@@ -133,13 +145,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
-        Rig::CharacterControllerState ccState = Rig::CharacterControllerState::Ground;
-        if (myAvatar->getCharacterController()->isHovering()) {
-            ccState = Rig::CharacterControllerState::Hover;
-        } else if (myAvatar->getCharacterController()->isJumping()) {
-            ccState = Rig::CharacterControllerState::Jump;
-        }
-
+        Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
         _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), ccState);
 
         // evaluate AnimGraph animation and update jointStates.

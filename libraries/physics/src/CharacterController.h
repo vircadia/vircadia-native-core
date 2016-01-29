@@ -75,9 +75,13 @@ public:
 
     glm::vec3 getLinearVelocity() const;
 
-    bool isJumping() const { return _isJumping; }
-    bool isHovering() const { return _isHovering; }
-    void setHovering(bool enabled);
+    enum class State {
+        Ground = 0,
+        InAir,
+        Hover
+    };
+
+    State getState() const { return _state; }
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
@@ -87,6 +91,8 @@ public:
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
 protected:
+    void setState(State state);
+
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld) const;
 
@@ -117,10 +123,7 @@ protected:
     btQuaternion _followAngularDisplacement;
 
     bool _enabled;
-    bool _isOnGround;
-    bool _isJumping;
-    bool _isFalling;
-    bool _isHovering;
+    State _state;
     bool _isPushingUp;
 
     btDynamicsWorld* _dynamicsWorld { nullptr };

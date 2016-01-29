@@ -1,4 +1,4 @@
-//
+ //
 //  CharacterControllerInterface.cpp
 //  libraries/physcis/src
 //
@@ -51,10 +51,7 @@ CharacterController::CharacterController() {
     _followDesiredBodyTransform.setIdentity();
     _followTimeRemaining = 0.0f;
     _jumpSpeed = JUMP_SPEED;
-    _isOnGround = false;
-    _isJumping = false;
-    _isFalling = false;
-    _isHovering = true;
+    _state = State::Hover;
     _isPushingUp = false;
     _jumpToHoverStart = 0;
     _followTime = 0.0f;
@@ -107,6 +104,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }
 
+static const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
+
 bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) const {
     int numManifolds = collisionWorld->getDispatcher()->getNumManifolds();
     for (int i = 0; i < numManifolds; i++) {
@@ -119,8 +118,10 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) cons
                 btManifoldPoint& pt = contactManifold->getContactPoint(j);
 
                 // check to see if contact point is touching the bottom sphere of the capsule.
+                // and the contact normal is not slanted too much.
                 float contactPointY = (obA == _rigidBody) ? pt.m_localPointA.getY() : pt.m_localPointB.getY();
-                if (contactPointY < -_halfHeight) {
+                btVector3 normal = (obA == _rigidBody) ? pt.m_normalWorldOnB : -pt.m_normalWorldOnB;
+                if (contactPointY < -_halfHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
                     return true;
                 }
             }
@@ -165,7 +166,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     }
 
     const btScalar MIN_SPEED = 0.001f;
-    if (_isHovering) {
+    if (_state == State::Hover) {
         if (desiredSpeed < MIN_SPEED) {
             if (actualSpeed < MIN_SPEED) {
                 _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
@@ -255,9 +256,9 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 
 void CharacterController::jump() {
     // check for case where user is holding down "jump" key...
-    // we'll eventually tansition to "hover"
-    if (!_isJumping) {
-        if (!_isHovering) {
+    // we'll eventually transition to "hover"
+    if (_state != State::InAir) {
+        if (_state != State::Hover) {
             _jumpToHoverStart = usecTimestampNow();
             _pendingFlags |= PENDING_FLAG_JUMP;
         }
@@ -266,7 +267,7 @@ void CharacterController::jump() {
         const quint64 JUMP_TO_HOVER_PERIOD = 75 * (USECS_PER_SECOND / 100);
         if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
             _isPushingUp = true;
-            setHovering(true);
+            setState(State::Hover);
         }
     }
 }
@@ -276,19 +277,19 @@ bool CharacterController::onGround() const {
     return _floorDistance < FLOOR_PROXIMITY_THRESHOLD || _hasSupport;
 }
 
-void CharacterController::setHovering(bool hover) {
-    if (hover != _isHovering) {
-        _isHovering = hover;
-        _isJumping = false;
-
+void CharacterController::setState(State desiredState) {
+    if (desiredState == State::Hover && _state != State::Hover) {
+        // hover enter
         if (_rigidBody) {
-            if (hover) {
-                _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-            } else {
-                _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
-            }
+            _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+        }
+    } else if (_state == State::Hover && desiredState != State::Hover) {
+        // hover exit
+        if (_rigidBody) {
+            _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
         }
     }
+    _state = desiredState;
 }
 
 void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
@@ -335,9 +336,8 @@ void CharacterController::setEnabled(bool enabled) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
             }
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
-            _isOnGround = false;
         }
-        setHovering(true);
+        setState(State::Hover);
         _enabled = enabled;
     }
 }
@@ -345,7 +345,7 @@ void CharacterController::setEnabled(bool enabled) {
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
     btVector3 oldUp = _currentUp;
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
-    if (!_isHovering) {
+    if (_state != State::Hover) {
         const btScalar MIN_UP_ERROR = 0.01f;
         if (oldUp.distance(_currentUp) > MIN_UP_ERROR) {
             _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
@@ -425,23 +425,23 @@ void CharacterController::preSimulation() {
         if (rayCallback.hasHit()) {
             _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
             const btScalar MIN_HOVER_HEIGHT = 3.0f;
-            if (_isHovering && _floorDistance < MIN_HOVER_HEIGHT && !_isPushingUp) {
-                setHovering(false);
+            if (_state == State::Hover && _floorDistance < MIN_HOVER_HEIGHT && !_isPushingUp) {
+                setState(State::InAir);
             }
             // TODO: use collision events rather than ray-trace test to disable jumping
             const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
-            if (_floorDistance < JUMP_PROXIMITY_THRESHOLD) {
-                _isJumping = false;
+            if (_floorDistance < JUMP_PROXIMITY_THRESHOLD || _hasSupport) {
+                setState(State::Ground);
             }
         } else if (!_hasSupport) {
             _floorDistance = FLT_MAX;
-            setHovering(true);
+            setState(State::Hover);
         }
 
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (onGround()) {
-                _isJumping = true;
+                setState(State::InAir);
                 btVector3 velocity = _rigidBody->getLinearVelocity();
                 velocity += _jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);

@@ -577,11 +577,11 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                 _desiredStateAge = 0.0f;
             }
             _desiredState = RigRole::Hover;
-        } else if (ccState == CharacterControllerState::Jump) {
-            if (_desiredState != RigRole::Jump) {
+        } else if (ccState == CharacterControllerState::InAir) {
+            if (_desiredState != RigRole::InAir) {
                 _desiredStateAge = 0.0f;
             }
-            _desiredState = RigRole::Jump;
+            _desiredState = RigRole::InAir;
         } else {
             float moveThresh;
             if (_state != RigRole::Move) {
@@ -719,7 +719,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
             _animVars.set("isNotFlying", false);
             _animVars.set("isInAir", false);
             _animVars.set("isNotInAir", true);
-        } else if (_state == RigRole::Jump) {
+        } else if (_state == RigRole::InAir) {
             // jumping in-air
             _animVars.set("isMovingForward", false);
             _animVars.set("isMovingBackward", false);
