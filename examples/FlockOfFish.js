@@ -11,7 +11,7 @@
 
 
 var LIFETIME = 60; 
-var NUM_FISH = 20;
+var NUM_FISH = 15;
 var TANK_WIDTH = 3.0; 
 var TANK_HEIGHT = 1.0;  
 var FISH_WIDTH = 0.03;
@@ -48,24 +48,37 @@ function updateFish(deltaTime) {
     var averagePosition = { x: 0, y: 0, z: 0 };
     var birdPositionsCounted = 0;
     var birdVelocitiesCounted = 0;
+
+    // First pre-load an array with properties  on all the other fish so our per-fish loop
+    // isn't doing it. 
+    var flockProperties = [];
+    for (var i = 0; i < fish.length; i++) {
+        var otherProps = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
+        flockProperties.push(otherProps);
+    }
+
     for (var i = 0; i < fish.length; i++) {
         if (fish[i].entityId) {
-            var properties = Entities.getEntityProperties(fish[i].entityId);
+            // Get only the properties we need, because that is faster
+            // var properties = flockProperties[i];
+            var properties = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
             //  If Bird has been deleted, bail
             if (properties.id != fish[i].entityId) {
                 fish[i].entityId = false;
                 return;
             }
 
-            var velocity = properties.velocity;
-            var position = properties.position;
+            // Store old values so we can check if they have changed enough to update
+            var velocity = { x: properties.velocity.x, y: properties.velocity.y, z: properties.velocity.z };
+            var position = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
             averageVelocity = { x: 0, y: 0, z: 0 };
             averagePosition = { x: 0, y: 0, z: 0 };
 
             var othersCounted = 0;
             for (var j = 0; j < fish.length; j++) {
                 if (i != j) {
-                    var otherProps = Entities.getEntityProperties(fish[j].entityId);
+                    // Get only the properties we need, because that is faster
+                    var otherProps = flockProperties[j];
                     var separation = Vec3.distance(properties.position, otherProps.position);
                     if (separation < MAX_SIGHT_DISTANCE) {
                         averageVelocity = Vec3.sum(averageVelocity, otherProps.velocity);
@@ -91,6 +104,7 @@ function updateFish(deltaTime) {
                 velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(velocity), SWIMMING_SPEED), SWIMMING_FORCE);
             }
 
+            
             //  Keep fish in their 'tank' 
             if (position.x < lowerCorner.x) {
                 position.x = lowerCorner.x; 
@@ -112,11 +126,19 @@ function updateFish(deltaTime) {
             } else if (position.z > upperCorner.z) {
                 position.z = upperCorner.z; 
                 velocity.z *= -1.0;
-            }
+            } 
 
             //  Orient in direction of velocity 
             var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
-            Entities.editEntity(fish[i].entityId, { position: position, velocity: velocity, rotation: Quat.mix(properties.rotation, rotation, 0.33) });
+            var VELOCITY_FOLLOW_RATE = 0.33;
+
+            //  Only update properties if they have changed, to save bandwidth
+            var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
+            if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
+                Entities.editEntity(fish[i].entityId, { velocity: velocity, rotation: Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE) });
+            } else {
+                Entities.editEntity(fish[i].entityId, { position: position, velocity: velocity, rotation: Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE) });
+            }
         }
     }
 }
