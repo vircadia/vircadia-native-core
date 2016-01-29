@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QRegularExpression>
 
+#include "Config.h"
 #include "GLWidget.h"
 
 OpenGLVersionChecker::OpenGLVersionChecker(int& argc, char** argv) :
@@ -35,13 +36,13 @@ bool OpenGLVersionChecker::isValidVersion() {
     // - major_number.minor_number 
     // - major_number.minor_number.release_number
     // Reference: https://www.opengl.org/sdk/docs/man/docbook4/xhtml/glGetString.xml
-    const int MINIMUM_OPENGL_MAJOR_VERSION = 4;
-    const int MINIMUM_OPENGL_MINOR_VERSION = 1;
     QStringList versionParts = glVersion.split(QRegularExpression("[\\.\\s]"));
     int majorNumber = versionParts[0].toInt();
     int minorNumber = versionParts[1].toInt();
-    valid = (majorNumber > MINIMUM_OPENGL_MAJOR_VERSION
-        || (majorNumber == MINIMUM_OPENGL_MAJOR_VERSION && minorNumber >= MINIMUM_OPENGL_MINOR_VERSION));
+    int minimumMajorNumber = GPU_CORE_MINIMUM / 100;
+    int minimumMinorNumber = (GPU_CORE_MINIMUM - minimumMajorNumber * 100) / 10;
+    valid = (majorNumber > minimumMajorNumber
+        || (majorNumber == minimumMajorNumber && minorNumber >= minimumMinorNumber));
 
     // Prompt user if below minimum
     if (!valid) {
@@ -49,7 +50,7 @@ bool OpenGLVersionChecker::isValidVersion() {
         messageBox.setWindowTitle("OpenGL Version Too Low");
         messageBox.setIcon(QMessageBox::Warning);
         messageBox.setText(QString().sprintf("Your OpenGL version of %i.%i is lower than the minimum of %i.%i.",
-            majorNumber, minorNumber, MINIMUM_OPENGL_MAJOR_VERSION, MINIMUM_OPENGL_MINOR_VERSION));
+            majorNumber, minorNumber, minimumMajorNumber, minimumMinorNumber));
         messageBox.setInformativeText("Press OK to exit; Ignore to continue.");
         messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Ignore);
         messageBox.setDefaultButton(QMessageBox::Ok);
