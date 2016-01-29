@@ -25,9 +25,9 @@ Overlay {
                 case "y": root.y = value; break;
                 case "visible": root.visible = value; break;
                 case "alpha": rectangle.color.a = value; break;
-                case "color": rectangle.color = Qt.rgba(value.red, value.green, value.blue, rectangle.color.a); break;
+                case "color": rectangle.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, rectangle.color.a); break;
                 case "borderAlpha": rectangle.border.color.a = value; break;
-                case "borderColor": rectangle.border.color = Qt.rgba(value.red, value.green, value.blue, rectangle.border.color.a); break;
+                case "borderColor": rectangle.border.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, rectangle.border.color.a); break;
                 case "borderWidth": rectangle.border.width = value; break;
                 case "radius": rectangle.radius = value; break;
                 default: console.log("OVERLAY Unhandled rectangle property " + key);

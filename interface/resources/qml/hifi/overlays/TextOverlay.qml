@@ -23,6 +23,7 @@ Overlay {
         }
     }
 
+
     function updatePropertiesFromScript(properties) {
         var keys = Object.keys(properties);
         for (var i = 0; i < keys.length; ++i) {
@@ -38,23 +39,13 @@ Overlay {
                 case "margin": textField.anchors.margins = value; break;
                 case "leftMargin": textField.anchors.leftMargin = value; break;
                 case "topMargin": textField.anchors.topMargin = value; break;
-                case "color":
-                case "textColor": textField.color = Qt.rgba(value.red, value.green, value.blue, textField.color.a); break;
+                case "color": // fall through
+                case "textColor": textField.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, textField.color.a); break;
                 case "text": textField.text = value; break;
-                case "backgroundAlpha":
-                    if ("object" === typeof(value)) {
-                        console.log("OVERLAY Unexpected object for alpha");
-                        dumpObject(value)
-                    } else {
-                        background.color.a = value; break;
-                    }
-                    break
-                case "backgroundColor": background.color = Qt.rgba(value.red, value.green, value.blue, background.color.a); break;
-                case "font": if (typeof(value) === "Object") {
-                        console.log("Font object");
-                        dumpObject(value)
-                    }
-                    break;
+                case "backgroundAlpha": background.color = Qt.rgba(background.color.r, background.color.g, background.color.b, value); break;
+                case "backgroundColor": background.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, background.color.a); break;
+                case "font": textField.font.pixelSize = value.size; break;
+                case "lineHeight": textField.lineHeight = value; break;
                 default:
                     console.log("OVERLAY text unhandled property " + key);
             }
