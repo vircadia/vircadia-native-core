@@ -1630,7 +1630,7 @@ void MyAvatar::decreaseSize() {
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reseted scale to %f", (double)_targetScale);
+    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
