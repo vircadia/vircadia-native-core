@@ -125,11 +125,36 @@ Octree::Indices Octree::indexCellPath(const Locations& path) {
 }
 
 
+Octree::Index Octree::allocateBrick() {
+    Index brickIdx = _bricks.size();
+    _bricks.push_back(Brick());
+    return brickIdx;
+}
+
+Octree::Index Octree::accessCellBrick(const Location& loc, const CellBrickAccessor& accessor) {
+    auto cellId = indexCell(loc);
+    auto cell = editCell(cellId);
+    if (!cell.asBrick()) {
+        cell.setBrick(allocateBrick());
+    }
+
+    // access the brick
+    auto& brick = _bricks[cell.brick()];
+
+    // execute the accessor
+    accessor(brick, cell.brick());
+
+    return cell.brick();
+}
+
 void ItemSpatialTree::insert(const ItemBounds& items) {
     for (auto& item : items) {
         if (!item.bound.isNull()) {
             auto cellIdx = indexCell(evalLocation(item.bound));
 
+            accessCellBrick(evalLocation(item.bound), [&] (Brick& brick, Octree::Index cellID) {
+                brick.items.push_back(item.id);
+            });
         }
     }
 }

@@ -190,11 +190,12 @@ inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
     return debug;
 }
 
+using ItemID = uint32_t;
 
 class Item {
 public:
     typedef std::vector<Item> Vector;
-    typedef unsigned int ID;
+    typedef ItemID ID;
 
     static const ID INVALID_ITEM_ID = 0;
 
@@ -420,7 +421,6 @@ typedef Item::PayloadPointer PayloadPointer;
 typedef std::vector< PayloadPointer > Payloads;
 
 // A few typedefs for standard containers of ItemIDs 
-using ItemID = Item::ID;
 using ItemIDs = std::vector<ItemID>;
 using ItemIDSet = std::set<ItemID>;
 

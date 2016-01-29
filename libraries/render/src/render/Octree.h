@@ -16,11 +16,20 @@
 #include <memory>
 #include <cassert>
 #include <array>
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/bit.hpp>
 #include <AABox.h>
 
+// maybe we could avoid the Item inclusion here for the OCtree class?
+#include "Item.h"
+
 namespace render {
+
+    class Brick {
+    public:
+        std::vector<ItemID> items;
+    };
 
     class Octree {
     public:
@@ -40,8 +49,10 @@ namespace render {
             NUM_OCTANTS,
 
             Parent = NUM_OCTANTS,
+            BrickLink = Parent + 1,
 
-            NUM_LINKS = NUM_OCTANTS + 1,
+            NUM_LINKS = BrickLink + 1,
+
 
             XAxis = 0x01,
             YAxis = 0x02,
@@ -150,27 +161,25 @@ namespace render {
             bool asChild(Link octant) const { return child(octant) != INVALID; }
             void setChild(Link octant, Index child) { _links[octant] = child; }
 
+            Index brick() const { return _links[BrickLink]; }
+            bool asBrick() const { return _links[BrickLink] != INVALID; }
+            void setBrick(Index brick) { _links[BrickLink] = brick; }
+
             Cell() :
-                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
+                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
             {}
 
             Cell(Index parent, Location loc) :
                 _location(loc),
-                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent } })
+                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent, INVALID } })
             {}
 
-            Index brick{ INVALID };
-
         private:
-            Location _location;
             std::array<Index, NUM_LINKS> _links;
+            Location _location;
         };
         using Cells = std::vector< Cell >;
 
-        class Brick {
-        public:
-
-        };
         using Bricks = std::vector< Brick >;
 
 
@@ -194,15 +203,32 @@ namespace render {
             assert(index < _cells.size());
             return _cells[index];
         }
+
+
+
+        // Let s talk about the Cell Bricks now
+        using CellBrickAccessor = std::function<void(Brick& brick, Index brickIdx)>;
+
+        Index accessCellBrick(const Location& loc, const CellBrickAccessor& accessor);
+
+        const Brick& getBrick(Index index) const {
+            assert(index < _bricks.size());
+            return _bricks[index];
+        }
+
+    protected:
         Index allocateCell(Index parent, const Location& location);
+        Index allocateBrick();
 
-
+        Cell& editCell(Index index) {
+            assert(index < _cells.size());
+            return _cells[index];
+        }
 
     };
 }
-// CLose the namespace here before including the Item in the picture, maybe Octre could stay pure of it
-#include "Item.h"
 
+// CLose the namespace here before including the Item in the picture, maybe Octre could stay pure of it
 namespace render {
 
     // An octree of Items organizing them efficiently for culling
@@ -237,15 +263,8 @@ namespace render {
             return AABox(evalPos(loc.pos, cellWidth), cellWidth);
         }
 
-
         Location evalLocation(const AABox& bound) const {
-            auto minVec = bound.getMinimumPoint();
-            auto maxVec = bound.getMaximumPoint();
-            
-            auto minPos = evalCoord(minVec);
-            auto maxPos = evalCoord(maxVec);
-
-            return Location::evalFromRange(minPos, maxPos);
+            return Location::evalFromRange(evalCoord(bound.getMinimumPoint()), evalCoord(bound.getMaximumPoint()));
         }
 
         ItemSpatialTree() {}
