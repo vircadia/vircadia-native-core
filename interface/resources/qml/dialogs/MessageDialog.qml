@@ -5,6 +5,7 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import "../controls"
 import "../styles"
 import "../windows"
+import "messageDialog"
 
 // FIXME respect default button functionality
 ModalWindow {
@@ -126,126 +127,23 @@ ModalWindow {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
             anchors { bottom: details.top; right: parent.right; margins: d.spacing * 2; bottomMargin: 0 }
-            Button {
-                id: okButton
-                text: qsTr("OK")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Ok
-                onClicked: root.click(OriginalDialogs.StandardButton.Ok)
-                visible: root.buttons & OriginalDialogs.StandardButton.Ok
-
-            }
-            Button {
-                id: openButton
-                text: qsTr("Open")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Open
-                onClicked: root.click(OriginalDialogs.StandardButton.Open)
-                visible: root.buttons & OriginalDialogs.StandardButton.Open
-            }
-            Button {
-                id: saveButton
-                text: qsTr("Save")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Save
-                onClicked: root.click(OriginalDialogs.StandardButton.Save)
-                visible: root.buttons & OriginalDialogs.StandardButton.Save
-            }
-            Button {
-                id: saveAllButton
-                text: qsTr("Save All")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.SaveAll
-                onClicked: root.click(OriginalDialogs.StandardButton.SaveAll)
-                visible: root.buttons & OriginalDialogs.StandardButton.SaveAll
-            }
-            Button {
-                id: retryButton
-                text: qsTr("Retry")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Retry
-                onClicked: root.click(OriginalDialogs.StandardButton.Retry)
-                visible: root.buttons & OriginalDialogs.StandardButton.Retry
-            }
-            Button {
-                id: ignoreButton
-                text: qsTr("Ignore")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Ignore
-                onClicked: root.click(OriginalDialogs.StandardButton.Ignore)
-                visible: root.buttons & OriginalDialogs.StandardButton.Ignore
-            }
-            Button {
-                id: applyButton
-                text: qsTr("Apply")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Apply
-                onClicked: root.click(OriginalDialogs.StandardButton.Apply)
-                visible: root.buttons & OriginalDialogs.StandardButton.Apply
-            }
-            Button {
-                id: yesButton
-                text: qsTr("Yes")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Yes
-                onClicked: root.click(OriginalDialogs.StandardButton.Yes)
-                visible: root.buttons & OriginalDialogs.StandardButton.Yes
-            }
-            Button {
-                id: yesAllButton
-                text: qsTr("Yes to All")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.YesToAll
-                onClicked: root.click(OriginalDialogs.StandardButton.YesToAll)
-                visible: root.buttons & OriginalDialogs.StandardButton.YesToAll
-            }
-            Button {
-                id: noButton
-                text: qsTr("No")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.No
-                onClicked: root.click(OriginalDialogs.StandardButton.No)
-                visible: root.buttons & OriginalDialogs.StandardButton.No
-            }
-            Button {
-                id: noAllButton
-                text: qsTr("No to All")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.NoToAll
-                onClicked: root.click(OriginalDialogs.StandardButton.NoToAll)
-                visible: root.buttons & OriginalDialogs.StandardButton.NoToAll
-            }
-            Button {
-                id: discardButton
-                text: qsTr("Discard")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Discard
-                onClicked: root.click(OriginalDialogs.StandardButton.Discard)
-                visible: root.buttons & OriginalDialogs.StandardButton.Discard
-            }
-            Button {
-                id: resetButton
-                text: qsTr("Reset")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Reset
-                onClicked: root.click(OriginalDialogs.StandardButton.Reset)
-                visible: root.buttons & OriginalDialogs.StandardButton.Reset
-            }
-            Button {
-                id: restoreDefaultsButton
-                text: qsTr("Restore Defaults")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.RestoreDefaults
-                onClicked: root.click(OriginalDialogs.StandardButton.RestoreDefaults)
-                visible: root.buttons & OriginalDialogs.StandardButton.RestoreDefaults
-            }
-            Button {
-                id: cancelButton
-                text: qsTr("Cancel")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Cancel
-                onClicked: root.click(OriginalDialogs.StandardButton.Cancel)
-                visible: root.buttons & OriginalDialogs.StandardButton.Cancel
-            }
-            Button {
-                id: abortButton
-                text: qsTr("Abort")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Abort
-                onClicked: root.click(OriginalDialogs.StandardButton.Abort)
-                visible: root.buttons & OriginalDialogs.StandardButton.Abort
-            }
-            Button {
-                id: closeButton
-                text: qsTr("Close")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Close
-                onClicked: root.click(OriginalDialogs.StandardButton.Close)
-                visible: root.buttons & OriginalDialogs.StandardButton.Close
-            }
+            MessageDialogButton { dialog: root; text: qsTr("OK"); button: OriginalDialogs.StandardButton.Ok; }
+            MessageDialogButton { dialog: root; text: qsTr("Open"); button: OriginalDialogs.StandardButton.Open; }
+            MessageDialogButton { dialog: root; text: qsTr("Save"); button: OriginalDialogs.StandardButton.Save; }
+            MessageDialogButton { dialog: root; text: qsTr("Save All"); button: OriginalDialogs.StandardButton.SaveAll; }
+            MessageDialogButton { dialog: root; text: qsTr("Retry"); button: OriginalDialogs.StandardButton.Retry; }
+            MessageDialogButton { dialog: root; text: qsTr("Ignore"); button: OriginalDialogs.StandardButton.Ignore; }
+            MessageDialogButton { dialog: root; text: qsTr("Apply"); button: OriginalDialogs.StandardButton.Apply; }
+            MessageDialogButton { dialog: root; text: qsTr("Yes"); button: OriginalDialogs.StandardButton.Yes; }
+            MessageDialogButton { dialog: root; text: qsTr("Yes to All"); button: OriginalDialogs.StandardButton.YesToAll; }
+            MessageDialogButton { dialog: root; text: qsTr("No"); button: OriginalDialogs.StandardButton.No; }
+            MessageDialogButton { dialog: root; text: qsTr("No to All"); button: OriginalDialogs.StandardButton.NoToAll; }
+            MessageDialogButton { dialog: root; text: qsTr("Discard"); button: OriginalDialogs.StandardButton.Discard; }
+            MessageDialogButton { dialog: root; text: qsTr("Reset"); button: OriginalDialogs.StandardButton.Reset; }
+            MessageDialogButton { dialog: root; text: qsTr("Restore Defaults"); button: OriginalDialogs.StandardButton.RestoreDefaults; }
+            MessageDialogButton { dialog: root; text: qsTr("Cancel"); button: OriginalDialogs.StandardButton.Cancel; }
+            MessageDialogButton { dialog: root; text: qsTr("Abort"); button: OriginalDialogs.StandardButton.Abort; }
+            MessageDialogButton { dialog: root; text: qsTr("Close"); button: OriginalDialogs.StandardButton.Close; }
             Button {
                 id: moreButton
                 text: qsTr("Show Details...")
@@ -253,13 +151,7 @@ ModalWindow {
                 }
                 visible: detailedText && detailedText.length > 0
             }
-            Button {
-                id: helpButton
-                text: qsTr("Help")
-                focus: root.defaultButton === OriginalDialogs.StandardButton.Help
-                onClicked: root.click(OriginalDialogs.StandardButton.Help)
-                visible: root.buttons & OriginalDialogs.StandardButton.Help
-            }
+            MessageDialogButton { dialog: root; text: qsTr("Help"); button: OriginalDialogs.StandardButton.Help; }
         }
 
         Item {
@@ -328,7 +220,7 @@ ModalWindow {
             case Qt.Key_Enter:
             case Qt.Key_Return:
                 event.accepted = true
-                root.click(OriginalDialogs.StandardButton.Ok)
+                root.click(root.defaultButton)
                 break
         }
     }

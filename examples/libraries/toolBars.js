@@ -132,14 +132,15 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     this.y = y;
     this.width = 0;
     this.height = ToolBar.TITLE_BAR_HEIGHT;
-    this.back = this.back = Overlays.addOverlay("text", {
-                    backgroundColor: { red: 255, green: 255, blue: 255 },
+    this.backAlpha = 1.0;
+    this.back = Overlays.addOverlay("rectangle", {
+                    color: { red: 255, green: 255, blue: 255 },
                     x: this.x,
                     y: this.y,
+                    radius: 4,
                     width: this.width,
                     height: this.height,
-                    alpha: 1.0,
-                    backgroundAlpha: 1.0,
+                    alpha: this.backAlpha,
                     visible: false
                 });
     this.spacing = [];
@@ -246,10 +247,8 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                 this.tools[tool].setAlpha(alpha);
             }
             if (this.back != null) {
-                Overlays.editOverlay(this.back, {
-                    alpha: alpha,
-                    backgroundAlpha: alpha
-                });
+                this.backAlpha = alpha;
+                Overlays.editOverlay(this.back, { alpha: alpha });
             }
         } else {
             this.tools[tool].setAlpha(alpha);
@@ -258,9 +257,7 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     
     this.setBack = function(color, alpha) {
         if (color == null) {
-            Overlays.editOverlay(this.back, {
-                                 visible: false
-                                 });
+            Overlays.editOverlay(this.back, { visible: false });
         } else {
             Overlays.editOverlay(this.back, {
                                  width: this.width +
@@ -268,8 +265,8 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
                                  height: this.height +
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  visible: true,
-                                 backgroundColor: color,
-                                 backgroundAlpha: alpha
+                                 color: color,
+                                 alpha: alpha
                                  });
         }
     }
@@ -339,12 +336,9 @@ ToolBar = function(x, y, direction, optionalPersistenceKey, optionalInitialPosit
     that.hover = function (enable) { // Can be overriden or extended by clients.
         that.isHovering = enable;
         if (that.back) {
-            if (enable) {
-                that.oldAlpha = Overlays.getProperty(that.back, 'backgroundAlpha');
-            }
             Overlays.editOverlay(this.back, {
                 visible: enable,
-                backgroundAlpha: enable ? 0.5 : that.oldAlpha
+                alpha: enable ? 0.5 : that.backAlpha
             });
         }
     };
