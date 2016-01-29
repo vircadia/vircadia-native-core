@@ -108,7 +108,7 @@ Window {
             }
         }
 
-        WebEngineView {
+        WebView {
             id: webview
             url: "http://highfidelity.com"
             anchors.top: buttons.bottom
@@ -124,6 +124,12 @@ Window {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
+            
+            profile: WebEngineProfile {
+                id: webviewProfile
+                storageName: "qmlUserBrowser"
+            }
+
         }
     } // item
     

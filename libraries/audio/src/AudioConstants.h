@@ -29,7 +29,10 @@ namespace AudioConstants {
     const int NETWORK_FRAME_SAMPLES_PER_CHANNEL = NETWORK_FRAME_BYTES_PER_CHANNEL / sizeof(AudioSample);
     const float NETWORK_FRAME_MSECS = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
         / (float)AudioConstants::SAMPLE_RATE) * 1000.0f;
-    const unsigned int NETWORK_FRAME_USECS = (unsigned int)floorf(NETWORK_FRAME_MSECS * 1000.0f);
+
+    // be careful with overflows when using this constant
+    const int NETWORK_FRAME_USECS = static_cast<int>(NETWORK_FRAME_MSECS * 1000.0f);
+    
     const int MIN_SAMPLE_VALUE = std::numeric_limits<AudioSample>::min();
     const int MAX_SAMPLE_VALUE = std::numeric_limits<AudioSample>::max();
 }

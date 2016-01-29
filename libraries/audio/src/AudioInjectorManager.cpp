@@ -87,8 +87,8 @@ void AudioInjectorManager::run() {
                     if (!injector.isNull()) {
                         // this is an injector that's ready to go, have it send a frame now
                         auto nextCallDelta = injector->injectNextFrame();
-                        
-                        if (nextCallDelta > 0 && !injector->isFinished()) {
+
+                        if (nextCallDelta >= 0 && !injector->isFinished()) {
                             // re-enqueue the injector with the correct timing
                             _injectors.emplace(usecTimestampNow() + nextCallDelta, injector);
                         }

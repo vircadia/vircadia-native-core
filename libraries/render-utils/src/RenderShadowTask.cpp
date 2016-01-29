@@ -29,15 +29,15 @@ using namespace render;
 
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
                           const render::ShapesIDsBounds& inShapes) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
     const auto& shadow = globalLight->shadow;
     const auto& fbo = shadow.framebuffer;
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
@@ -78,7 +78,8 @@ void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const
     });
 }
 
-RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
+// The shadow task *must* use this base ctor to initialize with its own Config, see Task.h
+RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_shared<Config>()) {
     cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
     // Prepare the ShapePipeline
@@ -104,29 +105,30 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task() {
     }
 
     // CPU: Fetch shadow-casting opaques
-    auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
+    const auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
+    const auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
 
     // CPU: Sort by pipeline
-    auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
+    const auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
 
     // CPU: Sort front to back
-    auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
+    const auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
 
     // GPU: Render to shadow map
     addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
 }
 
+void RenderShadowTask::configure(const Config& configuration) {
+    DependencyManager::get<DeferredLightingEffect>()->setShadowMapEnabled(configuration.enabled);
+    // This is a task, so must still propogate configure() to its Jobs
+    Task::configure(configuration);
+}
+
 void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
     assert(sceneContext);
-    RenderArgs* args = renderContext->getArgs();
-
-    // This feature is in a debugging stage - it must be turned on explicitly
-    if (!renderContext->getShadowMapStatus()) {
-        return;
-    }
+    RenderArgs* args = renderContext->args;
 
     // sanity checks
     if (!sceneContext->_scene || !args) {
@@ -146,9 +148,9 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     RenderArgs::RenderMode mode = args->_renderMode;
 
     auto nearClip = viewFrustum->getNearClip();
-    const int SHADOW_NEAR_DEPTH = -2;
+    float nearDepth = -args->_boomOffset.z;
     const int SHADOW_FAR_DEPTH = 20;
-    globalLight->shadow.setKeylightFrustum(viewFrustum, nearClip + SHADOW_NEAR_DEPTH, nearClip + SHADOW_FAR_DEPTH);
+    globalLight->shadow.setKeylightFrustum(viewFrustum, nearDepth, nearClip + SHADOW_FAR_DEPTH);
 
     // Set the keylight render args
     args->_viewFrustum = globalLight->shadow.getFrustum().get();

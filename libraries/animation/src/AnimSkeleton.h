@@ -42,8 +42,11 @@ public:
     const AnimPose& getAbsoluteDefaultPose(int jointIndex) const;
     const AnimPoseVec& getAbsoluteDefaultPoses() const { return _absoluteDefaultPoses; }
 
-    // get pre-rotation aka Maya's joint orientation.
-    const glm::quat getPreRotation(int jointIndex) const;
+    // get pre transform which should include FBX pre potations
+    const AnimPose& getPreRotationPose(int jointIndex) const;
+
+    // get post transform which might include FBX offset transformations
+    const AnimPose& getPostRotationPose(int jointIndex) const;
 
     int getParentIndex(int jointIndex) const;
 
@@ -64,6 +67,8 @@ protected:
     AnimPoseVec _relativeBindPoses;
     AnimPoseVec _relativeDefaultPoses;
     AnimPoseVec _absoluteDefaultPoses;
+    AnimPoseVec _relativePreRotationPoses;
+    AnimPoseVec _relativePostRotationPoses;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

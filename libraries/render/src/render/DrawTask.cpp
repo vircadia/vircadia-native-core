@@ -22,10 +22,10 @@ using namespace render;
 
 void render::cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
                        const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     ViewFrustum* frustum = args->_viewFrustum;
 
     details._considered += inItems.size();
@@ -86,11 +86,11 @@ struct BackToFrontSort {
 };
 
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
     
     auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     
 
     // Allocate and simply copy
@@ -127,7 +127,7 @@ void render::depthSortItems(const SceneContextPointer& sceneContext, const Rende
 
 void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
     auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
 
     for (const auto& itemDetails : inItems) {
         auto& item = scene->getItem(itemDetails.id);
@@ -153,7 +153,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
 void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
                           const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
     
     auto numItemsToDraw = glm::max((int)inItems.size(), maxDrawnItems);
     for (auto i = 0; i < numItemsToDraw; ++i) {
@@ -177,9 +177,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
         }
     }
 
-    if (_probeNumItems) {
-        _probeNumItems(renderContext, (int)outItems.size());
-    }
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }
 
 void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
@@ -187,8 +185,8 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
 }
 
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
 
     // render lights
     auto& scene = sceneContext->_scene;
@@ -201,7 +199,7 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
         inItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
     }
 
-    RenderArgs* args = renderContext->getArgs();
+    RenderArgs* args = renderContext->args;
 
     auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
     ItemIDsBounds culledItems;

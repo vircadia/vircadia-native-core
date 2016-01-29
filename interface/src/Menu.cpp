@@ -32,6 +32,7 @@
 #include "devices/Faceshift.h"
 #include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
+#include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
@@ -70,8 +71,8 @@ Menu::Menu() {
     }
 
     // File > Update -- FIXME: needs implementation
-    auto updateAction = addActionToQMenuAndActionHash(fileMenu, "Update");
-    updateAction->setDisabled(true);
+    auto action = addActionToQMenuAndActionHash(fileMenu, "Update");
+    action->setDisabled(true);
 
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
@@ -166,8 +167,11 @@ Menu::Menu() {
     QObject* avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments, 0,
-        dialogsManager.data(), SLOT(editAttachments()));
+    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
+    });
+
 
     // Avatar > Size
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
@@ -285,7 +289,7 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
 
     // Settings > General...
-    auto action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
     });
@@ -333,9 +337,6 @@ Menu::Menu() {
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugShadows);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 0, true);
 
     // Developer > Render > Ambient Light
@@ -479,6 +480,10 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, false,
+        avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
+        avatar, SLOT(setEnableInverseKinematics(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),
@@ -587,7 +592,11 @@ Menu::Menu() {
 
     // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
+    {
+        auto drawStatusConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<render::DrawStatus>();
+        addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
+            0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
+    }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
     // Developer > Display Crash Options

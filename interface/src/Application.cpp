@@ -102,7 +102,6 @@
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
-#include <RenderScriptingInterface.h>
 #include <SceneScriptingInterface.h>
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
@@ -363,7 +362,6 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
-    DependencyManager::set<RenderScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
@@ -408,6 +406,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -674,12 +673,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
-
-    // Start rendering
-    render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
-    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
-    _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
 
@@ -1151,9 +1144,17 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // Set up the render engine
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
+    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    _renderEngine->registerScene(_main3DScene);
+    // TODO: Load a cached config file
+
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
     // texture resources
+    // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _offscreenContext->makeCurrent();
@@ -1185,6 +1186,7 @@ void Application::initializeUi() {
     Tooltip::registerType();
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
+
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_offscreenContext->getContext());
@@ -1250,7 +1252,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1380,10 +1382,12 @@ void Application::paintGL() {
 
     }
 
+    glm::vec3 boomOffset;
     {
         PerformanceTimer perfTimer("CameraUpdates");
 
         auto myAvatar = getMyAvatar();
+        boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FRONT;
 
         myAvatar->startCapture();
         if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -1411,18 +1415,16 @@ void Application::paintGL() {
             if (isHMDMode()) {
                 auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                 _myCamera.setRotation(glm::normalize(glm::quat_cast(hmdWorldMat)));
-                auto worldBoomOffset = myAvatar->getOrientation() * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f));
-                _myCamera.setPosition(extractTranslation(hmdWorldMat) + worldBoomOffset);
+                _myCamera.setPosition(extractTranslation(hmdWorldMat) +
+                    myAvatar->getOrientation() * boomOffset);
             } else {
                 _myCamera.setRotation(myAvatar->getHead()->getOrientation());
                 if (Menu::getInstance()->isOptionChecked(MenuOption::CenterPlayerInView)) {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + _myCamera.getRotation()
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                        + _myCamera.getRotation() * boomOffset);
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
-                        + myAvatar->getOrientation()
-                        * (myAvatar->getScale() * myAvatar->getBoomLength() * glm::vec3(0.0f, 0.0f, 1.0f)));
+                        + myAvatar->getOrientation() * boomOffset);
                 }
             }
         } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -1488,6 +1490,7 @@ void Application::paintGL() {
     {
         PROFILE_RANGE(__FUNCTION__ "/mainRender");
         PerformanceTimer perfTimer("mainRender");
+        renderArgs._boomOffset = boomOffset;
         // Viewport is assigned to the size of the framebuffer
         renderArgs._viewport = ivec4(0, 0, size.width(), size.height());
         if (displayPlugin->isStereo()) {
@@ -1841,6 +1844,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_X:
                 if (isShifted && isMeta) {
+                    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+                    offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
                 break;
@@ -3764,29 +3770,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
-        auto renderContext = renderInterface->getRenderContext();
-
         renderArgs->_viewFrustum = getDisplayViewFrustum();
-        renderContext.setArgs(renderArgs);
-
-        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
-        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
-        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
-        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus, shadowStatus);
-
-        _renderEngine->setRenderContext(renderContext);
+        _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
         myAvatar->startRenderRun();
         _renderEngine->run();
         myAvatar->endRenderRun();
-
-        auto engineContext = _renderEngine->getRenderContext();
-        renderInterface->setItemCounts(engineContext->getItemsConfig());
-        renderInterface->setJobGPUTimes(engineContext->getAmbientOcclusion().gpuTime);
-
     }
 
     activeRenderingThread = nullptr;
@@ -4195,7 +4185,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
 }
@@ -4512,12 +4502,22 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 }
 
 void Application::loadDialog() {
-    // To be migratd to QML
-    QString fileNameString = QFileDialog::getOpenFileName(
-        _glWidget, tr("Open Script"), "", tr("JavaScript Files (*.js)"));
-    if (!fileNameString.isEmpty()) {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    QString fileNameString = OffscreenUi::getOpenFileName(
+        _glWidget, tr("Open Script"), getPreviousScriptLocation(), tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty() && QFile(fileNameString).exists()) {
+        setPreviousScriptLocation(QFileInfo(fileNameString).absolutePath());
         DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
     }
+}
+
+QString Application::getPreviousScriptLocation() {
+    QString result = _previousScriptLocation.get();
+    return result;
+}
+
+void Application::setPreviousScriptLocation(const QString& location) {
+    _previousScriptLocation.set(location);
 }
 
 void Application::loadScriptURLDialog() {

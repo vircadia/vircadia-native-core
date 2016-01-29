@@ -71,6 +71,7 @@ public:
     float getFollowTime() const { return _followTime; }
     glm::vec3 getFollowLinearDisplacement() const;
     glm::quat getFollowAngularDisplacement() const;
+    glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
 

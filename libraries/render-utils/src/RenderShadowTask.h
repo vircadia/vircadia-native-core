@@ -21,19 +21,34 @@ class ViewFrustum;
 
 class RenderShadowMap {
 public:
+    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
+
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
              const render::ShapesIDsBounds& inShapes);
 
-    using JobModel = render::Task::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
 protected:
     render::ShapePlumberPointer _shapePlumber;
 };
 
+class RenderShadowTaskConfig : public render::Task::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
+public:
+    RenderShadowTaskConfig() : render::Task::Config(false) {}
+
+signals:
+    void dirty();
+};
+
 class RenderShadowTask : public render::Task {
 public:
+    using Config = RenderShadowTaskConfig;
+    using JobModel = Model<RenderShadowTask, Config>;
+
     RenderShadowTask(render::CullFunctor shouldRender);
 
+    void configure(const Config& configuration);
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 };
 

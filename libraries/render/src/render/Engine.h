@@ -17,36 +17,31 @@
 
 namespace render {
 
-// The root of the tasks, the Engine, should not be known from the Tasks,
-// The SceneContext is what navigates from the engine down to the Tasks
-class Engine {
+// The render engine holds all render tasks, and is itself a render task.
+// State flows through tasks to jobs via the render and scene contexts -
+// the engine should not be known from its jobs.
+class Engine : public Task {
 public:
-
     Engine();
-    ~Engine() {}
+    ~Engine() = default;
 
-    // Register the scene should be [art of the init phase before running the engine
-    void registerScene(const ScenePointer& scene);
+    // Register the scene
+    void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
 
     // Push a RenderContext
-    void setRenderContext(const RenderContext& renderContext);
+    void setRenderContext(const RenderContext& renderContext) { (*_renderContext) = renderContext; }
     RenderContextPointer getRenderContext() const { return _renderContext; }
 
-    void addTask(const TaskPointer& task);
-    const Tasks& getTasks() const { return _tasks; }
-
-
+    // Render a frame
+    // A frame must have a scene registered and a context set to render
     void run();
 
 protected:
-    Tasks _tasks;
-
     SceneContextPointer _sceneContext;
     RenderContextPointer _renderContext;
 };
-typedef std::shared_ptr<Engine> EnginePointer;
+using EnginePointer = std::shared_ptr<Engine>;
 
 }
 
 #endif // hifi_render_Engine_h
-

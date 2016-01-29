@@ -24,6 +24,10 @@
 #include "Snapshot.h"
 #include "UserActivityLogger.h"
 
+#include "AmbientOcclusionEffect.h"
+#include "AntialiasingEffect.h"
+#include "RenderShadowTask.h"
+
 void setupPreferences() {
     auto preferences = DependencyManager::get<Preferences>();
 
@@ -309,5 +313,30 @@ void setupPreferences() {
         preference->setMax(100);
         preference->setStep(1);
         preferences->addPreference(preference);
+    }
+
+    {
+        static const QString RENDER("Graphics");
+        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        {
+            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<AmbientOcclusionEffect>(); };
+            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<AmbientOcclusionEffect>(enable); };
+            auto preference = new CheckPreference(RENDER, "Ambient Occlusion", getter, setter);
+            preferences->addPreference(preference);
+        }
+
+        {
+            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<Antialiasing>(); };
+            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<Antialiasing>(enable); };
+            auto preference = new CheckPreference(RENDER, "Antialiasing", getter, setter);
+            preferences->addPreference(preference);
+        }
+
+        {
+            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<RenderShadowTask>(); };
+            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<RenderShadowTask>(enable); };
+            auto preference = new CheckPreference(RENDER, "Shadows", getter, setter);
+            preferences->addPreference(preference);
+        }
     }
 }

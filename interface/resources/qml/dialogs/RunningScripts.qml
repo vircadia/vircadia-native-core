@@ -72,23 +72,6 @@ Window {
         scripts.stopAllScripts();
     }
 
-    Component {
-        id: fileDialogBuilder
-        FileDialog { }
-    }
-
-    function loadFromFile() {
-        var fileDialog = fileDialogBuilder.createObject(desktop, { filterModel: fileFilters });
-        fileDialog.canceled.connect(function(){
-            console.debug("Cancelled file open")
-        })
-
-        fileDialog.selectedFile.connect(function(file){
-            console.debug("Selected " + file)
-            scripts.loadOneScript(file);
-        })
-    }
-
     Rectangle {
         color: "white"
         anchors.fill: parent
@@ -123,26 +106,42 @@ Window {
                 }
 
                 ListView {
+                    id: listView
                     clip: true
                     anchors { fill: parent; margins: 0 }
 
                     model: runningScriptsModel
 
                     delegate: Rectangle {
+                        id: rectangle
+                        clip: true
                         radius: 3
                         anchors { left: parent.left; right: parent.right }
 
-                        height: scriptName.height + 12
-                        color: index % 2 ? "#ddd" : "#eee"
+                        height: scriptName.height + 12 + (ListView.isCurrentItem ? scriptName.height + 6 : 0)
+                        color: ListView.isCurrentItem ? "#39f" :
+                                   index % 2 ? "#ddd" : "#eee"
 
                         Text {
-                            anchors { left: parent.left; leftMargin: 4; verticalCenter: parent.verticalCenter }
                             id: scriptName
+                            anchors { left: parent.left; leftMargin: 4; top: parent.top; topMargin:6 }
                             text: name
                         }
 
+                        Text {
+                            id: scriptUrl
+                            anchors { left: scriptName.left; right: parent.right; rightMargin: 4; top: scriptName.bottom; topMargin: 6 }
+                            text: url
+                            elide: Text.ElideMiddle
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: listView.currentIndex = index
+                        }
+
                         Row {
-                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.verticalCenter: scriptName.verticalCenter
                             anchors.right: parent.right
                             anchors.rightMargin: 4
                             spacing: 4
@@ -184,13 +183,39 @@ Window {
                 anchors.bottom: filterEdit.top
                 anchors.bottomMargin: 8
                 anchors.right: parent.right
+
+
                 Button {
                     text: "from URL";
-                    onClicked: ApplicationInterface.loadScriptURLDialog();
+                    onClicked: fromUrlTimer.running = true;
+
+                    // For some reason trigginer an API that enters
+                    // an internal event loop directly from the button clicked
+                    // trigger below causes the appliction to behave oddly.
+                    // Most likely because the button onClicked handling is never
+                    // completed until the function returns.
+                    // FIXME find a better way of handling the input dialogs that
+                    // doesn't trigger this.
+                    Timer {
+                        id: fromUrlTimer
+                        interval: 5
+                        repeat: false
+                        running: false
+                        onTriggered: ApplicationInterface.loadScriptURLDialog();
+                    }
                 }
+
                 Button {
                     text: "from Disk"
-                    onClicked: loadFromFile();
+                    onClicked: fromDiskTimer.running = true;
+
+                    Timer {
+                        id: fromDiskTimer
+                        interval: 5
+                        repeat: false
+                        running: false
+                        onTriggered: ApplicationInterface.loadDialog();
+                    }
                 }
             }
 

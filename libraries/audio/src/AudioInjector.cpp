@@ -36,7 +36,7 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _audioData(sound->getByteArray()),
     _options(injectorOptions)
 {
-    
+
 }
 
 AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
@@ -49,15 +49,15 @@ AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOpt
 void AudioInjector::finish() {
     bool shouldDelete = (_state == State::NotFinishedWithPendingDelete);
     _state = State::Finished;
-    
+
     emit finished();
-    
+
     if (_localBuffer) {
         _localBuffer->stop();
         _localBuffer->deleteLater();
         _localBuffer = NULL;
     }
-    
+
     if (shouldDelete) {
         // we've been asked to delete after finishing, trigger a deleteLater here
         deleteLater();
@@ -67,7 +67,7 @@ void AudioInjector::finish() {
 void AudioInjector::setupInjection() {
     if (!_hasSetup) {
         _hasSetup = true;
-        
+
         // check if we need to offset the sound by some number of seconds
         if (_options.secondOffset > 0.0f) {
 
@@ -87,31 +87,31 @@ void AudioInjector::setupInjection() {
 void AudioInjector::restart() {
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-    
+
     if (thread() != QThread::currentThread()) {
         QMetaObject::invokeMethod(this, "restart");
-        
+
         if (!_options.localOnly) {
             // notify the AudioInjectorManager to wake up in case it's waiting for new injectors
             injectorManager->notifyInjectorReadyCondition();
         }
-        
+
         return;
     }
-    
+
     // reset the current send offset to zero
     _currentSendOffset = 0;
-    
+
     // check our state to decide if we need extra handling for the restart request
     if (_state == State::Finished) {
         // we finished playing, need to reset state so we can get going again
         _hasSetup = false;
         _shouldStop = false;
         _state = State::NotFinished;
-        
+
         // call inject audio to start injection over again
         setupInjection();
-        
+
         // if we're a local injector call inject locally to start injecting again
         if (_options.localOnly) {
             injectLocally();
@@ -153,155 +153,178 @@ bool AudioInjector::injectLocally() {
         // we never started so we are finished, call our stop method
         stop();
     }
-    
+
     return success;
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
-static const uint64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = 0;
-static const uint64_t NEXT_FRAME_DELTA_IMMEDIATELY = 1;
+static const int64_t NEXT_FRAME_DELTA_ERROR_OR_FINISHED = -1;
+static const int64_t NEXT_FRAME_DELTA_IMMEDIATELY = 0;
 
-uint64_t AudioInjector::injectNextFrame() {
-    
+int64_t AudioInjector::injectNextFrame() {
     if (_state == AudioInjector::State::Finished) {
         qDebug() << "AudioInjector::injectNextFrame called but AudioInjector has finished and was not restarted. Returning.";
         return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
-    
+
     // if we haven't setup the packet to send then do so now
     static int positionOptionOffset = -1;
     static int volumeOptionOffset = -1;
     static int audioDataOffset = -1;
-    
+
     if (!_currentPacket) {
         if (_currentSendOffset < 0 ||
             _currentSendOffset >= _audioData.size()) {
             _currentSendOffset = 0;
         }
-        
+
         // make sure we actually have samples downloaded to inject
         if (_audioData.size()) {
-            
+
+            int sampleSize = (_options.stereo ? 2 : 1) * sizeof(AudioConstants::AudioSample);
+            auto numSamples = static_cast<int>(_audioData.size() / sampleSize);
+            auto targetSize = numSamples * sampleSize;
+            if (targetSize != _audioData.size()) {
+                qDebug() << "Resizing audio that doesn't end at multiple of sample size, resizing from "
+                    << _audioData.size() << " to " << targetSize;
+                _audioData.resize(targetSize);
+            }
+
             _outgoingSequenceNumber = 0;
             _nextFrame = 0;
-            
+
             if (!_frameTimer) {
                 _frameTimer = std::unique_ptr<QElapsedTimer>(new QElapsedTimer);
             }
-            
+
             _frameTimer->restart();
-            
+
             _currentPacket = NLPacket::create(PacketType::InjectAudio);
-            
+
             // setup the packet for injected audio
             QDataStream audioPacketStream(_currentPacket.get());
-            
+
             // pack some placeholder sequence number for now
             audioPacketStream << (quint16) 0;
-            
+
             // pack stream identifier (a generated UUID)
             audioPacketStream << QUuid::createUuid();
-            
+
             // pack the stereo/mono type of the stream
             audioPacketStream << _options.stereo;
-            
+
             // pack the flag for loopback
-            uchar loopbackFlag = (uchar) true;
+            uchar loopbackFlag = (uchar)true;
             audioPacketStream << loopbackFlag;
-            
+
             // pack the position for injected audio
             positionOptionOffset = _currentPacket->pos();
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
                                            sizeof(_options.position));
-            
+
             // pack our orientation for injected audio
             audioPacketStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
                                            sizeof(_options.orientation));
-            
+
             // pack zero for radius
             float radius = 0;
             audioPacketStream << radius;
-            
+
             // pack 255 for attenuation byte
             volumeOptionOffset = _currentPacket->pos();
             quint8 volume = MAX_INJECTOR_VOLUME;
             audioPacketStream << volume;
-            
+
             audioPacketStream << _options.ignorePenumbra;
-            
+
             audioDataOffset = _currentPacket->pos();
-            
+
         } else {
             // no samples to inject, return immediately
             qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
     }
-    
-    int bytesToCopy = std::min((_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL,
-                               _audioData.size() - _currentSendOffset);
-    
+
+    int totalBytesLeftToCopy = (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+    if (!_options.loop) {
+        // If we aren't looping, let's make sure we don't read past the end
+        totalBytesLeftToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
+    }
+
     //  Measure the loudness of this frame
     _loudness = 0.0f;
-    for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
-        _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendOffset + i)) /
-        (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
+    for (int i = 0; i < totalBytesLeftToCopy; i += sizeof(int16_t)) {
+        _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + ((_currentSendOffset + i) % _audioData.size()))) /
+            (AudioConstants::MAX_SAMPLE_VALUE / 2.0f);
     }
-    _loudness /= (float)(bytesToCopy / sizeof(int16_t));
-    
+    _loudness /= (float)(totalBytesLeftToCopy/ sizeof(int16_t));
+
     _currentPacket->seek(0);
-    
+
     // pack the sequence number
     _currentPacket->writePrimitive(_outgoingSequenceNumber);
-    
+
     _currentPacket->seek(positionOptionOffset);
     _currentPacket->writePrimitive(_options.position);
     _currentPacket->writePrimitive(_options.orientation);
-    
+
     quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
     _currentPacket->seek(volumeOptionOffset);
     _currentPacket->writePrimitive(volume);
-    
+
     _currentPacket->seek(audioDataOffset);
-    
-    // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-    _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
-    
+
+    while (totalBytesLeftToCopy > 0) {
+        int bytesToCopy = std::min(totalBytesLeftToCopy, _audioData.size() - _currentSendOffset);
+
+        _currentPacket->write(_audioData.data() + _currentSendOffset, bytesToCopy);
+        _currentSendOffset += bytesToCopy;
+        totalBytesLeftToCopy -= bytesToCopy;
+        if (_options.loop && _currentSendOffset >= _audioData.size()) {
+            _currentSendOffset = 0;
+        }
+    }
+
     // set the correct size used for this packet
     _currentPacket->setPayloadSize(_currentPacket->pos());
-    
+
     // grab our audio mixer from the NodeList, if it exists
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
-    
+
     if (audioMixer) {
         // send off this audio packet
         nodeList->sendUnreliablePacket(*_currentPacket, *audioMixer);
         _outgoingSequenceNumber++;
     }
-    
-    _currentSendOffset += bytesToCopy;
-    
-    if (_currentSendOffset >= _audioData.size()) {
-        // we're at the end of the audio data to send
-        if (_options.loop) {
-            // we were asked to loop, set our send offset to 0
-            _currentSendOffset = 0;
-        } else {
-            // we weren't to loop, say that we're done now
-            finish();
-            return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
-        }
+
+    if (_currentSendOffset >= _audioData.size() && !_options.loop) {
+        finish();
+        return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
     }
-    
-    if (_currentSendOffset == bytesToCopy) {
+
+    if (!_hasSentFirstFrame) {
+        _hasSentFirstFrame = true;
         // ask AudioInjectorManager to call us right away again to
         // immediately send the first two frames so the mixer can start using the audio right away
         return NEXT_FRAME_DELTA_IMMEDIATELY;
-    } else {
-        return (++_nextFrame * AudioConstants::NETWORK_FRAME_USECS) - _frameTimer->nsecsElapsed() / 1000;
     }
+
+    const int MAX_ALLOWED_FRAMES_TO_FALL_BEHIND = 7;
+    int64_t currentTime = _frameTimer->nsecsElapsed() / 1000;
+    auto currentFrameBasedOnElapsedTime = currentTime / AudioConstants::NETWORK_FRAME_USECS;
+
+    if (currentFrameBasedOnElapsedTime - _nextFrame > MAX_ALLOWED_FRAMES_TO_FALL_BEHIND) {
+        // If we are falling behind by more frames than our threshold, let's skip the frames ahead
+        qDebug() << this << "injectNextFrame() skipping ahead, fell behind by " << (currentFrameBasedOnElapsedTime - _nextFrame) << " frames";
+        _nextFrame = currentFrameBasedOnElapsedTime;
+        _currentSendOffset = _nextFrame * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL * (_options.stereo ? 2 : 1) % _audioData.size();
+    }
+
+    int64_t playNextFrameAt = ++_nextFrame * AudioConstants::NETWORK_FRAME_USECS;
     
+    return std::max(INT64_C(0), playNextFrameAt - currentTime);
 }
 
 void AudioInjector::stop() {
@@ -315,7 +338,7 @@ void AudioInjector::triggerDeleteAfterFinish() {
         QMetaObject::invokeMethod(this, "triggerDeleteAfterFinish", Qt::QueuedConnection);
         return;
     }
-    
+
     if (_state == State::Finished) {
         stopAndDeleteLater();
     } else {
@@ -371,11 +394,11 @@ AudioInjector* AudioInjector::playSound(const QString& soundUrl, const float vol
 
 AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     AudioInjector* sound = playSound(buffer, options, localInterface);
-    
+
     if (sound) {
         sound->_state = AudioInjector::State::NotFinishedWithPendingDelete;
     }
-    
+
     return sound;
 }
 
@@ -383,13 +406,13 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
 AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options, AbstractAudioInterface* localInterface) {
     AudioInjector* injector = new AudioInjector(buffer, options);
     injector->setLocalAudioInterface(localInterface);
-    
+
     // grab the AudioInjectorManager
     auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-    
+
     // setup parameters required for injection
     injector->setupInjection();
-    
+
     if (options.localOnly) {
         if (injector->injectLocally()) {
             // local injection succeeded, return the pointer to injector

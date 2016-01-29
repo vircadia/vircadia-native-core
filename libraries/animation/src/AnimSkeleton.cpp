@@ -59,8 +59,14 @@ const AnimPose& AnimSkeleton::getAbsoluteDefaultPose(int jointIndex) const {
     return _absoluteDefaultPoses[jointIndex];
 }
 
-const glm::quat AnimSkeleton::getPreRotation(int jointIndex) const {
-    return _joints[jointIndex].preRotation;
+// get pre multiplied transform which should include FBX pre potations
+const AnimPose& AnimSkeleton::getPreRotationPose(int jointIndex) const {
+    return _relativePreRotationPoses[jointIndex];
+}
+
+// get post multiplied transform which might include FBX offset transformations
+const AnimPose& AnimSkeleton::getPostRotationPose(int jointIndex) const {
+    return _relativePostRotationPoses[jointIndex];
 }
 
 int AnimSkeleton::getParentIndex(int jointIndex) const {
@@ -99,13 +105,20 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     // build a chache of default poses
     _absoluteDefaultPoses.reserve(joints.size());
     _relativeDefaultPoses.reserve(joints.size());
+    _relativePreRotationPoses.reserve(joints.size());
+    _relativePostRotationPoses.reserve(joints.size());
 
     // iterate over FBXJoints and extract the bind pose information.
     for (int i = 0; i < (int)joints.size(); i++) {
 
+        // build pre and post transforms
+        glm::mat4 preRotationTransform = _joints[i].preTransform * glm::mat4_cast(_joints[i].preRotation);
+        glm::mat4 postRotationTransform = glm::mat4_cast(_joints[i].postRotation) * _joints[i].postTransform;
+        _relativePreRotationPoses.push_back(AnimPose(preRotationTransform));
+        _relativePostRotationPoses.push_back(AnimPose(postRotationTransform));
+
         // build relative and absolute default poses
-        glm::mat4 rotTransform = glm::mat4_cast(_joints[i].preRotation * _joints[i].rotation * _joints[i].postRotation);
-        glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * _joints[i].preTransform * rotTransform * _joints[i].postTransform;
+        glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
         _relativeDefaultPoses.push_back(relDefaultPose);
         int parentIndex = getParentIndex(i);

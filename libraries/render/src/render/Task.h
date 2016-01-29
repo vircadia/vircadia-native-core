@@ -2,8 +2,8 @@
 //  Task.h
 //  render/src/render
 //
-//  Created by Zach Pomerantz on 1/6/2015.
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Zach Pomerantz on 1/6/2016.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -11,6 +11,8 @@
 
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
+
+#include <qscriptengine.h> // QObject
 
 #include "Context.h"
 
@@ -48,180 +50,240 @@ protected:
     std::shared_ptr<Concept> _concept;
 };
 
-// FIXME: In c++17, use default classes of nullptr_t to combine these
-template <class T> void jobRun(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    jobModel.run(sceneContext, renderContext);
-}
-template <class T, class I> void jobRunI(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input) {
-    jobModel.run(sceneContext, renderContext, input);
-}
-template <class T, class O> void jobRunO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, O& output) {
-    jobModel.run(sceneContext, renderContext, output);
-}
-template <class T, class I, class O> void jobRunIO(T& jobModel, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
-    jobModel.run(sceneContext, renderContext, input, output);
-}
+class Job;
+class Task;
+class JobNoIO {};
 
-// The base class for a task that runs on the SceneContext
-class Task {
+// A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
+class JobConfig : public QObject {
+    Q_OBJECT
 public:
-    // The guts of a task; tasks are composed of multiple Jobs that execute serially
-    class Job {
+    JobConfig() = default;
+    JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
+
+    bool isEnabled() { return alwaysEnabled || enabled; }
+
+    bool alwaysEnabled{ true };
+    bool enabled{ true };
+};
+
+class TaskConfig : public JobConfig {
+    Q_OBJECT
+public:
+    TaskConfig() = default ;
+    TaskConfig(bool enabled) : JobConfig(enabled) {}
+
+    void init(Task* task) { _task = task; }
+
+    template <class T> typename T::Config* getConfig(std::string job = "") const {
+        QString name = job.empty() ? QString() : QString(job.c_str()); // an empty string is not a null string
+        return findChild<typename T::Config*>(name);
+    }
+
+    template <class T> void setJobEnabled(bool enable = true, std::string job = "") {
+        assert(getConfig<T>(job)->alwaysEnabled != true);
+        getConfig<T>(job)->enabled = enable;
+        refresh(); // trigger a Job->configure
+    }
+    template <class T> bool isJobEnabled(bool enable = true, std::string job = "") const {
+        return getConfig<T>(job)->isEnabled();
+    }
+
+public slots:
+    void refresh();
+
+private:
+    Task* _task;
+};
+
+template <class T, class C> void jobConfigure(T& data, const C& configuration) {
+    data.configure(configuration);
+}
+template<class T> void jobConfigure(T&, const JobConfig&) {
+    // nop, as the default JobConfig was used, so the data does not need a configure method
+}
+template <class T> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const JobNoIO& input, JobNoIO& output) {
+    data.run(sceneContext, renderContext);
+}
+template <class T, class I> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, JobNoIO& output) {
+    data.run(sceneContext, renderContext, input);
+}
+template <class T, class O> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const JobNoIO& input, O& output) {
+    data.run(sceneContext, renderContext, output);
+}
+template <class T, class I, class O> void jobRun(T& data, const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const I& input, O& output) {
+    data.run(sceneContext, renderContext, input, output);
+}
+
+class Job {
+public:
+    using Config = JobConfig;
+    using QConfigPointer = std::shared_ptr<QObject>;
+    using None = JobNoIO;
+
+    // The guts of a job
+    class Concept {
     public:
-        friend class Task;
+        Concept(QConfigPointer config) : _config(config) {}
+        virtual ~Concept() = default;
 
-        // The guts of a job; jobs are composed of a concept
-        class Concept {
-        public:
-            Concept() = default;
-            virtual ~Concept() = default;
+        virtual const Varying getInput() const { return Varying(); }
+        virtual const Varying getOutput() const { return Varying(); }
 
-            bool isEnabled() const { return _isEnabled; }
-            void setEnabled(bool isEnabled) { _isEnabled = isEnabled; }
+        virtual QConfigPointer& getConfiguration() { return _config; }
+        virtual void applyConfiguration() = 0;
 
-            virtual const Varying getInput() const { return Varying(); }
-            virtual const Varying getOutput() const { return Varying(); }
-            virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
+        virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) = 0;
 
-        protected:
+    protected:
+        QConfigPointer _config;
+    };
+    using ConceptPointer = std::shared_ptr<Concept>;
 
-            bool _isEnabled = true;
-        };
-        using ConceptPointer = std::shared_ptr<Concept>;
+    template <class T, class C = Config, class I = None, class O = None> class Model : public Concept {
+    public:
+        using Data = T;
+        using Input = I;
+        using Output = O;
 
+        Data _data;
+        Varying _input;
+        Varying _output;
 
-        template <class T> class Model : public Concept {
-        public:
-            typedef T Data;
+        const Varying getInput() const { return _input; }
+        const Varying getOutput() const { return _output; }
 
-            Data _data;
-
-            Model() {}
-            Model(Data data): _data(data) {}
-
-            void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-                if (isEnabled()) {
-                    jobRun(_data, sceneContext, renderContext);
-                }
-            }
-        };
-
-        template <class T, class I> class ModelI : public Concept {
-        public:
-            typedef T Data;
-            typedef I Input;
-
-            Data _data;
-            Varying _input;
-
-            const Varying getInput() const { return _input; }
-
-            ModelI(const Varying& input, Data data = Data()) : _data(data), _input(input) {}
-            ModelI(Data data) : _data(data) {}
-
-            void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-                if (isEnabled()) {
-                    jobRunI(_data, sceneContext, renderContext, _input.get<I>());
-                }
-            }
-        };
-
-        template <class T, class O> class ModelO : public Concept {
-        public:
-            typedef T Data;
-            typedef O Output;
-
-            Data _data;
-            Varying _output;
-
-            const Varying getOutput() const { return _output; }
-
-            ModelO(Data data) : _data(data), _output(Output()) {}
-            ModelO() : _output(Output()) {}
-
-            void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-                if (isEnabled()) {
-                    jobRunO(_data, sceneContext, renderContext, _output.edit<O>());
-                }
-            }
-        };
-
-        template <class T, class I, class O> class ModelIO : public Concept {
-        public:
-            typedef T Data;
-            typedef I Input;
-            typedef O Output;
-
-            Data _data;
-            Varying _input;
-            Varying _output;
-
-            const Varying getInput() const { return _input; }
-            const Varying getOutput() const { return _output; }
-
-            ModelIO(const Varying& input, Data data = Data()) : _data(data), _input(input), _output(Output()) {}
-            ModelIO(Data data) : _data(data), _output(Output()) {}
-
-            void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-                if (isEnabled()) {
-                    jobRunIO(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
-                }
-            }
-        };
-
-        Job(ConceptPointer concept) : _concept(concept) {}
-        Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
-
-        bool isEnabled() const { return _concept->isEnabled(); }
-        void setEnabled(bool isEnabled) { _concept->setEnabled(isEnabled); }
-
-        const Varying getInput() const { return _concept->getInput(); }
-        const Varying getOutput() const { return _concept->getOutput(); }
-
-        template <class T> T& edit() {
-            auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
-            assert(concept);
-            return concept->_data;
+        Model(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
+            applyConfiguration();
         }
-        template <class T> const T& get() const {
-            auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
-            assert(concept);
-            return concept->_data;
+
+        void applyConfiguration() {
+            jobConfigure(_data, *std::static_pointer_cast<C>(_config));
         }
 
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-            PerformanceTimer perfTimer(_name.c_str());
-            PROFILE_RANGE(_name.c_str());
-
-            _concept->run(sceneContext, renderContext);
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
+            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
+                jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
+            }
+            renderContext->jobConfig.reset();
         }
-    protected:
-        ConceptPointer _concept;
-        std::string _name = "";
-
     };
-    using Jobs = std::vector<Job>;
+    template <class T, class I, class C = Config> using ModelI = Model<T, C, I, None>;
+    template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
+    template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
 
-public:
-    Task() = default;
-    virtual ~Task() = default;
+    Job(std::string name, ConceptPointer concept) : _concept(concept), _name(name) {}
 
-    // Queue a new job to the task; returns the job's index
-    template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
-        _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(std::forward<A>(args)...));
-        return _jobs.back().getOutput();
+    const Varying getInput() const { return _concept->getInput(); }
+    const Varying getOutput() const { return _concept->getOutput(); }
+    QConfigPointer& getConfiguration() const { return _concept->getConfiguration(); }
+    void applyConfiguration() { return _concept->applyConfiguration(); }
+
+    template <class T> T& edit() {
+        auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
+        assert(concept);
+        return concept->_data;
     }
 
-    void enableJob(size_t jobIndex, bool enable = true) { _jobs.at(jobIndex).setEnabled(enable); }
-    bool getEnableJob(size_t jobIndex) const { return _jobs.at(jobIndex).isEnabled(); }
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+        PerformanceTimer perfTimer(_name.c_str());
+        PROFILE_RANGE(_name.c_str());
 
-    virtual void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {}
+        _concept->run(sceneContext, renderContext);
+    }
+
+    protected:
+    ConceptPointer _concept;
+    std::string _name = "";
+};
+
+// A task is a specialized job to run a collection of other jobs
+// It is defined with JobModel = Task::Model<T>
+//
+// A task with a custom config *must* use the templated constructor
+class Task {
+public:
+    using Config = TaskConfig;
+    using QConfigPointer = Job::QConfigPointer;
+    using None = Job::None;
+
+    template <class T, class C = Config, class I = None, class O = None> class Model : public Job::Concept {
+    public:
+        using Data = T;
+        using Input = I;
+        using Output = O;
+
+        Data _data;
+        Varying _input;
+        Varying _output;
+
+        const Varying getInput() const { return _input; }
+        const Varying getOutput() const { return _output; }
+
+        Model(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
+            _config = _data._config; // use the data's config
+            std::static_pointer_cast<Config>(_config)->init(&_data);
+            applyConfiguration();
+        }
+
+        void applyConfiguration() {
+            jobConfigure(_data, *std::static_pointer_cast<C>(_config));
+        }
+
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+            renderContext->jobConfig = std::static_pointer_cast<Config>(_config);
+            if (renderContext->jobConfig->alwaysEnabled || renderContext->jobConfig->enabled) {
+                jobRun(_data, sceneContext, renderContext, _input.get<I>(), _output.edit<O>());
+            }
+            renderContext->jobConfig.reset();
+        }
+    };
+    template <class T, class I, class C = Config> using ModelI = Model<T, C, I, None>;
+    template <class T, class O, class C = Config> using ModelO = Model<T, C, None, O>;
+    template <class T, class I, class O, class C = Config> using ModelIO = Model<T, C, I, O>;
+
+    using Jobs = std::vector<Job>;
+
+    // A task must use its Config for construction
+    Task() : _config{ std::make_shared<Config>() } {}
+    template <class C> Task(std::shared_ptr<C> config) : _config{ config } {}
+
+    // Create a new job in the container's queue; returns the job's output
+    template <class T, class... A> const Varying addJob(std::string name, const Varying& input, A&&... args) {
+        _jobs.emplace_back(name, std::make_shared<typename T::JobModel>(
+            input,
+            typename T::JobModel::Data(std::forward<A>(args)...)));
+        QConfigPointer config = _jobs.back().getConfiguration();
+        config->setParent(_config.get());
+        config->setObjectName(name.c_str());
+        QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+        return _jobs.back().getOutput();
+    }
+    template <class T, class... A> const Varying addJob(std::string name, A&&... args) {
+        const auto input = Varying(typename T::JobModel::Input());
+        return addJob<T>(name, input, std::forward<A>(args)...);
+    }
+
+    std::shared_ptr<Config> getConfiguration() {
+        auto config = std::static_pointer_cast<Config>(_config);
+        // If we are here, we were not made by a Model, so we must initialize our own config
+        config->init(this);
+        return config;
+    }
+
+    void configure(const QObject& configuration) {
+        for (auto& job : _jobs) {
+            job.applyConfiguration();
+        }
+    }
 
 protected:
+    template <class T, class C, class I, class O> friend class Model;
+
+    QConfigPointer _config;
     Jobs _jobs;
 };
-typedef std::shared_ptr<Task> TaskPointer;
-typedef std::vector<TaskPointer> Tasks;
 
 }
 
