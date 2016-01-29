@@ -34,8 +34,19 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
-    connect(qApp, &Application::svoImportRequested, this, &WindowScriptingInterface::svoImportRequested);
     connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+
+    connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
+        static const QMetaMethod svoImportRequestedSignal =
+            QMetaMethod::fromSignal(&WindowScriptingInterface::svoImportRequested);
+
+        if (isSignalConnected(svoImportRequestedSignal)) {
+            QUrl url(urlString);
+            emit svoImportRequested(url.url());
+        } else {
+            OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
+        }
+    });
 }
 
 WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
