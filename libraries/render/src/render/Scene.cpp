@@ -129,22 +129,28 @@ void Scene::processPendingChangesQueue() {
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    auto resetID = ids.begin();
-    auto resetPayload = payloads.begin();
-    ItemBounds itemBounds;
-    itemBounds.reserve(ids.size());
-    
-    for (;resetID != ids.end(); resetID++, resetPayload++) {
-        auto& item = _items[(*resetID)];
+
+    auto& resetPayload = payloads.begin();
+    for (auto resetID : ids) {
+        // Access the true item
+        auto& item = _items[resetID];
         auto oldKey = item.getKey();
+        auto oldCell = item.getCell();
+
+        // Reset the item with a new payload
         item.resetPayload(*resetPayload);
 
-        _masterBucketMap.reset((*resetID), oldKey, item.getKey());
+        // Reset the item in the Bucket map
+        _masterBucketMap.reset(resetID, oldKey, item.getKey());
 
-        itemBounds.emplace_back(ItemBound((*resetID), item.getBound()));
+        // Reset the item in the spatial tree
+        auto newCellLocation = _masterSpatialTree.evalLocation(item.getBound());
+        auto newCell = _masterSpatialTree.resetItem(oldCell, newCellLocation, resetID);
+        item.resetCell(newCell);
+
+        // next loop
+        resetPayload++;
     }
-    
-    _masterSpatialTree.insert(itemBounds);
 }
 
 void Scene::removeItems(const ItemIDs& ids) {

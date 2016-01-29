@@ -67,7 +67,7 @@ Octree::Location Octree::Location::evalFromRange(const Coord3& minCoord, const C
     }
 }
 
-Octree::Indices Octree::indexAllocatedCellPath(const Locations& path) const {
+Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
     Index currentIndex = ROOT;
     Indices cellPath(1, currentIndex);
 
@@ -105,7 +105,7 @@ Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
 Octree::Indices Octree::indexCellPath(const Locations& path) {
     // First through the aallocated cells
-    Indices cellPath = indexAllocatedCellPath(path);
+    Indices cellPath = indexConcreteCellPath(path);
 
     // Catch up from the last allocated cell on the path
     auto currentIndex = cellPath.back();
@@ -131,34 +131,86 @@ Octree::Index Octree::allocateBrick() {
     return brickIdx;
 }
 
-Octree::Index Octree::accessCellBrick(const Location& loc, const CellBrickAccessor& accessor) {
-    auto cellId = indexCell(loc);
-    auto cell = editCell(cellId);
+Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick) {
+    assert(cellID != INVALID);
+    auto cell = editCell(cellID);
     if (!cell.asBrick()) {
+        if (!createBrick) {
+            return INVALID;
+        }
         cell.setBrick(allocateBrick());
     }
 
     // access the brick
-    auto& brick = _bricks[cell.brick()];
+    auto brickID = cell.brick();
+    auto& brick = _bricks[brickID];
 
     // execute the accessor
-    accessor(brick, cell.brick());
+    accessor(brick, brickID);
 
-    return cell.brick();
+    return brickID;
 }
 
-void ItemSpatialTree::insert(const ItemBounds& items) {
-    for (auto& item : items) {
-        if (!item.bound.isNull()) {
-            auto cellIdx = indexCell(evalLocation(item.bound));
-
-            accessCellBrick(evalLocation(item.bound), [&] (Brick& brick, Octree::Index cellID) {
-                brick.items.push_back(item.id);
-            });
+Octree::Locations ItemSpatialTree::evalLocations(const ItemBounds& bounds) const {
+    Locations locations;
+    locations.reserve(bounds.size());
+    for (auto& bound : bounds) {
+        if (!bound.bound.isNull()) {
+            locations.emplace_back(evalLocation(bound.bound));
+        } else {
+            locations.emplace_back(Location());
         }
+    }
+    return locations;
+}
+
+ItemSpatialTree::Index ItemSpatialTree::insertItem(const Location& location, const ItemID& item) {
+    // Go to the cell
+    auto cellIdx = indexCell(location);
+
+    // Add the item to the brick (and a brick if needed)
+    accessCellBrick(cellIdx, [&](Brick& brick, Octree::Index cellID) {
+        brick.items.push_back(item);
+    }, true);
+
+    return cellIdx;
+}
+
+bool ItemSpatialTree::removeItem(Index cellIdx, const ItemID& item) {
+    auto success = false;
+
+    // Access the brick at the cell (without createing new ones)
+    auto brickIdx = accessCellBrick(cellIdx, [&](Brick& brick, Octree::Index brickID) {
+        // remove the item from the list
+        brick.items.erase(std::find(brick.items.begin(), brick.items.end(), item));
+        success = true;
+    }, false); // do not create brick!
+
+    return success;
+}
+
+ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const Location& location, const ItemID& item) {
+    // do we know about this item ?
+    if (oldCell == Item::INVALID_CELL) {
+        auto newCell = insertItem(location, item);
+        return newCell;
+    } else {
+        auto newCell = indexCell(location);
+
+        accessCellBrick(newCell, [&](Brick& brick, Octree::Index brickID) {
+            // insert the item only if the new cell is different from the previous one
+            if (newCell != oldCell) {
+                brick.items.push_back(item);
+            }
+        }, true);
+
+        // now we know where the cell has been added and where it was,
+        // if different then go clean the previous cell
+        if (newCell != oldCell) {
+            removeItem(oldCell, item);
+        }
+
+        return newCell;
     }
 }
 
-void ItemSpatialTree::erase(const ItemBounds& items) {
-
-}

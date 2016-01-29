@@ -144,7 +144,7 @@ namespace render {
         using Locations = Location::vector;
 
         // Cell or Brick Indexing
-        using Index = int32_t;
+        using Index = ItemCell; // int32_t
         static const Index INVALID = -1;
         static const Index ROOT = 0;
         using Indices = std::vector<Index>;
@@ -194,9 +194,9 @@ namespace render {
         Indices indexCellPath(const Locations& path);
         Index indexCell(const Location& loc) { return indexCellPath(Location::pathTo(loc)).back(); }
 
-        // Same as indexCellPath except that NO cells are allocated,
+        // Same as indexCellPath except that NO cells are allocated, only the COncrete cells previously allocated
         // the returned indices stops at the last existing cell on the requested path.
-        Indices indexAllocatedCellPath(const Locations& path) const;
+        Indices indexConcreteCellPath(const Locations& path) const;
 
         // Reach a concrete cell
         const Cell& getCell(Index index) const {
@@ -209,7 +209,10 @@ namespace render {
         // Let s talk about the Cell Bricks now
         using CellBrickAccessor = std::function<void(Brick& brick, Index brickIdx)>;
 
-        Index accessCellBrick(const Location& loc, const CellBrickAccessor& accessor);
+        // acces a cell (must be concrete), then call the brick accessor if the brick exists ( or is just created if authorized to)
+        // This returns the Brick index
+        Index accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick = true);
+
 
         const Brick& getBrick(Index index) const {
             assert(index < _bricks.size());
@@ -258,19 +261,22 @@ namespace render {
         }
 
         
+        // Bound to Location
         AABox evalBound(const Location& loc) const {
             float cellWidth = getCellWidth(loc.depth);
             return AABox(evalPos(loc.pos, cellWidth), cellWidth);
         }
-
         Location evalLocation(const AABox& bound) const {
             return Location::evalFromRange(evalCoord(bound.getMinimumPoint()), evalCoord(bound.getMaximumPoint()));
         }
+        Locations evalLocations(const ItemBounds& bounds) const;
+
+        // Managing itemsInserting items in cells
+        Index insertItem(const Location& location, const ItemID& item);
+        bool removeItem(Index cellIdx, const ItemID& item);
+        Index resetItem(Index oldCell, const Location& location, const ItemID& item);
 
         ItemSpatialTree() {}
-
-        void insert(const ItemBounds& items);
-        void erase(const ItemBounds& items);
     };
 }
 

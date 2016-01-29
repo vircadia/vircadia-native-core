@@ -191,6 +191,7 @@ inline QDebug operator<<(QDebug debug, const ItemFilter& me) {
 }
 
 using ItemID = uint32_t;
+using ItemCell = int32_t;
 
 class Item {
 public:
@@ -198,6 +199,7 @@ public:
     typedef ItemID ID;
 
     static const ID INVALID_ITEM_ID = 0;
+    static const ItemCell INVALID_CELL = -1;
 
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
@@ -292,11 +294,15 @@ public:
 
     // Main scene / item managment interface Reset/Update/Kill
     void resetPayload(const PayloadPointer& payload);
+    void resetCell(ItemCell cell) { _cell = cell; }
     void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); } // Communicate update to the payload
-    void kill() { _payload.reset(); _key._flags.reset(); } // Kill means forget the payload and key
+    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // Kill means forget the payload and key and cell
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
+
+    // Check spatial cell
+    const ItemCell& getCell() const { return _cell; }
 
     // Payload Interface
 
@@ -318,6 +324,7 @@ public:
 protected:
     PayloadPointer _payload;
     ItemKey _key;
+    ItemCell _cell{ INVALID_CELL };
 
     friend class Scene;
 };
