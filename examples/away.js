@@ -13,12 +13,11 @@
 //
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
-
+var OVERLAY_RATIO = 1920 / 1080;
 var OVERLAY_DATA = {
-    text: "Paused:\npress any key to continue",
-    font: {size: 75},
-    color: {red: 200, green: 255, blue: 255},
-    alpha: 0.9
+    imageURL: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
+    color: {red: 255, green: 255, blue: 255},
+    alpha: 1
 };
 
 // ANIMATION
@@ -64,10 +63,24 @@ function stopAwayAnimation() {
 }
 
 // OVERLAY
-var overlay = Overlays.addOverlay("text", OVERLAY_DATA);
+var overlay = Overlays.addOverlay("image", OVERLAY_DATA);
 function showOverlay() {
-    var screen = Controller.getViewportDimensions();
-    Overlays.editOverlay(overlay, {visible: true, x: screen.x / 4, y: screen.y / 4});
+    var properties = {visible: true},
+        // Update for current screen size, keeping overlay proportions constant.
+        screen = Controller.getViewportDimensions(),
+        screenRatio = screen.x / screen.y;
+    if (screenRatio < OVERLAY_RATIO) {
+        properties.width = screen.x;
+        properties.height = screen.x / OVERLAY_RATIO;
+        properties.x = 0;
+        properties.y = (screen.y - properties.height) / 2;
+    } else {
+        properties.height = screen.y;
+        properties.width = screen.y * OVERLAY_RATIO;
+        properties.y = 0;
+        properties.x = (screen.x - properties.width) / 2;
+    }
+    Overlays.editOverlay(overlay, properties);
 }
 function hideOverlay() {
     Overlays.editOverlay(overlay, {visible: false});
