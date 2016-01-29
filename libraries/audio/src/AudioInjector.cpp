@@ -102,9 +102,10 @@ void AudioInjector::restart() {
     // reset the current send offset to zero
     _currentSendOffset = 0;
 
-    // reset the nextFrame and elapsed timer
+    // reset state to start sending from beginning again
     _nextFrame = 0;
     _frameTimer->invalidate();
+    _hasSentFirstFrame = false;
 
     // check our state to decide if we need extra handling for the restart request
     if (_state == State::Finished) {
