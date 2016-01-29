@@ -102,6 +102,10 @@ void AudioInjector::restart() {
     // reset the current send offset to zero
     _currentSendOffset = 0;
 
+    // reset the nextFrame and elapsed timer
+    _nextFrame = 0;
+    _frameTimer->invalidate();
+
     // check our state to decide if we need extra handling for the restart request
     if (_state == State::Finished) {
         // we finished playing, need to reset state so we can get going again
@@ -244,6 +248,11 @@ int64_t AudioInjector::injectNextFrame() {
             qDebug() << "AudioInjector::injectNextFrame() called with no samples to inject. Returning.";
             return NEXT_FRAME_DELTA_ERROR_OR_FINISHED;
         }
+    }
+
+    if (!_frameTimer->isValid()) {
+        // in the case where we have been restarted, the frame timer will be invalid and we need to start it back over here
+        _frameTimer->restart();
     }
 
     int totalBytesLeftToCopy = (_options.stereo ? 2 : 1) * AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
