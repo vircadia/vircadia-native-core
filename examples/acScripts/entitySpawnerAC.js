@@ -22,6 +22,7 @@ function makeBoxes() {
     for (i = 0; i < NUMBER_OF_BOXES; i++) {
         createBox();
     }
+    Script.clearInterval(octreeQueryInterval);
 }
 
 function createBox() {
@@ -95,7 +96,7 @@ EntityViewer.setPosition({
     z: 0
 });
 EntityViewer.setKeyholeRadius(60000);
-Script.setInterval(function() {
+var octreeQueryInterval = Script.setInterval(function() {
     EntityViewer.queryOctree();
 }, 1000);
 
