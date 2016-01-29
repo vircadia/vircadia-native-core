@@ -91,8 +91,10 @@ FocusScope {
         id: popup
         parent: desktop
         anchors.fill: parent
+        z: desktop.zLevels.menu
         visible: false
         focus: true
+
         MouseArea {
             anchors.fill: parent
             onClicked: hideList();
@@ -116,7 +118,7 @@ FocusScope {
 
             ListView {
                 id: listView
-                height: textView.height * count
+                height: textField.height * count * 1.4
                 model: root.model
                 highlight: Rectangle{
                     width: listView.currentItem ? listView.currentItem.width : 0
