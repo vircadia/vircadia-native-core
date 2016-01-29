@@ -27,5 +27,6 @@ DISTFILES += \
     ../../interface/resources/qml/windows/*.qml \
     ../../interface/resources/qml/hifi/*.qml \
     ../../interface/resources/qml/hifi/dialogs/*.qml \
-    ../../interface/resources/qml/hifi/dialogs/preferences/*.qml
+    ../../interface/resources/qml/hifi/dialogs/preferences/*.qml \
+    ../../interface/resources/qml/hifi/overlays/*.qml
 
