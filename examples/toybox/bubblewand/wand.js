@@ -174,6 +174,9 @@
                 this.createBubbleAtTipOfWand();
             }
         },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
+        },
         continueNearGrab: function() {
             var deltaTime = checkInterval();
             //only get the properties that we need
@@ -188,10 +191,16 @@
             this.growBubbleWithWandVelocity(properties, deltaTime);
 
         },
+        continueEquip: function() {
+            this.continueNearGrab();
+        },
         releaseGrab: function() {
             //delete the  current buble and reset state when the wand is released
             Entities.deleteEntity(this.currentBubble);
             this.currentBubble = null;
+        },
+        releaseEquip: function() {
+            this.releaseGrab();
         },
 
     };
