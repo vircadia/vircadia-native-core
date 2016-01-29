@@ -464,6 +464,10 @@ void Rig::computeEyesInRootFrame(const AnimPoseVec& poses) {
     }
 }
 
+void Rig::setEnableInverseKinematics(bool enable) {
+    _enableInverseKinematics = enable;
+}
+
 AnimPose Rig::getAbsoluteDefaultPose(int index) const {
     if (_animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints()) {
         return _absoluteDefaultPoses[index];
@@ -705,6 +709,12 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         }
 
         t += deltaTime;
+
+        if (_enableInverseKinematics) {
+            _animVars.set("ikOverlayAlpha", 1.0f);
+        } else {
+            _animVars.set("ikOverlayAlpha", 0.0f);
+        }
     }
 
     _lastFront = front;

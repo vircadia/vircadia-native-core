@@ -34,6 +34,7 @@
 #include <TextRenderer3D.h>
 #include <UserActivityLogger.h>
 #include <AnimDebugDraw.h>
+#include <AnimClip.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
@@ -49,6 +50,8 @@
 #include "Util.h"
 #include "InterfaceLogging.h"
 #include "DebugDraw.h"
+#include "EntityEditPacketSender.h"
+#include "MovingEntitiesOperator.h"
 
 using namespace std;
 
@@ -362,6 +365,37 @@ void MyAvatar::simulate(float deltaTime) {
 
     // consider updating our billboard
     maybeUpdateBillboard();
+
+    locationChanged();
+    // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
+    EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
+    EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
+    if (entityTree) {
+        EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
+        MovingEntitiesOperator moveOperator(entityTree);
+        forEachDescendant([&](SpatiallyNestablePointer object) {
+            // if the queryBox has changed, tell the entity-server
+            if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+                EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
+                bool success;
+                AACube newCube = entity->getQueryAACube(success);
+                if (success) {
+                    moveOperator.addEntityToMoveList(entity, newCube);
+                }
+                if (packetSender) {
+                    EntityItemProperties properties = entity->getProperties();
+                    properties.setQueryAACubeDirty();
+                    packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
+                    entity->setLastBroadcast(usecTimestampNow());
+                }
+            }
+        });
+        // also update the position of children in our local octree
+        if (moveOperator.hasMovingEntities()) {
+            PerformanceTimer perfTimer("recurseTreeWithOperator");
+            entityTree->recurseTreeWithOperator(&moveOperator);
+        }
+    }
 }
 
 glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
@@ -645,6 +679,15 @@ void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
 void MyAvatar::setEnableMeshVisible(bool isEnabled) {
     render::ScenePointer scene = qApp->getMain3DScene();
     _skeletonModel.setVisibleInScene(isEnabled, scene);
+}
+
+void MyAvatar::setUseAnimPreAndPostRotations(bool isEnabled) {
+    AnimClip::usePreAndPostPoseFromAnim = isEnabled;
+    reset(true);
+}
+
+void MyAvatar::setEnableInverseKinematics(bool isEnabled) {
+    _rig->setEnableInverseKinematics(isEnabled);
 }
 
 void MyAvatar::loadData() {
@@ -1041,6 +1084,8 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     _characterController.getPositionAndOrientation(position, orientation);
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
+
+    setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
 
     // now that physics has adjusted our position, we can update attachements.
     Avatar::simulateAttachments(deltaTime);

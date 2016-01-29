@@ -959,7 +959,7 @@ void LimitedNodeList::putLocalPortIntoSharedMemory(const QString key, QObject* p
 bool LimitedNodeList::getLocalServerPortFromSharedMemory(const QString key, quint16& localPort) {
     QSharedMemory sharedMem(key);
     if (!sharedMem.attach(QSharedMemory::ReadOnly)) {
-        qWarning() << "Could not attach to shared memory at key" << key;
+        qCWarning(networking) << "Could not attach to shared memory at key" << key;
         return false;
     } else {
         sharedMem.lock();

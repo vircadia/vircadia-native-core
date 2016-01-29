@@ -19,6 +19,7 @@
 #define GPU_LEGACY 0
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
+#define GPU_CORE_MINIMUM GPU_CORE_41
 
 #if defined(__APPLE__)
 

@@ -27,7 +27,18 @@
 
 using namespace render;
 
-enum Slots {
+void DebugDeferredBufferConfig::setMode(int newMode) {
+    if (newMode == mode) {
+        return;
+    } else if (newMode > DebugDeferredBuffer::CustomMode || newMode < 0) {
+        mode = DebugDeferredBuffer::CustomMode;
+    } else {
+        mode = newMode;
+    }
+    emit dirty();
+}
+
+enum Slot {
     Diffuse = 0,
     Normal,
     Specular,
@@ -38,6 +49,8 @@ enum Slots {
     AmbientOcclusion,
     AmbientOcclusionBlurred
 };
+
+
 
 static const std::string DEFAULT_DIFFUSE_SHADER {
     "vec4 getFragmentColor() {"
@@ -129,7 +142,7 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
     _customPipelines.emplace(CUSTOM_FILE, pipeline);
 }
 
-std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string customFile) {
+std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
     switch (mode) {
         case DiffuseMode:
             return DEFAULT_DIFFUSE_SHADER;
@@ -158,7 +171,7 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Modes mode, std::string cus
     return std::string();
 }
 
-bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile) const {
+bool DebugDeferredBuffer::pipelineNeedsUpdate(Mode mode, std::string customFile) const {
     if (mode != CustomMode) {
         return !_pipelines[mode];
     }
@@ -175,7 +188,7 @@ bool DebugDeferredBuffer::pipelineNeedsUpdate(Modes mode, std::string customFile
     return true;
 }
 
-const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::string customFile) {
+const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::string customFile) {
     if (pipelineNeedsUpdate(mode, customFile)) {
         static const std::string VERTEX_SHADER { debug_deferred_buffer_vert };
         static const std::string FRAGMENT_SHADER { debug_deferred_buffer_frag };
@@ -221,18 +234,15 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Modes mode, std::st
     }
 }
 
+void DebugDeferredBuffer::configure(const Config& config) {
+    _mode = (Mode)config.mode;
+    _size = config.size;
+}
 
 void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-    RenderArgs* args = renderContext->getArgs();
-
-    // Guard against unspecified modes
-    auto mode = renderContext->_deferredDebugMode;
-    if (mode > (int)CustomMode) {
-        renderContext->_deferredDebugMode = -1;
-        return;
-    }
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
@@ -250,7 +260,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         // TODO REMOVE: Temporary until UI
         auto first = _customPipelines.begin()->first;
         
-        batch.setPipeline(getPipeline(Modes(renderContext->_deferredDebugMode), first));
+        batch.setPipeline(getPipeline(_mode, first));
         
         batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
@@ -263,8 +273,8 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
 
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-        const glm::vec2 bottomLeft(renderContext->_deferredDebugSize.x, renderContext->_deferredDebugSize.y);
-        const glm::vec2 topRight(renderContext->_deferredDebugSize.z, renderContext->_deferredDebugSize.w);
+        const glm::vec2 bottomLeft(_size.x, _size.y);
+        const glm::vec2 topRight(_size.z, _size.w);
         geometryBuffer->renderQuad(batch, bottomLeft, topRight, color);
     });
 }

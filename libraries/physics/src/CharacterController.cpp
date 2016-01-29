@@ -390,6 +390,14 @@ glm::quat CharacterController::getFollowAngularDisplacement() const {
     return bulletToGLM(_followAngularDisplacement);
 }
 
+glm::vec3 CharacterController::getFollowVelocity() const {
+    if (_followTime > 0.0f) {
+        return bulletToGLM(_followLinearDisplacement) / _followTime;
+    } else {
+        return glm::vec3();
+    }
+}
+
 glm::vec3 CharacterController::getLinearVelocity() const {
     glm::vec3 velocity(0.0f);
     if (_rigidBody) {

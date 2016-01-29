@@ -30,7 +30,6 @@ class ScriptEngines : public QObject, public Dependency {
 
     Q_PROPERTY(ScriptsModel* scriptsModel READ scriptsModel CONSTANT)
     Q_PROPERTY(ScriptsModelFilter* scriptsModelFilter READ scriptsModelFilter CONSTANT)
-    Q_PROPERTY(QString previousScriptLocation READ getPreviousScriptLocation WRITE setPreviousScriptLocation NOTIFY previousScriptLocationChanged)
 
 public:
     using ScriptInitializer = std::function<void(ScriptEngine*)>;
@@ -47,9 +46,6 @@ public:
     void setScriptsLocation(const QString& scriptsLocation);
     QStringList getRunningScripts();
     ScriptEngine* getScriptEngine(const QString& scriptHash);
-
-    QString getPreviousScriptLocation() const;
-    void setPreviousScriptLocation(const QString& previousScriptLocation);
 
     ScriptsModel* scriptsModel() { return &_scriptsModel; };
     ScriptsModelFilter* scriptsModelFilter() { return &_scriptsModelFilter; };
@@ -73,7 +69,6 @@ signals:
     void scriptCountChanged();
     void scriptsReloading();
     void scriptLoadError(const QString& filename, const QString& error);
-    void previousScriptLocationChanged();
 
 protected slots: 
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
@@ -97,7 +92,6 @@ protected:
     std::atomic<bool> _stoppingAllScripts { false };
     std::list<ScriptInitializer> _scriptInitializers;
     mutable Setting::Handle<QString> _scriptsLocationHandle;
-    mutable Setting::Handle<QString> _previousScriptLocation;
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
 };

@@ -1172,15 +1172,15 @@ void OctreeServer::domainSettingsRequestComplete() {
                 pathToCopyFrom = oldDefaultPersistPath;
             }
 
+            QDir persistFileDirectory = QDir(persistPath).filePath("..");
+            if (!persistFileDirectory.exists()) {
+                qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
+                persistFileDirectory.mkpath(".");
+            }
+
             if (shouldCopy) {
                 qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistPath;
 
-                QDir persistFileDirectory = QDir(persistPath).filePath("..");
-
-                if (!persistFileDirectory.exists()) {
-                    qDebug() << "Creating data directory " << persistFileDirectory.path();
-                    persistFileDirectory.mkpath(".");
-                }
                 QFile::copy(pathToCopyFrom, persistPath);
             } else {
                 qDebug() << "No existing persist file found";
