@@ -21,6 +21,7 @@ DISTFILES += \
     ../../interface/resources/qml/dialogs/*.qml \
     ../../interface/resources/qml/dialogs/fileDialog/*.qml \
     ../../interface/resources/qml/dialogs/preferences/*.qml \
+    ../../interface/resources/qml/dialogs/messageDialog/*.qml \
     ../../interface/resources/qml/desktop/*.qml \
     ../../interface/resources/qml/menus/*.qml \
     ../../interface/resources/qml/styles/*.qml \
