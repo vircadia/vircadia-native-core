@@ -25,7 +25,7 @@ FocusScope {
     readonly property alias zLevels: zLevels
     QtObject {
         id: zLevels;
-        readonly property real normal: 0
+        readonly property real normal: 1 // make windows always appear higher than QML overlays and other non-window controls.
         readonly property real top: 2000
         readonly property real modal: 4000
         readonly property real menu: 8000
@@ -252,10 +252,16 @@ FocusScope {
         return messageDialogBuilder.createObject(desktop, properties);
     }
 
-    Component { id: queryDialogBuilder; QueryDialog { } }
-    function queryBox(properties) {
-        return queryDialogBuilder.createObject(desktop, properties);
+    Component { id: inputDialogBuilder; QueryDialog { } }
+    function inputDialog(properties) {
+        return inputDialogBuilder.createObject(desktop, properties);
     }
+
+    Component { id: fileDialogBuilder; FileDialog { } }
+    function fileOpenDialog(properties) {
+        return fileDialogBuilder.createObject(desktop, properties);
+    }
+
 
     MenuMouseHandler { id: menuPopperUpper }
     function popupMenu(point) {

@@ -99,7 +99,7 @@ private:
     AbstractAudioInterface* _localAudioInterface { nullptr };
     AudioInjectorLocalBuffer* _localBuffer { nullptr };
     
-    int _nextFrame { 0 };
+    int64_t _nextFrame { 0 };
     std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
     quint16 _outgoingSequenceNumber { 0 };
     
