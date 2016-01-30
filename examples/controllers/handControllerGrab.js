@@ -1532,6 +1532,7 @@ function MyController(hand) {
         this.turnLightsOff();
         this.turnOffVisualizations();
 
+        var noVelocity = false;
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
@@ -1550,11 +1551,12 @@ function MyController(hand) {
                             z: 0
                         }
                     });
+                    noVelocity = true;
                 }
             }
         }
 
-        this.deactivateEntity(this.grabbedEntity);
+        this.deactivateEntity(this.grabbedEntity, noVelocity);
         this.actionID = null;
         this.setState(STATE_OFF);
 
@@ -1629,19 +1631,38 @@ function MyController(hand) {
         return data;
     };
 
-    this.deactivateEntity = function(entityID) {
+    this.deactivateEntity = function(entityID, noVelocity) {
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         if (data && data["refCount"]) {
             data["refCount"] = data["refCount"] - 1;
             if (data["refCount"] < 1) {
-                Entities.editEntity(entityID, {
+                var deactiveProps = {
                     gravity: data["gravity"],
                     collidesWith: data["collidesWith"],
                     collisionless: data["collisionless"],
                     dynamic: data["dynamic"],
                     parentID: data["parentID"],
                     parentJointIndex: data["parentJointIndex"]
-                });
+                };
+
+                // things that are held by parenting and dropped with no velocity will end up as "static" in bullet.  If
+                // it looks like the dropped thing should fall, give it a little velocity.
+                var parentID = Entities.getEntityProperties(entityID, ["parentID"]).parentID;
+                var forceVelocity = false;
+                if (!noVelocity &&
+                    parentID == MyAvatar.sessionUUID &&
+                    Vec3.length(data["gravity"]) > 0.0 &&
+                    data["dynamic"] &&
+                    data["parentID"] == NULL_UUID &&
+                    !data["collisionless"]) {
+                    forceVelocity = true;
+                }
+
+                Entities.editEntity(entityID, deactiveProps);
+
+                if (forceVelocity) {
+                    Entities.editEntity(entityID, {velocity:{x:0, y:0.1, z:0}});
+                }
                 data = null;
             }
         } else {
