@@ -7,10 +7,18 @@ var spriteDimensions = {
 var sprite;
 var isMouseDown = false;
 var RAD_TO_DEG = 180.0 / Math.PI;
-var Y_AXIS = { x: 0, y: 1, z: 0 };
-var X_AXIS = { x: 1, y: 0, z: 0 };
+var Y_AXIS = {
+    x: 0,
+    y: 1,
+    z: 0
+};
+var X_AXIS = {
+    x: 1,
+    y: 0,
+    z: 0
+};
 
-function MakeSprite () {
+function MakeSprite() {
     sprite = Entities.addEntity({
         type: "Model",
         name: "sprite",
@@ -21,9 +29,9 @@ function MakeSprite () {
     });
 }
 
-function UpdateOrientation (event) {
+function UpdateOrientation(event) {
     if (isMouseDown && event.isRightButton) {
-        
+
         var direction,
             yaw,
             pitch,
@@ -33,7 +41,7 @@ function UpdateOrientation (event) {
         yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
         pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
         rot = Quat.multiply(yaw, pitch);
-        
+
         var avatar = Quat.safeEulerAngles(MyAvatar.orientation);
         var printRot = Quat.safeEulerAngles(rot);
         print("avatar = (" + avatar.x + ", " + avatar.y + ", " + avatar.z + ")");

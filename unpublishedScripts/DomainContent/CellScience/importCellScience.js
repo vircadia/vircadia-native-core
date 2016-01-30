@@ -1,16 +1,18 @@
-var version = 1001;
+var version = 1003;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
 var utilsScript = Script.resolvePath('Scripts/utils.js');
 Script.include(utilsScript);
 
-function makeUngrabbable(entityID){
-setEntityCustomData('grabbableKey', entityID, {grabbable:false});
+function makeUngrabbable(entityID) {
+    setEntityCustomData('grabbableKey', entityID, {
+        grabbable: false
+    });
 }
 
 Entities.addingEntity.connect(makeUngrabbable);
-   
+
 assignVariables();
 
 var locations = {
@@ -70,9 +72,7 @@ var locations = {
     }, 1000]
 };
 
-
 var scenes = [
-
     {
         name: "Cells",
         objects: "",
@@ -108,7 +108,7 @@ var scenes = [
             },
             radius: 500,
             number: 10,
-            script: "moveRandomly",
+            script: "moveRandomly.js?" + version,
             visible: true
         }],
         boundary: {
@@ -160,7 +160,7 @@ var scenes = [
                     location: locations.ribosome[0],
                     baseURL: baseLocation
                 }),
-                script:"zoom.js?" + version,
+                script: "zoom.js?" + version,
                 visible: true
             }, {
                 model: "vesicle",
@@ -182,7 +182,7 @@ var scenes = [
                         grabbable: false
                     }
                 }),
-                script: "moveRandomly",
+                script: "moveRandomly.js?" + version,
                 visible: true
             }, { //golgi vesicles
                 model: "vesicle",
@@ -226,7 +226,7 @@ var scenes = [
                         grabbable: false
                     }
                 }),
-                script: "moveRandomly",
+                script: "moveRandomly.js?" + version,
                 visible: true
             }, {
                 model: "vesicle",
@@ -292,7 +292,7 @@ var scenes = [
                         grabbable: false
                     }
                 }),
-                script: "moveRandomly",
+                script: "moveRandomly.js?" + version,
                 visible: true
             }, { //outer vesicles
                 model: "vesicle",
@@ -314,7 +314,7 @@ var scenes = [
                         grabbable: false
                     }
                 }),
-                script: "moveRandomly",
+                script: "moveRandomly.js?" + version,
                 visible: true
             },
             //          {//wigglies
@@ -583,17 +583,18 @@ function ImportScene(scene) {
     }
     //create zone and instances
 
-     CreateZone(scene);
-     CreateInstances(scene);
-     CreateBoundary(scene);
+    CreateZone(scene);
+    CreateInstances(scene);
+    CreateBoundary(scene);
 
-     CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
+    CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
 
     // print("done " + scene.name);
 
 }
 
 clearAllNav();
+
 function clearAllNav() {
     // print('NAV CLEARING ALL NAV');
     var result = Entities.findEntities(MyAvatar.position, 25000);
@@ -605,6 +606,31 @@ function clearAllNav() {
         }
     })
 }
+
+function createLayoutLights() {
+    Entities.addEntity({
+        type: "Light",
+        name: "Cell layout light",
+        position: {
+            x: locations.cellLayout[0] + 110,
+            y: locations.cellLayout[0] + 160,
+            z: locations.cellLayout[0] + 785
+        },
+        dimensions: {
+            x: 1500,
+            y: 1500,
+            z: 1500
+        },
+        intensity: 2,
+        color: {
+            red: 240,
+            green: 165,
+            blue: 240
+        }
+    })
+
+}
+
 function CreateNavigationButton(scene, number) {
     // print('NAV NAVIGATION CREATING NAV!!' +scene.name + " " + number)
 
@@ -634,7 +660,7 @@ function CreateNavigationButton(scene, number) {
             }
         }),
         // position:{x:3000,y:13500,z:3000},
-        script: baseLocation + "Scripts/navigationButton.js?"+version ,
+        script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
 
     });
@@ -734,7 +760,7 @@ function deleteAllInRadius(position, radius) {
 
         Entities.deleteEntity(arrayFound[i]);
     }
-     // print("deleted " + arrayFound.length + " entities");
+    // print("deleted " + arrayFound.length + " entities");
 }
 
 function CreateInstances(scene) {
@@ -743,7 +769,6 @@ function CreateInstances(scene) {
         for (var j = 0; j < scene.instances[i].number; j++) {
             var point = getPointOnSphereOfRadius(scene.instances[i].radius, j + 2, scene.instances[i].number);
             // print(scene.name + " point is " + point.x + " " + point.y + " " + point.z);
-
 
             var posX = scene.location.x + point.x + scene.instances[i].offset.x + Math.random() * (scene.instances[i].radius / 10);
             var posY = scene.location.y + point.y + scene.instances[i].offset.y + Math.random() * (scene.instances[i].radius / 10);
@@ -754,13 +779,13 @@ function CreateInstances(scene) {
                 z: posZ
             };
             var url = baseLocation + "Instances/" + scene.instances[i].model + ".fbx?" + version;
-            var script = scene.instances[i].script + ".js?" + version;
+            var script = scene.instances[i].script;
             var rotX = 360 * Math.random() - 180;
             var rotY = 360 * Math.random() - 180;
             var rotZ = 360 * Math.random() - 180;
             var rotation = Quat.fromPitchYawRollDegrees(rotX, rotY, rotZ);
             var dimensions;
-            if (scene.instances[i].script == "") {
+            if (scene.instances[i].script === "") {
                 script = "";
             }
             //is there a smarter way to randomize size?
@@ -780,7 +805,7 @@ function CreateInstances(scene) {
                 }, idBounds, 150);
 
             }
-
+            print('JBP SCRIPT AT CREATE ENTITY: ' + script)
             CreateEntity(scene.instances[i].model, position, rotation, scene.instances[i].dimensions, url, script, scene.instances[i].userData, scene.instances[i].visible);
         }
     }
@@ -876,12 +901,13 @@ function getPointOnSphereOfRadius(radius, number, totalNumber) {
 
 function CreateEntity(name, position, rotation, dimensions, url, script, userData, visible) {
     var scriptLocation;
-    if (script == "") {
+    if (script === "") {
         scriptLocation = "";
     } else {
         scriptLocation = baseLocation + "Scripts/" + script;
     }
 
+    print('JBP SCRIPT LOCATION IN CREATE ENTITY' + scriptLocation)
     Entities.addEntity({
         type: "Model",
         name: name,
@@ -9020,36 +9046,8 @@ for (var i = 0; i < scenes.length; i++) {
     CreateNavigationButton(scenes[i], i);
 }
 
-//Entities.addEntity({
-//  type: "Box",
-//  name: "motorProteinController",
-//  position: {x:4000, y:4000, z:4000},
-//  color: {red: 200, green: 0, blue: 0},
-//  script: baseLocation + "Scripts/motorProteinController.js?"+version,
-//  visible: false
-//});
+createLayoutLights();
 
-Entities.addEntity({
-    type: "Light",
-    name: "Cell layout light",
-    position: {
-        x: locations.cellLayout[0] + 110,
-        y: locations.cellLayout[0] + 160,
-        z: locations.cellLayout[0] + 785
-    },
-    dimensions: {
-        x: 1500,
-        y: 1500,
-        z: 1500
-    },
-    intensity: 2,
-    color: {
-        red: 240,
-        green: 165,
-        blue: 240
-    }
-})
-
-Script.scriptEnding.connect(function(){
+Script.scriptEnding.connect(function() {
     Entities.addingEntity.disconnect(makeUngrabbable);
 });

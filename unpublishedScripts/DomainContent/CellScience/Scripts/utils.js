@@ -1,6 +1,8 @@
 setEntityUserData = function(id, data) {
     var json = JSON.stringify(data)
-    Entities.editEntity(id, { userData: json });
+    Entities.editEntity(id, {
+        userData: json
+    });
 }
 
 // FIXME do non-destructive modification of the existing user data
@@ -10,7 +12,7 @@ getEntityUserData = function(id) {
     if (properties.userData) {
         try {
             results = JSON.parse(properties.userData);
-        } catch(err) {
+        } catch (err) {
             logDebug(err);
             logDebug(properties.userData);
         }

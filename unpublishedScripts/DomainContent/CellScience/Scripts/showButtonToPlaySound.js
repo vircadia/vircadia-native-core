@@ -1,5 +1,5 @@
 (function() {
-    var baseURL ="https://hifi-content.s3.amazonaws.com/hifi-content/DomainContent/CellScience/";
+    var baseURL = "https://hifi-content.s3.amazonaws.com/hifi-content/DomainContent/CellScience/";
     var self = this;
     this.buttonImageURL = baseURL + "GUI/play_audio.svg?2";
 
@@ -17,7 +17,7 @@
             stereo: true,
             loop: false,
             localOnly: true,
-            volume:0.5
+            volume: 0.5
         };
         this.sound = SoundCache.getSound(this.soundURL);
     }

@@ -1,11 +1,11 @@
 (function() {
 
     var self = this;
-var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
+    var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
     var version = 1;
     this.preload = function(entityId) {
-        this.soundPlaying=null;
+        this.soundPlaying = null;
         this.entityId = entityId;
         self.getUserData();
         this.labelURL = baseURL + "GUI/labels_" + self.userData.name + ".png?" + version;
@@ -119,7 +119,7 @@ var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/"
 
     this.unload = function() {
         Overlays.deleteOverlay(self.button);
-        if(this.soundPlaying!==null) {
+        if (this.soundPlaying !== null) {
             this.soundPlaying.stop();
         }
 

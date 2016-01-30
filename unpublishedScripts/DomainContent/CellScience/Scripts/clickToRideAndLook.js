@@ -9,7 +9,7 @@
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
     var self = this;
-    
+
     this.preload = function(entityId) {
 
         this.entityId = entityId;
