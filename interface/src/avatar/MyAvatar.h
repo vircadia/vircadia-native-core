@@ -112,7 +112,7 @@ public:
 
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
-	void setLeanScale(float scale) { _leanScale = scale; }
+    void setLeanScale(float scale) { _leanScale = scale; }
     float getLeanScale() const { return _leanScale; }
 
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
@@ -220,11 +220,11 @@ public:
     float getBoomLength() const { return _boomLength; }
     void setBoomLength(float boomLength) { _boomLength = boomLength; }
 
-	float getPitchSpeed() const { return _pitchSpeed; }
-	void setPitchSpeed(float speed) { _pitchSpeed = speed; }
+    float getPitchSpeed() const { return _pitchSpeed; }
+    void setPitchSpeed(float speed) { _pitchSpeed = speed; }
 
-	float getYawSpeed() const { return _yawSpeed; }
-	void setYawSpeed(float speed) { _yawSpeed = speed; }
+    float getYawSpeed() const { return _yawSpeed; }
+    void setYawSpeed(float speed) { _yawSpeed = speed; }
 
     static const float ZOOM_MIN;
     static const float ZOOM_MAX;
