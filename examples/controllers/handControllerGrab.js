@@ -662,7 +662,8 @@ function MyController(hand) {
     };
 
     this.propsArePhysical = function(props) {
-        if (!props.dynamic) {
+        if (!props.dynamic && props.parentID != MyAvatar.sessionUUID) {
+            // if we have parented something, don't do this check on dynamic.
             return false;
         }
         var isPhysical = (props.shapeType && props.shapeType != 'none');
@@ -809,6 +810,7 @@ function MyController(hand) {
         for (i = 0; i < candidateEntities.length; i++) {
             var grabbableDataForCandidate =
                 getEntityCustomData(GRABBABLE_DATA_KEY, candidateEntities[i], DEFAULT_GRABBABLE_DATA);
+            var grabDataForCandidate = getEntityCustomData(GRAB_USER_DATA_KEY, candidateEntities[i], {});
             var propsForCandidate = Entities.getEntityProperties(candidateEntities[i], GRABBABLE_PROPERTIES);
 
             var isPhysical = this.propsArePhysical(propsForCandidate);
@@ -817,8 +819,12 @@ function MyController(hand) {
                 // physical things default to grabbable
                 grabbable = true;
             } else {
-                // non-physical things default to non-grabbable
-                grabbable = false;
+                // non-physical things default to non-grabbable unless they are already grabbed
+                if ("refCount" in grabDataForCandidate && grabDataForCandidate.refCount > 0) {
+                    grabbable = true;
+                } else {
+                    grabbable = false;
+                }
             }
             if ("grabbable" in grabbableDataForCandidate) {
                 // if userData indicates that this is grabbable or not, override the default.
@@ -871,7 +877,7 @@ function MyController(hand) {
                 return;
             }
             // near grab or equip with action
-            if (isPhysical && near) {
+            if (near) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
@@ -899,9 +905,12 @@ function MyController(hand) {
                 return;
             }
 
-            // else this thing isn't physical.  grab it by reparenting it.
-            this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
-            return;
+            // else this thing isn't physical.  grab it by reparenting it (but not if we've already
+            // grabbed it).
+            if (grabbableData.refCount < 1) {
+                this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
+                return;
+            }
         }
 
         //search line visualizations
