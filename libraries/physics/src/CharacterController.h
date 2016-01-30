@@ -77,6 +77,7 @@ public:
 
     enum class State {
         Ground = 0,
+        Takeoff,
         InAir,
         Hover
     };
@@ -107,6 +108,7 @@ protected:
 
     glm::vec3 _boxScale; // used to compute capsule shape
 
+    quint64 _takeoffToInAirStart;
     quint64 _jumpToHoverStart;
 
     btScalar _halfHeight;

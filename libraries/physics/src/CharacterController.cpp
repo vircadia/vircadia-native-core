@@ -54,6 +54,7 @@ CharacterController::CharacterController() {
     _state = State::Hover;
     _isPushingUp = false;
     _jumpToHoverStart = 0;
+    _takeoffToInAirStart = 0;
     _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
@@ -257,17 +258,17 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 void CharacterController::jump() {
     // check for case where user is holding down "jump" key...
     // we'll eventually transition to "hover"
-    if (_state != State::InAir) {
-        if (_state != State::Hover) {
-            _jumpToHoverStart = usecTimestampNow();
-            _pendingFlags |= PENDING_FLAG_JUMP;
-        }
-    } else {
+    if (_state == State::Hover) {
         quint64 now = usecTimestampNow();
         const quint64 JUMP_TO_HOVER_PERIOD = 75 * (USECS_PER_SECOND / 100);
         if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
             _isPushingUp = true;
             setState(State::Hover);
+        }
+    } else {
+        if (_state != State::Takeoff) {
+            _jumpToHoverStart = usecTimestampNow();
+            _pendingFlags |= PENDING_FLAG_JUMP;
         }
     }
 }
@@ -430,7 +431,7 @@ void CharacterController::preSimulation() {
             }
             // TODO: use collision events rather than ray-trace test to disable jumping
             const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
-            if (_floorDistance < JUMP_PROXIMITY_THRESHOLD || _hasSupport) {
+            if (_state != State::Takeoff && (_floorDistance < JUMP_PROXIMITY_THRESHOLD || _hasSupport)) {
                 setState(State::Ground);
             }
         } else if (!_hasSupport) {
@@ -438,14 +439,24 @@ void CharacterController::preSimulation() {
             setState(State::Hover);
         }
 
+        quint64 now = usecTimestampNow();
+
         if (_pendingFlags & PENDING_FLAG_JUMP) {
             _pendingFlags &= ~ PENDING_FLAG_JUMP;
             if (onGround()) {
-                setState(State::InAir);
-                btVector3 velocity = _rigidBody->getLinearVelocity();
-                velocity += _jumpSpeed * _currentUp;
-                _rigidBody->setLinearVelocity(velocity);
+                setState(State::Takeoff);
+                _takeoffToInAirStart = now;
             }
+        }
+
+        const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 200 * MSECS_PER_SECOND;
+        if (_state == State::Takeoff && (now - _takeoffToInAirStart) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+            setState(State::InAir);
+
+            _takeoffToInAirStart = now + USECS_PER_SECOND * 86500.0f;
+            btVector3 velocity = _rigidBody->getLinearVelocity();
+            velocity += _jumpSpeed * _currentUp;
+            _rigidBody->setLinearVelocity(velocity);
         }
     }
     _followTime = 0.0f;

@@ -77,6 +77,8 @@ Rig::CharacterControllerState convertCharacterControllerState(CharacterControlle
     default:
     case CharacterController::State::Ground:
         return Rig::CharacterControllerState::Ground;
+    case CharacterController::State::Takeoff:
+        return Rig::CharacterControllerState::Takeoff;
     case CharacterController::State::InAir:
         return Rig::CharacterControllerState::InAir;
     case CharacterController::State::Hover:

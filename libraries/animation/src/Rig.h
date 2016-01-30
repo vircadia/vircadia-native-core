@@ -75,6 +75,7 @@ public:
 
     enum class CharacterControllerState {
         Ground = 0,
+        Takeoff,
         InAir,
         Hover
     };
@@ -278,6 +279,7 @@ public:
         Turn,
         Move,
         Hover,
+        Takeoff,
         InAir
     };
     RigRole _state { RigRole::Idle };
