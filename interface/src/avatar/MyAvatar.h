@@ -330,8 +330,8 @@ private:
     bool _isBraking;
 
     float _boomLength;
-	float _yawSpeed; // degrees/sec
-	float _pitchSpeed; // degrees/sec
+    float _yawSpeed; // degrees/sec
+    float _pitchSpeed; // degrees/sec
 
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
