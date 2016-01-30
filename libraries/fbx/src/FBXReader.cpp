@@ -600,7 +600,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     } else if (name == jointLeanName) {
                         jointLeanID = getID(object.properties);
 
-                    } else if (name == jointHeadName) {
+                    } else if (name == jointHeadName || name == "head" || name == "Head" || name == "HEAD" || name == "joint_head") {
                         jointHeadID = getID(object.properties);
 
                     } else if (name == jointLeftHandName || name == "LeftHand" || name == "joint_L_hand") {
