@@ -56,13 +56,14 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_SPEED = 150.0f;   // degrees/sec
-const float PITCH_SPEED = 100.0f; // degrees/sec
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
+
+const float YAW_SPEED_DEFAULT = 66.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 55.0f; // degrees/sec
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
@@ -85,6 +86,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _wasPushing(false),
     _isPushing(false),
     _isBraking(false),
+    _yawSpeed(YAW_SPEED_DEFAULT),
+    _pitchSpeed(PITCH_SPEED_DEFAULT),
     _boomLength(ZOOM_DEFAULT),
     _thrust(0.0f),
     _keyboardMotorVelocity(0.0f),
@@ -1330,7 +1333,7 @@ bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
+    float targetSpeed = _driveKeys[YAW] * _yawSpeed;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1366,7 +1369,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     // update body orientation by movement inputs
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * PITCH_SPEED * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();

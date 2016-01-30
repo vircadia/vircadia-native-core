@@ -250,10 +250,10 @@ Menu::Menu() {
     // View > Mini Mirror
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
-	// View > Center Player In View
-	addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
-		0, true, qApp, SLOT(rotationModeChanged()),
-		UNSPECIFIED_POSITION, "Advanced");
+    // View > Center Player In View
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
+        0, true, qApp, SLOT(rotationModeChanged()),
+        UNSPECIFIED_POSITION, "Advanced");
 
 
     // Navigate menu ----------------------------------
