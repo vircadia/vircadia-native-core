@@ -209,35 +209,6 @@ function AttachedEntitiesManager() {
                 grabbableData = getEntityCustomData('grabbableKey', entityID, {});
                 this.updateRelativeOffsets(entityID, props);
                 props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
-
-                // if an entity is currently being held or equipped, its original properties are saved in
-                // the userData under "grabKey".  Save with these original properties rather than the
-                // ones currently on the entity.
-                if (grabData.refCount > 0) {
-                    if ("gravity" in grabData) {
-                        props.gravity = grabData.gravity;
-                    }
-                    if ("collidesWith" in grabData) {
-                        props.collidesWith = grabData.collidesWith;
-                    }
-                    if ("dynamic" in grabData) {
-                        props.dynamic = grabData.dynamic;
-                    }
-                    if ("collisionless" in grabData) {
-                        if ("invertSolidWhileHeld" in grabbableData && grabbableData.invertSolidWhileHeld) {
-                            props.collisionless = !grabData.collisionless;
-                        } else {
-                            props.collisionless = grabData.collisionless;
-                        }
-                    }
-                    // if ("parentID" in grabData) {
-                    //     props.parentID = grabData.parentID;
-                    // }
-                    // if ("parentJointIndex" in grabData) {
-                    //     props.parentJointIndex = grabData.parentJointIndex;
-                    // }
-                }
-
                 this.scrubProperties(props);
                 saveData.push(props);
             }
@@ -253,12 +224,13 @@ function AttachedEntitiesManager() {
         toScrub.forEach(function(propertyName) {
             delete props[propertyName];
         });
-        // if the userData has a grabKey, strip it out
+        // if the userData has a grabKey, clear old state
         if ("userData" in props) {
             try {
                 parsedUserData = JSON.parse(props.userData);
                 if ("grabKey" in parsedUserData) {
-                    delete parsedUserData["grabKey"];
+                    parsedUserData.grabKey.refCount = 0;
+                    delete parsedUserData.grabKey["avatarId"];
                     props["userData"] = JSON.stringify(parsedUserData);
                 }
             } catch (e) {

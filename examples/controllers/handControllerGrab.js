@@ -913,7 +913,7 @@ function MyController(hand) {
         var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
 
         if (this.intersectionDistance > 0) {
-            //  If we hit something with our pick ray, move the search sphere toward that distance 
+            //  If we hit something with our pick ray, move the search sphere toward that distance
             this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE +
                 this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
         }
@@ -1215,7 +1215,7 @@ function MyController(hand) {
             return allowedJoints[handJointName][1];
         }
     }
-    
+
     this.nearGrabbing = function() {
         var now = Date.now();
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1589,45 +1589,42 @@ function MyController(hand) {
         data["avatarId"] = MyAvatar.sessionUUID;
         if (wasLoaded) {
             data["refCount"] = 1;
+            data["avatarId"] = MyAvatar.sessionUUID;
         } else {
             data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
-        }
-        // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
-        if (data["refCount"] == 1) {
-            this.isInitialGrab = true;
-            data["gravity"] = grabbedProperties.gravity;
-            data["collidesWith"] = grabbedProperties.collidesWith;
-            data["collisionless"] = grabbedProperties.collisionless;
-            data["dynamic"] = grabbedProperties.dynamic;
-            data["parentID"] = wasLoaded ? NULL_UUID : grabbedProperties.parentID;
-            data["parentJointIndex"] = grabbedProperties.parentJointIndex;
 
-            if ("invertSolidWhileHeld" in grabbableData && grabbableData.invertSolidWhileHeld) {
-                data["collisionless"] = !data["collisionless"];
+            // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
+            if (data["refCount"] == 1) {
+                this.isInitialGrab = true;
+                data["gravity"] = grabbedProperties.gravity;
+                data["collidesWith"] = grabbedProperties.collidesWith;
+                data["collisionless"] = grabbedProperties.collisionless;
+                data["dynamic"] = grabbedProperties.dynamic;
+                data["parentID"] = wasLoaded ? NULL_UUID : grabbedProperties.parentID;
+                data["parentJointIndex"] = grabbedProperties.parentJointIndex;
+
+                var whileHeldProperties = {
+                    gravity: {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    },
+                    // bummer, it isn't easy to do bitwise collisionMask operations like this:
+                    //"collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
+                    // when using string values
+                    "collidesWith": COLLIDES_WITH_WHILE_GRABBED
+                };
+                Entities.editEntity(entityID, whileHeldProperties);
+            } else if (data["refCount"] > 1) {
+                this.isInitialGrab = false;
+                // if an object is being grabbed by more than one person (or the same person twice, but nevermind), switch
+                // the collision groups so that it wont collide with "other" avatars.  This avoids a situation where two
+                // people are holding something and one of them will be able (if the other releases at the right time) to
+                // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
+                // the collision mask hinges on who the physics simulation owner is.
+                Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
             }
-
-            var whileHeldProperties = {
-                gravity: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                // bummer, it isn't easy to do bitwise collisionMask operations like this:
-                //"collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
-                // when using string values
-                "collidesWith": COLLIDES_WITH_WHILE_GRABBED
-            };
-            Entities.editEntity(entityID, whileHeldProperties);
-        } else if (data["refCount"] > 1) {
-            this.isInitialGrab = false;
-            // if an object is being grabbed by more than one person (or the same person twice, but nevermind), switch
-            // the collision groups so that it wont collide with "other" avatars.  This avoids a situation where two
-            // people are holding something and one of them will be able (if the other releases at the right time) to
-            // bootstrap themselves with the held object.  This happens because the meaning of "otherAvatar" in
-            // the collision mask hinges on who the physics simulation owner is.
-            Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
         }
-
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
         return data;
     };
