@@ -252,10 +252,16 @@ FocusScope {
         return messageDialogBuilder.createObject(desktop, properties);
     }
 
-    Component { id: queryDialogBuilder; QueryDialog { } }
-    function queryBox(properties) {
-        return queryDialogBuilder.createObject(desktop, properties);
+    Component { id: inputDialogBuilder; QueryDialog { } }
+    function inputDialog(properties) {
+        return inputDialogBuilder.createObject(desktop, properties);
     }
+
+    Component { id: fileDialogBuilder; FileDialog { } }
+    function fileOpenDialog(properties) {
+        return fileDialogBuilder.createObject(desktop, properties);
+    }
+
 
     MenuMouseHandler { id: menuPopperUpper }
     function popupMenu(point) {

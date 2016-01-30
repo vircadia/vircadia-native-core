@@ -34,8 +34,7 @@ ScriptsModel& getScriptsModel() {
 }
 
 ScriptEngines::ScriptEngines()
-    : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION),
-      _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION)
+    : _scriptsLocationHandle("scriptsLocation", DESKTOP_LOCATION)
 {
     _scriptsModelFilter.setSourceModel(&_scriptsModel);
     _scriptsModelFilter.sort(0, Qt::AscendingOrder);
@@ -444,15 +443,4 @@ void ScriptEngines::onScriptFinished(const QString& rawScriptUrl, ScriptEngine* 
 void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
     qCDebug(scriptengine) << "Application::loadScript(), script failed to load...";
     emit scriptLoadError(scriptFilename, "");
-}
-
-QString ScriptEngines::getPreviousScriptLocation() const {
-    return _previousScriptLocation.get();
-}
-
-void ScriptEngines::setPreviousScriptLocation(const QString& previousScriptLocation) {
-    if (_previousScriptLocation.get() != previousScriptLocation) {
-        _previousScriptLocation.set(previousScriptLocation);
-        emit previousScriptLocationChanged();
-    }
 }
