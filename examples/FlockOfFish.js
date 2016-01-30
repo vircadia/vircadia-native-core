@@ -61,8 +61,7 @@ function updateFish(deltaTime) {
         if (fish[i].entityId) {
             // Get only the properties we need, because that is faster
             var properties = flockProperties[i];
-            //var properties = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
-            //  If Bird has been deleted, bail
+            //  If fish has been deleted, bail
             if (properties.id != fish[i].entityId) {
                 fish[i].entityId = false;
                 return;
