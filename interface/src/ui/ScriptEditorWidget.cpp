@@ -191,10 +191,10 @@ bool ScriptEditorWidget::save() {
 bool ScriptEditorWidget::saveAs() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     QString fileName = QFileDialog::getSaveFileName(this, tr("Save script"),
-                                                    scriptEngines->getPreviousScriptLocation(),
+                                                    qApp->getPreviousScriptLocation(),
                                                     tr("JavaScript Files (*.js)"));
     if (!fileName.isEmpty()) {
-        scriptEngines->setPreviousScriptLocation(fileName);
+        qApp->setPreviousScriptLocation(fileName);
         return saveFile(fileName);
     } else {
         return false;

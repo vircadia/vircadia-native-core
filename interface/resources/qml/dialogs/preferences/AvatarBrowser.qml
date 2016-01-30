@@ -1,5 +1,5 @@
-import QtQuick 2.3
-import QtQuick.Controls 1.2
+import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtWebEngine 1.1
 
 import "../../windows" as Windows
@@ -11,9 +11,7 @@ Windows.Window {
     HifiConstants { id: hifi }
     width: 900; height: 700
     resizable: true
-    anchors.centerIn: parent
     modality: Qt.ApplicationModal
-    frame: Windows.ModalFrame {}
 
     Item {
         anchors.fill: parent
