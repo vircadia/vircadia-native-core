@@ -805,7 +805,7 @@ function CreateInstances(scene) {
                 }, idBounds, 150);
 
             }
-            print('JBP SCRIPT AT CREATE ENTITY: ' + script)
+            print('Script.clearTimeout SCRIPT AT CREATE ENTITY: ' + script)
             CreateEntity(scene.instances[i].model, position, rotation, scene.instances[i].dimensions, url, script, scene.instances[i].userData, scene.instances[i].visible);
         }
     }
@@ -907,7 +907,7 @@ function CreateEntity(name, position, rotation, dimensions, url, script, userDat
         scriptLocation = baseLocation + "Scripts/" + script;
     }
 
-    print('JBP SCRIPT LOCATION IN CREATE ENTITY' + scriptLocation)
+    print('Script.clearTimeout SCRIPT LOCATION IN CREATE ENTITY' + scriptLocation)
     Entities.addEntity({
         type: "Model",
         name: name,

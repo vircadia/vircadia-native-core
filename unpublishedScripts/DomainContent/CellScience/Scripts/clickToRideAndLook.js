@@ -81,10 +81,10 @@
         self.lastTargetLocation = self.targetLocation
         self.entityLocation = Entities.getEntityProperties(self.entityId, "position").position;
         self.targetLocation = Vec3.sum(self.entityLocation, TARGET_OFFSET);
-        //  print('JBP self.lastTargetLocation' + JSON.stringify(self.lastTargetLocation))
-        //  print('JBP self.targetLocation' + JSON.stringify(self.targetLocation))
+        //  print('Script.clearTimeout self.lastTargetLocation' + JSON.stringify(self.lastTargetLocation))
+        //  print('Script.clearTimeout self.targetLocation' + JSON.stringify(self.targetLocation))
         var diff = Vec3.distance(self.targetLocation, self.lastTargetLocation);
-        // print('JBP diff is::' + diff)
+        // print('Script.clearTimeout diff is::' + diff)
         self.addThrustToAvatar(deltaTime);
     }
 
@@ -92,12 +92,12 @@
     this.addThrustToAvatar = function(deltaTime) {
         var targetCurrentLocationToLastLocation = Vec3.subtract(self.targetLocation, self.lastTargetLocation);
 
-        // print('JBP targetCurrentLocationToLastLocation' + JSON.stringify(targetCurrentLocationToLastLocation));
-        // print('JBP deltaTime' + deltaTime)
-        // print('JBP velocity' + JSON.stringify(self.velocity))
+        // print('Script.clearTimeout targetCurrentLocationToLastLocation' + JSON.stringify(targetCurrentLocationToLastLocation));
+        // print('Script.clearTimeout deltaTime' + deltaTime)
+        // print('Script.clearTimeout velocity' + JSON.stringify(self.velocity))
         var thrustToAdd = Vec3.multiply(100, targetCurrentLocationToLastLocation);
         thrustToAdd = Vec3.multiply(thrustToAdd, 1 / deltaTime);
-        // print('JBP adding thrust!' + JSON.stringify(thrustToAdd))
+        // print('Script.clearTimeout adding thrust!' + JSON.stringify(thrustToAdd))
 
         MyAvatar.addThrust(thrustToAdd);
 
@@ -131,22 +131,6 @@
 
         Controller.mousePressEvent.disconnect(this.onMousePress);
     }
-
-    function handleMessages(channel, message, sender) {
-        // print('HANDLING A MESSAGE IN PROTEIN')
-        if (sender === MyAvatar.sessionUUID) {
-            if (channel === "Hifi-Motor-Protein-Channel") {
-                if (message === 'delete') {
-                    // print('SHOULD DELETE PROTEIN')
-                    Entities.deleteEntity(self.entityId)
-                }
-            }
-        }
-
-    }
-
-    Messages.messageReceived.connect(handleMessages);
-
 
 
 });

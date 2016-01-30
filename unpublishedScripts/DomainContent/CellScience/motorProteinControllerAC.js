@@ -78,7 +78,7 @@ function deleteAllMotorProteins() {
     results.forEach(function(r) {
         var name = Entities.getEntityProperties(r, 'name').name;
         if (name.indexOf('Hifi-Motor-Protein-Anchor') > -1) {
-            print('JBP DELETING A MOTOR PROTEIN::'  +  r)
+            print('Script.clearTimeout DELETING A MOTOR PROTEIN::'  +  r)
             Entities.deleteEntity(r);
         }
 

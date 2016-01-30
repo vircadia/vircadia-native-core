@@ -7,7 +7,7 @@
         self.entityId = entityId;
         self.getUserData();
         self.soundURL = baseURL + "Audio/" + self.userData.name + ".wav?" + version;
-        print("JBP creating WAV name location is " + baseURL + "Audio/" + self.userData.name + ".wav");
+        print("Script.clearTimeout creating WAV name location is " + baseURL + "Audio/" + self.userData.name + ".wav");
 
         self.soundOptions = {
             stereo: true,

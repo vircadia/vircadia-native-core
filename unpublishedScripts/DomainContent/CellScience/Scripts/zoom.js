@@ -21,12 +21,12 @@
             volume: 0.5
         };
         this.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
-        //print('JBP PRELOADING A ZOOM ENTITY')
+        //print('Script.clearTimeout PRELOADING A ZOOM ENTITY')
         print(" portal destination is " + portalDestination);
     }
 
     this.enterEntity = function(entityID) {
-        print('JBP ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
+        print('Script.clearTimeout ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
 
         var data = JSON.parse(Entities.getEntityProperties(this.entityId).userData);
 
