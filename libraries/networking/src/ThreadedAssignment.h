@@ -33,6 +33,7 @@ public slots:
     virtual void run() = 0;
     Q_INVOKABLE virtual void stop() { setFinished(true); }
     virtual void sendStatsPacket();
+    void clearQueuedCheckIns() { _numQueuedCheckIns = 0; }
 
 signals:
     void finished();
@@ -42,6 +43,7 @@ protected:
     bool _isFinished;
     QTimer _domainServerTimer;
     QTimer _statsTimer;
+    int _numQueuedCheckIns { 0 };
     
 protected slots:
     void domainSettingsRequestFailed();
