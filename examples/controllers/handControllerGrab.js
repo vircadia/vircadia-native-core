@@ -18,7 +18,7 @@ Script.include("../libraries/utils.js");
 // add lines where the hand ray picking is happening
 //
 var WANT_DEBUG = false;
-var WANT_DEBUG_STATE = true;
+var WANT_DEBUG_STATE = false;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -122,7 +122,6 @@ var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
 
 var DEFAULT_GRABBABLE_DATA = {
-    grabbable: true,
     disableReleaseVelocity: false
 };
 
@@ -320,7 +319,7 @@ function MyController(hand) {
     };
 
     this.callEntityMethodOnGrabbed = function(entityMethodName, args) {
-        print("Entity Method: " + entityMethodName + ", hand: " + this.hand);
+        // print("Entity Method: " + entityMethodName + ", hand: " + this.hand);
         if (args.length > 0) {
             Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
         } else {
@@ -663,6 +662,9 @@ function MyController(hand) {
     };
 
     this.propsArePhysical = function(props) {
+        if (!props.dynamic) {
+            return false;
+        }
         var isPhysical = (props.shapeType && props.shapeType != 'none');
         return isPhysical;
     }
@@ -808,7 +810,21 @@ function MyController(hand) {
             var grabbableDataForCandidate =
                 getEntityCustomData(GRABBABLE_DATA_KEY, candidateEntities[i], DEFAULT_GRABBABLE_DATA);
             var propsForCandidate = Entities.getEntityProperties(candidateEntities[i], GRABBABLE_PROPERTIES);
-            var grabbable = (typeof grabbableDataForCandidate.grabbable === 'undefined' || grabbableDataForCandidate.grabbable);
+
+            var isPhysical = this.propsArePhysical(propsForCandidate);
+            var grabbable;
+            if (isPhysical) {
+                // physical things default to grabbable
+                grabbable = true;
+            } else {
+                // non-physical things default to non-grabbable
+                grabbable = false;
+            }
+            if ("grabbable" in grabbableDataForCandidate) {
+                // if userData indicates that this is grabbable or not, override the default.
+                grabbable = grabbableDataForCandidate.grabbable;
+            }
+
             if (!grabbable && !grabbableDataForCandidate.wantsTrigger) {
                 continue;
             }
@@ -829,6 +845,11 @@ function MyController(hand) {
             }
             if (propsForCandidate.parentID != NULL_UUID && this.state == STATE_EQUIP_SEARCHING) {
                 // don't allow a double-equip
+                continue;
+            }
+
+            if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE) {
+                // we can't distance-grab non-physical
                 continue;
             }
 
@@ -855,7 +876,7 @@ function MyController(hand) {
                 return;
             }
             // far grab or equip with action
-            if (isPhysical && !near) {
+            if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
                 if (entityIsGrabbedByOther(intersection.entityID)) {
                     // don't distance grab something that is already grabbed.
                     return;
@@ -879,7 +900,7 @@ function MyController(hand) {
             }
 
             // else this thing isn't physical.  grab it by reparenting it.
-            this.setState(STATE_NEAR_GRABBING);
+            this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
             return;
         }
 
