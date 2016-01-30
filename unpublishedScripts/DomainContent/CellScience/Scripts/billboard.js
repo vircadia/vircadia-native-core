@@ -1,3 +1,11 @@
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
 var spriteURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Sprites/nucleosomes_sprite.fbx";
 var spriteDimensions = {
     x: 10,

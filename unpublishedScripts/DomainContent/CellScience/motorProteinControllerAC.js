@@ -1,7 +1,14 @@
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var numDynein = 2;
 var numKinesin = 2;
 var percentOnMainMT = 100;
-print('RUNNING AC!!');
+//print('RUNNING AC!!');
 var baseLocation;
 if (USE_LOCAL_HOST === true) {
     baseLocation = "http://localhost:8080/";
@@ -78,7 +85,7 @@ function deleteAllMotorProteins() {
     results.forEach(function(r) {
         var name = Entities.getEntityProperties(r, 'name').name;
         if (name.indexOf('Hifi-Motor-Protein-Anchor') > -1) {
-            print('Script.clearTimeout DELETING A MOTOR PROTEIN::'  +  r)
+           // print('Script.clearTimeout DELETING A MOTOR PROTEIN::'  +  r)
             Entities.deleteEntity(r);
         }
 
@@ -90,7 +97,7 @@ function deleteAllMotorProteins() {
 }
 
 function makeAll() {
-    print('CREATING MOTOR PROTEINS')
+   // print('CREATING MOTOR PROTEINS')
     var segment;
     var segments = shuffleSegments();
     var lastSegment = [];
@@ -191,7 +198,7 @@ function update(deltaTime) {
             Entities.setPacketsPerSecond(6000);
             print("PPS:" + Entities.getPacketsPerSecond());
             Script.setTimeout(function(){
-                print('SETTING TIMEOUT')
+                //print('SETTING TIMEOUT')
                  deleteAllMotorProteins()
             },10000)
            
