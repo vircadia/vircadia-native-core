@@ -10,19 +10,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-var LIFETIME = 60; 
-var NUM_FISH = 15;
+var LIFETIME = 300;   //  Fish live for 5 minutes 
+var NUM_FISH = 20;
 var TANK_WIDTH = 3.0; 
 var TANK_HEIGHT = 1.0;  
 var FISH_WIDTH = 0.03;
 var FISH_LENGTH = 0.15; 
-var MAX_SIGHT_DISTANCE = 0.4;
+var MAX_SIGHT_DISTANCE = 0.8;
 var MIN_SEPARATION = 0.15;
 var AVOIDANCE_FORCE = 0.2;
 var COHESION_FORCE = 0.05;
 var ALIGNMENT_FORCE = 0.05;
 var SWIMMING_FORCE = 0.05;
-var SWIMMING_SPEED = 2.0;
+var SWIMMING_SPEED = 1.5;
 
 var fishLoaded = false; 
 var fish = [];
@@ -53,15 +53,15 @@ function updateFish(deltaTime) {
     // isn't doing it. 
     var flockProperties = [];
     for (var i = 0; i < fish.length; i++) {
-        var otherProps = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
+        var otherProps = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity", "rotation"]);
         flockProperties.push(otherProps);
     }
 
     for (var i = 0; i < fish.length; i++) {
         if (fish[i].entityId) {
             // Get only the properties we need, because that is faster
-            // var properties = flockProperties[i];
-            var properties = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
+            var properties = flockProperties[i];
+            //var properties = Entities.getEntityProperties(fish[i].entityId, ["position", "velocity"]);
             //  If Bird has been deleted, bail
             if (properties.id != fish[i].entityId) {
                 fish[i].entityId = false;
@@ -100,11 +100,11 @@ function updateFish(deltaTime) {
                 // Cohesion: Steer towards center of flock
                 var towardCenter = Vec3.subtract(averagePosition, position);
                 velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardCenter), Vec3.length(velocity)), COHESION_FORCE);
-                //  Try to swim at a constant speed
-                velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(velocity), SWIMMING_SPEED), SWIMMING_FORCE);
             }
 
-            
+            //  Try to swim at a constant speed
+            velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(velocity), SWIMMING_SPEED), SWIMMING_FORCE);
+
             //  Keep fish in their 'tank' 
             if (position.x < lowerCorner.x) {
                 position.x = lowerCorner.x; 
@@ -130,14 +130,14 @@ function updateFish(deltaTime) {
 
             //  Orient in direction of velocity 
             var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
-            var VELOCITY_FOLLOW_RATE = 0.33;
+            var VELOCITY_FOLLOW_RATE = 0.30;
 
             //  Only update properties if they have changed, to save bandwidth
             var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
             if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
                 Entities.editEntity(fish[i].entityId, { velocity: velocity, rotation: Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE) });
             } else {
-                Entities.editEntity(fish[i].entityId, { position: position, velocity: velocity, rotation: Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE) });
+                Entities.editEntity(fish[i].entityId, { position: position, velocity: velocity, rotation: Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE) });
             }
         }
     }
@@ -155,7 +155,7 @@ Script.scriptEnding.connect(function() {
 
 var STARTING_FRACTION = 0.25; 
 function loadFish(howMany) {
-  var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 3 * TANK_WIDTH));
+  var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2 * TANK_WIDTH));
   lowerCorner = { x: center.x - TANK_WIDTH / 2, y: center.y, z: center.z - TANK_WIDTH / 2 };
   upperCorner = { x: center.x + TANK_WIDTH / 2, y: center.y + TANK_HEIGHT, z: center.z + TANK_WIDTH / 2 };
   
