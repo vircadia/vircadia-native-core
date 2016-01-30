@@ -21,11 +21,11 @@ namespace render {
         Q_PROPERTY(bool showDisplay MEMBER showDisplay WRITE setShowDisplay)
         Q_PROPERTY(bool showNetwork MEMBER showNetwork WRITE setShowNetwork)
     public:
-        DrawStatusConfig() : Job::Config(false) {}
+        DrawStatusConfig() : Job::Config(true) {} // FIXME FOR debug
 
         void dirtyHelper();
 
-        bool showDisplay{ false };
+        bool showDisplay{ true }; // FIXME FOR debug
         bool showNetwork{ false };
 
     public slots:
@@ -59,6 +59,7 @@ namespace render {
 
         int _drawItemBoundPosLoc = -1;
         int _drawItemBoundDimLoc = -1;
+        int _drawItemCellLocLoc = -1;
         int _drawItemStatusPosLoc = -1;
         int _drawItemStatusDimLoc = -1;
         int _drawItemStatusValue0Loc = -1;
@@ -68,6 +69,7 @@ namespace render {
         gpu::PipelinePointer _drawItemBoundsPipeline;
         gpu::PipelinePointer _drawItemStatusPipeline;
         gpu::BufferPointer _itemBounds;
+        gpu::BufferPointer _itemCells;
         gpu::BufferPointer _itemStatus;
         gpu::TexturePointer _statusIconMap;
     };

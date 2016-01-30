@@ -162,8 +162,11 @@ namespace render {
             void setChild(Link octant, Index child) { _links[octant] = child; }
 
             Index brick() const { return _links[BrickLink]; }
-            bool asBrick() const { return _links[BrickLink] != INVALID; }
+            bool hasBrick() const { return _links[BrickLink] != INVALID; }
             void setBrick(Index brick) { _links[BrickLink] = brick; }
+            void signalBrickFilled() { _location.spare = 1; }
+            void signalBrickEmpty() { _location.spare = 0; }
+            bool isBrickEmpty() const { return _location.spare == 0; }
 
             Cell() :
                 _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
@@ -198,8 +201,16 @@ namespace render {
         // the returned indices stops at the last existing cell on the requested path.
         Indices indexConcreteCellPath(const Locations& path) const;
 
+        // Get the cell location from the CellID
+        Location getCellLocation(Index cellID) const {
+            if ((cellID >= 0) && (cellID < _cells.size())) {
+                return getConcreteCell(cellID).getlocation();
+            }
+            return Location();
+        }
+
         // Reach a concrete cell
-        const Cell& getCell(Index index) const {
+        const Cell& getConcreteCell(Index index) const {
             assert(index < _cells.size());
             return _cells[index];
         }
@@ -207,14 +218,14 @@ namespace render {
 
 
         // Let s talk about the Cell Bricks now
-        using CellBrickAccessor = std::function<void(Brick& brick, Index brickIdx)>;
+        using CellBrickAccessor = std::function<void(Cell& cell, Brick& brick, Index brickIdx)>;
 
         // acces a cell (must be concrete), then call the brick accessor if the brick exists ( or is just created if authorized to)
         // This returns the Brick index
         Index accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick = true);
 
 
-        const Brick& getBrick(Index index) const {
+        const Brick& getConcreteBrick(Index index) const {
             assert(index < _bricks.size());
             return _bricks[index];
         }
@@ -272,8 +283,10 @@ namespace render {
         Locations evalLocations(const ItemBounds& bounds) const;
 
         // Managing itemsInserting items in cells
-        Index insertItem(const Location& location, const ItemID& item);
+        // Cells need to have been allocated first calling indexCell
+        Index insertItem(Index cellIdx, const ItemID& item);
         bool removeItem(Index cellIdx, const ItemID& item);
+
         Index resetItem(Index oldCell, const Location& location, const ItemID& item);
 
         ItemSpatialTree() {}

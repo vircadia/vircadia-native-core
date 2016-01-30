@@ -42,9 +42,7 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
 
         // Blend on transparent
-        state->setBlendFunction(true,
-            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
+        state->setBlendFunction(true,  gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
         // Good to go add the brand new pipeline
         _drawCellBoundsPipeline = gpu::Pipeline::create(program, state);
@@ -99,9 +97,13 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
 
         const auto& inCells = scene->getSpatialTree()._cells;
 
-        for (int i = 0; i < nbCells; i++) {
-            auto& cellLoc = inCells[i].getlocation();
+        for (const auto& cell: inCells ) {
+            auto cellLoc = cell.getlocation();
+
             glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
+            if (cell.isBrickEmpty() || !cell.hasBrick()) {
+                cellLocation.w *= -1;
+            }
 
             batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
 

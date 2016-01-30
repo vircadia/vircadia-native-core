@@ -155,15 +155,38 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
 
 void Scene::removeItems(const ItemIDs& ids) {
     for (auto removedID :ids) {
-        _masterBucketMap.erase(removedID, _items[removedID].getKey());
-        _items[removedID].kill();
+        // Access the true item
+        auto& item = _items[removedID];
+
+        // Remove from Bucket map
+        _masterBucketMap.erase(removedID, item.getKey());
+
+        // Remove from spatial tree
+        _masterSpatialTree.removeItem(item.getCell(), removedID);
+
+        // Kill it
+        item.kill();
     }
 }
 
 void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
-    auto updateID = ids.begin();
-    auto updateFunctor = functors.begin();
-    for (;updateID != ids.end(); updateID++, updateFunctor++) {
-        _items[(*updateID)].update((*updateFunctor));
+
+    auto& updateFunctor = functors.begin();
+    for (auto updateID : ids) {
+        // Access the true item
+        auto& item = _items[updateID];
+        auto oldCell = item.getCell();
+
+        // Update it
+        _items[updateID].update((*updateFunctor));
+
+        // Update the citem in the spatial tree if needed
+        // THis could be avoided if we 
+        auto newCellLocation = _masterSpatialTree.evalLocation(item.getBound());
+        auto newCell = _masterSpatialTree.resetItem(oldCell, newCellLocation, updateID);
+        item.resetCell(newCell);
+
+        // next loop
+        updateFunctor++;
     }
 }

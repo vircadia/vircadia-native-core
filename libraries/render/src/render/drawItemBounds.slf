@@ -12,9 +12,12 @@
 //
 
 in vec4 varColor;
+in vec2 varTexcoord;
 out vec4 outFragColor;
 
 
 void main(void) {
-    outFragColor = vec4(1.0, 0.5, 0.0, 1.0);
+    float var = step(fract(varTexcoord.x * varTexcoord.y * 1.0), 0.5);
+
+    outFragColor = vec4(mix(vec3(1.0), varColor.xyz, var), varColor.a);
 }

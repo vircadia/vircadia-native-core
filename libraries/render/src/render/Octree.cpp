@@ -73,7 +73,7 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
 
     for (int l = 1; l < path.size(); l++) {
         auto& location = path[l];
-        auto nextIndex = getCell(currentIndex).child(location.octant());
+        auto nextIndex = getConcreteCell(currentIndex).child(location.octant());
         if (nextIndex == INVALID) {
             break;
         }
@@ -133,8 +133,8 @@ Octree::Index Octree::allocateBrick() {
 
 Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick) {
     assert(cellID != INVALID);
-    auto cell = editCell(cellID);
-    if (!cell.asBrick()) {
+    auto& cell = editCell(cellID);
+    if (!cell.hasBrick()) {
         if (!createBrick) {
             return INVALID;
         }
@@ -146,7 +146,7 @@ Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& acc
     auto& brick = _bricks[brickID];
 
     // execute the accessor
-    accessor(brick, brickID);
+    accessor(cell, brick, brickID);
 
     return brickID;
 }
@@ -164,13 +164,11 @@ Octree::Locations ItemSpatialTree::evalLocations(const ItemBounds& bounds) const
     return locations;
 }
 
-ItemSpatialTree::Index ItemSpatialTree::insertItem(const Location& location, const ItemID& item) {
-    // Go to the cell
-    auto cellIdx = indexCell(location);
-
+ItemSpatialTree::Index ItemSpatialTree::insertItem(Index cellIdx, const ItemID& item) {
     // Add the item to the brick (and a brick if needed)
-    accessCellBrick(cellIdx, [&](Brick& brick, Octree::Index cellID) {
+    auto brickID = accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
         brick.items.push_back(item);
+        cell.signalBrickFilled();
     }, true);
 
     return cellIdx;
@@ -180,9 +178,12 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemID& item) {
     auto success = false;
 
     // Access the brick at the cell (without createing new ones)
-    auto brickIdx = accessCellBrick(cellIdx, [&](Brick& brick, Octree::Index brickID) {
+    accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index brickID) {
         // remove the item from the list
         brick.items.erase(std::find(brick.items.begin(), brick.items.end(), item));
+        if (brick.items.empty()) {
+            cell.signalBrickEmpty();
+        }
         success = true;
     }, false); // do not create brick!
 
@@ -190,25 +191,27 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemID& item) {
 }
 
 ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const Location& location, const ItemID& item) {
-    // do we know about this item ?
-    if (oldCell == Item::INVALID_CELL) {
-        auto newCell = insertItem(location, item);
-        return newCell;
-    } else {
-        auto newCell = indexCell(location);
+    auto newCell = indexCell(location);
 
-        accessCellBrick(newCell, [&](Brick& brick, Octree::Index brickID) {
-            // insert the item only if the new cell is different from the previous one
-            if (newCell != oldCell) {
-                brick.items.push_back(item);
-            }
+    // Early exit if nothing changed
+    if (newCell == oldCell) {
+        return newCell;
+    }
+    // do we know about this item ?
+    else if (oldCell == Item::INVALID_CELL) {
+        insertItem(newCell, item);
+        return newCell;
+    }
+    // A true update of cell is required
+    else {
+        // Add the item to the brick (and a brick if needed)
+        accessCellBrick(newCell, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
+            brick.items.push_back(item);
+            cell.signalBrickFilled();
         }, true);
 
-        // now we know where the cell has been added and where it was,
-        // if different then go clean the previous cell
-        if (newCell != oldCell) {
-            removeItem(oldCell, item);
-        }
+        // And remove it from the previous one
+        removeItem(oldCell, item);
 
         return newCell;
     }
