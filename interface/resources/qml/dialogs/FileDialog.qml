@@ -55,35 +55,39 @@ ModalWindow {
             anchors { left: parent.left; top: parent.top; margins: 8 }
             spacing: 8
             // FIXME implement back button
-//            VrControls.FontAwesome {
-//                id: backButton
-//                text: "\uf0a8"
-//                size: currentDirectory.height
-//                enabled: d.backStack.length != 0
-//                MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
-//            }
-            VrControls.FontAwesome {
+            //VrControls.ButtonAwesome {
+            //    id: backButton
+            //    text: "\uf0a8"
+            //    size: currentDirectory.height
+            //    enabled: d.backStack.length != 0
+            //    MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
+            //}
+            VrControls.ButtonAwesome {
                 id: upButton
+                enabled: model.parentFolder && model.parentFolder !== ""
                 text: "\uf0aa"
-                size: currentDirectory.height
-                color: enabled ? "black" : "gray"
-                MouseArea { anchors.fill: parent; onClicked: d.navigateUp() }
+                size: 32
+                onClicked: d.navigateUp();
             }
-            VrControls.FontAwesome {
+            VrControls.ButtonAwesome {
                 id: homeButton
                 property var destination: helper.home();
-                visible: destination ? true : false
+                enabled: d.homeDestination ? true : false
                 text: "\uf015"
-                size: currentDirectory.height
-                MouseArea { anchors.fill: parent; onClicked: model.folder = parent.destination }
+                size: 32
+                onClicked: d.navigateHome();
             }
         }
 
         TextField {
             id: currentDirectory
+            height: homeButton.height
             anchors { left: navControls.right; right: parent.right; top: parent.top; margins: 8 }
             property var lastValidFolder: helper.urlToPath(model.folder)
             onLastValidFolderChanged: text = lastValidFolder;
+            verticalAlignment: Text.AlignVCenter
+            font.pointSize: 14
+            font.bold: true
 
             // FIXME add support auto-completion
             onAccepted: {
@@ -93,7 +97,6 @@ ModalWindow {
                 }
                 model.folder = helper.pathToUrl(text);
             }
-
         }
 
         QtObject {
@@ -104,6 +107,7 @@ ModalWindow {
             property var backStack: []
             property var tableViewConnection: Connections { target: fileTableView; onCurrentRowChanged: d.update(); }
             property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }
+            property var homeDestination: helper.home();
             Component.onCompleted: update();
 
             function update() {
@@ -127,12 +131,20 @@ ModalWindow {
                     return true;
                 }
             }
+
+            function navigateHome() {
+                model.folder = homeDestination;
+                return true;
+            }
         }
 
         FileTableView {
             id: fileTableView
             anchors { left: parent.left; right: parent.right; top: currentDirectory.bottom; bottom: currentSelection.top; margins: 8 }
             onDoubleClicked: navigateToRow(row);
+            focus: true
+            Keys.onReturnPressed: navigateToCurrentRow();
+            Keys.onEnterPressed: navigateToCurrentRow();
             model: FolderListModel {
                 id: model
                 nameFilters: selectionType.currentFilter
@@ -146,6 +158,7 @@ ModalWindow {
                     upButton.enabled = Qt.binding(function() { return (model.parentFolder && model.parentFolder != "") ? true : false; });
                     showFiles = !root.selectDirectory
                 }
+                onFolderChanged: fileTableView.currentRow = 0;
             }
 
             function navigateToRow(row) {
@@ -159,10 +172,9 @@ ModalWindow {
                 var file = model.get(row, "fileURL");
                 if (isFolder) {
                     fileTableView.model.folder = file
-                    currentRow = -1;
                 } else {
                     root.selectedFile(file);
-                    root.visible = false;
+                    root.destroy();
                 }
             }
         }
@@ -171,6 +183,7 @@ ModalWindow {
             id: currentSelection
             anchors { right: root.selectDirectory ? parent.right : selectionType.left; rightMargin: 8; left: parent.left; leftMargin: 8; top: selectionType.top }
             readOnly: true
+            activeFocusOnTab: false
         }
 
         FileTypeSelection {
@@ -187,17 +200,7 @@ ModalWindow {
             anchors.rightMargin: 8
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 8
-            layoutDirection: Qt.RightToLeft
             spacing: 8
-            Button {
-                id: cancelButton
-                text: "Cancel"
-                KeyNavigation.up: selectionType
-                KeyNavigation.left: openButton
-                KeyNavigation.right: fileTableView.contentItem
-                Keys.onReturnPressed: { canceled(); root.enabled = false }
-                onClicked: { canceled(); root.visible = false; }
-            }
             Button {
                 id: openButton
                 text: root.selectDirectory ? "Choose" : "Open"
@@ -209,12 +212,28 @@ ModalWindow {
                 KeyNavigation.left: selectionType
                 KeyNavigation.right: cancelButton
             }
+            Button {
+                id: cancelButton
+                text: "Cancel"
+                KeyNavigation.up: selectionType
+                KeyNavigation.left: openButton
+                KeyNavigation.right: fileTableView.contentItem
+                Keys.onReturnPressed: { canceled(); root.enabled = false }
+                onClicked: { canceled(); root.visible = false; }
+            }
         }
     }
 
     Keys.onPressed: {
-        if (event.key === Qt.Key_Backspace && d.navigateUp()) {
-            event.accepted = true
+        switch (event.key) {
+        case Qt.Key_Backspace:
+            event.accepted = d.navigateUp();
+            break;
+
+        case Qt.Key_Home:
+            event.accepted = d.navigateHome();
+            break;
+
         }
     }
 }

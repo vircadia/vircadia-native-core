@@ -71,7 +71,7 @@ ModalWindow {
 
             VrControls.ComboBox {
                 id: comboBox
-                focus: items ? true : false
+                focus: true
                 visible: items ? true : false
                 anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
                 model: items ? items : []
