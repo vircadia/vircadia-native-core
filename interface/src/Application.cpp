@@ -540,14 +540,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
-    connect(&domainHandler, &DomainHandler::hostnameChanged,
-        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+    connect(&locationUpdateTimer, &QTimer::timeout, 
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
     locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     // if we get a domain change, immediately attempt update location in metaverse server
@@ -590,6 +590,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+    
+    // Save avatar location immediately after a teleport.
+    connect(getMyAvatar(), &MyAvatar::positionGoneTo,
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
     scriptEngines->registerScriptInitializer([this](ScriptEngine* engine){
@@ -1691,9 +1695,8 @@ void Application::resizeGL() {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-    QUrl url(urlString);
-    emit svoImportRequested(url.url());
-    return true; // assume it's accepted
+    emit svoImportRequested(urlString);
+    return true;
 }
 
 bool Application::event(QEvent* event) {
@@ -5003,7 +5006,7 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         palm.setActive(pose.isValid());
 
         // transform from sensor space, to world space, to avatar model space.
-        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation() * myAvatar->getScale());
         glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
         glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
         glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
