@@ -49,6 +49,9 @@
             this.isGrabbed = true;
             this.initialHand = this.hand;
         },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
+        },
 
         continueNearGrab: function() {
             var props = Entities.getEntityProperties(this.entityID, ["position"]);
@@ -56,6 +59,9 @@
                 position: props.position
             };
             this.audioInjector.options = audioOptions;
+        },
+        continueEquip: function() {
+            this.continueNearGrab();
         },
 
         releaseGrab: function() {
@@ -72,6 +78,9 @@
 
                 this.isGrabbed = false;
             }
+        },
+        releaseEquip: function() {
+            this.releaseGrab();
         },
 
         preload: function(entityID) {

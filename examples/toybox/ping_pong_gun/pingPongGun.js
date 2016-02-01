@@ -66,7 +66,7 @@
             this.hand = 0;
         },
 
-        startNearGrab: function() {
+        startEquip: function() {
             this.setWhichHand();
         },
 
@@ -74,7 +74,7 @@
             this.whichHand = this.hand;
         },
 
-        continueNearGrab: function() {
+        continueEquip: function() {
             if (this.whichHand === null) {
                 //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
                 this.setWhichHand();
@@ -86,7 +86,7 @@
             }
         },
 
-        releaseGrab: function() {
+        releaseEquip: function() {
             var _this = this;
 
             if (this.whichHand === this.hand) {

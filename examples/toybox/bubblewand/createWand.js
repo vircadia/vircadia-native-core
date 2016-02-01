@@ -46,16 +46,22 @@ var wand = Entities.addEntity({
     script: WAND_SCRIPT_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            invertSolidWhileHeld: true,
-            spatialKey: {
-                relativePosition: {
-                    x: 0,
-                    y: 0.1,
-                    z: 0
-                },
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, 0, -90)
-            }
-        }
+            invertSolidWhileHeld: true
+        },
+        "wearable":{"joints":{"RightHand":[{"x":0.11421211808919907,
+                                            "y":0.06508062779903412,
+                                            "z":0.06317152827978134},
+                                           {"x":-0.7886992692947388,
+                                            "y":-0.6108893156051636,
+                                            "z":-0.05003821849822998,
+                                            "w":0.047579944133758545}],
+                              "LeftHand":[{"x":0.03530977666378021,
+                                           "y":0.11278322339057922,
+                                           "z":0.049768272787332535},
+                                          {"x":-0.050609711557626724,
+                                           "y":-0.11595471203327179,
+                                           "z":0.3554558753967285,
+                                           "w":0.9260908961296082}]}}
     })
 });
 
