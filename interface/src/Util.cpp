@@ -96,26 +96,31 @@ void renderWorldBox(gpu::Batch& batch) {
                               glm::vec3(HALF_TREE_SCALE, 0.0f, HALF_TREE_SCALE), GREY);
 
     
-    geometryCache->renderWireCubeInstance(batch, Transform(), GREY4);
+    geometryCache->renderWireCubeInstance(batch, GREY4);
 
     //  Draw meter markers along the 3 axis to help with measuring things
     const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
 
     transform = Transform().setScale(MARKER_RADIUS);
-    geometryCache->renderSolidSphereInstance(batch, transform, RED);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, RED);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, 0.0f)).setScale(MARKER_RADIUS);
-    geometryCache->renderSolidSphereInstance(batch, transform, RED);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, RED);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, MARKER_DISTANCE, 0.0f)).setScale(MARKER_RADIUS);
-    geometryCache->renderSolidSphereInstance(batch, transform, GREEN);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, GREEN);
 
     transform = Transform().setTranslation(glm::vec3(0.0f, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    geometryCache->renderSolidSphereInstance(batch, transform, BLUE);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, BLUE);
 
     transform = Transform().setTranslation(glm::vec3(MARKER_DISTANCE, 0.0f, MARKER_DISTANCE)).setScale(MARKER_RADIUS);
-    geometryCache->renderSolidSphereInstance(batch, transform, GREY);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, GREY);
 }
 
 //  Return a random vector of average length 1

@@ -154,41 +154,41 @@ public:
     gpu::PipelinePointer bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
                                            bool emissive = false, bool depthBias = false);
     
-    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderSolidSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderSolidSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color);
+    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color) {
+        renderSolidSphereInstance(batch, glm::vec4(color, 1.0));
     }
     
-    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderWireSphereInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderWireSphereInstance(batch, xfm, glm::vec4(color, 1.0));
+    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color) {
+        renderWireSphereInstance(batch, glm::vec4(color, 1.0));
     }
     
-    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderSolidCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderSolidCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color);
+    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec3& color) {
+        renderSolidCubeInstance(batch, glm::vec4(color, 1.0));
     }
     
-    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec4& color);
-    void renderWireCubeInstance(gpu::Batch& batch, const Transform& xfm, const glm::vec3& color) {
-        renderWireCubeInstance(batch, xfm, glm::vec4(color, 1.0));
+    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color);
+    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color) {
+        renderWireCubeInstance(batch, glm::vec4(color, 1.0));
     }
     
 
-    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
-    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
+    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
     size_t getShapeTriangleCount(Shape shape);
 
-    void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
-    void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
+    void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
     size_t getCubeTriangleCount();
 
-    void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
-    void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
+    void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
+    void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
     size_t getSphereTriangleCount();

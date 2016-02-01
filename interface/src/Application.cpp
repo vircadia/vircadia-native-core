@@ -155,7 +155,6 @@
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/AssetUploadDialogFactory.h"
-#include "ui/DataWebDialog.h"
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
@@ -181,7 +180,6 @@ using namespace std;
 static QTimer locationUpdateTimer;
 static QTimer balanceUpdateTimer;
 static QTimer identityPacketTimer;
-static QTimer billboardPacketTimer;
 static QTimer pingTimer;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
@@ -632,10 +630,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    // send the billboard packet for our avatar every few seconds
-    connect(&billboardPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendBillboardPacket);
-    billboardPacketTimer.start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
-
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache();
@@ -1032,7 +1026,6 @@ void Application::cleanupBeforeQuit() {
     locationUpdateTimer.stop();
     balanceUpdateTimer.stop();
     identityPacketTimer.stop();
-    billboardPacketTimer.stop();
     pingTimer.stop();
     QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
@@ -1214,6 +1207,7 @@ void Application::initializeUi() {
 
     // For some reason there is already an "Application" object in the QML context, 
     // though I can't find it. Hence, "ApplicationInterface"
+    rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
     rootContext->setContextProperty("ApplicationInterface", this); 
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
@@ -1849,7 +1843,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->getRootContext()->engine()->clearComponentCache();
-                    OffscreenUi::information("Debugging", "Component cache cleared");
+                    //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
                 break;
@@ -3538,23 +3532,6 @@ glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 
-QImage Application::renderAvatarBillboard(RenderArgs* renderArgs) {
-
-    const int BILLBOARD_SIZE = 64;
-
-    // Need to make sure the gl context is current here
-    _offscreenContext->makeCurrent();
-
-    renderArgs->_renderMode = RenderArgs::DEFAULT_RENDER_MODE;
-    renderRearViewMirror(renderArgs, QRect(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
-
-    auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
-    QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
-    renderArgs->_context->downloadFramebuffer(primaryFbo, glm::ivec4(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE), image);
-
-    return image;
-}
-
 ViewFrustum* Application::getViewFrustum() {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
@@ -3684,7 +3661,7 @@ namespace render {
 }
 
 
-void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly, bool billboard) {
+void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
     // FIXME: This preRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
@@ -3750,18 +3727,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
                 });
     }
 
-    if (!billboard) {
-        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-
-        auto skybox = model::SkyboxPointer();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            skybox = skyStage->getSkybox();
-        }
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
-    }
-
     {
         PerformanceTimer perfTimer("SceneProcessPendingChanges");
         _main3DScene->enqueuePendingChanges(pendingChanges);
@@ -3785,7 +3750,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     activeRenderingThread = nullptr;
 }
 
-void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard) {
+void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& region) {
     auto originalViewport = renderArgs->_viewport;
     // Grab current viewport to reset it at the end
 
@@ -3795,12 +3760,7 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
     auto myAvatar = getMyAvatar();
 
     // bool eyeRelativeCamera = false;
-    if (billboard) {
-        fov = BILLBOARD_FIELD_OF_VIEW;  // degees
-        _mirrorCamera.setPosition(myAvatar->getPosition() +
-                                  myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * myAvatar->getScale());
-
-    } else if (!AvatarInputs::getInstance()->mirrorZoomed()) {
+    if (!AvatarInputs::getInstance()->mirrorZoomed()) {
         _mirrorCamera.setPosition(myAvatar->getChestPosition() +
                                   myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * myAvatar->getScale());
 
@@ -3829,20 +3789,15 @@ void Application::renderRearViewMirror(RenderArgs* renderArgs, const QRect& regi
 
 
     // set the bounds of rear mirror view
-    gpu::Vec4i viewport;
-    if (billboard) {
-        viewport = gpu::Vec4i(0, 0, region.width(), region.height());
-    } else {
-        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
-        float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
-        int width = region.width() * ratio;
-        int height = region.height() * ratio;
-        viewport = gpu::Vec4i(0, 0, width, height);
-    }
+    // the region is in device independent coordinates; must convert to device
+    float ratio = (float)QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
+    int width = region.width() * ratio;
+    int height = region.height() * ratio;
+    gpu::Vec4i viewport = gpu::Vec4i(0, 0, width, height);
     renderArgs->_viewport = viewport;
 
     // render rear mirror view
-    displaySide(renderArgs, _mirrorCamera, true, billboard);
+    displaySide(renderArgs, _mirrorCamera, true);
 
     renderArgs->_viewport =  originalViewport;
 }
@@ -4555,10 +4510,10 @@ void Application::takeSnapshot() {
         return;
     }
 
-    if (!_snapshotShareDialog) {
-        _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
-    }
-    _snapshotShareDialog->show();
+    DependencyManager::get<OffscreenUi>()->load("hifi/dialogs/SnapshotShareDialog.qml", [=](QQmlContext*, QObject* dialog) {
+        dialog->setProperty("source", QUrl::fromLocalFile(fileName));
+        connect(dialog, SIGNAL(uploadSnapshot(const QString& snapshot)), this, SLOT(uploadSnapshot(const QString& snapshot)));
+    });
 }
 
 float Application::getRenderResolutionScale() const {

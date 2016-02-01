@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <avatar/AvatarManager.h>
 #include <SettingHandle.h>
 #include <Util.h>
 
@@ -34,7 +33,6 @@ void LODManager::setRenderDistanceInverseHighLimit(float newValue) {
 }
 
 LODManager::LODManager() {
-    calculateAvatarLODDistanceMultiplier();
 
     setRenderDistanceInverseHighLimit(renderDistanceInverseHighLimit.get());
     setRenderDistanceInverseLowLimit(1.0f / (float)TREE_SCALE);
@@ -182,7 +180,6 @@ void LODManager::autoAdjustLOD(float currentFPS) {
         }
     
         if (changed) {
-            calculateAvatarLODDistanceMultiplier();
             auto lodToolsDialog = DependencyManager::get<DialogsManager>()->getLodToolsDialog();
             if (lodToolsDialog) {
                 lodToolsDialog->reloadSliders();
@@ -292,11 +289,6 @@ bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
 
 void LODManager::setOctreeSizeScale(float sizeScale) {
     _octreeSizeScale = sizeScale;
-    calculateAvatarLODDistanceMultiplier();
-}
-
-void LODManager::calculateAvatarLODDistanceMultiplier() {
-    _avatarLODDistanceMultiplier = AVATAR_TO_ENTITY_RATIO / (_octreeSizeScale / DEFAULT_OCTREE_SIZE_SCALE);
 }
 
 void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {

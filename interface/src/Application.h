@@ -60,7 +60,6 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/SnapshotShareDialog.h"
 #include "UndoStackScriptingInterface.h"
 
 class OffscreenGLCanvas;
@@ -167,8 +166,6 @@ public:
 
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
-
-    QImage renderAvatarBillboard(RenderArgs* renderArgs);
 
     virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() { return thread(); }
@@ -344,7 +341,7 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
 
     int sendNackPackets();
 
@@ -357,7 +354,7 @@ private:
     void initializeAcceptedFiles();
     int getRenderAmbientLight() const;
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
     bool importSVOFromURL(const QString& urlString);
 
@@ -455,7 +452,6 @@ private:
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
-    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     FileLogger* _logger;
 
