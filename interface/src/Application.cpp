@@ -5006,7 +5006,7 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         palm.setActive(pose.isValid());
 
         // transform from sensor space, to world space, to avatar model space.
-        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation() * myAvatar->getScale());
         glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
         glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
         glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
