@@ -1878,3 +1878,26 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
+entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
+    var data = JSON.parse(data);
+    if (data.type == "selectionUpdate") {
+        var ids = data.entityIds;
+        if(ids.length === 1) {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
+                // Now we want to activate the partice explorer panel!
+                print("EBL ACTIVATE PARTICLE EXPLORER");
+                particleExplorerTool.setVisible(true);
+                var properties = Entities.getEntityProperties(ids[0]);
+                var data = {
+                    messageType: "particle_settings",
+                    currentProperties: properties
+                };
+
+                particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+
+            } else {
+                particleExplorerTool.setVisible(false);
+            }
+        }
+    }
+});

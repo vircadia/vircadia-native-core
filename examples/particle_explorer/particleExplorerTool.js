@@ -1,29 +1,32 @@
-var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html?v1' + Math.random());
+var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
 
 ParticleExplorerTool = function() {
     var that = {};
 
     var url = PARTICLE_EXPLORER_HTML_URL;
     var webView = new OverlayWebWindow({
-        title: 'Particle Explorer',  source: url,  toolWindow: true   
+        title: 'Particle Explorer',
+        source: url,
+        toolWindow: true
     });
 
     var visible = false;
     webView.setVisible(visible);
+    that.webView = webView;
 
-    webView.eventBridge.webEventReceived.connect(function(data) {
+    var webEventReceived = function() {
+        print("EBL WEB EVENT RECIEVED FROM PARTICLE GUI");
+    }
 
-        print("EBL GOT AN EVENT!");
-    });
+    webView.eventBridge.webEventReceived.connect(webEventReceived);
+
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
         webView.setVisible(visible);
     }
 
-    that.getWebView = function() {
-        return webView;
-    }
+    return that;
 
 
 };

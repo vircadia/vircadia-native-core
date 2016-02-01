@@ -16,6 +16,8 @@ EntityListTool = function(opts) {
 
     webView.setVisible(visible);
 
+    that.webView = webView;
+
     that.setVisible = function(newVisible) {
         visible = newVisible;
         webView.setVisible(visible);
