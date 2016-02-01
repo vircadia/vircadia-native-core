@@ -60,7 +60,7 @@ float getInvDepthDimension(int depth) { return INV_DEPTH_DIM[depth]; }
 float getCellWidth(int depth) { return _size * getInvDepthDimension(depth); }
 float getInvCellWidth(int depth) { return getDepthDimensionf(depth) * _invSize; }
 
-vec3 evalPos(ivec3 coord, int depth = MAX_DEPTH) {
+vec3 evalPos(ivec3 coord, int depth) {
     return getOrigin() + vec3(coord) * getCellWidth(depth);
 }
 vec3 evalPosDepthWidth(ivec3 coord, float cellWidth) {

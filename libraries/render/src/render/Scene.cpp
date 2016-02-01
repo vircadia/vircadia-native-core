@@ -130,7 +130,7 @@ void Scene::processPendingChangesQueue() {
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
 
-    auto& resetPayload = payloads.begin();
+    auto resetPayload = payloads.begin();
     for (auto resetID : ids) {
         // Access the true item
         auto& item = _items[resetID];
@@ -171,7 +171,7 @@ void Scene::removeItems(const ItemIDs& ids) {
 
 void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
 
-    auto& updateFunctor = functors.begin();
+    auto updateFunctor = functors.begin();
     for (auto updateID : ids) {
         // Access the true item
         auto& item = _items[updateID];
