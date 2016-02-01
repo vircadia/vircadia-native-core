@@ -1217,10 +1217,12 @@ function MyController(hand) {
 
     this.hasPresetOffsets = function() {
         var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
-        var allowedJoints = wearableData.joints;
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (handJointName in allowedJoints) {
-            return true;
+        if ("joints" in wearableData) {
+            var allowedJoints = wearableData.joints;
+            var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+            if (handJointName in allowedJoints) {
+                return true;
+            }
         }
     }
 

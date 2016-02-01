@@ -116,6 +116,7 @@ function AttachedEntitiesManager() {
             manager.checkIfWearable(parsedMessage.grabbedEntity, parsedMessage.joint)
             // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'shared-release') {
+            manager.updateRelativeOffsets(parsedMessage.grabbedEntity);
             // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'equip') {
             // manager.saveAttachedEntities();
@@ -173,11 +174,12 @@ function AttachedEntitiesManager() {
                     parentJointIndex: bestJointIndex
                 };
 
-                if (!this.avatarIsInDressingRoom() &&
-                    bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
-                    // don't snap the entity to the preferred position if the avatar is in the dressing room.
-                    wearProps.localPosition = bestJointOffset[0];
-                    wearProps.localRotation = bestJointOffset[1];
+                if (bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
+                    if (!this.avatarIsInDressingRoom()) {
+                        // don't snap the entity to the preferred position if the avatar is in the dressing room.
+                        wearProps.localPosition = bestJointOffset[0];
+                        wearProps.localRotation = bestJointOffset[1];
+                    }
                 }
                 Entities.editEntity(grabbedEntity, wearProps);
             } else if (props.parentID != NULL_UUID) {
@@ -189,12 +191,19 @@ function AttachedEntitiesManager() {
         }
     }
 
-    this.updateRelativeOffsets = function(entityID, props) {
+    this.updateRelativeOffsets = function(entityID) {
         // save the preferred (current) relative position and rotation into the user-data of the entity
-        var wearableData = getEntityCustomData('wearable', entityID, DEFAULT_WEARABLE_DATA);
-        var currentJointName = MyAvatar.getJointNames()[props.parentJointIndex];
-        wearableData.joints[currentJointName] = [props.localPosition, props.localRotation];
-        setEntityCustomData('wearable', entityID, wearableData);
+        var props = Entities.getEntityProperties(entityID);
+        if (props.parentID == MyAvatar.sessionUUID) {
+            grabData = getEntityCustomData('grabKey', entityID, {});
+            grabbableData = getEntityCustomData('grabbableKey', entityID, {});
+            var wearableData = getEntityCustomData('wearable', entityID, DEFAULT_WEARABLE_DATA);
+            var currentJointName = MyAvatar.getJointNames()[props.parentJointIndex];
+            wearableData.joints[currentJointName] = [props.localPosition, props.localRotation];
+            setEntityCustomData('wearable', entityID, wearableData);
+            return true;
+        }
+        return false;
     }
 
     this.saveAttachedEntities = function() {
@@ -203,12 +212,8 @@ function AttachedEntitiesManager() {
         var nearbyEntities = Entities.findEntities(MyAvatar.position, ATTACHED_ENTITY_SEARCH_DISTANCE);
         for (i = 0; i < nearbyEntities.length; i++) {
             var entityID = nearbyEntities[i];
-            var props = Entities.getEntityProperties(entityID);
-            if (props.parentID == MyAvatar.sessionUUID) {
-                grabData = getEntityCustomData('grabKey', entityID, {});
-                grabbableData = getEntityCustomData('grabbableKey', entityID, {});
-                this.updateRelativeOffsets(entityID, props);
-                props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
+            if (this.updateRelativeOffsets(entityID)) {
+                var props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
                 this.scrubProperties(props);
                 saveData.push(props);
             }
