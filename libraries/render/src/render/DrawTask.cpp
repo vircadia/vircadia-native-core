@@ -155,7 +155,10 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     
-    auto numItemsToDraw = glm::max((int)inItems.size(), maxDrawnItems);
+    int numItemsToDraw = (int)inItems.size();
+    if (maxDrawnItems != -1) {
+        numItemsToDraw = glm::min(numItemsToDraw, maxDrawnItems);
+    }
     for (auto i = 0; i < numItemsToDraw; ++i) {
         auto& item = scene->getItem(inItems[i].id);
         renderShape(args, shapeContext, item);

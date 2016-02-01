@@ -52,7 +52,7 @@
             this.hand = JSON.parse(params[0]);
         },
 
-        continueNearGrab: function() {
+        continueEquip: function() {
             if (!this.equipped) {
                 return;
             }
@@ -61,8 +61,6 @@
                 this.updateLaser();
             }
             this.toggleWithTriggerPressure();
-
-
         },
 
         updateProps: function() {
