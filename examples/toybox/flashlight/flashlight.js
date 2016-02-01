@@ -86,6 +86,7 @@
         },
 
         startNearGrab: function(entityID) {
+            print("FLASHLIGHT startNearGrab");
             if (!this.hasSpotlight) {
 
                 var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
@@ -144,6 +145,9 @@
             }
 
         },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
+        },
 
         setWhichHand: function() {
             this.whichHand = this.hand;
@@ -157,6 +161,9 @@
                 this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
+        continueEquip: function() {
+            this.continueNearGrab();
+        },
 
         releaseGrab: function() {
             //delete the lights and reset state
@@ -169,6 +176,9 @@
                 this.whichHand = null;
                 this.lightOn = false;
             }
+        },
+        releaseEquip: function() {
+            this.releaseGrab();
         },
         
         changeLightWithTriggerPressure: function(flashLightHand) {

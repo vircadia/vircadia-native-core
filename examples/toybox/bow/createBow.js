@@ -64,21 +64,22 @@ function makeBow() {
         script: SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {
-                invertSolidWhileHeld: true,
-                spatialKey: {
-                    leftRelativePosition: {
-                        x: -0.02,
-                        y: 0.08,
-                        z: 0.09
-                    },
-                    relativePosition: {
-                        x: 0.02,
-                        y: 0.08,
-                        z: 0.09
-                    },
-                    relativeRotation: Quat.fromPitchYawRollDegrees(0, 90, -90)
-                }
-            }
+                invertSolidWhileHeld: true
+            },
+            wearable:{joints:{RightHand:[{x:0.03960523009300232,
+                                          y:0.01979270577430725,
+                                          z:0.03294898942112923},
+                                         {x:-0.7257906794548035,
+                                          y:-0.4611682891845703,
+                                          z:0.4436084032058716,
+                                          w:-0.25251442193984985}],
+                              LeftHand:[{x:0.0055799782276153564,
+                                         y:0.04354757443070412,
+                                         z:0.05119767785072327},
+                                        {x:-0.14914104342460632,
+                                         y:0.6448180079460144,
+                                         z:-0.2888556718826294,
+                                         w:-0.6917579770088196}]}}
         })
     };
 
