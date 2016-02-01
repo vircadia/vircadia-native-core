@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
+#include <QtQml/QJSValue>
+#include <QtQml/QJSValueList>
 
 #include <DependencyManager.h>
 #include <Octree.h>
@@ -57,6 +59,8 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
+    
+    Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
 public:
     EntityScriptingInterface();
 
@@ -67,7 +71,8 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
-
+    double calculateCost(float mass, float oldVelocity, float newVelocity);
+    Q_INVOKABLE void addCostFunction(QScriptValue costFunction);
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -163,6 +168,7 @@ public slots:
 
     Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
     Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
+    
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -188,6 +194,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void clearingEntities();
+    void debitEnergySource(double value);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
@@ -205,6 +212,11 @@ private:
 
     EntityTreePointer _entityTree;
     EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
+    QScriptValue* _costFunction = nullptr;
+    float _currentAvatarEnergy;
+    float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
+    void setCurrentAvatarEnergy(float energy);
+    float ENTITY_MANIPULATION_MULTIPLIER = { 0.01f };
 };
 
 #endif // hifi_EntityScriptingInterface_h
