@@ -624,6 +624,13 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
         const float STATE_CHANGE_HYSTERESIS_TIMER = 0.1f;
 
+        // Skip hystersis timer for jump transitions.
+        if (_desiredState == RigRole::Takeoff) {
+            _desiredStateAge = STATE_CHANGE_HYSTERESIS_TIMER;
+        } else if (_state == RigRole::InAir && _desiredState != RigRole::InAir) {
+            _desiredStateAge = STATE_CHANGE_HYSTERESIS_TIMER;
+        }
+
         if ((_desiredStateAge >= STATE_CHANGE_HYSTERESIS_TIMER) && _desiredState != _state) {
             _state = _desiredState;
             _desiredStateAge = 0.0f;

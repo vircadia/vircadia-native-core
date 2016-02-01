@@ -1,4 +1,4 @@
- //
+//
 //  CharacterControllerInterface.cpp
 //  libraries/physcis/src
 //
@@ -15,10 +15,13 @@
 
 #include "PhysicsCollisionGroups.h"
 #include "ObjectMotionState.h"
+#include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
+
+#define DEBUG_STATE_CHANGE
 
 // helper class for simple ray-traces from character
 class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
@@ -220,7 +223,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
     // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
     // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
-    // These two computations must be kept in sync.
+
     const float MINIMUM_TIME_REMAINING = 0.005f;
     const float MAX_DISPLACEMENT = 0.5f * _radius;
     _followTimeRemaining -= dt;
@@ -258,18 +261,21 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 void CharacterController::jump() {
     // check for case where user is holding down "jump" key...
     // we'll eventually transition to "hover"
-    if (_state == State::Hover) {
-        quint64 now = usecTimestampNow();
-        const quint64 JUMP_TO_HOVER_PERIOD = 75 * (USECS_PER_SECOND / 100);
-        if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
-            _isPushingUp = true;
-            setState(State::Hover);
-        }
-    } else {
-        if (_state != State::Takeoff) {
-            _jumpToHoverStart = usecTimestampNow();
+    if (_state != State::Takeoff) {
+        if (_state == State::InAir) {
+            quint64 now = usecTimestampNow();
+            if (!_isPushingUp) {
+                _isPushingUp = true;
+                _jumpToHoverStart = now;
+            }
+            const quint64 JUMP_TO_HOVER_PERIOD = 750 * MSECS_PER_SECOND;
+            if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
+                setState(State::Hover);
+            }
+        } else {
             _pendingFlags |= PENDING_FLAG_JUMP;
         }
+
     }
 }
 
@@ -278,19 +284,41 @@ bool CharacterController::onGround() const {
     return _floorDistance < FLOOR_PROXIMITY_THRESHOLD || _hasSupport;
 }
 
-void CharacterController::setState(State desiredState) {
-    if (desiredState == State::Hover && _state != State::Hover) {
-        // hover enter
-        if (_rigidBody) {
-            _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-        }
-    } else if (_state == State::Hover && desiredState != State::Hover) {
-        // hover exit
-        if (_rigidBody) {
-            _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
-        }
+#ifdef DEBUG_STATE_CHANGE
+static const char* stateToStr(CharacterController::State state) {
+    switch (state) {
+    case CharacterController::State::Ground:
+        return "Ground";
+    case CharacterController::State::Takeoff:
+        return "Takeoff";
+    case CharacterController::State::InAir:
+        return "InAir";
+    case CharacterController::State::Hover:
+        return "Hover";
+    default:
+        return "Unknown";
     }
-    _state = desiredState;
+}
+#endif // #ifdef DEBUG_STATE_CHANGE
+
+void CharacterController::setState(State desiredState) {
+    if (desiredState != _state) {
+#ifdef DEBUG_STATE_CHANGE
+        qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "<-" << stateToStr(_state);
+#endif
+        if (desiredState == State::Hover && _state != State::Hover) {
+            // hover enter
+            if (_rigidBody) {
+                _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+            }
+        } else if (_state == State::Hover && desiredState != State::Hover) {
+            // hover exit
+            if (_rigidBody) {
+                _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
+            }
+        }
+        _state = desiredState;
+    }
 }
 
 void CharacterController::setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale) {
@@ -411,6 +439,7 @@ void CharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
         // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_characterBodyTransform);
+        btVector3 velocity = _rigidBody->getLinearVelocity();
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
@@ -431,7 +460,7 @@ void CharacterController::preSimulation() {
             }
             // TODO: use collision events rather than ray-trace test to disable jumping
             const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
-            if (_state != State::Takeoff && (_floorDistance < JUMP_PROXIMITY_THRESHOLD || _hasSupport)) {
+            if (_state != State::Takeoff && (velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
                 setState(State::Ground);
             }
         } else if (!_hasSupport) {
@@ -454,7 +483,6 @@ void CharacterController::preSimulation() {
             setState(State::InAir);
 
             _takeoffToInAirStart = now + USECS_PER_SECOND * 86500.0f;
-            btVector3 velocity = _rigidBody->getLinearVelocity();
             velocity += _jumpSpeed * _currentUp;
             _rigidBody->setLinearVelocity(velocity);
         }
