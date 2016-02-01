@@ -817,8 +817,6 @@ function MyController(hand) {
                 direction: pickRay.direction
             };
 
-            Messages.sendMessage('Hifi-Light-Overlay-Ray-Check', JSON.stringify(pickRayBacked));
-
             var intersection;
 
             if (USE_BLACKLIST === true && blacklist.length !== 0) {
@@ -1341,12 +1339,6 @@ function MyController(hand) {
             Entities.callEntityMethod(this.grabbedEntity, "continueEquip");
         }
 
-        //// jbp::: SEND UPDATE MESSAGE TO WEARABLES MANAGER
-        Messages.sendMessage('Hifi-Wearables-Manager', JSON.stringify({
-            action: 'update',
-            grabbedEntity: this.grabbedEntity
-        }))
-
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
@@ -1614,8 +1606,6 @@ function MyController(hand) {
 
         this.actionID = null;
         this.setState(STATE_OFF);
-
-        //// jbp::: SEND RELEASE MESSAGE TO WEARABLES MANAGER
 
         Messages.sendMessage('Hifi-Wearables-Manager', JSON.stringify({
             action: 'checkIfWearable',
