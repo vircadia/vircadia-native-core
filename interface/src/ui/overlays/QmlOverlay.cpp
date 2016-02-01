@@ -24,12 +24,10 @@
 
 QmlOverlay::QmlOverlay(const QUrl& url) {
     buildQmlElement(url);
-    qDebug() << "AJT: url = " << url << (void*)QThread::currentThreadId();
 }
 
 QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay)
     : Overlay2D(textOverlay) {
-    qDebug() << "AJT: url = " << url << (void*)QThread::currentThreadId();
     buildQmlElement(url);
 }
 
