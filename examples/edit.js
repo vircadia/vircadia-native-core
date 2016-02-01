@@ -1884,7 +1884,6 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
-particleExplorerTool.createWebView();
 entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
@@ -1892,19 +1891,19 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
         if(ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
                 // Now we want to activate the partice explorer panel!
+               particleExplorerTool.createWebView();
                 print("EBL ACTIVATE PARTICLE EXPLORER");
-                particleExplorerTool.setVisible(true);
                 var properties = Entities.getEntityProperties(ids[0]);
                 var data = {
                     messageType: "particle_settings",
                     currentProperties: properties
                 };
-
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
                 particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(data));
 
             } else {
-                particleExplorerTool.setVisible(false);
+                print("EBL CLOSE WEB VIEW")
+                particleExplorerTool.destroyWebView();
             }
         }
     }
