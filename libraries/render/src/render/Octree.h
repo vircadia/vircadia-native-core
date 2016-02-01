@@ -85,6 +85,7 @@ namespace render {
 
         // Max depth is 15 => 32Km root down to 1m cells
         using Depth = int8_t;
+        static const Depth ROOT_DEPTH{ 0 };
         static const Depth MAX_DEPTH { 15 };
         static const double INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
 
@@ -95,6 +96,8 @@ namespace render {
         using Coord = int16_t;
         using Coord3 = glm::i16vec3;
         using Coord4 = glm::i16vec4;
+        using Coord3f = glm::vec3;
+        using Coord4f = glm::vec4;
 
         static Coord depthBitmask(Depth depth) { return Coord(1 << (MAX_DEPTH - depth)); }
 
@@ -122,7 +125,7 @@ namespace render {
 
             Coord3 pos{ 0 };
             uint8_t spare{ 0 };
-            Depth depth{ 0 };
+            Depth depth{ ROOT_DEPTH };
 
             bool operator== (const Location& right) const { return pos == right.pos && depth == right.depth; }
 
@@ -140,13 +143,22 @@ namespace render {
 
             // Eval the location best fitting the specified range
             static Location evalFromRange(const Coord3& minCoord, const Coord3& maxCoord, Depth rangeDepth = MAX_DEPTH);
+
+            // Eval the intersection test against a frustum
+            enum Intersection {
+                Outside = 0,
+                Intersect,
+                Inside,
+            };
+            static Intersection intersectCell(const Location& cell, const Coord4f frustum[6]);
+
         };
         using Locations = Location::vector;
 
         // Cell or Brick Indexing
         using Index = ItemCell; // int32_t
         static const Index INVALID = -1;
-        static const Index ROOT = 0;
+        static const Index ROOT_CELL = 0;
         using Indices = std::vector<Index>;
 
         // the cell description
@@ -230,6 +242,10 @@ namespace render {
             return _bricks[index];
         }
 
+        // Selection and traverse
+        int select(ItemIDs& selection, const Coord4f frustum[6]) const;
+        int selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const;
+
     protected:
         Index allocateCell(Index parent, const Location& location);
         Index allocateBrick();
@@ -252,6 +268,7 @@ namespace render {
         double _invSize{ 1.0 / _size };
         glm::vec3 _origin{ -16384.0f };
     public:
+        ItemSpatialTree() {}
 
         float getSize() const { return _size; }
         const glm::vec3& getOrigin() const { return _origin; }
@@ -270,8 +287,11 @@ namespace render {
             auto npos = (pos - getOrigin());
             return Coord3(npos * getInvCellWidth(depth));
         }
+        Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
+            auto npos = (pos - getOrigin());
+            return Coord3f(npos * getInvCellWidth(depth));
+        }
 
-        
         // Bound to Location
         AABox evalBound(const Location& loc) const {
             float cellWidth = getCellWidth(loc.depth);
@@ -289,7 +309,10 @@ namespace render {
 
         Index resetItem(Index oldCell, const Location& location, const ItemID& item);
 
-        ItemSpatialTree() {}
+        // Selection and traverse
+        int select(ItemIDs& selection, const ViewFrustum& frustum) const;
+
+
     };
 }
 

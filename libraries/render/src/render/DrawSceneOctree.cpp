@@ -80,6 +80,11 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         return;
     }
 
+    // Try that:
+    render::ItemIDs items;
+    scene->getSpatialTree().select(items, *args->_viewFrustum);
+
+
     // Allright, something to render let's do it
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;

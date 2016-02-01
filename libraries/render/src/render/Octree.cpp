@@ -10,6 +10,8 @@
 //
 #include "Octree.h"
 
+#include <ViewFrustum.h>
+
 
 using namespace render;
 
@@ -68,7 +70,7 @@ Octree::Location Octree::Location::evalFromRange(const Coord3& minCoord, const C
 }
 
 Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
-    Index currentIndex = ROOT;
+    Index currentIndex = ROOT_CELL;
     Indices cellPath(1, currentIndex);
 
     for (int l = 1; l < path.size(); l++) {
@@ -217,3 +219,114 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const Location&
     }
 }
 
+int ItemSpatialTree::select(ItemIDs& selection, const ViewFrustum& frustum) const {
+    auto worldPlanes = frustum.getPlanes();
+    Coord4f planes[6];
+    for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
+        ::Plane octPlane;
+        octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
+        planes[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
+    }
+    return Octree::select(selection, planes);
+}
+
+int Octree::select(ItemIDs& selection, const glm::vec4 frustum[6]) const {
+
+    Index cellID = ROOT_CELL;
+    selectTraverse(cellID, selection, frustum);
+    return selection.size();
+}
+
+int Octree::selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const {
+    int numItemsIn = selection.size();
+    auto cell = getConcreteCell(cellID);
+
+    auto intersection = Octree::Location::intersectCell(cell.getlocation(), frustum);
+    switch (intersection) {
+        case Octree::Location::Outside:
+            // cell is outside, stop traversing this branch
+            return 0;
+            break;
+        case Octree::Location::Inside: {
+            // traverse all the Cell Branch and collect items in the selection
+            selection.push_back(cellID);
+            break;
+        }
+        case Octree::Location::Intersect:
+        default: {
+            // Cell is partially in
+            selection.push_back(cellID);
+
+            // Collect the items of this cell
+
+            // then traverse further
+            for (int i = 0; i < NUM_OCTANTS; i++) {
+                Index subCellID = cell.child((Link)i);
+                if (subCellID != INVALID) {
+                    selectTraverse(subCellID, selection, frustum);
+                }
+            }
+        }
+    }
+
+    return selection.size() - numItemsIn;
+}
+
+
+Octree::Location::Intersection Octree::Location::intersectCell(const Location& cell, const Coord4f frustum[6]) {
+    const Coord3f CornerOffsets[8] = {
+        { 0.0, 0.0, 0.0 },
+        { 1.0, 0.0, 0.0 },
+        { 0.0, 1.0, 0.0 },
+        { 1.0, 1.0, 0.0 },
+        { 0.0, 0.0, 1.0 },
+        { 1.0, 0.0, 1.0 },
+        { 0.0, 1.0, 1.0 },
+        { 1.0, 1.0, 1.0 },
+    };
+
+    struct Tool {
+        static int normalToIndex(const Coord3f& n) {
+            int index = 0;
+            if (n.x >= 0.0) index |= 1;
+            if (n.y >= 0.0) index |= 2;
+            if (n.z >= 0.0) index |= 4;
+            return index;
+        }
+
+        static bool halfPlaneTest(const Coord4f& plane, const Coord3f& pos) {
+            return (glm::dot(plane, Coord4f(pos, 1.0f)) >= 0.0f);
+        }
+    };
+
+    Coord3f cellSize = Coord3f(Octree::getInvDepthDimension(cell.depth));
+    Coord3f cellPos = Coord3f(cell.pos) * cellSize;
+
+    bool partialFlag = false;
+    for (int p = 0; p < ViewFrustum::NUM_PLANES; p++) {
+        Coord4f plane = frustum[p];
+        Coord3f planeNormal(plane);
+
+        int index = Tool::normalToIndex(planeNormal);
+
+        auto negTestPoint = cellPos + cellSize * CornerOffsets[index];
+
+        if (!Tool::halfPlaneTest(plane, negTestPoint)) {
+            return Outside;
+        }
+
+        index = Tool::normalToIndex(-planeNormal);
+
+        auto posTestPoint = cellPos + cellSize * CornerOffsets[index];
+
+        if (!Tool::halfPlaneTest(plane, posTestPoint)) {
+            partialFlag = true;
+        }
+    }
+
+    if (partialFlag) {
+        return Intersect;
+    }
+
+    return Inside;
+}
