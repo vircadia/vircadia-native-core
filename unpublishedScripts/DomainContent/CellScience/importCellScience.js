@@ -619,16 +619,16 @@ function createLayoutLights() {
         type: "Light",
         name: "Cell layout light",
         position: {
-            x: locations.cellLayout[0] + 110,
-            y: locations.cellLayout[0] + 160,
-            z: locations.cellLayout[0] + 785
+            x: 3110,
+            y: 13660,
+            z: 3785
         },
         dimensions: {
             x: 1500,
             y: 1500,
             z: 1500
         },
-        intensity: 2,
+        intensity: 0.5,
         color: {
             red: 240,
             green: 165,
@@ -637,7 +637,6 @@ function createLayoutLights() {
     })
 
 }
-
 function CreateNavigationButton(scene, number) {
     // print('NAV NAVIGATION CREATING NAV!!' +scene.name + " " + number)
 
