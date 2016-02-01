@@ -84,21 +84,22 @@ private slots:
     
 private:
     void setupInjection();
-    uint64_t injectNextFrame();
+    int64_t injectNextFrame();
     bool injectLocally();
     
     QByteArray _audioData;
     AudioInjectorOptions _options;
     State _state { State::NotFinished };
-    bool _hasSetup = false;
-    bool _shouldStop = false;
-    float _loudness = 0.0f;
-    int _currentSendOffset = 0;
+    bool _hasSentFirstFrame { false };
+    bool _hasSetup { false };
+    bool _shouldStop { false };
+    float _loudness { 0.0f };
+    int _currentSendOffset { 0 };
     std::unique_ptr<NLPacket> _currentPacket { nullptr };
     AbstractAudioInterface* _localAudioInterface { nullptr };
     AudioInjectorLocalBuffer* _localBuffer { nullptr };
     
-    int _nextFrame { 0 };
+    int64_t _nextFrame { 0 };
     std::unique_ptr<QElapsedTimer> _frameTimer { nullptr };
     quint16 _outgoingSequenceNumber { 0 };
     

@@ -26,7 +26,6 @@
 #include "AudioRingBuffer.h"
 #include "AudioFormat.h"
 #include "AudioBuffer.h"
-#include "AudioEditBuffer.h"
 #include "AudioLogging.h"
 #include "Sound.h"
 
@@ -69,7 +68,6 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         interpretAsWav(rawAudioByteArray, outputAudioByteArray);
         downSample(outputAudioByteArray);
-        trimFrames();
     } else if (fileName.endsWith(RAW_EXTENSION)) {
         // check if this was a stereo raw file
         // since it's raw the only way for us to know that is if the file was called .stereo.raw
@@ -80,7 +78,6 @@ void Sound::downloadFinished(const QByteArray& data) {
 
         // Process as RAW file
         downSample(rawAudioByteArray);
-        trimFrames();
     } else {
         qCDebug(audio) << "Unknown sound file type";
     }
@@ -98,10 +95,22 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
 
     int numSourceSamples = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
 
-    int numDestinationBytes = rawAudioByteArray.size() / sizeof(AudioConstants::AudioSample);
-    if (_isStereo && numSourceSamples % 2 != 0) {
-        numDestinationBytes += sizeof(AudioConstants::AudioSample);
+    if (_isStereo && numSourceSamples % 2 != 0){
+        // in the unlikely case that we have stereo audio but we seem to be missing a sample
+        // (the sample for one channel is missing in a set of interleaved samples)
+        // then drop the odd sample
+        --numSourceSamples;
     }
+
+    int numDestinationSamples = numSourceSamples / 2.0f;
+
+    if (_isStereo && numDestinationSamples % 2 != 0) {
+        // if this is stereo we need to make sure we produce stereo output
+        // which means we should have an even number of output samples
+        numDestinationSamples += 1;
+    }
+
+    int numDestinationBytes = numDestinationSamples * sizeof(AudioConstants::AudioSample);
 
     _byteArray.resize(numDestinationBytes);
 
@@ -127,26 +136,6 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
             }
         }
     }
-}
-
-void Sound::trimFrames() {
-
-    const uint32_t inputFrameCount = _byteArray.size() / sizeof(int16_t);
-    const uint32_t trimCount = 1024;  // number of leading and trailing frames to trim
-
-    if (inputFrameCount <= (2 * trimCount)) {
-        return;
-    }
-
-    int16_t* inputFrameData = (int16_t*)_byteArray.data();
-
-    AudioEditBufferFloat32 editBuffer(1, inputFrameCount);
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
-
-    editBuffer.linearFade(0, trimCount, true);
-    editBuffer.linearFade(inputFrameCount - trimCount, inputFrameCount, false);
-
-    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
 }
 
 //

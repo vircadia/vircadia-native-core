@@ -172,7 +172,7 @@ public:
 
     // Hyperlink related getters and setters
     QString getHref() const { return _href; }
-    void setHref(QString value) { _href = value; }
+    void setHref(QString value);
 
     QString getDescription() const { return _description; }
     void setDescription(QString value) { _description = value; }

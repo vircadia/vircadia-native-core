@@ -102,7 +102,6 @@
 #include <RenderShadowTask.h>
 #include <RenderDeferredTask.h>
 #include <ResourceCache.h>
-#include <RenderScriptingInterface.h>
 #include <SceneScriptingInterface.h>
 #include <RecordingScriptingInterface.h>
 #include <ScriptCache.h>
@@ -363,7 +362,6 @@ bool setupEssentials(int& argc, char** argv) {
 #endif
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
-    DependencyManager::set<RenderScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
@@ -408,6 +406,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+    _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
     _fieldOfView("fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
@@ -541,14 +540,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
-    connect(&domainHandler, &DomainHandler::hostnameChanged,
-        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
+    connect(&locationUpdateTimer, &QTimer::timeout, 
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
     locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
     // if we get a domain change, immediately attempt update location in metaverse server
@@ -591,6 +590,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
+    
+    // Save avatar location immediately after a teleport.
+    connect(getMyAvatar(), &MyAvatar::positionGoneTo,
+        DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
 
     auto scriptEngines = DependencyManager::get<ScriptEngines>().data();
     scriptEngines->registerScriptInitializer([this](ScriptEngine* engine){
@@ -674,12 +677,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
-
-    // Start rendering
-    render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addTask(make_shared<RenderShadowTask>(cullFunctor));
-    _renderEngine->addTask(make_shared<RenderDeferredTask>(cullFunctor));
-    _renderEngine->registerScene(_main3DScene);
 
     _offscreenContext->makeCurrent();
 
@@ -1151,9 +1148,17 @@ void Application::initializeGL() {
     initDisplay();
     qCDebug(interfaceapp, "Initialized Display.");
 
+    // Set up the render engine
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
+    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
+    _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", cullFunctor);
+    _renderEngine->registerScene(_main3DScene);
+    // TODO: Load a cached config file
+
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
     // texture resources
+    // Needs to happen AFTER the render engine initialization to access its configuration
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
     _offscreenContext->makeCurrent();
@@ -1251,7 +1256,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    rootContext->setContextProperty("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -1690,9 +1695,8 @@ void Application::resizeGL() {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-    QUrl url(urlString);
-    emit svoImportRequested(url.url());
-    return true; // assume it's accepted
+    emit svoImportRequested(urlString);
+    return true;
 }
 
 bool Application::event(QEvent* event) {
@@ -3769,29 +3773,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        auto renderInterface = DependencyManager::get<RenderScriptingInterface>();
-        auto renderContext = renderInterface->getRenderContext();
-
         renderArgs->_viewFrustum = getDisplayViewFrustum();
-        renderContext.setArgs(renderArgs);
-
-        bool occlusionStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugAmbientOcclusion);
-        bool shadowStatus = Menu::getInstance()->isOptionChecked(MenuOption::DebugShadows);
-        bool antialiasingStatus = Menu::getInstance()->isOptionChecked(MenuOption::Antialiasing);
-        bool showOwnedStatus = Menu::getInstance()->isOptionChecked(MenuOption::PhysicsShowOwned);
-        renderContext.setOptions(occlusionStatus, antialiasingStatus, showOwnedStatus, shadowStatus);
-
-        _renderEngine->setRenderContext(renderContext);
+        _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
         myAvatar->startRenderRun();
         _renderEngine->run();
         myAvatar->endRenderRun();
-
-        auto engineContext = _renderEngine->getRenderContext();
-        renderInterface->setItemCounts(engineContext->getItemsConfig());
-        renderInterface->setJobGPUTimes(engineContext->getAmbientOcclusion().gpuTime);
-
     }
 
     activeRenderingThread = nullptr;
@@ -4200,7 +4188,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerFunction("HMD", "getHUDLookAtPosition3D", HMDScriptingInterface::getHUDLookAtPosition3D, 0);
 
     scriptEngine->registerGlobalObject("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("Render", DependencyManager::get<RenderScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
 }
@@ -4517,12 +4505,22 @@ void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject
 }
 
 void Application::loadDialog() {
-    // To be migratd to QML
-    QString fileNameString = QFileDialog::getOpenFileName(
-        _glWidget, tr("Open Script"), "", tr("JavaScript Files (*.js)"));
-    if (!fileNameString.isEmpty()) {
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    QString fileNameString = OffscreenUi::getOpenFileName(
+        _glWidget, tr("Open Script"), getPreviousScriptLocation(), tr("JavaScript Files (*.js)"));
+    if (!fileNameString.isEmpty() && QFile(fileNameString).exists()) {
+        setPreviousScriptLocation(QFileInfo(fileNameString).absolutePath());
         DependencyManager::get<ScriptEngines>()->loadScript(fileNameString, true, false, false, true);  // Don't load from cache
     }
+}
+
+QString Application::getPreviousScriptLocation() {
+    QString result = _previousScriptLocation.get();
+    return result;
+}
+
+void Application::setPreviousScriptLocation(const QString& location) {
+    _previousScriptLocation.set(location);
 }
 
 void Application::loadScriptURLDialog() {
@@ -5008,7 +5006,7 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         palm.setActive(pose.isValid());
 
         // transform from sensor space, to world space, to avatar model space.
-        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation());
+        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation() * myAvatar->getScale());
         glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
         glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
         glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;

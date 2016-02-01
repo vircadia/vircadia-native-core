@@ -79,6 +79,12 @@ void AudioInjectorManager::run() {
             if (_injectors.size() > 0) {
                 // loop through the injectors in the map and send whatever frames need to go out
                 auto front = _injectors.top();
+
+                // create an InjectorQueue to hold injectors to be queued
+                // this allows us to call processEvents even if a single injector wants to be re-queued immediately
+                std::vector<TimeInjectorPointerPair> heldInjectors;
+                heldInjectors.reserve(_injectors.size());
+
                 while (_injectors.size() > 0 && front.first <= usecTimestampNow()) {
                     // either way we're popping this injector off - get a copy first
                     auto injector = front.second;
@@ -87,10 +93,10 @@ void AudioInjectorManager::run() {
                     if (!injector.isNull()) {
                         // this is an injector that's ready to go, have it send a frame now
                         auto nextCallDelta = injector->injectNextFrame();
-                        
-                        if (nextCallDelta > 0 && !injector->isFinished()) {
-                            // re-enqueue the injector with the correct timing
-                            _injectors.emplace(usecTimestampNow() + nextCallDelta, injector);
+
+                        if (nextCallDelta >= 0 && !injector->isFinished()) {
+                            // enqueue the injector with the correct timing in our holding queue
+                            heldInjectors.emplace(heldInjectors.end(), usecTimestampNow() + nextCallDelta, injector);
                         }
                     }
                     
@@ -100,6 +106,12 @@ void AudioInjectorManager::run() {
                         // no more injectors to look at, break
                         break;
                     }
+                }
+
+                // if there are injectors in the holding queue, push them to our persistent queue now
+                while (!heldInjectors.empty()) {
+                    _injectors.push(heldInjectors.back());
+                    heldInjectors.pop_back();
                 }
             }
 

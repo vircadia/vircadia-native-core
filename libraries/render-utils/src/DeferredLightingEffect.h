@@ -54,13 +54,16 @@ public:
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
     const LightStage& getLightStage() { return _lightStage; }
-    void setShadowMapStatus(bool enable) { _shadowMapStatus = enable; };
+    void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
+    void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
 
 private:
-    LightStage _lightStage;
-    bool _shadowMapStatus{ false };
-
     DeferredLightingEffect() = default;
+
+    LightStage _lightStage;
+
+    bool _shadowMapEnabled{ false };
+    bool _ambientOcclusionEnabled{ false };
 
     model::MeshPointer _spotLightMesh;
     model::MeshPointer getSpotLightMesh();

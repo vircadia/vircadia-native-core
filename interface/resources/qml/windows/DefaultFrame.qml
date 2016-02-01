@@ -20,12 +20,8 @@ Frame {
 
         Row {
             id: controlsRow
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.rightMargin: iconSize
-            anchors.topMargin: iconSize / 2
+            anchors { right: parent.right; top: parent.top; rightMargin: iconSize; topMargin: iconSize / 2; }
             spacing: iconSize / 4
-
             FontAwesome {
                 visible: false
                 text: "\uf08d"
@@ -54,6 +50,18 @@ Frame {
                 }
             }
         }
+
+        Text {
+            id: titleText
+            anchors { left: parent.left; leftMargin: iconSize; right: controlsRow.left;  rightMargin: iconSize; top: parent.top; topMargin: iconSize / 2; }
+            text: window.title
+            elide: Text.ElideRight
+            font.bold: true
+            color: window.focus ? "white" : "gray"
+            style: Text.Outline;
+            styleColor: "black"
+        }
     }
+
 }
 

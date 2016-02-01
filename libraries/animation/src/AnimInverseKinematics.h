@@ -40,6 +40,7 @@ public:
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
+    int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     // for AnimDebugDraw rendering
@@ -79,13 +80,14 @@ protected:
     AnimPoseVec _relativePoses; // current relative poses
 
     // experimental data for moving hips during IK
-    int _headIndex = -1;
-    int _hipsIndex = -1;
-    glm::vec3 _hipsOffset = Vectors::ZERO;
+    glm::vec3 _hipsOffset { Vectors::ZERO };
+    int _headIndex { -1 };
+    int _hipsIndex { -1 };
+    int _hipsParentIndex { -1 };
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
-    int _maxTargetIndex = 0;
+    int _maxTargetIndex { 0 };
 };
 
 #endif // hifi_AnimInverseKinematics_h
