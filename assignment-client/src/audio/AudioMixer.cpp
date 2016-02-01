@@ -680,11 +680,11 @@ void AudioMixer::domainSettingsRequestComplete() {
 void AudioMixer::broadcastMixes() {
     auto nodeList = DependencyManager::get<NodeList>(); 
     
-    int nextFrame = 0;
+    int64_t nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
     
-    int usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
+    int64_t usecToSleep = AudioConstants::NETWORK_FRAME_USECS;
     
     const int TRAILING_AVERAGE_FRAMES = 100;
     int framesSinceCutoffEvent = TRAILING_AVERAGE_FRAMES;
@@ -826,12 +826,7 @@ void AudioMixer::broadcastMixes() {
             break;
         }
         
-        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - timer.nsecsElapsed() / 1000; // ns to us
-
-        if (usecToSleep > int(USECS_PER_SECOND)) {
-            qDebug() << "DANGER: amount to sleep is" << usecToSleep;
-            qDebug() << "NextFrame is" << nextFrame << "and timer nsecs elapsed is" << timer.nsecsElapsed();
-        }
+        usecToSleep = (++nextFrame * AudioConstants::NETWORK_FRAME_USECS) - (timer.nsecsElapsed() / 1000);
 
         if (usecToSleep > 0) {
             usleep(usecToSleep);

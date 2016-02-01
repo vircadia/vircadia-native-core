@@ -490,6 +490,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
+    // emit our signal so listeners know we just heard from the DS
+    emit receivedDomainServerList();
+
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     QDataStream packetStream(message->getMessage());

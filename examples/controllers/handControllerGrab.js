@@ -41,6 +41,8 @@ var PICK_WITH_HAND_RAY = true;
 
 var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
 var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
+var DISTANCE_HOLDING_UNITY_MASS = 1200;  //  The mass at which the distance holding action timeframe is unmodified
+var DISTANCE_HOLDING_UNITY_DISTANCE = 6;  //  The distance at which the distance holding action timeframe is unmodified
 var DISTANCE_HOLDING_ROTATION_EXAGGERATION_FACTOR = 2.0; // object rotates this much more than hand did
 var MOVE_WITH_HEAD = true; // experimental head-control of distantly held objects
 var FAR_TO_NEAR_GRAB_PADDING_FACTOR = 1.2;
@@ -115,7 +117,9 @@ var GRABBABLE_PROPERTIES = [
     "name",
     "shapeType",
     "parentID",
-    "parentJointIndex"
+    "parentJointIndex",
+    "density",
+    "dimensions"
 ];
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
@@ -247,7 +251,7 @@ function MyController(hand) {
     this.rawBumperValue = 0;
     //for visualizations
     this.overlayLine = null;
-    this.particleBeam = null;
+    this.particleBeamObject = null;
 
     //for lights
     this.spotlight = null;
@@ -438,34 +442,32 @@ function MyController(hand) {
     this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
 
         var handToObject = Vec3.subtract(objectPosition, handPosition);
-        var finalRotation = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
-
+        var finalRotationObject = Quat.rotationBetween(Vec3.multiply(-1, Vec3.UP), handToObject);
         var distance = Vec3.distance(handPosition, objectPosition);
-        var speed = 5;
+        var speed = distance * 3;
         var spread = 0;
-
         var lifespan = distance / speed;
 
-        if (this.particleBeam === null) {
-            this.createParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
+        if (this.particleBeamObject === null) {
+            this.createParticleBeam(objectPosition, finalRotationObject, color, speed, spread, lifespan);
         } else {
-            this.updateParticleBeam(objectPosition, finalRotation, color, speed, spread, lifespan);
+            this.updateParticleBeam(objectPosition, finalRotationObject, color, speed, spread, lifespan);
         }
     };
 
-    this.createParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
+    this.createParticleBeam = function(positionObject, orientationObject, color, speed, spread, lifespan) {
 
-        var particleBeamProperties = {
+        var particleBeamPropertiesObject = {
             type: "ParticleEffect",
             isEmitting: true,
-            position: position,
+            position: positionObject,
             visible: false,
             lifetime: 60,
             "name": "Particle Beam",
             "color": color,
             "maxParticles": 2000,
             "lifespan": lifespan,
-            "emitRate": 50,
+            "emitRate": 1000,
             "emitSpeed": speed,
             "speedSpread": spread,
             "emitOrientation": {
@@ -503,26 +505,25 @@ function MyController(hand) {
             "additiveBlending": 0,
             "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
         }
-
-        this.particleBeam = Entities.addEntity(particleBeamProperties);
+       
+        this.particleBeamObject = Entities.addEntity(particleBeamPropertiesObject);
     };
 
-    this.updateParticleBeam = function(position, orientation, color, speed, spread, lifespan) {
-        Entities.editEntity(this.particleBeam, {
-            rotation: orientation,
-            position: position,
+    this.updateParticleBeam = function(positionObject, orientationObject, color, speed, spread, lifespan) {
+        Entities.editEntity(this.particleBeamObject, {
+            rotation: orientationObject,
+            position: positionObject,
             visible: true,
             color: color,
             emitSpeed: speed,
             speedSpread: spread,
             lifespan: lifespan
         })
-
     };
 
     this.renewParticleBeamLifetime = function() {
-        var props = Entities.getEntityProperties(this.particleBeam, "age");
-        Entities.editEntity(this.particleBeam, {
+        var props = Entities.getEntityProperties(this.particleBeamObject, "age");
+        Entities.editEntity(this.particleBeamObject, {
             lifetime: TEMPORARY_PARTICLE_BEAM_LIFETIME + props.age // renew lifetime
         })
     }
@@ -643,9 +644,9 @@ function MyController(hand) {
     };
 
     this.particleBeamOff = function() {
-        if (this.particleBeam !== null) {
-            Entities.deleteEntity(this.particleBeam);
-            this.particleBeam = null;
+        if (this.particleBeamObject !== null) {
+            Entities.deleteEntity(this.particleBeamObject);
+            this.particleBeamObject = null;
         }
     }
 
@@ -937,6 +938,18 @@ function MyController(hand) {
         }
     };
 
+    this.distanceGrabTimescale = function(mass, distance) {
+        var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass / DISTANCE_HOLDING_UNITY_MASS * distance / DISTANCE_HOLDING_UNITY_DISTANCE;
+        if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+            timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+        }
+        return timeScale;
+    }
+
+    this.getMass = function(dimensions, density) {
+        return (dimensions.x * dimensions.y * dimensions.z) * density;
+    }
+
     this.distanceHolding = function() {
         var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -958,12 +971,17 @@ function MyController(hand) {
             this.radiusScalar = 1.0;
         }
 
+        // compute the mass for the purpose of energy and how quickly to move object
+        this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
+        var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
+        var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
+
         this.actionID = NULL_UUID;
         this.actionID = Entities.addAction("spring", this.grabbedEntity, {
             targetPosition: this.currentObjectPosition,
-            linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            linearTimeScale: timeScale,
             targetRotation: this.currentObjectRotation,
-            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            angularTimeScale: timeScale,
             tag: getTag(),
             ttl: ACTION_TTL
         });
@@ -1136,11 +1154,12 @@ function MyController(hand) {
             this.handleSpotlight(this.grabbedEntity);
         }
 
+        var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
         var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
             targetPosition: targetPosition,
-            linearTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            linearTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             targetRotation: this.currentObjectRotation,
-            angularTimeScale: DISTANCE_HOLDING_ACTION_TIMEFRAME,
+            angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
             ttl: ACTION_TTL
         });
         if (success) {
@@ -1588,7 +1607,7 @@ function MyController(hand) {
 
     this.cleanup = function() {
         this.release();
-        Entities.deleteEntity(this.particleBeam);
+        Entities.deleteEntity(this.particleBeamObject);
         Entities.deleteEntity(this.spotLight);
         Entities.deleteEntity(this.pointLight);
     };
