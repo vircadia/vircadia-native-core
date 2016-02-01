@@ -645,6 +645,12 @@ var toolBar = (function() {
                 type: "ParticleEffect",
                 isEmitting: true,
                 particleRadius: 0.1,
+                emitAcceleration: {x: 0, y: -1, z: 0},
+                accelerationSpread: {x: 5, y: 0, z: 5},
+                emitSpeed: 1,
+                lifespan: 1,
+                particleRadius: 0.025,
+                alphaFinish: 0,
                 emitRate: 100,
                 textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
             });
@@ -1893,6 +1899,7 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                     currentProperties: properties
                 };
 
+                particleExplorerTool.setActiveParticleEntity(ids[0]);
                 particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(data));
 
             } else {

@@ -14,12 +14,18 @@ ParticleExplorerTool = function() {
     webView.setVisible(visible);
     that.webView = webView;
 
-    var webEventReceived = function() {
+    var webEventReceived = function(data) {
+        var data = JSON.parse(data);
+        if (data.messageType === "settings_update") {
+            Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
+        }
         print("EBL WEB EVENT RECIEVED FROM PARTICLE GUI");
     }
-
     webView.eventBridge.webEventReceived.connect(webEventReceived);
 
+    that.setActiveParticleEntity = function(id) {
+        that.activeParticleEntity = id;
+    }
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
