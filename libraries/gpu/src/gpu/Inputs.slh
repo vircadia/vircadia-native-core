@@ -10,13 +10,12 @@
 !>
 <@if not GPU_INPUTS_SLH@>
 <@def GPU_INPUTS_SLH@>
-in vec4 inPosition;
-in vec4 inNormal;
-in vec4 inColor;
-in vec4 inTexCoord0;
-in vec4 inTangent;
-in vec4 inSkinClusterIndex;
-in vec4 inSkinClusterWeight;
-in vec4 inTexCoord1;
-in mat4 inInstanceTransform;
+layout(location = 0) in vec4 inPosition;
+layout(location = 1) in vec4 inNormal;
+layout(location = 2) in vec4 inColor;
+layout(location = 3) in vec4 inTexCoord0;
+layout(location = 4) in vec4 inTangent;
+layout(location = 5) in vec4 inSkinClusterIndex;
+layout(location = 6) in vec4 inSkinClusterWeight;
+layout(location = 7) in vec4 inTexCoord1;
 <@endif@>

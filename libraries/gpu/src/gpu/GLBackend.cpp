@@ -62,6 +62,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_runLambda),
 
+    (&::gpu::GLBackend::do_startNamedCall),
+    (&::gpu::GLBackend::do_stopNamedCall),
+
     (&::gpu::GLBackend::do_glActiveBindTexture),
 
     (&::gpu::GLBackend::do_glUniform1i),
@@ -121,11 +124,7 @@ Backend* GLBackend::createBackend() {
     return new GLBackend();
 }
 
-GLBackend::GLBackend() :
-    _input(),
-    _pipeline(),
-    _output()
-{
+GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
@@ -155,31 +154,30 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync all the buffers
         PROFILE_RANGE("syncCPUTransform");
-        _transform._cameras.resize(0);
+        _transform._cameras.clear();
         _transform._cameraOffsets.clear();
-        _transform._objects.resize(0);
-        _transform._objectOffsets.clear();
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
-            case Batch::COMMAND_draw:
-            case Batch::COMMAND_drawIndexed:
-            case Batch::COMMAND_drawInstanced:
-            case Batch::COMMAND_drawIndexedInstanced:
-                _transform.preUpdate(_commandIndex, _stereo);
-                break;
+                case Batch::COMMAND_draw:
+                case Batch::COMMAND_drawIndexed:
+                case Batch::COMMAND_drawInstanced:
+                case Batch::COMMAND_drawIndexedInstanced:
+                case Batch::COMMAND_multiDrawIndirect:
+                case Batch::COMMAND_multiDrawIndexedIndirect:
+                    _transform.preUpdate(_commandIndex, _stereo);
+                    break;
 
-            case Batch::COMMAND_setModelTransform:
-            case Batch::COMMAND_setViewportTransform:
-            case Batch::COMMAND_setViewTransform:
-            case Batch::COMMAND_setProjectionTransform: {
-                CommandCall call = _commandCalls[(*command)];
-                (this->*(call))(batch, *offset);
-                break;
-            }
+                case Batch::COMMAND_setViewportTransform:
+                case Batch::COMMAND_setViewTransform:
+                case Batch::COMMAND_setProjectionTransform: {
+                    CommandCall call = _commandCalls[(*command)];
+                    (this->*(call))(batch, *offset);
+                    break;
+                }
 
-            default:
-                break;
+                default:
+                    break;
             }
             command++;
             offset++;
@@ -188,12 +186,14 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync the transform buffers
         PROFILE_RANGE("syncGPUTransform");
-        _transform.transfer();
+        _transform.transfer(batch);
     }
+
+
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
-    _transform._objectsItr = _transform._objectOffsets.begin();
+    _currentDraw = -1;
     _transform._camerasItr = _transform._cameraOffsets.begin();
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
@@ -209,6 +209,22 @@ void GLBackend::renderPassDraw(Batch& batch) {
             case Batch::COMMAND_setProjectionTransform:
                 break;
 
+            case Batch::COMMAND_draw:
+            case Batch::COMMAND_drawIndexed:
+            case Batch::COMMAND_drawInstanced:
+            case Batch::COMMAND_drawIndexedInstanced:
+            case Batch::COMMAND_multiDrawIndirect:
+            case Batch::COMMAND_multiDrawIndexedIndirect: {
+                // updates for draw calls
+                ++_currentDraw;
+                updateInput();
+                updateTransform(batch);
+                updatePipeline();
+                
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+                break;
+            }
             default: {
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
@@ -306,10 +322,6 @@ void GLBackend::syncCache() {
 }
 
 void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
@@ -319,10 +331,6 @@ void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
@@ -338,10 +346,6 @@ void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -353,10 +357,6 @@ void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 3]._uint];
     uint32 numIndices = batch._params[paramOffset + 2]._uint;
@@ -381,10 +381,6 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
 
@@ -398,10 +394,6 @@ void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 
 void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
     GLenum indexType = _elementTypeToGLType[_input._indexBufferType];
@@ -421,6 +413,15 @@ void GLBackend::do_resetStages(Batch& batch, size_t paramOffset) {
 void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
     std::function<void()> f = batch._lambdas.get(batch._params[paramOffset]._uint);
     f();
+}
+
+void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
+    batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+    _currentDraw = -1;
+}
+
+void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
+    batch._currentNamedCall.clear();
 }
 
 void GLBackend::resetStages() {
