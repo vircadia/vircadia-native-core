@@ -19,37 +19,37 @@ var ROWS_X = 17;
 var ROWS_Y = 10;
 var ROWS_Z = 10;
 // Entities will be populated from this list set by the script writer for different tests.
-var TYPES_TO_USE = [ 'Box', 'Sphere'];
+var TYPES_TO_USE = ['Box', 'Sphere'];
 switch ('primitives') { // Quickly override the above by putting here one of the following case strings.
-case 'particles':
-    TYPES_TO_USE = ['ParticleEffect'];
-    ROWS_X = ROWS_Z = 6;
-    break;
-case 'lights':
-    TYPES_TO_USE = ['Light'];
-    ROWS_X = ROWS_Y = ROWS_Z = 5;
-    break;
-case 'blocks': // 376 triangles/entity
-    TYPES_TO_USE = ["http://s3.amazonaws.com/hifi-public/marketplace/hificontent/Games/blocks/block.fbx"];
-    ROWS_X = ROWS_Y = ROWS_Z = 10;
-    break;
-case 'ramp': // 1,002 triangles/entity
-    TYPES_TO_USE = ["http://headache.hungry.com/~seth/hifi/curved-ramp.obj"];
-    ROWS_X = ROWS_Y = 10;
-    ROWS_Z = 9;
-    break;
-case 'trees': // 12k triangles/entity
-    TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/sets/lowpoly_island/CypressTreeGroup.fbx"];
-    ROWS_X = ROWS_Z = 6;
-    ROWS_Y = 1;
-    break;
-case  'web':
-    TYPES_TO_USE = ['Web'];
-    ROWS_X = ROWS_Z = 5;
-    ROWS_Y = 3; 
-    break;
-default:
-    // Just using values from above.
+    case 'particles':
+        TYPES_TO_USE = ['ParticleEffect'];
+        ROWS_X = ROWS_Z = 6;
+        break;
+    case 'lights':
+        TYPES_TO_USE = ['Light'];
+        ROWS_X = ROWS_Y = ROWS_Z = 5;
+        break;
+    case 'blocks': // 376 triangles/entity
+        TYPES_TO_USE = ["http://s3.amazonaws.com/hifi-public/marketplace/hificontent/Games/blocks/block.fbx"];
+        ROWS_X = ROWS_Y = ROWS_Z = 10;
+        break;
+    case 'ramp': // 1,002 triangles/entity
+        TYPES_TO_USE = ["http://headache.hungry.com/~seth/hifi/curved-ramp.obj"];
+        ROWS_X = ROWS_Y = 10;
+        ROWS_Z = 9;
+        break;
+    case 'trees': // 12k triangles/entity
+        TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/sets/lowpoly_island/CypressTreeGroup.fbx"];
+        ROWS_X = ROWS_Z = 6;
+        ROWS_Y = 1;
+        break;
+    case 'web':
+        TYPES_TO_USE = ['Web'];
+        ROWS_X = ROWS_Z = 5;
+        ROWS_Y = 3;
+        break;
+    default:
+        // Just using values from above.
 }
 // Matrix will be axis-aligned, approximately all in this field of view.
 // As special case, if zero, grid is centered above your head.

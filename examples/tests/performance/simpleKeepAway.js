@@ -17,7 +17,7 @@ var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
 //  a moment -- that's why they are in a sparse grid.
 
 var USE_FLAT_FLOOR = true;  // Give 'em a flat place to settle on.
-var ROWS_X = 30;            
+var ROWS_X = 30;
 var ROWS_Z = 30;
 var SEPARATION = 1;         // meters
 var LIFETIME = 60;         // seconds
@@ -61,13 +61,13 @@ var parameters = JSON.stringify({
 var startTime = new Date();
 if (USE_FLAT_FLOOR) {
     Entities.addEntity({
-	type: 'Box',
-	name: 'keepAwayFloor',
-	lifetime: LIFETIME,
-	collisionsWillMove: false,
-	color: {red: 255, green: 0, blue: 0},
-	position: Vec3.sum(origin, {x: xDim / 2, y: -1 - HOW_FAR_UP, z: zDim / 2}),
-	dimensions: {x: xDim + SEPARATION, y: 0.2, z: zDim + SEPARATION}
+        type: 'Box',
+        name: 'keepAwayFloor',
+        lifetime: LIFETIME,
+        collisionsWillMove: false,
+        color: {red: 255, green: 0, blue: 0},
+        position: Vec3.sum(origin, {x: xDim / 2, y: -1 - HOW_FAR_UP, z: zDim / 2}),
+        dimensions: {x: xDim + SEPARATION, y: 0.2, z: zDim + SEPARATION}
     });
 }
 Script.setInterval(function () {
@@ -75,17 +75,17 @@ Script.setInterval(function () {
         return;
     }
 
-    var i, numToCreate = Math.min(RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0), totalToCreate - totalCreated);
+    var i, properties, numToCreate = Math.min(RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0), totalToCreate - totalCreated);
     for (i = 0; i < numToCreate; i++) {
         properties = {
             userData: parameters,
             type: TYPE,
             name: "keepAway-" + totalCreated,
-	    position: {
-		x: origin.x + SIZE + (x * SEPARATION),
-		y: origin.y,
-		z: origin.z + SIZE + (z * SEPARATION)
-	    },
+            position: {
+                x: origin.x + SIZE + (x * SEPARATION),
+                y: origin.y,
+                z: origin.z + SIZE + (z * SEPARATION)
+            },
             dimensions: {x: SIZE, y: SIZE, z: SIZE},
             color: {red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255},
             velocity: VELOCITY,
@@ -94,7 +94,7 @@ Script.setInterval(function () {
             gravity: GRAVITY,
             collisionsWillMove: true,
             lifetime: LIFETIME,
-	    script: Script.resolvePath("../../entityScripts/simpleKeepAway.js")
+            script: Script.resolvePath("../../entityScripts/simpleKeepAway.js")
         };
         Entities.addEntity(properties);
         totalCreated++;
@@ -102,7 +102,7 @@ Script.setInterval(function () {
         x++;
         if (x === ROWS_X) {
             x = 0;
-	    z++;
+            z++;
             print("Created: " + totalCreated);
         }
         if (z === ROWS_Z) {

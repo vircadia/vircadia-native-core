@@ -14,7 +14,7 @@
         var vector = Vec3.subtract(ball, me);
 
         if (Vec3.length(vector) < distanceAllowance) {
-	    Entities.editEntity(entityID, {velocity: Vec3.multiply(distanceScale, Vec3.normalize(vector))});
+            Entities.editEntity(entityID, {velocity: Vec3.multiply(distanceScale, Vec3.normalize(vector))});
         }
     }
 
@@ -25,7 +25,7 @@
         if (userData) {
             distanceRate = userData.distanceRate || distanceRate;
             distanceAllowance = userData.distanceAllowance || distanceAllowance;
-	    distanceScale = userData.distanceScale || distanceScale;
+            distanceScale = userData.distanceScale || distanceScale;
         }
 
         // run all the time by everyone:
