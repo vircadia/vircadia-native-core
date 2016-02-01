@@ -1884,6 +1884,7 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
+particleExplorerTool.createWebView();
 entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
