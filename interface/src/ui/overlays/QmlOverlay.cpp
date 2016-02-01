@@ -38,7 +38,7 @@ void QmlOverlay::buildQmlElement(const QUrl& url) {
         offscreenUi->load(url, [=](QQmlContext* context, QObject* object) {
             QQuickItem* rawPtr = dynamic_cast<QQuickItem*>(object);
             // Create a shared ptr with a custom deleter lambda, that calls deleteLater
-            _qmlElement = std::shared_ptr<QQuickItem>(rawPtr, [=](QQuickItem* ptr) {
+            _qmlElement = std::shared_ptr<QQuickItem>(rawPtr, [](QQuickItem* ptr) {
                 if (ptr) {
                     ptr->deleteLater();
                 }
