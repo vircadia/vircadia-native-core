@@ -285,6 +285,7 @@ void MyAvatar::update(float deltaTime) {
         // However, render/MyAvatar::update/Application::update don't always match (e.g., when using the separate avatar update thread),
         // so we update now. It's ok if it updates again in the normal way.
         updateSensorToWorldMatrix();
+        emit positionGoneTo();
     }
 
     Head* head = getHead();
@@ -1629,7 +1630,7 @@ void MyAvatar::decreaseSize() {
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reseted scale to %f", (double)_targetScale);
+    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
