@@ -262,7 +262,6 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         camMat = (headPose * eyeToHead) * camMat;
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
-
         batch.setProjectionTransform(qApp->getEyeProjection(eye));
 
     #ifdef DEBUG_OVERLAY
@@ -282,21 +281,28 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         bindCursorTexture(batch);
 
-        //Controller Pointers
-        glm::mat4 overlayXfm;
-        _modelTransform.getMatrix(overlayXfm);
-
         //Mouse Pointer
-        glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
-        mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-        mat4 reticleXfm = overlayXfm * pointerXfm;
-        reticleXfm = glm::scale(reticleXfm, reticleScale);
-        batch.setModelTransform(reticleXfm);
-        geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+        auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
+        bool reticleVisible = controllerScriptingInterface->getReticleVisible();
+        if (reticleVisible) {
+            glm::mat4 overlayXfm;
+            _modelTransform.getMatrix(overlayXfm);
+
+            glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
+
+            float cursorDepth = controllerScriptingInterface->getReticleDepth();
+            mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+            mat4 reticleXfm = overlayXfm * pointerXfm;
+            reticleXfm = glm::scale(reticleXfm, reticleScale);
+            batch.setModelTransform(reticleXfm);
+            geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
+        }
     });
 }
 
 
+// FIXME - this probably is hella buggy and probably doesn't work correctly
+// we should kill it asap.
 void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
     const glm::vec2 projection = overlayToSpherical(cursorPos);
     // The overlay space orientation of the mouse coordinates
@@ -326,16 +332,22 @@ void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& or
 
 //Finds the collision point of a world space ray
 bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-    glm::quat inverseOrientation = glm::inverse(myAvatar->getOrientation());
+    auto displayPlugin = qApp->getActiveDisplayPlugin();
+    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
 
-    glm::vec3 relativePosition = inverseOrientation * (position - myAvatar->getDefaultEyePosition());
-    glm::vec3 relativeDirection = glm::normalize(inverseOrientation * direction);
+    auto myCamera = qApp->getCamera();
+    mat4 cameraMat = myCamera->getTransform();
+    auto UITransform = cameraMat * glm::inverse(headPose);
+    auto relativePosition4 = glm::inverse(UITransform) * vec4(position, 1);
+    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
+    auto relativeDirection = glm::inverse(glm::quat_cast(UITransform)) * direction;
 
-    float t;
-    if (raySphereIntersect(relativeDirection, relativePosition, _oculusUIRadius * myAvatar->getUniformScale(), &t)){
-        result = position + direction * t;
+    float uiRadius = _oculusUIRadius; // * myAvatar->getUniformScale(); // FIXME - how do we want to handle avatar scale
+
+    float instersectionDistance;
+    if (raySphereIntersect(relativeDirection, relativePosition, uiRadius, &instersectionDistance)){
+        result = position + glm::normalize(direction) * instersectionDistance;
         return true;
     }
 
@@ -492,6 +504,23 @@ glm::vec2 ApplicationCompositor::screenToOverlay(const glm::vec2& screenPos) con
 
 glm::vec2 ApplicationCompositor::overlayToScreen(const glm::vec2& overlayPos) const {
     return sphericalToScreen(overlayToSpherical(overlayPos));
+}
+
+glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const {
+
+    auto displayPlugin = qApp->getActiveDisplayPlugin();
+    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
+    auto myCamera = qApp->getCamera();
+    mat4 cameraMat = myCamera->getTransform();
+    auto UITransform = cameraMat * glm::inverse(headPose);
+    auto relativePosition4 = glm::inverse(UITransform) * vec4(sphereSurfacePoint, 1);
+    auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
+    auto center = vec3(0); // center of HUD in HUD space
+    auto direction = relativePosition - center; // direction to relative position in HUD space
+
+    glm::vec2 polar = glm::vec2(glm::atan(direction.x, -direction.z), glm::asin(direction.y)) * -1.0f;
+    auto overlayPos = sphericalToOverlay(polar);
+    return overlayPos;
 }
 
 void ApplicationCompositor::updateTooltips() {

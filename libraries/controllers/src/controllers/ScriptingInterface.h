@@ -89,6 +89,12 @@ namespace controller {
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
+        Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
+        Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }
+
+        Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
+        Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
+
         Q_INVOKABLE glm::vec2 getReticlePosition() { 
             return toGlm(QCursor::pos()); 
         }
@@ -159,10 +165,13 @@ namespace controller {
         QVariantMap _actions;
         QVariantMap _standard;
 
-        bool _mouseCaptured{ false };
-        bool _touchCaptured{ false };
-        bool _wheelCaptured{ false };
-        bool _actionsCaptured{ false };
+        bool _mouseCaptured { false };
+        bool _touchCaptured { false };
+        bool _wheelCaptured { false };
+        bool _actionsCaptured { false };
+        bool _reticleVisible { true };
+
+        float _reticleDepth { 1.0f };
     };
 
 
