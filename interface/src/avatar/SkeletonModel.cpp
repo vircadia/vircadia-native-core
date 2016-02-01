@@ -46,21 +46,21 @@ void SkeletonModel::initJointStates() {
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
-    if (0 <= headJointIndex && headJointIndex < _rig->getJointStateCount()) {
-
-        glm::vec3 leftEyePosition, rightEyePosition;
-        getEyeModelPositions(leftEyePosition, rightEyePosition);
-        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
-
-        int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
-        glm::vec3 rootModelPosition;
-        getJointPosition(rootJointIndex, rootModelPosition);
-
-        _defaultEyeModelPosition = midEyePosition - rootModelPosition;
-
-        // Skeleton may have already been scaled so unscale it
-        _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
+    if (0 > headJointIndex || headJointIndex >= _rig->getJointStateCount()) {
+        qCWarning(interfaceapp) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig->getJointStateCount();
     }
+    glm::vec3 leftEyePosition, rightEyePosition;
+    getEyeModelPositions(leftEyePosition, rightEyePosition);
+    glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
+
+    int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
+    glm::vec3 rootModelPosition;
+    getJointPosition(rootJointIndex, rootModelPosition);
+
+    _defaultEyeModelPosition = midEyePosition - rootModelPosition;
+
+    // Skeleton may have already been scaled so unscale it
+    _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
 
     computeBoundingShape();
 
