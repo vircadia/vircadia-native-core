@@ -38,6 +38,11 @@ switch ('primitives') { // Quickly override the above by putting here one of the
         ROWS_X = ROWS_Y = 10;
         ROWS_Z = 9;
         break;
+    case 'gun': // 2.1k triangles/entity
+        TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/props/guns/nail_gun/nail_gun.fbx"];
+        ROWS_X = ROWS_Y = 10;
+        ROWS_Z = 7;
+        break;
     case 'trees': // 12k triangles/entity
         TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/sets/lowpoly_island/CypressTreeGroup.fbx"];
         ROWS_X = ROWS_Z = 6;
