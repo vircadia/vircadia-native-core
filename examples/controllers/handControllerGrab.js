@@ -236,10 +236,14 @@ function MyController(hand) {
     this.hand = hand;
     if (this.hand === RIGHT_HAND) {
         this.getHandPosition = MyAvatar.getRightPalmPosition;
-        this.getHandRotation = MyAvatar.getRightPalmRotation;
+        // this.getHandRotation = MyAvatar.getRightPalmRotation;
     } else {
         this.getHandPosition = MyAvatar.getLeftPalmPosition;
-        this.getHandRotation = MyAvatar.getLeftPalmRotation;
+        // this.getHandRotation = MyAvatar.getLeftPalmRotation;
+    }
+    this.getHandRotation = function() {
+        var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        return Quat.multiply(MyAvatar.orientation, Controller.getPoseValue(controllerHandInput).rotation);
     }
 
     this.actionID = null; // action this script created...
