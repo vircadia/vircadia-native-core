@@ -542,16 +542,16 @@ void AnimInverseKinematics::initConstraints() {
     for (int i = 0; i < numJoints; ++i) {
         // compute the joint's baseName and remember whether its prefix was "Left" or not
         QString baseName = _skeleton->getJointName(i);
-        bool isLeft = baseName.startsWith("Left", Qt::CaseInsensitive);
+        bool isLeft = baseName.startsWith("Left", Qt::CaseSensitive);
         float mirror = isLeft ? -1.0f : 1.0f;
         if (isLeft) {
             baseName.remove(0, 4);
-        } else if (baseName.startsWith("Right", Qt::CaseInsensitive)) {
+        } else if (baseName.startsWith("Right", Qt::CaseSensitive)) {
             baseName.remove(0, 5);
         }
 
         RotationConstraint* constraint = nullptr;
-        if (0 == baseName.compare("Arm", Qt::CaseInsensitive)) {
+        if (0 == baseName.compare("Arm", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 2.0f, PI / 2.0f);
@@ -585,7 +585,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("UpLeg", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("UpLeg", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
@@ -611,7 +611,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(swungDirections);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("Hand", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Hand", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_HAND_TWIST = 3.0f * PI / 5.0f;
@@ -650,7 +650,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (baseName.startsWith("Shoulder", Qt::CaseInsensitive)) {
+        } else if (baseName.startsWith("Shoulder", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_SHOULDER_TWIST = PI / 20.0f;
@@ -662,7 +662,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (baseName.startsWith("Spine", Qt::CaseInsensitive)) {
+        } else if (baseName.startsWith("Spine", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_SPINE_TWIST = PI / 12.0f;
@@ -672,13 +672,13 @@ void AnimInverseKinematics::initConstraints() {
             const float MAX_SPINE_SWING = PI / 14.0f;
             minDots.push_back(cosf(MAX_SPINE_SWING));
             stConstraint->setSwingLimits(minDots);
-            if (0 == baseName.compare("Spine1", Qt::CaseInsensitive)
-                    || 0 == baseName.compare("Spine", Qt::CaseInsensitive)) {
+            if (0 == baseName.compare("Spine1", Qt::CaseSensitive)
+                    || 0 == baseName.compare("Spine", Qt::CaseSensitive)) {
                 stConstraint->setLowerSpine(true);
             }
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (baseName.startsWith("Hips2", Qt::CaseInsensitive)) {
+        } else if (baseName.startsWith("Hips2", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_SPINE_TWIST = PI / 8.0f;
@@ -690,7 +690,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("Neck", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Neck", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_NECK_TWIST = PI / 9.0f;
@@ -702,7 +702,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("Head", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Head", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             const float MAX_HEAD_TWIST = PI / 9.0f;
@@ -714,7 +714,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setSwingLimits(minDots);
 
             constraint = static_cast<RotationConstraint*>(stConstraint);
-        } else if (0 == baseName.compare("ForeArm", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("ForeArm", Qt::CaseSensitive)) {
             // The elbow joint rotates about the parent-frame's zAxis (-zAxis) for the Right (Left) arm.
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
@@ -745,7 +745,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == baseName.compare("Leg", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Leg", Qt::CaseSensitive)) {
             // The knee joint rotates about the parent-frame's -xAxis.
             ElbowConstraint* eConstraint = new ElbowConstraint();
             glm::quat referenceRotation = _defaultRelativePoses[i].rot;
@@ -776,7 +776,7 @@ void AnimInverseKinematics::initConstraints() {
             eConstraint->setAngleLimits(minAngle, maxAngle);
 
             constraint = static_cast<RotationConstraint*>(eConstraint);
-        } else if (0 == baseName.compare("Foot", Qt::CaseInsensitive)) {
+        } else if (0 == baseName.compare("Foot", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
