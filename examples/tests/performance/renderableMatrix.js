@@ -11,25 +11,56 @@ var Entities, Script, print, Vec3, MyAvatar, Camera, Quat;
 //  Creates a rectangular matrix of objects with no physical or entity changes after creation.
 //  Useful for testing the rendering, LOD, and octree storage aspects of the system.
 //
+//  NOTE: to test the full rendering of the specified number of objects (as opposed to
+//  testing LOD filtering), you may want to set LOD to manual maximum visibility.
 
-var LIFETIME = 60;
+var LIFETIME = 20;
+var ROWS_X = 17;
+var ROWS_Y = 10;
+var ROWS_Z = 10;
+// Entities will be populated from this list set by the script writer for different tests.
+var TYPES_TO_USE = ['Box', 'Sphere'];
+switch ('primitives') { // Quickly override the above by putting here one of the following case strings.
+    case 'particles':
+        TYPES_TO_USE = ['ParticleEffect'];
+        ROWS_X = ROWS_Z = 6;
+        break;
+    case 'lights':
+        TYPES_TO_USE = ['Light'];
+        ROWS_X = ROWS_Y = ROWS_Z = 5;
+        break;
+    case 'blocks': // 376 triangles/entity
+        TYPES_TO_USE = ["http://s3.amazonaws.com/hifi-public/marketplace/hificontent/Games/blocks/block.fbx"];
+        ROWS_X = ROWS_Y = ROWS_Z = 10;
+        break;
+    case 'ramp': // 1,002 triangles/entity
+        TYPES_TO_USE = ["http://headache.hungry.com/~seth/hifi/curved-ramp.obj"];
+        ROWS_X = ROWS_Y = 10;
+        ROWS_Z = 9;
+        break;
+    case 'gun': // 2.1k triangles/entity
+        TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/props/guns/nail_gun/nail_gun.fbx"];
+        ROWS_X = ROWS_Y = 10;
+        ROWS_Z = 7;
+        break;
+    case 'trees': // 12k triangles/entity
+        TYPES_TO_USE = ["https://hifi-content.s3.amazonaws.com/ozan/dev/sets/lowpoly_island/CypressTreeGroup.fbx"];
+        ROWS_X = ROWS_Z = 6;
+        ROWS_Y = 1;
+        break;
+    case 'web':
+        TYPES_TO_USE = ['Web'];
+        ROWS_X = ROWS_Z = 5;
+        ROWS_Y = 3;
+        break;
+    default:
+        // Just using values from above.
+}
 // Matrix will be axis-aligned, approximately all in this field of view.
 // As special case, if zero, grid is centered above your head.
 var MINIMUM_VIEW_ANGLE_IN_RADIANS = 30 * Math.PI / 180; // 30 degrees
-var ROWS_X = 10;
-var ROWS_Y = 10;
-var ROWS_Z = 10;
 var SEPARATION = 10;
 var SIZE = 1;
-var TYPES_TO_USE = [ // Entities will be populated from this list set by the script writer for different tests.
-    'Box',
-    'Sphere',
-    //'Light',
-    //'ParticleEffect',
-    //'Web',
-    //"https://hifi-content.s3.amazonaws.com/ozan/dev/sets/lowpoly_island/CypressTreeGroup.fbx",
-    //"http://s3.amazonaws.com/hifi-public/marketplace/hificontent/Games/blocks/block.fbx",
-];
 var MODEL_SCALE = { x: 1, y: 2, z: 3 }; // how to stretch out models proportionally to SIZE
 //  Note that when creating things quickly, the entity server will ignore data if we send updates too quickly.
 //  like Internet MTU, these rates are set by th domain operator, so in this script there is a RATE_PER_SECOND 
@@ -55,7 +86,9 @@ var o = Vec3.sum(MyAvatar.position,
 var totalCreated = 0;
 var startTime = new Date();
 var totalToCreate = ROWS_X * ROWS_Y * ROWS_Z;
-print("Creating " + totalToCreate + " entities starting at " + startTime);
+print("Creating " + totalToCreate + " " + JSON.stringify(TYPES_TO_USE) +
+      " entities extending in positive x/y/z from " + JSON.stringify(o) +
+      ", starting at " + startTime);
 
 Script.setInterval(function () {
     if (!Entities.serversExist() || !Entities.canRez()) {

@@ -13,9 +13,8 @@ var Entities, Script, print, Vec3, MyAvatar;
 //  so that you can measure how many edits can be made.
 //
 var LIFETIME = 15;
-var EDIT_FREQUENCY_TARGET = 60; // hertz
 var ROWS_X = 10;
-var ROWS_Y = 1;
+var ROWS_Y = 2;
 var ROWS_Z = 10;
 var SEPARATION = 10.0;
 var SIZE = 1.0;
@@ -88,7 +87,7 @@ var creator = Script.setInterval(function () {
         if (z === ROWS_Z) {
             print("Total: " + totalCreated + " entities in " + ((new Date() - startTime) / 1000.0) + " seconds.");
             Script.clearTimeout(creator);
-            flasher = Script.setInterval(doFlash, Math.ceil((1 / EDIT_FREQUENCY_TARGET) * 1000));
+            flasher = Script.setInterval(doFlash, 1000 / 60); // I.e., spin as fast as we have time for.
             Script.setTimeout(stopFlash, LIFETIME * 1000);
         }
     }
