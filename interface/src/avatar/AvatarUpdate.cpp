@@ -33,10 +33,6 @@ void AvatarUpdate::synchronousProcess() {
     auto frameCount = qApp->getFrameCount();
     _headPose = qApp->getActiveDisplayPlugin()->getHeadPose(frameCount);
 
-    if (_updateBillboard) {
-        DependencyManager::get<AvatarManager>()->getMyAvatar()->doUpdateBillboard();
-    }
-
     if (!isThreaded()) {
         process();
     }
