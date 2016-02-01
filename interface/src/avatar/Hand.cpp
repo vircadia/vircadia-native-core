@@ -60,7 +60,8 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             transform.setTranslation(position);
             transform.setRotation(palm.getRotation());
             transform.postScale(SPHERE_RADIUS);
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, grayColor);
+            batch.setModelTransform(transform);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, grayColor);
 
             // draw a green sphere at the old "finger tip"
             transform = Transform();
@@ -68,7 +69,8 @@ void Hand::renderHandTargets(RenderArgs* renderArgs, bool isMine) {
             transform.setTranslation(position);
             transform.setRotation(palm.getRotation());
             transform.postScale(SPHERE_RADIUS);
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, transform, greenColor);
+            batch.setModelTransform(transform);
+            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, greenColor);
         }
     }
 

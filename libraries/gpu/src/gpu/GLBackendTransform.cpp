@@ -16,8 +16,6 @@ using namespace gpu;
 
 // Transform Stage
 void GLBackend::do_setModelTransform(Batch& batch, size_t paramOffset) {
-    _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
-    _transform._invalidModel = true;
 }
 
 void GLBackend::do_setViewTransform(Batch& batch, size_t paramOffset) {
@@ -63,26 +61,29 @@ void GLBackend::do_setDepthRangeTransform(Batch& batch, size_t paramOffset) {
 void GLBackend::initTransform() {
     glGenBuffers(1, &_transform._objectBuffer);
     glGenBuffers(1, &_transform._cameraBuffer);
+    glGenBuffers(1, &_transform._drawCallInfoBuffer);
+#ifndef GPU_SSBO_DRAW_CALL_INFO
+    glGenTextures(1, &_transform._objectBufferTexture);
+#endif
     size_t cameraSize = sizeof(TransformCamera);
     while (_transform._cameraUboSize < cameraSize) {
         _transform._cameraUboSize += _uboAlignment;
-    }
-    size_t objectSize = sizeof(TransformObject);
-    while (_transform._objectUboSize < objectSize) {
-        _transform._objectUboSize += _uboAlignment;
     }
 }
 
 void GLBackend::killTransform() {
     glDeleteBuffers(1, &_transform._objectBuffer);
     glDeleteBuffers(1, &_transform._cameraBuffer);
+    glDeleteBuffers(1, &_transform._drawCallInfoBuffer);
+#ifndef GPU_SSBO_DRAW_CALL_INFO
+    glDeleteTextures(1, &_transform._objectBufferTexture);
+#endif
 }
 
 void GLBackend::syncTransformStateCache() {
     _transform._invalidViewport = true;
     _transform._invalidProj = true;
     _transform._invalidView = true;
-    _transform._invalidModel = true;
 
     glGetIntegerv(GL_VIEWPORT, (GLint*) &_transform._viewport);
 
@@ -91,7 +92,6 @@ void GLBackend::syncTransformStateCache() {
     Mat4 modelView;
     auto modelViewInv = glm::inverse(modelView);
     _transform._view.evalFromRawMatrix(modelViewInv);
-    _transform._model.setIdentity();
 }
 
 void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const StereoState& stereo) {
@@ -108,16 +108,6 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         _view.getInverseMatrix(_camera._view);
     }
 
-    if (_invalidModel) {
-        _model.getMatrix(_object._model);
-
-        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
-        // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases
-        // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
-        //_model.getInverseMatrix(_object._modelInverse);
-        _object._modelInverse = glm::inverse(_object._model);
-    }
-
     if (_invalidView || _invalidProj || _invalidViewport) {
         size_t offset = _cameraUboSize * _cameras.size();
         if (stereo._enable) {
@@ -131,56 +121,68 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         }
     }
 
-    if (_invalidModel) {
-        size_t offset = _objectUboSize * _objects.size();
-        _objectOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
-        _objects.push_back(_object);
-    }
-
     // Flags are clean
-    _invalidView = _invalidProj = _invalidModel = _invalidViewport = false;
+    _invalidView = _invalidProj = _invalidViewport = false;
 }
 
-void GLBackend::TransformStageState::transfer() const {
+void GLBackend::TransformStageState::transfer(const Batch& batch) const {
     // FIXME not thread safe
     static std::vector<uint8_t> bufferData;
     if (!_cameras.empty()) {
-        glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         bufferData.resize(_cameraUboSize * _cameras.size());
         for (size_t i = 0; i < _cameras.size(); ++i) {
             memcpy(bufferData.data() + (_cameraUboSize * i), &_cameras[i], sizeof(TransformCamera));
         }
+        glBindBuffer(GL_UNIFORM_BUFFER, _cameraBuffer);
         glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
-    }
-
-    if (!_objects.empty()) {
-        glBindBuffer(GL_UNIFORM_BUFFER, _objectBuffer);
-        bufferData.resize(_objectUboSize * _objects.size());
-        for (size_t i = 0; i < _objects.size(); ++i) {
-            memcpy(bufferData.data() + (_objectUboSize * i), &_objects[i], sizeof(TransformObject));
-        }
-        glBufferData(GL_UNIFORM_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
-    }
-
-    if (!_cameras.empty() || !_objects.empty()) {
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
+
+    if (!batch._objects.empty()) {
+        auto byteSize = batch._objects.size() * sizeof(Batch::TransformObject);
+        bufferData.resize(byteSize);
+        memcpy(bufferData.data(), batch._objects.data(), byteSize);
+
+#ifdef GPU_SSBO_DRAW_CALL_INFO
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _objectBuffer);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+#else
+        glBindBuffer(GL_TEXTURE_BUFFER, _objectBuffer);
+        glBufferData(GL_TEXTURE_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+#endif
+    }
+
+    if (!batch._namedData.empty()) {
+        bufferData.clear();
+        for (auto& data : batch._namedData) {
+            auto currentSize = bufferData.size();
+            auto bytesToCopy = data.second.drawCallInfos.size() * sizeof(Batch::DrawCallInfo);
+            bufferData.resize(currentSize + bytesToCopy);
+            memcpy(bufferData.data() + currentSize, data.second.drawCallInfos.data(), bytesToCopy);
+            _drawCallInfoOffsets[data.first] = (GLvoid*)currentSize;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, _drawCallInfoBuffer);
+        glBufferData(GL_ARRAY_BUFFER, bufferData.size(), bufferData.data(), GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+
+#ifdef GPU_SSBO_DRAW_CALL_INFO
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, TRANSFORM_OBJECT_SLOT, _objectBuffer);
+#else
+    glActiveTexture(GL_TEXTURE0 + TRANSFORM_OBJECT_SLOT);
+    glBindTexture(GL_TEXTURE_BUFFER, _objectBufferTexture);
+    glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, _objectBuffer);
+#endif
+
     CHECK_GL_ERROR();
 }
 
 void GLBackend::TransformStageState::update(size_t commandIndex, const StereoState& stereo) const {
     static const size_t INVALID_OFFSET = (size_t)-1;
     size_t offset = INVALID_OFFSET;
-    while ((_objectsItr != _objectOffsets.end()) && (commandIndex >= (*_objectsItr).first)) {
-        offset = (*_objectsItr).second;
-        ++_objectsItr;
-    }
-    if (offset != INVALID_OFFSET) {
-        glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_OBJECT_SLOT,
-            _objectBuffer, offset, sizeof(Backend::TransformObject));
-    }
-
-    offset = INVALID_OFFSET;
     while ((_camerasItr != _cameraOffsets.end()) && (commandIndex >= (*_camerasItr).first)) {
         offset = (*_camerasItr).second;
         ++_camerasItr;
@@ -191,14 +193,29 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
             offset += _cameraUboSize;
         }
         glBindBufferRange(GL_UNIFORM_BUFFER, TRANSFORM_CAMERA_SLOT,
-            _cameraBuffer, offset, sizeof(Backend::TransformCamera));
+                          _cameraBuffer, offset, sizeof(Backend::TransformCamera));
     }
 
     (void)CHECK_GL_ERROR();
 }
 
-void GLBackend::updateTransform() const {
+void GLBackend::updateTransform(const Batch& batch) {
     _transform.update(_commandIndex, _stereo);
+
+    auto& drawCallInfoBuffer = batch.getDrawCallInfoBuffer();
+    if (batch._currentNamedCall.empty()) {
+        auto& drawCallInfo = drawCallInfoBuffer[_currentDraw];
+        glDisableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is disabled
+        glVertexAttribI2i(gpu::Stream::DRAW_CALL_INFO, drawCallInfo.index, drawCallInfo.unused);
+    } else {
+        glEnableVertexAttribArray(gpu::Stream::DRAW_CALL_INFO); // Make sure attrib array is enabled
+        glBindBuffer(GL_ARRAY_BUFFER, _transform._drawCallInfoBuffer);
+        glVertexAttribIPointer(gpu::Stream::DRAW_CALL_INFO, 2, GL_UNSIGNED_SHORT, 0,
+                               _transform._drawCallInfoOffsets[batch._currentNamedCall]);
+        glVertexAttribDivisor(gpu::Stream::DRAW_CALL_INFO, 1);
+    }
+    
+    (void)CHECK_GL_ERROR();
 }
 
 void GLBackend::resetTransformStage() {

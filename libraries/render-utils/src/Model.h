@@ -89,7 +89,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
-    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation);
+    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     bool maybeStartBlender();
 
