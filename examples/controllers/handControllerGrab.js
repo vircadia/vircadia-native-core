@@ -783,8 +783,6 @@ function MyController(hand) {
                 direction: pickRay.direction
             };
 
-            // Messages.sendMessage('Hifi-Light-Overlay-Ray-Check', JSON.stringify(pickRayBacked));
-
             var intersection;
 
             if (USE_BLACKLIST === true && blacklist.length !== 0) {
@@ -1387,11 +1385,6 @@ function MyController(hand) {
                 Entities.callEntityMethod(this.grabbedEntity, "continueNearGrab");
             }
         }
-
-        // Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
-        //     action: 'update',
-        //     grabbedEntity: this.grabbedEntity
-        // }))
 
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
             // if less than a 5 seconds left, refresh the actions ttl

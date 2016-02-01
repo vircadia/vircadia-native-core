@@ -1,3 +1,5 @@
+*Temporarily Deprecated - needs a better way to know when 'grab beams' intersect with 'light overlays'.  Sending messages containing the ray from the hand grab script to the overlay intersection test doesn't seem to be sustainable. *
+
 This PR demonstrates one way in-world editing of objects might work. 
 
 Running this script will show light overlay icons in-world.  Enter edit mode by running your distance beam through a light overlay.  Exit using the red X.
