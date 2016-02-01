@@ -37,7 +37,8 @@ struct TransformObject {
 
 layout(location=15) in ivec2 _drawCallInfo;
 
-<@if GLPROFILE == PC_GL @>
+<@if FALSE @>
+// Disable SSBOs for now
 layout(std140) buffer transformObjectBuffer {
     TransformObject _object[];
 };

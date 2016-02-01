@@ -49,7 +49,9 @@
 
 
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-#define GPU_SSBO_DRAW_CALL_INFO
+// Deactivate SSBO for now, we've run into some issues
+// on GL 4.3 capable GPUs not behaving as expected
+//#define GPU_SSBO_DRAW_CALL_INFO
 #endif
 
 
