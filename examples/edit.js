@@ -1277,9 +1277,12 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
 
-        var importURL;
+        var importURL = null;
         if (menuItem == "Import Entities") {
-            importURL = "file:///" + Window.browse("Select models to import", "", "*.json");
+            var fullPath = Window.browse("Select models to import", "", "*.json");
+            if (fullPath) {
+                importURL = "file:///" + fullPath;
+            }
         } else {
             importURL = Window.prompt("URL of SVO to import", "");
         }

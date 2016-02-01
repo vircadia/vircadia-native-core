@@ -1695,9 +1695,8 @@ void Application::resizeGL() {
 }
 
 bool Application::importSVOFromURL(const QString& urlString) {
-    QUrl url(urlString);
-    emit svoImportRequested(url.url());
-    return true; // assume it's accepted
+    emit svoImportRequested(urlString);
+    return true;
 }
 
 bool Application::event(QEvent* event) {
