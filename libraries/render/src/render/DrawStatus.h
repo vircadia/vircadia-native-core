@@ -21,7 +21,7 @@ namespace render {
         Q_PROPERTY(bool showDisplay MEMBER showDisplay WRITE setShowDisplay)
         Q_PROPERTY(bool showNetwork MEMBER showNetwork WRITE setShowNetwork)
     public:
-        DrawStatusConfig() : Job::Config(true) {} // FIXME FOR debug
+        DrawStatusConfig() : Job::Config(false) {} // FIXME FOR debug
 
         void dirtyHelper();
 

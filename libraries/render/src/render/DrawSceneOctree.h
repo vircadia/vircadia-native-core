@@ -14,19 +14,46 @@
 
 #include "DrawTask.h"
 #include "gpu/Batch.h"
+#include <ViewFrustum.h>
 
 namespace render {
+    class DrawSceneOctreeConfig : public Job::Config {
+        Q_OBJECT
+            Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
+            Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+    public:
+        DrawSceneOctreeConfig() : Job::Config(true) {} // FIXME FOR debug
+        
+        bool showVisibleCells{ true }; // FIXME FOR debug
+        bool freezeFrustum{ false };
+
+    public slots:
+        void setShowVisibleCells(bool enabled) { showVisibleCells = enabled; dirty(); }
+        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; dirty(); }
+
+    signals:
+        void dirty();
+    };
+
     class DrawSceneOctree {
 
         int _drawCellLocationLoc;
         gpu::PipelinePointer _drawCellBoundsPipeline;
         gpu::BufferPointer _cells;
 
+
+        bool _showVisibleCells; // initialized by Config
+        bool _freezeFrustum{ false }; // initialized by Config
+        bool _justFrozeFrustum{ false };
+        ViewFrustum _frozenFrutstum;
+
     public:
-        using JobModel = Job::Model<DrawSceneOctree>;
+        using Config = DrawSceneOctreeConfig;
+        using JobModel = Job::Model<DrawSceneOctree, Config>;
 
         DrawSceneOctree() {}
 
+        void configure(const Config& config);
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();

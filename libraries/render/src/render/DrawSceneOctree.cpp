@@ -15,7 +15,6 @@
 #include <assert.h>
 
 #include <PerfStat.h>
-#include <ViewFrustum.h>
 #include <RenderArgs.h>
 
 #include <gpu/Context.h>
@@ -50,6 +49,15 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     return _drawCellBoundsPipeline;
 }
 
+
+void DrawSceneOctree::configure(const Config& config) {
+    _showVisibleCells = config.showVisibleCells;
+
+    _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
+    _freezeFrustum = config.freezeFrustum;
+}
+
+
 void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext) {
     assert(renderContext->args);
@@ -80,9 +88,18 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         return;
     }
 
+    auto queryFrustum = *args->_viewFrustum;
+    if (_freezeFrustum) {
+        if (_justFrozeFrustum) {
+            _justFrozeFrustum = false;
+            _frozenFrutstum = *args->_viewFrustum;
+        }
+        queryFrustum = _frozenFrutstum;
+    }
+
     // Try that:
-    render::ItemIDs items;
-    scene->getSpatialTree().select(items, *args->_viewFrustum);
+    render::ItemIDs itemsCell;
+    scene->getSpatialTree().select(itemsCell, queryFrustum);
 
 
     // Allright, something to render let's do it
@@ -100,14 +117,19 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
 
-        const auto& inCells = scene->getSpatialTree()._cells;
+     /*   const auto& inCells = scene->getSpatialTree()._cells;
 
         for (const auto& cell: inCells ) {
+       */
+        
+        for (const auto& cellID : itemsCell) {
+            auto cell = scene->getSpatialTree().getConcreteCell(cellID);
+
             auto cellLoc = cell.getlocation();
 
             glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
             if (cell.isBrickEmpty() || !cell.hasBrick()) {
-                cellLocation.w *= -1;
+            //    cellLocation.w *= -1;
             }
 
             batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
