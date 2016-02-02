@@ -1,8 +1,18 @@
 "use strict";
 /*jslint nomen: true, plusplus: true, vars: true*/
 var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
+//
+//  Created by Howard Stearns
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  test libraries/virtualBaton.js
+//  All participants should run the test script.
 
-Script.include("../libraries/virtualBaton.19.js");
+
+Script.include("../libraries/virtualBaton.20.js");
 var TICKER_INTERVAL = 1000; // ms
 var baton = virtualBaton({key: 'io.highfidelity.testBaton'});
 var ticker, countDown;
@@ -23,5 +33,3 @@ function lostBaton(key) {
     baton.claim(gotBaton, lostBaton);
 }
 baton.claim(gotBaton, lostBaton);
-
-    

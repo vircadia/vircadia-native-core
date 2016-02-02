@@ -29,7 +29,6 @@ virtualBaton = function virtualBaton(options) {
     var key = options.key,        
         channel = "io.highfidelity.virtualBaton:" + key,
         exports = options.exports || {},
-        timeout = options.timeout || 5, // seconds
         claimCallback,
         releaseCallback,
         // paxos proposer state
@@ -37,6 +36,8 @@ virtualBaton = function virtualBaton(options) {
         nQuorum,
         mostRecentInterested,
         bestPromise = {number: 0},
+        electionTimeout = options.electionTimeout || 1000, // ms. If no winner in this time, hold a new election
+        electionWatchdog,
         // paxos acceptor state
         bestProposal = {number: 0},
         accepted = null;
@@ -79,6 +80,7 @@ virtualBaton = function virtualBaton(options) {
     }
     function propose(claim) {
         debug('baton: propose', claim);
+        if (electionWatchdog) { Script.clearTimeout(electionWatchdog); }
         if (!claimCallback) { return; } // We're not participating.
         nPromises = 0;
         nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;
@@ -86,9 +88,10 @@ virtualBaton = function virtualBaton(options) {
         bestPromise.number++;
         bestPromise.winner = claim;
         send('prepare!', bestPromise);
-        // Fixme: set a watchdog that is cancelled when we send accept!, and which propose(claim) when it goes off.
+        electionWatchdog = Script.setTimeout(function () {
+            propose(claim);
+        }, electionTimeout);
     }
-
     function messageHandler(messageChannel, messageString, senderID) {
         if (messageChannel !== channel) { return; }
         var message = JSON.parse(messageString), data = message.data;
@@ -134,6 +137,10 @@ virtualBaton = function virtualBaton(options) {
         case 'accepted':
             accepted = data;
             if (acceptedId() === MyAvatar.sessionUUID) { // Note that we might not been the proposer.
+                if (electionWatchdog) {
+                    Script.clearTimeout(electionWatchdog);
+                    electionWatchdog = null;
+                }
                 if (claimCallback) {
                     var callback = claimCallback;
                     claimCallback = undefined;
