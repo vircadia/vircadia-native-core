@@ -744,7 +744,7 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     
     extendedHeaderStream << limitedNodeList->getSessionUUID();
     extendedHeaderStream << node->getUUID();
-    extendedHeaderStream << (quint8) node->getCanAdjustLocks();
+    extendedHeaderStream << (quint8) node->isAllowedEditor();
     extendedHeaderStream << (quint8) node->getCanRez();
 
     auto domainListPackets = NLPacketList::create(PacketType::DomainList, extendedHeader);

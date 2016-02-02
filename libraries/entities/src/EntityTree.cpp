@@ -124,10 +124,10 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
     QUuid senderID;
     if (senderNode.isNull()) {
         auto nodeList = DependencyManager::get<NodeList>();
-        allowLockChange = nodeList->getThisNodeCanAdjustLocks();
+        allowLockChange = nodeList->isAllowedEditor();
         senderID = nodeList->getSessionUUID();
     } else {
-        allowLockChange = senderNode->getCanAdjustLocks();
+        allowLockChange = senderNode->isAllowedEditor();
         senderID = senderNode->getUUID();
     }
 
