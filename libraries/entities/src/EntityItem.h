@@ -104,7 +104,7 @@ public:
     quint64 getLastBroadcast() const { return _lastBroadcast; }
     void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
 
-    void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
+    void markAsChangedOnServer() { _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
@@ -351,14 +351,14 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-    bool wantTerseEditLogging();
+    bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
-    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+    quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 

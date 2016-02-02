@@ -987,7 +987,7 @@ EntityTreePointer EntityItem::getTree() const {
     return tree;
 }
 
-bool EntityItem::wantTerseEditLogging() {
+bool EntityItem::wantTerseEditLogging() const {
     EntityTreePointer tree = getTree();
     return tree ? tree->wantTerseEditLogging() : false;
 }
