@@ -11,7 +11,7 @@ var ticker, countDown;
 function gotBaton(key) {
     print("gotBaton", key);
     countDown = 20;
-    ticker = Script.startInterval(function () {
+    ticker = Script.setInterval(function () {
         print("tick");
     }, 1000);
 }
