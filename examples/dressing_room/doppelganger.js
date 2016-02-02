@@ -12,12 +12,12 @@
 //  To-Do:  mirror joints, rotate avatar fully, automatically get avatar fbx, make sure dimensions for avatar are right when u bring it in
 
 var TEST_MODEL_URL = 'https://s3.amazonaws.com/hifi-public/ozan/avatars/albert/albert/albert.fbx';
+
+var MIRROR_JOINT_DATA = true;
 var MIRRORED_ENTITY_SCRIPT_URL = Script.resolvePath('mirroredEntity.js');
 var FREEZE_TOGGLER_SCRIPT_URL = Script.resolvePath('freezeToggler.js?' + Math.random(0, 1000))
-var THROTTLE = true;
+var THROTTLE = false;
 var THROTTLE_RATE = 100;
-var MIRROR_JOINT_DATA = true;
-
 var doppelgangers = [];
 
 function Doppelganger(avatar) {
@@ -28,8 +28,8 @@ function Doppelganger(avatar) {
         // dimensions: getAvatarDimensions(avatar),
         position: putDoppelgangerAcrossFromAvatar(this, avatar),
         rotation: rotateDoppelgangerTowardAvatar(this, avatar),
-        dynamic: false,
-        collisionless: false,
+        collisionsWillMove: false,
+        ignoreForCollisions: false,
         script: FREEZE_TOGGLER_SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {
@@ -43,7 +43,6 @@ function Doppelganger(avatar) {
     this.avatar = avatar;
     return this;
 }
-
 function getJointData(avatar) {
     var allJointData = [];
     var jointNames = MyAvatar.jointNames;
@@ -363,7 +362,12 @@ function getAvatarFootOffset() {
     return offset
 }
 
-{
+
+function getAvatarDimensions(avatar) {
+    return dimensions;
+}
+
+function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
     var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
 
     var ids = Entities.findEntities(MyAvatar.position, 20);
@@ -385,30 +389,23 @@ function getAvatarFootOffset() {
 
 var isConnected = false;
 
-function getAvatarDimensions(avatar) {
-    return dimensions;
-}
-
-function rotateDoppelgangerTowardAvatar(doppelganger, avatar) {
-    var avatarRot = Quat.fromPitchYawRollDegrees(0, avatar.bodyYaw, 0.0);
-    avatarRot = Vec3.multiply(-1, avatarRot);
-    return avatarRot;
-}
-
 function connectDoppelgangerUpdates() {
     Script.update.connect(updateDoppelganger);
     isConnected = true;
 }
 
 function disconnectDoppelgangerUpdates() {
-    Script.update.disconnect(updateDoppelganger);
+    print('SHOULD DISCONNECT')
+    if (isConnected === true) {
+        Script.update.disconnect(updateDoppelganger);
+    }
     isConnected = false;
 }
 
 var sinceLastUpdate = 0;
 
-function updateDoppelganger() {
-    if (THROTTLE === true) {
+function updateDoppelganger(deltaTime) {
+       if (THROTTLE === true) {
         sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
         if (sinceLastUpdate > THROTTLE_RATE) {
             sinceLastUpdate = 0;
@@ -416,6 +413,7 @@ function updateDoppelganger() {
             return;
         }
     }
+
 
     var absoluteXforms = buildAbsoluteXformsFromMyAvatar();
     if (MIRROR_JOINT_DATA) {
@@ -436,16 +434,16 @@ function updateDoppelganger() {
     });
 }
 
+function makeDoppelgangerForMyAvatar() {
+    var doppelganger = createDoppelganger(MyAvatar);
+    doppelgangers.push(doppelganger);
+    connectDoppelgangerUpdates();
+}
+
 function subscribeToWearableMessages() {
     Messages.subscribe('Hifi-Doppelganger-Wearable');
     Messages.messageReceived.connect(handleWearableMessages);
 }
-
-function subscribeToWearableMessagesForAvatar() {
-    Messages.subscribe('Hifi-Doppelganger-Wearable-Avatar');
-    Messages.messageReceived.connect(handleWearableMessages);
-}
-
 
 function subscribeToFreezeMessages() {
     Messages.subscribe('Hifi-Doppelganger-Freeze');
@@ -487,7 +485,6 @@ function handleWearableMessages(channel, message, sender) {
         return;
     }
 
-
     if (sender !== MyAvatar.sessionUUID) {
         return;
     }
@@ -506,33 +503,6 @@ function handleWearableMessages(channel, message, sender) {
     }
     if (channel === 'Hifi-Doppelganger-Wearable') {
         mirrorEntitiesForAvatar(parsedMessge);
-    }
-
-}
-
-function mirrorEntitiesForAvatar(avatar, parsedMessage) {
-    var action = parsedMessage.action;
-    print('IN MIRROR ENTITIES CALL' + action)
-
-    var baseEntity = parsedMessage.baseEntity;
-
-    var wearableProps = Entities.getEntityProperties(baseEntity);
-    print('WEARABLE PROPS::')
-    delete wearableProps.id;
-    delete wearableProps.created;
-    delete wearableProps.age;
-    delete wearableProps.ageAsText;
-
-    var joint = wearableProps.parentJointIndex;
-    if (action === 'add') {
-        print('IN AVATAR ADD')
-    }
-    if (action === 'remove') {
-        print('IN AVATAR REMOVE')
-    }
-
-    if (action === 'update') {
-        print('IN AVATAR UPDATE')
     }
 
 }
@@ -604,7 +574,7 @@ function mirrorEntitiesForDoppelganger(doppelganger, parsedMessage) {
     }
 
     if (action === 'updateBase') {
-        //this gets called when the mirrored entity gets grabbed.  now we move the
+        //this gets called when the mirrored entity gets grabbed.  now we move the 
         var mirrorEntityProperties = Entities.getEntityProperties(message.mirrorEntity)
         var doppelgangerToMirrorEntity = Vec3.subtract(doppelgangerProps.position, mirrorEntityProperties.position);
         var newPosition = Vec3.sum(MyAvatar.position, doppelgangerToMirrorEntity);
@@ -641,13 +611,10 @@ function getBaseEntityForMirrorEntity(mirrorEntity) {
     }
 }
 
-function makeDoppelgangerForMyAvatar() {
-    var doppelganger = createDoppelganger(MyAvatar);
-    doppelgangers.push(doppelganger);
-    connectDoppelgangerUpdates();
-}
-
 makeDoppelgangerForMyAvatar();
+subscribeToWearableMessages();
+subscribeToWearableMessagesForAvatar();
+subscribeToFreezeMessages();
 
 function cleanup() {
     if (isConnected === true) {
@@ -655,8 +622,8 @@ function cleanup() {
     }
 
     doppelgangers.forEach(function(doppelganger) {
+        print('DOPPELGANGER' + doppelganger.id)
         Entities.deleteEntity(doppelganger.id);
     });
 }
-
 Script.scriptEnding.connect(cleanup);
