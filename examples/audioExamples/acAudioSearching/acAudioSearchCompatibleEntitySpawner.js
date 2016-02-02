@@ -44,16 +44,15 @@ var entityProps = {
         y: .1,
         z: .1
     },
-    userData: JSON.stringify(userData)
+    userData: JSON.stringify(userData),
+    script: SCRIPT_URL
 }
+
 var soundEntity1 = Entities.addEntity(entityProps);
 
 userData.soundKey.url = "http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav";
 entityProps.userData = JSON.stringify(userData);
 entityProps.position.x += 0.3
-
-print("EBL SENDING MESSAGE")
-Messages.sendMessage(MESSAGE_CHANNEL, JSON.stringify({}));
 //var soundEntity2 = Entities.addEntity(entityProps);
 
 function cleanup() {

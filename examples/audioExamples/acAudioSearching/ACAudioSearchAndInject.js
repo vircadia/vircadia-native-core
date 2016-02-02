@@ -38,7 +38,14 @@ var DEFAULT_SOUND_DATA = {
 print("EBL STARTING AC SCRIPT");
 
 function messageReceived(channel, message, sender) {
-    
+    EntityViewer.queryOctree();
+    print("EBL RECEIVED A MESSAGE FROM ENTITY: " + message);
+    var entityID = JSON.parse(message).id;
+    var soundData = getEntityCustomData(SOUND_DATA_KEY, entityID);
+    print("SOUND DATA " + JSON.stringify(soundData))
+    if (soundData && soundData.url) {
+        
+    }
 
 }
 
