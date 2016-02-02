@@ -238,7 +238,7 @@ int Octree::select(ItemIDs& selection, const glm::vec4 frustum[6]) const {
 }
 
 int Octree::selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const {
-    int numItemsIn = selection.size();
+    int numSelectedsIn = selection.size();
     auto cell = getConcreteCell(cellID);
 
     auto intersection = Octree::Location::intersectCell(cell.getlocation(), frustum);
@@ -249,7 +249,7 @@ int Octree::selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frust
             break;
         case Octree::Location::Inside: {
             // traverse all the Cell Branch and collect items in the selection
-            selection.push_back(cellID);
+            selectBranch(cellID, selection, frustum);
             break;
         }
         case Octree::Location::Intersect:
@@ -269,9 +269,27 @@ int Octree::selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frust
         }
     }
 
-    return selection.size() - numItemsIn;
+    return selection.size() - numSelectedsIn;
 }
 
+
+int  Octree::selectBranch(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const {
+    int numSelectedsIn = selection.size();
+    auto cell = getConcreteCell(cellID);
+
+    // Collect the items of this cell
+    selection.push_back(cellID);
+
+    // then traverse further
+    for (int i = 0; i < NUM_OCTANTS; i++) {
+        Index subCellID = cell.child((Link)i);
+        if (subCellID != INVALID) {
+            selectBranch(subCellID, selection, frustum);
+        }
+    }
+
+    return selection.size() - numSelectedsIn;
+}
 
 Octree::Location::Intersection Octree::Location::intersectCell(const Location& cell, const Coord4f frustum[6]) {
     const Coord3f CornerOffsets[8] = {

@@ -245,6 +245,7 @@ namespace render {
         // Selection and traverse
         int select(ItemIDs& selection, const Coord4f frustum[6]) const;
         int selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const;
+        int selectBranch(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const;
 
     protected:
         Index allocateCell(Index parent, const Location& location);
