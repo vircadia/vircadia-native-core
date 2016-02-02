@@ -1030,13 +1030,12 @@ void OctreeServer::readConfiguration() {
     qDebug() << "wantPersist=" << _wantPersist;
 
     if (_wantPersist) {
-        QString persistFilename;
-        if (!readOptionString(QString("persistFilename"), settingsSectionObject, persistFilename)) {
-            persistFilename = getMyDefaultPersistFilename();
+        if (!readOptionString("persistFilePath", settingsSectionObject, _persistFilePath)
+            && !readOptionString("persistFilename", settingsSectionObject, _persistFilePath)) {
+            _persistFilePath = getMyDefaultPersistFilename();
         }
 
-        strcpy(_persistFilename, qPrintable(persistFilename));
-        qDebug("persistFilename=%s", _persistFilename);
+        qDebug() << "persistFilePath=" << _persistFilePath;
 
         _persistAsFileType = "json.gz";
 
@@ -1145,8 +1144,16 @@ void OctreeServer::domainSettingsRequestComplete() {
     if (_wantPersist) {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
-        auto persistPath = ServerPathUtils::getDataFilePath("entities/" + QString(_persistFilename));
-        if (!QFile::exists(persistPath)) {
+        QDir persistPath { _persistFilePath };
+        QString absoluteFilePath = persistPath.path();
+
+        if (persistPath.isRelative()) {
+            // if the domain settings passed us a relative path, make an absolute path that is relative to the
+            // default data directory
+            absoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+        }
+
+        if (!QFile::exists(absoluteFilePath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
 
             static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
@@ -1154,7 +1161,7 @@ void OctreeServer::domainSettingsRequestComplete() {
 
             // This is the old persist path, based on the current persist filename, which could
             // be a custom filename set by the user.
-            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
+            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilePath);
 
             // This is the old default persist path.
             auto oldDefaultPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(OLD_DEFAULT_PERSIST_FILENAME);
@@ -1181,14 +1188,14 @@ void OctreeServer::domainSettingsRequestComplete() {
             if (shouldCopy) {
                 qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistPath;
 
-                QFile::copy(pathToCopyFrom, persistPath);
+                QFile::copy(pathToCopyFrom, absoluteFilePath);
             } else {
                 qDebug() << "No existing persist file found";
             }
         }
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, persistPath, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, absoluteFilePath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }

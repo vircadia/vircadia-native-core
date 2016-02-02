@@ -169,7 +169,7 @@ protected:
     int _statusPort;
     QString _statusHost;
 
-    char _persistFilename[MAX_FILENAME_LENGTH];
+    QString _persistFilePath;
     QString _persistAsFileType;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;
