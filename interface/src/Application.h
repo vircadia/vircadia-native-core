@@ -245,8 +245,6 @@ public slots:
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
 
-    void showFriendsWindow();
-
     void packageModel();
 
     void openUrl(const QUrl& url);
