@@ -1145,7 +1145,7 @@ void OctreeServer::domainSettingsRequestComplete() {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
         QDir persistPath { _persistFilePath };
-        QString absoluteFilePath = persistPath.path();
+        QString absoluteFilePath = persistPath.absolutePath();
 
         if (persistPath.isRelative()) {
             // if the domain settings passed us a relative path, make an absolute path that is relative to the
