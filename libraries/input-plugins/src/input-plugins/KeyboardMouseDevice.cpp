@@ -19,6 +19,7 @@
 #include <NumericalConstants.h>
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
+bool KeyboardMouseDevice::_enableMouse = true;
 
 void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) { 
     _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured); 
@@ -58,28 +59,32 @@ void KeyboardMouseDevice::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
-    auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
-    if (!result.second) {
-        // key pressed again ? without catching the release event ?
-    }
-    _lastCursor = event->pos();
-    _mousePressTime = usecTimestampNow();
-    _mouseMoved = false;
+    if (_enableMouse) {
+        auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
+        auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
+        if (!result.second) {
+            // key pressed again ? without catching the release event ?
+        }
+        _lastCursor = event->pos();
+        _mousePressTime = usecTimestampNow();
+        _mouseMoved = false;
 
-    eraseMouseClicked();
+        eraseMouseClicked();
+    }
 }
 
 void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
-    _inputDevice->_buttonPressedMap.erase(input.getChannel());
+    if (_enableMouse) {
+        auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
+        _inputDevice->_buttonPressedMap.erase(input.getChannel());
 
-    // if we pressed and released at the same location within a small time window, then create a "_CLICKED" 
-    // input for this button we might want to add some small tolerance to this so if you do a small drag it 
-    // till counts as a clicked.
-    static const int CLICK_TIME = USECS_PER_MSEC * 500; // 500 ms to click
-    if (!_mouseMoved && (usecTimestampNow() - _mousePressTime < CLICK_TIME)) {
-        _inputDevice->_buttonPressedMap.insert(_inputDevice->makeInput((Qt::MouseButton) event->button(), true).getChannel());
+        // if we pressed and released at the same location within a small time window, then create a "_CLICKED" 
+        // input for this button we might want to add some small tolerance to this so if you do a small drag it 
+        // still counts as a click.
+        static const int CLICK_TIME = USECS_PER_MSEC * 500; // 500 ms to click
+        if (!_mouseMoved && (usecTimestampNow() - _mousePressTime < CLICK_TIME)) {
+            _inputDevice->_buttonPressedMap.insert(_inputDevice->makeInput((Qt::MouseButton) event->button(), true).getChannel());
+        }
     }
 }
 
@@ -90,22 +95,24 @@ void KeyboardMouseDevice::eraseMouseClicked() {
 }
 
 void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-    QPoint currentPos = event->pos();
-    QPoint currentMove = currentPos - _lastCursor;
+    if (_enableMouse) {
+        QPoint currentPos = event->pos();
+        QPoint currentMove = currentPos - _lastCursor;
 
-    _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
-    _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
-     // Y mouse is inverted positive is pointing up the screen
-    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
-    _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_POS] = (currentMove.x() > 0 ? currentMove.x() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_X_NEG] = (currentMove.x() < 0 ? -currentMove.x() : 0.0f);
+        // Y mouse is inverted positive is pointing up the screen
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_POS] = (currentMove.y() < 0 ? -currentMove.y() : 0.0f);
+        _inputDevice->_axisStateMap[MOUSE_AXIS_Y_NEG] = (currentMove.y() > 0 ? currentMove.y() : 0.0f);
 
-    // FIXME - this has the characteristic that it will show large jumps when you move the cursor
-    // outside of the application window, because we don't get MouseEvents when the cursor is outside
-    // of the application window.
-    _lastCursor = currentPos;
-    _mouseMoved = true;
+        // FIXME - this has the characteristic that it will show large jumps when you move the cursor
+        // outside of the application window, because we don't get MouseEvents when the cursor is outside
+        // of the application window.
+        _lastCursor = currentPos;
+        _mouseMoved = true;
 
-    eraseMouseClicked();
+        eraseMouseClicked();
+    }
 }
 
 void KeyboardMouseDevice::wheelEvent(QWheelEvent* event) {

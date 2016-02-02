@@ -29,6 +29,7 @@
 #include <EntityEditPacketSender.h>
 #include <EntityTreeRenderer.h>
 #include <input-plugins/KeyboardMouseDevice.h>
+#include <input-plugins/TouchscreenDevice.h>
 #include <OctreeQuery.h>
 #include <PhysicalEntitySimulation.h>
 #include <PhysicsEngine.h>
@@ -376,6 +377,7 @@ private:
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
+    void touchGestureEvent(QGestureEvent* event);
 
     void wheelEvent(QWheelEvent* event);
     void dropEvent(QDropEvent* event);
@@ -421,6 +423,7 @@ private:
 
     std::shared_ptr<controller::StateController> _applicationStateDevice; // Default ApplicationDevice reflecting the state of different properties of the session
     std::shared_ptr<KeyboardMouseDevice> _keyboardMouseDevice;   // Default input device, the good old keyboard mouse and maybe touchpad
+    std::shared_ptr<TouchscreenDevice> _touchscreenDevice;   // the good old touchscreen
     AvatarUpdate* _avatarUpdate {nullptr};
     SimpleMovingAverage _avatarSimsPerSecond {10};
     int _avatarSimsPerSecondReport {0};

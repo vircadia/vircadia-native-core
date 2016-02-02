@@ -862,8 +862,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     userInputMapper->registerDevice(_applicationStateDevice);
 
-    // Setup the keyboardMouseDevice and the user input mapper with the default bindings
+    // Setup the _keyboardMouseDevice, _touchscreenDevice and the user input mapper with the default bindings
     userInputMapper->registerDevice(_keyboardMouseDevice->getInputDevice());
+    userInputMapper->registerDevice(_touchscreenDevice->getInputDevice());
     userInputMapper->loadDefaultMapping(userInputMapper->getStandardDeviceID());
 
     // force the model the look at the correct directory (weird order of operations issue)
@@ -1307,6 +1308,9 @@ void Application::initializeUi() {
         QString name = inputPlugin->getName();
         if (name == KeyboardMouseDevice::NAME) {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }
+        if (name == TouchscreenDevice::NAME) {
+            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
         }
     }
     updateInputModes();
@@ -1789,6 +1793,9 @@ bool Application::event(QEvent* event) {
             return true;
         case QEvent::TouchUpdate:
             touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::Gesture:
+            touchGestureEvent((QGestureEvent*)event);
             return true;
         case QEvent::Wheel:
             wheelEvent(static_cast<QWheelEvent*>(event));
@@ -2336,6 +2343,9 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
     if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
         _keyboardMouseDevice->touchUpdateEvent(event);
     }
+    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+        _touchscreenDevice->touchUpdateEvent(event);
+    }
 }
 
 void Application::touchBeginEvent(QTouchEvent* event) {
@@ -2354,6 +2364,9 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
         _keyboardMouseDevice->touchBeginEvent(event);
     }
+    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+        _touchscreenDevice->touchBeginEvent(event);
+    }
 
 }
 
@@ -2371,8 +2384,17 @@ void Application::touchEndEvent(QTouchEvent* event) {
     if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
         _keyboardMouseDevice->touchEndEvent(event);
     }
+    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+        _touchscreenDevice->touchEndEvent(event);
+    }
 
     // put any application specific touch behavior below here..
+}
+
+void Application::touchGestureEvent(QGestureEvent* event) {
+    if (Menu::getInstance()->isOptionChecked(TouchscreenDevice::NAME)) {
+        _touchscreenDevice->touchGestureEvent(event);
+    }
 }
 
 void Application::wheelEvent(QWheelEvent* event) {
