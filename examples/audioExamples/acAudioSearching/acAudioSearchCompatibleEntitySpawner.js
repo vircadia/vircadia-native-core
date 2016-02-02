@@ -5,7 +5,7 @@
 //  Created by Eric Levin 2/2/2016
 //  Copyright 2016 High Fidelity, Inc.
 
-//  This is a client script which spawns entities with a field in userdata compatible with the AcAudioSearchAndInject script
+//  This is a client script which spawns entities with a field in userData compatible with the AcAudioSearchAndInject script
 //  These entities specify data about the sound they want to play, such as url, volume, and whether to loop or not
 //  The position of the entity determines the position from which the sound plays from
 //
@@ -17,20 +17,41 @@ Script.include("../../libraries/utils.js");
 
 var SOUND_DATA_KEY = "soundKey";
 
-var soundEntity = Entities.addEntity({
+var userData = {
+    soundKey: {
+        url: "http://hifi-public.s3.amazonaws.com/ryan/Water_Lap_River_Edge_Gentle.L.wav"
+    }
+}
+
+var entityProps = {
     type: "Box",
-    position: {x: 0, y: 0, z: 0},
-    color: {red: 200, green: 10, blue: 200},
-    dimensions: {x: .1, y: .1, z: .1},
-    userData: JSON.stringify({
-        soundKey: {
-            url: "http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav"
-        }
-    })
-});
+    position: {
+        x: 0,
+        y: 0,
+        z: 0
+    },
+    color: {
+        red: 200,
+        green: 10,
+        blue: 200
+    },
+    dimensions: {
+        x: .1,
+        y: .1,
+        z: .1
+    },
+    userData: JSON.stringify(userData)
+}
+var soundEntity1 = Entities.addEntity(entityProps);
+
+userData.soundKey.url = "http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav";
+entityProps.userData = JSON.stringify(userData);
+entityProps.position.x += 0.3
+var soundEntity2 = Entities.addEntity(entityProps);
 
 function cleanup() {
-    Entities.deleteEntity(soundEntity);
+    Entities.deleteEntity(soundEntity1);
+    Entities.deleteEntity(soundEntity2);
 }
 
 Script.scriptEnding.connect(cleanup);

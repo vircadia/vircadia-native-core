@@ -25,7 +25,9 @@ EntityViewer.setKeyholeRadius(60000);
 EntityViewer.queryOctree();
 Entities.setPacketsPerSecond(6000);
 
-Script.setInterval(function() {
+Script.setInterval(searchForSoundEntities, 1000);
+
+function searchForSoundEntities() {
     var entities = Entities.findEntities({
         x: 0,
         y: 0,
@@ -33,13 +35,12 @@ Script.setInterval(function() {
     }, 16000)
     print("EBL ENTITIES FOUND " + entities.length);
     entities.forEach(function(entity) {
-        var soundData = getEntityCustomData(SOUND_KEY, entity);
+        var soundData = getEntityCustomData(SOUND_DATA_KEY, entity);
         if (soundData && soundData.url) {
             playSound(soundData);
         }
     });
-
-}, 1000);
+}
 
 function playSound(soundData) {
     var sound = SoundCache.getSound(soundData.url);
@@ -52,7 +53,7 @@ function playSound(soundData) {
                 z: 0
             },
             volume: 1.0,
-            loop: true
+            loop: false
         });
     })
 
