@@ -377,6 +377,7 @@
                                                             "interpTarget": 30,
                                                             "interpDuration": 30,
                                                             "transitions": [
+                                                                { "var": "isNotAway", "state": "awayOutro" },
                                                                 { "var": "awayIntroOnDone", "state": "away"}
                                                             ]
                                                         },
