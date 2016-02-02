@@ -18,7 +18,7 @@ var DEFAULT_WEARABLE_DATA = {
 };
 
 
-var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.4;
+var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.8;
 var ATTACHED_ENTITY_SEARCH_DISTANCE = 10.0;
 var ATTACHED_ENTITIES_SETTINGS_KEY = "ATTACHED_ENTITIES";
 var DRESSING_ROOM_DISTANCE = 2.0;
@@ -154,7 +154,7 @@ function AttachedEntitiesManager() {
                     continue;
                 }
                 var jointIndex = MyAvatar.getJointIndex(jointName);
-                if (jointIndex > 0) {
+                if (jointIndex >= 0) {
                     var jointPosition = MyAvatar.getJointPosition(jointIndex);
                     var distanceFromJoint = Vec3.distance(jointPosition, props.position);
                     if (distanceFromJoint <= MINIMUM_DROP_DISTANCE_FROM_JOINT) {
@@ -175,7 +175,9 @@ function AttachedEntitiesManager() {
                 };
 
                 if (bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
-                    if (!this.avatarIsInDressingRoom()) {
+                    if (this.avatarIsInDressingRoom()) {
+                        this.updateRelativeOffsets(grabbedEntity);
+                    } else {
                         // don't snap the entity to the preferred position if the avatar is in the dressing room.
                         wearProps.localPosition = bestJointOffset[0];
                         wearProps.localRotation = bestJointOffset[1];
