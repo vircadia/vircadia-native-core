@@ -72,19 +72,29 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
     auto program = gpu::Shader::createProgram(vs, ps);
 
-    auto opaqueState = std::make_shared<gpu::State>();
-    opaqueState->setDepthTest(false);
-    opaqueState->setBlendFunction(false);
+    for (int i = 0; i < 8; i++) {
+        bool isCulled = (i & 1);
+        bool isBiased = (i & 2);
+        bool isOpaque = (i & 4);
 
-    auto transparentState = std::make_shared<gpu::State>();
-    transparentState->setDepthTest(false);
-    transparentState->setBlendFunction(true,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        auto state = std::make_shared<gpu::State>();
+        state->setDepthTest(false);
+        state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
+        if (isBiased) {
+            state->setDepthBias(1.0f);
+            state->setDepthBiasSlopeScale(1.0f);
+        }
+        state->setBlendFunction(!isOpaque,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
+        ShapeKey::Filter::Builder builder;
+        isCulled ? builder.withCull() : builder.withoutCull();
+        isBiased ? builder.withDepthBias() : builder.withoutDepthBias();
+        isOpaque ? builder.withOpaque() : builder.withTranslucent();
 
-    plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState, &batchSetter);
-    plumber.addPipeline(ShapeKey::Filter::Builder().withTranslucent(), program, transparentState, &batchSetter);
+        plumber.addPipeline(builder.build(), program, state, &batchSetter);
+    }
 }
 
 void initDeferredPipelines(render::ShapePlumber& plumber) {
@@ -92,31 +102,42 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     using ShaderPointer = gpu::ShaderPointer;
 
     auto addPipeline = [&plumber](const Key& key, const ShaderPointer& vertexShader, const ShaderPointer& pixelShader) {
-        auto state = std::make_shared<gpu::State>();
-
-        // Cull backface
-        state->setCullMode(gpu::State::CULL_BACK);
-
-        // Z test depends on transparency
-        state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
-
-        // Blend if transparent
-        state->setBlendFunction(key.isTranslucent(),
-            // For transparency, keep the highlight intensity
-            gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        // These keyvalues' pipelines will be added by this lamdba in addition to the key passed
+        assert(!key.isWireFrame());
+        assert(!key.isDepthBiased());
+        assert(key.isCulled());
 
         ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-        plumber.addPipeline(key, program, state, &batchSetter);
 
-        // Add a wireframe version
-        if (!key.isWireFrame()) {
-            auto wireFrameKey = Key::Builder(key).withWireframe();
-            auto wireFrameState = std::make_shared<gpu::State>(state->getValues());
+        for (int i = 0; i < 8; i++) {
+            bool isCulled = (i & 1);
+            bool isBiased = (i & 2);
+            bool isWireframed = (i & 4);
 
-            wireFrameState->setFillMode(gpu::State::FILL_LINE);
+            ShapeKey::Builder builder(key);
+            auto state = std::make_shared<gpu::State>();
 
-            plumber.addPipeline(wireFrameKey, program, wireFrameState, &batchSetter);
+            // Depth test depends on transparency
+            state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
+            state->setBlendFunction(key.isTranslucent(),
+                gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+            if (!isCulled) {
+                builder.withNoCull();
+            }
+            state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
+            if (isWireframed) {
+                builder.withWireframe();
+                state->setFillMode(gpu::State::FILL_LINE);
+            }
+            if (isBiased) {
+                builder.withDepthBias();
+                state->setDepthBias(1.0f);
+                state->setDepthBiasSlopeScale(1.0f);
+            }
+
+            plumber.addPipeline(builder.build(), program, state, &batchSetter);
         }
     };
 
@@ -142,101 +163,79 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
     auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
 
-    // Fill the pipelineLib
+    // Opaques
     addPipeline(
         Key::Builder(),
         modelVertex, modelPixel);
-
     addPipeline(
         Key::Builder().withTangents(),
         modelNormalMapVertex, modelNormalMapPixel);
-
     addPipeline(
         Key::Builder().withSpecular(),
         modelVertex, modelSpecularMapPixel);
-
     addPipeline(
         Key::Builder().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
-
-
+    // Translucents
     addPipeline(
         Key::Builder().withTranslucent(),
         modelVertex, modelTranslucentPixel);
-    // FIXME Ignore lightmap for translucents meshpart
     addPipeline(
+        Key::Builder().withTranslucent().withTangents(),
+        modelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withTranslucent().withSpecular(),
+        modelVertex, modelTranslucentPixel);
+    addPipeline(
+        Key::Builder().withTranslucent().withTangents().withSpecular(),
+        modelNormalMapVertex, modelTranslucentPixel);
+    addPipeline(
+        // FIXME: Ignore lightmap for translucents meshpart
         Key::Builder().withTranslucent().withLightmap(),
         modelVertex, modelTranslucentPixel);
-
-    addPipeline(
-        Key::Builder().withTangents().withTranslucent(),
-        modelNormalMapVertex, modelTranslucentPixel);
-
-    addPipeline(
-        Key::Builder().withSpecular().withTranslucent(),
-        modelVertex, modelTranslucentPixel);
-
-    addPipeline(
-        Key::Builder().withTangents().withSpecular().withTranslucent(),
-        modelNormalMapVertex, modelTranslucentPixel);
-
-
+    // Lightmapped
     addPipeline(
         Key::Builder().withLightmap(),
         modelLightmapVertex, modelLightmapPixel);
-
     addPipeline(
         Key::Builder().withLightmap().withTangents(),
         modelLightmapNormalMapVertex, modelLightmapNormalMapPixel);
-
     addPipeline(
         Key::Builder().withLightmap().withSpecular(),
         modelLightmapVertex, modelLightmapSpecularMapPixel);
-
     addPipeline(
         Key::Builder().withLightmap().withTangents().withSpecular(),
         modelLightmapNormalMapVertex, modelLightmapNormalSpecularMapPixel);
-
-
+    // Skinned
     addPipeline(
         Key::Builder().withSkinned(),
         skinModelVertex, modelPixel);
-
     addPipeline(
         Key::Builder().withSkinned().withTangents(),
         skinModelNormalMapVertex, modelNormalMapPixel);
-
     addPipeline(
         Key::Builder().withSkinned().withSpecular(),
         skinModelVertex, modelSpecularMapPixel);
-
     addPipeline(
         Key::Builder().withSkinned().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelNormalSpecularMapPixel);
-
-
+    // Skinned and Translucent
     addPipeline(
         Key::Builder().withSkinned().withTranslucent(),
         skinModelVertex, modelTranslucentPixel);
-
     addPipeline(
-        Key::Builder().withSkinned().withTangents().withTranslucent(),
+        Key::Builder().withSkinned().withTranslucent().withTangents(),
         skinModelNormalMapVertex, modelTranslucentPixel);
-
     addPipeline(
-        Key::Builder().withSkinned().withSpecular().withTranslucent(),
+        Key::Builder().withSkinned().withTranslucent().withSpecular(),
         skinModelVertex, modelTranslucentPixel);
-
     addPipeline(
-        Key::Builder().withSkinned().withTangents().withSpecular().withTranslucent(),
+        Key::Builder().withSkinned().withTranslucent().withTangents().withSpecular(),
         skinModelNormalMapVertex, modelTranslucentPixel);
-
-
+    // Depth-only
     addPipeline(
         Key::Builder().withDepthOnly(),
         modelShadowVertex, modelShadowPixel);
-
-
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
