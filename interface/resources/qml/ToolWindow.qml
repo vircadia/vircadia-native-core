@@ -16,6 +16,7 @@ Windows.Window {
     closable: true
     visible: false
     width: 384; height: 640;
+    title: "Tools"
     property string newTabSource
     property alias tabView: tabView
     onParentChanged: {
