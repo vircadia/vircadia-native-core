@@ -22,7 +22,7 @@
 #include "Application.h"
 #include "text/FontFamilies.h"
 
-QmlOverlay::QmlOverlay(const QUrl& url) { 
+QmlOverlay::QmlOverlay(const QUrl& url) {
     buildQmlElement(url);
 }
 
@@ -35,7 +35,13 @@ void QmlOverlay::buildQmlElement(const QUrl& url) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->returnFromUiThread([=] {
         offscreenUi->load(url, [=](QQmlContext* context, QObject* object) {
-            _qmlElement = dynamic_cast<QQuickItem*>(object);
+            QQuickItem* rawPtr = dynamic_cast<QQuickItem*>(object);
+            // Create a shared ptr with a custom deleter lambda, that calls deleteLater
+            _qmlElement = std::shared_ptr<QQuickItem>(rawPtr, [](QQuickItem* ptr) {
+                if (ptr) {
+                    ptr->deleteLater();
+                }
+            });
         });
         while (!_qmlElement) {
             qApp->processEvents();
@@ -54,13 +60,18 @@ QmlOverlay::~QmlOverlay() {
 void QmlOverlay::setProperties(const QScriptValue& properties) {
     Overlay2D::setProperties(properties);
     auto bounds = _bounds;
+    std::weak_ptr<QQuickItem> weakQmlElement;
     DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        _qmlElement->setX(bounds.left());
-        _qmlElement->setY(bounds.top());
-        _qmlElement->setWidth(bounds.width());
-        _qmlElement->setHeight(bounds.height());
+        // check to see if qmlElement still exists
+        auto qmlElement = weakQmlElement.lock();
+        if (qmlElement) {
+            _qmlElement->setX(bounds.left());
+            _qmlElement->setY(bounds.top());
+            _qmlElement->setWidth(bounds.width());
+            _qmlElement->setHeight(bounds.height());
+        }
     });
-    QMetaObject::invokeMethod(_qmlElement, "updatePropertiesFromScript", Q_ARG(QVariant, properties.toVariant()));
+    QMetaObject::invokeMethod(_qmlElement.get(), "updatePropertiesFromScript", Q_ARG(QVariant, properties.toVariant()));
 }
 
 void QmlOverlay::render(RenderArgs* args) {
