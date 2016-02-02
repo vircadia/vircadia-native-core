@@ -33,7 +33,6 @@ QmlOverlay::QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay)
 
 void QmlOverlay::buildQmlElement(const QUrl& url) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto threadId = QThread::currentThreadId();
     offscreenUi->returnFromUiThread([=] {
         offscreenUi->load(url, [=](QQmlContext* context, QObject* object) {
             QQuickItem* rawPtr = dynamic_cast<QQuickItem*>(object);
