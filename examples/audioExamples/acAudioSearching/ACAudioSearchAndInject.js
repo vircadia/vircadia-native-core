@@ -13,48 +13,34 @@
 //
 
 Script.include("https://rawgit.com/highfidelity/hifi/master/examples/libraries/utils.js");
-var SOUND_DATA_KEY = "soundKey";
 
+var ENTITY_QUERY_INTERVAL = 2000;
+var SOUND_DATA_KEY = "soundKey";
+var MESSAGE_CHANNEL = "Hifi-Sound-Entity";
+
+// Map of all sound entities in domain- key is entity id, value is data
+var soundEntities = {};
 
 EntityViewer.setPosition({
     x: 0,
     y: 0,
     z: 0
 });
+
 EntityViewer.setKeyholeRadius(60000);
-EntityViewer.queryOctree();
 Entities.setPacketsPerSecond(6000);
 
-Script.setInterval(searchForSoundEntities, 1000);
+var DEFAULT_SOUND_DATA = {
+    volume: 0.5,
+    loop: false
+};
 
-function searchForSoundEntities() {
-    var entities = Entities.findEntities({
-        x: 0,
-        y: 0,
-        z: 0
-    }, 16000)
-    print("EBL ENTITIES FOUND " + entities.length);
-    entities.forEach(function(entity) {
-        var soundData = getEntityCustomData(SOUND_DATA_KEY, entity);
-        if (soundData && soundData.url) {
-            playSound(soundData);
-        }
-    });
-}
+print("EBL STARTING AC SCRIPT");
 
-function playSound(soundData) {
-    var sound = SoundCache.getSound(soundData.url);
-    sound.ready.connect(function() {
-        print("EBL PLAY SOUND")
-        Audio.playSound(sound, {
-            position: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            volume: 1.0,
-            loop: false
-        });
-    })
+function messageReceived(channel, message, sender) {
+    
 
 }
+
+Messages.subscribe(MESSAGE_CHANNEL);
+Messages.messageReceived.connect(messageReceived);
