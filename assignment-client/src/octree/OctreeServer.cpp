@@ -1153,6 +1153,11 @@ void OctreeServer::domainSettingsRequestComplete() {
             absoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
         }
 
+        // force the persist file to end with .json.gz
+        if (!absoluteFilePath.endsWith(".json.gz", Qt::CaseInsensitive)) {
+            absoluteFilePath += ".json.gz";
+        }
+
         if (!QFile::exists(absoluteFilePath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
 
@@ -1179,7 +1184,8 @@ void OctreeServer::domainSettingsRequestComplete() {
                 pathToCopyFrom = oldDefaultPersistPath;
             }
 
-            QDir persistFileDirectory { QDir { absoluteFilePath }.dirName() };
+            QDir persistFileDirectory { QDir::cleanPath(absoluteFilePath + "/..") };
+
             if (!persistFileDirectory.exists()) {
                 qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
                 persistFileDirectory.mkpath(".");
