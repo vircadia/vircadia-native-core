@@ -235,6 +235,22 @@ void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     }
 }
 
+bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
+    int index = _rig->indexOfJoint("LeftHandMiddle1");
+    if (index >= 0) {
+        return getJointPositionInWorldFrame(index, position);
+    }
+    return false;
+}
+
+bool SkeletonModel::getRightGrabPosition(glm::vec3& position) const {
+    int index = _rig->indexOfJoint("RightHandMiddle1");
+    if (index >= 0) {
+        return getJointPositionInWorldFrame(index, position);
+    }
+    return false;
+}
+
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLeftHandJointIndex(), position);
 }
