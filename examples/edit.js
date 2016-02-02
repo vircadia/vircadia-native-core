@@ -39,10 +39,10 @@ var lightOverlayManager = new LightOverlayManager();
 var cameraManager = new CameraManager();
 
 var grid = Grid();
-gridTool = GridTool({
-    horizontalGrid: grid
-});
-gridTool.setVisible(false);
+// gridTool = GridTool({
+//     horizontalGrid: grid
+// });
+// gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
