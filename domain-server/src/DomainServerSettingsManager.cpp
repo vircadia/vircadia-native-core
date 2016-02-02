@@ -125,11 +125,13 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
         } else if (oldVersion < 1.1) {
-            static const QString ENTITY_FILE_NAME_KEYPATH = "entity_server_settings.persistFilename";
-            static const QString ENTITY_FILE_PATH_KEYPATH = "entity_server_settings.persistFilePath";
+            static const QString ENTITY_SERVER_SETTINGS_KEY = "entity_server_settings";
+            static const QString ENTITY_FILE_NAME_KEY = "persistFilename";
+            static const QString ENTITY_FILE_PATH_KEYPATH = ENTITY_SERVER_SETTINGS_KEY + ".persistFilePath";
 
             // this was prior to change of poorly named entitiesFileName to entitiesFilePath
-            QVariant* persistFileNameVariant = valueForKeyPath(_configMap.getMergedConfig(), ENTITY_FILE_NAME_KEYPATH);
+            QVariant* persistFileNameVariant = valueForKeyPath(_configMap.getMergedConfig(),
+                                                               ENTITY_SERVER_SETTINGS_KEY + "." + ENTITY_FILE_NAME_KEY);
             if (persistFileNameVariant && persistFileNameVariant->canConvert(QMetaType::QString)) {
                 QString persistFileName = persistFileNameVariant->toString();
 
@@ -140,6 +142,15 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
 
                 // write the migrated value
                 *persistFilePath = persistFileName;
+
+                // remove the old setting
+                QVariant* entityServerVariant = valueForKeyPath(_configMap.getUserConfig(), ENTITY_SERVER_SETTINGS_KEY);
+                if (entityServerVariant && entityServerVariant->canConvert(QMetaType::QVariantMap)) {
+                    QVariantMap entityServerMap = entityServerVariant->toMap();
+                    entityServerMap.remove(ENTITY_FILE_NAME_KEY);
+
+                    *entityServerVariant = entityServerMap;
+                }
 
                 // write the new settings to the json file
                 persistToFile();
