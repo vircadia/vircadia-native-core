@@ -1132,8 +1132,12 @@ glm::quat Avatar::getRightPalmRotation() const {
 glm::vec3 Avatar::getUncachedLeftPalmPosition() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat leftPalmRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
     glm::vec3 leftPalmPosition;
+    if (_skeletonModel.getLeftGrabPosition(leftPalmPosition)) {
+        return leftPalmPosition;
+    }
+    // avatar didn't have a LeftHandMiddle1 joint, fall back on this:
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getLeftHandJointIndex(), leftPalmRotation);
     getSkeletonModel().getLeftHandPosition(leftPalmPosition);
     leftPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(leftPalmRotation);
     return leftPalmPosition;
@@ -1149,8 +1153,12 @@ glm::quat Avatar::getUncachedLeftPalmRotation() const {
 glm::vec3 Avatar::getUncachedRightPalmPosition() const {
     assert(QThread::currentThread() == thread());  // main thread access only
     glm::quat rightPalmRotation;
-    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightPalmRotation);
     glm::vec3 rightPalmPosition;
+    if (_skeletonModel.getRightGrabPosition(rightPalmPosition)) {
+        return rightPalmPosition;
+    }
+    // avatar didn't have a RightHandMiddle1 joint, fall back on this:
+    getSkeletonModel().getJointRotationInWorldFrame(getSkeletonModel().getRightHandJointIndex(), rightPalmRotation);
     getSkeletonModel().getRightHandPosition(rightPalmPosition);
     rightPalmPosition += HAND_TO_PALM_OFFSET * glm::inverse(rightPalmRotation);
     return rightPalmPosition;
