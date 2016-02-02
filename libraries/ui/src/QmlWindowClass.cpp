@@ -220,18 +220,7 @@ QmlWindowClass::QmlWindowClass(QObject* qmlWindow)
 }
 
 QmlWindowClass::~QmlWindowClass() {
-    if (_qmlWindow) {
-        if (_toolWindow) {
-            auto offscreenUi = DependencyManager::get<OffscreenUi>();
-            auto toolWindow = offscreenUi->getToolWindow();
-            auto invokeResult = QMetaObject::invokeMethod(toolWindow, "removeTabForUrl", Qt::QueuedConnection, 
-                Q_ARG(QVariant, _source));
-            Q_ASSERT(invokeResult);
-        } else {
-            _qmlWindow->deleteLater();
-        }
-        _qmlWindow = nullptr;
-    }
+    close();
 }
 
 void QmlWindowClass::registerObject(const QString& name, QObject* object) {
@@ -331,14 +320,18 @@ void QmlWindowClass::setTitle(const QString& title) {
 }
 
 void QmlWindowClass::close() {
-    DependencyManager::get<OffscreenUi>()->executeOnUiThread([this] {
-        if (_qmlWindow) {
-            _qmlWindow->setProperty("destroyOnInvisible", true);
-            _qmlWindow->setProperty("visible", false);
+    if (_qmlWindow) {
+        if (_toolWindow) {
+            auto offscreenUi = DependencyManager::get<OffscreenUi>();
+            auto toolWindow = offscreenUi->getToolWindow();
+            auto invokeResult = QMetaObject::invokeMethod(toolWindow, "removeTabForUrl", Qt::QueuedConnection,
+                Q_ARG(QVariant, _source));
+            Q_ASSERT(invokeResult);
+        } else {
             _qmlWindow->deleteLater();
-            _qmlWindow = nullptr;
         }
-    });
+        _qmlWindow = nullptr;
+    }
 }
 
 void QmlWindowClass::hasClosed() {

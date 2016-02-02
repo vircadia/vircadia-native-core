@@ -1362,6 +1362,9 @@ void Application::paintGL() {
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
 
+        auto inputs = AvatarInputs::getInstance();
+        _mirrorViewRect.moveTo(inputs->x(), inputs->y());
+
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
 
         renderArgs._blitFramebuffer.reset();
