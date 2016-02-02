@@ -336,7 +336,7 @@ var toolBar = (function() {
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
-                    gridTool.setVisible(false);
+                    // gridTool.setVisible(false);
                     grid.setEnabled(false);
                     propertiesTool.setVisible(false);
                     selectionManager.clearSelections();
@@ -344,7 +344,7 @@ var toolBar = (function() {
                 } else {
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
-                    gridTool.setVisible(true);
+                    // gridTool.setVisible(true);
                     grid.setEnabled(true);
                     propertiesTool.setVisible(true);
                     Window.setFocus();
