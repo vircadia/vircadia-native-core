@@ -1154,8 +1154,11 @@ void OctreeServer::domainSettingsRequestComplete() {
         }
 
         // force the persist file to end with .json.gz
-        if (!absoluteFilePath.endsWith(".json.gz", Qt::CaseInsensitive)) {
-            absoluteFilePath += ".json.gz";
+        if (!absoluteFilePath.endsWith(_persistAsFileType, Qt::CaseInsensitive)) {
+            absoluteFilePath += _persistAsFileType;
+        } else {
+            // make sure the casing of .json.gz is correct
+            absoluteFilePath.replace(_persistAsFileType, _persistAsFileType, Qt::CaseInsensitive);
         }
 
         if (!QFile::exists(absoluteFilePath)) {
