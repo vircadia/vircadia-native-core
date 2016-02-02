@@ -10,7 +10,7 @@ TableView {
             Text {
                 x: 3
                 anchors.verticalCenter: parent.verticalCenter
-                color: root.activeFocus && styleData.row === root.currentRow ? "yellow" : styleData.textColor
+                color: styleData.textColor
                 elide: styleData.elideMode
                 text: getText();
                 font.italic: root.model.get(styleData.row, "fileIsDir") ? true : false
