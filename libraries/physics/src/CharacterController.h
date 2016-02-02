@@ -109,7 +109,9 @@ protected:
     glm::vec3 _boxScale; // used to compute capsule shape
 
     quint64 _takeoffToInAirStart;
-    quint64 _jumpToHoverStart;
+    quint64 _jumpButtonDownStart;
+    quint32 _jumpButtonDownCount;
+    quint32 _takeOffJumpButtonID;
 
     btScalar _halfHeight;
     btScalar _radius;
@@ -131,7 +133,7 @@ protected:
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
-
+    uint32_t _previousFlags { 0 };
 };
 
 #endif // hifi_CharacterControllerInterface_h
