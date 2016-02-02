@@ -124,6 +124,30 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 // reload the master and user config so that the merged config is right
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
+        } else if (oldVersion < 1.1) {
+            static const QString ENTITY_FILE_NAME_KEYPATH = "entity_server_settings.persistFilename";
+            static const QString ENTITY_FILE_PATH_KEYPATH = "entity_server_settings.persistFilePath";
+
+            // this was prior to change of poorly named entitiesFileName to entitiesFilePath
+            QVariant* persistFileNameVariant = valueForKeyPath(_configMap.getMergedConfig(), ENTITY_FILE_NAME_KEYPATH);
+            if (persistFileNameVariant && persistFileNameVariant->canConvert(QMetaType::QString)) {
+                QString persistFileName = persistFileNameVariant->toString();
+
+                qDebug() << "Migrating persistFilename to persistFilePath for entity-server settings";
+
+                // grab the persistFilePath option, create it if it doesn't exist
+                QVariant* persistFilePath = valueForKeyPath(_configMap.getUserConfig(), ENTITY_FILE_PATH_KEYPATH, true);
+
+                // write the migrated value
+                *persistFilePath = persistFileName;
+
+                // write the new settings to the json file
+                persistToFile();
+
+                // reload the master and user config so that the merged config is right
+                _configMap.loadMasterAndUserConfig(argumentList);
+            }
+
         }
     }
 
