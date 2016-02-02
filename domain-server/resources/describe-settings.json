@@ -385,7 +385,7 @@
         {
           "name": "persistFilePath",
           "label": "Entities File Path",
-          "help": "The path to the file entities are stored in. If path is relative it will be relative to the application data directory.",
+          "help": "The path to the file entities are stored in. If this path is relative it will be relative to the application data directory. The entities file extension should be .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
           "advanced": true
