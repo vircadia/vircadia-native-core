@@ -445,7 +445,6 @@ void CharacterController::preSimulation() {
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 200 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 750 * MSECS_PER_SECOND;
-        const btScalar UPWARD_VELOCITY_THRESHOLD = 0.1f;
         const btScalar MAX_WALKING_SPEED = 2.5f;
 
         quint64 now = usecTimestampNow();

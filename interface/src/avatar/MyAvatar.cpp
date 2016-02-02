@@ -1314,7 +1314,6 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.5f;
 
 bool MyAvatar::cameraInsideHead() const {
-    const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
     return glm::length(cameraPosition - getDefaultEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
