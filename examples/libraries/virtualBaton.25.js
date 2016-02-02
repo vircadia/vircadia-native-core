@@ -40,7 +40,7 @@ virtualBaton = function virtualBaton(options) {
         electionWatchdog,
         // paxos acceptor state
         bestProposal = {number: 0},
-        accepted = null;
+        accepted = {};
     if (!key) {
         throw new Error("A VirtualBaton must specify a key.");
     }
@@ -54,7 +54,8 @@ virtualBaton = function virtualBaton(options) {
     }
     function doRelease() {
         var callback = releaseCallback, oldAccepted = accepted;
-        accepted = releaseCallback = undefined;
+        releaseCallback = undefined;
+        accepted = {number: oldAccepted.number, proposerId: oldAccepted.proposerId};
         debug('baton: doRelease', key, callback);
         if (!callback) { return; } // Already released, but we might still receive a stale message. That's ok.
         Messages.messageReceived.disconnect(messageHandler);
@@ -68,7 +69,7 @@ virtualBaton = function virtualBaton(options) {
     // still have to deal with the same issues of verification in the presence of lost/delayed/reordered messages.
     // Paxos is known to be optimal under these circumstances, except that its best to have a dedicated proposer
     // (such as the server).
-    function acceptedId() { return accepted && accepted.winner; }
+    function acceptedId() { return accepted && accepted.winner; } // fixme doesn't need to be so fancy any more?
     // Paxos makes several tests of one "proposal number" versus another, assuming
     // that better proposals from the same proposer have a higher number,
     // and different proposers use a different set of numbers. We achieve that
@@ -84,14 +85,13 @@ virtualBaton = function virtualBaton(options) {
         if (electionWatchdog) { Script.clearTimeout(electionWatchdog); }
         if (!claimCallback) { return; } // We're not participating.
         nPromises = 0;
-        nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;
+        nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;  // N.B.: ASSUMES EVERY USER IS RUNNING THE SCRIPT!
         bestPromise.proposerId = MyAvatar.sessionUUID;
         bestPromise.number++;
         bestPromise.winner = claim;
         send('prepare!', bestPromise);
-        electionWatchdog = Script.setTimeout(function () {
-            propose(claim);
-        }, electionTimeout);
+        function reclaim() { propose(claim); }
+        electionWatchdog = Script.setTimeout(reclaim, electionTimeout);
     }
     function messageHandler(messageChannel, messageString, senderID) {
         if (messageChannel !== channel) { return; }
@@ -105,14 +105,15 @@ virtualBaton = function virtualBaton(options) {
             //FIXME bestPromise.number = Math.max(bestPromise.number, data.number);
 
             if (betterNumber(data, bestProposal)) {
-                var response = accepted || data;
-                if (!response.winner && claimCallback) {
+                bestProposal = data;
+                if (claimCallback) {
                     // Optimization: Let the proposer know we're interested in the job if the proposer doesn't
                     // know who else to pick. Avoids needing to start multiple simultaneous proposals.
-                    response.interested = MyAvatar.sessionUUID;
+                    accepted.interested = MyAvatar.sessionUUID;
                 }
-                bestProposal = data;
-                send('promise', response);
+                send('promise', accepted.winner ? // data must include proposerId so that proposer catalogs results.
+                        {number: accepted.number, proposerId: data.proposerId, winner: accepted.winner} :
+                        {proposerId: data.proposerId});
             } // FIXME nack?
             break;
         case 'promise':
@@ -137,7 +138,7 @@ virtualBaton = function virtualBaton(options) {
             break;
         case 'accepted':
             accepted = data;
-            if (acceptedId() === MyAvatar.sessionUUID) { // Note that we might not been the proposer.
+            if (acceptedId() === MyAvatar.sessionUUID) { // Note that we might not have been the proposer.
                 if (electionWatchdog) {
                     Script.clearTimeout(electionWatchdog);
                     electionWatchdog = null;
