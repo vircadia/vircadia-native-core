@@ -3694,7 +3694,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
     }
 
-   // Assuming nothing get's rendered through that
+    // Assuming nothing get's rendered through that
     if (!selfAvatarOnly) {
         if (DependencyManager::get<SceneScriptingInterface>()->shouldRenderEntities()) {
             // render models...
@@ -3722,9 +3722,23 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         pendingChanges.resetItem(WorldBoxRenderData::_item, worldBoxRenderPayload);
     } else {
         pendingChanges.updateItem<WorldBoxRenderData>(WorldBoxRenderData::_item,
-                [](WorldBoxRenderData& payload) {
-                    payload._val++;
-                });
+            [](WorldBoxRenderData& payload) {
+            payload._val++;
+        });
+    }
+
+    // Setup the current Zone Entity lighting and skybox
+    // Fixme: We need a better soution through an actual render item !!!
+    {
+        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(getRenderAmbientLight());
+        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
+
+        auto skybox = model::SkyboxPointer();
+        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
+            skybox = skyStage->getSkybox();
+        }
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
     }
 
     {
