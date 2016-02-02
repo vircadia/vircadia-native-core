@@ -22,15 +22,15 @@ var SCRIPT_URL = Script.resolvePath("soundEntityScript.js?v1" + Math.random());
 var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
-        volume: 0.5,
-        loop: true
+        volume: 1.0,
+        loop: false
     }
 }
 
 var entityProps = {
     type: "Box",
     position: {
-        x: 0,
+        x: Math.random(),
         y: 0,
         z: 0
     },
