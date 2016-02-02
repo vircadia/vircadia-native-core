@@ -81,7 +81,7 @@ virtualBaton = function virtualBaton(options) {
         debug('baton: propose', claim);
         if (!claimCallback) { return; } // We're not participating.
         nPromises = 0;
-        nQuorum = Math.floor(AvatarList.getAvatarIdentifiers.length / 2) + 1;
+        nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;
         bestPromise.proposerId = MyAvatar.sessionUUID;
         bestPromise.number++;
         bestPromise.winner = claim;

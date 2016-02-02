@@ -2,7 +2,7 @@
 /*jslint nomen: true, plusplus: true, vars: true*/
 var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
 
-Script.include("../libraries/virtualBaton.18.js");
+Script.include("../libraries/virtualBaton.19.js");
 var TICKER_INTERVAL = 1000; // ms
 var baton = virtualBaton({key: 'io.highfidelity.testBaton'});
 var ticker, countDown;
