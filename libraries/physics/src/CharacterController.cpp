@@ -21,7 +21,11 @@ const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
 
-#define DEBUG_STATE_CHANGE
+#ifdef DEBUG_STATE_CHANGE
+#define SET_STATE(desiredState, reason) setState(desiredState, reason)
+#else
+#define SET_STATE(desiredState, reason) setState(desiredState)
+#endif
 
 // helper class for simple ray-traces from character
 class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
@@ -65,7 +69,6 @@ CharacterController::CharacterController() {
     _hasSupport = false;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
-
 }
 
 bool CharacterController::needsRemoval() const {
@@ -274,10 +277,14 @@ static const char* stateToStr(CharacterController::State state) {
 }
 #endif // #ifdef DEBUG_STATE_CHANGE
 
+#ifdef DEBUG_STATE_CHANGE
+void CharacterController::setState(State desiredState, const char* reason) {
+#else
 void CharacterController::setState(State desiredState) {
+#endif
     if (desiredState != _state) {
 #ifdef DEBUG_STATE_CHANGE
-        qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "<-" << stateToStr(_state);
+        qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
 #endif
         if (desiredState == State::Hover && _state != State::Hover) {
             // hover enter
@@ -339,7 +346,7 @@ void CharacterController::setEnabled(bool enabled) {
             }
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
         }
-        setState(State::Hover);
+        SET_STATE(State::Hover, "setEnabled");
         _enabled = enabled;
     }
 }
@@ -438,8 +445,8 @@ void CharacterController::preSimulation() {
         const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 200 * MSECS_PER_SECOND;
         const btScalar MIN_HOVER_HEIGHT = 2.5f;
         const quint64 JUMP_TO_HOVER_PERIOD = 750 * MSECS_PER_SECOND;
-        const btScalar UPWARD_VELOCITY_THRESHOLD = 0.05f;
-        const btScalar MAX_FLYING_SPEED = 30.0f;
+        const btScalar UPWARD_VELOCITY_THRESHOLD = 0.1f;
+        const btScalar MAX_WALKING_SPEED = 2.5f;
 
         quint64 now = usecTimestampNow();
 
@@ -452,23 +459,22 @@ void CharacterController::preSimulation() {
         }
 
         bool jumpButtonHeld = _pendingFlags & PENDING_FLAG_JUMP;
-        bool wantsToGoUp = !jumpButtonHeld && _walkVelocity.dot(_currentUp) > UPWARD_VELOCITY_THRESHOLD;
-        bool tooFast = actualHorizVelocity.length() > (MAX_FLYING_SPEED / 2.0f);
+        bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
 
         switch (_state) {
         case State::Ground:
             if (!rayCallback.hasHit() && !_hasSupport) {
-                setState(State::Hover);
+                SET_STATE(State::Hover, "no ground");
             } else if (_pendingFlags & PENDING_FLAG_JUMP) {
                 _takeOffJumpButtonID = _jumpButtonDownCount;
-                setState(State::Takeoff);
+                SET_STATE(State::Takeoff, "jump pressed");
             }
             break;
         case State::Takeoff:
             if (!rayCallback.hasHit() && !_hasSupport) {
-                setState(State::Hover);
+                SET_STATE(State::Hover, "no ground");
             } else if ((now - _takeoffToInAirStart) > TAKE_OFF_TO_IN_AIR_PERIOD) {
-                setState(State::InAir);
+                SET_STATE(State::InAir, "takeoff done");
                 _takeoffToInAirStart = now + USECS_PER_SECOND * 86500.0f;
                 velocity += _jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
@@ -476,17 +482,19 @@ void CharacterController::preSimulation() {
             break;
         case State::InAir: {
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
-                setState(State::Ground);
-            } else if ((jumpButtonHeld && ((_takeOffJumpButtonID != _jumpButtonDownCount) || (now - _jumpButtonDownStart) > JUMP_TO_HOVER_PERIOD)) || wantsToGoUp) {
-                setState(State::Hover);
+                SET_STATE(State::Ground, "hit ground");
+            } else if (jumpButtonHeld && (_takeOffJumpButtonID != _jumpButtonDownCount)) {
+                SET_STATE(State::Hover, "double jump button");
+            } else if (jumpButtonHeld && (now - _jumpButtonDownStart) > JUMP_TO_HOVER_PERIOD) {
+                SET_STATE(State::Hover, "jump button held");
             }
             break;
         }
         case State::Hover:
-            if (!jumpButtonHeld && !wantsToGoUp && _floorDistance < MIN_HOVER_HEIGHT && !tooFast) {
-                setState(State::InAir);
-            } else if (((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport) && !tooFast) {
-                setState(State::Ground);
+            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+                SET_STATE(State::InAir, "near ground");
+            } else if (((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport) && !flyingFast) {
+                SET_STATE(State::Ground, "touching ground");
             }
             break;
         }

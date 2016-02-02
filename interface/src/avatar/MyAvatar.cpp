@@ -1311,21 +1311,23 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.5f;
 
 bool MyAvatar::cameraInsideHead() const {
     const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
+    return glm::length(cameraPosition - getDefaultEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
-    return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
-            (qApp->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
-            !cameraInsideHead());
+    bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
+    bool firstPerson = qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON;
+    bool insideHead = cameraInsideHead();
+    return !defaultMode || !firstPerson || !insideHead;
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
+
     //  Smoothly rotate body with arrow keys
     float targetSpeed = _driveKeys[YAW] * _yawSpeed;
     if (targetSpeed != 0.0f) {

@@ -31,6 +31,8 @@ class btRigidBody;
 class btCollisionWorld;
 class btDynamicsWorld;
 
+//#define DEBUG_STATE_CHANGE
+
 class CharacterController : public btCharacterControllerInterface {
 public:
     CharacterController();
@@ -92,7 +94,11 @@ public:
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
 protected:
+#ifdef DEBUG_STATE_CHANGE
+    void setState(State state, const char* reason);
+#else
     void setState(State state);
+#endif
 
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld) const;
