@@ -2343,7 +2343,6 @@ void Application::touchBeginEvent(QTouchEvent* event) {
     TouchEvent thisEvent(*event); // on touch begin, we don't compare to last event
     _controllerScriptingInterface->emitTouchBeginEvent(thisEvent); // send events to any registered scripts
 
-    _currentTouchEvent = thisEvent; // and we reset our current event to this event before we call our update
     _lastTouchEvent = thisEvent; // and we reset our last event to this event before we call our update
     touchUpdateEvent(event);
 
@@ -2362,9 +2361,7 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _altPressed = false;
     TouchEvent thisEvent(*event, _lastTouchEvent);
     _controllerScriptingInterface->emitTouchEndEvent(thisEvent); // send events to any registered scripts
-    _currentTouchEvent = TouchEvent();
     _lastTouchEvent = thisEvent;
-    _lastTouchTimeout = 30; // timeout used as gestures can be misinterpreted for some frames
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isTouchCaptured()) {
@@ -3157,55 +3154,12 @@ void Application::update(float deltaTime) {
             myAvatar->setDriveKeys(TRANSLATE_Y, userInputMapper->getActionState(controller::Action::TRANSLATE_Y));
             myAvatar->setDriveKeys(TRANSLATE_X, userInputMapper->getActionState(controller::Action::TRANSLATE_X));
             if (deltaTime > FLT_EPSILON) {
-                if (_currentTouchEvent.isPressed == false) {
-                    if (_lastTouchTimeout > 0) {
-                        --_lastTouchTimeout; // disable non-touch input for some frames to disallow interpretation as movement
-                    } else {
-                        myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
-                        myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
-                    }
-                } else {
-                    const bool allowTouchPan = _lastTouchEvent.isPinching == false && _lastTouchEvent.isPinchOpening == false
-                                                                     && _lastTouchEvent.x - _currentTouchEvent.x != 0;
-                    if (_lastTouchEvent.x > _currentTouchEvent.x && allowTouchPan) {
-                        myAvatar->setDriveKeys(YAW, -1.0f);
-                    } else if (_lastTouchEvent.x < _currentTouchEvent.x && allowTouchPan) {
-                        myAvatar->setDriveKeys(YAW, 1.0f);
-                    }
-                }
+                myAvatar->setDriveKeys(PITCH, -1.0f * userInputMapper->getActionState(controller::Action::PITCH));
+                myAvatar->setDriveKeys(YAW, -1.0f * userInputMapper->getActionState(controller::Action::YAW));
                 myAvatar->setDriveKeys(STEP_YAW, -1.0f * userInputMapper->getActionState(controller::Action::STEP_YAW));
             }
         }
-        
-        if (_currentTouchEvent.isPressed == true) {
-            static const float TOUCH_ZOOM_THRESHOLD = 5.0f;
-            const float boomLength = myAvatar->getBoomLength();
-            QScreen* windowScreen = getWindow()->windowHandle()->screen();
-            const float dpiScale = glm::clamp((float)(windowScreen->physicalDotsPerInchY() / 100.0f), 1.0f, 10.0f) * 15.0f; // at DPI 100 divide radius by 15
-
-            float scaledRadius = _lastTouchEvent.radius / dpiScale;
-            if (scaledRadius < TOUCH_ZOOM_THRESHOLD) {
-                const float extraRadiusScale = TOUCH_ZOOM_THRESHOLD / scaledRadius;
-                scaledRadius = _lastTouchEvent.radius / (dpiScale * extraRadiusScale);
-            }
-
-            if (_lastTouchEvent.isPinching == true) {
-                const bool boomChangeValid = boomLength - scaledRadius < 2.0f; // restrict changes to small increments to negate large jumps
-                if (boomChangeValid && scaledRadius < boomLength && scaledRadius > MyAvatar::ZOOM_MIN) {
-                    myAvatar->setBoomLength(scaledRadius);
-                } else if (scaledRadius <= MyAvatar::ZOOM_MIN) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    myAvatar->setBoomLength(MyAvatar::ZOOM_MIN);
-                }
-            } else if (_lastTouchEvent.isPinchOpening == true) {
-                const bool boomChangeValid = scaledRadius - boomLength < 2.0f; // restrict changes to small increments to negate large jumps
-                if (boomChangeValid && scaledRadius > boomLength && scaledRadius < MyAvatar::ZOOM_MAX) {
-                    myAvatar->setBoomLength(scaledRadius);
-                }
-            }
-        } else {
-            myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
-        }
+        myAvatar->setDriveKeys(ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
     controller::Pose leftHand = userInputMapper->getPoseState(controller::Action::LEFT_HAND);

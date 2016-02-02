@@ -453,9 +453,7 @@ private:
 
     FileLogger* _logger;
 
-    TouchEvent _currentTouchEvent;
     TouchEvent _lastTouchEvent;
-    int _lastTouchTimeout;
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
