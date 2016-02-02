@@ -219,7 +219,7 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const Location&
     }
 }
 
-int ItemSpatialTree::select(ItemIDs& selection, const ViewFrustum& frustum) const {
+int ItemSpatialTree::select(Indices& selectedBricks, Indices& selectedCells, const ViewFrustum& frustum) const {
     auto worldPlanes = frustum.getPlanes();
     Coord4f planes[6];
     for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
@@ -227,69 +227,16 @@ int ItemSpatialTree::select(ItemIDs& selection, const ViewFrustum& frustum) cons
         octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
         planes[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
     }
-    return Octree::select(selection, planes);
+    return Octree::select(selectedBricks, selectedCells, planes);
 }
 
-int Octree::select(ItemIDs& selection, const glm::vec4 frustum[6]) const {
+int Octree::select(Indices& selectedBricks, Indices& selectedCells, const glm::vec4 frustum[6]) const {
 
     Index cellID = ROOT_CELL;
-    selectTraverse(cellID, selection, frustum);
-    return selection.size();
+    selectTraverse(cellID, selectedBricks, selectedCells, frustum);
+    return selectedCells.size();
 }
 
-int Octree::selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const {
-    int numSelectedsIn = selection.size();
-    auto cell = getConcreteCell(cellID);
-
-    auto intersection = Octree::Location::intersectCell(cell.getlocation(), frustum);
-    switch (intersection) {
-        case Octree::Location::Outside:
-            // cell is outside, stop traversing this branch
-            return 0;
-            break;
-        case Octree::Location::Inside: {
-            // traverse all the Cell Branch and collect items in the selection
-            selectBranch(cellID, selection, frustum);
-            break;
-        }
-        case Octree::Location::Intersect:
-        default: {
-            // Cell is partially in
-            selection.push_back(cellID);
-
-            // Collect the items of this cell
-
-            // then traverse further
-            for (int i = 0; i < NUM_OCTANTS; i++) {
-                Index subCellID = cell.child((Link)i);
-                if (subCellID != INVALID) {
-                    selectTraverse(subCellID, selection, frustum);
-                }
-            }
-        }
-    }
-
-    return selection.size() - numSelectedsIn;
-}
-
-
-int  Octree::selectBranch(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const {
-    int numSelectedsIn = selection.size();
-    auto cell = getConcreteCell(cellID);
-
-    // Collect the items of this cell
-    selection.push_back(cellID);
-
-    // then traverse further
-    for (int i = 0; i < NUM_OCTANTS; i++) {
-        Index subCellID = cell.child((Link)i);
-        if (subCellID != INVALID) {
-            selectBranch(subCellID, selection, frustum);
-        }
-    }
-
-    return selection.size() - numSelectedsIn;
-}
 
 Octree::Location::Intersection Octree::Location::intersectCell(const Location& cell, const Coord4f frustum[6]) {
     const Coord3f CornerOffsets[8] = {
@@ -347,4 +294,71 @@ Octree::Location::Intersection Octree::Location::intersectCell(const Location& c
     }
 
     return Inside;
+}
+
+int Octree::selectTraverse(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
+    int numSelectedsIn = selectedCells.size();
+    auto cell = getConcreteCell(cellID);
+
+    auto intersection = Octree::Location::intersectCell(cell.getlocation(), frustum);
+    switch (intersection) {
+        case Octree::Location::Outside:
+            // cell is outside, stop traversing this branch
+            return 0;
+            break;
+        case Octree::Location::Inside: {
+            // traverse all the Cell Branch and collect items in the selection
+            selectBranch(cellID, selectedBricks, selectedCells, frustum);
+            break;
+        }
+        case Octree::Location::Intersect:
+        default: {
+            // Cell is partially in
+
+            // Select within this cell
+            selectInCell(cellID, selectedBricks, selectedCells, frustum);
+
+            // then traverse deeper
+            for (int i = 0; i < NUM_OCTANTS; i++) {
+                Index subCellID = cell.child((Link)i);
+                if (subCellID != INVALID) {
+                    selectTraverse(subCellID, selectedBricks, selectedCells, frustum);
+                }
+            }
+        }
+    }
+
+    return selectedCells.size() - numSelectedsIn;
+}
+
+
+int  Octree::selectBranch(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
+    int numSelectedsIn = selectedCells.size();
+    auto cell = getConcreteCell(cellID);
+
+    // Select within this cell
+    selectInCell(cellID, selectedBricks, selectedCells, frustum);
+
+    // then traverse deeper
+    for (int i = 0; i < NUM_OCTANTS; i++) {
+        Index subCellID = cell.child((Link)i);
+        if (subCellID != INVALID) {
+            selectBranch(subCellID, selectedBricks, selectedCells, frustum);
+        }
+    }
+
+    return selectedCells.size() - numSelectedsIn;
+}
+
+int Octree::selectInCell(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
+    int numSelectedsIn = selectedCells.size();
+    auto cell = getConcreteCell(cellID);
+    selectedCells.push_back(cellID);
+
+    if (!cell.isBrickEmpty()) {
+        // Collect the items of this cell
+        selectedBricks.push_back(cell.brick());
+    }
+
+    return selectedCells.size() - numSelectedsIn;
 }

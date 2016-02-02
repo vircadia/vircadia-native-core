@@ -243,9 +243,10 @@ namespace render {
         }
 
         // Selection and traverse
-        int select(ItemIDs& selection, const Coord4f frustum[6]) const;
-        int selectTraverse(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const;
-        int selectBranch(Index cellID, ItemIDs& selection, const Coord4f frustum[6]) const;
+        int select(Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
+        int selectTraverse(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
+        int selectBranch(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
+        int selectInCell(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
 
     protected:
         Index allocateCell(Index parent, const Location& location);
@@ -311,7 +312,7 @@ namespace render {
         Index resetItem(Index oldCell, const Location& location, const ItemID& item);
 
         // Selection and traverse
-        int select(ItemIDs& selection, const ViewFrustum& frustum) const;
+        int select(Indices& selectedBricks, Indices& selectedCells, const ViewFrustum& frustum) const;
 
 
     };

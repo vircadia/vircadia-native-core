@@ -19,17 +19,18 @@
 namespace render {
     class DrawSceneOctreeConfig : public Job::Config {
         Q_OBJECT
-            Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
-            Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
     public:
+        Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
+        Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+
         DrawSceneOctreeConfig() : Job::Config(true) {} // FIXME FOR debug
         
         bool showVisibleCells{ true }; // FIXME FOR debug
         bool freezeFrustum{ false };
 
     public slots:
-        void setShowVisibleCells(bool enabled) { showVisibleCells = enabled; dirty(); }
-        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; dirty(); }
+        void setShowVisibleCells(bool enabled) { showVisibleCells = enabled; emit dirty(); }
+        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
 
     signals:
         void dirty();

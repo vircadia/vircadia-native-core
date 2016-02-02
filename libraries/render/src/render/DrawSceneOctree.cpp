@@ -98,8 +98,9 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
     }
 
     // Try that:
-    render::ItemIDs itemsCell;
-    scene->getSpatialTree().select(itemsCell, queryFrustum);
+    render::Octree::Indices itemsBrick;
+    render::Octree::Indices itemsCell;
+    scene->getSpatialTree().select(itemsBrick, itemsCell, queryFrustum);
 
 
     // Allright, something to render let's do it
@@ -129,7 +130,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
 
             glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
             if (cell.isBrickEmpty() || !cell.hasBrick()) {
-            //    cellLocation.w *= -1;
+                cellLocation.w *= -1;
             }
 
             batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
