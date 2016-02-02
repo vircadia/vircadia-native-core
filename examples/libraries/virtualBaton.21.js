@@ -76,7 +76,8 @@ virtualBaton = function virtualBaton(options) {
     // which keeps the combined number unique and yet still strictly ordered.
     function betterNumber(number, best) {
         debug('baton: betterNumber', number, best);
-        return ((number.number || 0) > best.number) && (!best.proposerId || (number.proposerId >= best.proposerId));
+        //FIXME return ((number.number || 0) > best.number) && (!best.proposerId || (number.proposerId >= best.proposerId));
+        return (number.number || 0) > best.number;
     }
     function propose(claim) {
         debug('baton: propose', claim);
