@@ -26,18 +26,21 @@
 // Answers a new virtualBaton for the given parameters, of which 'key'
 // is required.
 virtualBaton = function virtualBaton(options) {
-    var key = options.key,        
+    var key = options.key,
         channel = "io.highfidelity.virtualBaton:" + key,
         exports = options.exports || {},
         claimCallback,
         releaseCallback,
         // paxos proposer state
         nPromises = 0,
+        proposalNumber = 0,
         nQuorum,
         mostRecentInterested,
         bestPromise = {number: 0},
-        electionTimeout = options.electionTimeout || 1000, // ms. If no winner in this time, hold a new election
+        electionTimeout = options.electionTimeout || 1000, // ms. If no winner in this time, hold a new election.  FIXME randomize
         electionWatchdog,
+        recheckInterval = options.recheckInterval || 1000, // ms. Check that winners remain connected.  FIXME rnadomize
+        recheckWatchdog,
         // paxos acceptor state
         bestProposal = {number: 0},
         accepted = {};
@@ -45,23 +48,26 @@ virtualBaton = function virtualBaton(options) {
         throw new Error("A VirtualBaton must specify a key.");
     }
     function debug() {
-        print.apply(null, [].map.call(arguments, JSON.stringify));
+        print.apply(print, [].map.call(arguments, JSON.stringify)); // fixme no console
+    }
+    function debugFlow() {
+        if (options.debugFlow) { debug.apply(null, arguments); }
     }
     function send(operation, data) {
-        debug('baton: send', operation, data);
+        if (options.debugSend) { debug('baton:', MyAvatar.sessionUUID, '=>', '-', operation, data); }
         var message = JSON.stringify({op: operation, data: data});
         Messages.sendMessage(channel, message);
     }
-    function doRelease() {
+    function localRelease() {
         var callback = releaseCallback, oldAccepted = accepted;
         releaseCallback = undefined;
-        accepted = {number: oldAccepted.number, proposerId: oldAccepted.proposerId};
-        debug('baton: doRelease', key, callback);
+        accepted = {number: oldAccepted.number, proposerId: oldAccepted.proposerId}; // A copy without winner assigned, preserving number.
+        debugFlow('baton: localRelease', key, !!callback);
         if (!callback) { return; } // Already released, but we might still receive a stale message. That's ok.
-        Messages.messageReceived.disconnect(messageHandler);
-        Messages.unsubscribe(channel);   // Messages currently allow publishing without subscription.
-        send('release', oldAccepted);  // This order is less crufty.
+        //Messages.messageReceived.disconnect(messageHandler);
+        //Messages.unsubscribe(channel);   // Messages currently allow publishing without subscription.
         callback(key);  // Pass key so that clients may use the same handler for different batons.
+        return oldAccepted;
     }
 
     // Internally, this uses the Paxos algorith to hold elections.
@@ -69,38 +75,37 @@ virtualBaton = function virtualBaton(options) {
     // still have to deal with the same issues of verification in the presence of lost/delayed/reordered messages.
     // Paxos is known to be optimal under these circumstances, except that its best to have a dedicated proposer
     // (such as the server).
-    function acceptedId() { return accepted && accepted.winner; } // fixme doesn't need to be so fancy any more?
+    function acceptedId() { return accepted && accepted.winner; }
     // Paxos makes several tests of one "proposal number" versus another, assuming
     // that better proposals from the same proposer have a higher number,
     // and different proposers use a different set of numbers. We achieve that
     // by dividing the "number" into two parts, and integer and a proposerId,
     // which keeps the combined number unique and yet still strictly ordered.
     function betterNumber(number, best) {
-        debug('baton: betterNumber', number, best);
+        // FIXME restore debug('baton: betterNumber', number, best);
         //FIXME return ((number.number || 0) > best.number) && (!best.proposerId || (number.proposerId >= best.proposerId));
         return (number.number || 0) > best.number;
     }
-    function propose(claim) {
-        debug('baton: propose', claim);
+    function propose() {
+        debugFlow('baton:', MyAvatar.sessionUUID, 'propose', !!claimCallback);
         if (electionWatchdog) { Script.clearTimeout(electionWatchdog); }
         if (!claimCallback) { return; } // We're not participating.
         nPromises = 0;
+        proposalNumber = Math.max(proposalNumber, bestPromise.number);
         nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;  // N.B.: ASSUMES EVERY USER IS RUNNING THE SCRIPT!
-        bestPromise = {number: ++bestPromise.number, proposerId: MyAvatar.sessionUUID, winner: claim};
-        send('prepare!', bestPromise);
-        function reclaim() { propose(claim); }
-        electionWatchdog = Script.setTimeout(reclaim, electionTimeout);
+        send('prepare!', {number: ++proposalNumber, proposerId: MyAvatar.sessionUUID});
+        electionWatchdog = Script.setTimeout(propose, electionTimeout);
     }
     function messageHandler(messageChannel, messageString, senderID) {
         if (messageChannel !== channel) { return; }
         var message = JSON.parse(messageString), data = message.data;
-        debug('baton: received from', senderID, message.op, data);
+        if (options.debugReceive) { debug('baton:', senderID, '=>', MyAvatar.sessionUUID, message.op, data); }
         switch (message.op) {
         case 'prepare!':
             // Optimization: Don't waste time with low future proposals.
             // Does not remove the need for betterNumber() to consider proposerId, because
             // participants might not receive this prepare! message before their next proposal.
-            //FIXME bestPromise.number = Math.max(bestPromise.number, data.number);
+            proposalNumber = Math.max(proposalNumber, data.number);
 
             if (betterNumber(data, bestProposal)) {
                 bestProposal = data;
@@ -111,7 +116,7 @@ virtualBaton = function virtualBaton(options) {
                 }
                 send('promise', accepted.winner ? // data must include proposerId so that proposer catalogs results.
                         {number: accepted.number, proposerId: data.proposerId, winner: accepted.winner} :
-                        {proposerId: data.proposerId});
+                        {number: data.number, proposerId: data.proposerId});
             } // FIXME nack?
             break;
         case 'promise':
@@ -130,11 +135,12 @@ virtualBaton = function virtualBaton(options) {
         case 'accept!':
             if (!betterNumber(bestProposal, data)) {
                 accepted = data;
-                send('accepted', accepted);
+                //send('accepted', accepted); // With the collapsed roles here, do we need this message? Maybe just go to 'accepted' case here?
+                messageHandler(messageChannel, JSON.stringify({op: 'accepted', data: accepted}), senderID);
             }
-            // FIXME: start interval (with a little random offset?) that claims if winner is ever not in AvatarList and we still claimCallback
             break;
         case 'accepted':
+            if (betterNumber(accepted, data)) { return; }
             accepted = data;
             if (acceptedId() === MyAvatar.sessionUUID) { // Note that we might not have been the proposer.
                 if (electionWatchdog) {
@@ -145,7 +151,7 @@ virtualBaton = function virtualBaton(options) {
                     var callback = claimCallback;
                     claimCallback = undefined;
                     callback(key);
-                } else { // We won, but are no longer interested.
+                } else if (!releaseCallback) { // We won, but have been released and are no longer interested.
                     propose(); // Propose that someone else take the job.
                 }
             }
@@ -153,12 +159,19 @@ virtualBaton = function virtualBaton(options) {
         case 'release':
             if (!betterNumber(accepted, data)) { // Unless our data is fresher...
                 accepted.winner = undefined; // ... allow next proposer to have his way.
+                if (recheckWatchdog) {
+                    Script.clearInterval(recheckWatchdog);
+                    recheckWatchdog = null;
+                }
             }
             break;
         default:
             print("Unrecognized virtualBaton message:", message);
         }
     }
+    Messages.messageReceived.connect(messageHandler); // FIXME MUST BE DONE. quorum will be wrong if no one claims and we only subscrbe with claims
+    Messages.subscribe(channel); // FIXME
+
     // Registers an intent to hold the baton:
     // Calls onElection(key) once, if you are elected by the scripts
     //    to be the unique holder of the baton, which may be never.
@@ -168,7 +181,7 @@ virtualBaton = function virtualBaton(options) {
     // You may claim again at any time after the start of onRelease
     // being called. Otherwise, you will not participate in further elections.
     exports.claim = function claim(onElection, onRelease) {
-        debug('baton: claim');
+        debugFlow('baton:', MyAvatar.sessionUUID, 'claim');
         if (claimCallback) {
             print("Ignoring attempt to claim virtualBaton " + key + ", which is already waiting for claim.");
             return;
@@ -179,14 +192,14 @@ virtualBaton = function virtualBaton(options) {
         }
         claimCallback = onElection;
         releaseCallback = onRelease;
-        Messages.messageReceived.connect(messageHandler);
-        Messages.subscribe(channel);
-        propose(MyAvatar.sessionUUID);
+        //Messages.messageReceived.connect(messageHandler);
+        //Messages.subscribe(channel);
+        propose();
     };
 
     // Release the baton you hold, or just log that you are not holding it.
     exports.release = function release(optionalReplacementOnRelease) {
-        debug('baton: release');
+        debugFlow('baton:', MyAvatar.sessionUUID, 'release');
         if (optionalReplacementOnRelease) { // E.g., maybe normal onRelease reclaims, but at shutdown you explicitly don't.
             releaseCallback = optionalReplacementOnRelease;
         }
@@ -194,7 +207,10 @@ virtualBaton = function virtualBaton(options) {
             print("Ignoring attempt to release virtualBaton " + key + ", which is not being held.");
             return;
         }
-        doRelease();
+        var released = localRelease();
+        if (released) {
+            send('release', released); // Let everyone know right away, including old number in case we overlap with reclaim.
+        }
         if (!claimCallback) { // No claim set in release callback.
             propose(); // We are the distinguished proposer, but we'll pick anyone else interested.
         }
