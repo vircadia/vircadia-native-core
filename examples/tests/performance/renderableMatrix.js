@@ -14,7 +14,7 @@ var Entities, Script, print, Vec3, MyAvatar, Camera, Quat;
 //  NOTE: to test the full rendering of the specified number of objects (as opposed to
 //  testing LOD filtering), you may want to set LOD to manual maximum visibility.
 
-var LIFETIME = 20;
+var LIFETIME = 120;
 var ROWS_X = 17;
 var ROWS_Y = 10;
 var ROWS_Z = 10;

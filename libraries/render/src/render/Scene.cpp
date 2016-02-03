@@ -139,14 +139,15 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
 
         // Reset the item with a new payload
         item.resetPayload(*resetPayload);
+        auto newKey = item.getKey();
+
 
         // Reset the item in the Bucket map
-        _masterBucketMap.reset(resetID, oldKey, item.getKey());
+        _masterBucketMap.reset(resetID, oldKey, newKey);
 
         // Reset the item in the spatial tree
-        auto newCellLocation = _masterSpatialTree.evalLocation(item.getBound());
-        auto newCell = _masterSpatialTree.resetItem(oldCell, newCellLocation, resetID);
-        item.resetCell(newCell);
+        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+        item.resetCell(newCell, newKey.isSmall());
 
         // next loop
         resetPayload++;
@@ -157,12 +158,14 @@ void Scene::removeItems(const ItemIDs& ids) {
     for (auto removedID :ids) {
         // Access the true item
         auto& item = _items[removedID];
+        auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
 
         // Remove from Bucket map
         _masterBucketMap.erase(removedID, item.getKey());
 
         // Remove from spatial tree
-        _masterSpatialTree.removeItem(item.getCell(), removedID);
+        _masterSpatialTree.removeItem(oldCell, oldKey, removedID);
 
         // Kill it
         item.kill();
@@ -176,15 +179,16 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         // Access the true item
         auto& item = _items[updateID];
         auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
 
         // Update it
         _items[updateID].update((*updateFunctor));
 
+        auto newKey = item.getKey();
+
         // Update the citem in the spatial tree if needed
-        // THis could be avoided if we 
-        auto newCellLocation = _masterSpatialTree.evalLocation(item.getBound());
-        auto newCell = _masterSpatialTree.resetItem(oldCell, newCellLocation, updateID);
-        item.resetCell(newCell);
+        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+        item.resetCell(newCell, newKey.isSmall());
 
         // next loop
         updateFunctor++;

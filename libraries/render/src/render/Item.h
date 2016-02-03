@@ -47,6 +47,8 @@ public:
         PICKABLE,         // Item can be picked/selected
         LAYERED,          // Item belongs to one of the layers different from the default layer
 
+        SMALLER,
+
         NUM_FLAGS,      // Not a valid flag
     };
     typedef std::bitset<NUM_FLAGS> Flags; 
@@ -107,6 +109,11 @@ public:
     bool isPickable() const { return _flags[PICKABLE]; }
 
     bool isLayered() const { return _flags[LAYERED]; }
+
+    // Probably not public, flags used by the scene
+    bool isSmall() const { return _flags[SMALLER]; }
+    void setSmaller(bool smaller) { (smaller ? _flags.set(SMALLER) : _flags.reset(SMALLER)); }
+
 };
 
 inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
@@ -294,7 +301,7 @@ public:
 
     // Main scene / item managment interface Reset/Update/Kill
     void resetPayload(const PayloadPointer& payload);
-    void resetCell(ItemCell cell) { _cell = cell; }
+    void resetCell(ItemCell cell, bool _small) { _cell = cell; _key.setSmaller(_small); }
     void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); } // Communicate update to the payload
     void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // Kill means forget the payload and key and cell
 

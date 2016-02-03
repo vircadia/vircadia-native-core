@@ -29,6 +29,7 @@ namespace render {
     class Brick {
     public:
         std::vector<ItemID> items;
+        std::vector<ItemID> subcellItems;
     };
 
     class Octree {
@@ -287,7 +288,7 @@ namespace render {
 
         Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
             auto npos = (pos - getOrigin());
-            return Coord3(npos * getInvCellWidth(depth));
+            return Coord3(npos * getInvCellWidth(depth)); // Truncate fractional part
         }
         Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
             auto npos = (pos - getOrigin());
@@ -306,15 +307,15 @@ namespace render {
 
         // Managing itemsInserting items in cells
         // Cells need to have been allocated first calling indexCell
-        Index insertItem(Index cellIdx, const ItemID& item);
-        bool removeItem(Index cellIdx, const ItemID& item);
+        Index insertItem(Index cellIdx, const ItemKey& key, const ItemID& item);
+        bool updateItem(Index cellIdx, const ItemKey& oldKey, const ItemKey& key, const ItemID& item);
+        bool removeItem(Index cellIdx, const ItemKey& key, const ItemID& item);
 
-        Index resetItem(Index oldCell, const Location& location, const ItemID& item);
+        Index resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey);
 
         // Selection and traverse
         int select(Indices& selectedBricks, Indices& selectedCells, const ViewFrustum& frustum) const;
-
-
+        int fetch(ItemIDs& fetchedItems, const ItemFilter& filter, const ViewFrustum& frustum) const;
     };
 }
 

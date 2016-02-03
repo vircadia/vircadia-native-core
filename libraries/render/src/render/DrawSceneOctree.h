@@ -19,9 +19,9 @@
 namespace render {
     class DrawSceneOctreeConfig : public Job::Config {
         Q_OBJECT
-    public:
         Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
         Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+    public:
 
         DrawSceneOctreeConfig() : Job::Config(true) {} // FIXME FOR debug
         
