@@ -4,7 +4,7 @@
 //  Created by Eric Levin on 2/2/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
-//  This entity script sends a message meant for a running AC script on preload
+//  This entity script sends a message meant for a running AC script on its preload
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
@@ -18,11 +18,16 @@
         this.MESSAGE_CHANNEL = "Hifi-Sound-Entity";
     };
 
-    SoundEntity.prototype = {     
+    SoundEntity.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
-            print("EBL SENDING MESSAGE " + this.entityID);
-            Messages.sendMessage(this.MESSAGE_CHANNEL, JSON.stringify({id: this.entityID}));
+            Script.setTimeout(function() {
+                var soundData = getEntityCustomData("soundKey", _this.entityID);
+                // Just a hack for now until bug https://app.asana.com/0/26225263936266/86767805352289 is fixed
+                Messages.sendMessage(_this.MESSAGE_CHANNEL, JSON.stringify({
+                    id: _this.entityID
+                }));
+            }, 1000);
         },
     };
     // entity scripts always need to return a newly constructed object of our type

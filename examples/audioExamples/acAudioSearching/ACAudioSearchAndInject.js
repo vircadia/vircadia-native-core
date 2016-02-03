@@ -14,12 +14,13 @@
 
 Script.include("https://rawgit.com/highfidelity/hifi/master/examples/libraries/utils.js");
 
-var ENTITY_QUERY_INTERVAL = 2000;
 var SOUND_DATA_KEY = "soundKey";
 var MESSAGE_CHANNEL = "Hifi-Sound-Entity";
 
-// Map of all sound entities in domain- key is entity id, value is data
+// Map of all sound entities in domain- key is entity id, value is sound data
 var soundEntityMap = {};
+// Map of sound urls so a sound that's already been downloaded from one entity is not re-downloaded if 
+// another entity with same sound url is discovered
 var soundUrls = {};
 
 EntityViewer.setPosition({
@@ -39,11 +40,8 @@ var DEFAULT_SOUND_DATA = {
 };
 var MIN_INTERVAL = 0.2;
 
-print("EBL STARTING AC SCRIPT");
-
 function messageReceived(channel, message, sender) {
 
-    print("EBL RECEIVED A MESSAGE FROM ENTITY: " + message);
     var entityID = JSON.parse(message).id;
     if (soundEntityMap[entityID]) {
         // We already have this entity in our sound map, so don't re-add
@@ -52,7 +50,6 @@ function messageReceived(channel, message, sender) {
 
     EntityViewer.queryOctree();
     var soundData = getEntityCustomData(SOUND_DATA_KEY, entityID);
-    print("SOUND DATA " + JSON.stringify(soundData))
     if (soundData && soundData.url) {
         var soundProperties = {
             url: soundData.url,
@@ -89,16 +86,16 @@ function update(deltaTime) {
     // Go through each sound and play it if it needs to be played
     for (var potentialEntity in soundEntityMap) {
         if (!soundEntityMap.hasOwnProperty(potentialEntity)) {
-            // The current property is not a direct propert of soundEntityMap
+            // The current property is not a direct propert of soundEntityMap so ignore it
             continue;
         }
         var entity = potentialEntity;
         var soundProperties = soundEntityMap[entity];
         if (soundProperties.readyToPlay) {
-            print("EBL NEEDS TO PLAY!")
+            var newPosition = Entities.getEntityProperties(entity, "position").position
             Audio.playSound(soundProperties.sound, {
                 volume: soundProperties.volume,
-                position: soundProperties.position,
+                position: newPosition,
                 loop: soundProperties.loop
             });
             soundProperties.readyToPlay = false;
@@ -107,14 +104,12 @@ function update(deltaTime) {
             // to see if it's time for them to play again
             soundProperties.timeSinceLastPlay += deltaTime;
             if (soundProperties.timeSinceLastPlay > soundProperties.currentInterval) {
-                print("EBL TIME TO PLAY AGAIN!");
                 soundProperties.readyToPlay = true;
                 soundProperties.timeSinceLastPlay = 0;
                 // Now lets get our next current interval
                 soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
                 soundProperties.currentInterval = Math.max(MIN_INTERVAL, soundProperties.currentInterval);
             }
-
         }
     }
 }

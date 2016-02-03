@@ -17,15 +17,14 @@ Script.include("../../libraries/utils.js");
 
 var SOUND_DATA_KEY = "soundKey";
 var MESSAGE_CHANNEL = "Hifi-Sound-Entity";
-var SCRIPT_URL = Script.resolvePath("soundEntityScript.js?v1" + Math.random());
-//http://hifi-public.s3.amazonaws.com/ryan/Water_Lap_River_Edge_Gentle.L.wav
+var SCRIPT_URL = Script.resolvePath("soundEntityScript.js");
 var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
-        volume: 0.2,
+        volume: 0.3,
         loop: false,
         interval: 4,
-        intervalSpread: 3.5 
+        intervalSpread: 2 
     }
 }
 
@@ -50,16 +49,11 @@ var entityProps = {
     script: SCRIPT_URL
 }
 
-var soundEntity1 = Entities.addEntity(entityProps);
+var soundEntity = Entities.addEntity(entityProps);
 
-userData.soundKey.url = "http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav";
-entityProps.userData = JSON.stringify(userData);
-entityProps.position.x += 0.3
-//var soundEntity2 = Entities.addEntity(entityProps);
 
 function cleanup() {
-    Entities.deleteEntity(soundEntity1);
-    //Entities.deleteEntity(soundEntity2);
+    Entities.deleteEntity(soundEntity);
 }
 
 Script.scriptEnding.connect(cleanup);
