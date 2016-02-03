@@ -33,7 +33,7 @@ class Node : public NetworkPeer {
 public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         bool canAdjustLocks, bool canRez, const QUuid& connectionSecret = QUuid(),
+         bool isAllowedEditor, bool canRez, const QUuid& connectionSecret = QUuid(),
          QObject* parent = 0);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -58,8 +58,8 @@ public:
     void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
 
-    void setCanAdjustLocks(bool canAdjustLocks) { _canAdjustLocks = canAdjustLocks; }
-    bool getCanAdjustLocks() { return _canAdjustLocks; }
+    void setIsAllowedEditor(bool isAllowedEditor) { _isAllowedEditor = isAllowedEditor; }
+    bool isAllowedEditor() { return _isAllowedEditor; }
 
     void setCanRez(bool canRez) { _canRez = canRez; }
     bool getCanRez() { return _canRez; }
@@ -81,7 +81,7 @@ private:
     int _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
-    bool _canAdjustLocks;
+    bool _isAllowedEditor;
     bool _canRez;
 };
 

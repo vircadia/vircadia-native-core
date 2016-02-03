@@ -155,7 +155,7 @@ SharedNodePointer DomainGatekeeper::processAssignmentConnectRequest(const NodeCo
     _pendingAssignedNodes.erase(it);
     
     // always allow assignment clients to create and destroy entities
-    newNode->setCanAdjustLocks(true);
+    newNode->setIsAllowedEditor(true);
     newNode->setCanRez(true);
     
     return newNode;
@@ -219,13 +219,13 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
         }
     }
     
-    // if this user is in the editors list (or if the editors list is empty) set the user's node's canAdjustLocks to true
+    // if this user is in the editors list (or if the editors list is empty) set the user's node's isAllowedEditor to true
     const QVariant* allowedEditorsVariant =
         valueForKeyPath(_server->_settingsManager.getSettingsMap(), ALLOWED_EDITORS_SETTINGS_KEYPATH);
     QStringList allowedEditors = allowedEditorsVariant ? allowedEditorsVariant->toStringList() : QStringList();
     
     // if the allowed editors list is empty then everyone can adjust locks
-    bool canAdjustLocks = allowedEditors.empty();
+    bool isAllowedEditor = allowedEditors.empty();
     
     if (allowedEditors.contains(username, Qt::CaseInsensitive)) {
         // we have a non-empty allowed editors list - check if this user is verified to be in it
@@ -238,10 +238,10 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
                     << "will be given edit rights to avoid a thrasing of public key requests and connect requests.";
             }
             
-            canAdjustLocks = true;
+            isAllowedEditor = true;
         } else {
             // already verified this user and they are in the allowed editors list
-            canAdjustLocks = true;
+            isAllowedEditor = true;
         }
     }
     
@@ -256,14 +256,14 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     
     bool canRez = true;
     if (onlyEditorsAreRezzers) {
-        canRez = canAdjustLocks;
+        canRez = isAllowedEditor;
     }
     
     // add the new node
     SharedNodePointer newNode = addVerifiedNodeFromConnectRequest(nodeConnection);
     
     // set the edit rights for this user
-    newNode->setCanAdjustLocks(canAdjustLocks);
+    newNode->setIsAllowedEditor(isAllowedEditor);
     newNode->setCanRez(canRez);
     
     // grab the linked data for our new node so we can set the username
