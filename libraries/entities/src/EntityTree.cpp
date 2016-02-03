@@ -194,7 +194,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                     // the entire update is suspect --> ignore it
                     return false;
                 }
-            } else {
+            } else if (simulationBlocked) {
                 simulationBlocked = senderID != entity->getSimulatorID();
             }
             if (simulationBlocked) {
