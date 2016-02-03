@@ -499,8 +499,6 @@ void CharacterController::preSimulation() {
         }
     }
 
-    ///  _walkVelocity.dot(_currentUp) > UPWARD_VELOCITY_THRESHOLD
-
     _previousFlags = _pendingFlags;
     _pendingFlags &= ~PENDING_FLAG_JUMP;
 
