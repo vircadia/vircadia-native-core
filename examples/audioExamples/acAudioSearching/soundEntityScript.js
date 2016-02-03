@@ -24,10 +24,11 @@
             Script.setTimeout(function() {
                 var soundData = getEntityCustomData("soundKey", _this.entityID);
                 // Just a hack for now until bug https://app.asana.com/0/26225263936266/86767805352289 is fixed
+                print("EBL SEND MESSAGE");
                 Messages.sendMessage(_this.MESSAGE_CHANNEL, JSON.stringify({
                     id: _this.entityID
                 }));
-            }, 1000);
+            }, 2000);
         },
     };
     // entity scripts always need to return a newly constructed object of our type

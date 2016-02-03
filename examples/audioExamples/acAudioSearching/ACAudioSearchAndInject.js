@@ -41,7 +41,7 @@ var DEFAULT_SOUND_DATA = {
 var MIN_INTERVAL = 0.2;
 
 function messageReceived(channel, message, sender) {
-
+    print("EBL MESSAGE RECIEVED");
     var entityID = JSON.parse(message).id;
     if (soundEntityMap[entityID]) {
         // We already have this entity in our sound map, so don't re-add
@@ -49,7 +49,15 @@ function messageReceived(channel, message, sender) {
     }
 
     EntityViewer.queryOctree();
+    Script.setTimeout(function() {
+        handleIncomingEntity(entityID);
+    }, 2000);
+
+}
+
+function handleIncomingEntity(entityID) {
     var soundData = getEntityCustomData(SOUND_DATA_KEY, entityID);
+    print("SOUND DATA " + JSON.stringify(soundData));
     if (soundData && soundData.url) {
         var soundProperties = {
             url: soundData.url,
@@ -80,6 +88,7 @@ function messageReceived(channel, message, sender) {
             soundEntityMap[entityID] = soundProperties;
         }
     }
+
 }
 
 function update(deltaTime) {
@@ -93,6 +102,7 @@ function update(deltaTime) {
         var soundProperties = soundEntityMap[entity];
         if (soundProperties.readyToPlay) {
             var newPosition = Entities.getEntityProperties(entity, "position").position
+            print("EBL SHOULD BE PLAYING SOUND!")
             Audio.playSound(soundProperties.sound, {
                 volume: soundProperties.volume,
                 position: newPosition,

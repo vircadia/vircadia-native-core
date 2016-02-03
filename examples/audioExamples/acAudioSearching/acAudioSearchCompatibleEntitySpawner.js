@@ -17,7 +17,7 @@ Script.include("../../libraries/utils.js");
 
 var SOUND_DATA_KEY = "soundKey";
 var MESSAGE_CHANNEL = "Hifi-Sound-Entity";
-var SCRIPT_URL = Script.resolvePath("soundEntityScript.js");
+var SCRIPT_URL = Script.resolvePath("soundEntityScript.js?v1" + Math.random());
 var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
