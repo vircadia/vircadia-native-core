@@ -39,6 +39,7 @@ var DEFAULT_SOUND_DATA = {
     intervalSpread: 0 // amount of randomness to add to the interval
 };
 var MIN_INTERVAL = 0.2;
+EntityViewer.queryOctree();
 
 function messageReceived(channel, message, sender) {
     print("EBL MESSAGE RECIEVED");
