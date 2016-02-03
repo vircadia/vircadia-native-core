@@ -41,9 +41,9 @@ var entityProps = {
         blue: 200
     },
     dimensions: {
-        x: .1,
-        y: .1,
-        z: .1
+        x: 0.1,
+        y: 0.1,
+        z: 0.1
     },
     userData: JSON.stringify(userData),
     script: SCRIPT_URL
