@@ -494,10 +494,22 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
+render::ShapePipelinePointer GeometryCache::_simplePipeline;
+
 GeometryCache::GeometryCache() :
     _nextID(0)
 {
     buildShapes();
+    GeometryCache::_simplePipeline =
+        std::make_shared<render::ShapePipeline>(getSimplePipeline(), nullptr,
+            [](const render::ShapePipeline&, gpu::Batch& batch) {
+                // Set the defaults needed for a simple program
+                batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+                    DependencyManager::get<TextureCache>()->getWhiteTexture());
+                batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+                    DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+            }
+        );
 }
 
 GeometryCache::~GeometryCache() {
@@ -1781,7 +1793,23 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
     return a.getRaw() == b.getRaw();
 }
 
-gpu::PipelinePointer GeometryCache::getPipeline(SimpleProgramKey config) {
+void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emissive, bool depthBiased) {
+    batch.setPipeline(getSimplePipeline(textured, culled, emissive, depthBiased));
+
+    // If not textured, set a default diffuse map
+    if (!textured) {
+        batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+            DependencyManager::get<TextureCache>()->getWhiteTexture());
+    }
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+}
+
+gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool culled, bool emissive, bool depthBiased) {
+    SimpleProgramKey config{textured, culled, emissive, depthBiased};
+
+    // Compile the shaders
     static std::once_flag once;
     std::call_once(once, [&]() {
         auto VS = gpu::Shader::createVertex(std::string(simple_vert));
@@ -1796,13 +1824,14 @@ gpu::PipelinePointer GeometryCache::getPipeline(SimpleProgramKey config) {
         gpu::Shader::makeProgram(*_simpleShader, slotBindings);
         gpu::Shader::makeProgram(*_emissiveShader, slotBindings);
     });
-    
-    
+
+    // If the pipeline already exists, return it
     auto it = _simplePrograms.find(config);
     if (it != _simplePrograms.end()) {
         return it.value();
     }
-    
+
+    // If the pipeline did not exist, make it
     auto state = std::make_shared<gpu::State>();
     if (config.isCulled()) {
         state->setCullMode(gpu::State::CULL_BACK);
@@ -1815,30 +1844,12 @@ gpu::PipelinePointer GeometryCache::getPipeline(SimpleProgramKey config) {
         state->setDepthBiasSlopeScale(1.0f);
     }
     state->setBlendFunction(false,
-                            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-                            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    
+        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
     gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);
     _simplePrograms.insert(config, pipeline);
-    return pipeline;
-}
-
-gpu::PipelinePointer GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled,
-                                                               bool emissive, bool depthBias) {
-    SimpleProgramKey config{textured, culled, emissive, depthBias};
-    gpu::PipelinePointer pipeline = getPipeline(config);
-    batch.setPipeline(pipeline);
-    
-    gpu::ShaderPointer program = (config.isEmissive()) ? _emissiveShader : _simpleShader;
-    
-    if (!config.isTextured()) {
-        // If it is not textured, bind white texture and keep using textured pipeline
-        batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
-    }
-    
-    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
-                             DependencyManager::get<TextureCache>()->getNormalFittingTexture());
     return pipeline;
 }
 
@@ -1853,30 +1864,30 @@ uint32_t toCompactColor(const glm::vec4& color) {
 static const size_t INSTANCE_COLOR_BUFFER = 0;
 
 template <typename F>
-void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color, F f) {
+void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline, F f) {
     {
         gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(name, INSTANCE_COLOR_BUFFER);
         auto compactColor = toCompactColor(color);
         instanceColorBuffer->append(compactColor);
     }
     
-    batch.setupNamedCalls(name, [f](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
+    batch.setupNamedCalls(name, [f, pipeline](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+        batch.setPipeline(pipeline->get(batch));
         f(batch, data);
     });
 }
 
-void GeometryCache::renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color) {
+void GeometryCache::renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderShapeInstances(batch, GeometryCache::Sphere, data.count(),
                                                                       data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
 
-void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color) {
+void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, GeometryCache::Sphere, data.count(),
                                                                           data.buffers[INSTANCE_COLOR_BUFFER]);
     });
@@ -1886,12 +1897,12 @@ void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4&
 // available shape types, both solid and wireframes
 //#define DEBUG_SHAPES
 
-void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color) {
+void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
     
 #ifdef DEBUG_SHAPES
     static auto startTime = usecTimestampNow();
-    renderInstances(INSTANCE_NAME, batch, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         
         auto usecs = usecTimestampNow();
         usecs -= startTime;
@@ -1924,18 +1935,17 @@ void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& 
         }
     });
 #else
-    renderInstances(INSTANCE_NAME, batch, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderCubeInstances(batch, data.count(),
                                                                      data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 #endif
 }
 
-void GeometryCache::renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color) {
+void GeometryCache::renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(INSTANCE_NAME, batch, color, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         DependencyManager::get<GeometryCache>()->renderWireCubeInstances(batch, data.count(),
                                                                          data.buffers[INSTANCE_COLOR_BUFFER]);
     });
 }
-

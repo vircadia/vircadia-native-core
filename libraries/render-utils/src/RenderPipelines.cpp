@@ -58,6 +58,15 @@ void initStencilPipeline(gpu::PipelinePointer& pipeline) {
     pipeline = gpu::Pipeline::create(program, state);
 }
 
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+    // Set a default diffuse map
+    batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+        DependencyManager::get<TextureCache>()->getWhiteTexture());
+    // Set a default normal map
+    batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
+        DependencyManager::get<TextureCache>()->getNormalFittingTexture());
+}
+
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
@@ -67,14 +76,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
     opaqueState->setDepthTest(false);
     opaqueState->setBlendFunction(false);
 
-    plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState);
-}
-
-void pipelineBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    if (pipeline.locations->normalFittingMapUnit > -1) {
-        batch.setResourceTexture(pipeline.locations->normalFittingMapUnit,
-            DependencyManager::get<TextureCache>()->getNormalFittingTexture());
-    }
+    plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState, &batchSetter);
 }
 
 void initDeferredPipelines(render::ShapePlumber& plumber) {
@@ -97,7 +99,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
         ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-        plumber.addPipeline(key, program, state, &pipelineBatchSetter);
+        plumber.addPipeline(key, program, state, &batchSetter);
 
         // Add a wireframe version
         if (!key.isWireFrame()) {
@@ -106,7 +108,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
 
             wireFrameState->setFillMode(gpu::State::FILL_LINE);
 
-            plumber.addPipeline(wireFrameKey, program, wireFrameState, &pipelineBatchSetter);
+            plumber.addPipeline(wireFrameKey, program, wireFrameState, &batchSetter);
         }
     };
 

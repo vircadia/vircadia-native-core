@@ -143,6 +143,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
         if (args->_pipeline) {
             item.render(args);
         }
+        args->_pipeline = nullptr;
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {

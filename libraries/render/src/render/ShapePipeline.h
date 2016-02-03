@@ -209,6 +209,10 @@ public:
     ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
         pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
 
+    // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be accessed manually,
+    // this method preps the pipeline with defaults set by its batchSetter and returns only the gpu::Pipeline.
+    gpu::PipelinePointer get(gpu::Batch& batch);
+
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
 
