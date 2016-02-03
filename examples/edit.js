@@ -23,7 +23,6 @@ Script.include([
 
     "libraries/ToolTip.js",
 
-    "libraries/entityPropertyDialogBox.js",
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
@@ -32,7 +31,6 @@ Script.include([
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
 
