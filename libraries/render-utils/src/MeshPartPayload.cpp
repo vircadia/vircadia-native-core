@@ -239,13 +239,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
 
-
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }
@@ -517,13 +510,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
         
-        
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-            
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }
