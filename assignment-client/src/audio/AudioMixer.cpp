@@ -553,15 +553,24 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     
     if (sendingNode->isAllowedEditor()) {
         qDebug() << "Received a mute environment packet of" << message->getSize() << "bytes";
-        
-        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, message->getSize());
-        // Copy payload
-        newPacket->write(message->getRawMessage(), message->getSize());
+
+        glm::vec3 position;
+        float radius;
+
+        auto newPacket = NLPacket::create(PacketType::MuteEnvironment, sizeof(position) + sizeof(radius));
+
+        // read the position and radius from the sent packet
+        message->readPrimitive(&position);
+        message->readPrimitive(&radius);
+
+        // write them to our packet
+        newPacket->writePrimitive(position);
+        newPacket->writePrimitive(radius);
 
         nodeList->eachNode([&](const SharedNodePointer& node){
             if (node->getType() == NodeType::Agent && node->getActiveSocket() &&
                 node->getLinkedData() && node != sendingNode) {
-                nodeList->sendPacket(std::move(newPacket), *node);
+                nodeList->sendUnreliablePacket(*newPacket, *node);
             }
         });
     }
