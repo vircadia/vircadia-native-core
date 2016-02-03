@@ -126,7 +126,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     auto density = propertiesWithSimID.getDensity();
     auto newVelocity = propertiesWithSimID.getVelocity().length();
     double cost = calculateCost(density*volume, 0, newVelocity);
-    cost *= ENTITY_MANIPULATION_MULTIPLIER; //try this as a constant for now
+    cost *= costMultiplier;
     
     if(cost > _currentAvatarEnergy) {
         return QUuid();
@@ -231,7 +231,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     auto density = properties.getDensity();
     auto newVelocity = properties.getVelocity().length();
     double cost = calculateCost(density*volume, 0, newVelocity);
-    cost *= ENTITY_MANIPULATION_MULTIPLIER;
+    cost *= costMultiplier;
     
     if(cost > _currentAvatarEnergy) {
         return QUuid();
@@ -351,7 +351,7 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 auto density = entity->getDensity();
                 auto velocity = entity->getVelocity().length();
                 double cost = calculateCost(density*volume, velocity, 0);
-                cost *= ENTITY_MANIPULATION_MULTIPLIER;
+                cost *= costMultiplier;
                 
                 if(cost > _currentAvatarEnergy) {
                     return;
@@ -1037,15 +1037,19 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     return result;
 }
 
-void EntityScriptingInterface::addCostFunction(QScriptValue costFunction) {
-    _costFunction = &costFunction;
-}
-
-double EntityScriptingInterface::calculateCost(float mass, float oldVelocity,float newVelocity) {
+float EntityScriptingInterface::calculateCost(float mass, float oldVelocity,float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }
 
 void EntityScriptingInterface::setCurrentAvatarEnergy(float energy) {
   //  qCDebug(entities) << "NEW AVATAR ENERGY IN ENTITY SCRIPTING INTERFACE: " << energy;
     _currentAvatarEnergy = energy;
+}
+
+float EntityScriptingInterface::getCostMultiplier() {
+    return costMultiplier;
+}
+
+void EntityScriptingInterface::setCostMultiplier(float value) {
+    costMultiplier = value;
 }

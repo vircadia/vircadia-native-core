@@ -56,11 +56,7 @@ function energyChanged(newValue) {
 function debitAvatarEnergy(value) {
    MyAvatar.energy = MyAvatar.energy - value;
 }
-function calculateCost(mass, oldVelocity, newVelocity) {
-	return mass * (newVelocity - oldVelocity);
-}
-
-Entities.addCostFunction(calculateCost);
+Entities.costMultiplier = 0.002;
 Entities.debitEnergySource.connect(debitAvatarEnergy);
 MyAvatar.energyChanged.connect(energyChanged);
 Script.update.connect(update);
