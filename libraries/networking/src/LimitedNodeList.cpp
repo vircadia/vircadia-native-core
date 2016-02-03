@@ -52,7 +52,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer(),
-    _thisNodeCanAdjustLocks(false),
     _thisNodeCanRez(true)
 {
     static bool firstCall = true;
@@ -131,10 +130,10 @@ void LimitedNodeList::setSessionUUID(const QUuid& sessionUUID) {
     }
 }
 
-void LimitedNodeList::setThisNodeCanAdjustLocks(bool canAdjustLocks) {
-    if (_thisNodeCanAdjustLocks != canAdjustLocks) {
-        _thisNodeCanAdjustLocks = canAdjustLocks;
-        emit canAdjustLocksChanged(canAdjustLocks);
+void LimitedNodeList::setIsAllowedEditor(bool isAllowedEditor) {
+    if (_isAllowedEditor != isAllowedEditor) {
+        _isAllowedEditor = isAllowedEditor;
+        emit isAllowedEditorChanged(isAllowedEditor);
     }
 }
 
@@ -515,7 +514,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   bool canAdjustLocks, bool canRez,
+                                                   bool isAllowedEditor, bool canRez,
                                                    const QUuid& connectionSecret) {
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
@@ -524,14 +523,14 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
-        matchingNode->setCanAdjustLocks(canAdjustLocks);
+        matchingNode->setIsAllowedEditor(isAllowedEditor);
         matchingNode->setCanRez(canRez);
         matchingNode->setConnectionSecret(connectionSecret);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, canAdjustLocks, canRez, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, isAllowedEditor, canRez, connectionSecret, this);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);

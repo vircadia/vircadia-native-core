@@ -40,6 +40,7 @@ public:
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const std::vector<IKTarget>& targets);
+    int solveTargetWithCCD(const IKTarget& target, AnimPoseVec& absolutePoses);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
 
     // for AnimDebugDraw rendering

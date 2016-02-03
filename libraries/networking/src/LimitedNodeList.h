@@ -104,8 +104,8 @@ public:
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
 
-    bool getThisNodeCanAdjustLocks() const { return _thisNodeCanAdjustLocks; }
-    void setThisNodeCanAdjustLocks(bool canAdjustLocks);
+    bool isAllowedEditor() const { return _isAllowedEditor; }
+    void setIsAllowedEditor(bool isAllowedEditor);
 
     bool getThisNodeCanRez() const { return _thisNodeCanRez; }
     void setThisNodeCanRez(bool canRez);
@@ -137,7 +137,7 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      bool canAdjustLocks = false, bool canRez = false,
+                                      bool isAllowedEditor = false, bool canRez = false,
                                       const QUuid& connectionSecret = QUuid());
 
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
@@ -244,7 +244,7 @@ signals:
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 
-    void canAdjustLocksChanged(bool canAdjustLocks);
+    void isAllowedEditorChanged(bool isAllowedEditor);
     void canRezChanged(bool canRez);
 
 protected:
@@ -289,7 +289,7 @@ protected:
     int _numCollectedBytes;
 
     QElapsedTimer _packetStatTimer;
-    bool _thisNodeCanAdjustLocks;
+    bool _isAllowedEditor { false };
     bool _thisNodeCanRez;
 
     QPointer<QTimer> _initialSTUNTimer;

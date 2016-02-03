@@ -139,7 +139,7 @@
             this.hand = 'right';
         },
 
-        startNearGrab: function() {
+        startEquip: function() {
 
             print('START BOW GRAB')
             if (this.isGrabbed === true) {
@@ -159,7 +159,7 @@
             setEntityCustomData('grabbableKey', this.entityID, data);
 
         },
-        continueNearGrab: function() {
+        continueEquip: function() {
             this.deltaTime = checkInterval();
 
             //debounce during debugging -- maybe we're updating too fast?

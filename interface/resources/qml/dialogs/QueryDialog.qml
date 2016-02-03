@@ -16,9 +16,17 @@ ModalWindow {
     signal selected(var result);
     signal canceled();
 
-    property alias result: textResult.text
+    property var items;
+    property alias label: mainTextContainer.text
+    property var result;
+    // FIXME not current honored
+    property var current;
+
+    // For text boxes
     property alias placeholderText: textResult.placeholderText
-    property alias text: mainTextContainer.text
+
+    // For combo boxes
+    property bool editable: true;
 
     Rectangle {
         clip: true
@@ -55,10 +63,20 @@ ModalWindow {
             anchors { top: mainTextContainer.bottom; bottom: buttons.top; left: parent.left; right: parent.right; margins: d.spacing }
             // FIXME make a text field type that can be bound to a history for autocompletion
             TextField {
-                focus: true
                 id: textResult
+                focus: items ? false : true
+                visible: items ? false : true
                 anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
             }
+
+            VrControls.ComboBox {
+                id: comboBox
+                focus: true
+                visible: items ? true : false
+                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+                model: items ? items : []
+            }
+
         }
 
         Flow {
@@ -86,6 +104,7 @@ ModalWindow {
             text: qsTr("OK")
             shortcut: Qt.Key_Return
             onTriggered: {
+                root.result = items ? comboBox.currentText : textResult.text
                 root.selected(root.result);
                 root.destroy();
             }

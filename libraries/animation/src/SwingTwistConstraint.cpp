@@ -123,7 +123,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
 
         // sort limits by theta
         std::sort(limits.begin(), limits.end());
-    
+
         // extrapolate evenly distributed limits for fast lookup table
         float deltaTheta = TWO_PI / (float)(numLimits);
         uint32_t rightIndex = 0;
@@ -219,7 +219,7 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
     } else {
         _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
     }
-    
+
     // clamp the swing
     // The swingAxis is always perpendicular to the reference axis (yAxis in the constraint's frame).
     glm::vec3 swungY = swingRotation * yAxis;
@@ -232,7 +232,7 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
         float theta = atan2f(-swingAxis.z, swingAxis.x);
         float minDot = _swingLimitFunction.getMinDot(theta);
         if (glm::dot(swungY, yAxis) < minDot) {
-            // The swing limits are violated so we extract the angle from midDot and 
+            // The swing limits are violated so we extract the angle from midDot and
             // use it to supply a new rotation.
             swingAxis /= axisLength;
             swingRotation = glm::angleAxis(acosf(minDot), swingAxis);

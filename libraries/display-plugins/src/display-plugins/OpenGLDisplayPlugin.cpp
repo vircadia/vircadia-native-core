@@ -351,8 +351,12 @@ float OpenGLDisplayPlugin::presentRate() {
 }
 
 void OpenGLDisplayPlugin::drawUnitQuad() {
-    _program->Bind();
-    _plane->Draw();
+    try {
+        _program->Bind();
+        _plane->Draw();
+    } catch (const oglplus::Error& error) {
+        qWarning() << "The present thread encountered an error writing the scene texture to the output: " << error.what();
+    }
 }
 
 void OpenGLDisplayPlugin::enableVsync(bool enable) {

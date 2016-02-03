@@ -124,7 +124,6 @@ class QTestWindow : public QWindow {
     glm::mat4 _projectionMatrix;
     RateCounter fps;
     QTime _time;
-    int _instanceLocation{ -1 };
 
 protected:
     void renderText();
@@ -164,7 +163,6 @@ public:
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
         _pipeline = gpu::Pipeline::create(shader, state);
-        _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
         
         // Clear screen
         gpu::Batch batch;
@@ -218,16 +216,16 @@ public:
             static const std::string GRID_INSTANCE = "Grid";
             static auto compactColor1 = toCompactColor(vec4{ 0.35f, 0.25f, 0.15f, 1.0f });
             static auto compactColor2 = toCompactColor(vec4{ 0.15f, 0.25f, 0.35f, 1.0f });
-            static gpu::BufferPointer transformBuffer; 
+            static std::vector<glm::mat4> transforms;
             static gpu::BufferPointer colorBuffer;
-            if (!transformBuffer) {
-                transformBuffer = std::make_shared<gpu::Buffer>();
+            if (!transforms.empty()) {
+                transforms.reserve(200);
                 colorBuffer = std::make_shared<gpu::Buffer>();
                 for (int i = 0; i < 100; ++i) {
                     {
                         glm::mat4 transform = glm::translate(mat4(), vec3(0, -1, -50 + i));
                         transform = glm::scale(transform, vec3(100, 1, 1));
-                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
                         colorBuffer->append(compactColor1);
                     }
 
@@ -235,20 +233,20 @@ public:
                         glm::mat4 transform = glm::mat4_cast(quat(vec3(0, PI / 2.0f, 0)));
                         transform = glm::translate(transform, vec3(0, -1, -50 + i));
                         transform = glm::scale(transform, vec3(100, 1, 1));
-                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
                         colorBuffer->append(compactColor2);
                     }
                 }
             }
-            
-            batch.setupNamedCalls(GRID_INSTANCE, 200, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-                batch.setViewTransform(camera);
-                batch.setModelTransform(Transform());
-                batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
-                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count, transformBuffer, colorBuffer);
-                batch._glUniform1i(_instanceLocation, 0);
-            });
+
+            for (auto& transform : transforms) {
+                batch.setModelTransform(transform);
+                batch.setupNamedCalls(GRID_INSTANCE, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+                    batch.setViewTransform(camera);
+                    batch.setPipeline(_pipeline);
+                    geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count(), colorBuffer);
+                });
+            }
         }
 
         {
@@ -316,14 +314,11 @@ public:
                 batch.setViewTransform(camera);
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
                 batch.setInputFormat(getInstancedSolidStreamFormat());
                 batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-                batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
                 batch.setIndirectBuffer(indirectBuffer);
                 shapeData.setupBatch(batch);
                 batch.multiDrawIndexedIndirect(TYPE_COUNT, gpu::TRIANGLES);
-                batch._glUniform1i(_instanceLocation, 0);
             }
 #else
             batch.setViewTransform(camera);

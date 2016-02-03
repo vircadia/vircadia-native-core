@@ -25,7 +25,7 @@ Item {
         id: debugZ
         visible: DebugQML
         text: window ? "Z: " + window.z : ""
-        y: -height
+        y: window ? window.height + 4 : 0
     }
 
     function deltaSize(dx, dy) {

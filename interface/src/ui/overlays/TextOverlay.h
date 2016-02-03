@@ -30,7 +30,7 @@ public:
     void setText(const QString& text);
 
 
-    TextOverlay* createClone() const;
+    TextOverlay* createClone() const override;
     QSizeF textSize(const QString& text) const;  // Pixels
 };
 

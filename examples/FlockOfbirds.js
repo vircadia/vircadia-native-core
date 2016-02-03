@@ -12,7 +12,7 @@
 
 //  The rectangular area in the domain where the flock will fly
 var lowerCorner = { x: 0, y: 0, z: 0 };
-var upperCorner = { x: 10, y: 10, z: 10  };
+var upperCorner = { x: 30, y: 10, z: 30  };
 var STARTING_FRACTION = 0.25;   
 
 var NUM_BIRDS = 50;
@@ -36,7 +36,7 @@ var ALIGNMENT_FORCE = 1.5;
 var COHESION_FORCE = 1.0;
 var MAX_COHESION_VELOCITY = 0.5;
 
-var followBirds = true; 
+var followBirds = false; 
 var AVATAR_FOLLOW_RATE = 0.001;
 var AVATAR_FOLLOW_VELOCITY_TIMESCALE = 2.0;
 var AVATAR_FOLLOW_ORIENTATION_RATE = 0.005;

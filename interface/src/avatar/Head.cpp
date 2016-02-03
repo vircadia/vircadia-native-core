@@ -467,5 +467,6 @@ void Head::renderLookatTarget(RenderArgs* renderArgs, glm::vec3 lookatPosition) 
     const float LOOK_AT_TARGET_RADIUS = 0.075f;
     transform.postScale(LOOK_AT_TARGET_RADIUS);
     const glm::vec4 LOOK_AT_TARGET_COLOR = { 0.8f, 0.0f, 0.0f, 0.75f };
-    geometryCache->renderSolidSphereInstance(batch, transform, LOOK_AT_TARGET_COLOR);
+    batch.setModelTransform(transform);
+    geometryCache->renderSolidSphereInstance(batch, LOOK_AT_TARGET_COLOR);
 }
