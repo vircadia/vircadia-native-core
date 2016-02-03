@@ -3,6 +3,7 @@ import QtQuick.Controls 1.4
 import Qt.labs.folderlistmodel 2.1
 import Qt.labs.settings 1.0
 import QtQuick.Controls.Styles 1.4
+import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import ".."
 import "../windows"
@@ -39,7 +40,6 @@ ModalWindow {
     property bool showHidden: false;
     // FIXME implement
     property bool multiSelect: false;
-    // FIXME implement
     property bool saveDialog: false;
     property var helper: fileDialogHelper
     property alias model: fileTableView.model
@@ -124,6 +124,8 @@ ModalWindow {
                 currentSelectionIsFolder = fileTableView.model.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = helper.urlToPath(currentSelectionUrl);
+                } else {
+                    currentSelection.text = ""
                 }
             }
 
@@ -175,8 +177,7 @@ ModalWindow {
                 if (isFolder) {
                     fileTableView.model.folder = file
                 } else {
-                    root.selectedFile(file);
-                    root.destroy();
+                    okAction.trigger();
                 }
             }
         }
@@ -185,8 +186,10 @@ ModalWindow {
             id: currentSelection
             style:  TextFieldStyle { renderType: Text.QtRendering }
             anchors { right: root.selectDirectory ? parent.right : selectionType.left; rightMargin: 8; left: parent.left; leftMargin: 8; top: selectionType.top }
-            readOnly: true
-            activeFocusOnTab: false
+            readOnly: !root.saveDialog
+            activeFocusOnTab: !readOnly
+            onActiveFocusChanged: if (activeFocus) { selectAll(); }
+            onAccepted: okAction.trigger();
         }
 
         FileTypeSelection {
@@ -206,24 +209,81 @@ ModalWindow {
             spacing: 8
             Button {
                 id: openButton
-                text: root.selectDirectory ? "Choose" : "Open"
-                enabled: currentSelection.text ? true : false
-                onClicked: { selectedFile(d.currentSelectionUrl); root.visible = false; }
-                Keys.onReturnPressed: { selectedFile(d.currentSelectionUrl); root.visible = false; }
-
+                action: okAction
+                Keys.onReturnPressed: okAction.trigger()
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
                 KeyNavigation.right: cancelButton
             }
             Button {
                 id: cancelButton
-                text: "Cancel"
+                action: cancelAction
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: openButton
                 KeyNavigation.right: fileTableView.contentItem
                 Keys.onReturnPressed: { canceled(); root.enabled = false }
-                onClicked: { canceled(); root.visible = false; }
             }
+        }
+
+        Action {
+            id: okAction
+            text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
+            enabled: currentSelection.text ? true : false
+            onTriggered: {
+               if (root.saveDialog) {
+                   // Handle the ambiguity between different cases
+                   // * typed name (with or without extension)
+                   // * full path vs relative vs filename only
+                   var selection = helper.saveHelper(currentSelection.text, root.dir, selectionType.currentFilter);
+
+                   if (!selection) {
+                       desktop.messageBox({ icon: OriginalDialogs.StandardIcon.Warning, text: "Unable to parse selection" })
+                       return;
+                   }
+
+                   if (helper.urlIsDir(selection)) {
+                       root.dir = selection;
+                       currentSelection.text = "";
+                       return;
+                   }
+
+                   // Check if the file is a valid target
+                   if (!helper.urlIsWritable(selection)) {
+                       desktop.messageBox({
+                                              icon: OriginalDialogs.StandardIcon.Warning,
+                                              buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                              text: "Unable to write to location " + selection
+                                          })
+                       return;
+                   }
+
+                   if (helper.urlExists(selection)) {
+                       var messageBox = desktop.messageBox({
+                                                               icon: OriginalDialogs.StandardIcon.Question,
+                                                               buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                                               text: "Do you wish to overwrite " + selection + "?",
+                                                           });
+                       var result = messageBox.exec();
+                       if (OriginalDialogs.StandardButton.Yes !== result) {
+                           return;
+                       }
+                   }
+
+                   selectedFile(d.currentSelectionUrl);
+                   root.destroy()
+               } else {
+                   selectedFile(d.currentSelectionUrl);
+                   root.destroy()
+               }
+
+            }
+
+        }
+
+        Action {
+            id: cancelAction
+            text: "Cancel"
+            onTriggered: { canceled(); root.visible = false; }
         }
     }
 
