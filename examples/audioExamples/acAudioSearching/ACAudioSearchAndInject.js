@@ -34,13 +34,15 @@ Entities.setPacketsPerSecond(6000);
 var DEFAULT_SOUND_DATA = {
     volume: 0.5,
     loop: false,
-    interval: -1 // An interval of -1 means this sound only plays once (if it's non-looping)
+    interval: -1, // An interval of -1 means this sound only plays once (if it's non-looping) (In seconds)
+    intervalSpread: 0 // amount of randomness to add to the interval
 };
+var MIN_INTERVAL = 0.2;
 
 print("EBL STARTING AC SCRIPT");
 
 function messageReceived(channel, message, sender) {
-    
+
     print("EBL RECEIVED A MESSAGE FROM ENTITY: " + message);
     var entityID = JSON.parse(message).id;
     if (soundEntityMap[entityID]) {
@@ -57,10 +59,15 @@ function messageReceived(channel, message, sender) {
             volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
             loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
             interval: soundData.interval || DEFAULT_SOUND_DATA.interval,
+            intervalSpread: soundData.intervalSpread || DEFAULT_SOUND_DATA.intervalSpread,
             readyToPlay: true,
             position: Entities.getEntityProperties(entityID, "position").position,
             timeSinceLastPlay: 0
         };
+        if (soundProperties.interval !== -1) {
+            soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
+            soundProperties.currentInterval = Math.max(MIN_INTERVAL, soundProperties.currentInterval);
+        }
         if (!soundUrls[soundData.url]) {
             // We need to download sound before we add it to our map
             var sound = SoundCache.getSound(soundData.url);
@@ -81,7 +88,7 @@ function messageReceived(channel, message, sender) {
 function update(deltaTime) {
     // Go through each sound and play it if it needs to be played
     for (var potentialEntity in soundEntityMap) {
-        if(!soundEntityMap.hasOwnProperty(potentialEntity)) {
+        if (!soundEntityMap.hasOwnProperty(potentialEntity)) {
             // The current property is not a direct propert of soundEntityMap
             continue;
         }
@@ -93,16 +100,19 @@ function update(deltaTime) {
                 volume: soundProperties.volume,
                 position: soundProperties.position,
                 loop: soundProperties.loop
-            });       
-            soundProperties.readyToPlay = false;         
-        } else if(soundProperties.loop === false && soundProperties.interval !==-1) {
+            });
+            soundProperties.readyToPlay = false;
+        } else if (soundProperties.loop === false && soundProperties.interval !== -1) {
             // We need to check all of our entities that are not looping but have an interval associated with them
             // to see if it's time for them to play again
             soundProperties.timeSinceLastPlay += deltaTime;
-            if (soundProperties.timeSinceLastPlay > soundProperties.interval) {
-                print ("EBL TIME TO PLAY AGAIN!");
+            if (soundProperties.timeSinceLastPlay > soundProperties.currentInterval) {
+                print("EBL TIME TO PLAY AGAIN!");
                 soundProperties.readyToPlay = true;
                 soundProperties.timeSinceLastPlay = 0;
+                // Now lets get our next current interval
+                soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
+                soundProperties.currentInterval = Math.max(MIN_INTERVAL, soundProperties.currentInterval);
             }
 
         }
