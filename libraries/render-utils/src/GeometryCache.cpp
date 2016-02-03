@@ -477,6 +477,7 @@ void GeometryCache::buildShapes() {
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
     if (!SOLID_STREAM_FORMAT) {
+        const int VERTEX_NORMAL_OFFSET = POSITION_ELEMENT.getSize();
         SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
@@ -486,6 +487,7 @@ gpu::Stream::FormatPointer& getSolidStreamFormat() {
 
 gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     if (!INSTANCED_SOLID_STREAM_FORMAT) {
+        const int VERTEX_NORMAL_OFFSET = POSITION_ELEMENT.getSize();
         INSTANCED_SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
@@ -768,7 +770,9 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2;
+    const int FLOATS_PER_VERTEX = 2 + 3; // vertices + normals
+    const int NUM_POS_COORDS = 2;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
@@ -784,6 +788,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -803,9 +808,13 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
+    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     foreach (const glm::vec2& point, points) {
         *(vertex++) = point.x;
         *(vertex++) = point.y;
+        *(vertex++) = NORMAL.x;
+        *(vertex++) = NORMAL.y;
+        *(vertex++) = NORMAL.z;
         
         *(colorDataAt++) = compactColor;
     }
@@ -829,7 +838,9 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 3;
+    const int FLOATS_PER_VERTEX = 3 + 3; // vertices + normals
+    const int NUM_POS_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
@@ -845,6 +856,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+    details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -864,10 +876,14 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
+    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     foreach (const glm::vec3& point, points) {
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = point.z;
+        *(vertex++) = NORMAL.x;
+        *(vertex++) = NORMAL.y;
+        *(vertex++) = NORMAL.z;
         
         *(colorDataAt++) = compactColor;
     }
@@ -892,7 +908,11 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 5;
+    const int FLOATS_PER_VERTEX = 3 + 3 + 2; // vertices + normals + tex coords
+    const int NUM_POS_COORDS = 3;
+    const int NUM_NORMAL_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int VERTEX_TEX_OFFSET = VERTEX_NORMAL_OFFSET + NUM_NORMAL_COORDS * sizeof(float);
     details.isCreated = true;
     details.vertices = points.size();
     details.vertexSize = FLOATS_PER_VERTEX;
@@ -908,7 +928,8 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     details.stream = stream;
 
     details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), 3 * sizeof(float));
+    details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
+    details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEX_OFFSET);
     details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
     details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -930,12 +951,16 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     int* colorData = new int[details.vertices];
     int* colorDataAt = colorData;
 
+    const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     for (int i = 0; i < points.size(); i++) {
         glm::vec3 point = points[i];
         glm::vec2 texCoord = texCoords[i];
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = point.z;
+        *(vertex++) = NORMAL.x;
+        *(vertex++) = NORMAL.y;
+        *(vertex++) = NORMAL.z;
         *(vertex++) = texCoord.x;
         *(vertex++) = texCoord.y;
 
@@ -1085,8 +1110,10 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2; // vertices
+    const int FLOATS_PER_VERTEX = 2 + 3; // vertices + normals
     const int VERTICES = 4; // 1 quad = 4 vertices
+    const int NUM_POS_COORDS = 2;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
@@ -1105,17 +1132,19 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
+        const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
         float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
-                            minCorner.x, minCorner.y,
-                            maxCorner.x, minCorner.y,
-                            minCorner.x, maxCorner.y,
-                            maxCorner.x, maxCorner.y,
+            minCorner.x, minCorner.y, NORMAL.x, NORMAL.y, NORMAL.z,
+            maxCorner.x, minCorner.y, NORMAL.x, NORMAL.y, NORMAL.z,
+            minCorner.x, maxCorner.y, NORMAL.x, NORMAL.y, NORMAL.z,
+            maxCorner.x, maxCorner.y, NORMAL.x, NORMAL.y, NORMAL.z,
         };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
@@ -1170,10 +1199,12 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 2 * 2; // text coords & vertices
+    const int FLOATS_PER_VERTEX = 2 + 3 + 2; // vertices + normals + tex coords
     const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 2;
-    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int NUM_NORMAL_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int VERTEX_TEXCOORD_OFFSET = VERTEX_NORMAL_OFFSET + NUM_NORMAL_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
@@ -1193,7 +1224,9 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.streamFormat = streamFormat;
         details.stream = stream;
     
+        // zzmp: fix the normal across all renderQuad
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
@@ -1201,11 +1234,12 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec2& minCorner, co
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
+        const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
         float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
-                                                        minCorner.x, minCorner.y, texCoordMinCorner.x, texCoordMinCorner.y,
-                                                        maxCorner.x, minCorner.y, texCoordMaxCorner.x, texCoordMinCorner.y,
-                                                        minCorner.x, maxCorner.y, texCoordMinCorner.x, texCoordMaxCorner.y,
-                                                        maxCorner.x, maxCorner.y, texCoordMaxCorner.x, texCoordMaxCorner.y,
+            minCorner.x, minCorner.y, NORMAL.x, NORMAL.y, NORMAL.z, texCoordMinCorner.x, texCoordMinCorner.y,
+            maxCorner.x, minCorner.y, NORMAL.x, NORMAL.y, NORMAL.z, texCoordMaxCorner.x, texCoordMinCorner.y,
+            minCorner.x, maxCorner.y, NORMAL.x, NORMAL.y, NORMAL.z, texCoordMinCorner.x, texCoordMaxCorner.y,
+            maxCorner.x, maxCorner.y, NORMAL.x, NORMAL.y, NORMAL.z, texCoordMaxCorner.x, texCoordMaxCorner.y,
         };
 
 
@@ -1247,8 +1281,10 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 3; // vertices
+    const int FLOATS_PER_VERTEX = 3 + 3; // vertices + normals
     const int VERTICES = 4; // 1 quad = 4 vertices
+    const int NUM_POS_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
 
     if (!details.isCreated) {
 
@@ -1269,17 +1305,19 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& minCorner, co
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
+        const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
         float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {    
-                            minCorner.x, minCorner.y, minCorner.z,
-                            maxCorner.x, minCorner.y, minCorner.z,
-                            minCorner.x, maxCorner.y, maxCorner.z,
-                            maxCorner.x, maxCorner.y, maxCorner.z,
+            minCorner.x, minCorner.y, minCorner.z, NORMAL.x, NORMAL.y, NORMAL.z,
+            maxCorner.x, minCorner.y, minCorner.z, NORMAL.x, NORMAL.y, NORMAL.z,
+            minCorner.x, maxCorner.y, maxCorner.z, NORMAL.x, NORMAL.y, NORMAL.z,
+            maxCorner.x, maxCorner.y, maxCorner.z, NORMAL.x, NORMAL.y, NORMAL.z,
         };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
@@ -1339,10 +1377,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 3 + 2; // 3d vertices + text coords
+    const int FLOATS_PER_VERTEX = 3 + 3 + 2; // vertices + normals + tex coords
     const int VERTICES = 4; // 1 quad = 4 vertices
     const int NUM_POS_COORDS = 3;
-    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int NUM_NORMAL_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
+    const int VERTEX_TEXCOORD_OFFSET = VERTEX_NORMAL_OFFSET + NUM_NORMAL_COORDS * sizeof(float);
+
 
     if (!details.isCreated) {
 
@@ -1361,6 +1402,7 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
@@ -1368,12 +1410,13 @@ void GeometryCache::renderQuad(gpu::Batch& batch, const glm::vec3& topLeft, cons
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
 
+        const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
         float vertexBuffer[VERTICES * FLOATS_PER_VERTEX] = {
-                                bottomLeft.x, bottomLeft.y, bottomLeft.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
-                                bottomRight.x, bottomRight.y, bottomRight.z, texCoordBottomRight.x, texCoordBottomRight.y,
-                                topLeft.x, topLeft.y, topLeft.z, texCoordTopLeft.x, texCoordTopLeft.y,
-                                topRight.x, topRight.y, topRight.z, texCoordTopRight.x, texCoordTopRight.y,
-                            };
+            bottomLeft.x, bottomLeft.y, bottomLeft.z, NORMAL.x, NORMAL.y, NORMAL.z, texCoordBottomLeft.x, texCoordBottomLeft.y,
+            bottomRight.x, bottomRight.y, bottomRight.z, NORMAL.x, NORMAL.y, NORMAL.z, texCoordBottomRight.x, texCoordBottomRight.y,
+            topLeft.x, topLeft.y, topLeft.z, NORMAL.x, NORMAL.y, NORMAL.z, texCoordTopLeft.x, texCoordTopLeft.y,
+            topRight.x, topRight.y, topRight.z, NORMAL.x, NORMAL.y, NORMAL.z, texCoordTopRight.x, texCoordTopRight.y,
+        };
 
         const int NUM_COLOR_SCALARS_PER_QUAD = 4;
         int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
@@ -1426,7 +1469,9 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * dash_length;
         glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * gap_length;
 
-        const int FLOATS_PER_VERTEX = 3;
+        const int FLOATS_PER_VERTEX = 3 + 3; // vertices + normals
+        const int NUM_POS_COORDS = 3;
+        const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
         details.vertices = (segmentCountFloor + 1) * 2;
         details.vertexSize = FLOATS_PER_VERTEX;
         details.isCreated = true;
@@ -1442,6 +1487,7 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         details.stream = stream;
 
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
@@ -1453,10 +1499,14 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
         float* vertexData = new float[details.vertices * FLOATS_PER_VERTEX];
         float* vertex = vertexData;
 
+        const glm::vec3 NORMAL(1.0f, 0.0f, 0.0f);
         glm::vec3 point = start;
         *(vertex++) = point.x;
         *(vertex++) = point.y;
         *(vertex++) = point.z;
+        *(vertex++) = NORMAL.x;
+        *(vertex++) = NORMAL.y;
+        *(vertex++) = NORMAL.z;
         *(colorDataAt++) = compactColor;
 
         for (int i = 0; i < segmentCountFloor; i++) {
@@ -1464,17 +1514,26 @@ void GeometryCache::renderDashedLine(gpu::Batch& batch, const glm::vec3& start, 
             *(vertex++) = point.x;
             *(vertex++) = point.y;
             *(vertex++) = point.z;
+            *(vertex++) = NORMAL.x;
+            *(vertex++) = NORMAL.y;
+            *(vertex++) = NORMAL.z;
             *(colorDataAt++) = compactColor;
 
             point += gapVector;
             *(vertex++) = point.x;
             *(vertex++) = point.y;
             *(vertex++) = point.z;
+            *(vertex++) = NORMAL.x;
+            *(vertex++) = NORMAL.y;
+            *(vertex++) = NORMAL.z;
             *(colorDataAt++) = compactColor;
         }
         *(vertex++) = end.x;
         *(vertex++) = end.y;
         *(vertex++) = end.z;
+        *(vertex++) = NORMAL.x;
+        *(vertex++) = NORMAL.y;
+        *(vertex++) = NORMAL.z;
         *(colorDataAt++) = compactColor;
 
         details.verticesBuffer->append(sizeof(float) * FLOATS_PER_VERTEX * details.vertices, (gpu::Byte*) vertexData);
@@ -1581,7 +1640,9 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
         #endif // def WANT_DEBUG
     }
 
-    const int FLOATS_PER_VERTEX = 3;
+    const int FLOATS_PER_VERTEX = 3 + 3; // vertices + normals
+    const int NUM_POS_COORDS = 3;
+    const int VERTEX_NORMAL_OFFSET = NUM_POS_COORDS * sizeof(float);
     const int vertices = 2;
     if (!details.isCreated) {
 
@@ -1600,13 +1661,16 @@ void GeometryCache::renderLine(gpu::Batch& batch, const glm::vec3& p1, const glm
         details.stream = stream;
     
         details.streamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
+        details.streamFormat->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), VERTEX_NORMAL_OFFSET);
         details.streamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
 
         details.stream->addBuffer(details.verticesBuffer, 0, details.streamFormat->getChannels().at(0)._stride);
         details.stream->addBuffer(details.colorBuffer, 0, details.streamFormat->getChannels().at(1)._stride);
 
-
-        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = { p1.x, p1.y, p1.z, p2.x, p2.y, p2.z };
+        const glm::vec3 NORMAL(1.0f, 0.0f, 0.0f);
+        float vertexBuffer[vertices * FLOATS_PER_VERTEX] = {
+            p1.x, p1.y, p1.z, NORMAL.x, NORMAL.y, NORMAL.z,
+            p2.x, p2.y, p2.z, NORMAL.x, NORMAL.y, NORMAL.z};
 
         const int NUM_COLOR_SCALARS = 2;
         int colors[NUM_COLOR_SCALARS] = { compactColor1, compactColor2 };
