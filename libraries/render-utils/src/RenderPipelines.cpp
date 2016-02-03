@@ -43,19 +43,7 @@
 
 using namespace render;
 
-void initOverlay3DPipelines(ShapePlumber& plumber) {
-    auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
-    auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
-    auto program = gpu::Shader::createProgram(vs, ps);
-
-    auto opaqueState = std::make_shared<gpu::State>();
-    opaqueState->setDepthTest(false);
-    opaqueState->setBlendFunction(false);
-
-    plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState);
-}
-
-void initStencilPipelines(ShapePlumber& plumber) {
+void initStencilPipeline(gpu::PipelinePointer& pipeline) {
     const gpu::int8 STENCIL_OPAQUE = 1;
     auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
     auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
@@ -67,7 +55,19 @@ void initStencilPipelines(ShapePlumber& plumber) {
     state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE));
     state->setColorWriteMask(0);
 
-    plumber.addPipeline(ShapeKey::Filter::Builder(), program, state);
+    pipeline = gpu::Pipeline::create(program, state);
+}
+
+void initOverlay3DPipelines(ShapePlumber& plumber) {
+    auto vs = gpu::Shader::createVertex(std::string(overlay3D_vert));
+    auto ps = gpu::Shader::createPixel(std::string(overlay3D_frag));
+    auto program = gpu::Shader::createProgram(vs, ps);
+
+    auto opaqueState = std::make_shared<gpu::State>();
+    opaqueState->setDepthTest(false);
+    opaqueState->setBlendFunction(false);
+
+    plumber.addPipeline(ShapeKey::Filter::Builder().withOpaque(), program, opaqueState);
 }
 
 void pipelineBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {

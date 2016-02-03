@@ -32,8 +32,8 @@
 
 using namespace render;
 
+extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
-extern void initStencilPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -217,8 +217,12 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
     }
 }
 
-DrawStencilDeferred::DrawStencilDeferred() : _shapePlumber{ std::make_shared<ShapePlumber>() } {
-    initStencilPipelines(*_shapePlumber);
+gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
+const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
+    if (!_opaquePipeline) {
+        initStencilPipeline(_opaquePipeline);
+    }
+    return _opaquePipeline;
 }
 
 void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -238,12 +242,11 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
-        // We only need to fetch this once
-        static const auto& pipeline = _shapePlumber->pickPipeline(args, ShapeKey());
+        batch.setPipeline(getOpaquePipeline());
 
-        batch.setPipeline(pipeline->pipeline);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
         batch.setResourceTexture(0, nullptr);
+
     });
     args->_batch = nullptr;
 }
