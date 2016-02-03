@@ -36,6 +36,7 @@ public:
     void setEndFrameVar(const QString& endFrameVar) { _endFrameVar = endFrameVar; }
     void setTimeScaleVar(const QString& timeScaleVar) { _timeScaleVar = timeScaleVar; }
     void setLoopFlagVar(const QString& loopFlagVar) { _loopFlagVar = loopFlagVar; }
+    void setMirrorFlagVar(const QString& mirrorFlagVar) { _mirrorFlagVar = mirrorFlagVar; }
     void setFrameVar(const QString& frameVar) { _frameVar = frameVar; }
 
     float getStartFrame() const { return _startFrame; }
@@ -82,6 +83,7 @@ protected:
     QString _endFrameVar;
     QString _timeScaleVar;
     QString _loopFlagVar;
+    QString _mirrorFlagVar;
     QString _frameVar;
 
     // no copies

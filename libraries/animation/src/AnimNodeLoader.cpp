@@ -236,6 +236,7 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_OPTIONAL_STRING(endFrameVar, jsonObj);
     READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
+    READ_OPTIONAL_STRING(mirrorFlagVar, jsonObj);
 
     auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
@@ -250,6 +251,9 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     }
     if (!loopFlagVar.isEmpty()) {
         node->setLoopFlagVar(loopFlagVar);
+    }
+    if (!mirrorFlagVar.isEmpty()) {
+        node->setMirrorFlagVar(mirrorFlagVar);
     }
 
     return node;
