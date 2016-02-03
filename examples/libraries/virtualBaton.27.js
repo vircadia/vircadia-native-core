@@ -86,9 +86,7 @@ virtualBaton = function virtualBaton(options) {
         if (!claimCallback) { return; } // We're not participating.
         nPromises = 0;
         nQuorum = Math.floor(AvatarList.getAvatarIdentifiers().length / 2) + 1;  // N.B.: ASSUMES EVERY USER IS RUNNING THE SCRIPT!
-        bestPromise.proposerId = MyAvatar.sessionUUID;
-        bestPromise.number++;
-        bestPromise.winner = claim;
+        bestPromise = {number: ++bestPromise.number, proposerId: MyAvatar.sessionUUID, winner: claim};
         send('prepare!', bestPromise);
         function reclaim() { propose(claim); }
         electionWatchdog = Script.setTimeout(reclaim, electionTimeout);
