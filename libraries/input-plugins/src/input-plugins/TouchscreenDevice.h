@@ -31,7 +31,7 @@ public:
 
 	enum TouchGestureAxisChannel {
         TOUCH_GESTURE_PINCH_POS = TOUCH_AXIS_Y_NEG + 1,
-		TOUCH_GESTURE_PINCH_NEG,
+        TOUCH_GESTURE_PINCH_NEG,
 	};
 
     // Plugin functions
@@ -45,7 +45,7 @@ public:
     void touchBeginEvent(const QTouchEvent* event);
     void touchEndEvent(const QTouchEvent* event);
     void touchUpdateEvent(const QTouchEvent* event);
-	void touchGestureEvent(const QGestureEvent* event);
+    void touchGestureEvent(const QGestureEvent* event);
     
     static const QString NAME;
 
@@ -62,7 +62,7 @@ protected:
         virtual void focusOutEvent() override;
 
         controller::Input makeInput(TouchAxisChannel axis) const;
-		controller::Input makeInput(TouchGestureAxisChannel gesture) const;
+        controller::Input makeInput(TouchGestureAxisChannel gesture) const;
 
         friend class TouchscreenDevice;
     };

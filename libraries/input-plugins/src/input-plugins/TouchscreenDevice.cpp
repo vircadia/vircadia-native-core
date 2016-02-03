@@ -76,17 +76,16 @@ void TouchscreenDevice::touchUpdateEvent(const QTouchEvent* event) {
 }
 
 void TouchscreenDevice::touchGestureEvent(const QGestureEvent* event) {
-	// pinch gesture
-	if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
-		QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
-		qreal scaleFactor = pinch->totalScaleFactor();
-		if (scaleFactor > _lastPinchScale && scaleFactor != 0) {
-			_inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
-		} else if (scaleFactor != 0) {
-			_inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
-		}
-		_lastPinchScale = scaleFactor;
-	}
+    if (QGesture* gesture = event->gesture(Qt::PinchGesture)) {
+        QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
+        qreal scaleFactor = pinch->totalScaleFactor();
+        if (scaleFactor > _lastPinchScale && scaleFactor != 0) {
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_POS).getChannel()] = 1.0f;
+        } else if (scaleFactor != 0) {
+            _inputDevice->_axisStateMap[_inputDevice->makeInput(TOUCH_GESTURE_PINCH_NEG).getChannel()] = 1.0f;
+        }
+        _lastPinchScale = scaleFactor;
+    }
 }
 
 controller::Input TouchscreenDevice::InputDevice::makeInput(TouchscreenDevice::TouchAxisChannel axis) const {
@@ -94,7 +93,7 @@ controller::Input TouchscreenDevice::InputDevice::makeInput(TouchscreenDevice::T
 }
 
 controller::Input TouchscreenDevice::InputDevice::makeInput(TouchscreenDevice::TouchGestureAxisChannel gesture) const {
-	return controller::Input(_deviceID, gesture, controller::ChannelType::AXIS);
+    return controller::Input(_deviceID, gesture, controller::ChannelType::AXIS);
 }
 
 controller::Input::NamedVector TouchscreenDevice::InputDevice::getAvailableInputs() const {
@@ -107,8 +106,8 @@ controller::Input::NamedVector TouchscreenDevice::InputDevice::getAvailableInput
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_POS), "DragUp"));
         availableInputs.append(Input::NamedPair(makeInput(TOUCH_AXIS_Y_NEG), "DragDown"));
 
-		availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_POS), "GesturePinchOut"));
-		availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_NEG), "GesturePinchIn"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_POS), "GesturePinchOut"));
+        availableInputs.append(Input::NamedPair(makeInput(TOUCH_GESTURE_PINCH_NEG), "GesturePinchIn"));
     });
     return availableInputs;
 }
