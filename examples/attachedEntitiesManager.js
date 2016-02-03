@@ -40,7 +40,7 @@ if (SHOW_TOOL_BAR) {
     var saveButton = toolBar.addOverlay("image", {
         width: BUTTON_SIZE,
         height: BUTTON_SIZE,
-        imageURL: "http://headache.hungry.com/~seth/hifi/save.png",
+        imageURL: ".../save.png",
         color: {
             red: 255,
             green: 255,
@@ -51,7 +51,7 @@ if (SHOW_TOOL_BAR) {
     var loadButton = toolBar.addOverlay("image", {
         width: BUTTON_SIZE,
         height: BUTTON_SIZE,
-        imageURL: "http://headache.hungry.com/~seth/hifi/load.png",
+        imageURL: ".../load.png",
         color: {
             red: 255,
             green: 255,

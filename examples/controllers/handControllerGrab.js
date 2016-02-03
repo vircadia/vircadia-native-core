@@ -1224,6 +1224,7 @@ function MyController(hand) {
                 return true;
             }
         }
+        return false;
     }
 
     this.getPresetPosition = function() {
