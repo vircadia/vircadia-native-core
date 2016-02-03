@@ -1,26 +1,21 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//
-//  model_translucent.frag
+//  overlay3D_translucent.slf
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/19/14.
-//  Copyright 2014 High Fidelity, Inc.
+//  Created by Sam Gateau on 6/16/15.
+//  Copyright 2015 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-<@include model/Material.slh@>
-
-// Everything about global lighting
 
 <@include DeferredLighting.slh@>
+<@include model/Light.slh@>
+
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
-
-// Everything about light
-<@include model/Light.slh@>
 
 vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss, float opacity) {
 
@@ -36,17 +31,15 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
     vec3 color = opacity * diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
-
     color += vec3(opacity * diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
     return vec4(color, opacity);
 }
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+uniform sampler2D originalTexture;
 
-in vec4 _position;
 in vec2 _texCoord0;
+in vec4 _position;
 in vec3 _normal;
 in vec3 _color;
 in float _alpha;
@@ -54,17 +47,14 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
+    vec4 diffuse = texture(originalTexture, _texCoord0);
+
     vec3 fragPosition = _position.xyz;
-
-    // Fetch diffuse map
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
-
-    Material mat = getMaterial();
     vec3 fragNormal = normalize(_normal);
-    float fragOpacity = getMaterialOpacity(mat) * diffuse.a * _alpha;
-    vec3 fragDiffuse = getMaterialDiffuse(mat) * diffuse.rgb * _color;
-    vec3 fragSpecular = getMaterialSpecular(mat);
-    float fragGloss = getMaterialShininess(mat);
+    vec3 fragDiffuse = diffuse.rgb * _color;
+    vec3 fragSpecular = vec3(0.1);
+    float fragGloss = 10;
+    float fragOpacity = diffuse.a * _alpha;
 
     _fragColor =  evalGlobalColor(1.0,
         fragPosition,
