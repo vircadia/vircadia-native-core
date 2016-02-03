@@ -60,7 +60,7 @@ AssignmentClient::AssignmentClient(Assignment::Type requestAssignmentType, QStri
     auto nodeList = DependencyManager::set<NodeList>(NodeType::Unassigned, listenPort);
 
     auto animationCache = DependencyManager::set<AnimationCache>();
-    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>();
+    auto entityScriptingInterface = DependencyManager::set<EntityScriptingInterface>(false);
 
     DependencyManager::registerInheritance<EntityActionFactoryInterface, AssignmentActionFactory>();
     auto actionFactory = DependencyManager::set<AssignmentActionFactory>();

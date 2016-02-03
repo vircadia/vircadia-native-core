@@ -25,8 +25,9 @@
 #include "ZoneEntityItem.h"
 
 
-EntityScriptingInterface::EntityScriptingInterface() :
-    _entityTree(NULL)
+EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
+    _entityTree(NULL),
+    _bidOnSimulationOwnership(bidOnSimulationOwnership)
 {
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
@@ -130,17 +131,20 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
             if (entity) {
-                // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
                 if (propertiesWithSimID.parentRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
                     propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
                 }
 
-                // and make note of it now, so we can act on it right away.
-                entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                if (_bidOnSimulationOwnership) {
+                    // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    const QUuid myNodeID = nodeList->getSessionUUID();
+
+                    // and make note of it now, so we can act on it right away.
+                    propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                    entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                }
 
                 entity->setLastBroadcast(usecTimestampNow());
             } else {
@@ -255,7 +259,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             properties.setType(entity->getType());
             bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
             bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-            if (hasPhysicsChanges) {
+            if (_bidOnSimulationOwnership && hasPhysicsChanges) {
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
 
