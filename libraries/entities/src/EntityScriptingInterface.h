@@ -71,8 +71,7 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
-    double calculateCost(float mass, float oldVelocity, float newVelocity);
-    Q_INVOKABLE void addCostFunction(QScriptValue costFunction);
+    float calculateCost(float mass, float oldVelocity, float newVelocity);
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -194,7 +193,7 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void clearingEntities();
-    void debitEnergySource(double value);
+    void debitEnergySource(float value);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
@@ -212,8 +211,7 @@ private:
 
     EntityTreePointer _entityTree;
     EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
-    QScriptValue* _costFunction = nullptr;
-    float _currentAvatarEnergy;
+    float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);
     float ENTITY_MANIPULATION_MULTIPLIER = { 0.01f };

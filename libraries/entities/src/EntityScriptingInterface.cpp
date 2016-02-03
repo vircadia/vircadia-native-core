@@ -1037,11 +1037,7 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     return result;
 }
 
-void EntityScriptingInterface::addCostFunction(QScriptValue costFunction) {
-    _costFunction = &costFunction;
-}
-
-double EntityScriptingInterface::calculateCost(float mass, float oldVelocity,float newVelocity) {
+float EntityScriptingInterface::calculateCost(float mass, float oldVelocity,float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }
 
