@@ -164,10 +164,10 @@ public:
     virtual void setOrientation(const glm::quat& orientation) override;
 
     // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
-    Q_INVOKABLE virtual const QUuid getParentID() const { return SpatiallyNestable::getParentID(); }
-    Q_INVOKABLE virtual void setParentID(const QUuid& parentID);
-    Q_INVOKABLE virtual quint16 getParentJointIndex() const { return SpatiallyNestable::getParentJointIndex(); }
-    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex);
+    Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+    Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+    Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
     // NOT thread safe, must be called on main thread.
     glm::vec3 getUncachedLeftPalmPosition() const;

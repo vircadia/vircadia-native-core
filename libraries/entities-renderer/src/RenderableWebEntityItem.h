@@ -25,8 +25,8 @@ public:
     RenderableWebEntityItem(const EntityItemID& entityItemID);
     ~RenderableWebEntityItem();
 
-    virtual void render(RenderArgs* args);
-    virtual void setSourceUrl(const QString& value);
+    virtual void render(RenderArgs* args) override;
+    virtual void setSourceUrl(const QString& value) override;
     
     void setProxyWindow(QWindow* proxyWindow);
     QObject* getEventHandler();

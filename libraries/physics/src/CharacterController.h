@@ -31,6 +31,8 @@ class btRigidBody;
 class btCollisionWorld;
 class btDynamicsWorld;
 
+//#define DEBUG_STATE_CHANGE
+
 class CharacterController : public btCharacterControllerInterface {
 public:
     CharacterController();
@@ -75,8 +77,14 @@ public:
 
     glm::vec3 getLinearVelocity() const;
 
-    bool isHovering() const { return _isHovering; }
-    void setHovering(bool enabled);
+    enum class State {
+        Ground = 0,
+        Takeoff,
+        InAir,
+        Hover
+    };
+
+    State getState() const { return _state; }
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
@@ -86,6 +94,12 @@ public:
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
 protected:
+#ifdef DEBUG_STATE_CHANGE
+    void setState(State state, const char* reason);
+#else
+    void setState(State state);
+#endif
+
     void updateUpAxis(const glm::quat& rotation);
     bool checkForSupport(btCollisionWorld* collisionWorld) const;
 
@@ -100,7 +114,10 @@ protected:
 
     glm::vec3 _boxScale; // used to compute capsule shape
 
-    quint64 _jumpToHoverStart;
+    quint64 _takeoffToInAirStart;
+    quint64 _jumpButtonDownStart;
+    quint32 _jumpButtonDownCount;
+    quint32 _takeOffJumpButtonID;
 
     btScalar _halfHeight;
     btScalar _radius;
@@ -116,16 +133,13 @@ protected:
     btQuaternion _followAngularDisplacement;
 
     bool _enabled;
-    bool _isOnGround;
-    bool _isJumping;
-    bool _isFalling;
-    bool _isHovering;
+    State _state;
     bool _isPushingUp;
 
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
-
+    uint32_t _previousFlags { 0 };
 };
 
 #endif // hifi_CharacterControllerInterface_h

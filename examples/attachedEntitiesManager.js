@@ -22,41 +22,44 @@ var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.8;
 var ATTACHED_ENTITY_SEARCH_DISTANCE = 10.0;
 var ATTACHED_ENTITIES_SETTINGS_KEY = "ATTACHED_ENTITIES";
 var DRESSING_ROOM_DISTANCE = 2.0;
+var SHOW_TOOL_BAR = false;
 
 // tool bar
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var BUTTON_SIZE = 32;
-var PADDING = 3;
-Script.include(["libraries/toolBars.js"]);
-var toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.attachedEntities.toolbar", function(screenSize) {
-    return {
-        x: (BUTTON_SIZE + PADDING),
-        y: (screenSize.y / 2 - BUTTON_SIZE * 2 + PADDING)
-    };
-});
-var saveButton = toolBar.addOverlay("image", {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: "http://headache.hungry.com/~seth/hifi/save.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
-});
-var loadButton = toolBar.addOverlay("image", {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: "http://headache.hungry.com/~seth/hifi/load.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
-});
+if (SHOW_TOOL_BAR) {
+    HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+    var BUTTON_SIZE = 32;
+    var PADDING = 3;
+    Script.include(["libraries/toolBars.js"]);
+    var toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.attachedEntities.toolbar", function(screenSize) {
+        return {
+            x: (BUTTON_SIZE + PADDING),
+            y: (screenSize.y / 2 - BUTTON_SIZE * 2 + PADDING)
+        };
+    });
+    var saveButton = toolBar.addOverlay("image", {
+        width: BUTTON_SIZE,
+        height: BUTTON_SIZE,
+        imageURL: ".../save.png",
+        color: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        alpha: 1
+    });
+    var loadButton = toolBar.addOverlay("image", {
+        width: BUTTON_SIZE,
+        height: BUTTON_SIZE,
+        imageURL: ".../load.png",
+        color: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        alpha: 1
+    });
+}
 
 
 function mousePressEvent(event) {
@@ -73,10 +76,14 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-  toolBar.cleanup();
+    if (SHOW_TOOL_BAR) {
+        toolBar.cleanup();
+    }
 }
 
-Controller.mousePressEvent.connect(mousePressEvent);
+if (SHOW_TOOL_BAR) {
+    Controller.mousePressEvent.connect(mousePressEvent);
+}
 Script.scriptEnding.connect(scriptEnding);
 
 

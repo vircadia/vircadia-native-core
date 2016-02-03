@@ -29,13 +29,13 @@ public:
     virtual ~EntityMotionState();
 
     void updateServerPhysicsVariables();
-    virtual bool handleEasyChanges(uint32_t& flags);
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
+    virtual bool handleEasyChanges(uint32_t& flags) override;
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
     /// \return PhysicsMotionType based on params set in EntityItem
-    virtual PhysicsMotionType computePhysicsMotionType() const;
+    virtual PhysicsMotionType computePhysicsMotionType() const override;
 
-    virtual bool isMoving() const;
+    virtual bool isMoving() const override;
 
     // this relays incoming position/rotation to the RigidBody
     virtual void getWorldTransform(btTransform& worldTrans) const override;
@@ -48,8 +48,8 @@ public:
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getIncomingDirtyFlags();
-    virtual void clearIncomingDirtyFlags();
+    virtual uint32_t getIncomingDirtyFlags() override;
+    virtual void clearIncomingDirtyFlags() override;
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
@@ -80,7 +80,7 @@ public:
 
     virtual QString getName() const override;
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     // eternal logic can suggest a simuator priority bid for the next outgoing update
     void setOutgoingPriority(quint8 priority);
@@ -93,7 +93,7 @@ protected:
     #endif
 
     virtual bool isReadyToComputeShape() const override;
-    virtual btCollisionShape* computeNewShape();
+    virtual btCollisionShape* computeNewShape() override;
     virtual void setMotionType(PhysicsMotionType motionType);
 
     // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be

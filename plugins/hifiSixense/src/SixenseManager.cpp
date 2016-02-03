@@ -282,8 +282,8 @@ void SixenseManager::InputDevice::setDebugDrawCalibrated(bool flag) {
 
 // the calibration sequence is:
 // (1) reach arm straight out to the sides (xAxis is to the left)
-// (2) press BUTTON_FWD on both hands and hold for one second
-// (3) release both BUTTON_FWDs
+// (2) press either BUTTON_1 or BUTTON_2 on both hands and hold for one second
+// (3) release both buttons
 //
 // The code will:
 // (4) assume that the orb is on a flat surface (yAxis is UP)
@@ -294,7 +294,8 @@ static const float MAXIMUM_NOISE_LEVEL = 0.05f; // meters
 static const quint64 LOCK_DURATION = USECS_PER_SECOND / 4; // time for lock to be acquired
 
 static bool calibrationRequested(SixenseControllerData* controllers) {
-    return (controllers[0].buttons == BUTTON_FWD && controllers[1].buttons == BUTTON_FWD);
+    return (((controllers[0].buttons == BUTTON_1) || (controllers[0].buttons == BUTTON_2)) &&
+            ((controllers[1].buttons == BUTTON_1) || (controllers[1].buttons == BUTTON_2)));
 }
 
 void SixenseManager::InputDevice::updateCalibration(SixenseControllerData* controllers) {

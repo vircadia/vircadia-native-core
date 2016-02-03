@@ -1362,6 +1362,9 @@ void Application::paintGL() {
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
 
+        auto inputs = AvatarInputs::getInstance();
+        _mirrorViewRect.moveTo(inputs->x(), inputs->y());
+
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
 
         renderArgs._blitFramebuffer.reset();
@@ -4610,22 +4613,6 @@ void Application::activeChanged(Qt::ApplicationState state) {
         default:
             _isForeground = false;
             break;
-    }
-}
-void Application::showFriendsWindow() {
-    const QString FRIENDS_WINDOW_OBJECT_NAME = "FriendsWindow";
-    const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
-    const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
-    const int FRIENDS_WINDOW_WIDTH = 290;
-    const int FRIENDS_WINDOW_HEIGHT = 500;
-    auto webWindowClass = _window->findChildren<WebWindowClass>(FRIENDS_WINDOW_OBJECT_NAME);
-    if (webWindowClass.empty()) {
-        auto friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
-                                                FRIENDS_WINDOW_HEIGHT);
-        friendsWindow->setParent(_window);
-        friendsWindow->setObjectName(FRIENDS_WINDOW_OBJECT_NAME);
-        connect(friendsWindow, &WebWindowClass::closed, &WebWindowClass::deleteLater);
-        friendsWindow->setVisible(true);
     }
 }
 
