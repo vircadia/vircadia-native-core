@@ -33,7 +33,8 @@ Entities.setPacketsPerSecond(6000);
 
 var DEFAULT_SOUND_DATA = {
     volume: 0.5,
-    loop: false
+    loop: false,
+    interval: -1 // An interval of -1 means this sound only plays once (if it's non-looping)
 };
 
 print("EBL STARTING AC SCRIPT");
@@ -55,8 +56,10 @@ function messageReceived(channel, message, sender) {
             url: soundData.url,
             volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
             loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
-            needsPlay: true,
-            position: Entities.getEntityProperties(entityID, "position").position
+            interval: soundData.interval || DEFAULT_SOUND_DATA.interval,
+            readyToPlay: true,
+            position: Entities.getEntityProperties(entityID, "position").position,
+            timeSinceLastPlay: 0
         };
         if (!soundUrls[soundData.url]) {
             // We need to download sound before we add it to our map
@@ -75,23 +78,33 @@ function messageReceived(channel, message, sender) {
     }
 }
 
-function update() {
+function update(deltaTime) {
     // Go through each sound and play it if it needs to be played
-    for (var property in soundEntityMap) {
-        if(!soundEntityMap.hasOwnProperty(property)) {
+    for (var potentialEntity in soundEntityMap) {
+        if(!soundEntityMap.hasOwnProperty(potentialEntity)) {
             // The current property is not a direct propert of soundEntityMap
             continue;
         }
-        var entity = property;
+        var entity = potentialEntity;
         var soundProperties = soundEntityMap[entity];
-        if (soundProperties.needsPlay) {
+        if (soundProperties.readyToPlay) {
             print("EBL NEEDS TO PLAY!")
             Audio.playSound(soundProperties.sound, {
                 volume: soundProperties.volume,
                 position: soundProperties.position,
                 loop: soundProperties.loop
-            });
-            soundEntityMap[entity].needsPlay = false;
+            });       
+            soundProperties.readyToPlay = false;         
+        } else if(soundProperties.loop === false && soundProperties.interval !==-1) {
+            // We need to check all of our entities that are not looping but have an interval associated with them
+            // to see if it's time for them to play again
+            soundProperties.timeSinceLastPlay += deltaTime;
+            if (soundProperties.timeSinceLastPlay > soundProperties.interval) {
+                print ("EBL TIME TO PLAY AGAIN!");
+                soundProperties.readyToPlay = true;
+                soundProperties.timeSinceLastPlay = 0;
+            }
+
         }
     }
 }
