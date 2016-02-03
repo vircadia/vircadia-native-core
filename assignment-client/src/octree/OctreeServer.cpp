@@ -289,6 +289,8 @@ void OctreeServer::initHTTPManager(int port) {
     _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
 }
 
+const QString PERSIST_FILE_DOWNLOAD_PATH = "/models.json.gz";
+
 bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
 
 #ifdef FORCE_CRASH
@@ -310,7 +312,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 #endif
 
     bool showStats = false;
-    QString persistFile = "/" + getPersistFilename();
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/") {
@@ -320,7 +321,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
-        } else if ((url.path() == persistFile) || (url.path() == persistFile + "/")) {
+        } else if ((url.path() == PERSIST_FILE_DOWNLOAD_PATH) || (url.path() == PERSIST_FILE_DOWNLOAD_PATH + "/")) {
             if (_persistFileDownload) {
                 QByteArray persistFileContents = getPersistFileContents();
                 if (persistFileContents.length() > 0) {
@@ -374,9 +375,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
             if (_persistFileDownload) {
-                statsString += QString("Persist file: <a href='%1'>%1</a>\r\n").arg(persistFile);
+                statsString += QString("Persist file: <a href='%1'>Click to Download</a>\r\n").arg(PERSIST_FILE_DOWNLOAD_PATH);
             } else {
-                statsString += QString("Persist file: %1\r\n").arg(persistFile);
+                statsString += QString("Persist file: %1\r\n").arg(_persistFilePath);
             }
 
         } else {
