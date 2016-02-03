@@ -61,6 +61,7 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
     Q_OBJECT
     
     Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
+    Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
 public:
     EntityScriptingInterface();
 
@@ -214,7 +215,10 @@ private:
     float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);
-    float ENTITY_MANIPULATION_MULTIPLIER = { 0.01f };
+    
+    float costMultiplier = { 0.01f };
+    float getCostMultiplier();
+    void setCostMultiplier(float value);
 };
 
 #endif // hifi_EntityScriptingInterface_h
