@@ -106,7 +106,7 @@ protected:
     // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
     EntityItem* _entity;
 
-    bool _sentInactive;   // true if body was inactive when we sent last update
+    bool _triedToReleaseOwnership;   // true if we tried to release ownership
 
     // these are for the prediction of the remote server's simple extrapolation
     uint32_t _lastStep; // last step of server extrapolation
@@ -124,8 +124,8 @@ protected:
     float _measuredDeltaTime;
 
     quint8 _accelerationNearlyGravityCount;
-    quint64 _nextOwnershipBid = NO_PRORITY;
-    uint32_t _loopsWithoutOwner;
+    quint64 _nextOwnershipBid { 0 };
+    quint64 _orphanExpiry { 0 };
     quint8 _outgoingPriority = NO_PRORITY;
 };
 

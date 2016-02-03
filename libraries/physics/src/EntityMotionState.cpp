@@ -104,25 +104,25 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_SIMULATOR_ID) {
         _loopsWithoutOwner = 0;
         if (_entity->getSimulatorID().isNull()) {
-            // simulation ownership is being removed
-            // remove the ACTIVATION flag because this object is coming to rest
-            // according to a remote simulation and we don't want to wake it up again
+            // simulation ownership has been removed by an external simulator
+            // --> clear the ACTIVATION flag and outgoing priority because this object is coming to rest
             flags &= ~Simulation::DIRTY_PHYSICS_ACTIVATION;
-            // hint to Bullet that the object is deactivating
             _body->setActivationState(WANTS_DEACTIVATION);
             _outgoingPriority = NO_PRORITY;
-        } else  {
+        } else {
+            // this entity's simulation is owned by someone, so we push its ownership expiry into the future
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             if (Physics::getSessionUUID() == _entity->getSimulatorID() || _entity->getSimulationPriority() >= _outgoingPriority) {
-                // we own the simulation or our priority looses to (or ties with) remote
+                // either we already own the simulation or our old outgoing priority momentarily looses to current owner
+                // so we clear it
                 _outgoingPriority = NO_PRORITY;
             }
         }
     }
     if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
-        // (DIRTY_SIMULATOR_OWNERSHIP really means "we should bid for ownership with SCRIPT priority")
-        // we're manipulating this object directly via script, so we artificially
-        // manipulate the logic to trigger an immediate bid for ownership
+        // The DIRTY_SIMULATOR_OWNERSHIP bit really means "we should bid for ownership at SCRIPT priority".
+        // Since that bit is set there must be a local script that is updating the physics properties of the objects
+        // therefore we upgrade _outgoingPriority to trigger a bid for ownership.
         setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
@@ -203,7 +203,6 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _loopsWithoutOwner++;
 
         if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
-            //qDebug() << "Warning -- claiming something I saw moving." << getName();
             setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
         }
     }
@@ -235,9 +234,8 @@ btCollisionShape* EntityMotionState::computeNewShape() {
 }
 
 bool EntityMotionState::isCandidateForOwnership(const QUuid& sessionID) const {
-    if (!_body || !_entity) {
-        return false;
-    }
+    assert(_body);
+    assert(_entity);
     assert(entityTreeIsLocked());
     return _outgoingPriority != NO_PRORITY || sessionID == _entity->getSimulatorID() || _entity->actionDataNeedsTransmit();
 }
@@ -374,10 +372,11 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
     }
 
     if (_entity->getSimulatorID() != sessionID) {
-        // we don't own the simulation, but maybe we should...
+        // we don't own the simulation
         if (_outgoingPriority != NO_PRORITY) {
+            // but we would like to own it
             if (_outgoingPriority < _entity->getSimulationPriority()) {
-                // our priority loses to remote, so we don't bother to bid
+                // but our priority loses to remote, so we don't bother trying
                 _outgoingPriority = NO_PRORITY;
                 return false;
             }
