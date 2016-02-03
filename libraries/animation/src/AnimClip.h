@@ -27,7 +27,7 @@ public:
 
     static bool usePreAndPostPoseFromAnim;
 
-    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
+    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag);
     virtual ~AnimClip() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
@@ -49,12 +49,16 @@ public:
     bool getLoopFlag() const { return _loopFlag; }
     void setLoopFlag(bool loopFlag) { _loopFlag = loopFlag; }
 
+    bool getMirrorFlag() const { return _mirrorFlag; }
+    void setMirrorFlag(bool mirrorFlag) { _mirrorFlag = mirrorFlag; }
+
     void loadURL(const QString& url);
 protected:
 
     virtual void setCurrentFrameInternal(float frame) override;
 
     void copyFromNetworkAnim();
+    void buildMirrorAnim();
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
@@ -64,12 +68,14 @@ protected:
 
     // _anim[frame][joint]
     std::vector<AnimPoseVec> _anim;
+    std::vector<AnimPoseVec> _mirrorAnim;
 
     QString _url;
     float _startFrame;
     float _endFrame;
     float _timeScale;
     bool _loopFlag;
+    bool _mirrorFlag;
     float _frame;
 
     QString _startFrameVar;

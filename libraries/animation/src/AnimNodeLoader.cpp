@@ -145,6 +145,14 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     bool NAME = NAME##_VAL.toBool()
 
+#define READ_OPTIONAL_BOOL(NAME, JSON_OBJ, DEFAULT)                     \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    bool NAME = DEFAULT;                                                \
+    if (NAME##_VAL.isBool()) {                                          \
+        NAME = NAME##_VAL.toBool();                                     \
+    }                                                                   \
+    do {} while (0)
+
 #define READ_FLOAT(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)               \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isDouble()) {                                       \
@@ -222,13 +230,14 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_FLOAT(endFrame, jsonObj, id, jsonUrl, nullptr);
     READ_FLOAT(timeScale, jsonObj, id, jsonUrl, nullptr);
     READ_BOOL(loopFlag, jsonObj, id, jsonUrl, nullptr);
+    READ_OPTIONAL_BOOL(mirrorFlag, jsonObj, false);
 
     READ_OPTIONAL_STRING(startFrameVar, jsonObj);
     READ_OPTIONAL_STRING(endFrameVar, jsonObj);
     READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
 
-    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag);
+    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     if (!startFrameVar.isEmpty()) {
         node->setStartFrameVar(startFrameVar);
