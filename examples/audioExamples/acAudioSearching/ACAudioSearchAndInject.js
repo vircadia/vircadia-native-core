@@ -40,6 +40,7 @@ print("EBL STARTING AC SCRIPT");
 
 function messageReceived(channel, message, sender) {
     
+    print("EBL RECEIVED A MESSAGE FROM ENTITY: " + message);
     var entityID = JSON.parse(message).id;
     if (soundEntityMap[entityID]) {
         // We already have this entity in our sound map, so don't re-add
@@ -47,7 +48,6 @@ function messageReceived(channel, message, sender) {
     }
 
     EntityViewer.queryOctree();
-    print("EBL RECEIVED A MESSAGE FROM ENTITY: " + message);
     var soundData = getEntityCustomData(SOUND_DATA_KEY, entityID);
     print("SOUND DATA " + JSON.stringify(soundData))
     if (soundData && soundData.url) {

@@ -22,8 +22,8 @@ var SCRIPT_URL = Script.resolvePath("soundEntityScript.js?v1" + Math.random());
 var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
-        volume: 1.0,
-        loop: false
+        volume: 0.2,
+        loop: true
     }
 }
 
