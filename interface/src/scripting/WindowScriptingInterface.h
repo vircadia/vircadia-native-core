@@ -12,12 +12,9 @@
 #ifndef hifi_WindowScriptingInterface_h
 #define hifi_WindowScriptingInterface_h
 
-#include <QObject>
-#include <QScriptValue>
-#include <QString>
-#include <QFileDialog>
-#include <QComboBox>
-#include <QLineEdit>
+#include <QtCore/QObject>
+#include <QtCore/QString>
+#include <QtScript/QScriptValue>
 
 class WebWindowClass;
 
@@ -41,34 +38,19 @@ public slots:
     QScriptValue hasFocus();
     void setFocus();
     void raiseMainWindow();
-    QScriptValue alert(const QString& message = "");
+    void alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
-    QScriptValue s3Browse(const QString& nameFilter = "");
 
 signals:
     void domainChanged(const QString& domainHostname);
-    void inlineButtonClicked(const QString& name);
     void svoImportRequested(const QString& url);
     void domainConnectionRefused(const QString& reason);
 
 private slots:
-    QScriptValue showAlert(const QString& message);
-    QScriptValue showConfirm(const QString& message);
-    QScriptValue showPrompt(const QString& message, const QString& defaultText);
-    QScriptValue showBrowse(const QString& title, const QString& directory, const QString& nameFilter,
-                            QFileDialog::AcceptMode acceptMode = QFileDialog::AcceptOpen);
-    QScriptValue showS3Browse(const QString& nameFilter);
-
-    void chooseDirectory();
-    void inlineButtonClicked();
-
     WebWindowClass* doCreateWebWindow(const QString& title, const QString& url, int width, int height);
-
-private:
-    QString jsRegExp2QtRegExp(const QString& string);
 };
 
 #endif // hifi_WindowScriptingInterface_h

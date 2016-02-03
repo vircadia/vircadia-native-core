@@ -520,5 +520,9 @@ QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, cons
     return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
 }
 
+QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return QFileDialog::getSaveFileName((QWidget*)ignored, caption, dir, filter, selectedFilter, options);
+}
+
 
 #include "OffscreenUi.moc"
