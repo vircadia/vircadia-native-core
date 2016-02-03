@@ -235,6 +235,56 @@ void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     }
 }
 
+bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
+    int knuckleIndex = _rig->indexOfJoint("LeftHandMiddle1");
+    int handIndex = _rig->indexOfJoint("LeftHand");
+    if (knuckleIndex >= 0 && handIndex >= 0) {
+        glm::quat handRotation;
+        glm::vec3 knucklePosition;
+        glm::vec3 handPosition;
+        if (!getJointPositionInWorldFrame(knuckleIndex, knucklePosition)) {
+            return false;
+        }
+        if (!getJointPositionInWorldFrame(handIndex, handPosition)) {
+            return false;
+        }
+        if (!getJointRotationInWorldFrame(handIndex, handRotation)) {
+            return false;
+        }
+        float halfPalmLength = glm::distance(knucklePosition, handPosition) * 0.5f;
+        // z azis is standardized to be out of the palm.  move from the knuckle-joint away from the palm
+        // by 1/2 the palm length.
+        position = knucklePosition + handRotation * (glm::vec3(0.0f, 0.0f, 1.0f) * halfPalmLength);
+        return true;
+    }
+    return false;
+}
+
+bool SkeletonModel::getRightGrabPosition(glm::vec3& position) const {
+    int knuckleIndex = _rig->indexOfJoint("RightHandMiddle1");
+    int handIndex = _rig->indexOfJoint("RightHand");
+    if (knuckleIndex >= 0 && handIndex >= 0) {
+        glm::quat handRotation;
+        glm::vec3 knucklePosition;
+        glm::vec3 handPosition;
+        if (!getJointPositionInWorldFrame(knuckleIndex, knucklePosition)) {
+            return false;
+        }
+        if (!getJointPositionInWorldFrame(handIndex, handPosition)) {
+            return false;
+        }
+        if (!getJointRotationInWorldFrame(handIndex, handRotation)) {
+            return false;
+        }
+        float halfPalmLength = glm::distance(knucklePosition, handPosition) * 0.5f;
+        // z azis is standardized to be out of the palm.  move from the knuckle-joint away from the palm
+        // by 1/2 the palm length.
+        position = knucklePosition + handRotation * (glm::vec3(0.0f, 0.0f, 1.0f) * halfPalmLength);
+        return true;
+    }
+    return false;
+}
+
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
     return getJointPositionInWorldFrame(getLeftHandJointIndex(), position);
 }
