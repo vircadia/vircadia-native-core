@@ -20,7 +20,7 @@ class ImageOverlay : public QmlOverlay {
     
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    virtual QString getType() const override { return TYPE; }
     static QUrl const URL;
 
     ImageOverlay();

@@ -24,7 +24,7 @@ public:
        _lineVerticesID(GeometryCache::UNKNOWN_ID)
     { }
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
     SIMPLE_RENDERABLE();
 

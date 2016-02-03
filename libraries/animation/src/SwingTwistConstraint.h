@@ -51,7 +51,7 @@ public:
     virtual bool apply(glm::quat& rotation) const override;
 
     void setLowerSpine(bool lowerSpine) { _lowerSpine = lowerSpine; }
-    virtual bool isLowerSpine() const { return _lowerSpine; }
+    virtual bool isLowerSpine() const override { return _lowerSpine; }
 
     // SwingLimitFunction is an implementation of the constraint check described in the paper:
     // "The Parameterization of Joint Rotation with the Unit Quaternion" by Quang Liu and Edmond C. Prakash
