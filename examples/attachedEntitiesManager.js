@@ -22,41 +22,44 @@ var MINIMUM_DROP_DISTANCE_FROM_JOINT = 0.4;
 var ATTACHED_ENTITY_SEARCH_DISTANCE = 10.0;
 var ATTACHED_ENTITIES_SETTINGS_KEY = "ATTACHED_ENTITIES";
 var DRESSING_ROOM_DISTANCE = 2.0;
+var SHOW_TOOL_BAR = false;
 
 // tool bar
 
-HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
-var BUTTON_SIZE = 32;
-var PADDING = 3;
-Script.include(["libraries/toolBars.js"]);
-var toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.attachedEntities.toolbar", function(screenSize) {
-    return {
-        x: (BUTTON_SIZE + PADDING),
-        y: (screenSize.y / 2 - BUTTON_SIZE * 2 + PADDING)
-    };
-});
-var saveButton = toolBar.addOverlay("image", {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: "http://headache.hungry.com/~seth/hifi/save.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
-});
-var loadButton = toolBar.addOverlay("image", {
-    width: BUTTON_SIZE,
-    height: BUTTON_SIZE,
-    imageURL: "http://headache.hungry.com/~seth/hifi/load.png",
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
-    alpha: 1
-});
+if (SHOW_TOOL_BAR) {
+    HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+    var BUTTON_SIZE = 32;
+    var PADDING = 3;
+    Script.include(["libraries/toolBars.js"]);
+    var toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.attachedEntities.toolbar", function(screenSize) {
+        return {
+            x: (BUTTON_SIZE + PADDING),
+            y: (screenSize.y / 2 - BUTTON_SIZE * 2 + PADDING)
+        };
+    });
+    var saveButton = toolBar.addOverlay("image", {
+        width: BUTTON_SIZE,
+        height: BUTTON_SIZE,
+        imageURL: ".../save.png",
+        color: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        alpha: 1
+    });
+    var loadButton = toolBar.addOverlay("image", {
+        width: BUTTON_SIZE,
+        height: BUTTON_SIZE,
+        imageURL: ".../load.png",
+        color: {
+            red: 255,
+            green: 255,
+            blue: 255
+        },
+        alpha: 1
+    });
+}
 
 
 function mousePressEvent(event) {
@@ -73,10 +76,14 @@ function mousePressEvent(event) {
 }
 
 function scriptEnding() {
-  toolBar.cleanup();
+    if (SHOW_TOOL_BAR) {
+        toolBar.cleanup();
+    }
 }
 
-Controller.mousePressEvent.connect(mousePressEvent);
+if (SHOW_TOOL_BAR) {
+    Controller.mousePressEvent.connect(mousePressEvent);
+}
 Script.scriptEnding.connect(scriptEnding);
 
 
@@ -116,6 +123,7 @@ function AttachedEntitiesManager() {
             manager.checkIfWearable(parsedMessage.grabbedEntity, parsedMessage.joint)
             // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'shared-release') {
+            manager.updateRelativeOffsets(parsedMessage.grabbedEntity);
             // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'equip') {
             // manager.saveAttachedEntities();
@@ -173,11 +181,12 @@ function AttachedEntitiesManager() {
                     parentJointIndex: bestJointIndex
                 };
 
-                if (!this.avatarIsInDressingRoom() &&
-                    bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
-                    // don't snap the entity to the preferred position if the avatar is in the dressing room.
-                    wearProps.localPosition = bestJointOffset[0];
-                    wearProps.localRotation = bestJointOffset[1];
+                if (bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
+                    if (!this.avatarIsInDressingRoom()) {
+                        // don't snap the entity to the preferred position if the avatar is in the dressing room.
+                        wearProps.localPosition = bestJointOffset[0];
+                        wearProps.localRotation = bestJointOffset[1];
+                    }
                 }
                 Entities.editEntity(grabbedEntity, wearProps);
             } else if (props.parentID != NULL_UUID) {
@@ -189,12 +198,19 @@ function AttachedEntitiesManager() {
         }
     }
 
-    this.updateRelativeOffsets = function(entityID, props) {
+    this.updateRelativeOffsets = function(entityID) {
         // save the preferred (current) relative position and rotation into the user-data of the entity
-        var wearableData = getEntityCustomData('wearable', entityID, DEFAULT_WEARABLE_DATA);
-        var currentJointName = MyAvatar.getJointNames()[props.parentJointIndex];
-        wearableData.joints[currentJointName] = [props.localPosition, props.localRotation];
-        setEntityCustomData('wearable', entityID, wearableData);
+        var props = Entities.getEntityProperties(entityID);
+        if (props.parentID == MyAvatar.sessionUUID) {
+            grabData = getEntityCustomData('grabKey', entityID, {});
+            grabbableData = getEntityCustomData('grabbableKey', entityID, {});
+            var wearableData = getEntityCustomData('wearable', entityID, DEFAULT_WEARABLE_DATA);
+            var currentJointName = MyAvatar.getJointNames()[props.parentJointIndex];
+            wearableData.joints[currentJointName] = [props.localPosition, props.localRotation];
+            setEntityCustomData('wearable', entityID, wearableData);
+            return true;
+        }
+        return false;
     }
 
     this.saveAttachedEntities = function() {
@@ -203,12 +219,8 @@ function AttachedEntitiesManager() {
         var nearbyEntities = Entities.findEntities(MyAvatar.position, ATTACHED_ENTITY_SEARCH_DISTANCE);
         for (i = 0; i < nearbyEntities.length; i++) {
             var entityID = nearbyEntities[i];
-            var props = Entities.getEntityProperties(entityID);
-            if (props.parentID == MyAvatar.sessionUUID) {
-                grabData = getEntityCustomData('grabKey', entityID, {});
-                grabbableData = getEntityCustomData('grabbableKey', entityID, {});
-                this.updateRelativeOffsets(entityID, props);
-                props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
+            if (this.updateRelativeOffsets(entityID)) {
+                var props = Entities.getEntityProperties(entityID); // refresh, because updateRelativeOffsets changed them
                 this.scrubProperties(props);
                 saveData.push(props);
             }

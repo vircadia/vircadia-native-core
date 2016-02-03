@@ -240,8 +240,6 @@ public:
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
     void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
 
-    bool isHovering() const;
-
 public slots:
     void increaseSize();
     void decreaseSize();
