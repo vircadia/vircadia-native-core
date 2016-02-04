@@ -118,13 +118,7 @@ ApplicationWindow {
             Button {
                 text: "Open File"
                 property var builder: Component {
-                    FileDialog {
-                        folder: "file:///C:/users/bdavis";
-                        filterModel: ListModel {
-                            ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
-                            ListElement { text: "All Files (*.*)"; filter: "*.*" }
-                        }
-                    }
+                    FileDialog { }
                 }
 
                 onClicked: {

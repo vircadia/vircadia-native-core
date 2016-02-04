@@ -95,3 +95,11 @@ bool FileDialogHelper::urlIsWritable(const QUrl& url) {
     // No file, get the parent directory and check if writable
     return QFileInfo(fileInfo.absoluteDir().absolutePath()).isWritable();
 }
+
+QStringList FileDialogHelper::drives() {
+    QStringList result;
+    for (const auto& drive : QDir::drives()) {
+        result << drive.absolutePath();
+    }
+    return result;
+}

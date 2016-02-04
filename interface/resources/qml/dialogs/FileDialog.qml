@@ -36,6 +36,7 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property int options; // <-- FIXME unused
 
+
     property bool selectDirectory: false;
     property bool showHidden: false;
     // FIXME implement
@@ -43,9 +44,17 @@ ModalWindow {
     property bool saveDialog: false;
     property var helper: fileDialogHelper
     property alias model: fileTableView.model
+    property var drives: helper.drives()
 
     signal selectedFile(var file);
     signal canceled();
+
+    Component.onCompleted: {
+        console.log("Helper " + helper + " drives " + drives)
+        drivesSelector.onCurrentTextChanged.connect(function(){
+            root.dir = helper.pathToUrl(drivesSelector.currentText);
+        })
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -77,6 +86,16 @@ ModalWindow {
                 text: "\uf015"
                 size: 32
                 onClicked: d.navigateHome();
+            }
+
+            VrControls.ComboBox {
+                id: drivesSelector
+                width: 48
+                height: homeButton.height
+                model: drives
+                visible: drives.length > 1
+                currentIndex: 0
+
             }
         }
 
