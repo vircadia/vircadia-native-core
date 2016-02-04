@@ -38,7 +38,7 @@ public:
     Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
     Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
 
-    AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+    virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
 
 signals:
     void avatarAddedEvent(const QUuid& sessionUUID);
