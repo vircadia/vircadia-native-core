@@ -477,7 +477,6 @@ void GeometryCache::buildShapes() {
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
     if (!SOLID_STREAM_FORMAT) {
-        const int VERTEX_NORMAL_OFFSET = POSITION_ELEMENT.getSize();
         SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
@@ -487,7 +486,6 @@ gpu::Stream::FormatPointer& getSolidStreamFormat() {
 
 gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     if (!INSTANCED_SOLID_STREAM_FORMAT) {
-        const int VERTEX_NORMAL_OFFSET = POSITION_ELEMENT.getSize();
         INSTANCED_SOLID_STREAM_FORMAT = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, POSITION_ELEMENT);
         INSTANCED_SOLID_STREAM_FORMAT->setAttribute(gpu::Stream::NORMAL, gpu::Stream::NORMAL, NORMAL_ELEMENT);
