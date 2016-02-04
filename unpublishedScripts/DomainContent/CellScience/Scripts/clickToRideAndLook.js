@@ -24,7 +24,7 @@
         this.buttonImageURL = baseURL + "GUI/GUI_jump_off.png";
         this.addExitButton();
         this.isRiding = false;
-
+        self.mouseIsConnected = false;
         if (this.data && this.data.isDynein) {
             this.rotation = 180;
         } else {
@@ -66,6 +66,7 @@
                 visible: true
             });
             Controller.mousePressEvent.connect(this.onMousePress);
+            self.mouseIsConnected = true;
             Script.update.connect(this.update);
         }
     }
@@ -136,8 +137,9 @@
         // print("unload");
         self.reset();
 
-        Controller.mousePressEvent.disconnect(this.onMousePress);
+        if (self.mouseIsConnected === true) {
+            Controller.mousePressEvent.disconnect(this.onMousePress);
+        }
     }
-
 
 });

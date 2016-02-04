@@ -8,7 +8,7 @@
 
 (function() {
 
-    var version = 1;
+    var version = 2;
     var added = false;
     this.frame = 0;
     var utilsScript = Script.resolvePath('utils.js');

@@ -8,13 +8,13 @@
 (function() {
     var self = this;
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
-    var version = 9;
+    var version = 10;
     this.preload = function(entityId) {
         self.soundPlaying = false;
         self.entityId = entityId;
         self.getUserData();
         self.soundURL = baseURL + "Audio/" + self.userData.name + ".wav?" + version;
-        print("Script.clearTimeout creating WAV name location is " + baseURL + "Audio/" + self.userData.name + ".wav");
+        print("creating WAV name location is " + baseURL + "Audio/" + self.userData.name + ".wav");
 
         self.soundOptions = {
             stereo: true,
