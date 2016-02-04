@@ -52,11 +52,11 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
-    
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber));
+
     // Setup queue private thread
     QThread* thread = new QThread;
     thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
@@ -74,10 +74,12 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber) :
     _socket(socket),
-    _destination(dest)
+    _destination(dest),
+    _currentSequenceNumber(currentSequenceNumber)
 {
+    
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -389,6 +391,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
         static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
         static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
         if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE &&
+            _lastReceiverResponse > 0 &&
             (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
             // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
             // then signal the queue is inactive and return so it can be cleaned up
