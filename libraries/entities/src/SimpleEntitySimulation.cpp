@@ -11,8 +11,11 @@
 
 //#include <PerfStat.h>
 
-#include "EntityItem.h"
 #include "SimpleEntitySimulation.h"
+
+#include <DirtyOctreeElementOperator.h>
+
+#include "EntityItem.h"
 #include "EntitiesLogging.h"
 
 const quint64 MIN_SIMULATION_OWNERSHIP_UPDATE_PERIOD = 2 * USECS_PER_SECOND;
@@ -40,17 +43,22 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
             if (entity->getSimulatorID().isNull()) {
                 // no simulators are volunteering
                 // zero the velocity on this entity so that it doesn't drift far away
-                entity->setVelocity(glm::vec3(0.0f));
+                entity->setVelocity(Vectors::ZERO);
+                entity->setAngularVelocity(Vectors::ZERO);
+                entity->setAcceleration(Vectors::ZERO);
                 // remove from list
                 itemItr = _entitiesWithSimulator.erase(itemItr);
                 continue;
             } else {
                 // the simulator has stopped updating this object
                 // clear ownership and restart timer, giving nearby simulators time to volunteer
-                qCDebug(entities) << "auto-removing simulation owner " << entity.getSimulatorID();
+                qCDebug(entities) << "auto-removing simulation owner " << entity->getSimulatorID();
                 entity->clearSimulationOwnership();
-                entity->markAsChangedOnServer();
             }
+            entity->markAsChangedOnServer();
+            // dirty all the tree elements that contain the entity
+            DirtyOctreeElementOperator op(entity->getElement());
+            getEntityTree()->recurseTreeWithOperator(&op);
         } else if (expiry < _nextSimulationExpiry) {
             _nextSimulationExpiry = expiry;
         }
