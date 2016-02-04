@@ -13,18 +13,18 @@
 //
 
 var IMPORT_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/arfs/junkyard.json";
-var PASTE_ENTITIES_LOCATION = {x: 0, y: 20, z: 0};
-// reset();
+var PASTE_ENTITIES_LOCATION = {x: 0, y: 0, z: 0};
+reset();
 
-// function reset() {
-//   // Delete everything and re-import the junkyard arf
-//   var e = Entities.findEntities(MyAvatar.position, 1000);
-//   for (i = 0; i < e.length; i++) {
-//     Entities.deleteEntity(e[i]);
-//   }
-//   importAssetResourceFile();
-// }
-  importAssetResourceFile()
+function reset() {
+  // Delete everything and re-import the junkyard arf
+  var e = Entities.findEntities(MyAvatar.position, 1000);
+  for (i = 0; i < e.length; i++) {
+    Entities.deleteEntity(e[i]);
+  }
+  importAssetResourceFile();
+}
+
 function importAssetResourceFile() {
   Clipboard.importEntities(IMPORT_URL);
   Clipboard.pasteEntities(PASTE_ENTITIES_LOCATION);
