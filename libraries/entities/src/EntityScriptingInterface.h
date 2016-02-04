@@ -63,7 +63,7 @@ class EntityScriptingInterface : public OctreeScriptingInterface, public Depende
     Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
     Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
 public:
-    EntityScriptingInterface();
+    EntityScriptingInterface(bool bidOnSimulationOwnership);
 
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
@@ -211,7 +211,9 @@ private:
         bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     EntityTreePointer _entityTree;
-    EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
+    EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
+    
+    bool _bidOnSimulationOwnership { false };
     float _currentAvatarEnergy = { FLT_MAX };
     float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
     void setCurrentAvatarEnergy(float energy);

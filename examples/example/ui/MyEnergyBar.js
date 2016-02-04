@@ -56,7 +56,7 @@ function energyChanged(newValue) {
 function debitAvatarEnergy(value) {
    MyAvatar.energy = MyAvatar.energy - value;
 }
-Entities.costMultiplier = 0.002;
+Entities.costMultiplier = 0.02;
 Entities.debitEnergySource.connect(debitAvatarEnergy);
 MyAvatar.energyChanged.connect(energyChanged);
 Script.update.connect(update);
