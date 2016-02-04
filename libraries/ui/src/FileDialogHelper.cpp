@@ -86,5 +86,12 @@ bool FileDialogHelper::urlExists(const QUrl& url) {
 }
 
 bool FileDialogHelper::urlIsWritable(const QUrl& url) {
-    return QFileInfo(url.toLocalFile()).isWritable();
+    QFileInfo fileInfo(url.toLocalFile());
+    // Is the file writable?
+    if (fileInfo.exists()) {
+        return fileInfo.isWritable();
+    } 
+
+    // No file, get the parent directory and check if writable
+    return QFileInfo(fileInfo.absoluteDir().absolutePath()).isWritable();
 }

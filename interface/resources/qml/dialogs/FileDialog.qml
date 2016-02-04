@@ -229,55 +229,64 @@ ModalWindow {
             id: okAction
             text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
             enabled: currentSelection.text ? true : false
+            onTriggered: okActionTimer.start();
+        }
+
+        Timer {
+            id: okActionTimer
+            interval: 50
+            running: false
+            repeat: false
             onTriggered: {
-               if (root.saveDialog) {
-                   // Handle the ambiguity between different cases
-                   // * typed name (with or without extension)
-                   // * full path vs relative vs filename only
-                   var selection = helper.saveHelper(currentSelection.text, root.dir, selectionType.currentFilter);
+                if (!root.saveDialog) {
+                    selectedFile(d.currentSelectionUrl);
+                    root.destroy()
+                    return;
+                }
 
-                   if (!selection) {
-                       desktop.messageBox({ icon: OriginalDialogs.StandardIcon.Warning, text: "Unable to parse selection" })
-                       return;
-                   }
 
-                   if (helper.urlIsDir(selection)) {
-                       root.dir = selection;
-                       currentSelection.text = "";
-                       return;
-                   }
+                // Handle the ambiguity between different cases
+                // * typed name (with or without extension)
+                // * full path vs relative vs filename only
+                var selection = helper.saveHelper(currentSelection.text, root.dir, selectionType.currentFilter);
 
-                   // Check if the file is a valid target
-                   if (!helper.urlIsWritable(selection)) {
-                       desktop.messageBox({
-                                              icon: OriginalDialogs.StandardIcon.Warning,
-                                              buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-                                              text: "Unable to write to location " + selection
-                                          })
-                       return;
-                   }
+                if (!selection) {
+                    desktop.messageBox({ icon: OriginalDialogs.StandardIcon.Warning, text: "Unable to parse selection" })
+                    return;
+                }
 
-                   if (helper.urlExists(selection)) {
-                       var messageBox = desktop.messageBox({
-                                                               icon: OriginalDialogs.StandardIcon.Question,
-                                                               buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-                                                               text: "Do you wish to overwrite " + selection + "?",
-                                                           });
-                       var result = messageBox.exec();
-                       if (OriginalDialogs.StandardButton.Yes !== result) {
-                           return;
-                       }
-                   }
+                if (helper.urlIsDir(selection)) {
+                    root.dir = selection;
+                    currentSelection.text = "";
+                    return;
+                }
 
-                   selectedFile(d.currentSelectionUrl);
-                   root.destroy()
-               } else {
-                   selectedFile(d.currentSelectionUrl);
-                   root.destroy()
-               }
+                // Check if the file is a valid target
+                if (!helper.urlIsWritable(selection)) {
+                    desktop.messageBox({
+                                           icon: OriginalDialogs.StandardIcon.Warning,
+                                           buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                           text: "Unable to write to location " + selection
+                                       })
+                    return;
+                }
 
+                if (helper.urlExists(selection)) {
+                    var messageBox = desktop.messageBox({
+                                                            icon: OriginalDialogs.StandardIcon.Question,
+                                                            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                                            text: "Do you wish to overwrite " + selection + "?",
+                                                        });
+                    var result = messageBox.exec();
+                    if (OriginalDialogs.StandardButton.Yes !== result) {
+                        return;
+                    }
+                }
+
+                console.log("Selecting " + selection)
+                selectedFile(selection);
+                root.destroy();
             }
-
         }
 
         Action {
