@@ -31,7 +31,7 @@ public:
 
     virtual void update(float deltatime);
 
-    virtual const render::ShapeKey Image3DOverlay::getShapeKey() override;
+    virtual const render::ShapeKey getShapeKey() override;
 
     // setters
     void setURL(const QString& url);
