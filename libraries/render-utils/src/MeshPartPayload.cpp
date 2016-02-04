@@ -225,8 +225,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
 
-    ShapeKey key = getShapeKey();
-
     auto locations = args->_pipeline->locations;
     assert(locations);
 
@@ -468,8 +466,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
 
-    ShapeKey key = getShapeKey();
-    if (!key.isValid()) {
+    if (!getShapeKey().isValid()) {
         return;
     }
 
