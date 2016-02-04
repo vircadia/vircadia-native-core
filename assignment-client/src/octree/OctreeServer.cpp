@@ -289,6 +289,8 @@ void OctreeServer::initHTTPManager(int port) {
     _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
 }
 
+const QString PERSIST_FILE_DOWNLOAD_PATH = "/models.json.gz";
+
 bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
 
 #ifdef FORCE_CRASH
@@ -310,7 +312,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 #endif
 
     bool showStats = false;
-    QString persistFile = "/" + getPersistFilename();
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/") {
@@ -320,7 +321,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
-        } else if ((url.path() == persistFile) || (url.path() == persistFile + "/")) {
+        } else if ((url.path() == PERSIST_FILE_DOWNLOAD_PATH) || (url.path() == PERSIST_FILE_DOWNLOAD_PATH + "/")) {
             if (_persistFileDownload) {
                 QByteArray persistFileContents = getPersistFileContents();
                 if (persistFileContents.length() > 0) {
@@ -374,9 +375,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
             if (_persistFileDownload) {
-                statsString += QString("Persist file: <a href='%1'>%1</a>\r\n").arg(persistFile);
+                statsString += QString("Persist file: <a href='%1'>Click to Download</a>\r\n").arg(PERSIST_FILE_DOWNLOAD_PATH);
             } else {
-                statsString += QString("Persist file: %1\r\n").arg(persistFile);
+                statsString += QString("Persist file: %1\r\n").arg(_persistFilePath);
             }
 
         } else {
@@ -1030,13 +1031,12 @@ void OctreeServer::readConfiguration() {
     qDebug() << "wantPersist=" << _wantPersist;
 
     if (_wantPersist) {
-        QString persistFilename;
-        if (!readOptionString(QString("persistFilename"), settingsSectionObject, persistFilename)) {
-            persistFilename = getMyDefaultPersistFilename();
+        if (!readOptionString("persistFilePath", settingsSectionObject, _persistFilePath)
+            && !readOptionString("persistFilename", settingsSectionObject, _persistFilePath)) {
+            _persistFilePath = getMyDefaultPersistFilename();
         }
 
-        strcpy(_persistFilename, qPrintable(persistFilename));
-        qDebug("persistFilename=%s", _persistFilename);
+        qDebug() << "persistFilePath=" << _persistFilePath;
 
         _persistAsFileType = "json.gz";
 
@@ -1145,8 +1145,26 @@ void OctreeServer::domainSettingsRequestComplete() {
     if (_wantPersist) {
         // If persist filename does not exist, let's see if there is one beside the application binary
         // If there is, let's copy it over to our target persist directory
-        auto persistPath = ServerPathUtils::getDataFilePath("entities/" + QString(_persistFilename));
-        if (!QFile::exists(persistPath)) {
+        QDir persistPath { _persistFilePath };
+        QString absoluteFilePath = persistPath.absolutePath();
+
+        if (persistPath.isRelative()) {
+            // if the domain settings passed us a relative path, make an absolute path that is relative to the
+            // default data directory
+            absoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+        }
+
+        static const QString ENTITY_PERSIST_EXTENSION = ".json.gz";
+
+        // force the persist file to end with .json.gz
+        if (!absoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
+            absoluteFilePath += ENTITY_PERSIST_EXTENSION;
+        } else {
+            // make sure the casing of .json.gz is correct
+            absoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
+        }
+
+        if (!QFile::exists(absoluteFilePath)) {
             qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
 
             static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
@@ -1154,7 +1172,7 @@ void OctreeServer::domainSettingsRequestComplete() {
 
             // This is the old persist path, based on the current persist filename, which could
             // be a custom filename set by the user.
-            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilename);
+            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilePath);
 
             // This is the old default persist path.
             auto oldDefaultPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(OLD_DEFAULT_PERSIST_FILENAME);
@@ -1172,23 +1190,24 @@ void OctreeServer::domainSettingsRequestComplete() {
                 pathToCopyFrom = oldDefaultPersistPath;
             }
 
-            QDir persistFileDirectory = QDir(persistPath).filePath("..");
+            QDir persistFileDirectory { QDir::cleanPath(absoluteFilePath + "/..") };
+
             if (!persistFileDirectory.exists()) {
                 qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
                 persistFileDirectory.mkpath(".");
             }
 
             if (shouldCopy) {
-                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << persistPath;
+                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << absoluteFilePath;
 
-                QFile::copy(pathToCopyFrom, persistPath);
+                QFile::copy(pathToCopyFrom, absoluteFilePath);
             } else {
                 qDebug() << "No existing persist file found";
             }
         }
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, persistPath, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, absoluteFilePath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }

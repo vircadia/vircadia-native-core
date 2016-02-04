@@ -1,5 +1,5 @@
 {
-  "version": 1.0,
+  "version": 1.1,
   "settings": [
     {
       "name": "metaverse",
@@ -383,9 +383,9 @@
       "assignment-types": [6],
       "settings": [
         {
-          "name": "persistFilename",
-          "label": "Entities Filename",
-          "help": "the path to the file entities are stored in. Make sure the path exists.",
+          "name": "persistFilePath",
+          "label": "Entities File Path",
+          "help": "The path to the file entities are stored in. If this path is relative it will be relative to the application data directory. The filename must end in .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
           "advanced": true
