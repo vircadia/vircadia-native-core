@@ -274,13 +274,15 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
             return;
         }
 
-        // look for entities that need outgoing packets
+        // look for entities to prune or update
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
             if (!state->isCandidateForOwnership(sessionID)) {
+                // prune
                 stateItr = _outgoingChanges.erase(stateItr);
             } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
+                // update
                 state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
                 ++stateItr;
             } else {
