@@ -12,7 +12,7 @@ var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
 //  All participants should run the test script.
 
 
-Script.include("../libraries/virtualBaton.29.js");
+Script.include("../libraries/virtualBaton.31.js");
 var TICKER_INTERVAL = 1000; // ms
 var baton = virtualBaton({key: 'io.highfidelity.testBaton', debugSend: true, debugFlow: true, debugReceive: true});
 var ticker, countDown;
