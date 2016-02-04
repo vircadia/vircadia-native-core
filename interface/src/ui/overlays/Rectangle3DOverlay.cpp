@@ -88,6 +88,14 @@ void Rectangle3DOverlay::render(RenderArgs* args) {
     }
 }
 
+const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
 void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
 }

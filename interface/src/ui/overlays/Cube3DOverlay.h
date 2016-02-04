@@ -24,6 +24,7 @@ public:
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
     
     virtual void render(RenderArgs* args);
+    virtual const render::ShapeKey Cube3DOverlay::getShapeKey() override;
 
     virtual Cube3DOverlay* createClone() const;
 

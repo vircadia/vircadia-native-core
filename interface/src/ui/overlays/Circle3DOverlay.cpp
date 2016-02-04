@@ -105,7 +105,6 @@ void Circle3DOverlay::render(RenderArgs* args) {
     auto transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false);
     
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
@@ -276,6 +275,14 @@ void Circle3DOverlay::render(RenderArgs* args) {
         _lastInnerRadius = innerRadius;
         _lastOuterRadius = outerRadius;
     }
+}
+
+const render::ShapeKey Circle3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withNoCull();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 void Circle3DOverlay::setProperties(const QScriptValue &properties) {

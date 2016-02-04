@@ -8,8 +8,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Text3DOverlay.h"
 
+#include <TextureCache.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 #include <RenderDeferredTask.h>
@@ -34,6 +36,7 @@ Text3DOverlay::Text3DOverlay() :
     _bottomMargin(DEFAULT_MARGIN)
 {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _alpha = _backgroundAlpha;
 }
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
@@ -47,7 +50,8 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     _rightMargin(text3DOverlay->_rightMargin),
     _bottomMargin(text3DOverlay->_bottomMargin)
 {
-     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _alpha = _backgroundAlpha;
 }
 
 Text3DOverlay::~Text3DOverlay() {
@@ -100,7 +104,6 @@ void Text3DOverlay::render(RenderArgs* args) {
     
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     
     // Same font properties as textSize()
@@ -120,7 +123,15 @@ void Text3DOverlay::render(RenderArgs* args) {
 
     glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
                             _color.blue / MAX_COLOR, getAlpha() };
-    _textRenderer->draw(batch, 0, 0, _text, textColor);
+    _textRenderer->draw(batch, 0, 0, _text, textColor, glm::vec2(-1.0f), getDrawInFront());
+}
+
+const render::ShapeKey Text3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 void Text3DOverlay::setProperties(const QScriptValue& properties) {
@@ -145,6 +156,7 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
     if (properties.property("backgroundAlpha").isValid()) {
         _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+        _alpha = _backgroundAlpha;
     }
 
     if (properties.property("lineHeight").isValid()) {

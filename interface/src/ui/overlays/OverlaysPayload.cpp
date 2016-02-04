@@ -83,4 +83,7 @@ namespace render {
             }
         }
     }
+    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
+        return overlay->getShapeKey();
+    }
 }
