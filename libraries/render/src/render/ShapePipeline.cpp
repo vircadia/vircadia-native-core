@@ -22,11 +22,6 @@ ShapeKey::Filter::Builder::Builder() {
     _mask.set(INVALID);
 }
 
-gpu::PipelinePointer ShapePipeline::get(gpu::Batch& batch) {
-    batchSetter(*this, batch);
-    return this->pipeline;
-}
-
 void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) {
     // Iterate over all keys
     if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {

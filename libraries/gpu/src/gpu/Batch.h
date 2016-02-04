@@ -73,12 +73,10 @@ public:
         BufferPointers buffers;
         Function function;
         DrawCallInfoBuffer drawCallInfos;
-        Pipeline::Pointer pipeline;
 
         size_t count() const { return drawCallInfos.size();  }
 
         void process(Batch& batch) {
-            batch.setPipeline(pipeline);
             if (function) {
                 function(batch, *this);
             }

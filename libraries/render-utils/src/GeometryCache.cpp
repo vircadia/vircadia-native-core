@@ -1925,16 +1925,19 @@ uint32_t toCompactColor(const glm::vec4& color) {
 
 static const size_t INSTANCE_COLOR_BUFFER = 0;
 
-template <typename F>
-void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline, F f) {
+void renderInstances(const std::string& name, gpu::Batch& batch, const glm::vec4& color,
+                    const render::ShapePipelinePointer& pipeline, gpu::Batch::NamedBatchData::Function f) {
+    // Add color to named buffer
     {
         gpu::BufferPointer instanceColorBuffer = batch.getNamedBuffer(name, INSTANCE_COLOR_BUFFER);
         auto compactColor = toCompactColor(color);
         instanceColorBuffer->append(compactColor);
     }
-    
+
+    // Add call to named buffer
     batch.setupNamedCalls(name, [f, pipeline](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-        batch.setPipeline(pipeline->get(batch));
+        batch.setPipeline(pipeline->pipeline);
+        pipeline->prepare(batch);
         f(batch, data);
     });
 }
