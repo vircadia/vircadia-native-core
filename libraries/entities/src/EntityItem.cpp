@@ -652,6 +652,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
         if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+            somethingChanged = true;
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
