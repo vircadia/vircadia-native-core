@@ -43,6 +43,13 @@ var DEFAULT_SOUND_DATA = {
 };
 var MIN_INTERVAL = 0.2;
 
-var avatars = AvatarList.getAvatarIdentifiers();
-print("EBL AVATARS " + JSON.stringify(avatars));
+
+// First, constantly query for avatars and get their position
+Script.setTimeout(function() {
+   var avatars = AvatarList.getAvatarIdentifiers();
+   var avatarID = avatars[0];
+   var avatar = AvatarList.getAvatar(avatarID);
+   print(" EBL avatar Position " + JSON.stringify(avatar.position));
+    
+}, 2000);
 
