@@ -159,6 +159,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
 void FetchSpatialTree::configure(const Config& config) {
     _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
     _freezeFrustum = config.freezeFrustum;
+    _lodAngle = config.lodAngle;
 }
 
 void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
@@ -181,7 +182,7 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
     }
 
     // Octree selection!
-    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum);
+    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, _lodAngle);
 }
 
 void CullSpatialSelection::configure(const Config& config) {

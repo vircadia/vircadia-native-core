@@ -59,12 +59,12 @@ void DrawSceneOctree::configure(const Config& config) {
 
 
 void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
-                     const RenderContextPointer& renderContext) {
+                          const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
-    const int NUM_STATUS_VEC4_PER_ITEM = 2;
+    /*const int NUM_STATUS_VEC4_PER_ITEM = 2;
     const int VEC4_LENGTH = 4;
 
     // FIrst thing, we update the local buffers with the values coming from Scene octree
@@ -96,10 +96,10 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         }
         queryFrustum = _frozenFrutstum;
     }
-
+*/
     // Try that:
-    Octree::CellSelection selection;
-    scene->getSpatialTree().selectCells(selection, queryFrustum);
+   // Octree::CellSelection selection;
+   // scene->getSpatialTree().selectCells(selection, queryFrustum);
 
 
     // Allright, something to render let's do it
@@ -117,7 +117,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
 
-        for (const auto& cellID : selection.insideCells) {
+        for (const auto& cellID : inSelection.cellSelection.insideCells) {
             auto cell = scene->getSpatialTree().getConcreteCell(cellID);
 
             auto cellLoc = cell.getlocation();
@@ -131,7 +131,7 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
 
             batch.draw(gpu::LINES, 24, 0);
         }
-        for (const auto& cellID : selection.partialCells) {
+        for (const auto& cellID : inSelection.cellSelection.partialCells) {
             auto cell = scene->getSpatialTree().getConcreteCell(cellID);
 
             auto cellLoc = cell.getlocation();

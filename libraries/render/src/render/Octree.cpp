@@ -424,7 +424,7 @@ int Octree::selectCellBrick(Index cellID, CellSelection& selection, bool inside)
 }
 
 
-int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& frustum) const {
+int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& frustum, float lodAngle) const {
     auto worldPlanes = frustum.getPlanes();
     FrustumSelector selector;
     for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
@@ -434,13 +434,13 @@ int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& fr
     }
 
     selector.eyePos = evalCoordf(frustum.getPosition(), ROOT_DEPTH);
-    selector.setAngle(glm::radians(2.0f));
+    selector.setAngle(glm::radians(lodAngle));
 
     return Octree::select(selection, selector);
 }
 
-int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum) const {
-    selectCells(selection.cellSelection, frustum);
+int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, float lodAngle) const {
+    selectCells(selection.cellSelection, frustum, lodAngle);
 
     // Just grab the items in every selected bricks
     for (auto brickId : selection.cellSelection.insideBricks) {

@@ -360,7 +360,7 @@ namespace render {
         Index resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey);
 
         // Selection and traverse
-        int selectCells(CellSelection& selection, const ViewFrustum& frustum) const;
+        int selectCells(CellSelection& selection, const ViewFrustum& frustum, float lodAngle) const;
 
         class ItemSelection {
         public:
@@ -386,7 +386,7 @@ namespace render {
             }
         };
 
-        int selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum) const;
+        int selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum, float lodAngle) const;
     };
 }
 

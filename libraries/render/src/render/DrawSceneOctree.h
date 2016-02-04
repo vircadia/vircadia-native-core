@@ -50,12 +50,12 @@ namespace render {
 
     public:
         using Config = DrawSceneOctreeConfig;
-        using JobModel = Job::Model<DrawSceneOctree, Config>;
+        using JobModel = Job::ModelI<DrawSceneOctree, ItemSpatialTree::ItemSelection, Config>;
 
         DrawSceneOctree() {}
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
     };

@@ -71,11 +71,15 @@ namespace render {
         Q_OBJECT
         Q_PROPERTY(int numItems READ getNumItems)
         Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+        Q_PROPERTY(float LODAngle MEMBER lodAngle NOTIFY dirty)
+    
     public:
         int numItems{ 0 };
         int getNumItems() { return numItems; }
 
         bool freezeFrustum{ false };
+    
+        float lodAngle{ 2.0 };
     public slots:
         void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
 
@@ -87,6 +91,7 @@ namespace render {
         bool _freezeFrustum{ false }; // initialized by Config
         bool _justFrozeFrustum{ false };
         ViewFrustum _frozenFrutstum;
+        float _lodAngle;
     public:
         using Config = FetchSpatialTreeConfig;
         using JobModel = Job::ModelO<FetchSpatialTree, ItemSpatialTree::ItemSelection, Config>;
