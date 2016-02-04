@@ -108,8 +108,8 @@ public:
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
 protected:
-    render::ShapePlumberPointer _shapePlumber;
     render::ItemFilter _filter;
+    render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
 };
 
