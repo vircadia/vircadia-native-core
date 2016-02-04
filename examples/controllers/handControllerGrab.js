@@ -69,13 +69,14 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 // near grabbing
 //
 
-var GRAB_RADIUS = 0.03; // if the ray misses but an object is this close, it will still be selected
+var GRAB_RADIUS = 0.06; // if the ray misses but an object is this close, it will still be selected
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
 var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
 var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
+var SHOW_GRAB_SPHERE = false; // draw a green sphere to show the grab search position and size
 
 //
 // equip
@@ -256,6 +257,7 @@ function MyController(hand) {
     //for visualizations
     this.overlayLine = null;
     this.particleBeamObject = null;
+    this.grabSphere = null;
 
     //for lights
     this.spotlight = null;
@@ -336,6 +338,7 @@ function MyController(hand) {
     }
 
     this.setState = function(newState) {
+        this.grabSphereOff();
         if (WANT_DEBUG || WANT_DEBUG_STATE) {
             print("STATE (" + this.hand + "): " + stateToName(this.state) + " --> " +
                   stateToName(newState) + ", hand: " + this.hand);
@@ -415,6 +418,37 @@ function MyController(hand) {
             });
         }
     }
+
+    this.grabSphereOn = function() {
+        var color = {red: 0, green: 255, blue: 0};
+        if (this.grabSphere === null) {
+            var sphereProperties = {
+                position: this.getHandPosition(),
+                size: GRAB_RADIUS*2,
+                color: color,
+                alpha: 0.1,
+                solid: true,
+                visible: true
+            }
+            this.grabSphere = Overlays.addOverlay("sphere", sphereProperties);
+        } else {
+            Overlays.editOverlay(this.grabSphere, {
+                position: this.getHandPosition(),
+                size: GRAB_RADIUS*2,
+                color: color,
+                alpha: 0.1,
+                solid: true,
+                visible: true
+            });
+        }
+    }
+
+    this.grabSphereOff = function() {
+        if (this.grabSphere !== null) {
+            Overlays.deleteOverlay(this.grabSphere);
+            this.grabSphere = null;
+        }
+    };
 
     this.overlayLineOn = function(closePoint, farPoint, color) {
         if (this.overlayLine === null) {
@@ -644,7 +678,6 @@ function MyController(hand) {
             this.searchSphereDistance = DEFAULT_SEARCH_SPHERE_DISTANCE;
             this.intersectionDistance = 0.0;
         }
-
     };
 
     this.particleBeamOff = function() {
@@ -749,6 +782,11 @@ function MyController(hand) {
 
         // the trigger is being pressed, so do a ray test to see what we are hitting
         var handPosition = this.getHandPosition();
+
+        if (SHOW_GRAB_SPHERE) {
+            this.grabSphereOn();
+        }
+
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         var currentHandRotation = Controller.getPoseValue(controllerHandInput).rotation;
         var handDeltaRotation = Quat.multiply(currentHandRotation, Quat.inverse(this.startingHandRotation));
@@ -1221,11 +1259,14 @@ function MyController(hand) {
 
     this.hasPresetOffsets = function() {
         var wearableData = getEntityCustomData('wearable', this.grabbedEntity, {joints: {}});
-        var allowedJoints = wearableData.joints;
-        var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
-        if (handJointName in allowedJoints) {
-            return true;
+        if ("joints" in wearableData) {
+            var allowedJoints = wearableData.joints;
+            var handJointName = this.hand === RIGHT_HAND ? "RightHand" : "LeftHand";
+            if (handJointName in allowedJoints) {
+                return true;
+            }
         }
+        return false;
     }
 
     this.getPresetPosition = function() {

@@ -6,8 +6,10 @@ import "../controls"
 Frame {
     id: frame
 
+    property bool wideTopMargin: (window && (window.closable || window.title));
+
     Rectangle {
-        anchors { margins: -iconSize; topMargin: -iconSize * ((window && window.closable) ? 2 : 1); }
+        anchors { margins: -iconSize; topMargin: -iconSize * (wideTopMargin ? 2 : 1); }
         anchors.fill: parent;
         color: "#7f7f7f7f";
         radius: 3;

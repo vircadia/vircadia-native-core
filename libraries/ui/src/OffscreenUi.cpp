@@ -45,6 +45,20 @@ private:
     bool _navigationFocused { false };
 };
 
+QString fixupHifiUrl(const QString& urlString) {
+	static const QString ACCESS_TOKEN_PARAMETER = "access_token";
+	static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
+    QUrl url(urlString);
+	QUrlQuery query(url);
+	if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
+	    AccountManager& accountManager = AccountManager::getInstance();
+	    query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
+	    url.setQuery(query.query());
+	    return url.toString();
+	}
+    return urlString;
+}
+
 class UrlHandler : public QObject {
     Q_OBJECT
 public:
@@ -60,20 +74,7 @@ public:
     
     // FIXME hack for authentication, remove when we migrate to Qt 5.6
     Q_INVOKABLE QString fixupUrl(const QString& originalUrl) {
-        static const QString ACCESS_TOKEN_PARAMETER = "access_token";
-        static const QString ALLOWED_HOST = "metaverse.highfidelity.com";
-        QString result = originalUrl;
-        QUrl url(originalUrl);
-        QUrlQuery query(url);
-        if (url.host() == ALLOWED_HOST && query.allQueryItemValues(ACCESS_TOKEN_PARAMETER).empty()) {
-            qDebug() << "Updating URL with auth token";
-            AccountManager& accountManager = AccountManager::getInstance();
-            query.addQueryItem(ACCESS_TOKEN_PARAMETER, accountManager.getAccountInfo().getAccessToken().token);
-            url.setQuery(query.query());
-            result = url.toString();
-        }
-
-        return result;
+        return fixupHifiUrl(originalUrl);
     }
 };
 

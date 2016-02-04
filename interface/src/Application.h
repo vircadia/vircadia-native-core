@@ -167,11 +167,11 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
-    virtual QThread* getMainThread() { return thread(); }
-    virtual PickRay computePickRay(float x, float y) const;
-    virtual glm::vec3 getAvatarPosition() const;
-    virtual qreal getDevicePixelRatio();
+    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual QThread* getMainThread() override { return thread(); }
+    virtual PickRay computePickRay(float x, float y) const override;
+    virtual glm::vec3 getAvatarPosition() const override;
+    virtual qreal getDevicePixelRatio() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
@@ -244,8 +244,6 @@ public slots:
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
-
-    void showFriendsWindow();
 
     void packageModel();
 

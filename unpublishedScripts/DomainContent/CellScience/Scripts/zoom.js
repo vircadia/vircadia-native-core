@@ -25,8 +25,9 @@
             loop: false,
             localOnly: false,
             position: this.position,
-            volume: 0.5
+            volume: 0.035
         };
+        
         this.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
         //print('Script.clearTimeout PRELOADING A ZOOM ENTITY')
         print(" portal destination is " + portalDestination);

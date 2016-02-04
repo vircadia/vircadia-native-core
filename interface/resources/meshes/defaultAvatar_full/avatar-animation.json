@@ -247,7 +247,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -263,7 +265,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -278,7 +282,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -293,7 +299,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -308,7 +316,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -323,7 +333,9 @@
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -338,7 +350,9 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningLeft", "state": "turnLeft" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -353,7 +367,9 @@
                                                                 { "var": "isMovingLeft", "state": "strafeLeft" },
                                                                 { "var": "isTurningRight", "state": "turnRight" },
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isFlying", "state": "fly" }
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoff", "state": "takeoff" },
+                                                                { "var": "isInAir", "state": "inAir" }
                                                             ]
                                                         },
                                                         {
@@ -361,6 +377,7 @@
                                                             "interpTarget": 30,
                                                             "interpDuration": 30,
                                                             "transitions": [
+                                                                { "var": "isNotAway", "state": "awayOutro" },
                                                                 { "var": "awayIntroOnDone", "state": "away"}
                                                             ]
                                                         },
@@ -385,7 +402,26 @@
                                                             "interpTarget": 6,
                                                             "interpDuration": 6,
                                                             "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
                                                                 { "var": "isNotFlying", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "takeoff",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isNotTakeoff", "state": "inAir" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "inAir",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 6,
+                                                            "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isNotInAir", "state": "idle" }
                                                             ]
                                                         }
                                                     ]
@@ -685,6 +721,64 @@
                                                             "loopFlag": true
                                                         },
                                                         "children": []
+                                                    },
+                                                    {
+                                                        "id": "takeoff",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_takeoff.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 2.5,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "inAir",
+                                                        "type": "blendLinear",
+                                                        "data": {
+                                                            "alpha": 0.0,
+                                                            "alphaVar": "inAirAlpha"
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "id": "inAirPreApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 0.0,
+                                                                    "endFrame": 0.0,
+                                                                    "timeScale": 0.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 6.0,
+                                                                    "endFrame": 6.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            },
+                                                            {
+                                                                "id": "inAirPostApex",
+                                                                "type": "clip",
+                                                                "data": {
+                                                                    "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_in_air.fbx",
+                                                                    "startFrame": 11.0,
+                                                                    "endFrame": 11.0,
+                                                                    "timeScale": 1.0,
+                                                                    "loopFlag": false
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             }

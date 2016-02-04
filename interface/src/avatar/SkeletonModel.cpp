@@ -72,6 +72,20 @@ void SkeletonModel::initJointStates() {
     emit skeletonLoaded();
 }
 
+Rig::CharacterControllerState convertCharacterControllerState(CharacterController::State state) {
+    switch (state) {
+    default:
+    case CharacterController::State::Ground:
+        return Rig::CharacterControllerState::Ground;
+    case CharacterController::State::Takeoff:
+        return Rig::CharacterControllerState::Takeoff;
+    case CharacterController::State::InAir:
+        return Rig::CharacterControllerState::InAir;
+    case CharacterController::State::Hover:
+        return Rig::CharacterControllerState::Hover;
+    };
+}
+
 // Called within Model::simulate call, below.
 void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     Head* head = _owningAvatar->getHead();
@@ -133,7 +147,8 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), myAvatar->isHovering());
+        Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
+        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), ccState);
 
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);
@@ -233,6 +248,56 @@ void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     if (parentJointIndex == -1) {
         return;
     }
+}
+
+bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
+    int knuckleIndex = _rig->indexOfJoint("LeftHandMiddle1");
+    int handIndex = _rig->indexOfJoint("LeftHand");
+    if (knuckleIndex >= 0 && handIndex >= 0) {
+        glm::quat handRotation;
+        glm::vec3 knucklePosition;
+        glm::vec3 handPosition;
+        if (!getJointPositionInWorldFrame(knuckleIndex, knucklePosition)) {
+            return false;
+        }
+        if (!getJointPositionInWorldFrame(handIndex, handPosition)) {
+            return false;
+        }
+        if (!getJointRotationInWorldFrame(handIndex, handRotation)) {
+            return false;
+        }
+        float halfPalmLength = glm::distance(knucklePosition, handPosition) * 0.5f;
+        // z azis is standardized to be out of the palm.  move from the knuckle-joint away from the palm
+        // by 1/2 the palm length.
+        position = knucklePosition + handRotation * (glm::vec3(0.0f, 0.0f, 1.0f) * halfPalmLength);
+        return true;
+    }
+    return false;
+}
+
+bool SkeletonModel::getRightGrabPosition(glm::vec3& position) const {
+    int knuckleIndex = _rig->indexOfJoint("RightHandMiddle1");
+    int handIndex = _rig->indexOfJoint("RightHand");
+    if (knuckleIndex >= 0 && handIndex >= 0) {
+        glm::quat handRotation;
+        glm::vec3 knucklePosition;
+        glm::vec3 handPosition;
+        if (!getJointPositionInWorldFrame(knuckleIndex, knucklePosition)) {
+            return false;
+        }
+        if (!getJointPositionInWorldFrame(handIndex, handPosition)) {
+            return false;
+        }
+        if (!getJointRotationInWorldFrame(handIndex, handRotation)) {
+            return false;
+        }
+        float halfPalmLength = glm::distance(knucklePosition, handPosition) * 0.5f;
+        // z azis is standardized to be out of the palm.  move from the knuckle-joint away from the palm
+        // by 1/2 the palm length.
+        position = knucklePosition + handRotation * (glm::vec3(0.0f, 0.0f, 1.0f) * halfPalmLength);
+        return true;
+    }
+    return false;
 }
 
 bool SkeletonModel::getLeftHandPosition(glm::vec3& position) const {
