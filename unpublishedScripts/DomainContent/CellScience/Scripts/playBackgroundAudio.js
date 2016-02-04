@@ -8,7 +8,7 @@
 (function() {
     var self = this;
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
-    var version = 8;
+    var version = 9;
     this.preload = function(entityId) {
         self.soundPlaying = false;
         self.entityId = entityId;
@@ -20,7 +20,7 @@
             stereo: true,
             loop: true,
             localOnly: true,
-            volume: 0.5
+            volume: 0.035
         };
 
         this.sound = SoundCache.getSound(self.soundURL);
@@ -36,7 +36,6 @@
         }
     }
 
-
     this.enterEntity = function(entityID) {
         print("entering audio zone");
         if (self.sound.downloaded) {
@@ -47,7 +46,6 @@
             print("sound is not downloaded");
         }
     }
-
 
 
     this.leaveEntity = function(entityID) {
