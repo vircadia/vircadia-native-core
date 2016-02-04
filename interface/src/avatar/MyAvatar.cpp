@@ -1866,7 +1866,7 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
 float MyAvatar::getAccelerationEnergy() {
     glm::vec3 velocity = getVelocity();
     int changeInVelocity = abs(velocity.length() - priorVelocity.length());
-    float changeInEnergy = priorVelocity.length()*changeInVelocity*AVATAR_MOVEMENT_ENERGY_CONSTANT;
+    float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
     priorVelocity = velocity;
     
     return changeInEnergy;
@@ -1881,7 +1881,7 @@ void MyAvatar::setEnergy(float value) {
 }
 
 float MyAvatar::getAudioEnergy() {
-    return getAudioLoudness()*AUDIO_ENERGY_CONSTANT;
+    return getAudioLoudness() * AUDIO_ENERGY_CONSTANT;
 }
 
 bool MyAvatar::didTeleport() {

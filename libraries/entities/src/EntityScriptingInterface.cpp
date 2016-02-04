@@ -123,10 +123,10 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
     auto dimensions = propertiesWithSimID.getDimensions();
-    float volume = dimensions.x*dimensions.y*dimensions.z;
+    float volume = dimensions.x * dimensions.y * dimensions.z;
     auto density = propertiesWithSimID.getDensity();
     auto newVelocity = propertiesWithSimID.getVelocity().length();
-    double cost = calculateCost(density*volume, 0, newVelocity);
+    double cost = calculateCost(density * volume, 0, newVelocity);
     cost *= costMultiplier;
     
     if(cost > _currentAvatarEnergy) {
@@ -231,10 +231,10 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     EntityItemProperties properties = scriptSideProperties;
     
     auto dimensions = properties.getDimensions();
-    float volume = dimensions.x*dimensions.y*dimensions.z;
+    float volume = dimensions.x * dimensions.y * dimensions.z;
     auto density = properties.getDensity();
     auto newVelocity = properties.getVelocity().length();
-    double cost = calculateCost(density*volume, 0, newVelocity);
+    double cost = calculateCost(density * volume, 0, newVelocity);
     cost *= costMultiplier;
     
     if(cost > _currentAvatarEnergy) {
@@ -351,10 +351,10 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
             if (entity) {
                 
                 auto dimensions = entity->getDimensions();
-                float volume = dimensions.x*dimensions.y*dimensions.z;
+                float volume = dimensions.x * dimensions.y * dimensions.z;
                 auto density = entity->getDensity();
                 auto velocity = entity->getVelocity().length();
-                double cost = calculateCost(density*volume, velocity, 0);
+                double cost = calculateCost(density * volume, velocity, 0);
                 cost *= costMultiplier;
                 
                 if(cost > _currentAvatarEnergy) {
@@ -1041,7 +1041,7 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     return result;
 }
 
-float EntityScriptingInterface::calculateCost(float mass, float oldVelocity,float newVelocity) {
+float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
     return std::abs(mass * (newVelocity - oldVelocity));
 }
 
