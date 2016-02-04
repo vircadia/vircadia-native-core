@@ -34,6 +34,7 @@ const double Octree::INV_DEPTH_DIM[] = {
     1.0 / 16384.0,
     1.0 / 32768.0 };
 
+/*
 const float Octree::COORD_SUBCELL_WIDTH[] = { // 2 ^ MAX_DEPTH / 2 ^ (depth + 1)
     16384.0f,
     8192.0f,
@@ -51,7 +52,7 @@ const float Octree::COORD_SUBCELL_WIDTH[] = { // 2 ^ MAX_DEPTH / 2 ^ (depth + 1)
     2.0f,
     1.0f,
     0.5f };
-
+*/
 
 Octree::Location::vector Octree::Location::pathTo(const Location& dest) {
     Location current{ dest };
