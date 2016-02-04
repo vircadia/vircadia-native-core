@@ -98,9 +98,8 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
     }
 
     // Try that:
-    render::Octree::Indices itemsBrick;
-    render::Octree::Indices itemsCell;
-    scene->getSpatialTree().select(itemsBrick, itemsCell, queryFrustum);
+    Octree::CellSelection selection;
+    scene->getSpatialTree().selectCells(selection, queryFrustum);
 
 
     // Allright, something to render let's do it
@@ -118,12 +117,21 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
         // bind the one gpu::Pipeline we need
         batch.setPipeline(getDrawCellBoundsPipeline());
 
-     /*   const auto& inCells = scene->getSpatialTree()._cells;
+        for (const auto& cellID : selection.insideCells) {
+            auto cell = scene->getSpatialTree().getConcreteCell(cellID);
 
-        for (const auto& cell: inCells ) {
-       */
-        
-        for (const auto& cellID : itemsCell) {
+            auto cellLoc = cell.getlocation();
+
+            glm::ivec4 cellLocation(cellLoc.pos.x, cellLoc.pos.y, cellLoc.pos.z, cellLoc.depth);
+            if (cell.isBrickEmpty() || !cell.hasBrick()) {
+                cellLocation.w *= -1;
+            }
+
+            batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
+
+            batch.draw(gpu::LINES, 24, 0);
+        }
+        for (const auto& cellID : selection.partialCells) {
             auto cell = scene->getSpatialTree().getConcreteCell(cellID);
 
             auto cellLoc = cell.getlocation();

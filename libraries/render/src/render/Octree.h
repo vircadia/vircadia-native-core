@@ -92,6 +92,7 @@ namespace render {
 
         static int getDepthDimension(Depth depth) { return 1 << depth; }
         static double getInvDepthDimension(Depth depth) { return INV_DEPTH_DIM[depth]; }
+        static float getCoordSubcellWidth(Depth depth) { return (float) (1.7320 * getInvDepthDimension(depth) * 0.5); }
 
         // Need 16bits integer coordinates on each axes: 32768 cell positions
         using Coord = int16_t;
@@ -128,6 +129,11 @@ namespace render {
             uint8_t spare{ 0 };
             Depth depth{ ROOT_DEPTH };
 
+            Coord3f getCenter() const { 
+                Coord3f center = (Coord3f(pos) + Coord3f(0.5f)) * Coord3f(Octree::getInvDepthDimension(depth));
+                return center;
+            }
+
             bool operator== (const Location& right) const { return pos == right.pos && depth == right.depth; }
 
             // Eval the octant of this cell relative to its parent
@@ -137,6 +143,7 @@ namespace render {
             // Get the Parent cell Location of this cell
             Location parent() const { return Location{ (pos >> Coord3(1)), Depth(depth <= 0 ? 0 : depth - 1) }; }
             Location child(Link octant) const { return Location{ (pos << Coord3(1)) | octantAxes(octant), Depth(depth + 1) }; }
+
 
             // Eval the list of locations (the path) from root to the destination.
             // the root cell is included
@@ -152,7 +159,6 @@ namespace render {
                 Inside,
             };
             static Intersection intersectCell(const Location& cell, const Coord4f frustum[6]);
-
         };
         using Locations = Location::vector;
 
@@ -243,11 +249,51 @@ namespace render {
             return _bricks[index];
         }
 
-        // Selection and traverse
-        int select(Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
-        int selectTraverse(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
-        int selectBranch(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
-        int selectInCell(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const;
+        // Cell Selection and traversal
+
+        class CellSelection {
+        public:
+            Indices insideCells;
+            Indices insideBricks;
+            Indices partialCells;
+            Indices partialBricks;
+
+            Indices& cells(bool inside) { return (inside ? insideCells : partialCells); }
+            Indices& bricks(bool inside) { return (inside ? insideBricks : partialBricks); }
+
+            int size() const { return insideBricks.size() + partialBricks.size(); }
+
+            void clear() {
+                insideCells.clear();
+                insideBricks.clear();
+                partialCells.clear();
+                partialBricks.clear();
+            }
+        };
+
+        class FrustumSelector {
+        public:
+            Coord4f frustum[6];
+            Coord3f eyePos;
+            float   angle;
+            float   squareTanAlpha;
+
+            void setAngle(float a) {
+                angle = std::max(glm::radians(1.0f/60.0f), a); // no better than 1 minute of degree
+                auto tanAlpha = tan(angle);
+                squareTanAlpha = (float)(tanAlpha * tanAlpha);
+            }
+
+            float testSolidAngle(const Coord3f& point, float size) const {
+                auto eyeToPoint = point - eyePos;
+                return (size * size / glm::dot(eyeToPoint, eyeToPoint)) - squareTanAlpha;
+            }
+        };
+
+        int select(CellSelection& selection, const FrustumSelector& selector) const;
+        int selectTraverse(Index cellID, CellSelection& selection, const FrustumSelector& selector) const;
+        int selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const;
+        int selectCellBrick(Index cellID, CellSelection& selection, bool inside) const;
 
     protected:
         Index allocateCell(Index parent, const Location& location);
@@ -314,8 +360,33 @@ namespace render {
         Index resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey);
 
         // Selection and traverse
-        int select(Indices& selectedBricks, Indices& selectedCells, const ViewFrustum& frustum) const;
-        int fetch(ItemIDs& fetchedItems, const ItemFilter& filter, const ViewFrustum& frustum) const;
+        int selectCells(CellSelection& selection, const ViewFrustum& frustum) const;
+
+        class ItemSelection {
+        public:
+            CellSelection cellSelection;
+            ItemIDs insideItems;
+            ItemIDs insideSubcellItems;
+            ItemIDs partialItems;
+            ItemIDs partialSubcellItems;
+
+            ItemIDs& items(bool inside) { return (inside ? insideItems : partialItems); }
+            ItemIDs& subcellItems(bool inside) { return (inside ? insideSubcellItems : partialSubcellItems); }
+
+            int insideNumItems() const { return insideItems.size() + insideSubcellItems.size(); }
+            int partialNumItems() const { return partialItems.size() + partialSubcellItems.size(); }
+            int numItems() const { return insideNumItems() + partialNumItems(); }
+
+            void clear() {
+                cellSelection.clear();
+                insideItems.clear();
+                insideSubcellItems.clear();
+                partialItems.clear();
+                partialSubcellItems.clear();
+            }
+        };
+
+        int selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum) const;
     };
 }
 

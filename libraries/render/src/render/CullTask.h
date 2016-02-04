@@ -23,29 +23,16 @@ namespace render {
         const ItemBounds& inItems, ItemBounds& outItems);
     void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
 
-
     class FetchItemsConfig : public Job::Config {
         Q_OBJECT
         Q_PROPERTY(int numItems READ getNumItems)
-        Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
     public:
         int getNumItems() { return numItems; }
 
         int numItems{ 0 };
-
-        bool freezeFrustum{ false };
-
-    public slots:
-        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
-
-    signals:
-        void dirty();
     };
 
     class FetchItems {
-        bool _freezeFrustum{ false }; // initialized by Config
-        bool _justFrozeFrustum{ false };
-        ViewFrustum _frozenFrutstum;
     public:
         using Config = FetchItemsConfig;
         using JobModel = Job::ModelO<FetchItems, ItemBounds, Config>;
@@ -79,6 +66,69 @@ namespace render {
         CullFunctor _cullFunctor;
     };
 
+    
+    class FetchSpatialTreeConfig : public Job::Config {
+        Q_OBJECT
+        Q_PROPERTY(int numItems READ getNumItems)
+        Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+    public:
+        int numItems{ 0 };
+        int getNumItems() { return numItems; }
+
+        bool freezeFrustum{ false };
+    public slots:
+        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
+
+    signals:
+        void dirty();
+    };
+
+    class FetchSpatialTree {
+        bool _freezeFrustum{ false }; // initialized by Config
+        bool _justFrozeFrustum{ false };
+        ViewFrustum _frozenFrutstum;
+    public:
+        using Config = FetchSpatialTreeConfig;
+        using JobModel = Job::ModelO<FetchSpatialTree, ItemSpatialTree::ItemSelection, Config>;
+
+        FetchSpatialTree() {}
+        FetchSpatialTree(const ItemFilter& filter) : _filter(filter) {}
+
+        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
+
+        void configure(const Config& config);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection);
+    };
+
+    class CullSpatialSelectionConfig : public Job::Config {
+        Q_OBJECT
+        Q_PROPERTY(int numItems READ getNumItems)
+    public:
+        int numItems{ 0 };
+        int getNumItems() { return numItems; }
+    };
+
+    class CullSpatialSelection {
+    public:
+        using Config = CullSpatialSelectionConfig;
+        using JobModel = Job::ModelIO<CullSpatialSelection, ItemSpatialTree::ItemSelection, ItemBounds, Config>;
+
+        CullSpatialSelection(CullFunctor cullFunctor, RenderDetails::Type type, const ItemFilter& filter) :
+            _cullFunctor{ cullFunctor },
+            _detailType(type),
+            _filter(filter) {}
+
+        CullSpatialSelection(CullFunctor cullFunctor) :
+            _cullFunctor{ cullFunctor } {}
+
+        CullFunctor _cullFunctor;
+        RenderDetails::Type _detailType{ RenderDetails::OPAQUE_ITEM };
+        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
+
+        void configure(const Config& config);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& outSelection, ItemBounds& outItems);
+    };
+
     class DepthSortItems {
     public:
         using JobModel = Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
@@ -90,4 +140,4 @@ namespace render {
     };
 }
 
-#endif // hifi_render_CullTask_h
+#endif // hifi_render_CullTask_h;

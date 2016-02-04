@@ -131,8 +131,6 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
 
 
 void FetchItems::configure(const Config& config) {
-    _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
-    _freezeFrustum = config.freezeFrustum;
 }
 
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
@@ -143,7 +141,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
 
     outItems.clear();
 
-   /* const auto& bucket = scene->getMasterBucket();
+    const auto& bucket = scene->getMasterBucket();
     const auto& items = bucket.find(_filter);
     if (items != bucket.end()) {
         outItems.reserve(items->second.size());
@@ -152,8 +150,27 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
             outItems.emplace_back(ItemBound(id, item.getBound()));
         }
     }
-    */
 
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
+}
+
+
+
+void FetchSpatialTree::configure(const Config& config) {
+    _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
+    _freezeFrustum = config.freezeFrustum;
+}
+
+void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemSpatialTree::ItemSelection& outSelection) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
+    auto& scene = sceneContext->_scene;
+
+    // start fresh
+    outSelection.clear();
+
+    // Eventually use a frozen frustum
     auto queryFrustum = *args->_viewFrustum;
     if (_freezeFrustum) {
         if (_justFrozeFrustum) {
@@ -163,18 +180,110 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
         queryFrustum = _frozenFrutstum;
     }
 
-    // Try that:
-    ItemIDs fetchedItems;
-    scene->getSpatialTree().fetch(fetchedItems, _filter, queryFrustum);
+    // Octree selection!
+    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum);
+}
 
-    // Now get the bound, and filter individually against the _filter
-    outItems.reserve(fetchedItems.size());
-    for (auto id : fetchedItems) {
+void CullSpatialSelection::configure(const Config& config) {
+}
+
+void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
+    auto& scene = sceneContext->_scene;
+    ViewFrustum* frustum = args->_viewFrustum;
+
+    auto& details = args->_details.edit(_detailType);
+    details._considered += inSelection.numItems();
+
+    // Culling Frustum / solidAngle test helper class
+    struct Test {
+        CullFunctor _functor;
+        RenderArgs* _args;
+        RenderDetails::Item& _renderDetails;
+
+        Test(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails) :
+            _functor(functor),
+            _args(pargs),
+            _renderDetails(renderDetails)
+        {}
+
+        bool frustumTest(const AABox& bound) {
+            PerformanceTimer perfTimer("frustumItemTest");
+            if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
+                _renderDetails._outOfView++;
+                return false;
+            }
+            return true;
+        }
+
+        bool solidAngleTest(const AABox& bound) {
+            PerformanceTimer perfTimer("solidAngleItemTest");
+            if (!_functor(_args, bound)) {
+                _renderDetails._tooSmall++;
+                return false;
+            }
+            return true;
+        }
+    };
+    Test test(_cullFunctor, args, details);
+
+    // Now we have a selection of items to render
+
+    outItems.clear();
+    outItems.reserve(inSelection.numItems());
+
+    // Now get the bound, and
+    // filter individually against the _filter
+    // visibility cull if partially selected ( octree cell contianing it was partial)
+    // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
+    
+    // inside & fit items: easy, just filter
+    for (auto id : inSelection.insideItems) {
         auto& item = scene->getItem(id);
         if (_filter.test(item.getKey())) {
-            outItems.emplace_back(ItemBound(id, item.getBound()));
+            ItemBound itemBound(id, item.getBound());
+            outItems.emplace_back(itemBound);
         }
     }
+
+    // inside & subcell items: filter & distance cull
+    for (auto id : inSelection.insideSubcellItems) {
+        auto& item = scene->getItem(id);
+        if (_filter.test(item.getKey())) {
+            ItemBound itemBound(id, item.getBound());
+            if (test.solidAngleTest(itemBound.bound)) {
+                outItems.emplace_back(itemBound);
+            }
+        }
+    }
+
+    // partial & fit items: filter & frustum cull
+    for (auto id : inSelection.partialItems) {
+        auto& item = scene->getItem(id);
+        if (_filter.test(item.getKey())) {
+            ItemBound itemBound(id, item.getBound());
+            if (test.frustumTest(itemBound.bound)) {
+                outItems.emplace_back(itemBound);
+            }
+        }
+    }
+
+    // partial & subcell items:: filter & frutum cull & solidangle cull
+    for (auto id : inSelection.partialSubcellItems) {
+        auto& item = scene->getItem(id);
+        if (_filter.test(item.getKey())) {
+            ItemBound itemBound(id, item.getBound());
+            if (test.frustumTest(itemBound.bound)) {
+                if (test.solidAngleTest(itemBound.bound)) {
+                    outItems.emplace_back(itemBound);
+                }
+            }
+        }
+    }
+
+    details._rendered += outItems.size();
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }

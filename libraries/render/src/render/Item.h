@@ -59,6 +59,9 @@ public:
     ItemKey() : _flags(0) {}
     ItemKey(const Flags& flags) : _flags(flags) {}
 
+    bool operator== (const ItemKey& rhs) const { return _flags == rhs._flags; }
+    bool operator!= (const ItemKey& rhs) const { return _flags != rhs._flags; }
+
     class Builder {
         friend class ItemKey;
         Flags _flags{ 0 };

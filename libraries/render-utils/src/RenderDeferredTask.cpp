@@ -52,7 +52,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
     initDeferredPipelines(*shapePlumber);
     
-    // CPU: Fetch the renderOpaques
+
+  /*  // CPU: Fetch the renderOpaques
     const auto fetchedOpaques = addJob<FetchItems>("FetchOpaque");
     const auto culledOpaques = addJob<CullItems<RenderDetails::OPAQUE_ITEM>>("CullOpaque", fetchedOpaques, cullFunctor);
     const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
@@ -62,6 +63,18 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         ItemFilter::Builder::transparentShape().withoutLayered()));
     const auto culledTransparents =
         addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents, cullFunctor);
+    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
+    */
+    // CPU: Fetch the renderOpaques
+    const auto opaqueSelection = addJob<FetchSpatialTree>("FetchOpaque");
+    const auto culledOpaques = addJob<CullSpatialSelection>("CullOpaque", opaqueSelection, cullFunctor);
+    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
+
+    // CPU only, create the list of renderedTransparents items
+    const auto fetchedTransparents = addJob<FetchItems>("FetchTransparent", FetchItems(
+    ItemFilter::Builder::transparentShape().withoutLayered()));
+    const auto culledTransparents =
+    addJob<CullItems<RenderDetails::TRANSLUCENT_ITEM>>("CullTransparent", fetchedTransparents, cullFunctor);
     const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
 
     // GPU Jobs: Start preparing the deferred and lighting buffer

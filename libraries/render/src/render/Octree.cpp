@@ -34,6 +34,24 @@ const double Octree::INV_DEPTH_DIM[] = {
     1.0 / 16384.0,
     1.0 / 32768.0 };
 
+const float Octree::COORD_SUBCELL_WIDTH[] = { // 2 ^ MAX_DEPTH / 2 ^ (depth + 1)
+    16384.0f,
+    8192.0f,
+    4096.0f,
+    2048.0f,
+    1024.0f,
+    512.0f,
+    256.0f,
+    128.0f,
+    64.0f,
+    32.0f,
+    16.0f,
+    8.0f,
+    4.0f,
+    2.0f,
+    1.0f,
+    0.5f };
+
 
 Octree::Location::vector Octree::Location::pathTo(const Location& dest) {
     Location current{ dest };
@@ -169,11 +187,10 @@ Octree::Locations ItemSpatialTree::evalLocations(const ItemBounds& bounds) const
 ItemSpatialTree::Index ItemSpatialTree::insertItem(Index cellIdx, const ItemKey& key, const ItemID& item) {
     // Add the item to the brick (and a brick if needed)
     auto brickID = accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
-        if (key.isSmall()) {
-            brick.items.push_back(item);
-        } else {
-            brick.subcellItems.push_back(item);
-        }
+        auto& itemIn = (key.isSmall() ? brick.subcellItems : brick.items);
+
+        itemIn.push_back(item);
+
         cell.signalBrickFilled();
     }, true);
 
@@ -183,6 +200,10 @@ ItemSpatialTree::Index ItemSpatialTree::insertItem(Index cellIdx, const ItemKey&
 bool ItemSpatialTree::updateItem(Index cellIdx, const ItemKey& oldKey, const ItemKey& key, const ItemID& item) {
     auto success = false;
 
+    // only if key changed
+    assert(oldKey != key);
+
+    // Get to the brick where the item is and update where it s stored
     auto brickID = accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
         auto& itemIn = (key.isSmall() ? brick.subcellItems : brick.items);
         auto& itemOut = (oldKey.isSmall() ? brick.subcellItems : brick.items);
@@ -197,12 +218,12 @@ bool ItemSpatialTree::updateItem(Index cellIdx, const ItemKey& oldKey, const Ite
 bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID& item) {
     auto success = false;
 
-    // Access the brick at the cell (without createing new ones)
+    // Remove the item from the brick
     accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index brickID) {
-        // remove the item from the list
         auto& itemList = (key.isSmall() ? brick.subcellItems : brick.items);
 
         itemList.erase(std::find(itemList.begin(), itemList.end(), item));
+
         if (brick.items.empty() && brick.subcellItems.empty()) {
             cell.signalBrickEmpty();
         }
@@ -211,33 +232,6 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
 
     return success;
 }
-/*
-ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const Location& location, const ItemID& item) {
-    auto newCell = indexCell(location);
-
-    // Early exit if nothing changed
-    if (newCell == oldCell) {
-        return newCell;
-    }
-    // do we know about this item ?
-    else if (oldCell == Item::INVALID_CELL) {
-        insertItem(newCell, item);
-        return newCell;
-    }
-    // A true update of cell is required
-    else {
-        // Add the item to the brick (and a brick if needed)
-        accessCellBrick(newCell, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
-            brick.items.push_back(item);
-            cell.signalBrickFilled();
-        }, true);
-
-        // And remove it from the previous one
-        removeItem(oldCell, item);
-
-        return newCell;
-    }
-}*/
 
 ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey) {
     auto minCoordf = evalCoordf(bound.getMinimumPoint());
@@ -255,8 +249,9 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
 
     auto newCell = indexCell(location);
 
-    // Early exit if nothing changed
+    // Staying in the same cell
     if (newCell == oldCell) {
+        // Did the key changed, if yes update
         if (newKey._flags != oldKey._flags) {
             updateItem(newCell, oldKey, newKey, item);
         }
@@ -279,11 +274,10 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
     }
 }
 
-int Octree::select(Indices& selectedBricks, Indices& selectedCells, const glm::vec4 frustum[6]) const {
+int Octree::select(CellSelection& selection, const FrustumSelector& selector) const {
 
     Index cellID = ROOT_CELL;
-    selectTraverse(cellID, selectedBricks, selectedCells, frustum);
-    return selectedCells.size();
+    return selectTraverse(cellID, selection, selector);
 }
 
 
@@ -345,11 +339,13 @@ Octree::Location::Intersection Octree::Location::intersectCell(const Location& c
     return Inside;
 }
 
-int Octree::selectTraverse(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
-    int numSelectedsIn = selectedCells.size();
+int Octree::selectTraverse(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
+    int numSelectedsIn = selection.size();
     auto cell = getConcreteCell(cellID);
 
-    auto intersection = Octree::Location::intersectCell(cell.getlocation(), frustum);
+    auto cellLocation = cell.getlocation();
+
+    auto intersection = Octree::Location::intersectCell(cellLocation, selector.frustum);
     switch (intersection) {
         case Octree::Location::Outside:
             // cell is outside, stop traversing this branch
@@ -357,82 +353,110 @@ int Octree::selectTraverse(Index cellID, Indices& selectedBricks, Indices& selec
             break;
         case Octree::Location::Inside: {
             // traverse all the Cell Branch and collect items in the selection
-            selectBranch(cellID, selectedBricks, selectedCells, frustum);
+            selectBranch(cellID, selection, selector);
             break;
         }
         case Octree::Location::Intersect:
         default: {
             // Cell is partially in
 
-            // Select within this cell
-            selectInCell(cellID, selectedBricks, selectedCells, frustum);
+            // Test for lod
+            auto cellLocation = cell.getlocation();
+            float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
+            if (lod < 0.0) {
+                return 0;
+                break;
+            }
+
+            // Select this cell partially in frustum
+            selectCellBrick(cellID, selection, false);
 
             // then traverse deeper
             for (int i = 0; i < NUM_OCTANTS; i++) {
                 Index subCellID = cell.child((Link)i);
                 if (subCellID != INVALID) {
-                    selectTraverse(subCellID, selectedBricks, selectedCells, frustum);
+                    selectTraverse(subCellID, selection, selector);
                 }
             }
         }
     }
 
-    return selectedCells.size() - numSelectedsIn;
+    return selection.size() - numSelectedsIn;
 }
 
 
-int  Octree::selectBranch(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
-    int numSelectedsIn = selectedCells.size();
+int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
+    int numSelectedsIn = selection.size();
     auto cell = getConcreteCell(cellID);
 
-    // Select within this cell
-    selectInCell(cellID, selectedBricks, selectedCells, frustum);
+    auto cellLocation = cell.getlocation();
+    float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
+    if (lod < 0.0) {
+        return 0;
+    }
+
+    // Select this cell fully inside the frustum
+    selectCellBrick(cellID, selection, true);
 
     // then traverse deeper
     for (int i = 0; i < NUM_OCTANTS; i++) {
         Index subCellID = cell.child((Link)i);
         if (subCellID != INVALID) {
-            selectBranch(subCellID, selectedBricks, selectedCells, frustum);
+            selectBranch(subCellID, selection, selector);
         }
     }
 
-    return selectedCells.size() - numSelectedsIn;
+    return selection.size() - numSelectedsIn;
 }
 
-int Octree::selectInCell(Index cellID, Indices& selectedBricks, Indices& selectedCells, const Coord4f frustum[6]) const {
-    int numSelectedsIn = selectedCells.size();
+int Octree::selectCellBrick(Index cellID, CellSelection& selection, bool inside) const {
+    int numSelectedsIn = selection.size();
     auto cell = getConcreteCell(cellID);
-    selectedCells.push_back(cellID);
+    selection.cells(inside).push_back(cellID);
 
     if (!cell.isBrickEmpty()) {
         // Collect the items of this cell
-        selectedBricks.push_back(cell.brick());
+        selection.bricks(inside).push_back(cell.brick());
     }
 
-    return selectedCells.size() - numSelectedsIn;
+    return selection.size() - numSelectedsIn;
 }
 
 
-int ItemSpatialTree::select(Indices& selectedBricks, Indices& selectedCells, const ViewFrustum& frustum) const {
+int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& frustum) const {
     auto worldPlanes = frustum.getPlanes();
-    Coord4f planes[6];
+    FrustumSelector selector;
     for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
         ::Plane octPlane;
         octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
-        planes[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
+        selector.frustum[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
     }
-    return Octree::select(selectedBricks, selectedCells, planes);
+
+    selector.eyePos = evalCoordf(frustum.getPosition(), ROOT_DEPTH);
+    selector.setAngle(glm::radians(2.0f));
+
+    return Octree::select(selection, selector);
 }
 
-int ItemSpatialTree::fetch(ItemIDs& fetchedItems, const ItemFilter& filter, const ViewFrustum& frustum) const {
-    Indices bricks;
-    Indices cells;
-    select(bricks, cells, frustum);
+int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter& filter, const ViewFrustum& frustum) const {
+    selectCells(selection.cellSelection, frustum);
 
-    for (auto brickId : bricks) {
+    // Just grab the items in every selected bricks
+    for (auto brickId : selection.cellSelection.insideBricks) {
         auto& brickItems = getConcreteBrick(brickId).items;
-        fetchedItems.insert(fetchedItems.end(), brickItems.begin(), brickItems.end());
+        selection.insideItems.insert(selection.insideItems.end(), brickItems.begin(), brickItems.end());
+
+        auto& brickSubcellItems = getConcreteBrick(brickId).subcellItems;
+        selection.insideSubcellItems.insert(selection.insideSubcellItems.end(), brickSubcellItems.begin(), brickSubcellItems.end());
     }
 
-    return bricks.size();
+    for (auto brickId : selection.cellSelection.partialBricks) {
+        auto& brickItems = getConcreteBrick(brickId).items;
+        selection.partialItems.insert(selection.partialItems.end(), brickItems.begin(), brickItems.end());
+
+        auto& brickSubcellItems = getConcreteBrick(brickId).subcellItems;
+        selection.partialSubcellItems.insert(selection.partialSubcellItems.end(), brickSubcellItems.begin(), brickSubcellItems.end());
+    }
+
+    return selection.numItems();
 }
