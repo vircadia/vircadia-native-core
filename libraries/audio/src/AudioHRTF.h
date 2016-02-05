@@ -35,12 +35,12 @@ public:
     // gain: gain factor for distance attenuation
     // numFrames: must be HRTF_BLOCK in this version
     //
-    void AudioHRTF::render(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames);
+    void render(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames);
 
     //
     // Fast path when input is known to be silent
     //
-    void AudioHRTF::renderSilent(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames);
+    void renderSilent(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames);
 
 private:
 
