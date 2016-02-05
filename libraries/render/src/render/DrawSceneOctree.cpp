@@ -18,9 +18,12 @@
 #include <RenderArgs.h>
 
 #include <gpu/Context.h>
+#include <gpu/StandardShaderLib.h>
+
 
 #include "drawCellBounds_vert.h"
 #include "drawCellBounds_frag.h"
+#include "drawLODReticle_frag.h"
 
 using namespace render;
 
@@ -49,6 +52,27 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawCellBoundsPipeline() {
     return _drawCellBoundsPipeline;
 }
 
+const gpu::PipelinePointer DrawSceneOctree::getDrawLODReticlePipeline() {
+    if (!_drawLODReticlePipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawTransformUnitQuadVS();
+        auto ps = gpu::Shader::createPixel(std::string(drawLODReticle_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+       // _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
+
+        auto state = std::make_shared<gpu::State>();
+
+        // Blend on transparent
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+
+        // Good to go add the brand new pipeline
+        _drawLODReticlePipeline = gpu::Pipeline::create(program, state);
+    }
+    return _drawLODReticlePipeline;
+}
 
 void DrawSceneOctree::configure(const Config& config) {
     _showVisibleCells = config.showVisibleCells;
@@ -144,6 +168,18 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
             batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
 
             batch.draw(gpu::LINES, 24, 0);
+        }
+
+        // Draw the LOD Reticle
+        {
+            float angle = glm::degrees(args->_viewFrustum->getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+            Transform crosshairModel;
+            crosshairModel.setTranslation(glm::vec3(0.0, 0.0, -1.0));
+            crosshairModel.setScale(tan(glm::radians(angle))); // Scaling at the actual tan of the lod angle => Multiplied by TWO
+            batch.setViewTransform(Transform());
+            batch.setModelTransform(crosshairModel);
+            batch.setPipeline(getDrawLODReticlePipeline());
+            batch.draw(gpu::TRIANGLE_STRIP, 4, 0);
         }
     });
 }

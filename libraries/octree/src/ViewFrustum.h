@@ -125,6 +125,8 @@ public:
     float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
                                   int boundaryLevelAdjust = 0) const;
 
+    float getAccuracyAngle(float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
+
     enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };
 
     const ::Plane* getPlanes() const { return _planes; }

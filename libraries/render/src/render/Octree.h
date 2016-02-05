@@ -87,7 +87,8 @@ namespace render {
         // Max depth is 15 => 32Km root down to 1m cells
         using Depth = int8_t;
         static const Depth ROOT_DEPTH{ 0 };
-        static const Depth MAX_DEPTH { 15 };
+        static const Depth MAX_DEPTH{ 15 };
+        static const Depth METRIC_COORD_DEPTH{ 15 };
         static const double INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
 
         static int getDepthDimension(Depth depth) { return 1 << depth; }
@@ -279,6 +280,7 @@ namespace render {
             float   squareTanAlpha;
 
             void setAngle(float a) {
+                angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
                 angle = std::max(glm::radians(1.0f/60.0f), a); // no better than 1 minute of degree
                 auto tanAlpha = tan(angle);
                 squareTanAlpha = (float)(tanAlpha * tanAlpha);
@@ -325,18 +327,18 @@ namespace render {
         float getCellWidth(Depth depth) const { return (float) _size * getInvDepthDimension(depth); }
         float getInvCellWidth(Depth depth) const { return (float) getDepthDimension(depth) * _invSize; }
 
-        glm::vec3 evalPos(const Coord3& coord, Depth depth = Octree::MAX_DEPTH) const {
+        glm::vec3 evalPos(const Coord3& coord, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             return getOrigin() + glm::vec3(coord) * getCellWidth(depth);
         }
         glm::vec3 evalPos(const Coord3& coord, float cellWidth) const {
             return getOrigin() + glm::vec3(coord) * cellWidth;
         }
 
-        Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
+        Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             auto npos = (pos - getOrigin());
             return Coord3(npos * getInvCellWidth(depth)); // Truncate fractional part
         }
-        Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::MAX_DEPTH) const {
+        Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             auto npos = (pos - getOrigin());
             return Coord3f(npos * getInvCellWidth(depth));
         }

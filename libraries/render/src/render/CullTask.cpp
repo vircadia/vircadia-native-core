@@ -183,6 +183,7 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
 
     // Octree selection!
     scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, _lodAngle);
+
 }
 
 void CullSpatialSelection::configure(const Config& config) {

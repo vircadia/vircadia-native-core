@@ -42,6 +42,8 @@ namespace render {
         gpu::PipelinePointer _drawCellBoundsPipeline;
         gpu::BufferPointer _cells;
 
+        gpu::PipelinePointer _drawLODReticlePipeline;
+
 
         bool _showVisibleCells; // initialized by Config
         bool _freezeFrustum{ false }; // initialized by Config
@@ -58,6 +60,7 @@ namespace render {
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
+        const gpu::PipelinePointer getDrawLODReticlePipeline();
     };
 }
 
