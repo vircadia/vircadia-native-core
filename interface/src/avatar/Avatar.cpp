@@ -214,7 +214,7 @@ void Avatar::simulate(float deltaTime) {
             Head* head = getHead();
             head->setPosition(headPosition);
             head->setScale(getUniformScale());
-            head->simulate(deltaTime, false, _shouldAnimate);
+            head->simulate(deltaTime, false, !_shouldAnimate);
         }
     }
 
