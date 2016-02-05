@@ -593,21 +593,21 @@ void AnimInverseKinematics::initConstraints() {
             std::vector<glm::vec3> swungDirections;
             float deltaTheta = PI / 4.0f;
             float theta = 0.0f;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.25f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.0f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), -0.25f, sin(theta))); // posterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta))); // posterior
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.0f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.25f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.5f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.5f, sin(theta))); // anterior
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta))); // anterior
             theta += deltaTheta;
-            swungDirections.push_back(glm::vec3(mirror * cos(theta), 0.5f, sin(theta)));
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
 
             // rotate directions into joint-frame
             glm::quat invAbsoluteRotation = glm::inverse(absolutePoses[i].rot);
