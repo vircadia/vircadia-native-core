@@ -19,7 +19,7 @@ var DEFAULT_SOUND_DATA = {
 };
 var MIN_PLAY_INTERVAL = 0.2;
 
-var UPDATE_TIME = 100;
+var UPDATE_TIME = 2000;
 var EXPIRATION_TIME = 5000;
 
 var soundEntityMap = {};
@@ -54,17 +54,28 @@ function handleActiveSoundEntities() {
         if (soundProperties.timeWithoutAvatarInRange > EXPIRATION_TIME) {
             // An avatar hasn't been within range of this sound entity recently, so remove it from map
             print("NO AVATARS HAVE BEEN AROUND FOR A WHILE SO REMOVE THIS SOUND FROM SOUNDMAP!");
+            // If the sound was looping, make sure to stop playing it
+            if (soundProperties.loop) {
+                print ("STOP SOUND INJECTOR!!");
+                soundProperties.soundInjector.stop();
+            }
+
+
             delete soundEntityMap[soundEntity];
             print("NEW MAP " + JSON.stringify(soundEntityMap));
         } else {
             // If this sound hasn't expired yet, we want to potentially play it!
             if (soundProperties.readyToPlay) {
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
-                Audio.playSound(soundProperties.sound, {
-                    volume: soundProperties.volume,
-                    position: newPosition,
-                    loop: soundProperties.loop
-                });
+                if (!soundProperties.soundInjector) {
+                    soundProperties.soundInjector = Audio.playSound(soundProperties.sound, {
+                        volume: soundProperties.volume,
+                        position: newPosition,
+                        loop: soundProperties.loop
+                    });
+                } else {
+                    soundProperties.soundInjector.restart();
+                }
                 soundProperties.readyToPlay = false;
             } else if (soundProperties.loop === false && soundProperties.interval !== -1) {
                 // We need to check all of our entities that are not looping but have an interval associated with them
@@ -81,6 +92,7 @@ function handleActiveSoundEntities() {
         }
     }
 }
+
 
 function handleFoundSoundEntities(entities) {
     entities.forEach(function(entity) {
@@ -121,7 +133,8 @@ function handleFoundSoundEntities(entities) {
                     soundEntityMap[entity] = soundProperties;
                 }
             } else {
-                //If this sound is in our map already, we want to reset timeWithoutAvatarInRange 
+                //If this sound is in our map already, we want to reset timeWithoutAvatarInRange
+                // Also we want to check to see if the entity has been updated with new sound data- if so we want to update!
                 soundEntityMap[entity].timeWithoutAvatarInRange = 0;
             }
         }

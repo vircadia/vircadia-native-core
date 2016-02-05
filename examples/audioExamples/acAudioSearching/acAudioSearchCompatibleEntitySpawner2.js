@@ -20,7 +20,7 @@ var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
         volume: 0.3,
-        loop: false,
+        loop: true,
         interval: 2000,
         intervalSpread: 1000 
     }
