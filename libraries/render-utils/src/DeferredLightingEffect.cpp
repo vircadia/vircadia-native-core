@@ -511,8 +511,8 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
     }
 }
 
-void DeferredLightingEffect::setupTransparent(gpu::Batch& batch, int lightBufferUnit) {
-    PerformanceTimer perfTimer("DLE->setupTransparent()");
+void DeferredLightingEffect::setupBatch(gpu::Batch& batch, int lightBufferUnit) {
+    PerformanceTimer perfTimer("DLE->setupBatch()");
     auto globalLight = _allocatedLights[_globalLights.front()];
     batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
