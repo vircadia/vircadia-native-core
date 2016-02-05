@@ -68,6 +68,7 @@ function handleActiveSoundEntities() {
             if (soundProperties.readyToPlay) {
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
                 if (!soundProperties.soundInjector) {
+                    print("SOUND VOLUME " + soundProperties.volume)
                     soundProperties.soundInjector = Audio.playSound(soundProperties.sound, {
                         volume: soundProperties.volume,
                         position: newPosition,
@@ -136,8 +137,27 @@ function handleFoundSoundEntities(entities) {
                 //If this sound is in our map already, we want to reset timeWithoutAvatarInRange
                 // Also we want to check to see if the entity has been updated with new sound data- if so we want to update!
                 soundEntityMap[entity].timeWithoutAvatarInRange = 0;
+                checkForSoundPropertyChanges(soundEntityMap[entity], soundData);
             }
         }
     });
+}
+
+function checkForSoundPropertyChanges(currentProps, newProps) {
+    var needsUpdate = false;
+    if(currentProps.volume !== newProps.volume) {
+        print("VOLUME CHANGED!!");
+        currentProps.volume = newProps.volume;
+        needsUpdate = true;
+    }
+    if (needsUpdate && currentProps.loop) {
+        print ("LOOP CHANGED!");
+        currentProps.loop = newProps.loop;
+        // If we were looping we need to stop that so new changes are applied
+        currentProps.soundInjector.stop();
+        currentProps.soundInjector = null;
+        currentProps.readyToPlay = true;
+    }
+
 }
 Script.setInterval(slowUpdate, UPDATE_TIME);
