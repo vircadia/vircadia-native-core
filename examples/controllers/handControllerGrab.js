@@ -775,6 +775,7 @@ function MyController(hand) {
     this.search = function() {
         this.grabbedEntity = null;
         this.isInitialGrab = false;
+        this.doubleParentGrab = false;
 
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
@@ -941,7 +942,7 @@ function MyController(hand) {
                 return;
             }
             // near grab or equip with action
-            if (near) {
+            if (near && grabbableData.refCount < 1) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
@@ -975,6 +976,15 @@ function MyController(hand) {
             // else this thing isn't physical.  grab it by reparenting it (but not if we've already
             // grabbed it).
             if (grabbableData.refCount < 1) {
+                this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
+                return;
+            } else {
+                // it's not physical and it's already held via parenting.  go ahead and grab it, but
+                // save off the current parent and joint.  this wont always be right if there are more than
+                // two grabs and the order of release isn't opposite of the order of grabs.
+                this.doubleParentGrab = true;
+                this.previousParentID = props.parentID;
+                this.previousParentJointIndex = props.parentJointIndex;
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
@@ -1432,6 +1442,17 @@ function MyController(hand) {
             return;
         }
 
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID"]);
+        if (props.parentID == MyAvatar.sessionUUID &&
+            Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
+            // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand.");
+            this.setState(STATE_RELEASE);
+            this.callEntityMethodOnGrabbed(this.state == STATE_NEAR_GRABBING ? "releaseGrab" : "releaseEquip",
+                                           [JSON.stringify(this.hand)]);
+            return;
+        }
+
         // Keep track of the fingertip velocity to impart when we release the object.
         // Note that the idea of using a constant 'tip' velocity regardless of the
         // object's actual held offset is an idea intended to make it easier to throw things:
@@ -1631,9 +1652,14 @@ function MyController(hand) {
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
-                //sometimes we want things to stay right where they are when we let go.
+                // sometimes we want things to stay right where they are when we let go.
+                var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-                if (releaseVelocityData.disableReleaseVelocity === true || !this.isInitialGrab) {
+                if (releaseVelocityData.disableReleaseVelocity === true ||
+                    // this next line allowed both:
+                    // (1) far-grab, pull to self, near grab, then throw
+                    // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
+                    (!this.isInitialGrab && grabData.refCount > 1)) {
                     Entities.editEntity(this.grabbedEntity, {
                         velocity: {
                             x: 0,
@@ -1759,6 +1785,13 @@ function MyController(hand) {
                     Entities.editEntity(entityID, {velocity:{x:0, y:0.1, z:0}});
                 }
                 data = null;
+            } else if (this.doubleParentGrab) {
+                // we parent-grabbed this from another parent grab.  try to put it back where we found it.
+                var deactiveProps = {
+                    parentID: this.previousParentID,
+                    parentJointIndex: this.previousParentJointIndex
+                };
+                Entities.editEntity(entityID, deactiveProps);
             }
         } else {
             data = null;
