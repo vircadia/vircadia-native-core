@@ -20,7 +20,7 @@ var DEFAULT_SOUND_DATA = {
 var MIN_PLAY_INTERVAL = 0.2;
 
 var UPDATE_TIME = 2000;
-var EXPIRATION_TIME = 5000;
+var EXPIRATION_TIME = 7000;
 
 var soundEntityMap = {};
 var soundUrls = {};
@@ -29,9 +29,15 @@ print("EBL STARTING SCRIPT");
 
 function slowUpdate() {
     var avatars = AvatarList.getAvatarIdentifiers();
+    print("CURRENT AVATAR LIST: " + JSON.stringify(avatars));
     for (var i = 0; i < avatars.length; i++) {
         var avatar = AvatarList.getAvatar(avatars[i]);
-        EntityViewer.setPosition(avatar.position);
+        var avatarPosition = avatar.position;
+        if (!avatarPosition) {
+            print("EBL This avatars been DELETED *******! Don't add it to list");
+            continue;
+        }
+        EntityViewer.setPosition(avatarPosition);
         EntityViewer.queryOctree();
         Script.setTimeout(function() {
             var entities = Entities.findEntities(avatar.position, QUERY_RADIUS);
@@ -56,7 +62,7 @@ function handleActiveSoundEntities() {
             print("NO AVATARS HAVE BEEN AROUND FOR A WHILE SO REMOVE THIS SOUND FROM SOUNDMAP!");
             // If the sound was looping, make sure to stop playing it
             if (soundProperties.loop) {
-                print ("STOP SOUND INJECTOR!!");
+                print("STOP SOUND INJECTOR!!");
                 soundProperties.soundInjector.stop();
             }
 
@@ -68,7 +74,7 @@ function handleActiveSoundEntities() {
             if (soundProperties.readyToPlay) {
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
                 if (!soundProperties.soundInjector) {
-                    print("SOUND VOLUME " + soundProperties.volume)
+                    print("PLAY SOUND! SOUND VOLUME " + soundProperties.volume)
                     soundProperties.soundInjector = Audio.playSound(soundProperties.sound, {
                         volume: soundProperties.volume,
                         position: newPosition,
@@ -78,7 +84,7 @@ function handleActiveSoundEntities() {
                     soundProperties.soundInjector.restart();
                 }
                 soundProperties.readyToPlay = false;
-            } else if (soundProperties.loop === false && soundProperties.interval !== -1) {
+            } else if (soundProperties.sound && soundProperties.loop === false && soundProperties.interval !== -1) {
                 // We need to check all of our entities that are not looping but have an interval associated with them
                 // to see if it's time for them to play again
                 soundProperties.timeSinceLastPlay += UPDATE_TIME;
@@ -108,7 +114,7 @@ function handleFoundSoundEntities(entities) {
                     loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
                     interval: soundData.interval || DEFAULT_SOUND_DATA.interval,
                     intervalSpread: soundData.intervalSpread || DEFAULT_SOUND_DATA.intervalSpread,
-                    readyToPlay: true,
+                    readyToPlay: false,
                     position: Entities.getEntityProperties(entity, "position").position,
                     timeSinceLastPlay: 0,
                     timeWithoutAvatarInRange: 0
@@ -119,18 +125,22 @@ function handleFoundSoundEntities(entities) {
                     soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
                 }
 
+                soundEntityMap[entity] = soundProperties;
                 if (!soundUrls[soundData.url]) {
                     // We need to download sound before we add it to our map
                     var sound = SoundCache.getSound(soundData.url);
-                    soundUrls[soundData.url] = sound;
                     // Only add it to map once it's downloaded
+                    soundUrls[soundData.url] = sound;
                     sound.ready.connect(function() {
+                        print("ADD TO MAP!")
                         soundProperties.sound = sound;
+                        soundProperties.readyToPlay = true;
                         soundEntityMap[entity] = soundProperties;
                     });
                 } else {
                     // We already have sound downloaded, so just add it to map right away
                     soundProperties.sound = soundUrls[soundData.url];
+                    soundProperties.readyToPlay = true;
                     soundEntityMap[entity] = soundProperties;
                 }
             } else {
@@ -145,15 +155,31 @@ function handleFoundSoundEntities(entities) {
 
 function checkForSoundPropertyChanges(currentProps, newProps) {
     var needsUpdate = false;
-    if(currentProps.volume !== newProps.volume) {
+    if (currentProps.volume !== newProps.volume) {
         print("VOLUME CHANGED!!");
         currentProps.volume = newProps.volume;
         needsUpdate = true;
     }
+    if (currentProps.url !== newProps.url) {
+        currentProps.url = newProps.url;
+        if (!soundUrls[currentProps.url]) {
+            var sound = SoundCache.getSound(currentProps.url);
+            currentProps.sound = null;
+            currentProps.readyToPlay = false;
+            sound.ready.connect(function() {
+                print("Ready to play new sound!")
+                currentProps.soundInjector.restart();
+                currentProps.soundInjector.stop();
+                currentProps.sound = sound;
+                currentProps.soundInjector = null;
+            });
+        }
+    }
     if (needsUpdate && currentProps.loop) {
-        print ("LOOP CHANGED!");
+        print("LOOP CHANGED!");
         currentProps.loop = newProps.loop;
         // If we were looping we need to stop that so new changes are applied
+        currentProps.soundInjector.restart();
         currentProps.soundInjector.stop();
         currentProps.soundInjector = null;
         currentProps.readyToPlay = true;

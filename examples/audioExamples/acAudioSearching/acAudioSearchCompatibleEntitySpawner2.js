@@ -14,11 +14,11 @@
 //
 
 Script.include("../../libraries/utils.js");
-
+// http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav
 var SOUND_DATA_KEY = "soundKey";
 var userData = {
     soundKey: {
-        url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
+        url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove2.wav",
         volume: 0.3,
         loop: true,
         interval: 2000,
