@@ -158,7 +158,10 @@ public:
                                           bool emissive = false, bool depthBias = false);
     render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
     
-    // Static geometry
+    // Static (instanced) geometry
+    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color,
@@ -188,20 +191,14 @@ public:
     }
     
     // Dynamic geometry
-    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
-    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
     size_t getShapeTriangleCount(Shape shape);
 
-    void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
-    void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
     size_t getCubeTriangleCount();
 
-    void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
-    void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer colorBuffer);
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
     size_t getSphereTriangleCount();
