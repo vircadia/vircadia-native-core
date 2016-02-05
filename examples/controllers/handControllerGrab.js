@@ -215,6 +215,10 @@ function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
 
+function entityHasActions(entityID) {
+    return Entities.getActionIDs(entityID).length > 0;
+}
+
 function entityIsGrabbedByOther(entityID) {
     // by convention, a distance grab sets the tag of its action to be grab-*owner-session-id*.
     var actionIDs = Entities.getActionIDs(entityID);
@@ -1018,7 +1022,9 @@ function MyController(hand) {
     };
 
     this.distanceGrabTimescale = function(mass, distance) {
-        var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass / DISTANCE_HOLDING_UNITY_MASS * distance / DISTANCE_HOLDING_UNITY_DISTANCE;
+        var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
+            DISTANCE_HOLDING_UNITY_MASS * distance /
+            DISTANCE_HOLDING_UNITY_DISTANCE;
         if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
             timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
         }
@@ -1349,7 +1355,8 @@ function MyController(hand) {
             });
         }
 
-        var handRotation = this.getHandRotation();
+        // var handRotation = this.getHandRotation();
+        var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
         var handPosition = this.getHandPosition();
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1376,7 +1383,7 @@ function MyController(hand) {
             }
         }
 
-        var isPhysical = this.propsArePhysical(grabbedProperties);
+        var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
             // grab entity via action
             if (!this.setupHoldAction()) {
