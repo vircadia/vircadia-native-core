@@ -1260,7 +1260,7 @@ void Application::initializeUi() {
             auto resultVec = _compositor.screenToOverlay(toGlm(pt));
             result = QPointF(resultVec.x, resultVec.y);
         }
-        return result;
+        return result.toPoint();
     });
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
@@ -4418,7 +4418,7 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() {
-    static const QUrl url("dialogs/RunningScripts.qml");
+    static const QUrl url("hifi/dialogs/RunningScripts.qml");
     DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     //if (_runningScriptsWidget->isVisible()) {
     //    if (_runningScriptsWidget->hasFocus()) {
