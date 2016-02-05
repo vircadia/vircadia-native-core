@@ -57,6 +57,7 @@ function handleActiveSoundEntities() {
         var soundProperties = soundEntityMap[soundEntity];
         soundProperties.timeWithoutAvatarInRange += UPDATE_TIME;
         if (soundProperties.timeWithoutAvatarInRange > EXPIRATION_TIME && soundProperties.soundInjector) {
+            print("NO AVATARS NEAR THIS ENTITY FOR A WHILE. DELETING!")
             // An avatar hasn't been within range of this sound entity recently, so remove it from map
             soundProperties.soundInjector.stop();
             delete soundEntityMap[soundEntity];
