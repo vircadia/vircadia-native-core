@@ -946,7 +946,7 @@ function MyController(hand) {
                 return;
             }
             // near grab or equip with action
-            if (near && grabbableData.refCount < 1) {
+            if (near && (grabbableData.refCount < 1 || entityHasActions(this.grabbedEntity))) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
@@ -1667,18 +1667,6 @@ function MyController(hand) {
                     // (1) far-grab, pull to self, near grab, then throw
                     // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
                     (!this.isInitialGrab && grabData.refCount > 1)) {
-                    Entities.editEntity(this.grabbedEntity, {
-                        velocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        },
-                        angularVelocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        }
-                    });
                     noVelocity = true;
                 }
             }
@@ -1783,22 +1771,27 @@ function MyController(hand) {
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
-                    forceVelocity = true;
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.1, z: 0.0};
+                }
+                if (noVelocity) {
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.0, z: 0.0};
+                    deactiveProps["angularVelocity"] = {x: 0.0, y: 0.0, z: 0.0};
                 }
 
                 Entities.editEntity(entityID, deactiveProps);
-
-                if (forceVelocity) {
-                    Entities.editEntity(entityID, {velocity:{x:0, y:0.1, z:0}});
-                }
                 data = null;
             } else if (this.doubleParentGrab) {
                 // we parent-grabbed this from another parent grab.  try to put it back where we found it.
                 var deactiveProps = {
                     parentID: this.previousParentID,
-                    parentJointIndex: this.previousParentJointIndex
+                    parentJointIndex: this.previousParentJointIndex,
+                    velocity: {x: 0.0, y: 0.0, z: 0.0},
+                    angularVelocity: {x: 0.0, y: 0.0, z: 0.0}
                 };
                 Entities.editEntity(entityID, deactiveProps);
+            } else if (noVelocity) {
+                Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0}});
             }
         } else {
             data = null;
