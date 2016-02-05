@@ -114,10 +114,11 @@ protected:
 
     glm::vec3 _boxScale; // used to compute capsule shape
 
-    quint64 _takeoffToInAirStart;
-    quint64 _jumpButtonDownStart;
+    quint64 _rayHitStartTime;
+    quint64 _takeoffToInAirStartTime;
+    quint64 _jumpButtonDownStartTime;
     quint32 _jumpButtonDownCount;
-    quint32 _takeOffJumpButtonID;
+    quint32 _takeoffJumpButtonID;
 
     btScalar _halfHeight;
     btScalar _radius;

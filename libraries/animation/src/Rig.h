@@ -301,7 +301,7 @@ public:
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
     std::vector<AnimNode::Pointer> _prefetchedAnimations;
 
-    bool _lastEnableInverseKinematics { false };
+    bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
 
 private:

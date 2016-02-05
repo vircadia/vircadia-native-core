@@ -590,17 +590,24 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
             stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
 
-            // these directions are approximate swing limits in root-frame
-            // NOTE: they don't need to be normalized
             std::vector<glm::vec3> swungDirections;
-            swungDirections.push_back(glm::vec3(mirror * 0.25f, 0.0f, 1.0f));
-            swungDirections.push_back(glm::vec3(mirror * -0.5f, 0.0f, 1.0f));
-            swungDirections.push_back(glm::vec3(mirror * -1.0f, 0.0f, 1.0f));
-            swungDirections.push_back(glm::vec3(mirror * -1.0f, 0.0f, 0.0f));
-            swungDirections.push_back(glm::vec3(mirror * -0.5f, -0.5f, -1.0f));
-            swungDirections.push_back(glm::vec3(mirror * 0.0f, -0.75f, -1.0f));
-            swungDirections.push_back(glm::vec3(mirror * 0.25f, -1.0f, 0.0f));
-            swungDirections.push_back(glm::vec3(mirror * 0.25f, -1.0f, 1.0f));
+            float deltaTheta = PI / 4.0f;
+            float theta = 0.0f;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), -0.25f, sinf(theta))); // posterior
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.0f, sinf(theta)));
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.25f, sinf(theta)));
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta))); // anterior
+            theta += deltaTheta;
+            swungDirections.push_back(glm::vec3(mirror * cosf(theta), 0.5f, sinf(theta)));
 
             // rotate directions into joint-frame
             glm::quat invAbsoluteRotation = glm::inverse(absolutePoses[i].rot);
@@ -755,7 +762,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             const float MIN_KNEE_ANGLE = 0.0f;
-            const float MAX_KNEE_ANGLE = 3.0f * PI / 4.0f;
+            const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
             glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
