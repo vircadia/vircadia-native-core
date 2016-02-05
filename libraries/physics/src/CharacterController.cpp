@@ -483,7 +483,6 @@ void CharacterController::preSimulation() {
                 SET_STATE(State::Hover, "no ground");
             } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
                 SET_STATE(State::InAir, "takeoff done");
-                _takeoffToInAirStartTime = now + USECS_PER_SECOND * 86500.0f;
                 velocity += _jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
