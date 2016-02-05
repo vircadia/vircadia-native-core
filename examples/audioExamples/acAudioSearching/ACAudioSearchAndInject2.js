@@ -19,7 +19,7 @@ var DEFAULT_SOUND_DATA = {
 };
 var MIN_PLAY_INTERVAL = 0.2;
 
-var UPDATE_TIME = 2000;
+var UPDATE_TIME = 100;
 var EXPIRATION_TIME = 7000;
 
 var soundEntityMap = {};
@@ -27,7 +27,7 @@ var soundUrls = {};
 
 print("EBL STARTING SCRIPT");
 
-function slowUpdate() {
+function update() {
     var avatars = AvatarList.getAvatarIdentifiers();
     for (var i = 0; i < avatars.length; i++) {
         var avatar = AvatarList.getAvatar(avatars[i]);
@@ -60,7 +60,7 @@ function handleActiveSoundEntities() {
             // An avatar hasn't been within range of this sound entity recently, so remove it from map
             soundProperties.soundInjector.stop();
             delete soundEntityMap[soundEntity];
-        } else if(soundProperties.isDownloaded) {
+        } else if (soundProperties.isDownloaded) {
             // If this sound hasn't expired yet, we want to potentially play it!
             if (soundProperties.readyToPlay) {
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
@@ -71,6 +71,7 @@ function handleActiveSoundEntities() {
                         loop: soundProperties.loop
                     });
                 } else {
+                    print("PLAY!!")
                     soundProperties.soundInjector.restart();
                 }
                 soundProperties.readyToPlay = false;
@@ -84,6 +85,7 @@ function handleActiveSoundEntities() {
                     // Now let's get our new current interval
                     soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
                     soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
+                    print("CURRENT INTERVAL " + soundProperties.currentInterval)
                 }
             }
         }
@@ -144,10 +146,23 @@ function handleFoundSoundEntities(entities) {
 }
 
 function checkForSoundPropertyChanges(currentProps, newProps) {
-    var needsUpdate = false;
+    var needsNewInjector = false;
+
+    if (currentProps.interval !== newProps.interval && !currentProps.loop) {
+        // interval only applies to non looping sounds
+        currentProps.interval = newProps.interval;
+        currentProps.currentInterval = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
+        currentProps.currentInterval = Math.max(MIN_PLAY_INTERVAL, currentProps.currentInterval);
+        currentProps.readyToPlay = true;
+    }
+
+    if (currentProps.intervalSpread !== currentProps.intervalSpread) {
+        currentProps.currentInterval = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
+        currentProps.currentInterval = Math.max(MIN_PLAY_INTERVAL, currentProps.currentInterval);
+    }
     if (currentProps.volume !== newProps.volume) {
         currentProps.volume = newProps.volume;
-        needsUpdate = true;
+        needsNewInjector = true;
     }
     if (currentProps.url !== newProps.url) {
         currentProps.url = newProps.url;
@@ -162,9 +177,9 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
         } else {
             currentProps.sound = sound;
         }
-        needsUpdate = true;
+        needsNewInjector = true;
     }
-    if (needsUpdate) {
+    if (needsNewInjector) {
         // If we were looping we need to stop that so new changes are applied
         currentProps.soundInjector.stop();
         currentProps.soundInjector = null;
@@ -173,4 +188,4 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
 
 }
 
-Script.setInterval(slowUpdate, UPDATE_TIME);
+Script.setInterval(update, UPDATE_TIME);
