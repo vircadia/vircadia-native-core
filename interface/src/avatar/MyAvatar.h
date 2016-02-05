@@ -416,6 +416,8 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
+    bool _hoverReferenceCameraFacingIsCaptured { false };
+    glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
     
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
@@ -429,7 +431,6 @@ private:
     float getEnergy();
     void setEnergy(float value);
     bool didTeleport();
-    
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

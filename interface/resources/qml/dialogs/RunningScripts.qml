@@ -219,7 +219,7 @@ Window {
                 }
             }
 
-            TextField {
+            HifiControls.TextField {
                 id: filterEdit
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -252,7 +252,7 @@ Window {
                 TableViewColumn { title: "Name"; role: "display"; }
             }
 
-            TextField {
+            HifiControls.TextField {
                 id: selectedScript
                 readOnly: true
                 anchors.left: parent.left
