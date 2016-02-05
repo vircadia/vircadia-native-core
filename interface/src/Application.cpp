@@ -348,7 +348,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<BandwidthRecorder>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
-    DependencyManager::set<EntityScriptingInterface>();
+    DependencyManager::set<EntityScriptingInterface>(true);
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();

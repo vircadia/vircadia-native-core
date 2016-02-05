@@ -413,6 +413,9 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
+
+    bool _hoverReferenceCameraFacingIsCaptured { false };
+    glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

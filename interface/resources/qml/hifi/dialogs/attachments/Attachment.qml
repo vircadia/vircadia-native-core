@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 
 import "../../../windows"
 import "../../../controls" as VrControls
@@ -31,7 +32,7 @@ Item {
             height: modelChooserButton.height
             anchors { left: parent.left; right: parent.right; }
             Text { id: urlLabel; text: "Model URL:"; width: 80; anchors.verticalCenter: modelUrl.verticalCenter }
-            TextField {
+            VrControls.TextField {
                 id: modelUrl;
                 height:  jointChooser.height;
                 anchors { left: urlLabel.right; leftMargin: 8; rightMargin: 8; right: modelChooserButton.left }

@@ -25,6 +25,10 @@ ModalWindow {
         destroy();
     }
 
+    function exec() {
+        return OffscreenUi.waitForMessageBoxResult(root);
+    }
+
     property alias detailedText: detailedText.text
     property alias text: mainTextContainer.text
     property alias informativeText: informativeTextContainer.text

@@ -1,6 +1,7 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.XmlListModel 2.0
+import QtQuick.Controls.Styles 1.4
 
 import "../../windows"
 import "../../js/Utils.js" as Utils
@@ -26,6 +27,7 @@ ModalWindow {
 
             TextField {
                 id: filterEdit
+                style:  TextFieldStyle { renderType: Text.QtRendering }
                 anchors { left: parent.left; right: parent.right; top: parent.top }
                 placeholderText: "filter"
                 onTextChanged: tableView.model.filter = text
