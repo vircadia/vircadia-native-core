@@ -62,7 +62,7 @@ ModalWindow {
         Item {
             anchors { top: mainTextContainer.bottom; bottom: buttons.top; left: parent.left; right: parent.right; margins: d.spacing }
             // FIXME make a text field type that can be bound to a history for autocompletion
-            TextField {
+            VrControls.TextField {
                 id: textResult
                 focus: items ? false : true
                 visible: items ? false : true
