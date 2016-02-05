@@ -19,6 +19,7 @@ Script.include("../libraries/utils.js");
 //
 var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_SEARCH_NAME = null;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -867,36 +868,58 @@ function MyController(hand) {
                     grabbable = false;
                 }
             }
+
             if ("grabbable" in grabbableDataForCandidate) {
                 // if userData indicates that this is grabbable or not, override the default.
                 grabbable = grabbableDataForCandidate.grabbable;
             }
 
             if (!grabbable && !grabbableDataForCandidate.wantsTrigger) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not grabbable.");
+                }
                 continue;
             }
             if (forbiddenTypes.indexOf(propsForCandidate.type) >= 0) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': forbidden entity type.");
+                }
                 continue;
             }
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': locked and not triggerable.");
+                }
                 continue;
             }
             if (forbiddenNames.indexOf(propsForCandidate.name) >= 0) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': forbidden name.");
+                }
                 continue;
             }
 
             distance = Vec3.distance(propsForCandidate.position, handPosition);
             if (distance > PICK_MAX_DISTANCE) {
                 // too far away, don't grab
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': too far away.");
+                }
                 continue;
             }
             if (propsForCandidate.parentID != NULL_UUID && this.state == STATE_EQUIP_SEARCHING) {
                 // don't allow a double-equip
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': it's a child");
+                }
                 continue;
             }
 
             if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE) {
                 // we can't distance-grab non-physical
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not physical and too far for near-grab");
+                }
                 continue;
             }
 
@@ -926,6 +949,9 @@ function MyController(hand) {
             if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
                 if (entityIsGrabbedByOther(intersection.entityID)) {
                     // don't distance grab something that is already grabbed.
+                    if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
+                        print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': already grabbed by another.");
+                    }
                     return;
                 }
                 this.temporaryPositionOffset = null;
@@ -951,6 +977,9 @@ function MyController(hand) {
             if (grabbableData.refCount < 1) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
+            }
+            if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
+                print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': fell through.");
             }
         }
 
