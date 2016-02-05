@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 
 import "../../dialogs"
 
@@ -30,6 +31,7 @@ Preference {
         id: dataTextField
         placeholderText: root.placeholderText
         text: preference.value
+        style:  TextFieldStyle { renderType: Text.QtRendering }
         anchors {
             top: labelText.bottom
             left: parent.left
