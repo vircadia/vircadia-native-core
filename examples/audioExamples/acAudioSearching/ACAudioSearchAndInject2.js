@@ -58,24 +58,19 @@ function handleActiveSoundEntities() {
         soundProperties.timeWithoutAvatarInRange += UPDATE_TIME;
         if (soundProperties.timeWithoutAvatarInRange > EXPIRATION_TIME && soundProperties.soundInjector) {
             // An avatar hasn't been within range of this sound entity recently, so remove it from map
-            print("NO AVATARS HAVE BEEN AROUND FOR A WHILE SO REMOVE THIS SOUND FROM SOUNDMAP!");
             soundProperties.soundInjector.stop();
             delete soundEntityMap[soundEntity];
         } else if(soundProperties.isDownloaded) {
-            print("WERE DOWNLOADED");
             // If this sound hasn't expired yet, we want to potentially play it!
             if (soundProperties.readyToPlay) {
-                print("WERE READY TO PLAY")
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
                 if (!soundProperties.soundInjector) {
-                    print("PLAY SOUND!");
                     soundProperties.soundInjector = Audio.playSound(soundProperties.sound, {
                         volume: soundProperties.volume,
                         position: newPosition,
                         loop: soundProperties.loop
                     });
                 } else {
-                    print ("RESTART INJECTOR!")
                     soundProperties.soundInjector.restart();
                 }
                 soundProperties.readyToPlay = false;
@@ -83,7 +78,6 @@ function handleActiveSoundEntities() {
                 // We need to check all of our entities that are not looping but have an interval associated with them
                 // to see if it's time for them to play again
                 soundProperties.timeSinceLastPlay += UPDATE_TIME;
-                print("INCREMENT TIME SINCE LAST PLAY")
                 if (soundProperties.timeSinceLastPlay > soundProperties.currentInterval) {
                     soundProperties.readyToPlay = true;
                     soundProperties.timeSinceLastPlay = 0;
@@ -103,7 +97,6 @@ function handleFoundSoundEntities(entities) {
         if (soundData && soundData.url) {
             //check sound entities list- if it's not in, add it
             if (!soundEntityMap[entity]) {
-                print("FOUND A NEW SOUND ENTITY!")
                 var soundProperties = {
                     url: soundData.url,
                     volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
@@ -129,7 +122,6 @@ function handleFoundSoundEntities(entities) {
                     // Only add it to map once it's downloaded
                     soundUrls[soundData.url] = sound;
                     sound.ready.connect(function() {
-                        print("ADD TO MAP!")
                         soundProperties.sound = sound;
                         soundProperties.readyToPlay = true;
                         soundProperties.isDownloaded = true;
@@ -154,7 +146,6 @@ function handleFoundSoundEntities(entities) {
 function checkForSoundPropertyChanges(currentProps, newProps) {
     var needsUpdate = false;
     if (currentProps.volume !== newProps.volume) {
-        print("VOLUME CHANGED!!");
         currentProps.volume = newProps.volume;
         needsUpdate = true;
     }
@@ -165,7 +156,6 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
             var sound = SoundCache.getSound(currentProps.url);
             currentProps.isDownloaded = false;
             sound.ready.connect(function() {
-                print("Ready to play new sound!")
                 currentProps.sound = sound;
                 currentProps.isDownloaded = true;
             });
@@ -175,7 +165,6 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
         needsUpdate = true;
     }
     if (needsUpdate) {
-        print("UPDATING!");
         // If we were looping we need to stop that so new changes are applied
         currentProps.soundInjector.stop();
         currentProps.soundInjector = null;
