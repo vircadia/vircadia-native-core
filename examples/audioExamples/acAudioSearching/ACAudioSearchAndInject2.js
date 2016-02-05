@@ -17,12 +17,13 @@ var DEFAULT_SOUND_DATA = {
     interval: -1, // An interval of -1 means this sound only plays once (if it's non-looping) (In seconds)
     intervalSpread: 0 // amount of randomness to add to the interval
 };
-var MIN_INTERVAL = 0.2;
+var MIN_PLAY_INTERVAL = 0.2;
 
-var UPDATE_TIME = 3000;
-var EXPIRATION_TIME = 5000; 
+var UPDATE_TIME = 100;
+var EXPIRATION_TIME = 5000;
 
 var soundEntityMap = {};
+var soundUrls = {};
 
 print("EBL STARTING SCRIPT");
 
@@ -52,10 +53,32 @@ function handleActiveSoundEntities() {
         soundProperties.timeWithoutAvatarInRange += UPDATE_TIME;
         if (soundProperties.timeWithoutAvatarInRange > EXPIRATION_TIME) {
             // An avatar hasn't been within range of this sound entity recently, so remove it from map
-            print ("NO AVATARS HAVE BEEN AROUND FOR A WHILE SO REMOVE THIS SOUND FROM SOUNDMAP!");
+            print("NO AVATARS HAVE BEEN AROUND FOR A WHILE SO REMOVE THIS SOUND FROM SOUNDMAP!");
             delete soundEntityMap[soundEntity];
             print("NEW MAP " + JSON.stringify(soundEntityMap));
-        } 
+        } else {
+            // If this sound hasn't expired yet, we want to potentially play it!
+            if (soundProperties.readyToPlay) {
+                var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
+                Audio.playSound(soundProperties.sound, {
+                    volume: soundProperties.volume,
+                    position: newPosition,
+                    loop: soundProperties.loop
+                });
+                soundProperties.readyToPlay = false;
+            } else if (soundProperties.loop === false && soundProperties.interval !== -1) {
+                // We need to check all of our entities that are not looping but have an interval associated with them
+                // to see if it's time for them to play again
+                soundProperties.timeSinceLastPlay += UPDATE_TIME;
+                if (soundProperties.timeSinceLastPlay > soundProperties.currentInterval) {
+                    soundProperties.readyToPlay = true;
+                    soundProperties.timeSinceLastPlay = 0;
+                    // Now let's get our new current interval
+                    soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
+                    soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
+                }
+            }
+        }
     }
 }
 
@@ -78,8 +101,25 @@ function handleFoundSoundEntities(entities) {
                     timeWithoutAvatarInRange: 0
                 };
 
-                // If it's not in list, add it
-                soundEntityMap[entity] = soundProperties;
+                if (soundProperties.interval !== -1) {
+                    soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
+                    soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
+                }
+
+                if (!soundUrls[soundData.url]) {
+                    // We need to download sound before we add it to our map
+                    var sound = SoundCache.getSound(soundData.url);
+                    soundUrls[soundData.url] = sound;
+                    // Only add it to map once it's downloaded
+                    sound.ready.connect(function() {
+                        soundProperties.sound = sound;
+                        soundEntityMap[entity] = soundProperties;
+                    });
+                } else {
+                    // We already have sound downloaded, so just add it to map right away
+                    soundProperties.sound = soundUrls[soundData.url];
+                    soundEntityMap[entity] = soundProperties;
+                }
             } else {
                 //If this sound is in our map already, we want to reset timeWithoutAvatarInRange 
                 soundEntityMap[entity].timeWithoutAvatarInRange = 0;
