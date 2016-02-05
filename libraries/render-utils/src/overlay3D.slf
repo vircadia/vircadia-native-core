@@ -31,7 +31,8 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
     vec3 color = opacity * diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
-    color += vec3(opacity * diffuse + shading.rgb) * shading.w * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+
+    color += vec3(diffuse * shading.w * opacity + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
 
     return vec4(color, opacity);
 }
@@ -53,7 +54,7 @@ void main(void) {
     vec3 fragNormal = normalize(_normal);
     vec3 fragDiffuse = diffuse.rgb * _color;
     vec3 fragSpecular = vec3(0.1);
-    float fragGloss = 10;
+    float fragGloss = 10.0 / 128.0;
     float fragOpacity = diffuse.a;
 
     if (fragOpacity <= 0.1) {
