@@ -61,11 +61,14 @@ void main(void) {
         discard;
     }
 
-    _fragColor =  evalGlobalColor(1.0,
+    vec4 color =  evalGlobalColor(1.0,
         fragPosition,
         fragNormal,
         fragDiffuse,
         fragSpecular,
         fragGloss,
         fragOpacity);
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
 }
