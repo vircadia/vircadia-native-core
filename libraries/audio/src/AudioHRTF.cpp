@@ -64,9 +64,16 @@ static const float crossfadeTable[HRTF_BLOCK] = {
 //
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
 
+#if defined(__GNU__)
+#define TARGET_AVX __attribute__((target("avx"))
+#else
+#define TARGET_AVX
+#endif
+
 #include <immintrin.h>  // AVX
 
 // 1 channel input, 4 channel output
+TARGET_AVX
 static void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
     float* coef0 = coef[0] + HRTF_TAPS - 1;     // process backwards
@@ -194,7 +201,7 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 // Runtime CPU dispatch
 //
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 
 #include <intrin.h>
 
@@ -222,19 +229,14 @@ static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* ds
 	(*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
 }
 
-#elif __GNUC__
+#elif defined(__GNU__)
 
-//
-// use GCC 4.8 Function Multiversioning
-//
-__attribute__((target("avx")))
-static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-    FIR_1x4_AVX(src, dst0, dst1, dst2, dst3, coef, numFrames);
-}
+typedef void (*t_FIR_1x4)(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
-__attribute__((target("default")))
+// dispatch stub
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-    FIR_1x4_SSE(src, dst0, dst1, dst2, dst3, coef, numFrames);
+	static t_FIR_1x4 f = __builtin_cpu_supports("avx") ? FIR_1x4_AVX : FIR_1x4_SSE;  // init on first call
+	(*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
 }
 
 #else
