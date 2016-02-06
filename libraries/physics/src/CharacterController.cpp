@@ -60,9 +60,10 @@ CharacterController::CharacterController() {
     _jumpSpeed = JUMP_SPEED;
     _state = State::Hover;
     _isPushingUp = false;
-    _jumpButtonDownStart = 0;
+    _rayHitStartTime = 0;
+    _takeoffToInAirStartTime = 0;
+    _jumpButtonDownStartTime = 0;
     _jumpButtonDownCount = 0;
-    _takeoffToInAirStart = 0;
     _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
@@ -417,6 +418,8 @@ glm::vec3 CharacterController::getLinearVelocity() const {
 
 void CharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
+        quint64 now = usecTimestampNow();
+
         // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_characterBodyTransform);
         btVector3 velocity = _rigidBody->getLinearVelocity();
@@ -432,27 +435,30 @@ void CharacterController::preSimulation() {
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
+        const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
+        const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
+        const btScalar MIN_HOVER_HEIGHT = 2.5f;
+        const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
+        const btScalar MAX_WALKING_SPEED = 2.5f;
+        const quint64 RAY_HIT_START_PERIOD = 500 * MSECS_PER_SECOND;
+
         ClosestNotMe rayCallback(_rigidBody);
         rayCallback.m_closestHitFraction = 1.0f;
         _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
-        if (rayCallback.hasHit()) {
+        bool rayHasHit = rayCallback.hasHit();
+        if (rayHasHit) {
+            _rayHitStartTime = now;
             _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
+        } else if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
+            rayHasHit = true;
         } else {
             _floorDistance = FLT_MAX;
         }
 
-        const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
-        const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 200 * MSECS_PER_SECOND;
-        const btScalar MIN_HOVER_HEIGHT = 2.5f;
-        const quint64 JUMP_TO_HOVER_PERIOD = 750 * MSECS_PER_SECOND;
-        const btScalar MAX_WALKING_SPEED = 2.5f;
-
-        quint64 now = usecTimestampNow();
-
         // record a time stamp when the jump button was first pressed.
         if ((_previousFlags & PENDING_FLAG_JUMP) != (_pendingFlags & PENDING_FLAG_JUMP)) {
             if (_pendingFlags & PENDING_FLAG_JUMP) {
-                _jumpButtonDownStart = now;
+                _jumpButtonDownStartTime = now;
                 _jumpButtonDownCount++;
             }
         }
@@ -462,19 +468,21 @@ void CharacterController::preSimulation() {
 
         switch (_state) {
         case State::Ground:
-            if (!rayCallback.hasHit() && !_hasSupport) {
-                SET_STATE(State::Hover, "no ground");
-            } else if (_pendingFlags & PENDING_FLAG_JUMP) {
-                _takeOffJumpButtonID = _jumpButtonDownCount;
+            if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
+            } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
+                _takeoffJumpButtonID = _jumpButtonDownCount;
+                _takeoffToInAirStartTime = now;
                 SET_STATE(State::Takeoff, "jump pressed");
+            } else if (rayHasHit && !_hasSupport && _floorDistance > JUMP_PROXIMITY_THRESHOLD) {
+                SET_STATE(State::InAir, "falling");
             }
             break;
         case State::Takeoff:
-            if (!rayCallback.hasHit() && !_hasSupport) {
+            if (!rayHasHit && !_hasSupport) {
                 SET_STATE(State::Hover, "no ground");
-            } else if ((now - _takeoffToInAirStart) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+            } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
                 SET_STATE(State::InAir, "takeoff done");
-                _takeoffToInAirStart = now + USECS_PER_SECOND * 86500.0f;
                 velocity += _jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
@@ -482,9 +490,9 @@ void CharacterController::preSimulation() {
         case State::InAir: {
             if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
                 SET_STATE(State::Ground, "hit ground");
-            } else if (jumpButtonHeld && (_takeOffJumpButtonID != _jumpButtonDownCount)) {
+            } else if (jumpButtonHeld && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
                 SET_STATE(State::Hover, "double jump button");
-            } else if (jumpButtonHeld && (now - _jumpButtonDownStart) > JUMP_TO_HOVER_PERIOD) {
+            } else if (jumpButtonHeld && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
                 SET_STATE(State::Hover, "jump button held");
             }
             break;
