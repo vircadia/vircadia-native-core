@@ -193,7 +193,8 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
 void CullSpatialSelection::configure(const Config& config) {
 }
 
-void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
+void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
+    const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
@@ -236,7 +237,6 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     Test test(_cullFunctor, args, details);
 
     // Now we have a selection of items to render
-
     outItems.clear();
     outItems.reserve(inSelection.numItems());
 
@@ -292,4 +292,25 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     details._rendered += outItems.size();
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
+}
+
+void FilterItemSelection::configure(const Config& config) {
+}
+
+void FilterItemSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
+    auto& scene = sceneContext->_scene;
+
+    // Now we have a selection of items to render
+    outItems.clear();
+    outItems.reserve(inItems.size());
+
+    for (auto itemBound : inItems) {
+        auto& item = scene->getItem(itemBound.id);
+        if (_filter.test(item.getKey())) {
+            outItems.emplace_back(itemBound);
+        }
+    }
 }

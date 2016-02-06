@@ -131,7 +131,30 @@ namespace render {
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& outSelection, ItemBounds& outItems);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& inSelection, ItemBounds& outItems);
+    };
+
+    class FilterItemSelectionConfig : public Job::Config {
+        Q_OBJECT
+            Q_PROPERTY(int numItems READ getNumItems)
+    public:
+        int numItems{ 0 };
+        int getNumItems() { return numItems; }
+    };
+
+    class FilterItemSelection {
+    public:
+        using Config = FilterItemSelectionConfig;
+        using JobModel = Job::ModelIO<FilterItemSelection, ItemBounds, ItemBounds, Config>;
+
+        FilterItemSelection() {}
+        FilterItemSelection(const ItemFilter& filter) :
+            _filter(filter) {}
+
+        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
+
+        void configure(const Config& config);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
     class DepthSortItems {

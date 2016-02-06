@@ -66,8 +66,11 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", culledTransparents, DepthSortItems(false));
     */
     // CPU: Fetch the renderOpaques
-    const auto opaqueSelection = addJob<FetchSpatialTree>("FetchOpaque");
-    const auto culledOpaques = addJob<CullSpatialSelection>("CullOpaque", opaqueSelection, cullFunctor);
+    auto sceneFilter = ItemFilter::Builder::opaqueShape().withTransparent().withTypeLight();
+    const auto sceneSelection = addJob<FetchSpatialTree>("FetchSceneSelection", sceneFilter);
+    const auto culledSceneSelection = addJob<CullSpatialSelection>("CullSceneSelection", sceneSelection, cullFunctor, RenderDetails::OPAQUE_ITEM, ItemFilter::Builder::opaqueShape().withoutLayered());
+
+    const auto culledOpaques = addJob<FilterItemSelection>("FilterOpaque", culledSceneSelection);
     const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", culledOpaques);
 
     // CPU only, create the list of renderedTransparents items
@@ -112,8 +115,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // Scene Octree Debuging job
     {
-        addJob<DrawSceneOctree>("DrawSceneOctree", opaqueSelection);
-        addJob<DrawItemSelection>("DrawItemSelection", opaqueSelection);
+        addJob<DrawSceneOctree>("DrawSceneOctree", sceneSelection);
+        addJob<DrawItemSelection>("DrawItemSelection", sceneSelection);
     }
 
     // Status icon rendering job
