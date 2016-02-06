@@ -58,7 +58,7 @@ function update() {
         });
         //Now wipe list for next query;
         avatarPositions = [];
-    }, 1000);
+    }, UPDATE_TIME);
     handleActiveSoundEntities();
 }
 
