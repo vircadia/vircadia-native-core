@@ -120,7 +120,7 @@ void Rig::overrideRoleAnimation(const QString& role, const QString& url, float f
             _origRoleAnimations[role] = node;
             const float REFERENCE_FRAMES_PER_SECOND = 30.0f;
             float timeScale = fps / REFERENCE_FRAMES_PER_SECOND;
-            auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop);
+            auto clipNode = std::make_shared<AnimClip>(role, url, firstFrame, lastFrame, timeScale, loop, false);
             AnimNode::Pointer parent = node->getParent();
             parent->replaceChild(node, clipNode);
         } else {
@@ -152,7 +152,7 @@ void Rig::prefetchAnimation(const QString& url) {
 
     // This will begin loading the NetworkGeometry for the given URL.
     // which should speed us up if we request it later via overrideAnimation.
-    auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false);
+    auto clipNode = std::make_shared<AnimClip>("prefetch", url, 0, 0, 1.0, false, false);
     _prefetchedAnimations.push_back(clipNode);
 }
 
