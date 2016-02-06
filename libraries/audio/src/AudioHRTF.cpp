@@ -64,16 +64,10 @@ static const float crossfadeTable[HRTF_BLOCK] = {
 //
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
 
-#if defined(__GNU__)
-#define TARGET_AVX __attribute__((target("avx"))
-#else
-#define TARGET_AVX
-#endif
-
 #include <immintrin.h>  // AVX
 
+#if 0   // AVX disabled for now..
 // 1 channel input, 4 channel output
-TARGET_AVX
 static void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
     float* coef0 = coef[0] + HRTF_TAPS - 1;     // process backwards
@@ -145,6 +139,7 @@ static void FIR_1x4_AVX(float* src, float* dst0, float* dst1, float* dst2, float
 
     _mm256_zeroupper();
 }
+#endif
 
 // 1 channel input, 4 channel output
 static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
@@ -201,7 +196,8 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 // Runtime CPU dispatch
 //
 
-#if defined(_MSC_VER)
+#if 0
+//#if defined(_MSC_VER)
 
 #include <intrin.h>
 
@@ -229,7 +225,7 @@ static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* ds
 	(*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
 }
 
-#elif defined(__GNU__)
+//#elif defined(__GNU__)
 
 typedef void (*t_FIR_1x4)(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
