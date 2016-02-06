@@ -25,6 +25,8 @@ var EXPIRATION_TIME = 7000;
 var soundEntityMap = {};
 var soundUrls = {};
 
+var avatarPositions = [];
+
 print("EBL STARTING SCRIPT");
 
 function update() {
@@ -38,11 +40,16 @@ function update() {
         }
         EntityViewer.setPosition(avatarPosition);
         EntityViewer.queryOctree();
-        Script.setTimeout(function() {
-            var entities = Entities.findEntities(avatar.position, QUERY_RADIUS);
-            handleFoundSoundEntities(entities);
-        }, 1000);
+        avatarPositions.push(avatarPosition);
     }
+    Script.setTimeout(function() {
+        avatarPositions.forEach(function(avatarPosition) {
+           var entities = Entities.findEntities(avatarPosition, QUERY_RADIUS);
+           handleFoundSoundEntities(entities); 
+        });
+        //Now wipe list for next query;
+        avatarPositions = [];
+    }, 1000);
     handleActiveSoundEntities();
 }
 
@@ -66,6 +73,7 @@ function handleActiveSoundEntities() {
             if (soundProperties.readyToPlay) {
                 var newPosition = Entities.getEntityProperties(soundEntity, "position").position;
                 if (!soundProperties.soundInjector) {
+                    print("PLAY first injector!!!")
                     soundProperties.soundInjector = Audio.playSound(soundProperties.sound, {
                         volume: soundProperties.volume,
                         position: newPosition,
@@ -100,6 +108,7 @@ function handleFoundSoundEntities(entities) {
         if (soundData && soundData.url) {
             //check sound entities list- if it's not in, add it
             if (!soundEntityMap[entity]) {
+                print("NEW SOUND!")
                 var soundProperties = {
                     url: soundData.url,
                     volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
@@ -134,6 +143,7 @@ function handleFoundSoundEntities(entities) {
                     // We already have sound downloaded, so just add it to map right away
                     soundProperties.sound = soundUrls[soundData.url];
                     soundProperties.readyToPlay = true;
+                    soundProperties.isDownloaded = true;
                     soundEntityMap[entity] = soundProperties;
                 }
             } else {
