@@ -262,7 +262,7 @@ namespace render {
             Indices& cells(bool inside) { return (inside ? insideCells : partialCells); }
             Indices& bricks(bool inside) { return (inside ? insideBricks : partialBricks); }
 
-            int size() const { return insideBricks.size() + partialBricks.size(); }
+            size_t size() const { return insideBricks.size() + partialBricks.size(); }
 
             void clear() {
                 insideCells.clear();
@@ -380,9 +380,9 @@ namespace render {
             ItemIDs& items(bool inside) { return (inside ? insideItems : partialItems); }
             ItemIDs& subcellItems(bool inside) { return (inside ? insideSubcellItems : partialSubcellItems); }
 
-            int insideNumItems() const { return insideItems.size() + insideSubcellItems.size(); }
-            int partialNumItems() const { return partialItems.size() + partialSubcellItems.size(); }
-            int numItems() const { return insideNumItems() + partialNumItems(); }
+            size_t insideNumItems() const { return insideItems.size() + insideSubcellItems.size(); }
+            size_t partialNumItems() const { return partialItems.size() + partialSubcellItems.size(); }
+            size_t numItems() const { return insideNumItems() + partialNumItems(); }
 
             void clear() {
                 cellSelection.clear();

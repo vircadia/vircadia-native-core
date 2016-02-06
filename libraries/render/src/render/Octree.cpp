@@ -116,7 +116,7 @@ Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
     assert(_cells[parent].getlocation().child(location.octant()) == location);
 
-    auto newIndex = _cells.size();
+    auto newIndex = (Index) _cells.size();
     _cells.push_back(Cell(parent, location));
     _cells[parent].setChild(location.octant(), newIndex);
 
@@ -125,13 +125,13 @@ Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
 
 Octree::Indices Octree::indexCellPath(const Locations& path) {
-    // First through the aallocated cells
+    // First through the allocated cells
     Indices cellPath = indexConcreteCellPath(path);
 
     // Catch up from the last allocated cell on the path
     auto currentIndex = cellPath.back();
 
-    for (int l = cellPath.size(); l < path.size(); l++) {
+    for (int l = (Index) cellPath.size(); l < (Index) path.size(); l++) {
         auto& location = path[l];
 
         // Allocate the new index & connect it to the parent
@@ -147,7 +147,7 @@ Octree::Indices Octree::indexCellPath(const Locations& path) {
 
 
 Octree::Index Octree::allocateBrick() {
-    Index brickIdx = _bricks.size();
+    Index brickIdx = (int) _bricks.size();
     _bricks.push_back(Brick());
     return brickIdx;
 }
@@ -341,7 +341,7 @@ Octree::Location::Intersection Octree::Location::intersectCell(const Location& c
 }
 
 int Octree::selectTraverse(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
-    int numSelectedsIn = selection.size();
+    int numSelectedsIn = (int) selection.size();
     auto cell = getConcreteCell(cellID);
 
     auto cellLocation = cell.getlocation();
@@ -382,12 +382,12 @@ int Octree::selectTraverse(Index cellID, CellSelection& selection, const Frustum
         }
     }
 
-    return selection.size() - numSelectedsIn;
+    return (int) selection.size() - numSelectedsIn;
 }
 
 
 int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const {
-    int numSelectedsIn = selection.size();
+    int numSelectedsIn = (int) selection.size();
     auto cell = getConcreteCell(cellID);
 
     auto cellLocation = cell.getlocation();
@@ -407,11 +407,11 @@ int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumS
         }
     }
 
-    return selection.size() - numSelectedsIn;
+    return (int) selection.size() - numSelectedsIn;
 }
 
 int Octree::selectCellBrick(Index cellID, CellSelection& selection, bool inside) const {
-    int numSelectedsIn = selection.size();
+    int numSelectedsIn = (int) selection.size();
     auto cell = getConcreteCell(cellID);
     selection.cells(inside).push_back(cellID);
 
@@ -420,7 +420,7 @@ int Octree::selectCellBrick(Index cellID, CellSelection& selection, bool inside)
         selection.bricks(inside).push_back(cell.brick());
     }
 
-    return selection.size() - numSelectedsIn;
+    return (int) selection.size() - numSelectedsIn;
 }
 
 
@@ -459,5 +459,5 @@ int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter&
         selection.partialSubcellItems.insert(selection.partialSubcellItems.end(), brickSubcellItems.begin(), brickSubcellItems.end());
     }
 
-    return selection.numItems();
+    return (int) selection.numItems();
 }
