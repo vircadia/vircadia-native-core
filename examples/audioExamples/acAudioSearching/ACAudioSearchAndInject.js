@@ -31,7 +31,7 @@ var DEFAULT_SOUND_DATA = {
 var MIN_PLAY_INTERVAL = 0.2;
 
 var UPDATE_TIME = 100;
-var EXPIRATION_TIME = 20000;
+var EXPIRATION_TIME = 5000;
 
 var soundEntityMap = {};
 var soundUrls = {};
