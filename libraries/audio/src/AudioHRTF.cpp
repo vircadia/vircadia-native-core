@@ -615,8 +615,8 @@ static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], i
     float itd = (1.0f - frac) * itd_table_table[index][az0] + frac * itd_table_table[index][az1];
 
     // split ITD into integer and fractional delay
-    int itdi = (int)fabs(itd);
-    float itdf = fabs(itd) - (float)itdi;
+    int itdi = (int)fabsf(itd);
+    float itdf = fabsf(itd) - (float)itdi;
 
     assert(itdi <= HRTF_DELAY);
     assert(itdf <= 1.0f);
