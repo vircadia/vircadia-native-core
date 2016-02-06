@@ -14,27 +14,26 @@
 //
 
 Script.include("../../libraries/utils.js");
-
+var orientation = Camera.getOrientation();
+orientation = Quat.safeEulerAngles(orientation);
+orientation.x = 0;
+orientation = Quat.fromVec3Degrees(orientation);
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+// http://hifi-public.s3.amazonaws.com/ryan/demo/0619_Fireplace__Tree_B.L.wav
 var SOUND_DATA_KEY = "soundKey";
-var MESSAGE_CHANNEL = "Hifi-Sound-Entity";
-var SCRIPT_URL = Script.resolvePath("soundEntityScript.js?v1" + Math.random());
 var userData = {
     soundKey: {
-        url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav",
+        url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove2.wav",
         volume: 0.3,
         loop: false,
-        interval: 4,
-        intervalSpread: 2 
+        interval: 2000,
+        intervalSpread: 1000
     }
 }
 
 var entityProps = {
     type: "Box",
-    position: {
-        x: Math.random(),
-        y: 0,
-        z: 0
-    },
+    position: center,
     color: {
         red: 200,
         green: 10,
@@ -45,8 +44,7 @@ var entityProps = {
         y: 0.1,
         z: 0.1
     },
-    userData: JSON.stringify(userData),
-    script: SCRIPT_URL
+    userData: JSON.stringify(userData)
 }
 
 var soundEntity = Entities.addEntity(entityProps);
