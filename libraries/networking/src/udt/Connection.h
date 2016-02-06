@@ -139,6 +139,8 @@ private:
     
     SequenceNumber _lastSentACK; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
+
+    SequenceNumber _inactiveSendQueueSequenceNumber { 0 };
    
     int _acksDuringSYN { 1 }; // The number of non-SYN ACKs sent during SYN
     int _lightACKsDuringSYN { 1 }; // The number of lite ACKs sent during SYN interval
