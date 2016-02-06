@@ -113,8 +113,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Scene Octree Debuging job
     {
         addJob<DrawSceneOctree>("DrawSceneOctree", opaqueSelection);
-       // _drawStatusJobIndex = (int)_jobs.size() - 1;
-       // enableJob(_drawStatusJobIndex, false);
+        addJob<DrawItemSelection>("DrawItemSelection", opaqueSelection);
     }
 
     // Status icon rendering job

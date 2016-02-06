@@ -19,18 +19,22 @@
 namespace render {
     class DrawSceneOctreeConfig : public Job::Config {
         Q_OBJECT
+        Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
         Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
+        Q_PROPERTY(bool showEmptyCells MEMBER showEmptyCells WRITE setShowEmptyCells)
         Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
     public:
 
-        DrawSceneOctreeConfig() : Job::Config(true) {} // FIXME FOR debug
+        DrawSceneOctreeConfig() : Job::Config(false) {}
         
-        bool showVisibleCells{ true }; // FIXME FOR debug
+        bool showVisibleCells{ true };
+        bool showEmptyCells{ false };
         bool freezeFrustum{ false };
 
     public slots:
-        void setShowVisibleCells(bool enabled) { showVisibleCells = enabled; emit dirty(); }
-        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
+        void setShowVisibleCells(bool show) { showVisibleCells = show; emit dirty(); }
+        void setShowEmptyCells(bool show) { showEmptyCells = show; emit dirty(); }
+        void setFreezeFrustum(bool freeze) { freezeFrustum = freeze; emit dirty(); }
 
     signals:
         void dirty();
@@ -44,8 +48,12 @@ namespace render {
 
         gpu::PipelinePointer _drawLODReticlePipeline;
 
+        int _drawItemBoundPosLoc = -1;
+        int _drawItemBoundDimLoc = -1;
+        gpu::PipelinePointer _drawItemBoundPipeline;
 
         bool _showVisibleCells; // initialized by Config
+        bool _showEmptyCells; // initialized by Config
         bool _freezeFrustum{ false }; // initialized by Config
         bool _justFrozeFrustum{ false };
         ViewFrustum _frozenFrutstum;
@@ -61,6 +69,57 @@ namespace render {
 
         const gpu::PipelinePointer getDrawCellBoundsPipeline();
         const gpu::PipelinePointer getDrawLODReticlePipeline();
+        const gpu::PipelinePointer getDrawItemBoundPipeline();
+    };
+
+
+    class DrawItemSelectionConfig : public Job::Config {
+        Q_OBJECT
+        Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
+        Q_PROPERTY(bool showInsideItems MEMBER showInsideItems WRITE setShowInsideItems)
+        Q_PROPERTY(bool showInsideSubcellItems MEMBER showInsideSubcellItems WRITE setShowInsideSubcellItems)
+        Q_PROPERTY(bool showPartialItems MEMBER showPartialItems WRITE setShowPartialItems)
+        Q_PROPERTY(bool showPartialSubcellItems MEMBER showPartialSubcellItems WRITE setShowPartialSubcellItems)
+    public:
+
+        DrawItemSelectionConfig() : Job::Config(false) {}
+
+        bool showInsideItems{ true };
+        bool showInsideSubcellItems{ true };
+        bool showPartialItems{ true };
+        bool showPartialSubcellItems{ true };
+
+        public slots:
+        void setShowInsideItems(bool show) { showInsideItems = show; emit dirty(); }
+        void setShowInsideSubcellItems(bool show) { showInsideSubcellItems = show; emit dirty(); }
+        void setShowPartialItems(bool show) { showPartialItems = show; emit dirty(); }
+        void setShowPartialSubcellItems(bool show) { showPartialSubcellItems = show; emit dirty(); }
+
+    signals:
+        void dirty();
+    };
+
+    class DrawItemSelection {
+
+        int _drawItemBoundPosLoc = -1;
+        int _drawItemBoundDimLoc = -1;
+        gpu::PipelinePointer _drawItemBoundPipeline;
+
+        bool _showInsideItems; // initialized by Config
+        bool _showInsideSubcellItems; // initialized by Config
+        bool _showPartialItems; // initialized by Config
+        bool _showPartialSubcellItems; // initialized by Config
+
+    public:
+        using Config = DrawItemSelectionConfig;
+        using JobModel = Job::ModelI<DrawItemSelection, ItemSpatialTree::ItemSelection, Config>;
+
+        DrawItemSelection() {}
+
+        void configure(const Config& config);
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemSpatialTree::ItemSelection& selection);
+
+        const gpu::PipelinePointer getDrawItemBoundPipeline();
     };
 }
 

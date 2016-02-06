@@ -243,9 +243,8 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
 
     // Compare range size vs cell location size and tag itemKey accordingly
     auto rangeSizef = maxCoordf - minCoordf;
-    const float SQRT_OF_3 = 1.73205;
-    float cellDiagonalSquare = 3 * (float)getDepthDimension(location.depth);
-    bool subcellItem = glm::dot(rangeSizef, rangeSizef) < cellDiagonalSquare;
+    float cellFitSize = getCellHalfDiagonalSquare(location.depth);
+    bool subcellItem = glm::dot(rangeSizef, rangeSizef) < cellFitSize;
     newKey.setSmaller(subcellItem);
 
     auto newCell = indexCell(location);
@@ -255,6 +254,7 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
         // Did the key changed, if yes update
         if (newKey._flags != oldKey._flags) {
             updateItem(newCell, oldKey, newKey, item);
+            return newCell;
         }
         return newCell;
     }

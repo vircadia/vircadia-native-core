@@ -327,6 +327,11 @@ namespace render {
         float getCellWidth(Depth depth) const { return (float) _size * getInvDepthDimension(depth); }
         float getInvCellWidth(Depth depth) const { return (float) getDepthDimension(depth) * _invSize; }
 
+        float getCellHalfDiagonalSquare(Depth depth) const {
+            float cellHalfWidth = 0.5f * getCellWidth(depth);
+            return 3.0f * cellHalfWidth * cellHalfWidth;
+        }
+
         glm::vec3 evalPos(const Coord3& coord, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             return getOrigin() + glm::vec3(coord) * getCellWidth(depth);
         }

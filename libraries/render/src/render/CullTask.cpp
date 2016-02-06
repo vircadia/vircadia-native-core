@@ -182,7 +182,11 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
     }
 
     // Octree selection!
-    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, _lodAngle);
+
+    float angle = glm::degrees(args->_viewFrustum->getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+
+
+    scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, angle);
 
 }
 
