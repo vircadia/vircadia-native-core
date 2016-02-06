@@ -17,22 +17,22 @@
         }
 
         this.initialize = function(entityId) {
-            print(' should initialize' + entityId)
+            //print(' should initialize' + entityId)
             var properties = Entities.getEntityProperties(entityId);
             if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
                 self.initTimeout = Script.setTimeout(function() {
-                    print(' no user data yet, try again in one second')
+                    // print(' no user data yet, try again in one second')
                     self.initialize(entityId);
                 }, 1000)
 
             } else {
-                print(' userdata before parse attempt' + properties.userData)
+                //print(' userdata before parse attempt' + properties.userData)
                 self.userData = null;
                 try {
                     self.userData = JSON.parse(properties.userData);
                 } catch (err) {
-                    print(' error parsing json');
-                    print(' properties are:' + properties.userData);
+                    // print(' error parsing json');
+                    // print(' properties are:' + properties.userData);
                     return;
                 }
 
@@ -97,12 +97,12 @@
                     y: event.y
                 });
                 if (clickedOverlay === self.button) {
-                    print("button was clicked");
+                    //print("button was clicked");
                     if (self.sound.downloaded) {
-                        print("play sound");
+                        //print("play sound");
                         Audio.playSound(self.sound, self.soundOptions);
                     } else {
-                        print("not downloaded");
+                        //print("not downloaded");
                     }
                 }
             }
