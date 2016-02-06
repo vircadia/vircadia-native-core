@@ -28,7 +28,7 @@ var DEFAULT_SOUND_DATA = {
     interval: -1, // An interval of -1 means this sound only plays once (if it's non-looping) (In seconds)
     intervalSpread: 0 // amount of randomness to add to the interval
 };
-var MIN_PLAY_INTERVAL = 0.2;
+var MIN_PLAY_INTERVAL = 200;
 
 var UPDATE_TIME = 100;
 var EXPIRATION_TIME = 5000;
