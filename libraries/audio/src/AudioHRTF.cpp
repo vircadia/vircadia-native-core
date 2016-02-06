@@ -141,41 +141,41 @@ static bool cpuSupportsAVX() {
     return result;
 }
 
-static bool cpuSupportsAVX2() {
-    int info[4];
-    int mask = (1 << 5);                // AVX2
+//static bool cpuSupportsAVX2() {
+//    int info[4];
+//    int mask = (1 << 5);                // AVX2
+//
+//    bool result = false;
+//    if (cpuSupportsAVX()) {
+//
+//        __cpuidex(info, 0x7, 0);
+//
+//        if ((info[1] & mask) == mask) {
+//            result = true;
+//        }
+//    }
+//    return result;
+//}
 
-    bool result = false;
-    if (cpuSupportsAVX()) {
-
-        __cpuidex(info, 0x7, 0);
-
-        if ((info[1] & mask) == mask) {
-            result = true;
-        }
-    }
-    return result;
-}
-
-#elif defined(__GNU__) || defined(__clang__)
+#elif defined(__GNU__)
 
 static bool cpuSupportsAVX() {
-	return __builtin_cpu_supports("avx");
+    return __builtin_cpu_supports("avx");
 }
 
-static bool cpuSupportsAVX2() {
-	return __builtin_cpu_supports("avx2");
-}
+//static bool cpuSupportsAVX2() {
+//    return __builtin_cpu_supports("avx2");
+//}
 
 #else
 
 static bool cpuSupportsAVX() {
-	return false;
+    return false;
 }
 
-static bool cpuSupportsAVX2() {
-	return false;
-}
+//static bool cpuSupportsAVX2() {
+//    return false;
+//}
 
 #endif
 
@@ -188,8 +188,8 @@ FIR_1x4_t FIR_1x4_AVX;  // separate compilation with VEX-encoding enabled
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
-	static FIR_1x4_t* f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE; // init on first call
-	(*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
+    static FIR_1x4_t* f = cpuSupportsAVX() ? FIR_1x4_AVX : FIR_1x4_SSE; // init on first call
+    (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames);                 // dispatch
 }
 
 // 4 channel planar to interleaved
