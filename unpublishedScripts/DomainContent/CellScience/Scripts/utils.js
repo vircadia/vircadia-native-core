@@ -20,8 +20,8 @@ getEntityUserData = function(id) {
         try {
             results = JSON.parse(properties.userData);
         } catch (err) {
-            print('error parsing json');
-            print('properties are:'+ properties.userData);
+         //   print('error parsing json');
+         //   print('properties are:'+ properties.userData);
         }
     }
     return results ? results : {};

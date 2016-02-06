@@ -40,7 +40,7 @@
                 z: Math.random() - 0.5
             };
 
-            //    print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
+            //print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
             Entities.editEntity(self.entityId, {
                 velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV))
 
@@ -60,7 +60,7 @@
                 y: Math.random() - 0.5,
                 z: Math.random() - 0.5
             };
-            //     print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
+            //print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
             Entities.editEntity(self.entityId, {
                 angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
 
