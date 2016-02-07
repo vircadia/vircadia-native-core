@@ -53,7 +53,7 @@ public:
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+    uint8_t getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
@@ -69,9 +69,9 @@ public:
 
     virtual const QUuid getObjectID() const override { return _entity->getID(); }
 
-    virtual quint8 getSimulationPriority() const override;
+    virtual uint8_t getSimulationPriority() const override;
     virtual QUuid getSimulatorID() const override;
-    virtual void bump(quint8 priority) override;
+    virtual void bump(uint8_t priority) override;
 
     EntityItemPointer getEntity() const { return _entityPtr.lock(); }
 
@@ -83,7 +83,7 @@ public:
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     // eternal logic can suggest a simuator priority bid for the next outgoing update
-    void setOutgoingPriority(quint8 priority);
+    void setOutgoingPriority(uint8_t priority);
 
     friend class PhysicalEntitySimulation;
 
@@ -106,10 +106,6 @@ protected:
     // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
     EntityItem* _entity;
 
-    bool _sentInactive;   // true if body was inactive when we sent last update
-
-    // these are for the prediction of the remote server's simple extrapolation
-    uint32_t _lastStep; // last step of server extrapolation
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;
@@ -118,15 +114,18 @@ protected:
     glm::vec3 _serverAcceleration;
     QByteArray _serverActionData;
 
-    uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
-    float _measuredDeltaTime;
+    quint64 _nextOwnershipBid { 0 };
 
-    quint8 _accelerationNearlyGravityCount;
-    quint64 _nextOwnershipBid = NO_PRORITY;
-    uint32_t _loopsWithoutOwner;
-    quint8 _outgoingPriority = NO_PRORITY;
+    float _measuredDeltaTime;
+    uint32_t _lastMeasureStep;
+    uint32_t _lastStep; // last step of server extrapolation
+
+    uint8_t _loopsWithoutOwner;
+    uint8_t _accelerationNearlyGravityCount;
+    uint8_t _numInactiveUpdates { 1 };
+    uint8_t _outgoingPriority { ZERO_SIMULATION_PRIORITY };
 };
 
 #endif // hifi_EntityMotionState_h

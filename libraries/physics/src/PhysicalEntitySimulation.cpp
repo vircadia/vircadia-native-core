@@ -249,6 +249,7 @@ void PhysicalEntitySimulation::getObjectsToChange(VectorOfMotionStates& result) 
 
 void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates& motionStates, const QUuid& sessionID) {
     QMutexLocker lock(&_mutex);
+
     // walk the motionStates looking for those that correspond to entities
     for (auto stateItr : motionStates) {
         ObjectMotionState* state = &(*stateItr);
@@ -273,13 +274,15 @@ void PhysicalEntitySimulation::handleOutgoingChanges(const VectorOfMotionStates&
             return;
         }
 
-        // send outgoing packets
+        // look for entities to prune or update
         QSet<EntityMotionState*>::iterator stateItr = _outgoingChanges.begin();
         while (stateItr != _outgoingChanges.end()) {
             EntityMotionState* state = *stateItr;
             if (!state->isCandidateForOwnership(sessionID)) {
+                // prune
                 stateItr = _outgoingChanges.erase(stateItr);
             } else if (state->shouldSendUpdate(numSubsteps, sessionID)) {
+                // update
                 state->sendUpdate(_entityPacketSender, sessionID, numSubsteps);
                 ++stateItr;
             } else {

@@ -16,11 +16,11 @@
 
 #include <NumericalConstants.h>
 
-// static 
+// static
 const int SimulationOwner::NUM_BYTES_ENCODED = NUM_BYTES_RFC4122_UUID + 1;
 
 
-SimulationOwner::SimulationOwner(const SimulationOwner& other) 
+SimulationOwner::SimulationOwner(const SimulationOwner& other)
     : _id(other._id), _priority(other._priority), _expiry(other._expiry) {
 }
 
@@ -48,11 +48,6 @@ void SimulationOwner::clear() {
 
 void SimulationOwner::setPriority(quint8 priority) {
     _priority = priority;
-    if (_priority == 0) {
-        // when priority is zero we clear everything
-        _expiry = 0;
-        _id = QUuid();
-    }
 }
 
 void SimulationOwner::promotePriority(quint8 priority) {
