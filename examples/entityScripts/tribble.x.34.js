@@ -1,5 +1,6 @@
 (function () {
     // See tests/performance/tribbles.js
+    Script.include("../libraries/virtualBaton.39.js");
     var dimensions, oldColor, entityID,
         editRate = 60,
         moveRate = 1,
@@ -7,7 +8,8 @@
         accumulated = 0,
         increment = {red: 1, green: 1, blue: 1},
         hasUpdate = false,
-        shutdown = false;
+        shutdown = false,
+        baton;
     function nextWavelength(color) {
         var old = oldColor[color];
         if (old === 255) {
@@ -35,6 +37,22 @@
         Entities.editEntity(entityID, newData);
         if (!shutdown) { Script.setTimeout(move, nextChange); }
     }
+    function startUpdate() {
+        print('startUpdate', entityID);
+        hasUpdate = true;
+        Script.update.connect(update);
+    }
+    function stopUpdate() {
+        print('stopUpdate', entityID, hasUpdate);
+        if (!hasUpdate) { return; }
+        hasUpdate = false;
+        Script.update.disconnect(update);
+    }
+    function stopUpdateAndReclaim() {
+        print('stopUpdateAndReclaim', entityID);
+        stopUpdate();
+        baton.claim(startUpdate, stopUpdateAndReclaim);
+    }
     this.preload = function (givenEntityID) {
         entityID = givenEntityID;
         var properties = Entities.getEntityProperties(entityID);
@@ -45,11 +63,19 @@
         moveRate = (moveRate && userData.moveRate) || moveRate;
         oldColor = properties.color;
         dimensions = Vec3.multiply(scale, properties.dimensions);
+        baton = virtualBaton({
+            // FIXME: batonName: 'io.highfidelity.tribble:' + entityID,
+            // If we wanted to have only one tribble change colors, we could do:
+            batonName: 'io.highfidelity.tribble',
+            instanceId: entityID + MyAvatar.sessionUUID,
+            debugFlow: true,
+            debugSend: true,
+            debugReceive: true
+        });
         if (editTimeout) {
-            hasUpdate = true;
-            Script.update.connect(update);
+            baton.claim(startUpdate, stopUpdateAndReclaim);
             if (editTimeout > 0) {
-                Script.setTimeout(function () { Script.update.disconnect(update); hasUpdate = false; }, editTimeout * 1000);
+                Script.setTimeout(stopUpdate, editTimeout * 1000);
             }
         }
         if (moveTimeout) {
@@ -60,7 +86,8 @@
         }
     };
     this.unload = function () {
+        baton.unload();
         shutdown = true;
-        if (hasUpdate) { Script.update.disconnect(update); }
+        stopUpdate();
     };
 })
