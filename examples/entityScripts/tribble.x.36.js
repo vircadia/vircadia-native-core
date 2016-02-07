@@ -59,15 +59,16 @@
         var userData = properties.userData && JSON.parse(properties.userData);
         var moveTimeout = userData ? userData.moveTimeout : 0;
         var editTimeout = userData ? userData.editTimeout : 0;
+        var debug = (userData && userData.debug) || {};
         editRate = (userData && userData.editRate) || editRate;
         moveRate = (moveRate && userData.moveRate) || moveRate;
         oldColor = properties.color;
         dimensions = Vec3.multiply(scale, properties.dimensions);
         baton = virtualBaton({
             batonName: 'io.highfidelity.tribble',
-            debugFlow: true,
-            debugSend: false,
-            debugReceive: false
+            debugFlow: debug.flow,
+            debugSend: debug.send,
+            debugReceive: debug.receive
         });
         if (editTimeout) {
             baton.claim(startUpdate, stopUpdateAndReclaim);
