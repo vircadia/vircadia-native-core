@@ -64,13 +64,10 @@
         oldColor = properties.color;
         dimensions = Vec3.multiply(scale, properties.dimensions);
         baton = virtualBaton({
-            // FIXME: batonName: 'io.highfidelity.tribble:' + entityID,
-            // If we wanted to have only one tribble change colors, we could do:
             batonName: 'io.highfidelity.tribble',
-            instanceId: entityID + MyAvatar.sessionUUID,
             debugFlow: true,
-            debugSend: true,
-            debugReceive: true
+            debugSend: false,
+            debugReceive: false
         });
         if (editTimeout) {
             baton.claim(startUpdate, stopUpdateAndReclaim);
