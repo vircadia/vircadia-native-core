@@ -148,7 +148,27 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->updateFromHandParameters(handParams, deltaTime);
 
         Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), ccState);
+
+        auto velocity = myAvatar->getVelocity();
+        auto position = myAvatar->getPosition();
+        auto orientation = myAvatar->getOrientation();
+
+        // check to see if we are attached to an Entity.
+        bool success;
+        auto parentPtr = myAvatar->getParentPointer(success);
+        if (success && parentPtr && parentPtr->getNestableType() == NestableType::Entity) {
+            auto entityPtr = std::dynamic_pointer_cast<EntityItem>(parentPtr);
+            if (entityPtr) {
+                // TODO: Do we need account for angularVelocity of entity?
+
+                auto invParentRot = glm::inverse(entityPtr->getOrientation());
+                velocity = invParentRot * (myAvatar->getVelocity() - entityPtr->getVelocity());
+                position = myAvatar->getLocalPosition();
+                orientation = myAvatar->getLocalOrientation();
+            }
+        }
+
+        _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);
