@@ -1,6 +1,6 @@
 (function () {
     // See tests/performance/tribbles.js
-    Script.include("../libraries/virtualBaton.39.js");
+    Script.include("../libraries/virtualBaton.40.js");
     var dimensions, oldColor, entityID,
         editRate = 60,
         moveRate = 1,

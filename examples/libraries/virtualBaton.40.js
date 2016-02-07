@@ -219,7 +219,10 @@ function virtualBatonf(options) {
         var response = {proposalNumber: data.number, proposerId: data.proposerId};
         if (betterNumber(data, bestProposal)) {
             bestProposal = data;
-            if (accepted.winner) {
+            // For stability, we don't let any one proposer rule out a disconnnected winner.
+            // If someone notices that a winner has disconnected (in their recheckWatchdog),
+            // they call for a new election. To remain chosen, a quorum need to confirm here.
+            if (accepted.winner && connectionTest(accepted.winner)) {
                 response.number = accepted.number;
                 response.winner = accepted.winner;
             }
