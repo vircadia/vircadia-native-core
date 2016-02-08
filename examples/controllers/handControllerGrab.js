@@ -19,6 +19,7 @@ Script.include("../libraries/utils.js");
 //
 var WANT_DEBUG = false;
 var WANT_DEBUG_STATE = false;
+var WANT_DEBUG_SEARCH_NAME = null;
 
 //
 // these tune time-averaging and "on" value for analog trigger
@@ -212,6 +213,10 @@ function stateToName(state) {
 
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
+}
+
+function entityHasActions(entityID) {
+    return Entities.getActionIDs(entityID).length > 0;
 }
 
 function entityIsGrabbedByOther(entityID) {
@@ -774,6 +779,7 @@ function MyController(hand) {
     this.search = function() {
         this.grabbedEntity = null;
         this.isInitialGrab = false;
+        this.doubleParentGrab = false;
 
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
@@ -867,36 +873,58 @@ function MyController(hand) {
                     grabbable = false;
                 }
             }
+
             if ("grabbable" in grabbableDataForCandidate) {
                 // if userData indicates that this is grabbable or not, override the default.
                 grabbable = grabbableDataForCandidate.grabbable;
             }
 
             if (!grabbable && !grabbableDataForCandidate.wantsTrigger) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not grabbable.");
+                }
                 continue;
             }
             if (forbiddenTypes.indexOf(propsForCandidate.type) >= 0) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': forbidden entity type.");
+                }
                 continue;
             }
             if (propsForCandidate.locked && !grabbableDataForCandidate.wantsTrigger) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': locked and not triggerable.");
+                }
                 continue;
             }
             if (forbiddenNames.indexOf(propsForCandidate.name) >= 0) {
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': forbidden name.");
+                }
                 continue;
             }
 
             distance = Vec3.distance(propsForCandidate.position, handPosition);
             if (distance > PICK_MAX_DISTANCE) {
                 // too far away, don't grab
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': too far away.");
+                }
                 continue;
             }
             if (propsForCandidate.parentID != NULL_UUID && this.state == STATE_EQUIP_SEARCHING) {
                 // don't allow a double-equip
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': it's a child");
+                }
                 continue;
             }
 
             if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE) {
                 // we can't distance-grab non-physical
+                if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
+                    print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not physical and too far for near-grab");
+                }
                 continue;
             }
 
@@ -918,7 +946,7 @@ function MyController(hand) {
                 return;
             }
             // near grab or equip with action
-            if (near) {
+            if (near && (grabbableData.refCount < 1 || entityHasActions(this.grabbedEntity))) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
@@ -926,6 +954,9 @@ function MyController(hand) {
             if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
                 if (entityIsGrabbedByOther(intersection.entityID)) {
                     // don't distance grab something that is already grabbed.
+                    if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
+                        print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': already grabbed by another.");
+                    }
                     return;
                 }
                 this.temporaryPositionOffset = null;
@@ -951,6 +982,18 @@ function MyController(hand) {
             if (grabbableData.refCount < 1) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
+            } else {
+                // it's not physical and it's already held via parenting.  go ahead and grab it, but
+                // save off the current parent and joint.  this wont always be right if there are more than
+                // two grabs and the order of release isn't opposite of the order of grabs.
+                this.doubleParentGrab = true;
+                this.previousParentID = props.parentID;
+                this.previousParentJointIndex = props.parentJointIndex;
+                this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
+                return;
+            }
+            if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
+                print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': fell through.");
             }
         }
 
@@ -979,7 +1022,9 @@ function MyController(hand) {
     };
 
     this.distanceGrabTimescale = function(mass, distance) {
-        var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass / DISTANCE_HOLDING_UNITY_MASS * distance / DISTANCE_HOLDING_UNITY_DISTANCE;
+        var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
+            DISTANCE_HOLDING_UNITY_MASS * distance /
+            DISTANCE_HOLDING_UNITY_DISTANCE;
         if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
             timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
         }
@@ -1310,7 +1355,8 @@ function MyController(hand) {
             });
         }
 
-        var handRotation = this.getHandRotation();
+        // var handRotation = this.getHandRotation();
+        var handRotation = (this.hand === RIGHT_HAND) ? MyAvatar.getRightPalmRotation() : MyAvatar.getLeftPalmRotation();
         var handPosition = this.getHandPosition();
 
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
@@ -1337,7 +1383,7 @@ function MyController(hand) {
             }
         }
 
-        var isPhysical = this.propsArePhysical(grabbedProperties);
+        var isPhysical = this.propsArePhysical(grabbedProperties) || entityHasActions(this.grabbedEntity);
         if (isPhysical && this.state == STATE_NEAR_GRABBING) {
             // grab entity via action
             if (!this.setupHoldAction()) {
@@ -1400,6 +1446,17 @@ function MyController(hand) {
                 this.callEntityMethodOnGrabbed("releaseGrab", [JSON.stringify(this.hand)]);
                 this.callEntityMethodOnGrabbed("startEquip", [JSON.stringify(this.hand)]);
             }
+            return;
+        }
+
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID"]);
+        if (props.parentID == MyAvatar.sessionUUID &&
+            Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
+            // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
+            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand.");
+            this.setState(STATE_RELEASE);
+            this.callEntityMethodOnGrabbed(this.state == STATE_NEAR_GRABBING ? "releaseGrab" : "releaseEquip",
+                                           [JSON.stringify(this.hand)]);
             return;
         }
 
@@ -1602,21 +1659,14 @@ function MyController(hand) {
         if (this.grabbedEntity !== null) {
             if (this.actionID !== null) {
                 Entities.deleteAction(this.grabbedEntity, this.actionID);
-                //sometimes we want things to stay right where they are when we let go.
+                // sometimes we want things to stay right where they are when we let go.
+                var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
-                if (releaseVelocityData.disableReleaseVelocity === true || !this.isInitialGrab) {
-                    Entities.editEntity(this.grabbedEntity, {
-                        velocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        },
-                        angularVelocity: {
-                            x: 0,
-                            y: 0,
-                            z: 0
-                        }
-                    });
+                if (releaseVelocityData.disableReleaseVelocity === true ||
+                    // this next line allowed both:
+                    // (1) far-grab, pull to self, near grab, then throw
+                    // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
+                    (!this.isInitialGrab && grabData.refCount > 1)) {
                     noVelocity = true;
                 }
             }
@@ -1721,15 +1771,27 @@ function MyController(hand) {
                     data["dynamic"] &&
                     data["parentID"] == NULL_UUID &&
                     !data["collisionless"]) {
-                    forceVelocity = true;
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.1, z: 0.0};
+                }
+                if (noVelocity) {
+                    deactiveProps["velocity"] = {x: 0.0, y: 0.0, z: 0.0};
+                    deactiveProps["angularVelocity"] = {x: 0.0, y: 0.0, z: 0.0};
                 }
 
                 Entities.editEntity(entityID, deactiveProps);
-
-                if (forceVelocity) {
-                    Entities.editEntity(entityID, {velocity:{x:0, y:0.1, z:0}});
-                }
                 data = null;
+            } else if (this.doubleParentGrab) {
+                // we parent-grabbed this from another parent grab.  try to put it back where we found it.
+                var deactiveProps = {
+                    parentID: this.previousParentID,
+                    parentJointIndex: this.previousParentJointIndex,
+                    velocity: {x: 0.0, y: 0.0, z: 0.0},
+                    angularVelocity: {x: 0.0, y: 0.0, z: 0.0}
+                };
+                Entities.editEntity(entityID, deactiveProps);
+            } else if (noVelocity) {
+                Entities.editEntity(entityID, {velocity: {x: 0.0, y: 0.0, z: 0.0},
+                                               angularVelocity: {x: 0.0, y: 0.0, z: 0.0}});
             }
         } else {
             data = null;
