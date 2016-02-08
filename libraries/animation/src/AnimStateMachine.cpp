@@ -125,7 +125,7 @@ void AnimStateMachine::switchState(const AnimVariantMap& animVars, State::Pointe
         assert(false);
     }
 
-#if WANT_DEBUG
+#ifdef WANT_DEBUG
     qCDebug(animation) << "AnimStateMachine::switchState:" << _currentState->getID() << "->" << desiredState->getID() << "duration =" << duration << "targetFrame =" << desiredState->_interpTarget << "interpType = " << (int)_interpType;
 #endif
 

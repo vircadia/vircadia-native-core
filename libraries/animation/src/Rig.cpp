@@ -616,7 +616,8 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
         _desiredStateAge += deltaTime;
 
         if (_state == RigRole::Move) {
-            if (glm::length(localVel) > MOVE_ENTER_SPEED_THRESHOLD) {
+            glm::vec3 horizontalVel = localVel - glm::vec3(0.0f, localVel.y, 0.0f);
+            if (glm::length(horizontalVel) > MOVE_ENTER_SPEED_THRESHOLD) {
                 if (fabsf(forwardSpeed) > 0.5f * fabsf(lateralSpeed)) {
                     if (forwardSpeed > 0.0f) {
                         // forward
@@ -651,18 +652,19 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
                         _animVars.set("isNotMoving", false);
                     }
                 }
-                _animVars.set("isTurningLeft", false);
-                _animVars.set("isTurningRight", false);
-                _animVars.set("isNotTurning", true);
-                _animVars.set("isFlying", false);
-                _animVars.set("isNotFlying", true);
-                _animVars.set("isTakeoffStand", false);
-                _animVars.set("isTakeoffRun", false);
-                _animVars.set("isNotTakeoff", true);
-                _animVars.set("isInAirStand", false);
-                _animVars.set("isInAirRun", false);
-                _animVars.set("isNotInAir", true);
             }
+            _animVars.set("isTurningLeft", false);
+            _animVars.set("isTurningRight", false);
+            _animVars.set("isNotTurning", true);
+            _animVars.set("isFlying", false);
+            _animVars.set("isNotFlying", true);
+            _animVars.set("isTakeoffStand", false);
+            _animVars.set("isTakeoffRun", false);
+            _animVars.set("isNotTakeoff", true);
+            _animVars.set("isInAirStand", false);
+            _animVars.set("isInAirRun", false);
+            _animVars.set("isNotInAir", true);
+
         } else if (_state == RigRole::Turn) {
             if (turningSpeed > 0.0f) {
                 // turning right
@@ -782,7 +784,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             // compute blend based on velocity
             const float JUMP_SPEED = 3.5f;
-            float alpha = glm::clamp(-worldVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
+            float alpha = glm::clamp(-_lastVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
             _animVars.set("inAirAlpha", alpha);
         }
 
