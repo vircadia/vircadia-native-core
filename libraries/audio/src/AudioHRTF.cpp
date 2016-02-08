@@ -141,41 +141,17 @@ static bool cpuSupportsAVX() {
     return result;
 }
 
-//static bool cpuSupportsAVX2() {
-//    int info[4];
-//    int mask = (1 << 5);                // AVX2
-//
-//    bool result = false;
-//    if (cpuSupportsAVX()) {
-//
-//        __cpuidex(info, 0x7, 0);
-//
-//        if ((info[1] & mask) == mask) {
-//            result = true;
-//        }
-//    }
-//    return result;
-//}
-
 #elif defined(__GNU__)
 
 static bool cpuSupportsAVX() {
     return __builtin_cpu_supports("avx");
 }
 
-//static bool cpuSupportsAVX2() {
-//    return __builtin_cpu_supports("avx2");
-//}
-
 #else
 
 static bool cpuSupportsAVX() {
     return false;
 }
-
-//static bool cpuSupportsAVX2() {
-//    return false;
-//}
 
 #endif
 
