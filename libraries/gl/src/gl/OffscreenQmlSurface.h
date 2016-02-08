@@ -35,7 +35,7 @@ public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
 
-    using MouseTranslator = std::function<QPointF(const QPointF&)>;
+    using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
     virtual void create(QOpenGLContext* context);
     void resize(const QSize& size);
@@ -94,7 +94,7 @@ private:
     bool _polish{ true };
     bool _paused{ true };
     uint8_t _maxFps{ 60 };
-    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
+    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
 
 };
 

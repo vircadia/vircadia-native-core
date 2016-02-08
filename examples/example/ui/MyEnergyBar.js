@@ -1,15 +1,3 @@
-//  energyBar.js
-//  examples/ui
-//
-//  Created by Eric Levin on 1/4/15
-//  Copyright 2015 High Fidelity, Inc.
-//
-//  This script adds an energy bar overlay which displays the amount of energy a user has left for grabbing and moving objects
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
 Script.include("../../libraries/utils.js");
 var energyColor = {red: 0, green: 200, blue: 0};
 var lowEnergyColor = {red: 255, green: 0, blue: 0};
@@ -31,7 +19,7 @@ var background = Overlays.addOverlay("text", {
     y: 20,
     width: totalWidth,
     height: 10,
-    backgroundColor: {red: 184, green: 181, blue: 178}
+    backgroundColor: {red: 255, green: 0, blue: 0}
 })
 
 var bar = Overlays.addOverlay("text", {
@@ -65,6 +53,11 @@ function energyChanged(newValue) {
     Entities.currentAvatarEnergy = newValue;
 }
 
+function debitAvatarEnergy(value) {
+   MyAvatar.energy = MyAvatar.energy - value;
+}
+Entities.costMultiplier = 0.02;
+Entities.debitEnergySource.connect(debitAvatarEnergy);
 MyAvatar.energyChanged.connect(energyChanged);
 Script.update.connect(update);
 Script.scriptEnding.connect(cleanup);

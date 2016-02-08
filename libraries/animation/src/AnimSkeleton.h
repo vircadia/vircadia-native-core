@@ -53,6 +53,10 @@ public:
     AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
 
     void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
+    void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;
+
+    void mirrorRelativePoses(AnimPoseVec& poses) const;
+    void mirrorAbsolutePoses(AnimPoseVec& poses) const;
 
 #ifndef NDEBUG
     void dump() const;
@@ -69,6 +73,7 @@ protected:
     AnimPoseVec _absoluteDefaultPoses;
     AnimPoseVec _relativePreRotationPoses;
     AnimPoseVec _relativePostRotationPoses;
+    std::vector<int> _mirrorMap;
 
     // no copies
     AnimSkeleton(const AnimSkeleton&) = delete;

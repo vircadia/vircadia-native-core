@@ -78,6 +78,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandPose READ getRightHandPose)
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
+    Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
 public:
     MyAvatar(RigPointer rig);
@@ -276,7 +277,9 @@ signals:
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
     void collisionWithEntity(const Collision& collision);
+    void energyChanged(float newEnergy);
     void positionGoneTo();
+
 
 private:
 
@@ -413,9 +416,21 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
-
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
+    
+    float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
+    float AUDIO_ENERGY_CONSTANT { 0.000001f };
+    float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };
+    float currentEnergy { 0.0f };
+    float energyChargeRate { 0.003f };
+    glm::vec3 priorVelocity;
+    glm::vec3 lastPosition;
+    float getAudioEnergy();
+    float getAccelerationEnergy();
+    float getEnergy();
+    void setEnergy(float value);
+    bool didTeleport();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

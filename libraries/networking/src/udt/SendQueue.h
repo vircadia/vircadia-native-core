@@ -50,7 +50,8 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
+                                             SequenceNumber currentSequenceNumber = SequenceNumber());
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);
@@ -83,7 +84,7 @@ private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest);
+    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
@@ -108,7 +109,7 @@ private:
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
-    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
+    SequenceNumber _currentSequenceNumber { 0 }; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
