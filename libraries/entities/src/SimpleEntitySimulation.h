@@ -29,6 +29,7 @@ protected:
     virtual void clearEntitiesInternal() override;
 
     SetOfEntities _entitiesWithSimulator;
+    quint64 _nextSimulationExpiry { 0 };
 };
 
 #endif // hifi_SimpleEntitySimulation_h

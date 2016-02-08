@@ -82,8 +82,12 @@ void Connection::resetRTT() {
 
 SendQueue& Connection::getSendQueue() {
     if (!_sendQueue) {
+
+        // we may have a sequence number from the previous inactive queue - re-use that so that the
+        // receiver is getting the sequence numbers it expects (given that the connection must still be active)
+
         // Lasily create send queue
-        _sendQueue = SendQueue::create(_parentSocket, _destination);
+        _sendQueue = SendQueue::create(_parentSocket, _destination, _inactiveSendQueueSequenceNumber);
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
@@ -105,6 +109,10 @@ SendQueue& Connection::getSendQueue() {
 }
 
 void Connection::queueInactive() {
+    // get the current sequence number from the send queue, this is to be re-used if the send
+    // queue is re-activated for this connection
+    _inactiveSendQueueSequenceNumber = _sendQueue->getCurrentSequenceNumber();
+
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
     

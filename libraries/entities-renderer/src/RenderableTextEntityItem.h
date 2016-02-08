@@ -25,7 +25,7 @@ public:
     RenderableTextEntityItem(const EntityItemID& entityItemID) : TextEntityItem(entityItemID) { }
     ~RenderableTextEntityItem() { delete _textRenderer; }
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
     SIMPLE_RENDERABLE();
     

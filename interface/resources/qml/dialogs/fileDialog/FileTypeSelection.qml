@@ -17,9 +17,13 @@ VrControls.ComboBox {
     onCurrentTextChanged: {
         var globRegex = /\((.*)\)$/
         var globs = globRegex.exec(currentText);
-        if (!globs[1]) {
-            console.warn("Unable to parse filter " + currentText);
-            return;
+        if (!globs || !globs[1]) {
+            globRegex = /^(\*.*)$/
+            globs = globRegex.exec(currentText);
+            if (!globs || !globs[1]) {
+                console.warn("Unable to parse filter " + currentText);
+                return;
+            }
         }
         currentFilter = globs[1].split(" ");
     }

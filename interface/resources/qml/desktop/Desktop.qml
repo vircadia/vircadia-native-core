@@ -262,10 +262,9 @@ FocusScope {
     }
 
     Component { id: fileDialogBuilder; FileDialog { } }
-    function fileOpenDialog(properties) {
+    function fileDialog(properties) {
         return fileDialogBuilder.createObject(desktop, properties);
     }
-
 
     MenuMouseHandler { id: menuPopperUpper }
     function popupMenu(point) {

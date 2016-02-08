@@ -257,7 +257,13 @@ public:
         QConfigPointer config = _jobs.back().getConfiguration();
         config->setParent(_config.get());
         config->setObjectName(name.c_str());
-        QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+
+        // Connect dirty->refresh if defined
+        static const char* DIRTY_SIGNAL = "dirty()";
+        if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+            QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+        }
+
         return _jobs.back().getOutput();
     }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {

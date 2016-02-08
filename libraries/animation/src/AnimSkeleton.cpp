@@ -87,11 +87,36 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses)
 
 void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
-    for (int i = 0; i < (int)poses.size() && i < (int)_joints.size(); ++i) {
+    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    for (int i = 0; i < lastIndex; ++i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex] * poses[i];
         }
+    }
+}
+
+void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
+    // poses start off absolute and leave in relative frame
+    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    for (int i = lastIndex - 1; i >= 0; --i) {
+        int parentIndex = _joints[i].parentIndex;
+        if (parentIndex != -1) {
+            poses[i] = poses[parentIndex].inverse() * poses[i];
+        }
+    }
+}
+
+void AnimSkeleton::mirrorRelativePoses(AnimPoseVec& poses) const {
+    convertRelativePosesToAbsolute(poses);
+    mirrorAbsolutePoses(poses);
+    convertAbsolutePosesToRelative(poses);
+}
+
+void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
+    AnimPoseVec temp = poses;
+    for (int i = 0; i < (int)poses.size(); i++) {
+        poses[_mirrorMap[i]] = temp[i].mirror();
     }
 }
 
@@ -148,6 +173,24 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
             } else {
                 _absoluteBindPoses.push_back(relDefaultPose);
             }
+        }
+    }
+
+    // build mirror map.
+    _mirrorMap.reserve(_joints.size());
+    for (int i = 0; i < (int)joints.size(); i++) {
+        int mirrorJointIndex = -1;
+        if (_joints[i].name.startsWith("Left")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        } else if (_joints[i].name.startsWith("Right")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 5, "Left");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        }
+        if (mirrorJointIndex >= 0) {
+            _mirrorMap.push_back(mirrorJointIndex);
+        } else {
+            _mirrorMap.push_back(i);
         }
     }
 }
