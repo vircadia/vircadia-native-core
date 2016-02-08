@@ -71,10 +71,12 @@ public:
     bool alwaysEnabled{ true };
     bool enabled{ true };
 
+    // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
+    Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); }
 
 public slots:
-    Q_INVOKABLE void fromJSON(const QJsonValue& json) { qObjectFromJsonValue(json, *this); }
+    void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); }
 };
 
 class TaskConfig : public JobConfig {
