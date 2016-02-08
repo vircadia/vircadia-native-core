@@ -113,7 +113,6 @@ function handleFoundSoundEntities(entities) {
         if (soundData && soundData.url) {
             //check sound entities list- if it's not in, add it
             if (!soundEntityMap[entity]) {
-                print("NEW SOUND!")
                 var soundProperties = {
                     url: soundData.url,
                     volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
