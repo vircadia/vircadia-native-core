@@ -24,8 +24,6 @@
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
-#include "AudioFormat.h"
-#include "AudioBuffer.h"
 #include "AudioLogging.h"
 #include "Sound.h"
 

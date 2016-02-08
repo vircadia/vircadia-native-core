@@ -119,7 +119,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     // we've repeated that frame in a row, we'll gradually fade that repeated frame into silence.
     // This improves the perceived quality of the audio slightly.
 
-    bool showDebug = false;  // (randFloat() < 0.05f);
+    bool showDebug = false;
 
     float repeatedFrameFadeFactor = 1.0f;
 
@@ -359,69 +359,6 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
                                             AudioConstants::MIN_SAMPLE_VALUE,
                                            AudioConstants::MAX_SAMPLE_VALUE);
         }
-    }
-
-    if (!sourceIsSelf && _enableFilter && !streamToAdd->ignorePenumbraFilter()) {
-
-        const float TWO_OVER_PI = 2.0f / PI;
-
-        const float ZERO_DB = 1.0f;
-        const float NEGATIVE_ONE_DB = 0.891f;
-        const float NEGATIVE_THREE_DB = 0.708f;
-
-        const float FILTER_GAIN_AT_0 = ZERO_DB; // source is in front
-        const float FILTER_GAIN_AT_90 = NEGATIVE_ONE_DB; // source is incident to left or right ear
-        const float FILTER_GAIN_AT_180 = NEGATIVE_THREE_DB; // source is behind
-
-        const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
-
-        const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
-        const float penumbraFilterSlope = NEGATIVE_THREE_DB; // constant slope
-
-        float penumbraFilterGainL;
-        float penumbraFilterGainR;
-
-        // variable gain calculation broken down by quadrant
-        if (-bearingRelativeAngleToSource < -PI_OVER_TWO && -bearingRelativeAngleToSource > -PI) {
-            penumbraFilterGainL = TWO_OVER_PI *
-                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_0;
-            penumbraFilterGainR = TWO_OVER_PI *
-                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_90;
-        } else if (-bearingRelativeAngleToSource <= PI && -bearingRelativeAngleToSource > PI_OVER_TWO) {
-            penumbraFilterGainL = TWO_OVER_PI *
-                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
-            penumbraFilterGainR = TWO_OVER_PI *
-                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
-        } else if (-bearingRelativeAngleToSource <= PI_OVER_TWO && -bearingRelativeAngleToSource > 0) {
-            penumbraFilterGainL = TWO_OVER_PI *
-                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI_OVER_TWO) + FILTER_GAIN_AT_90;
-            penumbraFilterGainR = FILTER_GAIN_AT_0;
-        } else {
-            penumbraFilterGainL = FILTER_GAIN_AT_0;
-            penumbraFilterGainR =  TWO_OVER_PI *
-                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource) + FILTER_GAIN_AT_0;
-        }
-
-        if (distanceBetween < RADIUS_OF_HEAD) {
-            // Diminish effect if source would be inside head
-            penumbraFilterGainL += (1.0f - penumbraFilterGainL) * (1.0f - distanceBetween / RADIUS_OF_HEAD);
-            penumbraFilterGainR += (1.0f - penumbraFilterGainR) * (1.0f - distanceBetween / RADIUS_OF_HEAD);
-        }
-
-        bool wantDebug = false;
-        if (wantDebug) {
-            qDebug() << "gainL=" << penumbraFilterGainL
-                     << "gainR=" << penumbraFilterGainR
-                     << "angle=" << -bearingRelativeAngleToSource;
-        }
-
-        // Get our per listener/source data so we can get our filter
-        AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
-
-        // set the gain on both filter channels
-        penumbraFilter.setParameters(0, 0, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-        penumbraFilter.setParameters(0, 1, AudioConstants::SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-        penumbraFilter.render(_preMixSamples, _preMixSamples, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO / 2);
     }
 
     // Actually mix the _preMixSamples into the _mixSamples here.

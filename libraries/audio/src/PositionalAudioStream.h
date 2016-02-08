@@ -40,7 +40,6 @@ public:
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
-    bool ignorePenumbraFilter() { return _ignorePenumbra; }
     PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }

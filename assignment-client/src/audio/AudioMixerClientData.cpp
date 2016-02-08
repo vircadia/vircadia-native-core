@@ -36,9 +36,9 @@ AudioMixerClientData::~AudioMixerClientData() {
     }
 
     // clean up our pair data...
-    foreach(PerListenerSourcePairData* pairData, _listenerSourcePairData) {
-        delete pairData;
-    }
+//    foreach(PerListenerSourcePairData* pairData, _listenerSourcePairData) {
+//        delete pairData;
+//    }
 }
 
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
@@ -332,13 +332,4 @@ void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamS
         formatUsecTime(streamStats._timeGapWindowMin).toLatin1().data(),
         formatUsecTime(streamStats._timeGapWindowMax).toLatin1().data(),
         formatUsecTime(streamStats._timeGapWindowAverage).toLatin1().data());
-}
-
-
-PerListenerSourcePairData* AudioMixerClientData::getListenerSourcePairData(const QUuid& sourceUUID) {
-    if (!_listenerSourcePairData.contains(sourceUUID)) {
-        PerListenerSourcePairData* newData = new PerListenerSourcePairData();
-        _listenerSourcePairData[sourceUUID] = newData;
-    }
-    return _listenerSourcePairData[sourceUUID];
 }
