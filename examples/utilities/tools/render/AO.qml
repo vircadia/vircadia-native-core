@@ -16,15 +16,16 @@ Item {
     height: 200
     property QtObject config: Render.getConfig("AmbientOcclusion")
 
-    Timer {
-        interval: 500
-        running: true
-        repeat: true
-        onTriggered: { parent.timer.text = config.gpuTime.toFixed(2) }
-    }
+    // TODO: Enable the gpuTimer when it is fixed in cpp
+    // Timer {
+    //     interval: 500
+    //     running: true
+    //     repeat: true
+    //     onTriggered: { parent.timer.text = config.gpuTime.toFixed(2) }
+    // }
+    // Label { id: timer; x: 140 }
 
     Label { text: qsTr("Ambient Occlusion") }
-    Label { id: timer; x: 140 }
 
     CheckBox {
         y: 1 * 25
