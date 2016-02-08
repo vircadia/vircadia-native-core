@@ -18,6 +18,8 @@
 #include <gl/OglplusHelpers.h>
 #include <gl/GLEscrow.h>
 
+#define THREADED_PRESENT 1
+
 class OpenGLDisplayPlugin : public DisplayPlugin {
 protected:
     using Mutex = std::mutex;
@@ -45,8 +47,9 @@ public:
     virtual QImage getScreenshot() const override;
 
 protected:
+#if THREADED_PRESENT
     friend class PresentThread;
-
+#endif
     
     virtual glm::uvec2 getSurfaceSize() const = 0;
     virtual glm::uvec2 getSurfacePixels() const = 0;
@@ -81,15 +84,16 @@ protected:
     GLuint _currentSceneTexture { 0 };
     GLuint _currentOverlayTexture { 0 };
 
-    GLTextureEscrow _overlayTextureEscrow;
     GLTextureEscrow _sceneTextureEscrow;
 
     bool _vsyncSupported { false };
 
 private:
+#if THREADED_PRESENT
     void enableDeactivate();
     Condition _deactivateWait;
     bool _uncustomized{ false };
+#endif
 
 };
 
