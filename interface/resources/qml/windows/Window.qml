@@ -45,6 +45,30 @@ Fadable {
     // The content to place inside the window, determined by the client
     default property var content
 
+    property var rectifier: Timer {
+        property bool executing: false;
+        interval: 100
+        repeat: false
+        running: false
+
+        onTriggered: {
+            executing = true;
+            x = Math.floor(x);
+            y = Math.floor(y);
+            executing = false;
+        }
+
+        function begin() {
+            if (!executing) {
+                restart();
+            }
+        }
+    }
+
+
+    onXChanged: rectifier.begin();
+    onYChanged: rectifier.begin();
+
     // This mouse area serves to raise the window. To function, it must live
     // in the window and have a higher Z-order than the content, but follow
     // the position and size of frame decoration
