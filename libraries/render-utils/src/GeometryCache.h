@@ -166,28 +166,28 @@ public:
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline) {
-        renderSolidSphereInstance(batch, glm::vec4(color, 1.0), pipeline);
+        renderSolidSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline) {
-        renderWireSphereInstance(batch, glm::vec4(color, 1.0), pipeline);
+        renderWireSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline) {
-        renderSolidCubeInstance(batch, glm::vec4(color, 1.0), pipeline);
+        renderSolidCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline);
     void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simplePipeline) {
-        renderWireCubeInstance(batch, glm::vec4(color, 1.0), pipeline);
+        renderWireCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     // Dynamic geometry
