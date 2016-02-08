@@ -115,6 +115,7 @@ var scenes = [{
         radius: 500,
         number: 10,
         userData: JSON.stringify({
+            entryPoint:locations.cellLayout[1],
             location: locations.cellLayout[1],
             baseURL: baseLocation
         }),

@@ -7,7 +7,7 @@ var soundMap = [{
                 y: 15850,
                 z: 15850
             },
-            volume: 0.4,
+            volume: 0.1,
             loop: true
         }
     }, {
@@ -19,7 +19,7 @@ var soundMap = [{
                 y: 15950,
                 z: 15950
             },
-            volume: 0.4,
+            volume: 0.1,
             loop: true
         }
     }, {
@@ -31,7 +31,7 @@ var soundMap = [{
                 y: 15650,
                 z: 15650
             },
-            volume: 0.4,
+            volume: 0.1,
             loop: true
         }
     }, {
@@ -43,7 +43,7 @@ var soundMap = [{
                 y: 15750,
                 z: 15750
             },
-            volume: 0.4,
+            volume: 0.1,
             loop: true
         }
     }
@@ -92,6 +92,25 @@ function startCheckDownloadedTimers() {
         }, 1000);
     });
 }
+
+Script.scriptEnding.connect(function() {
+    soundMap.forEach(function(soundData) {
+
+        if (soundData.hasOwnProperty("injector")) {
+            soundData.injector.stop();
+        }
+
+        if (soundData.hasOwnProperty("downloadTimer")) {
+            Script.clearInterval(soundData.downloadTimer);
+        }
+
+        if (soundData.hasOwnProperty("playingInterval")) {
+            Script.clearInterval(soundData.playingInterval);
+        }
+
+    });
+
+});
 
 loadSounds();
 startCheckDownloadedTimers();

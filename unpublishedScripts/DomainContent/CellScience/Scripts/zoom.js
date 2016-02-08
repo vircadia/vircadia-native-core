@@ -61,29 +61,32 @@
             }
 
             // this.lookAt(data.target, data.location);
-
+            if(data.hasOwnProperty('entryPoint')&&data.hasOwnProperty('target')){
+                this.lookAtTarget(data.entryPoint,data.target);
+            }
         }
 
     }
 
-    // this.lookAt = function(targetPosition, avatarPosition) {
-    //     print('GOING TO')
-    //     var direction = Vec3.normalize(Vec3.subtract(MyAvatar.position, targetPosition));
+    this.lookAtTarget = function(entryPoint,target) {
 
-    //     var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
-    //         x: 1,
-    //         y: 0,
-    //         z: 0
-    //     });
-    //     var yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * 180.0 / Math.PI, {
-    //         x: 0,
-    //         y: 1,
-    //         z: 0
-    //     });
-    //     print('JBP ZOOM DEBUG YO')
-    //     MyAvatar.goToLocation(avatarPosition, true, yaw);
-    //     MyAvatar.headYaw = 0;
-    // }
+        var direction = Vec3.normalize(Vec3.subtract(entryPoint, target));
+        var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
+            x: 1,
+            y: 0,
+            z: 0
+        });
+        var yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * 180.0 / Math.PI, {
+            x: 0,
+            y: 1,
+            z: 0
+        });
+
+        MyAvatar.goToLocation(entryPoint, true, yaw);
+
+        MyAvatar.headYaw = 0;
+
+    }
 
 
 
