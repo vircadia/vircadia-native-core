@@ -7,7 +7,7 @@
 
 (function() {
 
-    var version = 10;
+    var version = 11;
     var added = false;
     this.frame = 0;
     var utilsScript = Script.resolvePath('utils.js');

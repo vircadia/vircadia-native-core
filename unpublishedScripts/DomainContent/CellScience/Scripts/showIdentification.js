@@ -10,7 +10,7 @@
     var self = this;
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
-    var version = 1;
+    var version = 2;
     this.preload = function(entityId) {
         this.soundPlaying = null;
         this.entityId = entityId;
@@ -21,7 +21,7 @@
     }
 
     this.initialize = function(entityId) {
-        print(' should initialize' + entityId)
+        //print(' should initialize' + entityId)
         var properties = Entities.getEntityProperties(entityId);
         if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
             self.initTimeout = Script.setTimeout(function() {

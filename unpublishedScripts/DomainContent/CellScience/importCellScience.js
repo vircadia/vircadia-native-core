@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1015;
+var version = 1016;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -115,8 +115,7 @@ var scenes = [{
         radius: 500,
         number: 10,
         userData: JSON.stringify({
-            target: locations.cellLayout[1],
-            location: locations.cellLayout[0],
+            location: locations.cellLayout[1],
             baseURL: baseLocation
         }),
         script: "zoom.js?" + version,
@@ -597,7 +596,7 @@ function ImportScene(scene) {
     CreateInstances(scene);
     CreateBoundary(scene);
 
-    CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
+   // CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
 
     // print("done " + scene.name);
 
@@ -654,9 +653,9 @@ function CreateNavigationButton(scene, number) {
             blue: 0
         },
         dimensions: {
-            x: 10,
-            y: 10,
-            z: 10
+            x: 16000,
+            y: 16000,
+            z: 16000
         },
         visible: false,
         userData: JSON.stringify({
@@ -669,7 +668,7 @@ function CreateNavigationButton(scene, number) {
                 grabbable: false
             }
         }),
-        // position:{x:3000,y:13500,z:3000},
+        position:{x:0,y:0,z:0},
         script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
 
@@ -853,10 +852,10 @@ function CreateBackgroundAudio(name, position) {
     Entities.addEntity({
         type: "Sphere",
         name: "Location " + name + " background audio",
-        dimensions: {
-            x: 4000,
-            y: 4000,
-            z: 4000
+       dimensions: {
+            x: 16000,
+            y: 16000,
+            z: 16000
         },
         position: position,
         visible: false,
