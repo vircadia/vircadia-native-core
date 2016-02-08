@@ -815,6 +815,14 @@ void EntityTree::fixupTerseEditLogging(EntityItemProperties& properties, QList<Q
             changedProperties[index] = QString("jointTranslations:") + QString::number((int)value);
         }
     }
+    if (properties.queryAACubeChanged()) {
+        int index = changedProperties.indexOf("queryAACube");
+        glm::vec3 center = properties.getQueryAACube().calcCenter();
+        changedProperties[index] = QString("queryAACube:") +
+            QString::number((int)center.x) + "," +
+            QString::number((int)center.y) + "," +
+            QString::number((int)center.z);
+    }
 }
 
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
