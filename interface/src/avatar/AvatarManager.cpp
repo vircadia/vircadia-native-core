@@ -268,17 +268,6 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     return _localLights;
 }
 
-QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
-    QReadLocker locker(&_hashLock);
-    return _avatarHash.keys().toVector();
-}
-
-AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
-    // Null/Default-constructed QUuids will return MyAvatar
-    return getAvatarBySessionID(avatarID).get();
-}
-
-
 void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
     result.clear();
     result.swap(_motionStatesToRemoveFromPhysics);

@@ -34,6 +34,12 @@ public:
     AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
+    // Currently, your own avatar will be included as the null avatar id.
+    Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+    Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
+
+    virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+
 signals:
     void avatarAddedEvent(const QUuid& sessionUUID);
     void avatarRemovedEvent(const QUuid& sessionUUID);

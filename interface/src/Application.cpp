@@ -348,7 +348,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<BandwidthRecorder>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
-    DependencyManager::set<EntityScriptingInterface>();
+    DependencyManager::set<EntityScriptingInterface>(true);
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
     DependencyManager::set<HMDScriptingInterface>();
@@ -1260,7 +1260,7 @@ void Application::initializeUi() {
             auto resultVec = _compositor.screenToOverlay(toGlm(pt));
             result = QPointF(resultVec.x, resultVec.y);
         }
-        return result;
+        return result.toPoint();
     });
     offscreenUi->resume();
     connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
@@ -1361,6 +1361,9 @@ void Application::paintGL() {
 
         renderArgs._renderMode = RenderArgs::MIRROR_RENDER_MODE;
         renderArgs._blitFramebuffer = DependencyManager::get<FramebufferCache>()->getSelfieFramebuffer();
+
+        auto inputs = AvatarInputs::getInstance();
+        _mirrorViewRect.moveTo(inputs->x(), inputs->y());
 
         renderRearViewMirror(&renderArgs, _mirrorViewRect);
 
@@ -4415,7 +4418,7 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
 }
 
 void Application::toggleRunningScriptsWidget() {
-    static const QUrl url("dialogs/RunningScripts.qml");
+    static const QUrl url("hifi/dialogs/RunningScripts.qml");
     DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
     //if (_runningScriptsWidget->isVisible()) {
     //    if (_runningScriptsWidget->hasFocus()) {
@@ -4610,22 +4613,6 @@ void Application::activeChanged(Qt::ApplicationState state) {
         default:
             _isForeground = false;
             break;
-    }
-}
-void Application::showFriendsWindow() {
-    const QString FRIENDS_WINDOW_OBJECT_NAME = "FriendsWindow";
-    const QString FRIENDS_WINDOW_TITLE = "Add/Remove Friends";
-    const QString FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends";
-    const int FRIENDS_WINDOW_WIDTH = 290;
-    const int FRIENDS_WINDOW_HEIGHT = 500;
-    auto webWindowClass = _window->findChildren<WebWindowClass>(FRIENDS_WINDOW_OBJECT_NAME);
-    if (webWindowClass.empty()) {
-        auto friendsWindow = new WebWindowClass(FRIENDS_WINDOW_TITLE, FRIENDS_WINDOW_URL, FRIENDS_WINDOW_WIDTH,
-                                                FRIENDS_WINDOW_HEIGHT);
-        friendsWindow->setParent(_window);
-        friendsWindow->setObjectName(FRIENDS_WINDOW_OBJECT_NAME);
-        connect(friendsWindow, &WebWindowClass::closed, &WebWindowClass::deleteLater);
-        friendsWindow->setVisible(true);
     }
 }
 

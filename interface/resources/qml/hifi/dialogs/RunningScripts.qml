@@ -3,9 +3,9 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../styles" as Hifi
-import "../controls" as HifiControls
-import "../windows"
+import "../../styles" as Hifi
+import "../../controls" as HifiControls
+import "../../windows"
 
 Window {
     id: root
@@ -19,12 +19,6 @@ Window {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
-    property var fileFilters: ListModel {
-        id: jsFilters
-        ListElement { text: "Javascript Files (*.js)"; filter: "*.js" }
-        ListElement { text: "All Files (*.*)"; filter: "*.*" }
-    }
-
 
     Settings {
         category: "Overlay.RunningScripts"
@@ -219,7 +213,7 @@ Window {
                 }
             }
 
-            TextField {
+            HifiControls.TextField {
                 id: filterEdit
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -249,10 +243,33 @@ Window {
                     }
                 }
                 model: scriptsModel
-                TableViewColumn { title: "Name"; role: "display"; }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: treeView.foo();
+                }
+
+                function foo() {
+                    var localRect = Qt.rect(0, 0, width, height);
+                    var rect = desktop.mapFromItem(treeView, 0, 0, width, height)
+                    console.log("Local Rect " + localRect)
+                    console.log("Rect " + rect)
+                    console.log("Desktop size " + Qt.size(desktop.width, desktop.height));
+                }
+
+                TableViewColumn { 
+                    title: "Name";
+                    role: "display";
+//                    delegate: Text {
+//                        text: styleData.value
+//                        renderType: Text.QtRendering
+//                        elite: styleData.elideMode
+//                    }
+                }
             }
 
-            TextField {
+            HifiControls.TextField {
                 id: selectedScript
                 readOnly: true
                 anchors.left: parent.left

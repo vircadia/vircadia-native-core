@@ -47,10 +47,17 @@ public:
 
     Q_INVOKABLE QUrl home();
     Q_INVOKABLE QStringList standardPath(StandardLocation location);
+    Q_INVOKABLE QStringList drives();
     Q_INVOKABLE QString urlToPath(const QUrl& url);
+    Q_INVOKABLE bool urlIsDir(const QUrl& url);
+    Q_INVOKABLE bool urlIsFile(const QUrl& url);
+    Q_INVOKABLE bool urlExists(const QUrl& url);
+    Q_INVOKABLE bool urlIsWritable(const QUrl& url);
+    Q_INVOKABLE bool fileExists(const QString& path);
     Q_INVOKABLE bool validPath(const QString& path);
     Q_INVOKABLE bool validFolder(const QString& path);
     Q_INVOKABLE QUrl pathToUrl(const QString& path);
+    Q_INVOKABLE QUrl saveHelper(const QString& saveText, const QUrl& currentFolder, const QStringList& selectionFilters);
 };
 
 

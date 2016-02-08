@@ -23,7 +23,6 @@ Script.include([
 
     "libraries/ToolTip.js",
 
-    "libraries/entityPropertyDialogBox.js",
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
@@ -32,17 +31,16 @@ Script.include([
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
 
 var cameraManager = new CameraManager();
 
 var grid = Grid();
-gridTool = GridTool({
-    horizontalGrid: grid
-});
-gridTool.setVisible(false);
+// gridTool = GridTool({
+//     horizontalGrid: grid
+// });
+// gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
@@ -336,7 +334,7 @@ var toolBar = (function() {
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
-                    gridTool.setVisible(false);
+                    // gridTool.setVisible(false);
                     grid.setEnabled(false);
                     propertiesTool.setVisible(false);
                     selectionManager.clearSelections();
@@ -344,7 +342,7 @@ var toolBar = (function() {
                 } else {
                     hasShownPropertiesTool = false;
                     entityListTool.setVisible(true);
-                    gridTool.setVisible(true);
+                    // gridTool.setVisible(true);
                     grid.setEnabled(true);
                     propertiesTool.setVisible(true);
                     Window.setFocus();

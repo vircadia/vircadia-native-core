@@ -512,9 +512,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
-    quint8 thisNodeCanAdjustLocks;
-    packetStream >> thisNodeCanAdjustLocks;
-    setThisNodeCanAdjustLocks((bool) thisNodeCanAdjustLocks);
+    quint8 isAllowedEditor;
+    packetStream >> isAllowedEditor;
+    setIsAllowedEditor((bool) isAllowedEditor);
 
     quint8 thisNodeCanRez;
     packetStream >> thisNodeCanRez;
@@ -546,10 +546,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     qint8 nodeType;
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    bool canAdjustLocks;
+    bool isAllowedEditor;
     bool canRez;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> isAllowedEditor >> canRez;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -560,7 +560,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, canAdjustLocks, canRez,
+                                             nodeLocalSocket, isAllowedEditor, canRez,
                                              connectionUUID);
 }
 

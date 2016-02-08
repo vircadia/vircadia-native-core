@@ -15,12 +15,13 @@
 
 bool AnimClip::usePreAndPostPoseFromAnim = false;
 
-AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),
     _loopFlag(loopFlag),
+    _mirrorFlag(mirrorFlag),
     _frame(startFrame)
 {
     loadURL(url);
@@ -37,6 +38,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
+    _mirrorFlag = animVars.lookup(_mirrorFlagVar, _mirrorFlag);
     float frame = animVars.lookup(_frameVar, _frame);
 
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
@@ -49,6 +51,12 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     }
 
     if (_anim.size()) {
+
+        // lazy creation of mirrored animation frames.
+        if (_mirrorFlag && _anim.size() != _mirrorAnim.size()) {
+            buildMirrorAnim();
+        }
+
         int prevIndex = (int)glm::floor(_frame);
         int nextIndex;
         if (_loopFlag && _frame >= _endFrame) {
@@ -63,8 +71,8 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
-        const AnimPoseVec& prevFrame = _anim[prevIndex];
-        const AnimPoseVec& nextFrame = _anim[nextIndex];
+        const AnimPoseVec& prevFrame = _mirrorFlag ? _mirrorAnim[prevIndex] : _anim[prevIndex];
+        const AnimPoseVec& nextFrame = _mirrorFlag ? _mirrorAnim[nextIndex] : _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
         ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
@@ -162,9 +170,22 @@ void AnimClip::copyFromNetworkAnim() {
         }
     }
 
+    // mirrorAnim will be re-built on demand, if needed.
+    _mirrorAnim.clear();
+
     _poses.resize(skeletonJointCount);
 }
 
+void AnimClip::buildMirrorAnim() {
+    assert(_skeleton);
+
+    _mirrorAnim.clear();
+    _mirrorAnim.reserve(_anim.size());
+    for (auto& relPoses : _anim) {
+        _mirrorAnim.push_back(relPoses);
+        _skeleton->mirrorRelativePoses(_mirrorAnim.back());
+    }
+}
 
 const AnimPoseVec& AnimClip::getPosesInternal() const {
     return _poses;

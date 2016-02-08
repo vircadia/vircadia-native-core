@@ -67,6 +67,16 @@ static AnimNode::Type stringToAnimNodeType(const QString& str) {
     return AnimNode::Type::NumTypes;
 }
 
+static AnimStateMachine::InterpType stringToInterpType(const QString& str) {
+    if (str == "snapshotBoth") {
+        return AnimStateMachine::InterpType::SnapshotBoth;
+    } else if (str == "snapshotPrev") {
+        return AnimStateMachine::InterpType::SnapshotPrev;
+    } else {
+        return AnimStateMachine::InterpType::NumTypes;
+    }
+}
+
 static const char* animManipulatorJointVarTypeToString(AnimManipulator::JointVar::Type type) {
     switch (type) {
     case AnimManipulator::JointVar::Type::AbsoluteRotation: return "absoluteRotation";
@@ -145,6 +155,14 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     }                                                                   \
     bool NAME = NAME##_VAL.toBool()
 
+#define READ_OPTIONAL_BOOL(NAME, JSON_OBJ, DEFAULT)                     \
+    auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
+    bool NAME = DEFAULT;                                                \
+    if (NAME##_VAL.isBool()) {                                          \
+        NAME = NAME##_VAL.toBool();                                     \
+    }                                                                   \
+    do {} while (0)
+
 #define READ_FLOAT(NAME, JSON_OBJ, ID, URL, ERROR_RETURN)               \
     auto NAME##_VAL = JSON_OBJ.value(#NAME);                            \
     if (!NAME##_VAL.isDouble()) {                                       \
@@ -222,13 +240,15 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     READ_FLOAT(endFrame, jsonObj, id, jsonUrl, nullptr);
     READ_FLOAT(timeScale, jsonObj, id, jsonUrl, nullptr);
     READ_BOOL(loopFlag, jsonObj, id, jsonUrl, nullptr);
+    READ_OPTIONAL_BOOL(mirrorFlag, jsonObj, false);
 
     READ_OPTIONAL_STRING(startFrameVar, jsonObj);
     READ_OPTIONAL_STRING(endFrameVar, jsonObj);
     READ_OPTIONAL_STRING(timeScaleVar, jsonObj);
     READ_OPTIONAL_STRING(loopFlagVar, jsonObj);
+    READ_OPTIONAL_STRING(mirrorFlagVar, jsonObj);
 
-    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag);
+    auto node = std::make_shared<AnimClip>(id, url, startFrame, endFrame, timeScale, loopFlag, mirrorFlag);
 
     if (!startFrameVar.isEmpty()) {
         node->setStartFrameVar(startFrameVar);
@@ -241,6 +261,9 @@ static AnimNode::Pointer loadClipNode(const QJsonObject& jsonObj, const QString&
     }
     if (!loopFlagVar.isEmpty()) {
         node->setLoopFlagVar(loopFlagVar);
+    }
+    if (!mirrorFlagVar.isEmpty()) {
+        node->setMirrorFlagVar(mirrorFlagVar);
     }
 
     return node;
@@ -465,9 +488,11 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         READ_STRING(id, stateObj, nodeId, jsonUrl, false);
         READ_FLOAT(interpTarget, stateObj, nodeId, jsonUrl, false);
         READ_FLOAT(interpDuration, stateObj, nodeId, jsonUrl, false);
+        READ_OPTIONAL_STRING(interpType, stateObj);
 
         READ_OPTIONAL_STRING(interpTargetVar, stateObj);
         READ_OPTIONAL_STRING(interpDurationVar, stateObj);
+        READ_OPTIONAL_STRING(interpTypeVar, stateObj);
 
         auto iter = childMap.find(id);
         if (iter == childMap.end()) {
@@ -475,7 +500,16 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
             return false;
         }
 
-        auto statePtr = std::make_shared<AnimStateMachine::State>(id, iter->second, interpTarget, interpDuration);
+        AnimStateMachine::InterpType interpTypeEnum = AnimStateMachine::InterpType::SnapshotBoth;  // default value
+        if (!interpType.isEmpty()) {
+            interpTypeEnum = stringToInterpType(interpType);
+            if (interpTypeEnum == AnimStateMachine::InterpType::NumTypes) {
+                qCCritical(animation) << "AnimNodeLoader, bad interpType on stateMachine state, nodeId = " << nodeId << "stateId =" << id << "url = " << jsonUrl.toDisplayString();
+                return false;
+            }
+        }
+
+        auto statePtr = std::make_shared<AnimStateMachine::State>(id, iter->second, interpTarget, interpDuration, interpTypeEnum);
         assert(statePtr);
 
         if (!interpTargetVar.isEmpty()) {
@@ -483,6 +517,9 @@ bool processStateMachineNode(AnimNode::Pointer node, const QJsonObject& jsonObj,
         }
         if (!interpDurationVar.isEmpty()) {
             statePtr->setInterpDurationVar(interpDurationVar);
+        }
+        if (!interpTypeVar.isEmpty()) {
+            statePtr->setInterpTypeVar(interpTypeVar);
         }
 
         smNode->addState(statePtr);

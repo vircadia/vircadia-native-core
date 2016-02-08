@@ -78,6 +78,7 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandPose READ getRightHandPose)
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
+    Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
 public:
     MyAvatar(RigPointer rig);
@@ -110,10 +111,11 @@ public:
     // This is so the correct camera can be used for rendering.
     void updateSensorToWorldMatrix();
 
-    void setLeanScale(float scale) { _leanScale = scale; }
     void setRealWorldFieldOfView(float realWorldFov) { _realWorldFieldOfView.set(realWorldFov); }
 
+    void setLeanScale(float scale) { _leanScale = scale; }
     float getLeanScale() const { return _leanScale; }
+
     Q_INVOKABLE glm::vec3 getDefaultEyePosition() const;
 
     float getRealWorldFieldOfView() { return _realWorldFieldOfView.get(); }
@@ -219,6 +221,12 @@ public:
     float getBoomLength() const { return _boomLength; }
     void setBoomLength(float boomLength) { _boomLength = boomLength; }
 
+    float getPitchSpeed() const { return _pitchSpeed; }
+    void setPitchSpeed(float speed) { _pitchSpeed = speed; }
+
+    float getYawSpeed() const { return _yawSpeed; }
+    void setYawSpeed(float speed) { _yawSpeed = speed; }
+
     static const float ZOOM_MIN;
     static const float ZOOM_MAX;
     static const float ZOOM_DEFAULT;
@@ -231,8 +239,6 @@ public:
     void setCustomListenPosition(glm::vec3 customListenPosition) { _customListenPosition = customListenPosition; }
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
     void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
-
-    bool isHovering() const;
 
 public slots:
     void increaseSize();
@@ -271,7 +277,9 @@ signals:
     void transformChanged();
     void newCollisionSoundURL(const QUrl& url);
     void collisionWithEntity(const Collision& collision);
+    void energyChanged(float newEnergy);
     void positionGoneTo();
+
 
 private:
 
@@ -323,6 +331,8 @@ private:
     bool _isBraking;
 
     float _boomLength;
+    float _yawSpeed; // degrees/sec
+    float _pitchSpeed; // degrees/sec
 
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
@@ -406,6 +416,21 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
+    bool _hoverReferenceCameraFacingIsCaptured { false };
+    glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
+    
+    float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
+    float AUDIO_ENERGY_CONSTANT { 0.000001f };
+    float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };
+    float currentEnergy { 0.0f };
+    float energyChargeRate { 0.003f };
+    glm::vec3 priorVelocity;
+    glm::vec3 lastPosition;
+    float getAudioEnergy();
+    float getAccelerationEnergy();
+    float getEnergy();
+    void setEnergy(float value);
+    bool didTeleport();
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);

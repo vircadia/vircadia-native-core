@@ -191,6 +191,24 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
+    static const QString AVATAR_CAMERA { "Avatar Camera" };
+    {
+        auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
+        auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera Pitch Speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
+        auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera Yaw Speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
+
     static const QString AUDIO("Audio");
     {
         auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDynamicJitterBuffers(); };
