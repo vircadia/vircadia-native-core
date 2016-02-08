@@ -398,7 +398,6 @@ void MyAvatar::simulate(float deltaTime) {
                     EntityItemProperties properties = entity->getProperties();
                     properties.setQueryAACubeDirty();
                     auto now = usecTimestampNow();
-                    entity->setLastEdited(now);
                     properties.setLastEdited(now);
                     packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
                     entity->setLastBroadcast(usecTimestampNow());
