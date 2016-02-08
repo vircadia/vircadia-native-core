@@ -528,7 +528,6 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
                 EntityItemProperties newQueryCubeProperties;
                 newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
                 auto now = usecTimestampNow();
-                entityDescendant->setLastEdited(now);
                 newQueryCubeProperties.setLastEdited(now);
                 entityPacketSender->queueEditEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
                 entityDescendant->setLastBroadcast(usecTimestampNow());
