@@ -258,6 +258,9 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
             qCDebug(audio) << "Error reading WAV file";
         }
 
+        _clipLength = (float) (outputAudioByteArraySize / (fileHeader.wave.sampleRate * fileHeader.wave.numChannels * fileHeader.wave.bitsPerSample / 8.0f));
+
+
     } else {
         qCDebug(audio) << "Could not read wav audio file header.";
         return;
