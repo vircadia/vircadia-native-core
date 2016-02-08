@@ -278,7 +278,7 @@ void Circle3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Circle3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder().withNoCull();
+    auto builder = render::ShapeKey::Builder().withoutCullFace();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }

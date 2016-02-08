@@ -30,7 +30,7 @@ public:
         DEPTH_ONLY,
         DEPTH_BIAS,
         WIREFRAME,
-        CULL,
+        NO_CULL_FACE,
 
         OWN_PIPELINE,
         INVALID,
@@ -41,12 +41,12 @@ public:
 
     Flags _flags;
 
-    ShapeKey() : _flags{0} { _flags.set(CULL); }
+    ShapeKey() : _flags{ 0 } {}
     ShapeKey(const Flags& flags) : _flags{flags} {}
 
     class Builder {
     public:
-        Builder() { _flags.set(CULL); }
+        Builder() {}
         Builder(ShapeKey key) : _flags{key._flags} {}
 
         ShapeKey build() const { return ShapeKey{_flags}; }
@@ -61,7 +61,7 @@ public:
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
-        Builder& withNoCull() { _flags.reset(CULL); return (*this); }
+        Builder& withoutCullFace() { _flags.reset(NO_CULL_FACE); return (*this); }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
@@ -117,8 +117,8 @@ public:
             Builder& withWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
             Builder& withoutWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
 
-            Builder& withCull() { _flags.set(CULL); _mask.set(CULL); return (*this); }
-            Builder& withoutCull() { _flags.reset(CULL); _mask.set(CULL); return (*this); }
+            Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
+            Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
         protected:
             friend class Filter;
@@ -142,7 +142,7 @@ public:
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
     bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
-    bool isCulled() const { return _flags[CULL]; }
+    bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
@@ -178,7 +178,7 @@ inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
                 << "isDepthOnly:" << key.isDepthOnly()
                 << "isDepthBiased:" << key.isDepthBiased()
                 << "isWireFrame:" << key.isWireFrame()
-                << "isCulled:" << key.isCulled()
+                << "isCullFace:" << key.isCullFace()
                 << "]";
         }
     } else {

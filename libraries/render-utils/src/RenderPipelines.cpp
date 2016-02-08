@@ -135,7 +135,7 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         }
 
         ShapeKey::Filter::Builder builder;
-        isCulled ? builder.withCull() : builder.withoutCull();
+        isCulled ? builder.withCullFace() : builder.withoutCullFace();
         isBiased ? builder.withDepthBias() : builder.withoutDepthBias();
         isOpaque ? builder.withOpaque() : builder.withTranslucent();
 
@@ -154,7 +154,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
         // These keyvalues' pipelines will be added by this lamdba in addition to the key passed
         assert(!key.isWireFrame());
         assert(!key.isDepthBiased());
-        assert(key.isCulled());
+        assert(key.isCullFace());
 
         ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
 
@@ -173,7 +173,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
 
             if (!isCulled) {
-                builder.withNoCull();
+                builder.withoutCullFace();
             }
             state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
             if (isWireframed) {
