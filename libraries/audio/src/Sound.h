@@ -27,8 +27,12 @@ public:
     
     bool isStereo() const { return _isStereo; }    
     bool isReady() const { return _isReady; }
-     
+
+ 
     const QByteArray& getByteArray() { return _byteArray; }
+
+public slots: 
+    float getClipLength() const { return _clipLength; }
 
 signals:
     void ready();
@@ -37,6 +41,7 @@ private:
     QByteArray _byteArray;
     bool _isStereo;
     bool _isReady;
+    float _clipLength;
     
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
