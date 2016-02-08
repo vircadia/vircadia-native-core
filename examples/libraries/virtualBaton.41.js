@@ -219,10 +219,7 @@ function virtualBatonf(options) {
         var response = {proposalNumber: data.number, proposerId: data.proposerId};
         if (betterNumber(data, bestProposal)) {
             bestProposal = data;
-            // For stability, we don't let any one proposer rule out a disconnnected winner.
-            // If someone notices that a winner has disconnected (in their recheckWatchdog),
-            // they call for a new election. To remain chosen, a quorum need to confirm here.
-            if (accepted.winner && connectionTest(accepted.winner)) {
+            if (accepted.winner) {
                 response.number = accepted.number;
                 response.winner = accepted.winner;
             }
@@ -333,6 +330,7 @@ function virtualBatonf(options) {
     exports.recheckWatchdog = timers.setInterval(function recheck() {
         var holder = acceptedId();  // If we're waiting and we notice the holder is gone, ...
         if (holder && claimCallback && !electionWatchdog && !connectionTest(holder)) {
+            accepted.winner = bestPromise.winner = null;
             propose();  // ... propose an election.
         }
     }, recheckInterval);
