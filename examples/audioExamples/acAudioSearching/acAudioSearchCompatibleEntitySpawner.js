@@ -26,8 +26,8 @@ var userData = {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove2.wav",
         volume: 0.3,
         loop: false,
-        interval: 2000,
-        intervalSpread: 1000
+        interval: 2000, // In ms
+        intervalSpread: 1000 // In ms
     }
 }
 
