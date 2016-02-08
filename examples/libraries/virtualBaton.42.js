@@ -219,7 +219,7 @@ function virtualBatonf(options) {
         var response = {proposalNumber: data.number, proposerId: data.proposerId};
         if (betterNumber(data, bestProposal)) {
             bestProposal = data;
-            if (accepted.winner) {
+            if (accepted.winner && connectionTest(accepted.winner)) {
                 response.number = accepted.number;
                 response.winner = accepted.winner;
             }
@@ -330,7 +330,7 @@ function virtualBatonf(options) {
     exports.recheckWatchdog = timers.setInterval(function recheck() {
         var holder = acceptedId();  // If we're waiting and we notice the holder is gone, ...
         if (holder && claimCallback && !electionWatchdog && !connectionTest(holder)) {
-            accepted.winner = bestPromise.winner = null;
+            bestPromise.winner = null; // used if the quorum agrees that old winner is not there
             propose();  // ... propose an election.
         }
     }, recheckInterval);
