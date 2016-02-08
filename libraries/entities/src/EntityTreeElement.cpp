@@ -459,6 +459,7 @@ bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
     if (!success) {
+        qDebug() << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
         return false;
     }
     return bestFitBounds(queryCube);
@@ -904,6 +905,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         _myTree->entityChanged(entityItem);
                     }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
+                    qDebug() << "got update for" << entityItem->getName() << bestFitBefore << bestFitAfter <<
+                        entityItem->getQueryAACube();
 
                     if (bestFitBefore != bestFitAfter) {
                         // This is the case where the entity existed, and is in some element in our tree...
