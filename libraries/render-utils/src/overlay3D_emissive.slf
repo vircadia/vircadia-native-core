@@ -25,5 +25,8 @@ void main(void) {
     if (diffuse.a <= 0.1) {
         discard;
     }
-    _fragColor = vec4(diffuse.rgb * _color, diffuse.a);
+    vec4 color = vec4(diffuse.rgb * _color, diffuse.a);
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
 }
