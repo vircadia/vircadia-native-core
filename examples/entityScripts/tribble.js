@@ -66,11 +66,6 @@
         dimensions = Vec3.multiply(scale, properties.dimensions);
         baton = virtualBaton({
             batonName: 'io.highfidelity.tribble',
-            connectionTest: function (id) {
-                var connected = baton.validId(id);
-                print(MyAvatar.sessionUUID, id, connected);
-                return connected;
-            },
             debugFlow: debug.flow,
             debugSend: debug.send,
             debugReceive: debug.receive

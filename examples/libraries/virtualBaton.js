@@ -31,7 +31,8 @@ function virtualBatonf(options) {
         var allowedDeviation = number * variability;
         return number - allowedDeviation + (Math.random() * 2 * allowedDeviation);
     }
-    // Allow testing outside in a harness of High Fidelity.
+    // Allow testing outside in a harness outside of High Fidelity.
+    // See sourceCodeSandbox/tests/mocha/test/testVirtualBaton.js
     var globals = options.globals || {},
         messages = globals.Messages || Messages,
         myAvatar = globals.MyAvatar || MyAvatar,
@@ -43,20 +44,20 @@ function virtualBatonf(options) {
     var batonName = options.batonName,  // The identify of the baton.
         // instanceId is the identify of this particular copy of the script among all copies using the same batonName
         // in the domain. For example, if you wanted only one entity among multiple entity scripts to hold the baton,
-        // you could specify virtualBaton({batonName: 'someBatonName', id: MyAvatar.sessionUUID + entityID}).
+        // you could specify virtualBaton({batonName: 'someBatonName', instanceId: MyAvatar.sessionUUID + entityID}).
         instanceId = options.instanceId || myAvatar.sessionUUID,
         // virtualBaton() returns the exports object with properties. You can pass in an object to be side-effected.
         exports = options.exports || {},
         // Handy to set false if we believe the optimizations are wrong, or to use both values in a test harness.
         useOptimizations = (options.useOptimizations === undefined) ? true : options.useOptimizations,
-        // 
         electionTimeout = options.electionTimeout || randomize(500, 0.2), // ms. If no winner in this time, hold a new election.
         recheckInterval = options.recheckInterval || randomize(500, 0.2), // ms. Check that winners remain connected.
-        // If you supply your own instanceId, you can also supply a connectionTest to check that answers
-        // truthy iff the given id is still valid and connected, and is run at recheckInterval. You can use
-        // exports.validId (see below), and the default answers truthy if id is valid or a concatenation of two valid
-        // ids. (This handles the most common cases of instanceId being either (the default) MyAvatar.sessionUUID, an
-        // entityID, or the concatenation (in either order) of both.)
+        // If you supply your own instanceId, you might also supply a connectionTest that answers
+        // truthy iff the given id is still valid and connected, and is run at recheckInterval. You
+        // can use exports.validId (see below), and the default answers truthy if id is valid or a
+        // concatenation of two valid ids. (This handles the most common cases of instanceId being
+        // either (the default) MyAvatar.sessionUUID, an entityID, or the concatenation (in either
+        // order) of both.)
         connectionTest = options.connectionTest || function connectionTest(id) {
             var idLength = 38;
             if (id.length === idLength) { return exports.validId(id); }
@@ -126,7 +127,7 @@ function virtualBatonf(options) {
 
     // It would be great if we had a way to know how many subscribers our channel has. Failing that...
     var nNack = 0, previousNSubscribers = 0, lastGathering = 0, thisTimeout = electionTimeout;
-    function nSubscribers() { // Answer the number of subscribers - or zero to indicate that we have to wait.
+    function nSubscribers() { // Answer the number of subscribers.
         // To find nQuorum, we need to know how many scripts are being run using this batonName, which isn't
         // the same as the number of clients!
         //
@@ -136,7 +137,7 @@ function virtualBatonf(options) {
         //
         // If we understimate by too much, there can be different pockets on the Internet that each
         // believe they have agreement on different holders of the baton, which is precisely what
-        // the virtualBaton is supposed to avoid. Therefore we need to allow 'nack' gather stragglers.
+        // the virtualBaton is supposed to avoid. Therefore we need to allow 'nack' to gather stragglers.
 
         var now = Date.now(), elapsed = now - lastGathering;
         if (elapsed >= thisTimeout) {
@@ -144,8 +145,8 @@ function virtualBatonf(options) {
             lastGathering = now;
         } // ...otherwise we use the previous value unchanged.
 
-        // On startup, we do one proposal that we cannot possibly win, so that we'll
-        // lock things up for timeout to gather the number of responses.
+        // On startup, we do one proposal that we cannot possibly close, so that we'll
+        // lock things up for the full electionTimeout to gather responses.
         if (!previousNSubscribers) {
             var LARGE_INTEGER = Number.MAX_SAFE_INTEGER || (-1 >>> 1); // QT doesn't define the ECMA constant. Max int will do for our purposes.
             previousNSubscribers = LARGE_INTEGER;
@@ -170,7 +171,7 @@ function virtualBatonf(options) {
         claimCallback,
         releaseCallback;
     function propose() {  // Make a new proposal, so that we learn/update the proposalNumber and winner.
-        // Even though we send back a 'nack' if the proposal is obsolete, with net work errors
+        // Even though we send back a 'nack' if the proposal is obsolete, with network errors
         // there's no way to know for certain that we've failed. The electionWatchdog will try a new
         // proposal if we have not been accepted by a quorum after election Timeout.
         if (electionWatchdog) {
@@ -178,7 +179,7 @@ function virtualBatonf(options) {
             // timers.clearTimeout(electionWatchdog) and not return.
             return;
         }
-        thisTimeout = randomize(electionTimeout, 0.5); // for accurate nSubcribers counting.
+        thisTimeout = randomize(electionTimeout, 0.5); // Note use in nSubcribers.
         electionWatchdog = timers.setTimeout(function () {
             electionWatchdog = null;
             propose();
@@ -208,7 +209,7 @@ function virtualBatonf(options) {
     receive('nack' + instanceId, function (data) { // An acceptor reports more recent data...
         if (data.proposalNumber === proposalNumber) {
             nNack++;  // For updating nQuorum.
-            // IWBNI if we started our next proposal now (here, in a setTimeout, but we need a decent nNack count.
+            // IWBNI if we started our next proposal right now/here, but we need a decent nNack count.
             // Lets save that optimization for another day...
         }
     });
@@ -232,7 +233,7 @@ function virtualBatonf(options) {
         if (!betterNumber(bestProposal, data)) {
             bestProposal = accepted = data; // Update both with current data. Might have missed the proposal earlier.
             if (useOptimizations) {
-                // The Paxos literature describe every acceptor sending 'accepted' to
+                // The Paxos literature describes every acceptor sending 'accepted' to
                 // every proposer and learner. In our case, these are the same nodes that received
                 // the 'accept!' message, so we can send to just the originating proposer and invoke
                 // our own accepted handler directly.
@@ -288,14 +289,16 @@ function virtualBatonf(options) {
         }
     });
 
+    // Public Interface
+    //
     // Registers an intent to hold the baton:
     // Calls onElection(batonName) once, if you are elected by the scripts
     //    to be the unique holder of the baton, which may be never.
-    // Calls onRelease(batonName) once, if you release the baton held by you,
-    //    whether this is by you calling release(), or by loosing
+    // Calls onRelease(batonName) once, if the baton held by you is released,
+    //    whether this is by you calling release(), or by losing
     //    an election when you become disconnected.
     // You may claim again at any time after the start of onRelease
-    // being called. Otherwise, you will not participate in further elections.
+    // being called.
     exports.claim = function claim(onElection, onRelease) {
         debugFlow('baton:', batonName, instanceId, 'claim');
         if (claimCallback) {
@@ -314,7 +317,7 @@ function virtualBatonf(options) {
     // Release the baton you hold, or just log that you are not holding it.
     exports.release = function release(optionalReplacementOnRelease) {
         debugFlow('baton:', batonName, instanceId, 'release');
-        if (optionalReplacementOnRelease) { // E.g., maybe normal onRelease reclaims, but at shutdown you explicitly don't.
+        if (optionalReplacementOnRelease) { // If you want to change.
             releaseCallback = optionalReplacementOnRelease;
         }
         if (acceptedId() !== instanceId) {
@@ -323,7 +326,7 @@ function virtualBatonf(options) {
         }
         localRelease();
         if (!claimCallback) { // No claim set in release callback.
-            propose(); // We are the distinguished proposer, but we'll pick anyone else interested, else set it to null.
+            propose();
         }
         return exports;
     };
@@ -348,7 +351,7 @@ function virtualBatonf(options) {
     propose();
     return exports;
 }
-if (typeof module !== 'undefined') {
+if (typeof module !== 'undefined') { // Allow testing in nodejs.
     module.exports = virtualBatonf;
 } else {
     virtualBaton = virtualBatonf;
