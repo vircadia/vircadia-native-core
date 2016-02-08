@@ -32,7 +32,8 @@ public:
     const QByteArray& getByteArray() { return _byteArray; }
 
 public slots: 
-    float getClipLength() const { return _clipLength; }
+    // _clipLength is in seconds
+    float getClipDuration() const { return _clipDuration; }
 
 signals:
     void ready();
@@ -41,7 +42,7 @@ private:
     QByteArray _byteArray;
     bool _isStereo;
     bool _isReady;
-    float _clipLength;
+    float _clipDuration;
     
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);

@@ -25,10 +25,10 @@ Agent.isAvatar = true;
 var DEFAULT_SOUND_DATA = {
     volume: 0.5,
     loop: false,
-    interval: -1, // An interval of -1 means this sound only plays once (if it's non-looping) (In seconds)
-    intervalSpread: 0 // amount of randomness to add to the interval
+    playbackGap: 1000, // in ms
+    playbackGapRange: 0 // in ms
 };
-var MIN_PLAY_INTERVAL = 200;
+var MIN_PLAYBACK_GAP = 0;
 
 var UPDATE_TIME = 100;
 var EXPIRATION_TIME = 5000;
@@ -90,16 +90,16 @@ function handleActiveSoundEntities() {
                     soundProperties.soundInjector.restart();
                 }
                 soundProperties.readyToPlay = false;
-            } else if (soundProperties.sound && soundProperties.loop === false && soundProperties.interval !== -1) {
+            } else if (soundProperties.sound && soundProperties.loop === false) {
                 // We need to check all of our entities that are not looping but have an interval associated with them
                 // to see if it's time for them to play again
                 soundProperties.timeSinceLastPlay += UPDATE_TIME;
-                if (soundProperties.timeSinceLastPlay > soundProperties.currentInterval) {
+                if (soundProperties.timeSinceLastPlay > soundProperties.clipDuration + soundProperties.currentPlaybackGap) {
                     soundProperties.readyToPlay = true;
                     soundProperties.timeSinceLastPlay = 0;
                     // Now let's get our new current interval
-                    soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
-                    soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
+                    soundProperties.currentPlaybackGap = soundProperties.playbackGap + randFloat(-soundProperties.playbackGapRange, soundProperties.playbackGapRange);
+                    soundProperties.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, soundProperties.currentPlaybackGap);
                 }
             }
         }
@@ -117,8 +117,8 @@ function handleFoundSoundEntities(entities) {
                     url: soundData.url,
                     volume: soundData.volume || DEFAULT_SOUND_DATA.volume,
                     loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
-                    interval: soundData.interval || DEFAULT_SOUND_DATA.interval,
-                    intervalSpread: soundData.intervalSpread || DEFAULT_SOUND_DATA.intervalSpread,
+                    playbackGap: soundData.playbackGap || DEFAULT_SOUND_DATA.playbackGap,
+                    playbackGapRange: soundData.playbackGapRange || DEFAULT_SOUND_DATA.playbackGapRange,
                     readyToPlay: false,
                     position: Entities.getEntityProperties(entity, "position").position,
                     timeSinceLastPlay: 0,
@@ -126,10 +126,10 @@ function handleFoundSoundEntities(entities) {
                     isDownloaded: false
                 };
 
-                if (soundProperties.interval !== -1) {
-                    soundProperties.currentInterval = soundProperties.interval + randFloat(-soundProperties.intervalSpread, soundProperties.intervalSpread);
-                    soundProperties.currentInterval = Math.max(MIN_PLAY_INTERVAL, soundProperties.currentInterval);
-                }
+                
+                soundProperties.currentPlaybackGap = soundProperties.playbackGap + randFloat(-soundProperties.playbackGapRange, soundProperties.playbackGapRange);
+                soundProperties.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, soundProperties.currentPlaybackGap);
+                
 
                 soundEntityMap[entity] = soundProperties;
                 if (!soundUrls[soundData.url]) {
@@ -141,6 +141,7 @@ function handleFoundSoundEntities(entities) {
                         soundProperties.sound = sound;
                         soundProperties.readyToPlay = true;
                         soundProperties.isDownloaded = true;
+                        soundProperties.clipDuration = sound.getClipDuration() * 1000;
                         soundEntityMap[entity] = soundProperties;
                     });
                 } else {
@@ -163,17 +164,17 @@ function handleFoundSoundEntities(entities) {
 function checkForSoundPropertyChanges(currentProps, newProps) {
     var needsNewInjector = false;
 
-    if (currentProps.interval !== newProps.interval && !currentProps.loop) {
-        // interval only applies to non looping sounds
-        currentProps.interval = newProps.interval;
-        currentProps.currentInterval = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
-        currentProps.currentInterval = Math.max(MIN_PLAY_INTERVAL, currentProps.currentInterval);
+    if (currentProps.playbackGap !== newProps.playbackGap && !currentProps.loop) {
+        // playbackGap only applies to non looping sounds
+        currentProps.playbackGap = newProps.playbackGap;
+        currentProps.currentPlaybackGap = currentProps.playbackGap + randFloat(-currentProps.playbackGapRange, currentProps.playbackGapRange);
+        currentProps.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, currentProps.currentPlaybackGap);
         currentProps.readyToPlay = true;
     }
 
     if (currentProps.intervalSpread !== currentProps.intervalSpread) {
-        currentProps.currentInterval = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
-        currentProps.currentInterval = Math.max(MIN_PLAY_INTERVAL, currentProps.currentInterval);
+        currentProps.currentPlaybackGap = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
+        currentProps.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, currentProps.currentPlaybackGap);
     }
     if (currentProps.volume !== newProps.volume) {
         currentProps.volume = newProps.volume;
@@ -187,6 +188,7 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
             currentProps.isDownloaded = false;
             sound.ready.connect(function() {
                 currentProps.sound = sound;
+                currentProps.clipDuration = sound.getClipDuration() * 1000;
                 currentProps.isDownloaded = true;
             });
         } else {
