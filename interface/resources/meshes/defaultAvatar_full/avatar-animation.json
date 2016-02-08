@@ -447,7 +447,7 @@
                                                             "interpType": "snapshotPrev",
                                                             "transitions": [
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isNotInAir", "state": "idle" }
+                                                                { "var": "isNotInAir", "state": "landStandImpact" }
                                                             ]
                                                         },
                                                         {
@@ -457,7 +457,51 @@
                                                             "interpType": "snapshotPrev",
                                                             "transitions": [
                                                                 { "var": "isAway", "state": "awayIntro" },
-                                                                { "var": "isNotInAir", "state": "idle" }
+                                                                { "var": "isNotInAir", "state": "landRun" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landStandImpact",
+                                                            "interpTarget": 6,
+                                                            "interpDuration": 4,
+                                                            "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "landStandImpactOnDone", "state": "landStand" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landStand",
+                                                            "interpTarget": 0,
+                                                            "interpDuration": 1,
+                                                            "transitions": [
+                                                                { "var": "isMovingForward", "state": "idleToWalkFwd" },
+                                                                { "var": "isMovingBackward", "state": "walkBwd" },
+                                                                { "var": "isMovingRight", "state": "strafeRight" },
+                                                                { "var": "isMovingLeft", "state": "strafeLeft" },
+                                                                { "var": "isTurningRight", "state": "turnRight" },
+                                                                { "var": "isTurningLeft", "state": "turnLeft" },
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "isInAirStand", "state": "inAirStand" },
+                                                                { "var": "isInAirRun", "state": "inAirRun" },
+                                                                { "var": "landStandOnDone", "state": "idle" }
+                                                            ]
+                                                        },
+                                                        {
+                                                            "id": "landRun",
+                                                            "interpTarget": 1,
+                                                            "interpDuration": 7,
+                                                            "transitions": [
+                                                                { "var": "isAway", "state": "awayIntro" },
+                                                                { "var": "isFlying", "state": "fly" },
+                                                                { "var": "isTakeoffStand", "state": "takeoffStand" },
+                                                                { "var": "isTakeoffRun", "state": "takeoffRun" },
+                                                                { "var": "landRunOnDone", "state": "walkFwd" }
                                                             ]
                                                         }
                                                     ]
@@ -873,6 +917,42 @@
                                                                 "children": []
                                                             }
                                                         ]
+                                                    },
+                                                    {
+                                                        "id": "landStandImpact",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_standing_land.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 6.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "landStand",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_standing_land.fbx",
+                                                            "startFrame": 6.0,
+                                                            "endFrame": 28.0,
+                                                            "timeScale": 1.0,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "id": "landRun",
+                                                        "type": "clip",
+                                                        "data": {
+                                                            "url": "https://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/jump_land.fbx",
+                                                            "startFrame": 1.0,
+                                                            "endFrame": 6.0,
+                                                            "timeScale": 0.65,
+                                                            "loopFlag": false
+                                                        },
+                                                        "children": []
                                                     }
                                                 ]
                                             }
