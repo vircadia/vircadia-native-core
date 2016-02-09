@@ -335,7 +335,19 @@ void setupPreferences() {
 
     {
         static const QString RENDER("Graphics");
-        auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+        auto renderEngine = qApp->getRenderEngine();
+        auto renderConfig = renderEngine->getConfiguration();
+        {
+            auto getter = [renderEngine]()->QString { return renderEngine->getNamedConfig(); };
+            auto setter = [renderEngine](QString config) { renderEngine->setNamedConfig(config); };
+            auto preference = new ComboBoxBrowsePreference(RENDER, "Engine Profile", getter, setter);
+            preference->setItems(renderEngine->getNamedConfigList());
+            preference->setBrowseLabel("Custom...");
+            preference->setBrowseFilter("Engine Profiles (*.json)");
+            preferences->addPreference(preference);
+        }
+
+        // Theses will override the engine profile because they are defined afterwards
         {
             auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<AmbientOcclusionEffect>(); };
             auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<AmbientOcclusionEffect>(enable); };
