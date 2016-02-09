@@ -28,6 +28,11 @@
 #include <GLMHelpers.h>
 
 #if THREADED_PRESENT
+
+// FIXME, for display plugins that don't block on something like vsync, just 
+// cap the present rate at 200
+// const static unsigned int MAX_PRESENT_RATE = 200;
+
 class PresentThread : public QThread, public Dependency {
     using Mutex = std::mutex;
     using Condition = std::condition_variable;
@@ -66,8 +71,10 @@ public:
         _context->moveToThread(this);
     }
 
+
     virtual void run() override {
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
+        thread()->setPriority(QThread::HighestPriority);
         Q_ASSERT(_context);
         while (!_shutdown) {
             if (_pendingMainThreadOperation) {

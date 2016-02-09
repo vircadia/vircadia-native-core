@@ -50,6 +50,11 @@ GeometryReader::GeometryReader(const QUrl& url, const QByteArray& data, const QV
 }
 
 void GeometryReader::run() {
+    auto originalPriority = QThread::currentThread()->priority();
+    if (originalPriority == QThread::InheritPriority) {
+        originalPriority = QThread::NormalPriority;
+    }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
     try {
         if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
@@ -82,6 +87,8 @@ void GeometryReader::run() {
         qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
         emit onError(NetworkGeometry::ModelParseError, error);
     }
+
+    QThread::currentThread()->setPriority(originalPriority);
 }
 
 NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
