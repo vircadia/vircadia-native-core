@@ -170,7 +170,7 @@ float AudioMixer::azimuthForSource(const PositionalAudioStream& streamToAdd, con
     rotatedSourcePosition.y = 0.0f;
 
     // produce an oriented angle about the y-axis
-    return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, 1.0f, 0.0f));
+    return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
 }
 
 void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
