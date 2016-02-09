@@ -17,6 +17,7 @@
 #include <cassert>
 #include <array>
 #include <functional>
+#include <limits>
 #include <glm/glm.hpp>
 #include <glm/gtx/bit.hpp>
 #include <AABox.h>
@@ -165,23 +166,66 @@ namespace render {
 
         // Cell or Brick Indexing
         using Index = ItemCell; // int32_t
-        static const Index INVALID = -1;
+        static const Index INVALID_CELL = -1;
         static const Index ROOT_CELL = 0;
+
+        // With a maximum of INT_MAX(2 ^ 31) cells in our octree
+        static const Index MAXIMUM_INDEX = INT_MAX; // For fun, test setting this to 100 and this should still works with only the allocated maximum number of cells
+
         using Indices = std::vector<Index>;
 
         // the cell description
         class Cell {
         public:
-            void free() { _location = Location(); for (auto& link : _links) { link = INVALID; } }
+
+            enum BitFlags : uint8_t {
+                HasChildren = 0x01,
+                BrickFilled = 0x02,
+            };
+
+            void free() { _location = Location(); for (auto& link : _links) { link = INVALID_CELL; } }
 
             const Location& getlocation() const { return _location; }
 
             Index parent() const { return _links[Parent]; }
-            bool hasParent() const { return parent() != INVALID; }
+            bool hasParent() const { return parent() != INVALID_CELL; }
 
             Index child(Link octant) const { return _links[octant]; }
-            bool hasChild(Link octant) const { return child(octant) != INVALID; }
-            bool hasChildren() const {
+            bool hasChild(Link octant) const { return child(octant) != INVALID_CELL; }
+            bool hasChildren() const { return (_location.spare & HasChildren); }
+            void setChild(Link octant, Index child) {
+                _links[octant] = child;
+                if (child != INVALID_CELL) {
+                    _location.spare |= HasChildren;
+                } else {
+                    if (!checkHasChildren()) {
+                        _location.spare &= ~HasChildren;
+                    }
+                }
+            }
+
+            Index brick() const { return _links[BrickLink]; }
+            bool hasBrick() const { return _links[BrickLink] != INVALID_CELL; }
+            void setBrick(Index brick) { _links[BrickLink] = brick; }
+
+            void setBrickFilled() { _location.spare |= BrickFilled; }
+            void setBrickEmpty() { _location.spare &= ~BrickFilled; }
+            bool isBrickEmpty() const { return !(_location.spare & BrickFilled); }
+
+            Cell() :
+                _links({ { INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL } })
+            {}
+
+            Cell(Index parent, Location loc) :
+                _location(loc),
+                _links({ { INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, parent, INVALID_CELL } })
+            {}
+
+        private:
+            std::array<Index, NUM_LINKS> _links;
+            Location _location;
+
+            bool checkHasChildren() const {
                 for (LinkStorage octant = Octant_L_B_N; octant < NUM_OCTANTS; octant++) {
                     if (hasChild((Link)octant)) {
                         return true;
@@ -189,42 +233,21 @@ namespace render {
                 }
                 return false;
             }
-            void setChild(Link octant, Index child) { _links[octant] = child; }
-
-            Index brick() const { return _links[BrickLink]; }
-            bool hasBrick() const { return _links[BrickLink] != INVALID; }
-            void setBrick(Index brick) { _links[BrickLink] = brick; }
-            void signalBrickFilled() { _location.spare = 1; }
-            void signalBrickEmpty() { _location.spare = 0; }
-            bool isBrickEmpty() const { return _location.spare == 0; }
-
-            Cell() :
-                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID } })
-            {}
-
-            Cell(Index parent, Location loc) :
-                _location(loc),
-                _links({ { INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, INVALID, parent, INVALID } })
-            {}
-
-        private:
-            std::array<Index, NUM_LINKS> _links;
-            Location _location;
         };
         using Cells = std::vector< Cell >;
 
         using Bricks = std::vector< Brick >;
 
         bool checkCellIndex(Index index) const { return (index >= 0) && (index < _cells.size()); }
-        bool checkBrickIndex(Index index) const { return (index >= 0) && (index < _bricks.size()); }
+        bool checkBrickIndex(Index index) const { return ((index >= 0) && (index < _bricks.size())); }
 
         Octree() {};
 
-        // Clear a cell: 
-        // Check that the cell brick is empty, if so free it
-        // CHeck that the cell has no children, if so free itself
+        // Clean a cell branch starting from the leave: 
+        // Check that the cell brick is empty, if so free it else stop
+        // Check that the cell has no children, if so free itself else stop
         // Apply the same logic to the parent cell
-        void clearCell(Index index);
+        void cleanCellBranch(Index index);
 
         // Indexing/Allocating the cells as the tree gets populated
         // Return the cell Index/Indices at the specified location/path, allocate all the cells on the path from the root if needed

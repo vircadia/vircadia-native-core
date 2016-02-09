@@ -95,7 +95,7 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
     for (int l = 1; l < path.size(); l++) {
         auto& location = path[l];
         auto nextIndex = getConcreteCell(currentIndex).child(location.octant());
-        if (nextIndex == INVALID) {
+        if (nextIndex == INVALID_CELL) {
             break;
         }
 
@@ -110,7 +110,7 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
 Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
     if (_cells[parent].hasChild(location.octant())) {
-        assert(_cells[parent].child(location.octant()) == INVALID);
+        assert(_cells[parent].child(location.octant()) == INVALID_CELL);
         return _cells[parent].child(location.octant());
     }
 
@@ -119,6 +119,10 @@ Octree::Index Octree::allocateCell(Index parent, const Location& location) {
     Index newIndex;
     if (_freeCells.empty()) {
         newIndex = (Index)_cells.size();
+        if (newIndex >= MAXIMUM_INDEX) {
+            // abort! we are trying to go overboard with the total number of allocated bricks
+            return INVALID_CELL;
+        }
         _cells.push_back(Cell(parent, location));
     } else {
         newIndex = _freeCells.back();
@@ -139,14 +143,20 @@ void Octree::freeCell(Index index) {
     }
 }
 
-void Octree::clearCell(Index index) {
+void Octree::cleanCellBranch(Index index) {
     auto& cell = editCell(index);
     
     // Free the brick
-    if (cell.hasBrick()) {
-        freeBrick(cell.brick());
-        cell.setBrick(INVALID);
+    if (cell.isBrickEmpty()) {
+        if (cell.hasBrick()) {
+            freeBrick(cell.brick());
+            cell.setBrick(INVALID_CELL);
+        }
+    } else {
+        // If the brick is still filled, stop clearing
+        return;
     }
+
 
     // Free the cell ?
     Index parentIdx = cell.parent();
@@ -155,7 +165,7 @@ void Octree::clearCell(Index index) {
             // Stop here, this is the root cell!
             return;
         } else {
-            // THis is not expected
+            // This is not expected
             assert(false);
             return;
         }
@@ -163,13 +173,13 @@ void Octree::clearCell(Index index) {
 
     bool traverseParent = false;
     if (!cell.hasChildren()) {
-        editCell(parentIdx).setChild(cell.getlocation().octant(), INVALID);
+        editCell(parentIdx).setChild(cell.getlocation().octant(), INVALID_CELL);
         freeCell(index);
         traverseParent = true;
     }
 
     if (traverseParent) {
-        clearCell(parentIdx);
+        cleanCellBranch(parentIdx);
     }
 }
 
@@ -189,15 +199,28 @@ Octree::Indices Octree::indexCellPath(const Locations& path) {
         // One more cell index on the path, moving on
         currentIndex = newIndex;
         cellPath.push_back(currentIndex);
+
+        // Except !!! if we actually couldn't allocate anymore
+        if (newIndex == INVALID_CELL) {
+            // no more cellID available, stop allocating
+            // THe last index added is INVALID_CELL so the caller will know we failed allocating everything
+            break;
+        }
     }
 
     return cellPath;
 }
 
-
 Octree::Index Octree::allocateBrick() {
     if (_freeBricks.empty()) {
         Index brickIdx = (int)_bricks.size();
+        if (brickIdx >= MAXIMUM_INDEX) {
+            // abort! we are trying to go overboard with the total number of allocated bricks
+            assert(false);
+            // This should never happen because Bricks are allocated along with the cells and there
+            // is already a cap on the cells allocation
+            return INVALID_CELL;
+        }
         _bricks.push_back(Brick());
         return brickIdx;
     } else {
@@ -208,7 +231,7 @@ Octree::Index Octree::allocateBrick() {
 }
 
 void Octree::freeBrick(Index index) {
-    if (checkCellIndex(index)) {
+    if (checkBrickIndex(index)) {
         auto & brick = _bricks[index];
         //  brick.free();
         _freeBricks.push_back(index);
@@ -218,18 +241,25 @@ void Octree::freeBrick(Index index) {
 Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick) {
     assert(checkCellIndex(cellID));
     auto& cell = editCell(cellID);
+
+    // Allocate a brick if needed
     if (!cell.hasBrick()) {
         if (!createBrick) {
-            return INVALID;
+            return INVALID_CELL;
         }
-        cell.setBrick(allocateBrick());
+        auto newBrick = allocateBrick();
+        if (newBrick == INVALID_CELL) {
+            // This should never happen but just in case...
+            return INVALID_CELL;
+        }
+        cell.setBrick(newBrick);
     }
 
-    // access the brick
+    // Access the brick
     auto brickID = cell.brick();
     auto& brick = _bricks[brickID];
 
-    // execute the accessor
+    // Execute the accessor
     accessor(cell, brick, brickID);
 
     return brickID;
@@ -255,13 +285,17 @@ ItemSpatialTree::Index ItemSpatialTree::insertItem(Index cellIdx, const ItemKey&
 
         itemIn.push_back(item);
 
-        cell.signalBrickFilled();
+        cell.setBrickFilled();
     }, true);
 
     return cellIdx;
 }
 
 bool ItemSpatialTree::updateItem(Index cellIdx, const ItemKey& oldKey, const ItemKey& key, const ItemID& item) {
+    // In case we missed that one, nothing to do
+    if (cellIdx == INVALID_CELL) {
+        return true;
+    }
     auto success = false;
 
     // only if key changed
@@ -280,6 +314,10 @@ bool ItemSpatialTree::updateItem(Index cellIdx, const ItemKey& oldKey, const Ite
 }
 
 bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID& item) {
+    // In case we missed that one, nothing to do
+    if (cellIdx == INVALID_CELL) {
+        return true;
+    }
     auto success = false;
 
     // Remove the item from the brick
@@ -290,15 +328,15 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
         itemList.erase(std::find(itemList.begin(), itemList.end(), item));
 
         if (brick.items.empty() && brick.subcellItems.empty()) {
-            cell.signalBrickEmpty();
+            cell.setBrickEmpty();
             emptyCell = true;
         }
         success = true;
     }, false); // do not create brick!
 
-
+    // Because we know the cell is now empty, lets try to clean the octree here
     if (emptyCell) {
-       clearCell(cellIdx);
+        cleanCellBranch(cellIdx);
     }
 
     return success;
@@ -323,8 +361,16 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
 
     auto newCell = indexCell(location);
 
+    // Did we fail finding a cell for the item?
+    if (newCell == INVALID_CELL) {
+        // Remove the item where it was
+        if (oldCell != INVALID_CELL) {
+            removeItem(oldCell, oldKey, item);
+        }
+        return newCell;
+    }
     // Staying in the same cell
-    if (newCell == oldCell) {
+    else if (newCell == oldCell) {
         // Did the key changed, if yes update
         if (newKey._flags != oldKey._flags) {
             updateItem(newCell, oldKey, newKey, item);
@@ -333,7 +379,7 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
         return newCell;
     }
     // do we know about this item ?
-    else if (oldCell == Item::INVALID_CELL) {
+    else if (oldCell == INVALID_CELL) {
         insertItem(newCell, newKey, item);
         return newCell;
     }
@@ -449,7 +495,7 @@ int Octree::selectTraverse(Index cellID, CellSelection& selection, const Frustum
             // then traverse deeper
             for (int i = 0; i < NUM_OCTANTS; i++) {
                 Index subCellID = cell.child((Link)i);
-                if (subCellID != INVALID) {
+                if (subCellID != INVALID_CELL) {
                     selectTraverse(subCellID, selection, selector);
                 }
             }
@@ -476,7 +522,7 @@ int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumS
     // then traverse deeper
     for (int i = 0; i < NUM_OCTANTS; i++) {
         Index subCellID = cell.child((Link)i);
-        if (subCellID != INVALID) {
+        if (subCellID != INVALID_CELL) {
             selectBranch(subCellID, selection, selector);
         }
     }
