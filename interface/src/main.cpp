@@ -24,9 +24,23 @@
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "MainWindow.h"
+#include <BuildInfo.h>
+
+#ifdef HAS_BUGSPLAT
+#include <BugSplat.h>
+#endif
 
 int main(int argc, const char* argv[]) {
     disableQtBearerPoll(); // Fixes wifi ping spikes
+
+#if HAS_BUGSPLAT
+   // BugSplat initialization
+    std::unique_ptr<wchar_t> version { new wchar_t(BuildInfo::VERSION.length() + 1) };
+    BuildInfo::VERSION.toWCharArray(version.get());
+    version.get()[BuildInfo::VERSION.length()] = NULL;
+    std::unique_ptr<MiniDmpSender> mpSender { new MiniDmpSender(L"interface_alpha", L"Interface", version.get()) };
+
+#endif
     
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
 
