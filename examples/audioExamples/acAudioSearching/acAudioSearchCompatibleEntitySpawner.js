@@ -25,9 +25,9 @@ var userData = {
     soundKey: {
         url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove2.wav",
         volume: 0.3,
-        loop: false,
+        loop: true,
         playbackGap: 2000, // In ms - time to wait in between clip plays
-        playbackGapRange: 1000 // In ms - the range to wait in between clip plays
+        playbackGapRange: 0 // In ms - the range to wait in between clip plays
     }
 }
 

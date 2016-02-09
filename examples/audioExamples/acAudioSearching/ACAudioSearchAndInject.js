@@ -141,15 +141,19 @@ function handleFoundSoundEntities(entities) {
                         soundProperties.sound = sound;
                         soundProperties.readyToPlay = true;
                         soundProperties.isDownloaded = true;
-                        soundProperties.clipDuration = sound.getClipDuration() * 1000;
+                        soundProperties.clipDuration = sound.duration * 1000;
                         soundEntityMap[entity] = soundProperties;
+
+                        print("DURATION " + soundProperties.clipDuration);
                     });
                 } else {
                     // We already have sound downloaded, so just add it to map right away
                     soundProperties.sound = soundUrls[soundData.url];
+                    soundProperties.clipDuration = soundProperties.sound.duration * 1000;
                     soundProperties.readyToPlay = true;
                     soundProperties.isDownloaded = true;
                     soundEntityMap[entity] = soundProperties;
+                    print("DURATION " + soundProperties.clipDuration);
                 }
             } else {
                 //If this sound is in our map already, we want to reset timeWithoutAvatarInRange
@@ -172,8 +176,8 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
         currentProps.readyToPlay = true;
     }
 
-    if (currentProps.intervalSpread !== currentProps.intervalSpread) {
-        currentProps.currentPlaybackGap = currentProps.interval + randFloat(-currentProps.intervalSpread, currentProps.intervalSpread);
+    if (currentProps.playbackGapRange !== currentProps.playbackGapRange) {
+        currentProps.currentPlaybackGap = currentProps.playbackGap + randFloat(-currentProps.playbackGapRange, currentProps.playbackGapRange);
         currentProps.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, currentProps.currentPlaybackGap);
     }
     if (currentProps.volume !== newProps.volume) {
@@ -188,12 +192,18 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
             currentProps.isDownloaded = false;
             sound.ready.connect(function() {
                 currentProps.sound = sound;
-                currentProps.clipDuration = sound.getClipDuration() * 1000;
+                currentProps.clipDuration = sound.duration * 1000;
                 currentProps.isDownloaded = true;
             });
         } else {
             currentProps.sound = sound;
+            currentProps.clipDuration = sound.duration * 1000;
         }
+        needsNewInjector = true;
+    }
+
+    if (currentProps.loop !== newProps.loop) {
+        currentProps.loop = newProps.loop;
         needsNewInjector = true;
     }
     if (needsNewInjector) {

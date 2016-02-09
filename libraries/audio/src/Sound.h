@@ -22,18 +22,16 @@ class Sound : public Resource {
     Q_OBJECT
     
     Q_PROPERTY(bool downloaded READ isReady)
+    Q_PROPERTY(float duration READ getDuration)
 public:
     Sound(const QUrl& url, bool isStereo = false);
     
     bool isStereo() const { return _isStereo; }    
     bool isReady() const { return _isReady; }
+    float getDuration() { return _duration; }
 
  
     const QByteArray& getByteArray() { return _byteArray; }
-
-public slots: 
-    // _clipLength is in seconds
-    float getClipDuration() const { return _clipDuration; }
 
 signals:
     void ready();
@@ -42,7 +40,7 @@ private:
     QByteArray _byteArray;
     bool _isStereo;
     bool _isReady;
-    float _clipDuration;
+    float _duration; // In seconds
     
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
