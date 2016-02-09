@@ -49,7 +49,7 @@ Preference {
     Button {
         id: button
         anchors { right: parent.right; verticalCenter: dataTextField.verticalCenter }
-        text: "Browse"
+        text: preference.browseLabel
         onClicked: {
             var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
             browser.selectedFile.connect(function(fileUrl){
