@@ -26,6 +26,7 @@ static const float HRTF_GAIN = 0.5f;    // HRTF global gain adjustment
 class AudioHRTF {
 
 public:
+    AudioHRTF() {};
 
     //
     // input: mono source
@@ -43,6 +44,8 @@ public:
     void renderSilent(int16_t* input, float* output, int index, float azimuth, float gain, int numFrames);
 
 private:
+    AudioHRTF(const AudioHRTF&) = delete;
+    AudioHRTF& operator=(const AudioHRTF&) = delete;
 
     // SIMD channel assignmentS
     enum Channel {

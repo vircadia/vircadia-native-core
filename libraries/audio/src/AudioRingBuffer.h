@@ -97,6 +97,7 @@ public:
         bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
         bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
         const int16_t& operator*() { return *_at; }
+        int16_t* getBuffer() { return _bufferFirst; }
 
         ConstIterator& operator=(const ConstIterator& rhs) {
             _bufferLength = rhs._bufferLength;

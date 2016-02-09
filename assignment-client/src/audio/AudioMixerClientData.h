@@ -42,6 +42,9 @@ public:
 
     void printUpstreamDownstreamStats() const;
 
+signals:
+    void injectorStreamFinished(const QUuid& streamIdentifier);
+
 private:
     void printAudioStreamStats(const AudioStreamStats& streamStats) const;
 
