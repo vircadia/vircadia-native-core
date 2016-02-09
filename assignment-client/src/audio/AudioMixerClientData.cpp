@@ -196,7 +196,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
     auto streamsCopy = getAudioStreams();
 
     // pack and send stream stats packets until all audio streams' stats are sent
-    int numStreamStatsRemaining = streamsCopy.size();
+    int numStreamStatsRemaining = int(streamsCopy.size());
     auto it = streamsCopy.cbegin();
 
     while (numStreamStatsRemaining > 0) {
