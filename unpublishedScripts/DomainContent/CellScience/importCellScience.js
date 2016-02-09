@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1016;
+var version = 1021;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -115,8 +115,9 @@ var scenes = [{
         radius: 500,
         number: 10,
         userData: JSON.stringify({
+            entryPoint: locations.cellLayout[1],
             target: locations.cellLayout[1],
-            location: locations.cellLayout[0],
+            location: locations.cellLayout[1],
             baseURL: baseLocation
         }),
         script: "zoom.js?" + version,
@@ -597,7 +598,7 @@ function ImportScene(scene) {
     CreateInstances(scene);
     CreateBoundary(scene);
 
-    CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
+   // CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
 
     // print("done " + scene.name);
 

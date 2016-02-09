@@ -45,31 +45,27 @@
     }
 
     this.enterEntity = function(entityID) {
-        //  print(' ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
+          print('JBP ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
 
         var data = JSON.parse(Entities.getEntityProperties(this.entityId).userData);
-        //  print(' DATA IS::' + data)
+         print('JBP DATA IS::' + data)
         if (data != null) {
-            //       print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
-            if (self.teleportSound.downloaded) {
-                //print("play sound");
-                MyAvatar.position = data.location;
-                Audio.playSound(self.teleportSound, self.soundOptions);
+            print("JBP Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
 
-            } else {
-                //print("not downloaded");
-            }
+             MyAvatar.position = data.location;
+             
+            // if (data.hasOwnProperty('entryPoint') && data.hasOwnProperty('target')) {
+            //     this.lookAtTarget(data.entryPoint, data.target);
+            // }
+            // else{
 
-            // this.lookAt(data.target, data.location);
-            if(data.hasOwnProperty('entryPoint')&&data.hasOwnProperty('target')){
-                this.lookAtTarget(data.entryPoint,data.target);
-            }
+            // }
         }
 
     }
 
     this.lookAtTarget = function(entryPoint,target) {
-
+        print('JBP SHOULD LOOK AT TARGET')
         var direction = Vec3.normalize(Vec3.subtract(entryPoint, target));
         var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
             x: 1,
