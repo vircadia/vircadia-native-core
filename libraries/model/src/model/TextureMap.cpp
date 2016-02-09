@@ -53,32 +53,26 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 // FIXME why is this in the model library?  Move to GPU or GPU_GL
 gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
+    bool validAlpha = false;
     if (image.hasAlphaChannel()) {
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
         
         // Actual alpha channel?
-        bool transparent { false };
         for (int y = 0; y < image.height(); ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
             for (int x = 0; x < image.width(); ++x) {
                 auto alpha = qAlpha(data[x]);
                 if (alpha != 255) {
-                    transparent = true;
+                    validAlpha = true;
                     break;
                 }
             }
         }
-
-        // or bullshit alpha channel?
-        if (!transparent) {
-            qCDebug(modelLog) << "Image with alpha channel is completely opaque:" << QString(srcImageName.c_str());
-            image = image.convertToFormat(QImage::Format_RGB888);
-        }
     } 
     
-    if (!image.hasAlphaChannel() && image.format() != QImage::Format_RGB888) {
+    if (!validAlpha && image.format() != QImage::Format_RGB888) {
         image = image.convertToFormat(QImage::Format_RGB888);
     }
     

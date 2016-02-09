@@ -51,6 +51,7 @@ void AnimationReader::run() {
     if (originalPriority == QThread::InheritPriority) {
         originalPriority = QThread::NormalPriority;
     }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
     try {
         if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
