@@ -395,7 +395,7 @@ glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
     glm::vec3 result;
-    _transformLock.withReadLock([&] {
+    _velocityLock.withReadLock([&] {
         // TODO: take parent angularVelocity into account.
         result = parentVelocity + parentTransform.getRotation() * _velocity;
     });
@@ -410,7 +410,7 @@ glm::vec3 SpatiallyNestable::getVelocity() const {
 void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     glm::vec3 parentVelocity = getParentVelocity(success);
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
+    _velocityLock.withWriteLock([&] {
         // TODO: take parent angularVelocity into account.
         _velocity = glm::inverse(parentTransform.getRotation()) * velocity - parentVelocity;
     });
@@ -434,7 +434,7 @@ glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
     glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     Transform parentTransform = getParentTransform(success);
     glm::vec3 result;
-    _transformLock.withReadLock([&] {
+    _angularVelocityLock.withReadLock([&] {
         result = parentAngularVelocity + parentTransform.getRotation() * _angularVelocity;
     });
     return result;
@@ -448,7 +448,7 @@ glm::vec3 SpatiallyNestable::getAngularVelocity() const {
 void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, bool& success) {
     glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     Transform parentTransform = getParentTransform(success);
-    _transformLock.withWriteLock([&] {
+    _angularVelocityLock.withWriteLock([&] {
         _angularVelocity = glm::inverse(parentTransform.getRotation()) * angularVelocity - parentAngularVelocity;
     });
 }
@@ -592,28 +592,28 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
 
 glm::vec3 SpatiallyNestable::getLocalVelocity() const {
     glm::vec3 result(glm::vec3::_null);
-    _transformLock.withReadLock([&] {
+    _velocityLock.withReadLock([&] {
         result = _velocity;
     });
     return result;
 }
 
 void SpatiallyNestable::setLocalVelocity(const glm::vec3& velocity) {
-    _transformLock.withWriteLock([&] {
+    _velocityLock.withWriteLock([&] {
         _velocity = velocity;
     });
 }
 
 glm::vec3 SpatiallyNestable::getLocalAngularVelocity() const {
     glm::vec3 result(glm::vec3::_null);
-    _transformLock.withReadLock([&] {
+    _angularVelocityLock.withReadLock([&] {
         result = _angularVelocity;
     });
     return result;
 }
 
 void SpatiallyNestable::setLocalAngularVelocity(const glm::vec3& angularVelocity) {
-    _transformLock.withWriteLock([&] {
+    _angularVelocityLock.withWriteLock([&] {
         _angularVelocity = angularVelocity;
     });
 }

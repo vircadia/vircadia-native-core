@@ -165,6 +165,8 @@ protected:
 private:
     mutable ReadWriteLockable _transformLock;
     mutable ReadWriteLockable _idLock;
+    mutable ReadWriteLockable _velocityLock;
+    mutable ReadWriteLockable _angularVelocityLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
     glm::vec3 _velocity;
     glm::vec3 _angularVelocity;
