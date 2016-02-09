@@ -31,6 +31,8 @@ public:
 
     virtual void update(float deltatime);
 
+    virtual const render::ShapeKey getShapeKey() override;
+
     // getters
     const QString& getText() const { return _text; }
     float getLineHeight() const { return _lineHeight; }
@@ -72,5 +74,4 @@ private:
     float _bottomMargin;
 };
 
- 
 #endif // hifi_Text3DOverlay_h

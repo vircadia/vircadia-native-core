@@ -44,6 +44,8 @@ public:
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
 
+    virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
+
     // getters
     virtual QString getType() const = 0;
     virtual bool is3D() const = 0;
@@ -119,6 +121,7 @@ namespace render {
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
+   template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
 }
 
  

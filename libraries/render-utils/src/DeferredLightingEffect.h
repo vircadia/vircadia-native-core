@@ -46,7 +46,7 @@ public:
     void prepare(RenderArgs* args);
     void render(const render::RenderContextPointer& renderContext);
 
-    void setupTransparent(RenderArgs* args, int lightBufferUnit);
+    void setupBatch(gpu::Batch& batch, int lightBufferUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);

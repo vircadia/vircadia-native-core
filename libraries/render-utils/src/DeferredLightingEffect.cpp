@@ -511,9 +511,10 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
     }
 }
 
-void DeferredLightingEffect::setupTransparent(RenderArgs* args, int lightBufferUnit) {
+void DeferredLightingEffect::setupBatch(gpu::Batch& batch, int lightBufferUnit) {
+    PerformanceTimer perfTimer("DLE->setupBatch()");
     auto globalLight = _allocatedLights[_globalLights.front()];
-    args->_batch->setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
+    batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
 }
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {

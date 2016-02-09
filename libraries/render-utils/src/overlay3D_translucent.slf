@@ -1,7 +1,8 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  overlay3D.slf
+//
+//  overlay3D_translucent.slf
 //  fragment shader
 //
 //  Created by Sam Gateau on 6/16/15.
@@ -55,11 +56,7 @@ void main(void) {
     vec3 fragDiffuse = diffuse.rgb * _color;
     vec3 fragSpecular = vec3(0.1);
     float fragGloss = 10.0 / 128.0;
-    float fragOpacity = diffuse.a;
-
-    if (fragOpacity <= 0.1) {
-        discard;
-    }
+    float fragOpacity = diffuse.a * _alpha;
 
     vec4 color =  evalGlobalColor(1.0,
         fragPosition,

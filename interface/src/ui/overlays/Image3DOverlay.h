@@ -31,6 +31,8 @@ public:
 
     virtual void update(float deltatime);
 
+    virtual const render::ShapeKey getShapeKey() override;
+
     // setters
     void setURL(const QString& url);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }

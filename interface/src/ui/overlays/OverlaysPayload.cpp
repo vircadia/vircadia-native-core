@@ -35,15 +35,18 @@
 
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
+        auto builder = ItemKey::Builder().withTypeShape();
         if (overlay->is3D() && !std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawOnHUD()) {
             if (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
-                return ItemKey::Builder().withTypeShape().withLayered().build();
-            } else {
-                return ItemKey::Builder::opaqueShape();
+                builder.withLayered();
+            }
+            if (overlay->getAlpha() != 1.0f) {
+                builder.withTransparent();
             }
         } else {
-            return ItemKey::Builder().withTypeShape().withViewSpace().build();
+            builder.withViewSpace();
         }
+        return builder.build();
     }
     template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay) {
         return overlay->getBounds();
@@ -79,5 +82,8 @@ namespace render {
                 overlay->render(args);
             }
         }
+    }
+    template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay) {
+        return overlay->getShapeKey();
     }
 }

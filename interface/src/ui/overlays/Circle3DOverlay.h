@@ -25,6 +25,7 @@ public:
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
     
     virtual void render(RenderArgs* args);
+    virtual const render::ShapeKey getShapeKey() override;
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
