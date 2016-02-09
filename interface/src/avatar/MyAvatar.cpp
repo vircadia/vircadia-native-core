@@ -383,6 +383,7 @@ void MyAvatar::simulate(float deltaTime) {
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
+        auto now = usecTimestampNow();
         EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
         MovingEntitiesOperator moveOperator(entityTree);
         forEachDescendant([&](SpatiallyNestablePointer object) {
@@ -397,6 +398,7 @@ void MyAvatar::simulate(float deltaTime) {
                 if (packetSender) {
                     EntityItemProperties properties = entity->getProperties();
                     properties.setQueryAACubeDirty();
+                    properties.setLastEdited(now);
                     packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
                     entity->setLastBroadcast(usecTimestampNow());
                 }
@@ -1078,6 +1080,15 @@ void MyAvatar::rebuildCollisionShape() {
 
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
+
+    bool success;
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    if (!success) {
+        qDebug() << "Warning: getParentVelocity failed" << getID();
+        parentVelocity = glm::vec3();
+    }
+    _characterController.setParentVelocity(parentVelocity);
+
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {

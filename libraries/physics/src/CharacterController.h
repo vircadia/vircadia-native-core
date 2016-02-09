@@ -69,6 +69,7 @@ public:
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setTargetVelocity(const glm::vec3& velocity);
+    void setParentVelocity(const glm::vec3& parentVelocity);
     void setFollowParameters(const glm::mat4& desiredWorldMatrix, float timeRemaining);
     float getFollowTime() const { return _followTime; }
     glm::vec3 getFollowLinearDisplacement() const;
@@ -105,7 +106,8 @@ protected:
 
 protected:
     btVector3 _currentUp;
-    btVector3 _walkVelocity;
+    btVector3 _targetVelocity;
+    btVector3 _parentVelocity;
     btTransform _followDesiredBodyTransform;
     btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;

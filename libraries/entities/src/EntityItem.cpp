@@ -49,7 +49,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
     _volumeMultiplier(1.0f),
-    _velocity(ENTITY_ITEM_DEFAULT_VELOCITY),
     _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
     _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
     _damping(ENTITY_ITEM_DEFAULT_DAMPING),
@@ -60,7 +59,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _scriptTimestamp(ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
     _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
     _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
-    _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
     _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
     _collisionless(ENTITY_ITEM_DEFAULT_COLLISIONLESS),
@@ -78,6 +76,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _physicsInfo(nullptr),
     _simulated(false)
 {
+    setVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
+    setAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     // explicitly set transform parts to set dirty flags used by batch rendering
     setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
@@ -470,7 +470,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
-    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer == 0 ? 0 : lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
@@ -886,41 +886,45 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
     }
 
     if (hasAngularVelocity()) {
+        glm::vec3 angularVelocity = getAngularVelocity();
+
         // angular damping
         if (_angularDamping > 0.0f) {
-            _angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
+            angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "    angularDamping :" << _angularDamping;
-                qCDebug(entities) << "    newAngularVelocity:" << _angularVelocity;
+                qCDebug(entities) << "    newAngularVelocity:" << angularVelocity;
             #endif
         }
 
-        float angularSpeed = glm::length(_angularVelocity);
+        float angularSpeed = glm::length(angularVelocity);
 
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             if (setFlags && angularSpeed > 0.0f) {
                 _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             }
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             // for improved agreement with the way Bullet integrates rotations we use an approximation
             // and break the integration into bullet-sized substeps
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = computeBulletRotationStep(_angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+                glm::quat  dQ = computeBulletRotationStep(angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
             // NOTE: this final partial substep can drift away from a real Bullet simulation however
             // it only becomes significant for rapidly rotating objects
             // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = computeBulletRotationStep(_angularVelocity, dt);
+            glm::quat  dQ = computeBulletRotationStep(angularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
             setRotation(rotation);
         }
+
+        setAngularVelocity(angularVelocity);
     }
 
     if (hasVelocity()) {
@@ -1077,9 +1081,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
     // a TerseUpdate includes the transform and its derivatives
     properties._position = getLocalPosition();
-    properties._velocity = _velocity;
+    properties._velocity = getLocalVelocity();
     properties._rotation = getLocalOrientation();
-    properties._angularVelocity = _angularVelocity;
+    properties._angularVelocity = getLocalAngularVelocity();
     properties._acceleration = _acceleration;
 
     properties._positionChanged = true;
@@ -1406,13 +1410,15 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (_velocity != value) {
+    glm::vec3 velocity = getLocalVelocity();
+    if (velocity != value) {
         const float MIN_LINEAR_SPEED = 0.001f;
         if (glm::length(value) < MIN_LINEAR_SPEED) {
-            _velocity = ENTITY_ITEM_ZERO_VEC3;
+            velocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
-            _velocity = value;
+            velocity = value;
         }
+        setLocalVelocity(velocity);
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
 }
@@ -1436,13 +1442,15 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (_angularVelocity != value) {
+    glm::vec3 angularVelocity = getLocalAngularVelocity();
+    if (angularVelocity != value) {
         const float MIN_ANGULAR_SPEED = 0.0002f;
         if (glm::length(value) < MIN_ANGULAR_SPEED) {
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
-            _angularVelocity = value;
+            angularVelocity = value;
         }
+        setLocalAngularVelocity(angularVelocity);
         _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
 }

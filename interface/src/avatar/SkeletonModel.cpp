@@ -148,7 +148,11 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         _rig->updateFromHandParameters(handParams, deltaTime);
 
         Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
-        _rig->computeMotionAnimationState(deltaTime, _owningAvatar->getPosition(), _owningAvatar->getVelocity(), _owningAvatar->getOrientation(), ccState);
+
+        auto velocity = myAvatar->getLocalVelocity();
+        auto position = myAvatar->getLocalPosition();
+        auto orientation = myAvatar->getLocalOrientation();
+        _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
         // evaluate AnimGraph animation and update jointStates.
         Model::updateRig(deltaTime, parentTransform);

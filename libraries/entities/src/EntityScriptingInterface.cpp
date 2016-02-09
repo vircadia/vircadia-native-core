@@ -345,6 +345,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                         EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                        newQueryCubeProperties.setLastEdited(properties.getLastEdited());
                         queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
                         entityDescendant->setLastBroadcast(usecTimestampNow());
                     }

@@ -54,7 +54,7 @@ CharacterController::CharacterController() {
 
     _floorDistance = MAX_FALL_HEIGHT;
 
-    _walkVelocity.setValue(0.0f, 0.0f, 0.0f);
+    _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     _followDesiredBodyTransform.setIdentity();
     _followTimeRemaining = 0.0f;
     _jumpSpeed = JUMP_SPEED;
@@ -166,12 +166,12 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 
     const btScalar MIN_SPEED = 0.001f;
 
-    btVector3 actualVelocity = _rigidBody->getLinearVelocity();
+    btVector3 actualVelocity = _rigidBody->getLinearVelocity() - _parentVelocity;
     if (actualVelocity.length() < MIN_SPEED) {
         actualVelocity = btVector3(0.0f, 0.0f, 0.0f);
     }
 
-    btVector3 desiredVelocity = _walkVelocity;
+    btVector3 desiredVelocity = _targetVelocity;
     if (desiredVelocity.length() < MIN_SPEED) {
         desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
     }
@@ -212,7 +212,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
         break;
     }
 
-    _rigidBody->setLinearVelocity(finalVelocity);
+    _rigidBody->setLinearVelocity(finalVelocity + _parentVelocity);
 
     // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
     // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
@@ -383,8 +383,11 @@ void CharacterController::getPositionAndOrientation(glm::vec3& position, glm::qu
 }
 
 void CharacterController::setTargetVelocity(const glm::vec3& velocity) {
-    //_walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
-    _walkVelocity = glmToBullet(velocity);
+    _targetVelocity = glmToBullet(velocity);
+}
+
+void CharacterController::setParentVelocity(const glm::vec3& velocity) {
+    _parentVelocity = glmToBullet(velocity);
 }
 
 void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix, float timeRemaining) {

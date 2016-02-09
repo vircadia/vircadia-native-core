@@ -507,32 +507,7 @@ static const std::vector<float> LATERAL_SPEEDS = { 0.2f, 0.65f }; // m/s
 void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState) {
 
     glm::vec3 front = worldRotation * IDENTITY_FRONT;
-
-    // It can be more accurate/smooth to use velocity rather than position,
-    // but some modes (e.g., hmd standing) update position without updating velocity.
-    // It's very hard to debug hmd standing. (Look down at yourself, or have a second person observe. HMD third person is a bit undefined...)
-    // So, let's create our own workingVelocity from the worldPosition...
-    glm::vec3 workingVelocity = _lastVelocity;
-    glm::vec3 positionDelta = worldPosition - _lastPosition;
-
-    // Don't trust position delta if deltaTime is 'small'.
-    // NOTE: This is mostly just a work around for an issue in oculus 0.7 runtime, where
-    // Application::idle() is being called more frequently and with smaller dt's then expected.
-    const float SMALL_DELTA_TIME = 0.006f;  // 6 ms
-    if (deltaTime > SMALL_DELTA_TIME) {
-        workingVelocity = positionDelta / deltaTime;
-    }
-
-#if !WANT_DEBUG
-    // But for smoothest (non-hmd standing) results, go ahead and use velocity:
-    if (!positionDelta.x && !positionDelta.y && !positionDelta.z) {
-        workingVelocity = worldVelocity;
-    }
-#endif
-
-    if (deltaTime > SMALL_DELTA_TIME) {
-        _lastVelocity = workingVelocity;
-    }
+    glm::vec3 workingVelocity = worldVelocity;
 
     {
         glm::vec3 localVel = glm::inverse(worldRotation) * workingVelocity;
@@ -809,7 +784,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
             // compute blend based on velocity
             const float JUMP_SPEED = 3.5f;
-            float alpha = glm::clamp(-_lastWorldVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
+            float alpha = glm::clamp(-_lastVelocity.y / JUMP_SPEED, -1.0f, 1.0f) + 1.0f;
             _animVars.set("inAirAlpha", alpha);
         }
 
@@ -827,7 +802,7 @@ void Rig::computeMotionAnimationState(float deltaTime, const glm::vec3& worldPos
 
     _lastFront = front;
     _lastPosition = worldPosition;
-    _lastWorldVelocity = worldVelocity;
+    _lastVelocity = workingVelocity;
 }
 
 // Allow script to add/remove handlers and report results, from within their thread.
