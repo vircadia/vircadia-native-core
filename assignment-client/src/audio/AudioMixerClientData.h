@@ -45,7 +45,7 @@ public:
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
     
-    int parseData(ReceivedMessage& me ssage);
+    int parseData(ReceivedMessage& message);
 
     void checkBuffersBeforeFrameSend();
 

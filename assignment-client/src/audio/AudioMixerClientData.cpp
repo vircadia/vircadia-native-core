@@ -155,50 +155,33 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 }
 
 void AudioMixerClientData::checkBuffersBeforeFrameSend() {
-    QReadLocker readLocker { &_streamsLock };
-
-    auto it = _audioStreams.cbegin();
-    while (it != _audioStreams.cend()) {
-        SharedStreamPointer stream = it->second;
-
-        if (stream->popFrames(1, true) > 0) {
-            stream->updateLastPopOutputLoudnessAndTrailingLoudness();
-        }
-
-        ++it;
-    }
-}
-
-void AudioMixerClientData::removeDeadInjectedStreams() {
-
-    const int INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD = 100;
-
-    // we have this second threshold in case the injected audio is so short that the injected stream
-    // never even reaches its desired size, which means it will never start.
-    const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 1000;
-
     QWriteLocker writeLocker { &_streamsLock };
-
-    qDebug() << _audioStreams.size();
 
     auto it = _audioStreams.begin();
     while (it != _audioStreams.end()) {
-        PositionalAudioStream* audioStream = it->second.get();
+        SharedStreamPointer stream = it->second;
 
-        if (audioStream->getType() == PositionalAudioStream::Injector && audioStream->isStarved()) {
-            InjectedAudioStream* injectedStream = dynamic_cast<InjectedAudioStream*>(audioStream);
-            int notMixedThreshold = audioStream->hasStarted()
-                ? INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD
-                : INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD;
+        static const int INJECTOR_INACTIVITY_USECS = 5 * USECS_PER_SECOND;
 
-            if (injectedStream->getConsecutiveNotMixedCount() >= notMixedThreshold) {
-                emit injectorStreamFinished(injectedStream->getStreamIdentifier());
-                it = _audioStreams.erase(it);
-                continue;
+        // if we don't have new data for an injected stream in the last INJECTOR_INACTIVITY_MSECS then
+        // we remove the injector from our streams
+        if (stream->getType() == PositionalAudioStream::Injector
+            && stream->usecsSinceLastPacket() > INJECTOR_INACTIVITY_USECS) {
+            // this is an inactive injector, pull it from our streams
+
+            // first emit that it is finished so that the HRTF objects for this source can be cleaned up
+            emit injectorStreamFinished(it->second->getStreamIdentifier());
+
+            // erase the stream to drop our ref to the shared pointer and remove it
+            it = _audioStreams.erase(it);
+
+        } else {
+            if (stream->popFrames(1, true) > 0) {
+                stream->updateLastPopOutputLoudnessAndTrailingLoudness();
             }
-        }
 
-        ++it;
+            ++it;
+        }
     }
 }
 
