@@ -28,23 +28,12 @@ AudioMixerClientData::AudioMixerClientData() :
 {
 }
 
-AudioMixerClientData::~AudioMixerClientData() {
-    QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-    for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
-        // delete this attached InboundAudioStream
-        delete i.value();
-    }
-
-    // clean up our pair data...
-//    foreach(PerListenerSourcePairData* pairData, _listenerSourcePairData) {
-//        delete pairData;
-//    }
-}
-
 AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() const {
-    if (_audioStreams.contains(QUuid())) {
-        return (AvatarAudioStream*)_audioStreams.value(QUuid());
+    auto it = _audioStreams.find(QUuid());
+    if (it != _audioStreams.end()) {
+        return dynamic_cast<AvatarAudioStream*>(it->second.get());
     }
+
     // no mic stream found - return NULL
     return NULL;
 }
@@ -71,8 +60,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             || packetType == PacketType::MicrophoneAudioNoEcho
             || packetType == PacketType::SilentAudioFrame) {
 
-            QUuid nullUUID = QUuid();
-            if (!_audioStreams.contains(nullUUID)) {
+            auto micStreamIt = _audioStreams.find(QUuid());
+            if (micStreamIt == _audioStreams.end()) {
                 // we don't have a mic stream yet, so add it
 
                 // read the channel flag to see if our stream is stereo or not
@@ -83,10 +72,15 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
                 bool isStereo = channelFlag == 1;
 
-                _audioStreams.insert(nullUUID, matchingStream = new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()));
-            } else {
-                matchingStream = _audioStreams.value(nullUUID);
+                auto emplaced = _audioStreams.emplace(
+                    QUuid(),
+                    std::unique_ptr<PositionalAudioStream> { new AvatarAudioStream(isStereo, AudioMixer::getStreamSettings()) }
+                );
+
+                micStreamIt = emplaced.first;
             }
+
+            matchingStream = micStreamIt->second.get();
 
             isMicStream = true;
         } else if (packetType == PacketType::InjectAudio) {
@@ -99,13 +93,19 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             bool isStereo;
             message.readPrimitive(&isStereo);
 
-            if (!_audioStreams.contains(streamIdentifier)) {
+            auto streamIt = _audioStreams.find(streamIdentifier);
+
+            if (streamIt == _audioStreams.end()) {
                 // we don't have this injected stream yet, so add it
-                _audioStreams.insert(streamIdentifier,
-                        matchingStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()));
-            } else {
-                matchingStream = _audioStreams.value(streamIdentifier);
+                auto emplaced = _audioStreams.emplace(
+                    streamIdentifier,
+                    std::unique_ptr<InjectedAudioStream> { new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()) }
+                );
+
+                streamIt = emplaced.first;
             }
+
+            matchingStream = streamIt->second.get();
         }
 
         // seek to the beginning of the packet so that the next reader is in the right spot
@@ -126,13 +126,15 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 }
 
 void AudioMixerClientData::checkBuffersBeforeFrameSend() {
-    QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-    for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
-        PositionalAudioStream* stream = i.value();
+    auto it = _audioStreams.cbegin();
+    while (it != _audioStreams.cend()) {
+        PositionalAudioStream* stream = it->second.get();
 
         if (stream->popFrames(1, true) > 0) {
             stream->updateLastPopOutputLoudnessAndTrailingLoudness();
         }
+
+        ++it;
     }
 }
 
@@ -144,19 +146,24 @@ void AudioMixerClientData::removeDeadInjectedStreams() {
     // never even reaches its desired size, which means it will never start.
     const int INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD = 1000;
 
-    QHash<QUuid, PositionalAudioStream*>::Iterator i = _audioStreams.begin(), end = _audioStreams.end();
-    while (i != end) {
-        PositionalAudioStream* audioStream = i.value();
+    auto it = _audioStreams.begin();
+    while (it != _audioStreams.end()) {
+        PositionalAudioStream* audioStream = it->second.get();
+
         if (audioStream->getType() == PositionalAudioStream::Injector && audioStream->isStarved()) {
-            int notMixedThreshold = audioStream->hasStarted() ? INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD
-                                                              : INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD;
-            if (audioStream->getConsecutiveNotMixedCount() >= notMixedThreshold) {
-                delete audioStream;
-                i = _audioStreams.erase(i);
+            InjectedAudioStream* injectedStream = dynamic_cast<InjectedAudioStream*>(audioStream);
+            int notMixedThreshold = audioStream->hasStarted()
+                ? INJECTOR_CONSECUTIVE_NOT_MIXED_AFTER_STARTED_THRESHOLD
+                : INJECTOR_CONSECUTIVE_NOT_MIXED_THRESHOLD;
+
+            if (injectedStream->getConsecutiveNotMixedCount() >= notMixedThreshold) {
+                emit injectorStreamFinished(injectedStream->getStreamIdentifier());
+                it = _audioStreams.erase(it);
                 continue;
             }
         }
-        ++i;
+
+        ++it;
     }
 }
 
@@ -175,7 +182,7 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
     // pack and send stream stats packets until all audio streams' stats are sent
     int numStreamStatsRemaining = _audioStreams.size();
-    QHash<QUuid, PositionalAudioStream*>::ConstIterator audioStreamsIterator = _audioStreams.constBegin();
+    auto it = _audioStreams.cbegin();
 
     while (numStreamStatsRemaining > 0) {
         auto statsPacket = NLPacket::create(PacketType::AudioStreamStats);
@@ -192,14 +199,14 @@ void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& 
 
         // pack the calculated number of stream stats
         for (int i = 0; i < numStreamStatsToPack; i++) {
-            PositionalAudioStream* stream = audioStreamsIterator.value();
+            PositionalAudioStream* stream = it->second.get();
 
             stream->perSecondCallbackForUpdatingStats();
 
             AudioStreamStats streamStats = stream->getAudioStreamStats();
             statsPacket->writePrimitive(streamStats);
 
-            audioStreamsIterator++;
+            ++it;
         }
 
         numStreamStatsRemaining -= numStreamStatsToPack;
@@ -261,8 +268,8 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
 
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     QJsonArray injectorArray;
-    for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
-        if (i.value()->getType() == PositionalAudioStream::Injector) {
+    for(auto& injectorPair : _audioStreams) {
+        if (injectorPair.second->getType() == PositionalAudioStream::Injector) {
             QJsonObject upstreamStats;
 
             AudioStreamStats streamStats = i.value()->getAudioStreamStats();
@@ -294,9 +301,10 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() const {
 
 void AudioMixerClientData::printUpstreamDownstreamStats() const {
     // print the upstream (mic stream) stats if the mic stream exists
-    if (_audioStreams.contains(QUuid())) {
+    auto it = _audioStreams.find(QUuid());
+    if (it != _audioStreams.end()) {
         printf("Upstream:\n");
-        printAudioStreamStats(_audioStreams.value(QUuid())->getAudioStreamStats());
+        printAudioStreamStats(it->second->getAudioStreamStats());
     }
     // print the downstream stats if they contain valid info
     if (_downstreamAudioStreamStats._packetStreamStats._received > 0) {

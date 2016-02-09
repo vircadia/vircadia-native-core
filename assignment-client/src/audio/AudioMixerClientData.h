@@ -15,6 +15,7 @@
 #include <QtCore/QJsonObject>
 
 #include <AABox.h>
+#include <UUIDHasher.h>
 
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
@@ -22,9 +23,10 @@
 class AudioMixerClientData : public NodeData {
 public:
     AudioMixerClientData();
-    ~AudioMixerClientData();
+
+    using AudioStreamMap = std::unordered_map<QUuid, std::unique_ptr<PositionalAudioStream>>;
     
-    const QHash<QUuid, PositionalAudioStream*>& getAudioStreams() const { return _audioStreams; }
+    const AudioStreamMap& getAudioStreams() const { return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream() const;
     
     int parseData(ReceivedMessage& message);
@@ -49,7 +51,7 @@ private:
     void printAudioStreamStats(const AudioStreamStats& streamStats) const;
 
 private:
-    QHash<QUuid, PositionalAudioStream*> _audioStreams;     // mic stream stored under key of null UUID
+    AudioStreamMap _audioStreams;     // mic stream stored under key of null UUID
 
     quint16 _outgoingMixedAudioSequenceNumber;
 
