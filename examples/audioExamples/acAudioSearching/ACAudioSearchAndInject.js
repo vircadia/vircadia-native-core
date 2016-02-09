@@ -144,7 +144,6 @@ function handleFoundSoundEntities(entities) {
                         soundProperties.clipDuration = sound.duration * 1000;
                         soundEntityMap[entity] = soundProperties;
 
-                        print("DURATION " + soundProperties.clipDuration);
                     });
                 } else {
                     // We already have sound downloaded, so just add it to map right away
@@ -153,7 +152,6 @@ function handleFoundSoundEntities(entities) {
                     soundProperties.readyToPlay = true;
                     soundProperties.isDownloaded = true;
                     soundEntityMap[entity] = soundProperties;
-                    print("DURATION " + soundProperties.clipDuration);
                 }
             } else {
                 //If this sound is in our map already, we want to reset timeWithoutAvatarInRange
@@ -177,6 +175,7 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
     }
 
     if (currentProps.playbackGapRange !== currentProps.playbackGapRange) {
+        currentProps.playbackGapRange = newProps.playbackGapRange;
         currentProps.currentPlaybackGap = currentProps.playbackGap + randFloat(-currentProps.playbackGapRange, currentProps.playbackGapRange);
         currentProps.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, currentProps.currentPlaybackGap);
     }
