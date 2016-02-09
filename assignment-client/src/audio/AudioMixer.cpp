@@ -288,8 +288,8 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // the mixer is struggling so we're going to drop off some streams
 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
-        hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
-                    AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+        hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
+                          AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
         return;
     }
 
