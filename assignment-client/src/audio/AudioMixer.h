@@ -48,9 +48,11 @@ private slots:
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
 
-private:    
-    void domainSettingsRequestComplete();
+    void clearHRTFsMatchingStreamID(const QUuid& streamID);
 
+private:
+    void domainSettingsRequestComplete();
+    
     using ListenerSourceIDPair = std::pair<QUuid, QUuid>;
     
     /// adds one stream to the mix for a listening node

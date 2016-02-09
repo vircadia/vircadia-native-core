@@ -97,7 +97,6 @@ public:
         bool operator==(const ConstIterator& rhs) { return _at == rhs._at; }
         bool operator!=(const ConstIterator& rhs) { return _at != rhs._at; }
         const int16_t& operator*() { return *_at; }
-        int16_t* getBuffer() { return _bufferFirst; }
 
         ConstIterator& operator=(const ConstIterator& rhs) {
             _bufferLength = rhs._bufferLength;
@@ -142,11 +141,17 @@ public:
         }
 
         void readSamples(int16_t* dest, int numSamples) {
-            int16_t* at = _at;
-            for (int i = 0; i < numSamples; i++) {
-                *dest = *at;
-                ++dest;
-                at = (at == _bufferLast) ? _bufferFirst : at + 1;
+            auto samplesToEnd = _bufferLast - _at;
+
+            if (samplesToEnd >= numSamples) {
+                memcpy(dest, _at, numSamples * sizeof(int16_t));
+                _at += numSamples;
+            } else {
+                auto samplesFromStart = numSamples - samplesToEnd;
+                memcpy(dest, _at, samplesToEnd * sizeof(int16_t));
+                memcpy(dest, _at + samplesToEnd, samplesFromStart * sizeof(int16_t));
+
+                _at = _bufferFirst + samplesFromStart;
             }
         }
 

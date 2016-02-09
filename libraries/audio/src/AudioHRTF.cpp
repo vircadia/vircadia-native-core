@@ -509,10 +509,10 @@ static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], i
                               int index, float azimuth, float gain, int channel) {
 
     // convert from radians to table units
-    //azimuth *= HRTF_AZIMUTHS / (2.0f * M_PI);
+    azimuth *= HRTF_AZIMUTHS / (2.0f * M_PI);
 
     // convert from degrees to table units
-    azimuth *= HRTF_AZIMUTHS / 360.0f;
+//    azimuth *= HRTF_AZIMUTHS / 360.0f;
 
     // wrap to principle value
     while (azimuth < 0.0f) {
