@@ -23,7 +23,7 @@ var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientat
 var SOUND_DATA_KEY = "soundKey";
 var userData = {
     soundKey: {
-        url: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove2.wav",
+        url: "http://hifi-content.s3.amazonaws.com/DomainContent/Junkyard/Sounds/ClothSail/cloth_sail3.L.wav",
         volume: 0.3,
         loop: false,
         playbackGap: 2000, // In ms - time to wait in between clip plays

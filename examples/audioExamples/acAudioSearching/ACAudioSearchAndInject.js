@@ -178,6 +178,7 @@ function checkForSoundPropertyChanges(currentProps, newProps) {
         currentProps.playbackGapRange = newProps.playbackGapRange;
         currentProps.currentPlaybackGap = currentProps.playbackGap + randFloat(-currentProps.playbackGapRange, currentProps.playbackGapRange);
         currentProps.currentPlaybackGap = Math.max(MIN_PLAYBACK_GAP, currentProps.currentPlaybackGap);
+        currentProps.readyToPlay = true;
     }
     if (currentProps.volume !== newProps.volume) {
         currentProps.volume = newProps.volume;
