@@ -240,6 +240,8 @@ public:
     glm::quat getCustomListenOrientation() { return _customListenOrientation; }
     void setCustomListenOrientation(glm::quat customListenOrientation) { _customListenOrientation = customListenOrientation; }
 
+    virtual void rebuildCollisionShape() override;
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -255,8 +257,6 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     Q_INVOKABLE void updateMotionBehaviorFromMenu();
-
-    virtual void rebuildCollisionShape() override;
 
     Q_INVOKABLE QUrl getAnimGraphUrl() const { return _animGraphUrl; }
 
