@@ -27,18 +27,9 @@ public:
     Engine();
     ~Engine() = default;
 
-    // Get the configurations
-    QStringList getNamedConfigList();
-
-    // Get the current named configuration
-    QString getNamedConfig();
-
-    // Set a named configuration
-    void setNamedConfig(const QString& config);
-
-    // Load the current named config
-    // The first time this is run, it will also set the current configuration as Default
-    void loadConfig();
+    // Load any persisted settings, and set up the presets
+    // This should be run after adding all jobs, and before building ui
+    void load();
 
     // Register the scene
     void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }
@@ -52,14 +43,8 @@ public:
     void run();
 
 protected:
-    Setting::Handle<QString> _namedConfig;
-    QJsonValue _defaultConfig;
-
     SceneContextPointer _sceneContext;
     RenderContextPointer _renderContext;
-
-private:
-    static const QMap<QString, QString> PRESETS;
 };
 using EnginePointer = std::shared_ptr<Engine>;
 

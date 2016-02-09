@@ -31,11 +31,11 @@ protected:
     render::ShapePlumberPointer _shapePlumber;
 };
 
-class RenderShadowTaskConfig : public render::Task::Config {
+class RenderShadowTaskConfig : public render::Task::PersistentConfig {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
 public:
-    RenderShadowTaskConfig() : render::Task::Config(false) {}
+    RenderShadowTaskConfig() : render::Task::PersistentConfig("Shadows", false) {}
 
 signals:
     void dirty();

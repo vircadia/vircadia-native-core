@@ -13,75 +13,39 @@
 
 #include <QtCore/QFile>
 
+#include <PathUtils.h>
+
 #include <gpu/Context.h>
 
 
 using namespace render;
 
-const QString ENGINE_CONFIG_DEFAULT = "Default";
-// TODO: Presets (e.g., "Highest Performance", "Highest Quality") will go here
-const QMap<QString, QString> Engine::PRESETS = {};
-
 Engine::Engine() :
-    _namedConfig(QStringList() << "Render" << "Engine"),
     _sceneContext(std::make_shared<SceneContext>()),
     _renderContext(std::make_shared<RenderContext>()) {
 }
 
-QStringList Engine::getNamedConfigList() {
-    QStringList list;
-    list << ENGINE_CONFIG_DEFAULT << PRESETS.keys();
-    auto current = _namedConfig.get();
-    if (!list.contains(current)) {
-        list << current;
-    }
-
-    return list;
-}
-
-QString Engine::getNamedConfig() {
-    return _namedConfig.get();
-}
-
-void Engine::setNamedConfig(const QString& config) {
-    _namedConfig.set(config);
-    loadConfig();
-}
-
-void Engine::loadConfig() {
+void Engine::load() {
     auto config = getConfiguration();
-    QString current = _namedConfig.get();
+    const QString configFile= "config/render.json";
 
-    if (_defaultConfig.isNull()) {
-        // Set the default
-        _defaultConfig =
-            QJsonDocument::fromJson(config->toJSON().toUtf8()).object();
-    }
-
-    if (current == ENGINE_CONFIG_DEFAULT) {
-        // Load the default
-        config->load(_defaultConfig.toObject());
-    } else if (PRESETS.contains(current)) {
-        // Load a preset
-        config->load(QJsonDocument::fromJson(PRESETS[current].toUtf8()).object());
+    QUrl path(PathUtils::resourcesPath() + configFile);
+    QFile file(path.toString());
+    if (!file.exists()) {
+        qWarning() << "Engine configuration file" << path << "does not exist";
+    } else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Engine configuration file" << path << "cannot be opened";
     } else {
-        QFile file(current);
-        if (!file.exists()) {
-            qWarning() << "Engine configuration file" << current << "does not exist";
-        } else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qWarning() << "Engine configuration file" << current << "cannot be opened";
+        QString data = file.readAll();
+        file.close();
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8(), &error);
+        if (error.error == error.NoError) {
+            config->setPresetList(doc.object());
+            qDebug() << "Engine configuration file" << path << "loaded";
         } else {
-            QString data = file.readAll();
-            file.close();
-            QJsonParseError error;
-            QJsonDocument doc = QJsonDocument::fromJson(data.toUtf8(), &error);
-            if (error.error == error.NoError) {
-                config->load(doc.object());
-                qDebug() << "Engine configuration file" << current << "loaded";
-            } else {
-                qWarning() << "Engine configuration file" << current << "failed to load:" <<
-                    error.errorString() << "at offset" << error.offset;
-            }
+            qWarning() << "Engine configuration file" << path << "failed to load:" <<
+                error.errorString() << "at offset" << error.offset;
         }
     }
 }
