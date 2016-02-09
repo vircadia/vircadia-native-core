@@ -40,7 +40,7 @@ public:
     AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
 
     // remove HRTFs for all sources from this node
-    void removeHRTFsForNode(const QUuid& nodeID) { qDebug() << "Removing all HRTF for listener" << getNodeID() << "and source" << nodeID;_nodeSourcesHRTFMap.erase(nodeID); }
+    void removeHRTFsForNode(const QUuid& nodeID) { _nodeSourcesHRTFMap.erase(nodeID); }
 
     // removes an AudioHRTF object for a given stream
     void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());

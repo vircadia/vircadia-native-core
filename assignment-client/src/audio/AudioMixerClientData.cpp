@@ -44,14 +44,12 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
 void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID) {
     auto it = _nodeSourcesHRTFMap.find(nodeID);
     if (it != _nodeSourcesHRTFMap.end()) {
-        qDebug() << "Erasing stream" << streamID << "from node" << nodeID << "for listener" << getNodeID();
         // erase the stream with the given ID from the given node
         it->second.erase(streamID);
 
         // is the map for this node now empty?
         // if so we can remove it
         if (it->second.size() == 0) {
-            qDebug() << "Last injector was erased, erasing map for" << nodeID << "for listener" << getNodeID();
             _nodeSourcesHRTFMap.erase(it);
         }
     }
