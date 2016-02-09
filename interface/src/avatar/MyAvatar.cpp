@@ -1089,7 +1089,8 @@ void MyAvatar::prepareForPhysicsSimulation() {
         }
     }
 
-    _characterController.setTargetVelocity(getTargetVelocity() + parentVelocity);
+    _characterController.setParentVelocity(parentVelocity);
+    _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
         _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix);
