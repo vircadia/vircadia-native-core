@@ -43,7 +43,7 @@ public:
         return diff;
     }
 
-    float getLostRate() const { return (float)_lost / _expectedReceived; }
+    float getLostRate() const { return _expectedReceived ? (float)_lost / _expectedReceived : 0; }
 
     quint32 _received;
     quint32 _unreasonable;
