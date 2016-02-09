@@ -47,6 +47,10 @@ AnimationReader::AnimationReader(const QUrl& url, const QByteArray& data) :
 }
 
 void AnimationReader::run() {
+    auto originalPriority = QThread::currentThread()->priority();
+    if (originalPriority == QThread::InheritPriority) {
+        originalPriority = QThread::NormalPriority;
+    }
     try {
         if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
@@ -73,6 +77,7 @@ void AnimationReader::run() {
     } catch (const QString& error) {
         emit onError(299, error);
     }
+    QThread::currentThread()->setPriority(originalPriority);
 }
 
 bool Animation::isLoaded() const {
