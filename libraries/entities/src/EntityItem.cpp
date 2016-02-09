@@ -470,7 +470,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
-    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer == 0 ? 0 : lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
