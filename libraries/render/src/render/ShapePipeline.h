@@ -61,7 +61,7 @@ public:
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
         Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
-        Builder& withoutCullFace() { _flags.reset(NO_CULL_FACE); return (*this); }
+        Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
