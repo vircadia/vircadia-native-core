@@ -36,8 +36,9 @@ ul.tabs {
 }
 
 ul.tabs li {
+    font-weight: bold;
+    color: #535353;
     background: none;
-    color: #222;
     display: inline-block;
     padding: 10px 15px;
     cursor: pointer;
@@ -45,12 +46,12 @@ ul.tabs li {
 
 ul.tabs li.current {
     background-color: #ededed;
-    color: #222;
 }
 
 .tab-pane {
     display: none;
     background-color: #ededed;
+    color: #141616;
     width: 100%;
     height: 100%;
     overflow: auto;
