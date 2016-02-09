@@ -298,12 +298,10 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
             // enumerate the ARBs attached to the otherNode and add all that should be added to mix
-
-            const QHash<QUuid, PositionalAudioStream*>& otherNodeAudioStreams = otherNodeClientData->getAudioStreams();
-            QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
-            for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
-                PositionalAudioStream* otherNodeStream = i.value();
-                QUuid streamUUID = i.key();
+            auto streamsCopy = otherNodeClientData->getAudioStreams();
+            for (auto& streamPair : streamsCopy) {
+                auto otherNodeStream = streamPair.second;
+                auto streamUUID = streamPair.first;
 
                 if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
                     streamUUID = otherNode->getUUID();

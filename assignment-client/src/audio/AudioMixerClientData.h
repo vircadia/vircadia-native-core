@@ -21,13 +21,16 @@
 #include "AvatarAudioStream.h"
 
 class AudioMixerClientData : public NodeData {
+    Q_OBJECT
 public:
     AudioMixerClientData();
 
-    using AudioStreamMap = std::unordered_map<QUuid, std::unique_ptr<PositionalAudioStream>>;
-    
-    const AudioStreamMap& getAudioStreams() const { return _audioStreams; }
-    AvatarAudioStream* getAvatarAudioStream() const;
+    using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
+    using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
+
+    // locks the mutex to make a copy
+    AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
+    AvatarAudioStream* getAvatarAudioStream();
     
     int parseData(ReceivedMessage& message);
 
@@ -35,14 +38,14 @@ public:
 
     void removeDeadInjectedStreams();
 
-    QJsonObject getAudioStreamStats() const;
+    QJsonObject getAudioStreamStats();
     
     void sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode);
     
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
-    void printUpstreamDownstreamStats() const;
+    void printUpstreamDownstreamStats();
 
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
@@ -51,7 +54,8 @@ private:
     void printAudioStreamStats(const AudioStreamStats& streamStats) const;
 
 private:
-    AudioStreamMap _audioStreams;     // mic stream stored under key of null UUID
+    QReadWriteLock _streamsLock;
+    AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
     quint16 _outgoingMixedAudioSequenceNumber;
 
