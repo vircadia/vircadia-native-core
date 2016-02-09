@@ -404,7 +404,11 @@ glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
 
 glm::vec3 SpatiallyNestable::getVelocity() const {
     bool success;
-    return getVelocity(success);
+    glm::vec3 result = getVelocity(success);
+    if (!success) {
+        qDebug() << "Warning -- setVelocity failed" << getID();
+    }
+    return result;
 }
 
 void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
@@ -419,6 +423,9 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
 void SpatiallyNestable::setVelocity(const glm::vec3& velocity) {
     bool success;
     setVelocity(velocity, success);
+    if (!success) {
+        qDebug() << "Warning -- setVelocity failed" << getID();
+    }
 }
 
 glm::vec3 SpatiallyNestable::getParentVelocity(bool& success) const {
@@ -442,7 +449,11 @@ glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
 
 glm::vec3 SpatiallyNestable::getAngularVelocity() const {
     bool success;
-    return getAngularVelocity(success);
+    glm::vec3 result = getAngularVelocity(success);
+    if (!success) {
+        qDebug() << "Warning -- getAngularVelocity failed" << getID();
+    }
+    return result;
 }
 
 void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, bool& success) {
@@ -456,10 +467,18 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, boo
 void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity) {
     bool success;
     setAngularVelocity(angularVelocity, success);
+    if (!success) {
+        qDebug() << "Warning -- setAngularVelocity failed" << getID();
+    }
 }
 
 glm::vec3 SpatiallyNestable::getParentAngularVelocity(bool& success) const {
-    return glm::vec3();
+    glm::vec3 result;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (success && parent) {
+        result = parent->getAngularVelocity(success);
+    }
+    return result;
 }
 
 const Transform SpatiallyNestable::getTransform(bool& success) const {
