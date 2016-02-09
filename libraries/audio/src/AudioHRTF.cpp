@@ -513,9 +513,6 @@ static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], i
     // convert from radians to table units
     azimuth *= HRTF_AZIMUTHS / TWOPI;
 
-    // convert from degrees to table units
-//    azimuth *= HRTF_AZIMUTHS / 360.0f;
-
     // wrap to principle value
     while (azimuth < 0.0f) {
         azimuth += HRTF_AZIMUTHS;
