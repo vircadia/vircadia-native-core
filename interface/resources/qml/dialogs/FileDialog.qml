@@ -181,7 +181,11 @@ ModalWindow {
                     upButton.enabled = Qt.binding(function() { return (model.parentFolder && model.parentFolder != "") ? true : false; });
                     showFiles = !root.selectDirectory
                 }
-                onFolderChanged: fileTableView.currentRow = 0;
+                onFolderChanged: {
+                    fileTableView.selection.clear();
+                    fileTableView.selection.select(0);
+                    fileTableView.currentRow = 0;
+                }
             }
 
             function navigateToRow(row) {
@@ -198,6 +202,59 @@ ModalWindow {
                 } else {
                     okAction.trigger();
                 }
+            }
+
+            property string prefix: ""
+
+            function addToPrefix(event) {
+                if (!event.text || event.text === "") {
+                    return false;
+                }
+                var newPrefix = prefix + event.text.toLowerCase();
+                var matchedIndex = -1;
+                for (var i = 0; i < model.count; ++i) {
+                    var name = model.get(i, "fileName").toLowerCase();
+                    if (0 === name.indexOf(newPrefix)) {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+
+                if (matchedIndex !== -1) {
+                    fileTableView.selection.clear();
+                    fileTableView.selection.select(matchedIndex);
+                    fileTableView.currentRow = matchedIndex;
+                    fileTableView.prefix = newPrefix;
+                }
+                prefixClearTimer.restart();
+                return true;
+            }
+
+            Timer {
+                id: prefixClearTimer
+                interval: 1000
+                repeat: false
+                running: false
+                onTriggered: fileTableView.prefix = "";
+            }
+
+            Keys.onPressed: {
+                switch (event.key) {
+                case Qt.Key_Backspace:
+                case Qt.Key_Tab:
+                case Qt.Key_Backtab:
+                    event.accepted = false;
+                    break;
+
+                default:
+                    if (addToPrefix(event)) {
+                        event.accepted = true
+                    } else {
+                        event.accepted = false;
+                    }
+                    break;
+                }
+
             }
         }
 

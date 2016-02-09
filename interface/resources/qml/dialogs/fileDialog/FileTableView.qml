@@ -3,6 +3,11 @@ import QtQuick.Controls 1.4
 
 TableView {
     id: root
+    onActiveFocusChanged:  {
+        if (activeFocus && currentRow == -1) {
+            root.selection.select(0)
+        }
+    }
 
     itemDelegate: Component {
         Item {
