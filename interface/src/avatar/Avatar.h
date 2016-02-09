@@ -135,8 +135,6 @@ public:
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
-    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
-    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
 
     Q_INVOKABLE bool getShouldRender() const { return !_shouldSkipRender; }
 

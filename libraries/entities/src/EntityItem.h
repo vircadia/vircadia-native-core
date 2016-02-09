@@ -193,9 +193,7 @@ public:
 
     float getDensity() const { return _density; }
 
-    const glm::vec3& getVelocity() const { return _velocity; } /// get velocity in meters
-    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
-    bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasVelocity() const { return getVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
@@ -255,9 +253,7 @@ public:
     void setRegistrationPoint(const glm::vec3& value)
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
 
-    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
-    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
-    bool hasAngularVelocity() const { return _angularVelocity != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
@@ -435,7 +431,6 @@ protected:
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
     float _volumeMultiplier = 1.0f;
-    glm::vec3 _velocity;
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;
@@ -446,7 +441,6 @@ protected:
     quint64 _scriptTimestamp;
     QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
-    glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
     bool _collisionless;

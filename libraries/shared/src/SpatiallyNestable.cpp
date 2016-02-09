@@ -391,6 +391,77 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
     #endif
 }
 
+glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    Transform parentTransform = getParentTransform(success);
+    glm::vec3 result;
+    _transformLock.withReadLock([&] {
+        // TODO: take parent angularVelocity into account.
+        result = parentVelocity + parentTransform.getRotation() * _velocity;
+    });
+    return result;
+}
+
+glm::vec3 SpatiallyNestable::getVelocity() const {
+    bool success;
+    return getVelocity(success);
+}
+
+void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    Transform parentTransform = getParentTransform(success);
+    _transformLock.withWriteLock([&] {
+        // TODO: take parent angularVelocity into account.
+        _velocity = glm::inverse(parentTransform.getRotation()) * velocity - parentVelocity;
+    });
+}
+
+void SpatiallyNestable::setVelocity(const glm::vec3& velocity) {
+    bool success;
+    setVelocity(velocity, success);
+}
+
+glm::vec3 SpatiallyNestable::getParentVelocity(bool& success) const {
+    glm::vec3 result;
+    SpatiallyNestablePointer parent = getParentPointer(success);
+    if (success && parent) {
+        result = parent->getVelocity(success);
+    }
+    return result;
+}
+
+glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
+    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
+    Transform parentTransform = getParentTransform(success);
+    glm::vec3 result;
+    _transformLock.withReadLock([&] {
+        result = parentAngularVelocity + parentTransform.getRotation() * _angularVelocity;
+    });
+    return result;
+}
+
+glm::vec3 SpatiallyNestable::getAngularVelocity() const {
+    bool success;
+    return getAngularVelocity(success);
+}
+
+void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, bool& success) {
+    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
+    Transform parentTransform = getParentTransform(success);
+    _transformLock.withWriteLock([&] {
+        _angularVelocity = glm::inverse(parentTransform.getRotation()) * angularVelocity - parentAngularVelocity;
+    });
+}
+
+void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity) {
+    bool success;
+    setAngularVelocity(angularVelocity, success);
+}
+
+glm::vec3 SpatiallyNestable::getParentAngularVelocity(bool& success) const {
+    return glm::vec3();
+}
+
 const Transform SpatiallyNestable::getTransform(bool& success) const {
     // return a world-space transform for this object's location
     Transform parentTransform = getParentTransform(success);
@@ -517,6 +588,34 @@ void SpatiallyNestable::setLocalOrientation(const glm::quat& orientation) {
         _transform.setRotation(orientation);
     });
     locationChanged();
+}
+
+glm::vec3 SpatiallyNestable::getLocalVelocity() const {
+    glm::vec3 result(glm::vec3::_null);
+    _transformLock.withReadLock([&] {
+        result = _velocity;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setLocalVelocity(const glm::vec3& velocity) {
+    _transformLock.withWriteLock([&] {
+        _velocity = velocity;
+    });
+}
+
+glm::vec3 SpatiallyNestable::getLocalAngularVelocity() const {
+    glm::vec3 result(glm::vec3::_null);
+    _transformLock.withReadLock([&] {
+        result = _angularVelocity;
+    });
+    return result;
+}
+
+void SpatiallyNestable::setLocalAngularVelocity(const glm::vec3& angularVelocity) {
+    _transformLock.withWriteLock([&] {
+        _angularVelocity = angularVelocity;
+    });
 }
 
 glm::vec3 SpatiallyNestable::getLocalScale() const {

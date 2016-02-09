@@ -16,8 +16,8 @@ function init() {
         isDynamic: false
     });
     if (platform) {
-        MyAvatar.position = { x: 0, y: 3, z: 0 };
         if (MyAvatar.getParentID() != platform) {
+            MyAvatar.position = { x: 0, y: 3, z: 0 };
             MyAvatar.setParentID(platform);
         }
     }
@@ -34,8 +34,7 @@ function shutdown() {
     }
 }
 
-
-init();
+Script.setTimeout(init, 3000);
 
 Script.update.connect(update);
 Script.scriptEnding.connect(shutdown);

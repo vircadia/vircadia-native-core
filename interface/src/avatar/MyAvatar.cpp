@@ -1079,17 +1079,8 @@ void MyAvatar::rebuildCollisionShape() {
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
 
-    glm::vec3 parentVelocity;
     bool success;
-    auto parentPtr = getParentPointer(success);
-    if (success && parentPtr && parentPtr->getNestableType() == NestableType::Entity) {
-        auto entityPtr = std::dynamic_pointer_cast<EntityItem>(parentPtr);
-        if (entityPtr) {
-            parentVelocity = entityPtr->getVelocity();
-        }
-    }
-
-    _characterController.setParentVelocity(parentVelocity);
+    _characterController.setParentVelocity(getParentVelocity(success));
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {

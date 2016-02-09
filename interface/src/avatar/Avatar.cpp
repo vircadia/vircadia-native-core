@@ -86,9 +86,7 @@ Avatar::Avatar(RigPointer rig) :
     _positionDeltaAccumulator(0.0f),
     _lastVelocity(0.0f),
     _acceleration(0.0f),
-    _angularVelocity(0.0f),
     _lastAngularVelocity(0.0f),
-    _angularAcceleration(0.0f),
     _lastOrientation(),
     _leanScale(0.5f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -235,9 +233,6 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
-    // NOTE: we shouldn't extrapolate an Avatar instance forward in time...
-    // until velocity is included in AvatarData update message.
-    //_position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
 
     simulateAttachments(deltaTime);
@@ -255,7 +250,7 @@ bool Avatar::isLookingAtMe(AvatarSharedPointer avatar) const {
 void Avatar::slamPosition(const glm::vec3& newPosition) {
     setPosition(newPosition);
     _positionDeltaAccumulator = glm::vec3(0.0f);
-    _velocity = glm::vec3(0.0f);
+    setVelocity(glm::vec3(0.0f));
     _lastVelocity = glm::vec3(0.0f);
 }
 
@@ -269,15 +264,17 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     float invDeltaTime = 1.0f / deltaTime;
     // Floating point error prevents us from computing velocity in a naive way
     // (e.g. vel = (pos - oldPos) / dt) so instead we use _positionOffsetAccumulator.
-    _velocity = _positionDeltaAccumulator * invDeltaTime;
+    glm::vec3 velocity = _positionDeltaAccumulator * invDeltaTime;
     _positionDeltaAccumulator = glm::vec3(0.0f);
-    _acceleration = (_velocity - _lastVelocity) * invDeltaTime;
-    _lastVelocity = _velocity;
+    _acceleration = (velocity - _lastVelocity) * invDeltaTime;
+    _lastVelocity = velocity;
+    setVelocity(velocity);
+
     // angular
     glm::quat orientation = getOrientation();
     glm::quat delta = glm::inverse(_lastOrientation) * orientation;
-    _angularVelocity = safeEulerAngles(delta) * invDeltaTime;
-    _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * invDeltaTime;
+    glm::vec3 angularVelocity = glm::axis(delta) * glm::angle(delta) * invDeltaTime;
+    setAngularVelocity(angularVelocity);
     _lastOrientation = getOrientation();
 }
 
