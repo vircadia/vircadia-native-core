@@ -1080,6 +1080,15 @@ void MyAvatar::rebuildCollisionShape() {
 
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
+
+    bool success;
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    if (!success) {
+        qDebug() << "Warning: getParentVelocity failed" << getID();
+        parentVelocity = glm::vec3();
+    }
+    _characterController.setParentVelocity(parentVelocity);
+
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {

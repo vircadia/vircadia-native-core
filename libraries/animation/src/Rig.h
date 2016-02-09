@@ -267,7 +267,6 @@ public:
     glm::vec3 _lastFront;
     glm::vec3 _lastPosition;
     glm::vec3 _lastVelocity;
-    glm::vec3 _lastWorldVelocity;
     glm::vec3 _eyesInRootFrame { Vectors::ZERO };
 
     QUrl _animGraphURL;
