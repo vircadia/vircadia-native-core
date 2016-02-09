@@ -61,7 +61,6 @@ ready = function() {
 
         var oldLogFilePaths = Object.keys(watchList);
         var diff = difference(oldLogFilePaths, newLogFilePaths);
-        console.log('diff', diff);
         // For each removed file, remove it from our watch list
         diff.subtract.forEach(function(removedLogFilePath) {
             watchList[removedLogFilePath].unwatch();
