@@ -659,10 +659,10 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         // but since we're using macros below we have to temporarily modify overwriteLocalData.
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotationFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
         overwriteLocalData = oldOverwrite;
     }
@@ -1344,9 +1344,6 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     if (getLocalPosition() != value) {
         setLocalPosition(value);
         _dirtyFlags |= Simulation::DIRTY_POSITION;
@@ -1359,6 +1356,13 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    updatePosition(value);
+}
+
 void EntityItem::updateDimensions(const glm::vec3& value) {
     if (getDimensions() != value) {
         setDimensions(value);
@@ -1367,9 +1371,6 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
@@ -1381,6 +1382,13 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
             }
         });
     }
+}
+
+void EntityItem::updateRotationFromNetwork(const glm::quat& rotation) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    updateRotation(rotation);
 }
 
 void EntityItem::updateMass(float mass) {
@@ -1407,9 +1415,6 @@ void EntityItem::updateMass(float mass) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     glm::vec3 velocity = getLocalVelocity();
     if (velocity != value) {
         const float MIN_LINEAR_SPEED = 0.001f;
@@ -1421,6 +1426,13 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
         setLocalVelocity(velocity);
         _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
     }
+}
+
+void EntityItem::updateVelocityFromNetwork(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    updateVelocity(value);
 }
 
 void EntityItem::updateDamping(float value) {
@@ -1439,9 +1451,6 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     glm::vec3 angularVelocity = getLocalAngularVelocity();
     if (angularVelocity != value) {
         const float MIN_ANGULAR_SPEED = 0.0002f;
@@ -1453,6 +1462,13 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
         setLocalAngularVelocity(angularVelocity);
         _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
     }
+}
+
+void EntityItem::updateAngularVelocityFromNetwork(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    return updateAngularVelocity(value);
 }
 
 void EntityItem::updateAngularDamping(float value) {
