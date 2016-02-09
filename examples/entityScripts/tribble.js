@@ -65,7 +65,7 @@
         oldColor = properties.color;
         dimensions = Vec3.multiply(scale, properties.dimensions);
         baton = virtualBaton({
-            batonName: 'io.highfidelity.tribble',
+            batonName: 'io.highfidelity.tribble:' + entityID, // One winner for each entity
             debugFlow: debug.flow,
             debugSend: debug.send,
             debugReceive: debug.receive
