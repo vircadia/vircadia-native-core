@@ -93,6 +93,10 @@ void DrawSceneOctree::run(const SceneContextPointer& sceneContext,
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->numAllocatedCells = (int)scene->getSpatialTree().getNumAllocatedCells();
+    std::static_pointer_cast<Config>(renderContext->jobConfig)->numFreeCells = (int)scene->getSpatialTree().getNumFreeCells();
+
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
@@ -171,6 +175,8 @@ const gpu::PipelinePointer DrawItemSelection::getDrawItemBoundPipeline() {
         _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
 
+        _drawCellLocationLoc = program->getUniforms().findLocation("inCellLocation");
+
         auto state = std::make_shared<gpu::State>();
 
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
@@ -217,7 +223,10 @@ void DrawItemSelection::run(const SceneContextPointer& sceneContext,
             for (const auto& itemID : inSelection.insideItems) {
                 auto& item = scene->getItem(itemID);
                 auto itemBound = item.getBound();
+                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
+                glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
+                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
@@ -229,7 +238,10 @@ void DrawItemSelection::run(const SceneContextPointer& sceneContext,
             for (const auto& itemID : inSelection.insideSubcellItems) {
                 auto& item = scene->getItem(itemID);
                 auto itemBound = item.getBound();
+                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
+                glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
 
+                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
@@ -241,7 +253,10 @@ void DrawItemSelection::run(const SceneContextPointer& sceneContext,
             for (const auto& itemID : inSelection.partialItems) {
                 auto& item = scene->getItem(itemID);
                 auto itemBound = item.getBound();
+                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
+                glm::ivec4 cellLocation(0, 0, 0, itemCell.depth);
 
+                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 
@@ -253,7 +268,9 @@ void DrawItemSelection::run(const SceneContextPointer& sceneContext,
             for (const auto& itemID : inSelection.partialSubcellItems) {
                 auto& item = scene->getItem(itemID);
                 auto itemBound = item.getBound();
-
+                auto itemCell = scene->getSpatialTree().getCellLocation(item.getCell());
+                glm::ivec4 cellLocation(0, 0, 1, itemCell.depth);
+                batch._glUniform4iv(_drawCellLocationLoc, 1, ((const int*)(&cellLocation)));
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*)(&itemBound.getCorner()));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, (const float*)(&itemBound.getScale()));
 

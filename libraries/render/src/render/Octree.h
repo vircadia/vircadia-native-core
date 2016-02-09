@@ -172,13 +172,23 @@ namespace render {
         // the cell description
         class Cell {
         public:
+            void free() { _location = Location(); for (auto& link : _links) { link = INVALID; } }
+
             const Location& getlocation() const { return _location; }
 
             Index parent() const { return _links[Parent]; }
-            bool asParent() const { return parent() != INVALID; }
+            bool hasParent() const { return parent() != INVALID; }
 
             Index child(Link octant) const { return _links[octant]; }
-            bool asChild(Link octant) const { return child(octant) != INVALID; }
+            bool hasChild(Link octant) const { return child(octant) != INVALID; }
+            bool hasChildren() const {
+                for (LinkStorage octant = Octant_L_B_N; octant < NUM_OCTANTS; octant++) {
+                    if (hasChild((Link)octant)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
             void setChild(Link octant, Index child) { _links[octant] = child; }
 
             Index brick() const { return _links[BrickLink]; }
@@ -205,12 +215,16 @@ namespace render {
 
         using Bricks = std::vector< Brick >;
 
-
-        // Octree members
-        Cells _cells = Cells(1, Cell()); // start with only the Cell root
-        Bricks _bricks;
+        bool checkCellIndex(Index index) const { return (index >= 0) && (index < _cells.size()); }
+        bool checkBrickIndex(Index index) const { return (index >= 0) && (index < _bricks.size()); }
 
         Octree() {};
+
+        // Clear a cell: 
+        // Check that the cell brick is empty, if so free it
+        // CHeck that the cell has no children, if so free itself
+        // Apply the same logic to the parent cell
+        void clearCell(Index index);
 
         // Indexing/Allocating the cells as the tree gets populated
         // Return the cell Index/Indices at the specified location/path, allocate all the cells on the path from the root if needed
@@ -223,7 +237,7 @@ namespace render {
 
         // Get the cell location from the CellID
         Location getCellLocation(Index cellID) const {
-            if ((cellID >= 0) && (cellID < _cells.size())) {
+            if (checkCellIndex(cellID)) {
                 return getConcreteCell(cellID).getlocation();
             }
             return Location();
@@ -231,11 +245,9 @@ namespace render {
 
         // Reach a concrete cell
         const Cell& getConcreteCell(Index index) const {
-            assert(index < _cells.size());
+            assert(checkCellIndex(index));
             return _cells[index];
         }
-
-
 
         // Let s talk about the Cell Bricks now
         using CellBrickAccessor = std::function<void(Cell& cell, Brick& brick, Index brickIdx)>;
@@ -244,9 +256,8 @@ namespace render {
         // This returns the Brick index
         Index accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick = true);
 
-
         const Brick& getConcreteBrick(Index index) const {
-            assert(index < _bricks.size());
+            assert(checkBrickIndex(index));
             return _bricks[index];
         }
 
@@ -297,15 +308,28 @@ namespace render {
         int selectBranch(Index cellID, CellSelection& selection, const FrustumSelector& selector) const;
         int selectCellBrick(Index cellID, CellSelection& selection, bool inside) const;
 
+
+        int getNumAllocatedCells() const { return (int)_cells.size(); }
+        int getNumFreeCells() const { return (int)_freeCells.size(); }
+            
     protected:
         Index allocateCell(Index parent, const Location& location);
+        void freeCell(Index index);
+
         Index allocateBrick();
+        void freeBrick(Index index);
 
         Cell& editCell(Index index) {
-            assert(index < _cells.size());
+            assert(checkCellIndex(index));
             return _cells[index];
         }
 
+
+        // Octree members
+        Cells _cells = Cells(1, Cell()); // start with only the Cell root
+        Bricks _bricks;
+        Indices _freeCells; // stack of free cells to be reused for allocation
+        Indices _freeBricks; // stack of free bricks to be reused for allocation
     };
 }
 

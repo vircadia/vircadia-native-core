@@ -23,6 +23,9 @@ namespace render {
         Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
         Q_PROPERTY(bool showEmptyCells MEMBER showEmptyCells WRITE setShowEmptyCells)
         Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
+        Q_PROPERTY(int numAllocatedCells READ getNumAllocatedCells)
+        Q_PROPERTY(int numFreeCells READ getNumFreeCells)
+
     public:
 
         DrawSceneOctreeConfig() : Job::Config(false) {}
@@ -30,6 +33,12 @@ namespace render {
         bool showVisibleCells{ true };
         bool showEmptyCells{ false };
         bool freezeFrustum{ false };
+
+        int numAllocatedCells{ 0 };
+        int numFreeCells{ 0 };
+
+        int getNumAllocatedCells() const { return numAllocatedCells; }
+        int getNumFreeCells() const { return numFreeCells; }
 
     public slots:
         void setShowVisibleCells(bool show) { showVisibleCells = show; emit dirty(); }
@@ -103,6 +112,7 @@ namespace render {
 
         int _drawItemBoundPosLoc = -1;
         int _drawItemBoundDimLoc = -1;
+        int _drawCellLocationLoc = -1;
         gpu::PipelinePointer _drawItemBoundPipeline;
 
         bool _showInsideItems; // initialized by Config

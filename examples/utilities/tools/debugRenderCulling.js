@@ -55,6 +55,24 @@ panel.newCheckbox("Show Partial Subcell Items",
     function(value) { return (value); }
 );
 
+/*
+panel.newSlider('Cells Free / Allocated', -1, 1, 
+    function(value) { value; }, // setter
+    function() { return Render.RenderDeferredTask.DrawSceneOctree.numFreeCells; }, // getter
+    function(value) { return value; });
+
+this.update = function () {
+    var numFree = Render.RenderDeferredTask.DrawSceneOctree.numFreeCells;
+    var numAlloc = Render.RenderDeferredTask.DrawSceneOctree.numAllocatedCells;
+    var title = [
+        ' ' + name,
+        numFree + ' / ' + numAlloc
+    ].join('\t');
+
+    widget.editTitle({ text: title });
+    slider.setMaxValue(numAlloc);
+};
+*/
 function mouseMoveEvent(event) {
     panel.mouseMoveEvent(event);
 }

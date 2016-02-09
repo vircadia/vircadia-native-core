@@ -109,20 +109,69 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
 
 Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
-    if (_cells[parent].asChild(location.octant())) {
+    if (_cells[parent].hasChild(location.octant())) {
         assert(_cells[parent].child(location.octant()) == INVALID);
         return _cells[parent].child(location.octant());
     }
 
     assert(_cells[parent].getlocation().child(location.octant()) == location);
 
-    auto newIndex = (Index) _cells.size();
-    _cells.push_back(Cell(parent, location));
-    _cells[parent].setChild(location.octant(), newIndex);
+    Index newIndex;
+    if (_freeCells.empty()) {
+        newIndex = (Index)_cells.size();
+        _cells.push_back(Cell(parent, location));
+    } else {
+        newIndex = _freeCells.back();
+        _freeCells.pop_back();
+        _cells[newIndex] = Cell(parent, location);
+    }
 
+    _cells[parent].setChild(location.octant(), newIndex);
     return newIndex;
 }
 
+
+void Octree::freeCell(Index index) {
+    if (checkCellIndex(index)) {
+        auto & cell = _cells[index];
+        cell.free();
+        _freeCells.push_back(index);
+    }
+}
+
+void Octree::clearCell(Index index) {
+    auto& cell = editCell(index);
+    
+    // Free the brick
+    if (cell.hasBrick()) {
+        freeBrick(cell.brick());
+        cell.setBrick(INVALID);
+    }
+
+    // Free the cell ?
+    Index parentIdx = cell.parent();
+    if (!cell.hasParent()) {
+        if (index == ROOT_CELL) {
+            // Stop here, this is the root cell!
+            return;
+        } else {
+            // THis is not expected
+            assert(false);
+            return;
+        }
+    }
+
+    bool traverseParent = false;
+    if (!cell.hasChildren()) {
+        editCell(parentIdx).setChild(cell.getlocation().octant(), INVALID);
+        freeCell(index);
+        traverseParent = true;
+    }
+
+    if (traverseParent) {
+        clearCell(parentIdx);
+    }
+}
 
 Octree::Indices Octree::indexCellPath(const Locations& path) {
     // First through the allocated cells
@@ -147,13 +196,27 @@ Octree::Indices Octree::indexCellPath(const Locations& path) {
 
 
 Octree::Index Octree::allocateBrick() {
-    Index brickIdx = (int) _bricks.size();
-    _bricks.push_back(Brick());
-    return brickIdx;
+    if (_freeBricks.empty()) {
+        Index brickIdx = (int)_bricks.size();
+        _bricks.push_back(Brick());
+        return brickIdx;
+    } else {
+        Index brickIdx = _freeBricks.back();
+        _freeBricks.pop_back();
+        return brickIdx;
+    }
+}
+
+void Octree::freeBrick(Index index) {
+    if (checkCellIndex(index)) {
+        auto & brick = _bricks[index];
+        //  brick.free();
+        _freeBricks.push_back(index);
+    }
 }
 
 Octree::Index Octree::accessCellBrick(Index cellID, const CellBrickAccessor& accessor, bool createBrick) {
-    assert(cellID != INVALID);
+    assert(checkCellIndex(cellID));
     auto& cell = editCell(cellID);
     if (!cell.hasBrick()) {
         if (!createBrick) {
@@ -220,6 +283,7 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
     auto success = false;
 
     // Remove the item from the brick
+    bool emptyCell = false;
     accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index brickID) {
         auto& itemList = (key.isSmall() ? brick.subcellItems : brick.items);
 
@@ -227,9 +291,15 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
 
         if (brick.items.empty() && brick.subcellItems.empty()) {
             cell.signalBrickEmpty();
+            emptyCell = true;
         }
         success = true;
     }, false); // do not create brick!
+
+
+    if (emptyCell) {
+       clearCell(cellIdx);
+    }
 
     return success;
 }
@@ -245,7 +315,11 @@ ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& 
     auto rangeSizef = maxCoordf - minCoordf;
     float cellFitSize = getCellHalfDiagonalSquare(location.depth);
     bool subcellItem = glm::dot(rangeSizef, rangeSizef) < cellFitSize;
-    newKey.setSmaller(subcellItem);
+    if (subcellItem) {
+        newKey.setSmaller(subcellItem);
+    } else {
+        newKey.setSmaller(false);
+    }
 
     auto newCell = indexCell(location);
 
@@ -461,3 +535,6 @@ int ItemSpatialTree::selectCellItems(ItemSelection& selection, const ItemFilter&
 
     return (int) selection.numItems();
 }
+
+
+
