@@ -17,6 +17,12 @@
 
 using namespace render;
 
+void ShapePipeline::prepare(gpu::Batch& batch) {
+    if (batchSetter) {
+        batchSetter(*this, batch);
+    }
+}
+
 ShapeKey::Filter::Builder::Builder() {
     _mask.set(OWN_PIPELINE);
     _mask.set(INVALID);

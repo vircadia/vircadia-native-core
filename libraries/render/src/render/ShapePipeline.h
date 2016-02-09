@@ -225,7 +225,7 @@ public:
 
     // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be set manually,
     // after calling setPipeline this method should be called to prepare the pipeline with default buffers.
-    void prepare(gpu::Batch& batch) { batchSetter(*this, batch); }
+    void prepare(gpu::Batch& batch);
 
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
