@@ -12,7 +12,12 @@
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
 
-#include <qscriptengine.h> // QObject
+#include <QtCore/qobject.h>
+
+#include <QtCore/qjsondocument.h>
+#include <QtCore/qjsonobject.h>
+#include <QtCore/qjsonvalue.h>
+#include <shared/JSONHelpers.h>
 
 #include "Context.h"
 
@@ -65,6 +70,11 @@ public:
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
+
+    Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
+
+public slots:
+    void load(const QJsonValue& json) { qObjectFromJsonValue(json, *this); }
 };
 
 class TaskConfig : public JobConfig {

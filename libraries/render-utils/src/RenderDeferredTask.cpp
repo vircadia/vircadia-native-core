@@ -127,7 +127,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
         addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
     }
 
-    addJob<DrawOverlay3D>("DrawOverlay3D");
+    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", ItemFilter::Builder::opaqueShape().withLayered());
+    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", ItemFilter::Builder::transparentShape().withLayered());
 
     addJob<HitEffect>("HitEffect");
 
@@ -180,7 +181,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     });
 }
 
-DrawOverlay3D::DrawOverlay3D() : _shapePlumber{ std::make_shared<ShapePlumber>() } {
+DrawOverlay3D::DrawOverlay3D(ItemFilter filter) : _filter{ filter }, _shapePlumber{ std::make_shared<ShapePlumber>() } {
     initOverlay3DPipelines(*_shapePlumber);
 }
 
@@ -190,7 +191,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
     // render backgrounds
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
+    auto& items = scene->getMasterBucket().at(_filter);
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -203,7 +204,6 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
     }
     config->numItems = (int)inItems.size();
-    config->numDrawn = (int)inItems.size();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->args;

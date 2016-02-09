@@ -28,7 +28,9 @@ public:
         SKINNED,
         STEREO,
         DEPTH_ONLY,
+        DEPTH_BIAS,
         WIREFRAME,
+        NO_CULL_FACE,
 
         OWN_PIPELINE,
         INVALID,
@@ -39,7 +41,7 @@ public:
 
     Flags _flags;
 
-    ShapeKey() : _flags{0} {}
+    ShapeKey() : _flags{ 0 } {}
     ShapeKey(const Flags& flags) : _flags{flags} {}
 
     class Builder {
@@ -57,7 +59,9 @@ public:
         Builder& withSkinned() { _flags.set(SKINNED); return (*this); }
         Builder& withStereo() { _flags.set(STEREO); return (*this); }
         Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); return (*this); }
+        Builder& withDepthBias() { _flags.set(DEPTH_BIAS); return (*this); }
         Builder& withWireframe() { _flags.set(WIREFRAME); return (*this); }
+        Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); return (*this); }
 
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
@@ -107,8 +111,14 @@ public:
             Builder& withDepthOnly() { _flags.set(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
             Builder& withoutDepthOnly() { _flags.reset(DEPTH_ONLY); _mask.set(DEPTH_ONLY); return (*this); }
 
+            Builder& withDepthBias() { _flags.set(DEPTH_BIAS); _mask.set(DEPTH_BIAS); return (*this); }
+            Builder& withoutDepthBias() { _flags.reset(DEPTH_BIAS); _mask.set(DEPTH_BIAS); return (*this); }
+
             Builder& withWireframe() { _flags.set(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
             Builder& withoutWireframe() { _flags.reset(WIREFRAME); _mask.set(WIREFRAME); return (*this); }
+
+            Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
+            Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
         protected:
             friend class Filter;
@@ -130,7 +140,9 @@ public:
     bool isSkinned() const { return _flags[SKINNED]; }
     bool isStereo() const { return _flags[STEREO]; }
     bool isDepthOnly() const { return _flags[DEPTH_ONLY]; }
+    bool isDepthBiased() const { return _flags[DEPTH_BIAS]; }
     bool isWireFrame() const { return _flags[WIREFRAME]; }
+    bool isCullFace() const { return !_flags[NO_CULL_FACE]; }
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
@@ -150,21 +162,23 @@ public:
     };
 };
 
-inline QDebug operator<<(QDebug debug, const ShapeKey& renderKey) {
-    if (renderKey.isValid()) {
-        if (renderKey.hasOwnPipeline()) {
+inline QDebug operator<<(QDebug debug, const ShapeKey& key) {
+    if (key.isValid()) {
+        if (key.hasOwnPipeline()) {
             debug << "[ShapeKey: OWN_PIPELINE]";
         } else {
             debug << "[ShapeKey:"
-                << "hasLightmap:" << renderKey.hasLightmap()
-                << "hasTangents:" << renderKey.hasTangents()
-                << "hasSpecular:" << renderKey.hasSpecular()
-                << "hasEmissive:" << renderKey.hasEmissive()
-                << "isTranslucent:" << renderKey.isTranslucent()
-                << "isSkinned:" << renderKey.isSkinned()
-                << "isStereo:" << renderKey.isStereo()
-                << "isDepthOnly:" << renderKey.isDepthOnly()
-                << "isWireFrame:" << renderKey.isWireFrame()
+                << "hasLightmap:" << key.hasLightmap()
+                << "hasTangents:" << key.hasTangents()
+                << "hasSpecular:" << key.hasSpecular()
+                << "hasEmissive:" << key.hasEmissive()
+                << "isTranslucent:" << key.isTranslucent()
+                << "isSkinned:" << key.isSkinned()
+                << "isStereo:" << key.isStereo()
+                << "isDepthOnly:" << key.isDepthOnly()
+                << "isDepthBiased:" << key.isDepthBiased()
+                << "isWireFrame:" << key.isWireFrame()
+                << "isCullFace:" << key.isCullFace()
                 << "]";
         }
     } else {
@@ -208,6 +222,10 @@ public:
 
     ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
         pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
+
+    // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be set manually,
+    // after calling setPipeline this method should be called to prepare the pipeline with default buffers.
+    void prepare(gpu::Batch& batch);
 
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;

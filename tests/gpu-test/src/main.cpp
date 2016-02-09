@@ -239,6 +239,7 @@ public:
                 }
             }
 
+            auto pipeline = geometryCache->getSimplePipeline();
             for (auto& transform : transforms) {
                 batch.setModelTransform(transform);
                 batch.setupNamedCalls(GRID_INSTANCE, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
