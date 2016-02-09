@@ -1,5 +1,4 @@
 if (WIN32)
-  message("in findbugsplat")
   include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
   hifi_library_search_hints("BugSplat")
 
@@ -14,9 +13,7 @@ if (WIN32)
   select_library_configurations(BUGSPLAT)
 
   set(BUGSPLAT_LIBRARIES ${BUGSPLAT_LIBRARY_RELEASE})
-
-  set(BUGSPLAT_REQUIREMENTS BUGSPLAT_INCLUDE_DIRS BUGSPLAT_LIBRARIES BUGSPLAT_DLL_PATH BUGSPLAT_RC_DLL_PATH BUGSPLAT_EXE_PATH)
-  find_package_handle_standard_args(BugSplat DEFAULT_MSG ${BUGSPLAT_REQUIREMENTS})
-
-  add_paths_to_fixup_libs(${BUGSPLAT_DLL_PATH})
 endif ()
+
+set(BUGSPLAT_REQUIREMENTS BUGSPLAT_INCLUDE_DIRS BUGSPLAT_LIBRARIES BUGSPLAT_DLL_PATH BUGSPLAT_RC_DLL_PATH BUGSPLAT_EXE_PATH)
+find_package_handle_standard_args(BugSplat DEFAULT_MSG ${BUGSPLAT_REQUIREMENTS})

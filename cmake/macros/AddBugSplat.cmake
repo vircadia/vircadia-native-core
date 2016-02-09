@@ -8,6 +8,7 @@ macro(add_bugsplat)
 
     target_include_directories(${TARGET_NAME} PRIVATE ${BUGSPLAT_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${BUGSPLAT_LIBRARIES})
+    add_paths_to_fixup_libs(${BUGSPLAT_DLL_PATH})
 
     add_custom_command(TARGET ${TARGET_NAME}
       POST_BUILD
