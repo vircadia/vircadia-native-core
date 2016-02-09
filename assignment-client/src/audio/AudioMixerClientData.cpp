@@ -21,7 +21,8 @@
 #include "AudioMixerClientData.h"
 
 
-AudioMixerClientData::AudioMixerClientData() :
+AudioMixerClientData::AudioMixerClientData(const QUuid& nodeID) :
+    NodeData(nodeID),
     _outgoingMixedAudioSequenceNumber(0),
     _downstreamAudioStreamStats()
 {
@@ -38,6 +39,22 @@ AvatarAudioStream* AudioMixerClientData::getAvatarAudioStream() {
 
     // no mic stream found - return NULL
     return NULL;
+}
+
+void AudioMixerClientData::removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID) {
+    auto it = _nodeSourcesHRTFMap.find(nodeID);
+    if (it != _nodeSourcesHRTFMap.end()) {
+        qDebug() << "Erasing stream" << streamID << "from node" << nodeID << "for listener" << getNodeID();
+        // erase the stream with the given ID from the given node
+        it->second.erase(streamID);
+
+        // is the map for this node now empty?
+        // if so we can remove it
+        if (it->second.size() == 0) {
+            qDebug() << "Last injector was erased, erasing map for" << nodeID << "for listener" << getNodeID();
+            _nodeSourcesHRTFMap.erase(it);
+        }
+    }
 }
 
 int AudioMixerClientData::parseData(ReceivedMessage& message) {
@@ -110,6 +127,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                     std::unique_ptr<InjectedAudioStream> { new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()) }
                 );
 
+                qDebug() << "Added an injector at" << streamIdentifier;
+
                 streamIt = emplaced.first;
             }
 
@@ -160,6 +179,8 @@ void AudioMixerClientData::removeDeadInjectedStreams() {
 
     QWriteLocker writeLocker { &_streamsLock };
 
+    qDebug() << _audioStreams.size();
+
     auto it = _audioStreams.begin();
     while (it != _audioStreams.end()) {
         PositionalAudioStream* audioStream = it->second.get();
@@ -182,9 +203,6 @@ void AudioMixerClientData::removeDeadInjectedStreams() {
 }
 
 void AudioMixerClientData::sendAudioStreamStatsPackets(const SharedNodePointer& destinationNode) {
-
-    // since audio stream stats packets are sent periodically, this is a good place to remove our dead injected streams.
-    removeDeadInjectedStreams();
 
     auto nodeList = DependencyManager::get<NodeList>();
 

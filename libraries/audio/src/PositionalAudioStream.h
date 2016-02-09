@@ -28,7 +28,10 @@ public:
     };
 
     PositionalAudioStream(PositionalAudioStream::Type type, bool isStereo, const InboundAudioStream::Settings& settings);
-    
+
+    const QUuid DEFAULT_STREAM_IDENTIFIER = QUuid();
+    virtual const QUuid& getStreamIdentifier() const { return DEFAULT_STREAM_IDENTIFIER; }
+
     virtual void resetStats();
 
     virtual AudioStreamStats getAudioStreamStats() const;

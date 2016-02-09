@@ -15,7 +15,6 @@
 #include <AABox.h>
 #include <AudioHRTF.h>
 #include <AudioRingBuffer.h>
-#include <PairHash.h>
 #include <ThreadedAssignment.h>
 #include <UUIDHasher.h>
 
@@ -48,17 +47,15 @@ private slots:
     void handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleNodeKilled(SharedNodePointer killedNode);
 
-    void clearHRTFsMatchingStreamID(const QUuid& streamID);
+    void removeHRTFsForFinishedInjector(const QUuid& streamID);
 
 private:
     void domainSettingsRequestComplete();
     
-    using ListenerSourceIDPair = std::pair<QUuid, QUuid>;
-    
     /// adds one stream to the mix for a listening node
-    void addStreamToMixForListeningNodeWithStream(ListenerSourceIDPair idPair,
-                                                  const AudioMixerClientData& listenerNodeData,
+    void addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
                                                   const PositionalAudioStream& streamToAdd,
+                                                  const QUuid& sourceNodeID,
                                                   const AvatarAudioStream& listeningNodeStream);
 
     float gainForSource(const PositionalAudioStream& streamToAdd, const AvatarAudioStream& listeningNodeStream,
@@ -90,9 +87,6 @@ private:
 
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
-
-    using HRTFMap = std::unordered_map<ListenerSourceIDPair, AudioHRTF, pair_hash>;
-    HRTFMap _hrtfMap;
 
     QHash<QString, AABox> _audioZones;
     struct ZonesSettings {

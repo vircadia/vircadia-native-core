@@ -175,18 +175,11 @@ float AudioMixer::azimuthForSource(const PositionalAudioStream& streamToAdd, con
     return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, 1.0f, 0.0f));
 }
 
-void AudioMixer::addStreamToMixForListeningNodeWithStream(ListenerSourceIDPair idPair,
-                                                          const AudioMixerClientData& listenerNodeData,
+void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& listenerNodeData,
                                                           const PositionalAudioStream& streamToAdd,
+                                                          const QUuid& sourceNodeID,
                                                           const AvatarAudioStream& listeningNodeStream) {
 
-    // get the existing listener-source HRTF object, or create a new one
-
-    if (_hrtfMap.find(idPair) == _hrtfMap.end()) {
-        qDebug() << "Setting up a new HRTF for" << idPair.first << idPair.second;
-    }
-
-    auto& hrtf = _hrtfMap[idPair];
 
     // to reduce artifacts we calculate the gain and azimuth for every source for this listener
     // even if we are not going to end up mixing in this source
@@ -237,7 +230,10 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(ListenerSourceIDPair i
             // this ensures the correct tail from the previously mixed block and the correct spatialization of first block
             // of any upcoming audio
 
-            if (!streamToAdd.isStereo()) {
+            if (!streamToAdd.isStereo() && !isEcho) {
+                // get the existing listener-source HRTF object, or create a new one
+                auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+
                 // this is not done for stereo streams since they do not go through the HRTF
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
                 hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
@@ -251,13 +247,10 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(ListenerSourceIDPair i
     // grab the stream from the ring buffer
     AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd.getLastPopOutput();
 
-    static int16_t streamBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
-
     if (streamToAdd.isStereo() || isEcho) {
         // this is a stereo source or server echo so we do not pass it through the HRTF
         // simply apply our calculated gain to each sample
         if (streamToAdd.isStereo()) {
-
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
                 _mixedSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
             }
@@ -271,6 +264,11 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(ListenerSourceIDPair i
 
         return;
     }
+
+    // get the existing listener-source HRTF object, or create a new one
+    auto& hrtf = listenerNodeData.hrtfForStream(sourceNodeID, streamToAdd.getStreamIdentifier());
+
+    static int16_t streamBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL];
 
     streamPopOutput.readSamples(streamBlock, AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
@@ -323,15 +321,10 @@ bool AudioMixer::prepareMixForListeningNode(Node* node) {
             for (auto& streamPair : streamsCopy) {
 
                 auto otherNodeStream = streamPair.second;
-                auto streamUUID = streamPair.first;
-
-                if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
-                    streamUUID = otherNode->getUUID();
-                }
 
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
-                    addStreamToMixForListeningNodeWithStream({ node->getUUID(), streamUUID },
-                                                             *listenerNodeData, *otherNodeStream, *nodeAudioStream);
+                    addStreamToMixForListeningNodeWithStream(*listenerNodeData, *otherNodeStream, otherNode->getUUID(),
+                                                             *nodeAudioStream);
                 }
             }
         }
@@ -456,28 +449,28 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
 }
 
 void AudioMixer::handleNodeKilled(SharedNodePointer killedNode) {
-    // call our helper to clear HRTF data that had this node as a source or listener
-    clearHRTFsMatchingStreamID(killedNode->getUUID());
+    // enumerate the connected listeners to remove HRTF objects for the disconnected node
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    nodeList->eachNode([](const SharedNodePointer& node) {
+        auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+        if (clientData) {
+            clientData->removeHRTFsForNode(node->getUUID());
+        }
+    });
 }
 
-void AudioMixer::clearHRTFsMatchingStreamID(const QUuid& streamID) {
-    qDebug() << "Removing HRTF objects for" << streamID;
+void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
+    auto injectorClientData = qobject_cast<AudioMixerClientData*>(sender());
+    if (injectorClientData) {
+        // enumerate the connected listeners to remove HRTF objects for the disconnected injector
+        auto nodeList = DependencyManager::get<NodeList>();
 
-    // enumerate the HRTF map to remove any HRTFs that included this stream as a source or listener
-    auto it = _hrtfMap.begin();
-    while (it != _hrtfMap.end()) {
-        auto& idPair = it->first;
-
-        if (idPair.first == streamID || idPair.second == streamID) {
-            // matched the stream ID to source or listener, remove that HRTF from the map
-            it = _hrtfMap.erase(it);
-        } else {
-            // did not match, push the iterator
-            ++it;
-        }
+        nodeList->eachNode([injectorClientData, &streamID](const SharedNodePointer& node){
+            auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
+            listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+        });
     }
-
-    qDebug() << "HRTF now has" << _hrtfMap.size();
 }
 
 void AudioMixer::sendStatsPacket() {
@@ -579,10 +572,10 @@ void AudioMixer::domainSettingsRequestComplete() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
     nodeList->linkedDataCreateCallback = [&](Node* node) {
-        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData });
+        node->setLinkedData(std::unique_ptr<NodeData> { new AudioMixerClientData(node->getUUID()) });
         auto clientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
 
-        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::clearHRTFsMatchingStreamID);
+        connect(clientData, &AudioMixerClientData::injectorStreamFinished, this, &AudioMixer::removeHRTFsForFinishedInjector);
     };
 
     DomainHandler& domainHandler = nodeList->getDomainHandler();

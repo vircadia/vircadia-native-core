@@ -15,6 +15,7 @@
 #include <QtCore/QJsonObject>
 
 #include <AABox.h>
+#include <AudioHRTF.h>
 #include <UUIDHasher.h>
 
 #include "PositionalAudioStream.h"
@@ -23,7 +24,7 @@
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:
-    AudioMixerClientData();
+    AudioMixerClientData(const QUuid& nodeID);
 
     using SharedStreamPointer = std::shared_ptr<PositionalAudioStream>;
     using AudioStreamMap = std::unordered_map<QUuid, SharedStreamPointer>;
@@ -31,8 +32,20 @@ public:
     // locks the mutex to make a copy
     AudioStreamMap getAudioStreams() { QReadLocker readLock { &_streamsLock }; return _audioStreams; }
     AvatarAudioStream* getAvatarAudioStream();
+
+    // the following methods should be called from the AudioMixer assignment thread ONLY
+    // they are not thread-safe
+
+    // returns a new or existing HRTF object for the given stream from the given node
+    AudioHRTF& hrtfForStream(const QUuid& nodeID, const QUuid& streamID = QUuid()) { return _nodeSourcesHRTFMap[nodeID][streamID]; }
+
+    // remove HRTFs for all sources from this node
+    void removeHRTFsForNode(const QUuid& nodeID) { qDebug() << "Removing all HRTF for listener" << getNodeID() << "and source" << nodeID;_nodeSourcesHRTFMap.erase(nodeID); }
+
+    // removes an AudioHRTF object for a given stream
+    void removeHRTFForStream(const QUuid& nodeID, const QUuid& streamID = QUuid());
     
-    int parseData(ReceivedMessage& message);
+    int parseData(ReceivedMessage& me ssage);
 
     void checkBuffersBeforeFrameSend();
 
@@ -56,6 +69,10 @@ private:
 private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
+
+    using HRTFMap = std::unordered_map<QUuid, AudioHRTF>;
+    using NodeSourcesHRTFMap = std::unordered_map<QUuid, HRTFMap>;
+    NodeSourcesHRTFMap _nodeSourcesHRTFMap;
 
     quint16 _outgoingMixedAudioSequenceNumber;
 
