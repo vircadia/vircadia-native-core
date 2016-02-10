@@ -40,6 +40,8 @@ vr::IVRSystem* acquireOpenVrSystem() {
             qCDebug(displayplugins) << "openvr: incrementing refcount";
             ++refCount;
         }
+    } else {
+        qCDebug(displayplugins) << "openvr: no hmd present";
     }
     return activeHmd;
 }
