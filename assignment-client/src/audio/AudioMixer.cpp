@@ -489,6 +489,15 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
     }
 }
 
+QString AudioMixer::percentageForMixStats(int counter) {
+    if (_totalMixes > 0) {
+        float mixPercentage = (float(counter) / _totalMixes) * 100.0f;
+        return QString::number(mixPercentage, 'f', 2);
+    } else {
+        return QString("0.0");
+    }
+}
+
 void AudioMixer::sendStatsPacket() {
     static QJsonObject statsObject;
 
@@ -499,11 +508,11 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
 
     QJsonObject mixStats;
-    mixStats["%_hrtf_mixes"] = (_totalMixes > 0) ? (_hrtfRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_hrtf_silent_mixes"] = (_totalMixes > 0) ? (_hrtfSilentRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_hrtf_struggle_mixes"] = (_totalMixes > 0) ? (_hrtfStruggleRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_manual_stereo_mixes"] = (_totalMixes > 0) ? (_manualStereoMixes / _totalMixes) * 100.0f : 0;
-    mixStats["%_manual_echo_mixes"] = (_totalMixes > 0) ? (_manualEchoMixes / _totalMixes) * 100.0f : 0;
+    mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
+    mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_hrtfSilentRenders);
+    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_hrtfStruggleRenders);
+    mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_manualStereoMixes);
+    mixStats["%_manual_echo_mixes"] = percentageForMixStats(_manualEchoMixes);
 
     mixStats["total_mixes"] = _totalMixes;
     mixStats["avg_mixes_per_block"] = _totalMixes / _numStatFrames;
