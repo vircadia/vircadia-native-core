@@ -19,12 +19,40 @@ Windows.Window {
     property var channel;
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
-    property alias source: pageLoader.source 
-    
-    Loader { 
-        id: pageLoader
-        objectName: "Loader"
-        focus: true
-        property var dialog: root
+    property var source;
+    property var component;
+    property var dynamicContent;
+    onSourceChanged: {
+        if (dynamicContent) {
+            dynamicContent.destroy();
+            dynamicContent = null; 
+        }
+        component = Qt.createComponent(source);
+        console.log("Created component " + component + " from source " + source);
     }
-} // dialog
+
+    onComponentChanged: {
+        console.log("Component changed to " + component)
+        populate();
+    }
+        
+    function populate() {
+        console.log("Populate called: dynamicContent " + dynamicContent + " component " + component);
+        if (!dynamicContent && component) {
+            if (component.status == Component.Error) {
+                console.log("Error loading component:", component.errorString());
+            } else if (component.status == Component.Ready) {
+                console.log("Building dynamic content");
+                dynamicContent = component.createObject(contentHolder);
+            } else {
+                console.log("Component not yet ready, connecting to status change");
+                component.statusChanged.connect(populate);
+            }
+        }
+    }
+    
+    Item {
+        id: contentHolder
+        anchors.fill: parent
+    }
+}
