@@ -45,12 +45,11 @@
     }
 
     this.enterEntity = function(entityID) {
-          print('JBP ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
-
+        //print('ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
         var data = JSON.parse(Entities.getEntityProperties(this.entityId).userData);
-         print('JBP DATA IS::' + data)
+        //print('DATA IS::' + data)
         if (data != null) {
-            print("JBP Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
+            print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
 
              MyAvatar.position = data.location;
              
@@ -65,7 +64,7 @@
     }
 
     this.lookAtTarget = function(entryPoint,target) {
-        print('JBP SHOULD LOOK AT TARGET')
+        //print('SHOULD LOOK AT TARGET')
         var direction = Vec3.normalize(Vec3.subtract(entryPoint, target));
         var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
             x: 1,

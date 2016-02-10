@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1021;
+var version = 1029;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -163,7 +163,7 @@ var scenes = [{
                 z: 0
             },
             radius: 300,
-            number: 15,
+            number: 7,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -188,7 +188,7 @@ var scenes = [{
                 z: 0
             },
             radius: 1000,
-            number: 45,
+            number: 22,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -210,7 +210,7 @@ var scenes = [{
                 z: 976
             },
             radius: 140,
-            number: 20,
+            number: 10,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -232,7 +232,7 @@ var scenes = [{
                 z: 976
             },
             radius: 115,
-            number: 15,
+            number: 7,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -254,7 +254,7 @@ var scenes = [{
                 z: 0
             },
             radius: 600,
-            number: 30,
+            number: 15,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -276,7 +276,7 @@ var scenes = [{
                 z: 0
             },
             radius: 1600,
-            number: 45,
+            number: 22,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -298,7 +298,7 @@ var scenes = [{
                 z: 0
             },
             radius: 1400,
-            number: 45,
+            number: 22,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -320,7 +320,7 @@ var scenes = [{
                 z: 0
             },
             radius: 1800,
-            number: 45,
+            number: 22,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -365,7 +365,7 @@ var scenes = [{
                 z: 771
             },
             radius: 80,
-            number: 15,
+            number: 7,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -390,13 +390,15 @@ var scenes = [{
                 z: 771
             },
             radius: 60,
-            number: 15,
+            number: 7,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
-                }
+                },
+                target: locations.hexokinase[1],
+                location: locations.hexokinase[0],
             }),
-            script: "",
+            script: "zoom.js?" + version,
             visible: true
         }, {
             model: "glucose_isomerase",
@@ -412,13 +414,15 @@ var scenes = [{
                 z: 771
             },
             radius: 70,
-            number: 15,
+            number: 7,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
-                }
+                },
+                target: locations.hexokinase[1],
+                location: locations.hexokinase[0],
             }),
-            script: "",
+            script: "zoom.js?" + version,
             visible: true
         }
         //          {
@@ -598,8 +602,6 @@ function ImportScene(scene) {
     CreateInstances(scene);
     CreateBoundary(scene);
 
-   // CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
-
     // print("done " + scene.name);
 
 }
@@ -647,7 +649,7 @@ function CreateNavigationButton(scene, number) {
 
 
     Entities.addEntity({
-        type: "Sphere",
+        type: "Box",
         name: scene.name + " navigation button",
         color: {
             red: 200,
@@ -655,9 +657,9 @@ function CreateNavigationButton(scene, number) {
             blue: 0
         },
         dimensions: {
-            x: 10,
-            y: 10,
-            z: 10
+            x: 16000,
+            y: 16000,
+            z: 16000
         },
         visible: false,
         userData: JSON.stringify({
@@ -670,10 +672,13 @@ function CreateNavigationButton(scene, number) {
                 grabbable: false
             }
         }),
-        // position:{x:3000,y:13500,z:3000},
+        position: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
         script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
-
     });
 
 }
@@ -850,27 +855,6 @@ function CreateIdentification(name, position, rotation, dimensions, showDistance
 
 }
 
-function CreateBackgroundAudio(name, position) {
-    Entities.addEntity({
-        type: "Sphere",
-        name: "Location " + name + " background audio",
-        dimensions: {
-            x: 4000,
-            y: 4000,
-            z: 4000
-        },
-        position: position,
-        visible: false,
-        userData: JSON.stringify({
-            name: name,
-            baseURL: baseLocation
-        }),
-        script: baseLocation + "Scripts/playBackgroundAudio.js?" + version,
-        collisionless: true,
-
-    });
-
-}
 
 function getPointOnSphereOfRadius(radius, number, totalNumber) {
 
