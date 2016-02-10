@@ -1482,7 +1482,7 @@ void EntityItem::updateAngularVelocityFromNetwork(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    return updateAngularVelocity(value);
+    updateAngularVelocity(value);
 }
 
 void EntityItem::updateAngularDamping(float value) {
