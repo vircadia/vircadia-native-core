@@ -14,8 +14,8 @@ var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
 //  The _TIMEOUT parameters can be 0 for no activity, and -1 to be active indefinitely.
 //
 
-var NUMBER_TO_CREATE = 200;
-var LIFETIME = 60; // seconds
+var NUMBER_TO_CREATE = 100;
+var LIFETIME = 120; // seconds
 var EDIT_RATE = 60; // hz
 var EDIT_TIMEOUT = -1;
 var MOVE_RATE = 1; // hz
@@ -68,7 +68,8 @@ Script.setInterval(function () {
         moveTimeout: MOVE_TIMEOUT,
         moveRate: MOVE_RATE,
         editTimeout: EDIT_TIMEOUT,
-        editRate: EDIT_RATE
+        editRate: EDIT_RATE,
+        debug: {flow: false, send: false, receive: false}
     });
     for (i = 0; (i < numToCreate) && (totalCreated < NUMBER_TO_CREATE); i++) {
         Entities.addEntity({
