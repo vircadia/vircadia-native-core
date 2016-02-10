@@ -60,7 +60,9 @@ function virtualBatonf(options) {
         // order) of both.)
         connectionTest = options.connectionTest || function connectionTest(id) {
             var idLength = 38;
-            if (id.length === idLength) { return exports.validId(id); }
+            if (id.length === idLength) {
+                return exports.validId(id);
+            }
             return (id.length === 2 * idLength) && exports.validId(id.slice(0, idLength)) && exports.validId(id.slice(idLength));
         };
 
@@ -70,7 +72,9 @@ function virtualBatonf(options) {
     // Truthy if id exists as either a connected avatar or valid entity.
     exports.validId = function validId(id) {
         var avatar = avatarList.getAvatar(id);
-        if (avatar && (avatar.sessionUUID === id)) { return true; }
+        if (avatar && (avatar.sessionUUID === id)) {
+            return true;
+        }
         var properties = entities.getEntityProperties(id, ['type']);
         return properties && properties.type;
     };
@@ -80,13 +84,19 @@ function virtualBatonf(options) {
         log.apply(null, [].map.call(arguments, JSON.stringify));
     }
     function debugFlow() {
-        if (options.debugFlow) { debug.apply(null, arguments); }
+        if (options.debugFlow) {
+            debug.apply(null, arguments);
+        }
     }
     function debugSend(destination, operation, data) {
-        if (options.debugSend) { debug('baton:', batonName, instanceId, 's=>', destination, operation, data); }
+        if (options.debugSend) {
+            debug('baton:', batonName, instanceId, 's=>', destination, operation, data);
+        }
     }
     function debugReceive(senderID, operation, data) { // senderID is client sessionUUID -- not necessarily instanceID!
-        if (options.debugReceive) { debug('baton:', batonName, senderID, '=>r', instanceId, operation, data); }
+        if (options.debugReceive) {
+            debug('baton:', batonName, senderID, '=>r', instanceId, operation, data);
+        }
     }
 
     // Messages: Just synactic sugar for hooking things up to Messages system.
@@ -95,7 +105,9 @@ function virtualBatonf(options) {
     var channelKey = "io.highfidelity.virtualBaton:" + batonName,
         subchannelHandlers = {}, // Message channel string => {receiver, op}
         subchannelKeys = {};     // operation => Message channel string
-    function subchannelKey(operation) { return channelKey + ':' + operation; }
+    function subchannelKey(operation) {
+        return channelKey + ':' + operation;
+    }
     function receive(operation, handler) { // Record a handler for an operation on our channelKey
         var subKey = subchannelKey(operation);
         subchannelHandlers[subKey] = {receiver: handler, op: operation};
@@ -116,7 +128,9 @@ function virtualBatonf(options) {
     }
     function messageHandler(channel, messageString, senderID) {
         var handler = subchannelHandlers[channel];
-        if (!handler) { return; }
+        if (!handler) {
+            return;
+        }
         var data = JSON.parse(messageString);
         debugReceive(senderID, handler.op, data);
         handler.receiver(data);
@@ -215,7 +229,9 @@ function virtualBatonf(options) {
     });
     // Paxos Acceptor behavior
     var bestProposal = {number: 0}, accepted = {};
-    function acceptedId() { return accepted && accepted.winner; }
+    function acceptedId() {
+        return accepted && accepted.winner;
+    }
     receive('prepare!', function (data) {
         var response = {proposalNumber: data.number, proposerId: data.proposerId};
         if (betterNumber(data, bestProposal)) {
@@ -256,7 +272,9 @@ function virtualBatonf(options) {
     function localRelease() {
         var callback = releaseCallback;
         debugFlow('baton:', batonName, 'localRelease', 'callback:', !!releaseCallback);
-        if (!releaseCallback) { return; } // Already released, but we might still receive a stale message. That's ok.
+        if (!releaseCallback) {
+            return;
+        } // Already released, but we might still receive a stale message. That's ok.
         releaseCallback = undefined;
         callback(batonName);  // Pass batonName so that clients may use the same handler for different batons.
     }
@@ -340,7 +358,9 @@ function virtualBatonf(options) {
     exports.unload = function unload() { // Disconnect from everything.
         messages.messageReceived.disconnect(messageHandler);
         timers.clearInterval(exports.recheckWatchdog);
-        if (electionWatchdog) { timers.clearTimeout(electionWatchdog); }
+        if (electionWatchdog) {
+            timers.clearTimeout(electionWatchdog);
+        }
         electionWatchdog = claimCallback = releaseCallback = null;
         Object.keys(subchannelHandlers).forEach(messages.unsubscribe);
         debugFlow('baton:', batonName, instanceId, 'unload');

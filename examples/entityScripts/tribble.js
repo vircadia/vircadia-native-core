@@ -29,13 +29,19 @@
             accumulated = 0;
         }
     }
-    function randomCentered() { return Math.random() - 0.5; }
-    function randomVector() { return {x: randomCentered() * dimensions.x, y: randomCentered() * dimensions.y, z: randomCentered() * dimensions.z}; }
+    function randomCentered() {
+        return Math.random() - 0.5;
+    }
+    function randomVector() {
+        return {x: randomCentered() * dimensions.x, y: randomCentered() * dimensions.y, z: randomCentered() * dimensions.z};
+    }
     function move() {
         var newData = {velocity: Vec3.sum({x: 0, y: 1, z: 0}, randomVector()), angularVelocity: Vec3.multiply(Math.PI, randomVector())};
         var nextChange = Math.ceil(Math.random() * 2000 / moveRate);
         Entities.editEntity(entityID, newData);
-        if (!shutdown) { Script.setTimeout(move, nextChange); }
+        if (!shutdown) {
+            Script.setTimeout(move, nextChange);
+        }
     }
     function startUpdate() {
         print('startUpdate', entityID);
@@ -44,7 +50,9 @@
     }
     function stopUpdate() {
         print('stopUpdate', entityID, hasUpdate);
-        if (!hasUpdate) { return; }
+        if (!hasUpdate) {
+            return;
+        }
         hasUpdate = false;
         Script.update.disconnect(update);
     }
@@ -79,7 +87,9 @@
         if (moveTimeout) {
             Script.setTimeout(move, 1000);
             if (moveTimeout > 0) {
-                Script.setTimeout(function () { shutdown = true; }, moveTimeout * 1000);
+                Script.setTimeout(function () {
+                    shutdown = true;
+                }, moveTimeout * 1000);
             }
         }
     };

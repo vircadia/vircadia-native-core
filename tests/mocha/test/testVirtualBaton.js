@@ -7,11 +7,16 @@ var virtualBaton = require('../../../examples/libraries/virtualBaton.js');
 describe('temp', function () {
     var messageCount = 0, testStart = Date.now();
     function makeMessager(nodes, me, mode) { // shim for High Fidelity Message system
-        function noopSend(channel, string, source) { }
-        function hasChannel(node, channel) { return -1 !== node.subscribed.indexOf(channel); }
+        function noopSend(channel, string, source) {
+        }
+        function hasChannel(node, channel) {
+            return -1 !== node.subscribed.indexOf(channel);
+        }
         function sendSync(channel, message, nodes, skip) {
             nodes.forEach(function (node) {
-                if (!hasChannel(node, channel) || (node === skip)) { return; }
+                if (!hasChannel(node, channel) || (node === skip)) {
+                    return;
+                }
                 node.sender(channel, message, me.name);
             });
         }
@@ -22,7 +27,11 @@ describe('temp', function () {
         return {
             subscriberCount: function () {
                 var c = 0;
-                nodes.forEach(function (n) { if (n.subscribed.length) { c++; } });
+                nodes.forEach(function (n) {
+                    if (n.subscribed.length) {
+                        c++;
+                    }
+                });
                 return c;
             },
             subscribe: function (channel) {
@@ -32,7 +41,9 @@ describe('temp', function () {
                 me.subscribed.splice(me.subscribed.indexOf(channel), 1);
             },
             sendMessage: function (channel, message) {
-                if ((mode === 'immediate2Me') && hasChannel(me, channel)) { me.sender(channel, message, me.name); }
+                if ((mode === 'immediate2Me') && hasChannel(me, channel)) {
+                    me.sender(channel, message, me.name);
+                }
                 if (mode === 'immediate') {
                     sendSync(channel, message, nodes, null);
                 } else {
@@ -43,7 +54,9 @@ describe('temp', function () {
             },
             messageReceived: {
                 connect: function (f) {
-                    me.sender = function (c, m, i) { messageCount++; f(c, m, i); };
+                    me.sender = function (c, m, i) {
+                        messageCount++; f(c, m, i);
+                    };
                 },
                 disconnect: function () {
                     me.sender = noopSend;
@@ -60,7 +73,9 @@ describe('temp', function () {
             debugReceive: debug.receive,
             debugFlow: debug.flow,
             useOptimizations: optimize,
-            connectionTest: function (id) { return baton.validId(id); },
+            connectionTest: function (id) {
+                return baton.validId(id);
+            },
             globals: {
                 Messages: makeMessager(nodes, node, mode),
                 MyAvatar: {sessionUUID: node.name},
@@ -71,17 +86,24 @@ describe('temp', function () {
                     clearInterval: clearInterval
                 },
                 AvatarList: {
-                    getAvatar: function (id) { return {sessionUUID: id}; }
+                    getAvatar: function (id) {
+                        return {sessionUUID: id};
+                    }
                 },
-                Entities: {getEntityProperties: function () { }},
+                Entities: {getEntityProperties: function () {
+                }},
                 print: console.log
             }
         });
         return baton;
     }
-    function noRelease(batonName) { assert.ok(!batonName, "should not release"); }
+    function noRelease(batonName) {
+        assert.ok(!batonName, "should not release");
+    }
     function defineABunch(mode, optimize) {
-        function makeKey(prefix) { return prefix + mode + (optimize ? '-opt' : ''); }
+        function makeKey(prefix) {
+            return prefix + mode + (optimize ? '-opt' : '');
+        }
         var testKeys = makeKey('single-');
         it(testKeys, function (done) {
             var nodes = [{name: 'a'}];
@@ -137,17 +159,23 @@ describe('temp', function () {
                 console.log('claimed al', key);
                 assert.ok(!gotB, "should not get A after B");
                 gotA = true;
-                if (!gotB) { done(); }
+                if (!gotB) {
+                    done();
+                }
             }, function () {
                 assert.ok(gotA, "Should claim it first");
                 releaseA = true;
-                if (gotB) { done(); }
+                if (gotB) {
+                    done();
+                }
             });
             setTimeout(function () {
                 makeBaton(testKeydsl, nodes, nodes[1], debug, mode, optimize).claim(function (key) {
                     console.log('claimed bl', key);
                     gotB = true;
-                    if (releaseA) { done(); }
+                    if (releaseA) {
+                        done();
+                    }
                 }, noRelease);
             }, 3000);
         });
