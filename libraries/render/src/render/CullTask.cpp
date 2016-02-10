@@ -136,7 +136,6 @@ void FetchItems::configure(const Config& config) {
 void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
     outItems.clear();
@@ -199,7 +198,6 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
-    ViewFrustum* frustum = args->_viewFrustum;
 
     auto& details = args->_details.edit(_detailType);
     details._considered += inSelection.numItems();
@@ -300,7 +298,6 @@ void FilterItemSelection::configure(const Config& config) {
 void FilterItemSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    RenderArgs* args = renderContext->args;
     auto& scene = sceneContext->_scene;
 
     // Now we have a selection of items to render

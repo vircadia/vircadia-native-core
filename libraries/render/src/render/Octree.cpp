@@ -16,23 +16,23 @@
 using namespace render;
 
 
-const double Octree::INV_DEPTH_DIM[] = {
-    1.0,
-    1.0 / 2.0,
-    1.0 / 4.0,
-    1.0 / 8.0,
-    1.0 / 16.0,
-    1.0 / 32.0,
-    1.0 / 64.0,
-    1.0 / 128.0,
-    1.0 / 256.0,
-    1.0 / 512.0,
-    1.0 / 1024.0,
-    1.0 / 2048.0,
-    1.0 / 4096.0,
-    1.0 / 8192.0,
-    1.0 / 16384.0,
-    1.0 / 32768.0 };
+const float Octree::INV_DEPTH_DIM[] = {
+    1.0f,
+    1.0f / 2.0f,
+    1.0f / 4.0f,
+    1.0f / 8.0f,
+    1.0f / 16.0f,
+    1.0f / 32.0f,
+    1.0f / 64.0f,
+    1.0f / 128.0f,
+    1.0f / 256.0f,
+    1.0f / 512.0f,
+    1.0f / 1024.0f,
+    1.0f / 2048.0f,
+    1.0f / 4096.0f,
+    1.0f / 8192.0f,
+    1.0f / 16384.0f,
+    1.0f / 32768.0f };
 
 /*
 const float Octree::COORD_SUBCELL_WIDTH[] = { // 2 ^ MAX_DEPTH / 2 ^ (depth + 1)
@@ -92,8 +92,7 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
     Index currentIndex = ROOT_CELL;
     Indices cellPath(1, currentIndex);
 
-    for (int l = 1; l < path.size(); l++) {
-        auto& location = path[l];
+    for (auto& location : path) {
         auto nextIndex = getConcreteCell(currentIndex).child(location.octant());
         if (nextIndex == INVALID_CELL) {
             break;
@@ -233,7 +232,7 @@ Octree::Index Octree::allocateBrick() {
 void Octree::freeBrick(Index index) {
     if (checkBrickIndex(index)) {
         auto & brick = _bricks[index];
-        //  brick.free();
+        brick.free();
         _freeBricks.push_back(index);
     }
 }
@@ -280,7 +279,7 @@ Octree::Locations ItemSpatialTree::evalLocations(const ItemBounds& bounds) const
 
 ItemSpatialTree::Index ItemSpatialTree::insertItem(Index cellIdx, const ItemKey& key, const ItemID& item) {
     // Add the item to the brick (and a brick if needed)
-    auto brickID = accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
+    accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
         auto& itemIn = (key.isSmall() ? brick.subcellItems : brick.items);
 
         itemIn.push_back(item);
@@ -302,7 +301,7 @@ bool ItemSpatialTree::updateItem(Index cellIdx, const ItemKey& oldKey, const Ite
     assert(oldKey != key);
 
     // Get to the brick where the item is and update where it s stored
-    auto brickID = accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
+    accessCellBrick(cellIdx, [&](Cell& cell, Brick& brick, Octree::Index cellID) {
         auto& itemIn = (key.isSmall() ? brick.subcellItems : brick.items);
         auto& itemOut = (oldKey.isSmall() ? brick.subcellItems : brick.items);
 
@@ -417,9 +416,9 @@ Octree::Location::Intersection Octree::Location::intersectCell(const Location& c
     struct Tool {
         static int normalToIndex(const Coord3f& n) {
             int index = 0;
-            if (n.x >= 0.0) index |= 1;
-            if (n.y >= 0.0) index |= 2;
-            if (n.z >= 0.0) index |= 4;
+            if (n.x >= 0.0f) index |= 1;
+            if (n.y >= 0.0f) index |= 2;
+            if (n.z >= 0.0f) index |= 4;
             return index;
         }
 
@@ -484,7 +483,7 @@ int Octree::selectTraverse(Index cellID, CellSelection& selection, const Frustum
             // Test for lod
             auto cellLocation = cell.getlocation();
             float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
-            if (lod < 0.0) {
+            if (lod < 0.0f) {
                 return 0;
                 break;
             }
@@ -512,7 +511,7 @@ int  Octree::selectBranch(Index cellID, CellSelection& selection, const FrustumS
 
     auto cellLocation = cell.getlocation();
     float lod = selector.testSolidAngle(cellLocation.getCenter(), Octree::getCoordSubcellWidth(cellLocation.depth));
-    if (lod < 0.0) {
+    if (lod < 0.0f) {
         return 0;
     }
 

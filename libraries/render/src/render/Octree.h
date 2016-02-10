@@ -31,6 +31,8 @@ namespace render {
     public:
         std::vector<ItemID> items;
         std::vector<ItemID> subcellItems;
+
+        void free() {};
     };
 
     class Octree {
@@ -90,11 +92,12 @@ namespace render {
         static const Depth ROOT_DEPTH{ 0 };
         static const Depth MAX_DEPTH{ 15 };
         static const Depth METRIC_COORD_DEPTH{ 15 };
-        static const double INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
+        static const float INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
 
         static int getDepthDimension(Depth depth) { return 1 << depth; }
-        static double getInvDepthDimension(Depth depth) { return INV_DEPTH_DIM[depth]; }
-        static float getCoordSubcellWidth(Depth depth) { return (float) (1.7320 * getInvDepthDimension(depth) * 0.5); }
+        static float getDepthDimensionf(Depth depth) { return (float) getDepthDimension(depth); }
+        static float getInvDepthDimension(Depth depth) { return INV_DEPTH_DIM[depth]; }
+        static float getCoordSubcellWidth(Depth depth) { return (1.7320f * getInvDepthDimension(depth) * 0.5f); }
 
         // Need 16bits integer coordinates on each axes: 32768 cell positions
         using Coord = int16_t;
@@ -363,7 +366,7 @@ namespace render {
     // The octree only cares about the bound & the key of an item to store it a the right cell location
     class ItemSpatialTree : public Octree {
         float _size{ 32768.0f };
-        double _invSize{ 1.0 / _size };
+        float _invSize{ 1.0f / _size };
         glm::vec3 _origin{ -16384.0f };
     public:
         ItemSpatialTree() {}
@@ -371,8 +374,8 @@ namespace render {
         float getSize() const { return _size; }
         const glm::vec3& getOrigin() const { return _origin; }
 
-        float getCellWidth(Depth depth) const { return (float) _size * getInvDepthDimension(depth); }
-        float getInvCellWidth(Depth depth) const { return (float) getDepthDimension(depth) * _invSize; }
+        float getCellWidth(Depth depth) const { return _size * getInvDepthDimension(depth); }
+        float getInvCellWidth(Depth depth) const { return getDepthDimensionf(depth) * _invSize; }
 
         float getCellHalfDiagonalSquare(Depth depth) const {
             float cellHalfWidth = 0.5f * getCellWidth(depth);
