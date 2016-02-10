@@ -250,8 +250,9 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value)
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
+    void setRegistrationPoint(const glm::vec3& value) {
+        _registrationPoint = glm::clamp(value, 0.0f, 1.0f); dimensionsChanged(); // Registration Point affects the bounding box
+    }
 
     bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
@@ -405,6 +406,8 @@ protected:
     void setActionDataInternal(QByteArray actionData);
 
     virtual void locationChanged() override;
+    virtual void dimensionsChanged() override;
+
     EntityTypes::EntityType _type;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes
