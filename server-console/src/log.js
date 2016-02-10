@@ -68,7 +68,7 @@ ready = function() {
             console.log("Unwatching", removedLogFilePath);
         });
         diff.add.forEach(function(addedLogFilePath) {
-            const START_AT_X_BYTES_FROM_END = 0;
+            const START_AT_X_BYTES_FROM_END = 10000;
             var cleanFilePath = cleanPath(addedLogFilePath);
 
             // For larger files we won't want to start tailing from the beginning of the file,
