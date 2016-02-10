@@ -18,8 +18,6 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
-float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
-
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
 
@@ -369,6 +367,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+    const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
         dt = MAX_OVERLAY_DT;
     }
@@ -469,7 +468,8 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             // smooth transitions by relaxing _hipsOffset toward the new value
             const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.15f;
-            _hipsOffset += (newHipsOffset - _hipsOffset) * (dt / HIPS_OFFSET_SLAVE_TIMESCALE);
+            float tau = dt > HIPS_OFFSET_SLAVE_TIMESCALE ? 1.0 : dt / HIPS_OFFSET_SLAVE_TIMESCALE;
+            _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
         }
     }
     return _relativePoses;
