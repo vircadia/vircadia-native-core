@@ -29,7 +29,10 @@ function virtualBatonf(options) {
     // Answer averages (number +/- variability). Avoids having everyone act in lockstep.
     function randomize(number, variability) {
         var allowedDeviation = number * variability;
-        return number - allowedDeviation + (Math.random() * 2 * allowedDeviation);
+        var theNumberThatIsTwice = 2;
+        // random() is (0, 1], averages 0.5. The average of twice that is 1.
+        var randomDeviation = Math.random() * theNumberThatIsTwice * allowedDeviation;
+        return number - allowedDeviation + randomDeviation;
     }
     // Allow testing outside in a harness outside of High Fidelity.
     // See sourceCodeSandbox/tests/mocha/test/testVirtualBaton.js
