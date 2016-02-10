@@ -412,7 +412,6 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
     assert(motionState);
     btCollisionObject* object = motionState->getRigidBody();
 
-    std::vector<btPersistentManifold*> staleManifolds;
     int numManifolds = _collisionDispatcher->getNumManifolds();
     for (int i = 0; i < numManifolds; ++i) {
         btPersistentManifold* contactManifold =  _collisionDispatcher->getManifoldByIndexInternal(i);
@@ -427,7 +426,6 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
                         objectA->setActivationState(ACTIVE_TAG);
                     }
                 }
-                staleManifolds.push_back(contactManifold);
             } else if (objectA == object) {
                 if (!objectB->isStaticOrKinematicObject()) {
                     ObjectMotionState* motionStateB = static_cast<ObjectMotionState*>(objectB->getUserPointer());
@@ -436,12 +434,8 @@ void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
                         objectB->setActivationState(ACTIVE_TAG);
                     }
                 }
-                staleManifolds.push_back(contactManifold);
             }
         }
-    }
-    for (auto manifold : staleManifolds) {
-        _collisionDispatcher->releaseManifold(manifold);
     }
     removeContacts(motionState);
 }
