@@ -125,8 +125,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                     std::unique_ptr<InjectedAudioStream> { new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()) }
                 );
 
-                qDebug() << "Added an injector at" << streamIdentifier;
-
                 streamIt = emplaced.first;
             }
 

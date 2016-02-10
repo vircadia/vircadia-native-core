@@ -182,6 +182,8 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
     // to reduce artifacts we calculate the gain and azimuth for every source for this listener
     // even if we are not going to end up mixing in this source
 
+    ++_totalMixes;
+
     // this ensures that the tail of any previously mixed audio or the first block of new audio sounds correct
 
     // check if this is a server echo of a source back to itself
@@ -236,6 +238,8 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
                 static int16_t silentMonoBlock[AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL] = {};
                 hrtf.renderSilent(silentMonoBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
                                   AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+                ++_hrtfSilentRenders;;
             }
 
             return;
@@ -252,12 +256,16 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; ++i) {
                 _mixedSamples[i] += float(streamPopOutput[i] * gain / AudioConstants::MAX_SAMPLE_VALUE);
             }
+
+            ++_manualStereoMixes;
         } else {
             for (int i = 0; i < AudioConstants::NETWORK_FRAME_SAMPLES_STEREO; i += 2) {
                 auto monoSample = float(streamPopOutput[i / 2] * gain / AudioConstants::MAX_SAMPLE_VALUE);
                 _mixedSamples[i] += monoSample;
                 _mixedSamples[i + 1] += monoSample;
             }
+
+            ++_manualEchoMixes;
         }
 
         return;
@@ -278,7 +286,7 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
 
-        ++_silentMixesLastBlock;
+        ++_hrtfSilentRenders;
 
         return;
     }
@@ -290,10 +298,13 @@ void AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData& 
         // we call renderSilent via the HRTF with the actual frame data and a gain of 0.0
         hrtf.renderSilent(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, 0.0f,
                           AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL);
+
+        ++_hrtfStruggleRenders;
+
         return;
     }
 
-    ++_mixesLastBlock;
+    ++_hrtfRenders;
 
     // mono stream, call the HRTF with our block and calculated azimuth and gain
     hrtf.render(streamBlock, _mixedSamples, HRTF_DATASET_INDEX, azimuth, gain,
@@ -478,16 +489,27 @@ void AudioMixer::sendStatsPacket() {
     statsObject["trailing_sleep_percentage"] = _trailingSleepRatio * 100.0f;
     statsObject["performance_throttling_ratio"] = _performanceThrottlingRatio;
 
-    statsObject["average_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
+    statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
 
-    if (_sumListeners > 0) {
-        statsObject["average_mixes_per_listener"] = (float) _mixesLastBlock / (float) _sumListeners;
-    } else {
-        statsObject["average_mixes_per_listener"] = 0.0;
-    }
+    QJsonObject mixStats;
+    mixStats["%_hrtf_mixes"] = (_totalMixes > 0) ? (_hrtfRenders / _totalMixes) * 100.0f : 0;
+    mixStats["%_hrtf_silent_mixes"] = (_totalMixes > 0) ? (_hrtfSilentRenders / _totalMixes) * 100.0f : 0;
+    mixStats["%_hrtf_struggle_mixes"] = (_totalMixes > 0) ? (_hrtfStruggleRenders / _totalMixes) * 100.0f : 0;
+    mixStats["%_manual_stereo_mixes"] = (_totalMixes > 0) ? (_manualStereoMixes / _totalMixes) * 100.0f : 0;
+    mixStats["%_manual_echo_mixes"] = (_totalMixes > 0) ? (_manualEchoMixes / _totalMixes) * 100.0f : 0;
+
+    mixStats["total_mixes"] = _totalMixes;
+    mixStats["avg_mixes_per_block"] = _totalMixes / _numStatFrames;
+
+    statsObject["mix_stats"] = mixStats;
 
     _sumListeners = 0;
-    _mixesLastBlock = 0;
+    _hrtfRenders = 0;
+    _hrtfSilentRenders = 0;
+    _hrtfStruggleRenders = 0;
+    _manualStereoMixes = 0;
+    _manualEchoMixes = 0;
+    _totalMixes = 0;
     _numStatFrames = 0;
 
     QJsonObject readPendingDatagramStats;
@@ -546,7 +568,7 @@ void AudioMixer::sendStatsPacket() {
     });
 
     // add the listeners object to the root object
-    statsObject["listeners"] = listenerStats;
+    statsObject["z_listeners"] = listenerStats;
 
     // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(statsObject);

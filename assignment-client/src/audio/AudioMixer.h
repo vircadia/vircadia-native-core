@@ -82,8 +82,12 @@ private:
     float _noiseMutingThreshold;
     int _numStatFrames { 0 };
     int _sumListeners { 0 };
-    int _mixesLastBlock { 0 };
-    int _silentMixesLastBlock { 0 };
+    int _hrtfRenders { 0 };
+    int _hrtfSilentRenders { 0 };
+    int _hrtfStruggleRenders { 0 };
+    int _manualStereoMixes { 0 };
+    int _manualEchoMixes { 0 };
+    int _totalMixes { 0 };
 
     float _mixedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
     int16_t _clampedSamples[AudioConstants::NETWORK_FRAME_SAMPLES_STEREO];
