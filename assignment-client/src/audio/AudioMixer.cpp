@@ -82,7 +82,6 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     _performanceThrottlingRatio(0.0f),
     _attenuationPerDoublingInDistance(DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE),
     _noiseMutingThreshold(DEFAULT_NOISE_MUTING_THRESHOLD),
-    _lastPerSecondCallbackTime(usecTimestampNow()),
     _sendAudioStreamStats(false),
     _datagramsReadPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
     _timeSpentPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
@@ -689,10 +688,11 @@ void AudioMixer::broadcastMixes() {
             ++framesSinceCutoffEvent;
         }
 
-        quint64 now = usecTimestampNow();
-        if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
+        static const int FRAMES_PER_SECOND = int(ceilf(1.0f / AudioConstants::NETWORK_FRAME_SECS));
+
+        // check if it has been approximately one second since our last call to perSecondActions
+        if (nextFrame % FRAMES_PER_SECOND == 0) {
             perSecondActions();
-            _lastPerSecondCallbackTime = now;
         }
 
         nodeList->eachNode([&](const SharedNodePointer& node) {

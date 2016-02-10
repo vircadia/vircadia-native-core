@@ -113,8 +113,6 @@ private:
     static bool _printStreamStats;
     static bool _enableFilter;
 
-    quint64 _lastPerSecondCallbackTime;
-
     bool _sendAudioStreamStats;
 
     // stats
