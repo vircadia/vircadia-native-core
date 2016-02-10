@@ -18,6 +18,8 @@
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
 
+float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
+
 AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimNode::Type::InverseKinematics, id) {
 }
 
@@ -367,6 +369,10 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
+    if (dt > MAX_OVERLAY_DT) {
+        dt = MAX_OVERLAY_DT;
+    }
+
     if (_relativePoses.size() != underPoses.size()) {
         loadPoses(underPoses);
     } else {
