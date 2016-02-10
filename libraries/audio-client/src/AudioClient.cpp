@@ -94,14 +94,11 @@ AudioClient::AudioClient() :
     _shouldEchoLocally(false),
     _shouldEchoToServer(false),
     _isNoiseGateEnabled(true),
-    _audioSourceInjectEnabled(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
     _inputToNetworkResampler(NULL),
     _networkToOutputResampler(NULL),
     _loopbackResampler(NULL),
-    _noiseSourceEnabled(false),
-    _toneSourceEnabled(true),
     _outgoingAvatarAudioSequenceNumber(0),
     _audioOutputIODevice(_receivedAudioStream, this),
     _stats(&_receivedAudioStream),
@@ -139,10 +136,6 @@ AudioClient::~AudioClient() {
 void AudioClient::reset() {
     _receivedAudioStream.reset();
     _stats.reset();
-    _noiseSource.reset();
-    _toneSource.reset();
-    _sourceGain.reset();
-    _inputGain.reset();
     _sourceReverb.reset();
     _listenerReverb.reset();
 }
@@ -432,26 +425,9 @@ void AudioClient::start() {
         qCDebug(audioclient) << "Unable to set up audio output because of a problem with output format.";
         qCDebug(audioclient) << "The closest format available is" << outputDeviceInfo.nearestFormat(_desiredOutputFormat);
     }
-
-    if (_audioInput) {
-        _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
-    }
-
-    _inputGain.initialize();
-    _sourceGain.initialize();
-    _noiseSource.initialize();
-    _toneSource.initialize();
-    _sourceGain.setParameters(0.05f, 0.0f);
-    _inputGain.setParameters(1.0f, 0.0f);
 }
 
 void AudioClient::stop() {
-    _inputFrameBuffer.finalize();
-    _inputGain.finalize();
-    _sourceGain.finalize();
-    _noiseSource.finalize();
-    _toneSource.finalize();
-
     // "switch" to invalid devices in order to shut down the state
     switchInputToAudioDevice(QAudioDeviceInfo());
     switchOutputToAudioDevice(QAudioDeviceInfo());
@@ -705,24 +681,6 @@ void AudioClient::handleAudioInput() {
     const auto inputAudioSamples = std::unique_ptr<int16_t[]>(new int16_t[inputSamplesRequired]);
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    //  Add audio source injection if enabled
-    if (!_muted && _audioSourceInjectEnabled) {
-        int16_t* inputFrameData = (int16_t*)inputByteArray.data();
-        const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
-
-        _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
-
-#if ENABLE_INPUT_GAIN
-        _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
-#endif
-        if (_toneSourceEnabled) {  // sine generator
-            _toneSource.render(_inputFrameBuffer);
-        } else if(_noiseSourceEnabled) { // pink noise generator
-            _noiseSource.render(_inputFrameBuffer);
-        }
-        _sourceGain.render(_inputFrameBuffer); // post gain
-        _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
-    }
 
     handleLocalEchoAndReverb(inputByteArray);
 
@@ -757,12 +715,12 @@ void AudioClient::handleAudioInput() {
                 _inputFormat, _desiredInputFormat);
 
             //  Remove DC offset
-            if (!_isStereoInput && !_audioSourceInjectEnabled) {
+            if (!_isStereoInput) {
                 _inputGate.removeDCOffset(networkAudioSamples, numNetworkSamples);
             }
 
             // only impose the noise gate and perform tone injection if we are sending mono audio
-            if (!_isStereoInput && !_audioSourceInjectEnabled && _isNoiseGateEnabled) {
+            if (!_isStereoInput && _isNoiseGateEnabled) {
                 _inputGate.gateSamples(networkAudioSamples, numNetworkSamples);
 
                 // if we performed the noise gate we can get values from it instead of enumerating the samples again
@@ -886,19 +844,6 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
     }
 }
 
-void AudioClient::enableAudioSourceInject(bool enable) {
-    _audioSourceInjectEnabled = enable;
-}
-
-void AudioClient::selectAudioSourcePinkNoise() {
-    _noiseSourceEnabled = true;
-    _toneSourceEnabled = false;
-}
-
-void AudioClient::selectAudioSourceSine440() {
-    _toneSourceEnabled = true;
-    _noiseSourceEnabled = false;
-}
 
 bool AudioClient::outputLocalInjector(bool isStereo, AudioInjector* injector) {
     if (injector->getLocalBuffer()) {
