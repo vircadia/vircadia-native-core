@@ -14,6 +14,8 @@
 
 #include <render/Scene.h>
 #include <EntityItem.h>
+#include "AbstractViewStateInterface.h"
+
 
 // These or the icon "name" used by the render item status value, they correspond to the atlas texture used by the DrawItemStatus
 // job in the current rendering pipeline defined as of now  (11/2015) in render-utils/RenderDeferredTask.cpp.
@@ -34,6 +36,8 @@ public:
     RenderableEntityItemProxy(EntityItemPointer entity) : entity(entity) { }
     typedef render::Payload<RenderableEntityItemProxy> Payload;
     typedef Payload::DataPointer Pointer;
+
+    int touch = 0;
 
     EntityItemPointer entity;
 };
@@ -66,8 +70,23 @@ public:
         pendingChanges.removeItem(_myItem);
     }
 
+    void notifyChanged() {
+        if (_myItem == render::Item::INVALID_ITEM_ID) {
+            return;
+        }
+
+        render::PendingChanges pendingChanges;
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+        pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
+            data.touch++;
+        });
+
+        scene->enqueuePendingChanges(pendingChanges);
+    }
+
 private:
-    render::ItemID _myItem;
+    render::ItemID _myItem = render::Item::INVALID_ITEM_ID;
 };
 
 
@@ -75,6 +94,7 @@ private:
 public: \
     virtual bool addToScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { return _renderHelper.addToScene(self, scene, pendingChanges); } \
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override { _renderHelper.removeFromScene(self, scene, pendingChanges); } \
+    virtual void locationChanged() override { EntityItem::locationChanged(); _renderHelper.notifyChanged(); } \
 private: \
     SimpleRenderableEntityItem _renderHelper;
 
