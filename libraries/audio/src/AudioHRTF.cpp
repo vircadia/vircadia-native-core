@@ -59,6 +59,8 @@ static const float crossfadeTable[HRTF_BLOCK] = {
     0.0024846123f, 0.0019026510f, 0.0013981014f, 0.0009710421f, 0.0006215394f, 0.0003496476f, 0.0001554090f, 0.0000388538f, 
 };
 
+static const float TWOPI = 6.283185307f;
+
 //
 // on x86 architecture, assume that SSE2 is present
 //
@@ -509,10 +511,7 @@ static void setAzimuthAndGain(float firCoef[4][HRTF_TAPS], float bqCoef[5][4], i
                               int index, float azimuth, float gain, int channel) {
 
     // convert from radians to table units
-    //azimuth *= HRTF_AZIMUTHS / (2.0f * M_PI);
-
-    // convert from degrees to table units
-    azimuth *= HRTF_AZIMUTHS / 360.0f;
+    azimuth *= HRTF_AZIMUTHS / TWOPI;
 
     // wrap to principle value
     while (azimuth < 0.0f) {

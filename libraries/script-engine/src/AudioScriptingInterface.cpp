@@ -54,24 +54,6 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
     }
 }
 
-void AudioScriptingInterface::injectGeneratedNoise(bool inject) {
-    if (_localAudioInterface) {
-        _localAudioInterface->enableAudioSourceInject(inject);
-    }
-}
-
-void AudioScriptingInterface::selectPinkNoise() {
-    if (_localAudioInterface) {
-        _localAudioInterface->selectAudioSourcePinkNoise();
-    }
-}
-
-void AudioScriptingInterface::selectSine440() {
-    if (_localAudioInterface) {
-        _localAudioInterface->selectAudioSourceSine440();
-    }
-}
-
 void AudioScriptingInterface::setStereoInput(bool stereo) {
     if (_localAudioInterface) {
         _localAudioInterface->setIsStereoInput(stereo);

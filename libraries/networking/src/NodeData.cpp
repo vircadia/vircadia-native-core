@@ -11,8 +11,9 @@
 
 #include "NodeData.h"
 
-NodeData::NodeData() :
-    _mutex()
+NodeData::NodeData(const QUuid& nodeID) :
+    _mutex(),
+    _nodeID(nodeID)
 {
     
 }
