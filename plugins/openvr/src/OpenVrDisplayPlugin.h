@@ -47,5 +47,6 @@ private:
     static const QString NAME;
     bool _enablePreview { false };
     bool _monoPreview { true };
+    mutable Mutex _poseMutex;
 };
 
