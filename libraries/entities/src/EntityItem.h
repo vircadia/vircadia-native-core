@@ -194,6 +194,7 @@ public:
     float getDensity() const { return _density; }
 
     bool hasVelocity() const { return getVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasLocalVelocity() const { return getLocalVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
@@ -254,6 +255,7 @@ public:
             { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
 
     bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
@@ -339,6 +341,7 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+    bool isMovingRelativeToParent() const;
 
     bool isSimulated() const { return _simulated; }
 
