@@ -169,7 +169,7 @@ float AudioMixer::azimuthForSource(const PositionalAudioStream& streamToAdd, con
     // project the rotated source position vector onto the XZ plane
     rotatedSourcePosition.y = 0.0f;
 
-    static const float SOURCE_DISTANCE_THRESHOLD = 1e-12f;
+    static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
 
     if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
         // produce an oriented angle about the y-axis
