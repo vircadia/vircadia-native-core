@@ -12,47 +12,55 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 
 Item {
+    id: root
     width: 400
     height: 24
-    property string label
-    property QtObject config
-    property string prop
-    property real min: 0.0
-    property real max: 1.0
+    property bool integral: false
+    property var config
+    property string property
+    property alias label: labelControl.text
+    property alias min: sliderControl.minimumValue
+    property alias max: sliderControl.maximumValue
 
-    function init() {
-        stat.text = config[prop].toFixed(2);
-        slider.value = (config[prop] - min) / (max - min);
-    }
-    Component.onCompleted: init()
-
-    function update() {
-        var val = min + (max - min) * slider.value;
-        stat.text = val.toFixed(2);
-        config[prop] = val;
+    Component.onCompleted: {
+        // Binding favors qml value, so set it first
+        sliderControl.value = root.config[root.property];
+        bindingControl.when = true;
     }
 
     Label {
-        text: parent.label
-        y: 7
-        anchors.left: parent.left
+        id: labelControl
+        text: root.label
+        anchors.left: root.left
         anchors.leftMargin: 8
+        anchors.top: root.top
+        anchors.topMargin: 7
     }
 
     Label {
-        id: stat
-        y: 7
-        anchors.left: parent.left
+        text: sliderControl.value.toFixed(root.integral ? 0 : 2)
+        anchors.left: root.left
         anchors.leftMargin: 140
+        anchors.top: root.top
+        anchors.topMargin: 7
+    }
+
+    Binding {
+        id: bindingControl
+        target: root.config
+        property: root.property
+        value: sliderControl.value
+        when: false
     }
 
     Slider {
-        id: slider
-        y: 3
+        id: sliderControl
+        stepSize: root.integral ? 1.0 : 0.0
         width: 192
         height: 20
-        onValueChanged: parent.update()
-        anchors.right: parent.right
+        anchors.right: root.right
         anchors.rightMargin: 8
+        anchors.top: root.top
+        anchors.topMargin: 3
     }
 }

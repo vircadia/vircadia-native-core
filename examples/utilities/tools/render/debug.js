@@ -11,8 +11,12 @@
 
 oldConfig = Render.toJSON();
 Render.RenderShadowTask.enabled = true;
-Render.RenderDeferredTask.AmbientOcclusion.enabled = true;
-Render.RenderDeferredTask.DebugDeferredBuffer.enabled = false;
+var RDT = Render.RenderDeferredTask;
+RDT.AmbientOcclusion.enabled = true;
+RDT.DebugDeferredBuffer.enabled = false;
+["DrawOpaqueDeferred", "DrawTransparentDeferred", "DrawOverlay3DOpaque", "DrawOverlay3DTransparent"]
+    .map(function(name) { return RDT[name]; })
+	.forEach(function(job) { job.maxDrawn = job.numDrawn; });
 
 // Set up the qml ui
 var qml = Script.resolvePath('main.qml');
