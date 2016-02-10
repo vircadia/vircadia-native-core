@@ -217,8 +217,8 @@ namespace render {
             {}
 
             Cell(Index parent, Location loc) :
-                _location(loc),
-                _links({ { INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, parent, INVALID_CELL } })
+                _links({ { INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, INVALID_CELL, parent, INVALID_CELL } }),
+                _location(loc)
             {}
 
         private:
@@ -238,8 +238,8 @@ namespace render {
 
         using Bricks = std::vector< Brick >;
 
-        bool checkCellIndex(Index index) const { return (index >= 0) && (index < _cells.size()); }
-        bool checkBrickIndex(Index index) const { return ((index >= 0) && (index < _bricks.size())); }
+        bool checkCellIndex(Index index) const { return (index >= 0) && (index < (Index) _cells.size()); }
+        bool checkBrickIndex(Index index) const { return ((index >= 0) && (index < (Index) _bricks.size())); }
 
         Octree() {};
 
