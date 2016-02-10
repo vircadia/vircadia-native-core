@@ -71,7 +71,7 @@ private:
 
     void perSecondActions();
 
-    float percentageForMixStats(int counter);
+    QString percentageForMixStats(int counter);
 
     bool shouldMute(float quietestFrame);
 

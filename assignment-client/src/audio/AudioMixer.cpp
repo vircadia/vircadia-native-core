@@ -489,8 +489,13 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
     }
 }
 
-float AudioMixer::percentageForMixStats(int counter) {
-    return (_totalMixes > 0) ? (float(counter) / _totalMixes) * 100.0f : 0;
+QString AudioMixer::percentageForMixStats(int counter) {
+    if (_totalMixes > 0) {
+        float mixPercentage = (float(counter) / _totalMixes) * 100.0f;
+        return QString::number(mixPercentage, 'f', 2);
+    } else {
+        return QString("0.0");
+    }
 }
 
 void AudioMixer::sendStatsPacket() {
