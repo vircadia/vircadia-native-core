@@ -141,11 +141,17 @@ public:
         }
 
         void readSamples(int16_t* dest, int numSamples) {
-            int16_t* at = _at;
-            for (int i = 0; i < numSamples; i++) {
-                *dest = *at;
-                ++dest;
-                at = (at == _bufferLast) ? _bufferFirst : at + 1;
+            auto samplesToEnd = _bufferLast - _at + 1;
+            
+            if (samplesToEnd >= numSamples) {
+                memcpy(dest, _at, numSamples * sizeof(int16_t));
+                _at += numSamples;
+            } else {
+                auto samplesFromStart = numSamples - samplesToEnd;
+                memcpy(dest, _at, samplesToEnd * sizeof(int16_t));
+                memcpy(dest + samplesToEnd, _bufferFirst, samplesFromStart * sizeof(int16_t));
+
+                _at = _bufferFirst + samplesFromStart;
             }
         }
 
