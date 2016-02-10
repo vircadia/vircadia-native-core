@@ -71,6 +71,8 @@ private:
 
     void perSecondActions();
 
+    float percentageForMixStats(int counter);
+
     bool shouldMute(float quietestFrame);
 
     void parseSettingsObject(const QJsonObject& settingsObject);
