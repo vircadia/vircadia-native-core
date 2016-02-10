@@ -148,7 +148,7 @@ function AttachedEntitiesManager() {
     this.checkIfWearable = function(grabbedEntity, releasedFromJoint) {
         var allowedJoints = getEntityCustomData('wearable', grabbedEntity, DEFAULT_WEARABLE_DATA).joints;
 
-        var props = Entities.getEntityProperties(grabbedEntity, ["position", "parentID"]);
+        var props = Entities.getEntityProperties(grabbedEntity, ["position", "parentID", "parentJointIndex"]);
         if (props.parentID === NULL_UUID || props.parentID === MyAvatar.sessionUUID) {
             var bestJointName = "";
             var bestJointIndex = -1;
@@ -192,10 +192,14 @@ function AttachedEntitiesManager() {
                 }
                 Entities.editEntity(grabbedEntity, wearProps);
             } else if (props.parentID != NULL_UUID) {
-                // drop the entity with no parent (not on the avatar)
-                Entities.editEntity(grabbedEntity, {
-                    parentID: NULL_UUID
-                });
+                // drop the entity and set it to have no parent (not on the avatar), unless it's being equipped in a hand.
+                if (props.parentID === MyAvatar.sessionUUID &&
+                    (props.parentJointIndex == MyAvatar.getJointIndex("RightHand") ||
+                     props.parentJointIndex == MyAvatar.getJointIndex("LeftHand"))) {
+                    // this is equipped on a hand -- don't clear the parent.
+                } else {
+                    Entities.editEntity(grabbedEntity, { parentID: NULL_UUID });
+                }
             }
         }
     }

@@ -319,16 +319,20 @@ public:
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
+    void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
+    void updateRotationFromNetwork(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
+    void updateVelocityFromNetwork(const glm::vec3& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularVelocityFromNetwork(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateCollisionless(bool value);
     void updateCollisionMask(uint8_t value);
