@@ -47,7 +47,7 @@
                     stereo: true,
                     loop: false,
                     localOnly: true,
-                    volume: 0.75
+                    volume: 1
                 };
                 self.sound = SoundCache.getSound(this.soundURL);
 
