@@ -298,7 +298,10 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
         setEndAt(endAt.toVariant().toFloat());
     }
 
-    QScriptValue outerRadius = properties.property("outerRadius");
+    QScriptValue outerRadius = properties.property("radius");
+    if (!outerRadius.isValid()) {
+        outerRadius = properties.property("outerRadius");
+    }
     if (outerRadius.isValid()) {
         setOuterRadius(outerRadius.toVariant().toFloat());
     }
@@ -364,6 +367,9 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
     }
     if (property == "endAt") {
         return _endAt;
+    }
+    if (property == "radius") {
+        return _outerRadius;
     }
     if (property == "outerRadius") {
         return _outerRadius;
