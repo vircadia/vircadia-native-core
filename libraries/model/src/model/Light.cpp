@@ -79,9 +79,12 @@ void Light::setMaximumRadius(float radius) {
 }
 
 void Light::updateLightRadius() {
-    float CutOffIntensityRatio = 0.05f;
-    float surfaceRadius = getMaximumRadius() / (sqrtf((getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z)) / CutOffIntensityRatio) - 1.0f);
-    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, getMaximumRadius());
+    const float CUTOFF_INTENSITY_RATIO = 0.05f;
+    float intensity = getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z);
+    float denom = sqrtf(intensity / CUTOFF_INTENSITY_RATIO) - 1.0f;
+    float surfaceRadius = getMaximumRadius() / std::max(denom, 1.0f);
+
+    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CUTOFF_INTENSITY_RATIO, getMaximumRadius());
 }
 
 #include <math.h>
