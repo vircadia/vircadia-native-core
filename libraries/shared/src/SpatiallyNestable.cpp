@@ -416,7 +416,7 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity, bool& success) {
     Transform parentTransform = getParentTransform(success);
     _velocityLock.withWriteLock([&] {
         // TODO: take parent angularVelocity into account.
-        _velocity = glm::inverse(parentTransform.getRotation()) * velocity - parentVelocity;
+        _velocity = glm::inverse(parentTransform.getRotation()) * (velocity - parentVelocity);
     });
 }
 
@@ -460,7 +460,7 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity, boo
     glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     Transform parentTransform = getParentTransform(success);
     _angularVelocityLock.withWriteLock([&] {
-        _angularVelocity = glm::inverse(parentTransform.getRotation()) * angularVelocity - parentAngularVelocity;
+        _angularVelocity = glm::inverse(parentTransform.getRotation()) * (angularVelocity - parentAngularVelocity);
     });
 }
 
