@@ -55,6 +55,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
+    _ephemeralACScripts(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
@@ -1211,13 +1212,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
             // we have a matching assignment and it is for the right type, have the HTTP manager handle it
             // via correct URL for the script so the client can download
-            QFile scriptFile(pathForAssignmentScript(matchingAssignment->getUUID()));
+            const auto it = _ephemeralACScripts.find(matchingAssignment->getUUID());
 
-            if (scriptFile.exists() && scriptFile.open(QIODevice::ReadOnly)) {
-                connection->respond(HTTPConnection::StatusCode200, scriptFile.readAll(), "application/javascript");
+            if (it != _ephemeralACScripts.end()) {
+                connection->respond(HTTPConnection::StatusCode200, it->second, "application/javascript");
             } else {
                 connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
             }
+
             return true;
         }
         
@@ -1387,29 +1389,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 
             for (int i = 0; i < numInstances; i++) {
-
                 // create an assignment for this saved script
                 Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, assignmentPool);
 
-                QString newPath = pathForAssignmentScript(scriptAssignment->getUUID());
+                _ephemeralACScripts[scriptAssignment->getUUID()] = formData[0].second;
 
-                // create a file with the GUID of the assignment in the script host location
-                QFile scriptFile(newPath);
-                if (scriptFile.open(QIODevice::WriteOnly)) {
-                    scriptFile.write(formData[0].second);
-
-                    qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
-                                           .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
-
-                    // add the script assigment to the assignment queue
-                    SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
-                    _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
-                    _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
-                } else {
-                    // unable to save script for assignment - we shouldn't be here but debug it out
-                    qDebug() << "Unable to save a script for assignment at" << newPath;
-                    qDebug() << "Script will not be added to queue";
-                }
+                // add the script assigment to the assignment queue
+                SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
+                _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
+                _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
             }
 
             // respond with a 200 code for successful upload
