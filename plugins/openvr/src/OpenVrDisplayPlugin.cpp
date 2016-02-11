@@ -72,10 +72,7 @@ mat4 toGlm(const vr::HmdMatrix34_t& m) {
 }
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    auto hmd = acquireOpenVrSystem();
-    bool success = nullptr != hmd;
-    releaseOpenVrSystem();
-    return success;
+    return vr::VR_IsHmdPresent();
 }
 
 void OpenVrDisplayPlugin::activate() {
