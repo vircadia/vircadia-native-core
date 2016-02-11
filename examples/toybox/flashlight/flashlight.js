@@ -77,15 +77,10 @@
         whichHand: null,
         hasSpotlight: false,
         spotlight: null,
-        setRightHand: function() {
-            this.hand = 'RIGHT';
-        },
 
-        setLeftHand: function() {
-            this.hand = 'LEFT';
-        },
+        startNearGrab: function(entityID, args) {
+            this.hand = args[0];
 
-        startNearGrab: function(entityID) {
             print("FLASHLIGHT startNearGrab");
             if (!this.hasSpotlight) {
 
@@ -161,11 +156,11 @@
                 this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
-        continueEquip: function() {
-            this.continueNearGrab();
+        continueEquip: function(entityID, args) {
+            this.continueNearGrab(entityID, args);
         },
 
-        releaseGrab: function() {
+        releaseGrab: function(entityID, args) {
             //delete the lights and reset state
             if (this.hasSpotlight) {
                 Entities.deleteEntity(this.spotlight);
@@ -177,8 +172,8 @@
                 this.lightOn = false;
             }
         },
-        releaseEquip: function() {
-            this.releaseGrab();
+        releaseEquip: function(entityID, args) {
+            this.releaseGrab(entityID, args);
         },
         
         changeLightWithTriggerPressure: function(flashLightHand) {

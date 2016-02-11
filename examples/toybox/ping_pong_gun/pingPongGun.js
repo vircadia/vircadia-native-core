@@ -54,47 +54,26 @@
 
     PingPongGun.prototype = {
         hand: null,
-        whichHand: null,
         gunTipPosition: null,
         canShoot: false,
         canShootTimeout: null,
-        setRightHand: function() {
-            this.hand = 1;
+
+        startEquip: function(entityID, args) {
+            this.hand = args[0] == "left" ? 0 : 1;
         },
 
-        setLeftHand: function() {
-            this.hand = 0;
-        },
-
-        startEquip: function() {
-            this.setWhichHand();
-        },
-
-        setWhichHand: function() {
-            this.whichHand = this.hand;
-        },
-
-        continueEquip: function() {
-            if (this.whichHand === null) {
-                //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
-                this.setWhichHand();
-            } else {
-                if (this.canShootTimeout !== null) {
-                    Script.clearTimeout(this.canShootTimeout);
-                }
-                this.checkTriggerPressure(this.whichHand);
+        continueEquip: function(entityID, args) {
+            if (this.canShootTimeout !== null) {
+                Script.clearTimeout(this.canShootTimeout);
             }
+            this.checkTriggerPressure(this.hand);
         },
 
-        releaseEquip: function() {
+        releaseEquip: function(entityID, args) {
             var _this = this;
-
-            if (this.whichHand === this.hand) {
-                this.whichHand = null;
-                this.canShootTimeout = Script.setTimeout(function() {
-                    _this.canShoot = false;
-                }, 250);
-            }
+            this.canShootTimeout = Script.setTimeout(function() {
+                _this.canShoot = false;
+            }, 250);
         },
 
         checkTriggerPressure: function(gunHand) {
@@ -102,7 +81,7 @@
             if (this.triggerValue < RELOAD_THRESHOLD) {
                 // print('RELOAD');
                 this.canShoot = true;
-            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true && this.hand === this.whichHand) {
+            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true) {
                 var gunProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
                 this.shootBall(gunProperties);
                 this.canShoot = false;

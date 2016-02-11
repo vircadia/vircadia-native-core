@@ -120,10 +120,7 @@ function AttachedEntitiesManager() {
             parsedMessage.action === 'loaded') {
             // ignore
         } else if (parsedMessage.action === 'release') {
-            manager.checkIfWearable(parsedMessage.grabbedEntity, parsedMessage.joint)
-            // manager.saveAttachedEntities();
-        } else if (parsedMessage.action === 'shared-release') {
-            manager.updateRelativeOffsets(parsedMessage.grabbedEntity);
+            manager.handleEntityRelease(parsedMessage.grabbedEntity, parsedMessage.joint)
             // manager.saveAttachedEntities();
         } else if (parsedMessage.action === 'equip') {
             // manager.saveAttachedEntities();
@@ -145,7 +142,14 @@ function AttachedEntitiesManager() {
         return false;
     }
 
-    this.checkIfWearable = function(grabbedEntity, releasedFromJoint) {
+    this.handleEntityRelease = function(grabbedEntity, releasedFromJoint) {
+        // if this is still equipped, just rewrite the position information.
+        var grabData = getEntityCustomData('grabKey', entityID, {});
+        if ("refCount" in grabData && grabData.refCount > 0) {
+            manager.updateRelativeOffsets(parsedMessage.grabbedEntity);
+            return;
+        }
+
         var allowedJoints = getEntityCustomData('wearable', grabbedEntity, DEFAULT_WEARABLE_DATA).joints;
 
         var props = Entities.getEntityProperties(grabbedEntity, ["position", "parentID", "parentJointIndex"]);
