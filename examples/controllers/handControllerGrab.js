@@ -946,13 +946,15 @@ function MyController(hand) {
                 return;
             }
             // near grab or equip with action
-            if (near && (grabbableData.refCount < 1 || entityHasActions(this.grabbedEntity))) {
+            var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
+            var refCount = ("refCount" in grabData) ? grabData.refCount : 0;
+            if (near && (refCount < 1 || entityHasActions(this.grabbedEntity))) {
                 this.setState(this.state == STATE_SEARCHING ? STATE_NEAR_GRABBING : STATE_EQUIP);
                 return;
             }
             // far grab or equip with action
             if ((isPhysical || this.state == STATE_EQUIP_SEARCHING) && !near) {
-                if (entityIsGrabbedByOther(intersection.entityID)) {
+                if (entityIsGrabbedByOther(this.grabbedEntity)) {
                     // don't distance grab something that is already grabbed.
                     if (WANT_DEBUG_SEARCH_NAME && props.name == WANT_DEBUG_SEARCH_NAME) {
                         print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': already grabbed by another.");
@@ -1449,11 +1451,12 @@ function MyController(hand) {
             return;
         }
 
-        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID"]);
+        var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position"]);
         if (props.parentID == MyAvatar.sessionUUID &&
             Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
             // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
-            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand.");
+            print("handControllerGrab -- autoreleasing held or equipped item because it is far from hand." +
+                  props.parentID + " " + vec3toStr(props.position));
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed(this.state == STATE_NEAR_GRABBING ? "releaseGrab" : "releaseEquip",
                                            [JSON.stringify(this.hand)]);

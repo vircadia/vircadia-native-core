@@ -136,23 +136,19 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
     motionState->clearIncomingDirtyFlags();
 }
 
-// private
-void PhysicsEngine::removeObjectFromDynamicsWorld(ObjectMotionState* object) {
-    // wake up anything touching this object
-    bump(object);
-    removeContacts(object);
-
-    btRigidBody* body = object->getRigidBody();
-    assert(body);
-    _dynamicsWorld->removeRigidBody(body);
-}
-
 void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
+    // first bump and prune contacts for all objects in the list
     for (auto object : objects) {
-        removeObjectFromDynamicsWorld(object);
+        bumpAndPruneContacts(object);
+    }
+
+    // then remove them
+    for (auto object : objects) {
+        btRigidBody* body = object->getRigidBody();
+        assert(body);
+        _dynamicsWorld->removeRigidBody(body);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
-        btRigidBody* body = object->getRigidBody();
         object->setRigidBody(nullptr);
         body->setMotionState(nullptr);
         delete body;
@@ -163,7 +159,8 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
 void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        removeObjectFromDynamicsWorld(object);
+        assert(body);
+        _dynamicsWorld->removeRigidBody(body);
 
         // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
         object->setRigidBody(nullptr);
@@ -200,7 +197,13 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
 }
 
 void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
-    removeObjectFromDynamicsWorld(object);
+    // remove object from DynamicsWorld
+    bumpAndPruneContacts(object);
+    btRigidBody* body = object->getRigidBody();
+    assert(body);
+    _dynamicsWorld->removeRigidBody(body);
+
+    // add it back
     addObjectToDynamicsWorld(object);
 }
 
@@ -402,7 +405,7 @@ void PhysicsEngine::dumpStatsIfNecessary() {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-void PhysicsEngine::bump(ObjectMotionState* motionState) {
+void PhysicsEngine::bumpAndPruneContacts(ObjectMotionState* motionState) {
     // Find all objects that touch the object corresponding to motionState and flag the other objects
     // for simulation ownership by the local simulation.
 
@@ -434,6 +437,7 @@ void PhysicsEngine::bump(ObjectMotionState* motionState) {
             }
         }
     }
+    removeContacts(motionState);
 }
 
 void PhysicsEngine::setCharacterController(CharacterController* character) {

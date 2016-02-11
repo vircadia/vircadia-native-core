@@ -4,7 +4,7 @@ enable_testing()
 
 # add the test directories
 file(GLOB TEST_SUBDIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/*")
-list(REMOVE_ITEM TEST_SUBDIRS "CMakeFiles")
+list(REMOVE_ITEM TEST_SUBDIRS "CMakeFiles" "mocha")
 foreach(DIR ${TEST_SUBDIRS})
   if(IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${DIR}")
     set(TEST_PROJ_NAME ${DIR})

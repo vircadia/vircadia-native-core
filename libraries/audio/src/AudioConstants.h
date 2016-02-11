@@ -27,8 +27,8 @@ namespace AudioConstants {
     const int NETWORK_FRAME_SAMPLES_STEREO = NETWORK_FRAME_BYTES_STEREO / sizeof(AudioSample);
     const int NETWORK_FRAME_BYTES_PER_CHANNEL = 512;
     const int NETWORK_FRAME_SAMPLES_PER_CHANNEL = NETWORK_FRAME_BYTES_PER_CHANNEL / sizeof(AudioSample);
-    const float NETWORK_FRAME_MSECS = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL
-        / (float)AudioConstants::SAMPLE_RATE) * 1000.0f;
+    const float NETWORK_FRAME_SECS = (AudioConstants::NETWORK_FRAME_SAMPLES_PER_CHANNEL / float(AudioConstants::SAMPLE_RATE));
+    const float NETWORK_FRAME_MSECS = NETWORK_FRAME_SECS * 1000.0f;
 
     // be careful with overflows when using this constant
     const int NETWORK_FRAME_USECS = static_cast<int>(NETWORK_FRAME_MSECS * 1000.0f);

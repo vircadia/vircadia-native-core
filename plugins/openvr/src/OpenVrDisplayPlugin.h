@@ -45,5 +45,8 @@ protected:
 private:
     vr::IVRSystem* _hmd { nullptr };
     static const QString NAME;
+    bool _enablePreview { false };
+    bool _monoPreview { true };
+    mutable Mutex _poseMutex;
 };
 

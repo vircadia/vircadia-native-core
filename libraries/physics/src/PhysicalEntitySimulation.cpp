@@ -167,11 +167,13 @@ void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionState
         _entitiesToAddToPhysics.remove(entity);
 
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        assert(motionState);
-        _pendingChanges.remove(motionState);
-        _physicalObjects.remove(motionState);
-        result.push_back(motionState);
-        _entitiesToRelease.insert(entity);
+        if (motionState) {
+            _pendingChanges.remove(motionState);
+            _outgoingChanges.remove(motionState);
+            _physicalObjects.remove(motionState);
+            result.push_back(motionState);
+            _entitiesToRelease.insert(entity);
+        }
 
         if (entity->isSimulated() && entity->isDead()) {
             _entitiesToDelete.insert(entity);

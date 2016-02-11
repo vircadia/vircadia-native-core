@@ -67,8 +67,6 @@ const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
 InboundAudioStream::Settings AudioMixer::_streamSettings;
 
-bool AudioMixer::_printStreamStats = false;
-
 bool AudioMixer::_enableFilter = true;
 
 bool AudioMixer::shouldMute(float quietestFrame) {
@@ -81,13 +79,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
     _performanceThrottlingRatio(0.0f),
     _attenuationPerDoublingInDistance(DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE),
-    _noiseMutingThreshold(DEFAULT_NOISE_MUTING_THRESHOLD),
-    _lastPerSecondCallbackTime(usecTimestampNow()),
-    _sendAudioStreamStats(false),
-    _datagramsReadPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
-    _timeSpentPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
-    _timeSpentPerHashMatchCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
-    _readPendingCallsPerSecondStats(1, READ_DATAGRAMS_STATS_WINDOW_SECONDS)
+    _noiseMutingThreshold(DEFAULT_NOISE_MUTING_THRESHOLD)
 {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
@@ -484,8 +476,19 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
 
         nodeList->eachNode([injectorClientData, &streamID](const SharedNodePointer& node){
             auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-            listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+            if (listenerClientData) {
+                listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+            }
         });
+    }
+}
+
+QString AudioMixer::percentageForMixStats(int counter) {
+    if (_totalMixes > 0) {
+        float mixPercentage = (float(counter) / _totalMixes) * 100.0f;
+        return QString::number(mixPercentage, 'f', 2);
+    } else {
+        return QString("0.0");
     }
 }
 
@@ -499,11 +502,11 @@ void AudioMixer::sendStatsPacket() {
     statsObject["avg_listeners_per_frame"] = (float) _sumListeners / (float) _numStatFrames;
 
     QJsonObject mixStats;
-    mixStats["%_hrtf_mixes"] = (_totalMixes > 0) ? (_hrtfRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_hrtf_silent_mixes"] = (_totalMixes > 0) ? (_hrtfSilentRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_hrtf_struggle_mixes"] = (_totalMixes > 0) ? (_hrtfStruggleRenders / _totalMixes) * 100.0f : 0;
-    mixStats["%_manual_stereo_mixes"] = (_totalMixes > 0) ? (_manualStereoMixes / _totalMixes) * 100.0f : 0;
-    mixStats["%_manual_echo_mixes"] = (_totalMixes > 0) ? (_manualEchoMixes / _totalMixes) * 100.0f : 0;
+    mixStats["%_hrtf_mixes"] = percentageForMixStats(_hrtfRenders);
+    mixStats["%_hrtf_silent_mixes"] = percentageForMixStats(_hrtfSilentRenders);
+    mixStats["%_hrtf_struggle_mixes"] = percentageForMixStats(_hrtfStruggleRenders);
+    mixStats["%_manual_stereo_mixes"] = percentageForMixStats(_manualStereoMixes);
+    mixStats["%_manual_echo_mixes"] = percentageForMixStats(_manualEchoMixes);
 
     mixStats["total_mixes"] = _totalMixes;
     mixStats["avg_mixes_per_block"] = _totalMixes / _numStatFrames;
@@ -518,42 +521,6 @@ void AudioMixer::sendStatsPacket() {
     _manualEchoMixes = 0;
     _totalMixes = 0;
     _numStatFrames = 0;
-
-    QJsonObject readPendingDatagramStats;
-
-    QJsonObject rpdCallsStats;
-    rpdCallsStats["calls_per_sec_avg_30s"] = _readPendingCallsPerSecondStats.getWindowAverage();
-    rpdCallsStats["calls_last_sec"] = _readPendingCallsPerSecondStats.getLastCompleteIntervalStats().getSum() + 0.5;
-
-    readPendingDatagramStats["calls"] = rpdCallsStats;
-
-    QJsonObject packetsPerCallStats;
-    packetsPerCallStats["avg_30s"] = _datagramsReadPerCallStats.getWindowAverage();
-    packetsPerCallStats["avg_1s"] = _datagramsReadPerCallStats.getLastCompleteIntervalStats().getAverage();
-
-    readPendingDatagramStats["packets_per_call"] = packetsPerCallStats;
-
-    QJsonObject packetsTimePerCallStats;
-    packetsTimePerCallStats["usecs_per_call_avg_30s"] = _timeSpentPerCallStats.getWindowAverage();
-    packetsTimePerCallStats["usecs_per_call_avg_1s"] = _timeSpentPerCallStats.getLastCompleteIntervalStats().getAverage();
-    packetsTimePerCallStats["prct_time_in_call_30s"] =
-        _timeSpentPerCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS * USECS_PER_SECOND) * 100.0;
-    packetsTimePerCallStats["prct_time_in_call_1s"] =
-        _timeSpentPerCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0;
-
-    readPendingDatagramStats["packets_time_per_call"] = packetsTimePerCallStats;
-
-    QJsonObject hashMatchTimePerCallStats;
-    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_30s"] = _timeSpentPerHashMatchCallStats.getWindowAverage();
-    hashMatchTimePerCallStats["usecs_per_hashmatch_avg_1s"]
-        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getAverage();
-    hashMatchTimePerCallStats["prct_time_in_hashmatch_30s"]
-        = _timeSpentPerHashMatchCallStats.getWindowSum() / (READ_DATAGRAMS_STATS_WINDOW_SECONDS*USECS_PER_SECOND) * 100.0;
-    hashMatchTimePerCallStats["prct_time_in_hashmatch_1s"]
-        = _timeSpentPerHashMatchCallStats.getLastCompleteIntervalStats().getSum() / USECS_PER_SECOND * 100.0;
-    readPendingDatagramStats["hashmatch_time_per_call"] = hashMatchTimePerCallStats;
-
-    statsObject["read_pending_datagrams"] = readPendingDatagramStats;
 
     // add stats for each listerner
     auto nodeList = DependencyManager::get<NodeList>();
@@ -680,12 +647,6 @@ void AudioMixer::broadcastMixes() {
             ++framesSinceCutoffEvent;
         }
 
-        quint64 now = usecTimestampNow();
-        if (now - _lastPerSecondCallbackTime > USECS_PER_SECOND) {
-            perSecondActions();
-            _lastPerSecondCallbackTime = now;
-        }
-
         nodeList->eachNode([&](const SharedNodePointer& node) {
 
             if (node->getLinkedData()) {
@@ -741,10 +702,11 @@ void AudioMixer::broadcastMixes() {
                     nodeList->sendPacket(std::move(mixPacket), *node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
-                    // send an audio stream stats packet if it's time
-                    if (_sendAudioStreamStats) {
+                    static const int FRAMES_PER_SECOND = int(ceilf(1.0f / AudioConstants::NETWORK_FRAME_SECS));
+
+                    // send an audio stream stats packet to the client approximately every second
+                    if (nextFrame % FRAMES_PER_SECOND == 0) {
                         nodeData->sendAudioStreamStatsPackets(node);
-                        _sendAudioStreamStats = false;
                     }
 
                     ++_sumListeners;
@@ -770,64 +732,6 @@ void AudioMixer::broadcastMixes() {
             usleep(usecToSleep);
         }
     }
-}
-
-void AudioMixer::perSecondActions() {
-    _sendAudioStreamStats = true;
-
-    int callsLastSecond = _datagramsReadPerCallStats.getCurrentIntervalSamples();
-    _readPendingCallsPerSecondStats.update(callsLastSecond);
-
-    if (_printStreamStats) {
-
-        printf("\n================================================================================\n\n");
-
-        printf("            readPendingDatagram() calls per second | avg: %.2f, avg_30s: %.2f, last_second: %d\n",
-            _readPendingCallsPerSecondStats.getAverage(),
-            _readPendingCallsPerSecondStats.getWindowAverage(),
-            callsLastSecond);
-
-        printf("                           Datagrams read per call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
-            _datagramsReadPerCallStats.getAverage(),
-            _datagramsReadPerCallStats.getWindowAverage(),
-            _datagramsReadPerCallStats.getCurrentIntervalAverage());
-
-        printf("        Usecs spent per readPendingDatagram() call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
-            _timeSpentPerCallStats.getAverage(),
-            _timeSpentPerCallStats.getWindowAverage(),
-            _timeSpentPerCallStats.getCurrentIntervalAverage());
-
-        printf("  Usecs spent per packetVersionAndHashMatch() call | avg: %.2f, avg_30s: %.2f, last_second: %.2f\n",
-            _timeSpentPerHashMatchCallStats.getAverage(),
-            _timeSpentPerHashMatchCallStats.getWindowAverage(),
-            _timeSpentPerHashMatchCallStats.getCurrentIntervalAverage());
-
-        double WINDOW_LENGTH_USECS = READ_DATAGRAMS_STATS_WINDOW_SECONDS * USECS_PER_SECOND;
-
-        printf("       %% time spent in readPendingDatagram() calls | avg_30s: %.6f%%, last_second: %.6f%%\n",
-            _timeSpentPerCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
-            _timeSpentPerCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
-
-        printf("%% time spent in packetVersionAndHashMatch() calls: | avg_30s: %.6f%%, last_second: %.6f%%\n",
-            _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
-            _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
-
-        DependencyManager::get<NodeList>()->eachNode([](const SharedNodePointer& node) {
-            if (node->getLinkedData()) {
-                AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
-
-                if (node->getType() == NodeType::Agent && node->getActiveSocket()) {
-                    printf("\nStats for agent %s --------------------------------\n",
-                        node->getUUID().toString().toLatin1().data());
-                    nodeData->printUpstreamDownstreamStats();
-                }
-            }
-        });
-    }
-
-    _datagramsReadPerCallStats.currentIntervalComplete();
-    _timeSpentPerCallStats.currentIntervalComplete();
-    _timeSpentPerHashMatchCallStats.currentIntervalComplete();
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
@@ -893,12 +797,6 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             qDebug() << "Repetition with fade enabled";
         } else {
             qDebug() << "Repetition with fade disabled";
-        }
-
-        const QString PRINT_STREAM_STATS_JSON_KEY = "print_stream_stats";
-        _printStreamStats = audioBufferGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
-        if (_printStreamStats) {
-            qDebug() << "Stream stats will be printed to stdout";
         }
     }
 

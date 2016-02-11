@@ -166,7 +166,8 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
         batch.setStateScissorRect(args->_viewport);
         args->_batch = &batch;
 
-        config->numDrawn = (int)inItems.size();
+        config->setNumDrawn((int)inItems.size());
+        emit config->numDrawnChanged();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -203,7 +204,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
             inItems.emplace_back(id);
         }
     }
-    config->numItems = (int)inItems.size();
+    config->setNumDrawn((int)inItems.size());
+    emit config->numDrawnChanged();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->args;

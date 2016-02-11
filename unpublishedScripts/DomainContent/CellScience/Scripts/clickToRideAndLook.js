@@ -18,20 +18,45 @@
     var self = this;
 
     this.preload = function(entityId) {
-
         this.entityId = entityId;
-        this.data = JSON.parse(Entities.getEntityProperties(this.entityId, "userData").userData);
-        this.buttonImageURL = baseURL + "GUI/GUI_jump_off.png";
-        this.addExitButton();
-        this.isRiding = false;
-
-        if (this.data && this.data.isDynein) {
-            this.rotation = 180;
-        } else {
-            this.rotation = 0;
-        }
-
+        this.initialize(entityId);
+        self.initTimeout = null;
     }
+
+    this.initialize = function(entityId) {
+        //print(' should initialize' + entityId)
+        var properties = Entities.getEntityProperties(entityId);
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+            self.initTimeout = Script.setTimeout(function() {
+                //print(' no user data yet, try again in one second')
+                self.initialize(entityId);
+            }, 1000)
+
+        } else {
+            //print(' userdata before parse attempt' + properties.userData)
+            self.userData = null;
+            try {
+                self.userData = JSON.parse(properties.userData);
+            } catch (err) {
+                //print(' error parsing json');
+                //print(' properties are:' + properties.userData);
+                return;
+            }
+
+            self.data = self.userData;
+            self.buttonImageURL = baseURL + "GUI/GUI_jump_off.png";
+            self.addExitButton();
+            self.isRiding = false;
+            self.mouseIsConnected = false;
+            if (self.data && self.data.isDynein) {
+                self.rotation = 180;
+            } else {
+                self.rotation = 0;
+            }
+        }
+    }
+
+
 
     this.addExitButton = function() {
         this.windowDimensions = Controller.getViewportDimensions();
@@ -53,19 +78,22 @@
     }
 
     this.clickReleaseOnEntity = function(entityId, mouseEvent) {
-        // print('CLICKED ON MOTOR PROTEIN')
+
+        //print('CLICKED ON MOTOR PROTEIN')
+        return;
         if (mouseEvent.isLeftButton && !self.isRiding) {
-            print("GET ON");
+            //print("GET ON");
             self.isRiding = true;
             if (!self.entityId) {
                 self.entityId = entityId;
             }
-            self.entityLocation = Entities.getEntityProperties(this.entityId, "position").position;
+            self.entityLocation = Entities.getEntityProperties(self.entityId, "position").position;
             self.targetLocation = Vec3.sum(self.entityLocation, TARGET_OFFSET);
             Overlays.editOverlay(self.exitButton, {
                 visible: true
             });
             Controller.mousePressEvent.connect(this.onMousePress);
+            self.mouseIsConnected = true;
             Script.update.connect(this.update);
         }
     }
@@ -116,7 +144,7 @@
             y: event.y
         });
         if (event.isLeftButton && clickedOverlay === self.exitButton) {
-            print("GET OFF");
+            //print("GET OFF");
             Script.update.disconnect(this.update);
             self.reset();
         }
@@ -136,8 +164,12 @@
         // print("unload");
         self.reset();
 
-        Controller.mousePressEvent.disconnect(this.onMousePress);
+        if (self.mouseIsConnected === true) {
+            Controller.mousePressEvent.disconnect(self.onMousePress);
+        }
+        if (self.initTimeout !== null) {
+            Script.clearTimeout(self.initTimeout);
+        }
     }
-
 
 });

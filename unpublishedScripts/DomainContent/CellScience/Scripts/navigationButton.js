@@ -1,4 +1,3 @@
-
 //  Copyright 2016 High Fidelity, Inc.
 //
 //
@@ -8,7 +7,7 @@
 
 (function() {
 
-    var version = 1;
+    var version = 11;
     var added = false;
     this.frame = 0;
     var utilsScript = Script.resolvePath('utils.js');
@@ -19,35 +18,61 @@
 
     this.preload = function(entityId) {
         this.entityId = entityId;
-        var mySavedSettings = Settings.getValue(entityId);
+        this.initialize(entityId);
+        this.initTimeout = null;
+    }
 
-        if (mySavedSettings.buttons !== undefined) {
-            // print('NAV preload buttons'+ mySavedSettings.buttons)
-            mySavedSettings.buttons.forEach(function(b) {
-                // print('NAV deleting button'+ b)
-                Overlays.deleteOverlay(b);
-            })
-            Settings.setValue(entityId,'')
-        }
-
-
-        self.getUserData();
-        this.buttonImageURL = baseURL + "GUI/GUI_" + self.userData.name + ".png?" + version;
-        if (self.button === undefined) {
-            // print('NAV NO BUTTON ADDING ONE!!')
-            self.button = true;
-            self.addButton();
+    this.initialize = function(entityId) {
+        print('JBP nav button should initialize' + entityId)
+        var properties = Entities.getEntityProperties(entityId);
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+            self.initTimeout = Script.setTimeout(function() {
+                print('JBP no user data yet, try again in one second')
+                self.initialize(entityId);
+            }, 1000)
 
         } else {
-            // print('NAV SELF ALREADY HAS A BUTTON!!')
-        }
+            print('JBP userdata before parse attempt' + properties.userData)
+            self.userData = null;
+            try {
+                self.userData = JSON.parse(properties.userData);
+            } catch (err) {
+                print('JBP error parsing json');
+                print('JBP properties are:' + properties.userData);
+                return;
+            }
 
+
+            var mySavedSettings = Settings.getValue(entityId);
+
+            if (mySavedSettings.buttons !== undefined) {
+                print('JBP preload buttons' + mySavedSettings.buttons)
+                mySavedSettings.buttons.forEach(function(b) {
+                    print('JBP deleting button' + b)
+                    Overlays.deleteOverlay(b);
+                })
+                Settings.setValue(entityId, '')
+            }
+
+
+            self.buttonImageURL = baseURL + "GUI/GUI_" + self.userData.name + ".png?" + version;
+            print('JBP BUTTON IMAGE URL:' + self.buttonImageURL)
+            if (self.button === undefined) {
+                // print('NAV NO BUTTON ADDING ONE!!')
+                self.button = true;
+                self.addButton();
+
+            } else {
+                // print('NAV SELF ALREADY HAS A BUTTON!!')
+            }
+
+        }
     }
+
+
 
     this.addButton = function() {
 
-
-        self.getUserData();
         this.windowDimensions = Controller.getViewportDimensions();
         this.buttonWidth = 150;
         this.buttonHeight = 50;
@@ -87,7 +112,7 @@
         if (self.frame < 10) {
             self.frame++;
         } else {
-            //          this.lookAt(this.userData.target);
+            // this.lookAt(this.userData.target);
         }
     }
 
@@ -107,7 +132,7 @@
     }
 
     this.lookAtTarget = function() {
-        self.getUserData();
+
         var direction = Vec3.normalize(Vec3.subtract(self.userData.entryPoint, self.userData.target));
         var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
             x: 1,
@@ -125,16 +150,6 @@
         MyAvatar.headYaw = 0;
 
     }
-
-    this.getUserData = function() {
-        this.properties = Entities.getEntityProperties(this.entityId);
-        if (self.properties.userData) {
-            this.userData = JSON.parse(this.properties.userData);
-        } else {
-            this.userData = {};
-        }
-    }
-
     var buttonDeleter;
     var deleterCount = 0;
     this.unload = function() {
@@ -144,6 +159,11 @@
 
         Controller.mousePressEvent.disconnect(this.onClick);
         // Script.update.disconnect(this.update);
+
+
+        if (this.initTimeout !== null) {
+            Script.clearTimeout(this.initTimeout);
+        }
     }
 
     Controller.mousePressEvent.connect(this.onClick);

@@ -366,14 +366,6 @@
           "help": "Dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
           "default": false,
           "advanced": true
-        },
-        {
-          "name": "print_stream_stats",
-          "type": "checkbox",
-          "label": "Print Stream Stats",
-          "help": "Audio upstream and downstream stats of each agent printed to audio-mixer stdout",
-          "default": false,
-          "advanced": true
         }
       ]
     },
