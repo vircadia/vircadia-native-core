@@ -110,17 +110,7 @@ private:
 
     static InboundAudioStream::Settings _streamSettings;
 
-    static bool _printStreamStats;
     static bool _enableFilter;
-
-    bool _sendAudioStreamStats;
-
-    // stats
-    MovingMinMaxAvg<int> _datagramsReadPerCallStats;     // update with # of datagrams read for each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerCallStats;     // update with usecs spent inside each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
-
-    MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
 };
 
 #endif // hifi_AudioMixer_h
