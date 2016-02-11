@@ -92,7 +92,9 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
     Index currentIndex = ROOT_CELL;
     Indices cellPath(1, currentIndex);
 
-    for (auto& location : path) {
+    // Start the path after the root cell so at #1
+    for (size_t p = 1; p < path.size(); p++) {
+        auto& location = path[p];
         auto nextIndex = getConcreteCell(currentIndex).child(location.octant());
         if (nextIndex == INVALID_CELL) {
             break;
