@@ -37,8 +37,6 @@ public:
     typedef render::Payload<RenderableEntityItemProxy> Payload;
     typedef Payload::DataPointer Pointer;
 
-    int touch = 0;
-
     EntityItemPointer entity;
 };
 
@@ -79,7 +77,6 @@ public:
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
 
         pendingChanges.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
-            data.touch++;
         });
 
         scene->enqueuePendingChanges(pendingChanges);

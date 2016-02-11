@@ -29,6 +29,11 @@ public:
     virtual void removeFromScene(EntityItemPointer self, render::ScenePointer scene, render::PendingChanges& pendingChanges) override;
 
 protected:
+    virtual void locationChanged() override { EntityItem::locationChanged(); notifyBoundChanged(); }
+    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
+
+    void notifyBoundChanged();
+
     void createPipelines();
     
     render::ScenePointer _scene;
