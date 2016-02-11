@@ -116,6 +116,23 @@ ApplicationWindow {
             }
 
             Button {
+                text: "Add Tab"
+                onClicked: {
+                    console.log(desktop.toolWindow);
+                    desktop.toolWindow.addWebTab({ source: "Foo" });
+                    desktop.toolWindow.showTabForUrl("Foo", true);
+                }
+            }
+
+            Button {
+                text: "Destroy Tab"
+                onClicked: {
+                    console.log(desktop.toolWindow);
+                    desktop.toolWindow.removeTabForUrl("Foo");
+                }
+            }
+
+            Button {
                 text: "Open File"
                 property var builder: Component {
                     FileDialog { }
