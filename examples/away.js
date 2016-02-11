@@ -19,6 +19,14 @@ var OVERLAY_DATA = {
     color: {red: 255, green: 255, blue: 255},
     alpha: 1
 };
+// For the script to receive an event when the user presses a hand-controller button, we need to map
+// that button to the handler, which we do at the bottom of this script. However, doing so changes
+// the mapping for the user, across all scripts. Therefore, we just enable the mapping when going
+// "away", and disable it when going "active". However, this is occuring within a Controller event, so we
+// have to wait until the Controller code has finished with all such events, so we delay
+// it. Additionally, we may go "away" on startup, and we want to wait until any other such mapping
+// have occured, because only the last remapping wins.
+var CONTROLLER_REMAPPING_DELAY = 750; // ms
 
 // ANIMATION
 // We currently don't have play/stopAnimation integrated with the animation graph, but we can get the same effect
@@ -97,11 +105,13 @@ function goAway() {
     if (isAway) {
         return;
     }
+    Script.setTimeout(function () {
+	if (isAway) { // i.e., unless something changed during the delay.
+	    Controller.enableMapping(eventMappingName);
+	}
+    }, CONTROLLER_REMAPPING_DELAY);
     isAway = true;
     print('going "away"');
-    Controller.mousePressEvent.connect(goActive);
-    Controller.keyPressEvent.connect(maybeGoActive);
-    Controller.enableMapping(eventMappingName);
     wasMuted = AudioDevice.getMuted();
     if (!wasMuted) {
         AudioDevice.toggleMute();
@@ -114,11 +124,13 @@ function goActive() {
     if (!isAway) {
         return;
     }
+    Script.setTimeout(function () {
+	if (!isAway) { // i.e., unless something changed during the delay
+	    Controller.disableMapping(eventMappingName); // Let hand-controller events through to other scripts.
+	}
+    }, CONTROLLER_REMAPPING_DELAY);
     isAway = false;
     print('going "active"');
-    Controller.mousePressEvent.disconnect(goActive);
-    Controller.keyPressEvent.disconnect(maybeGoActive);
-    Controller.disableMapping(eventMappingName); // Let hand-controller events through to other scripts.
     if (!wasMuted) {
         AudioDevice.toggleMute();
     }
@@ -129,7 +141,6 @@ function goActive() {
 
 function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
-	print('fixme autorepeat');
         return;
     }
     if (!isAway && (event.text === '.')) {
@@ -149,6 +160,9 @@ function maybeGoAway() {
 }
 
 Script.update.connect(maybeGoAway);
+// These two can be set now and left active as long as the script is running. They do not interfere with other scripts.
+Controller.mousePressEvent.connect(goActive);
+Controller.keyPressEvent.connect(maybeGoActive);
 // Set up the mapping, but don't enable it until we're actually away.
 eventMapping.from(Controller.Standard.LeftPrimaryThumb).to(goActive);
 eventMapping.from(Controller.Standard.RightPrimaryThumb).to(goActive);
@@ -159,4 +173,3 @@ Script.scriptEnding.connect(function () {
     Script.update.disconnect(maybeGoAway);
     goActive();
 });
-
