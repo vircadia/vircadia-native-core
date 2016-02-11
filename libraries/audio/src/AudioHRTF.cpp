@@ -143,7 +143,7 @@ static bool cpuSupportsAVX() {
     return result;
 }
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(__clang__)
 
 static bool cpuSupportsAVX() {
     return __builtin_cpu_supports("avx");
