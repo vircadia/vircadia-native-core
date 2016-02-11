@@ -993,6 +993,10 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
 }
 
 bool EntityItem::isMoving() const {
+    return hasVelocity() || hasAngularVelocity();
+}
+
+bool EntityItem::isMovingRelativeToParent() const {
     return hasLocalVelocity() || hasLocalAngularVelocity();
 }
 
@@ -1558,7 +1562,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
     } else {
         if (_dynamic) {
             group = BULLET_COLLISION_GROUP_DYNAMIC;
-        } else if (isMoving() || hasActions()) {
+        } else if (isMovingRelativeToParent() || hasActions()) {
             group = BULLET_COLLISION_GROUP_KINEMATIC;
         } else {
             group = BULLET_COLLISION_GROUP_STATIC;

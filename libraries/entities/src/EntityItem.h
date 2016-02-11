@@ -345,6 +345,7 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+    bool isMovingRelativeToParent() const;
 
     bool isSimulated() const { return _simulated; }
 
