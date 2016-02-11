@@ -89,7 +89,7 @@ void AssetServer::completeSetup() {
     if (assetsPath.isRelative()) {
         // if the domain settings passed us a relative path, make an absolute path that is relative to the
         // default data directory
-        absoluteFilePath = ServerPathUtils::getDataFilePath(assetsPathString);
+        absoluteFilePath = ServerPathUtils::getDataFilePath("assets/" + assetsPathString);
     }
 
     _resourcesDirectory = QDir(absoluteFilePath);
