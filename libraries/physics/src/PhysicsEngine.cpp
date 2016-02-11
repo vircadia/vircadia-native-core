@@ -145,27 +145,30 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
     // then remove them
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        assert(body);
-        _dynamicsWorld->removeRigidBody(body);
+        if (body) {
+            _dynamicsWorld->removeRigidBody(body);
 
-        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
-        object->setRigidBody(nullptr);
-        body->setMotionState(nullptr);
-        delete body;
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
     }
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
 void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
+    _contactMap.clear();
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
-        assert(body);
-        _dynamicsWorld->removeRigidBody(body);
+        if (body) {
+            _dynamicsWorld->removeRigidBody(body);
 
-        // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
-        object->setRigidBody(nullptr);
-        body->setMotionState(nullptr);
-        delete body;
+            // NOTE: setRigidBody() modifies body->m_userPointer so we should clear the MotionState's body BEFORE deleting it.
+            object->setRigidBody(nullptr);
+            body->setMotionState(nullptr);
+            delete body;
+        }
     }
 }
 
@@ -200,11 +203,12 @@ void PhysicsEngine::reinsertObject(ObjectMotionState* object) {
     // remove object from DynamicsWorld
     bumpAndPruneContacts(object);
     btRigidBody* body = object->getRigidBody();
-    assert(body);
-    _dynamicsWorld->removeRigidBody(body);
+    if (body) {
+        _dynamicsWorld->removeRigidBody(body);
 
-    // add it back
-    addObjectToDynamicsWorld(object);
+        // add it back
+        addObjectToDynamicsWorld(object);
+    }
 }
 
 void PhysicsEngine::removeContacts(ObjectMotionState* motionState) {
