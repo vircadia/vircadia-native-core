@@ -476,7 +476,9 @@ void AudioMixer::removeHRTFsForFinishedInjector(const QUuid& streamID) {
 
         nodeList->eachNode([injectorClientData, &streamID](const SharedNodePointer& node){
             auto listenerClientData = dynamic_cast<AudioMixerClientData*>(node->getLinkedData());
-            listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+            if (listenerClientData) {
+                listenerClientData->removeHRTFForStream(injectorClientData->getNodeID(), streamID);
+            }
         });
     }
 }
