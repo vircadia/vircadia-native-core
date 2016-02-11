@@ -33,10 +33,6 @@ public:
 public slots:
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector) = 0;
     
-    virtual void enableAudioSourceInject(bool enable) = 0;
-    virtual void selectAudioSourcePinkNoise() = 0;
-    virtual void selectAudioSourceSine440() = 0;
-
     virtual void setIsStereoInput(bool stereo) = 0;
 };
 

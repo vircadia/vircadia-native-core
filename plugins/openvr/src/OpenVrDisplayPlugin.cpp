@@ -32,11 +32,14 @@ const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
 
 static vr::IVRCompositor* _compositor{ nullptr };
+static vr::TrackedDevicePose_t _presentThreadTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
 static uvec2 _windowSize;
 static uvec2 _renderTargetSize;
+
+
 
 struct PerEyeData {
     //uvec2 _viewportOrigin;
@@ -69,10 +72,7 @@ mat4 toGlm(const vr::HmdMatrix34_t& m) {
 }
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    auto hmd = acquireOpenVrSystem();
-    bool success = nullptr != hmd;
-    releaseOpenVrSystem();
-    return success;
+    return vr::VR_IsHmdPresent();
 }
 
 void OpenVrDisplayPlugin::activate() {
@@ -87,11 +87,16 @@ void OpenVrDisplayPlugin::activate() {
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
     _renderTargetSize.x *= 2;
-    openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        PerEyeData& eyeData = _eyesData[eye];
-        eyeData._projectionMatrix = toGlm(_hmd->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
-        eyeData._eyeOffset = toGlm(_hmd->GetEyeToHeadTransform(eye));
-    });
+
+    {
+        Lock lock(_poseMutex);
+        openvr_for_each_eye([&](vr::Hmd_Eye eye) {
+            PerEyeData& eyeData = _eyesData[eye];
+            eyeData._projectionMatrix = toGlm(_hmd->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
+            eyeData._eyeOffset = toGlm(_hmd->GetEyeToHeadTransform(eye));
+        });
+    }
+
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
     WindowOpenGLDisplayPlugin::activate();
@@ -115,6 +120,10 @@ void OpenVrDisplayPlugin::customizeContext() {
         glGetError();
     });
     WindowOpenGLDisplayPlugin::customizeContext();
+
+    enableVsync(false);
+    // Only enable mirroring if we know vsync is disabled
+    _enablePreview = !isVsyncEnabled();
 }
 
 uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
@@ -126,25 +135,24 @@ mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) con
     if (eye == Mono) {
         eye = Left;
     }
+    Lock lock(_poseMutex);
     return _eyesData[eye]._projectionMatrix;
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
+    Lock lock(_poseMutex);
+    glm::mat4 m = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
 glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
+    Lock lock(_poseMutex);
     return _eyesData[eye]._eyeOffset;
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    glm::mat4 result;
-    {
-        Lock lock(_mutex);
-        result = _trackedDevicePoseMat4[0];
-
-    }
-    return result;
+    Lock lock(_poseMutex);
+    return _trackedDevicePoseMat4[0];
 }
 
 
@@ -156,17 +164,40 @@ void OpenVrDisplayPlugin::internalPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
-    {
-        Lock lock(_mutex);
-        _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
-        _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
+
+    // screen preview mirroring
+    if (_enablePreview) {
+        auto windowSize = toGlm(_window->size());
+        if (_monoPreview) {
+            glViewport(0, 0, windowSize.x * 2, windowSize.y);
+            glScissor(0, windowSize.y, windowSize.x, windowSize.y);
+        } else {
+            glViewport(0, 0, windowSize.x, windowSize.y);
+        }
+        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
+        GLenum err = glGetError();
+        Q_ASSERT(0 == err);
+        drawUnitQuad();
     }
+
+    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
+
+    _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
+    _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
+
     glFinish();
+
+    if (_enablePreview) {
+        swapBuffers();
+    }
+
+    _compositor->WaitGetPoses(_presentThreadTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+
     {
-        Lock lock(_mutex);
-        _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+        // copy and process _presentThreadTrackedDevicePoses
+        Lock lock(_poseMutex);
         for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+            _trackedDevicePose[i] = _presentThreadTrackedDevicePose[i];
             _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
         }
         openvr_for_each_eye([&](vr::Hmd_Eye eye) {

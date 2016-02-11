@@ -39,6 +39,7 @@ glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
 
 bool OculusBaseDisplayPlugin::isSupported() const {
     if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+        qDebug() << "OculusBaseDisplayPlugin : ovr_Initialize() failed";
         return false;
     }
 
@@ -48,6 +49,7 @@ bool OculusBaseDisplayPlugin::isSupported() const {
     if (!OVR_SUCCESS(result)) {
         ovrErrorInfo error;
         ovr_GetLastErrorInfo(&error);
+        qDebug() << "OculusBaseDisplayPlugin : ovr_Create() failed" << result << error.Result << error.ErrorString;
         ovr_Shutdown();
         return false;
     }

@@ -119,7 +119,8 @@
                     //wait to make the bubbles collidable, so that they dont hit each other and the wand
                     Script.setTimeout(this.addCollisionsToBubbleAfterCreation(this.currentBubble), lifetime / 2);
 
-                    //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
+                    //release the bubble -- when we create a new bubble, it will carry on and this update loop will
+                    // affect the new bubble
                     this.createBubbleAtTipOfWand();
                     return;
                 } else {

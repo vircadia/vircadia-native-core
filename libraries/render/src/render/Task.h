@@ -71,10 +71,12 @@ public:
     bool alwaysEnabled{ true };
     bool enabled{ true };
 
+    // This must be named toJSON to integrate with the global scripting JSON object
     Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
+    Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); }
 
 public slots:
-    void load(const QJsonValue& json) { qObjectFromJsonValue(json, *this); }
+    void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); }
 };
 
 class TaskConfig : public JobConfig {
@@ -85,6 +87,9 @@ public:
 
     void init(Task* task) { _task = task; }
 
+    // getter for qml integration, prefer the templated getter
+    Q_INVOKABLE QObject* getConfig(const QString& name) { return QObject::findChild<JobConfig*>(name); }
+    // getter for cpp (strictly typed), prefer this getter
     template <class T> typename T::Config* getConfig(std::string job = "") const {
         QString name = job.empty() ? QString() : QString(job.c_str()); // an empty string is not a null string
         return findChild<typename T::Config*>(name);

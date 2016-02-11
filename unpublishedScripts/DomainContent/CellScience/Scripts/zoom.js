@@ -14,50 +14,58 @@
     this.entered = true;
 
     this.preload = function(entityID) {
-
         this.entityId = entityID;
+        this.initialize(entityID);
+        this.initTimeout = null;
+    }
 
+    this.initialize = function(entityID) {
+        // print(' should initialize')
         var properties = Entities.getEntityProperties(entityID);
-        portalDestination = properties.userData;
-        animationURL = properties.modelURL;
-        this.soundOptions = {
-            stereo: true,
-            loop: false,
-            localOnly: false,
-            position: this.position,
-            volume: 0.035
-        };
-        
-        this.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
-        //print('Script.clearTimeout PRELOADING A ZOOM ENTITY')
-        print(" portal destination is " + portalDestination);
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+            self.initTimeout = Script.setTimeout(function() {
+            // print(' no user data yet, try again in one second')
+                self.initialize(entityID);
+            }, 1000)
+        } else {
+            // print(' has userData')
+            self.portalDestination = properties.userData;
+            animationURL = properties.modelURL;
+            self.soundOptions = {
+                stereo: true,
+                loop: false,
+                localOnly: false,
+                position: properties.position,
+                volume: 0.5
+            };
+
+            self.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
+            // print(" portal destination is " + self.portalDestination);
+        }
     }
 
     this.enterEntity = function(entityID) {
-        print('Script.clearTimeout ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
-
+        //print('ENTERED A BOUNDARY ENTITY, SHOULD ZOOM', entityID)
         var data = JSON.parse(Entities.getEntityProperties(this.entityId).userData);
-
-
+        //print('DATA IS::' + data)
         if (data != null) {
             print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
-            if (self.teleportSound.downloaded) {
-                //print("play sound");
-                Audio.playSound(self.teleportSound, self.soundOptions);
-            } else {
-                //print("not downloaded");
-            }
 
-            this.lookAt(data.target, data.location);
+             MyAvatar.position = data.location;
+             
+            // if (data.hasOwnProperty('entryPoint') && data.hasOwnProperty('target')) {
+            //     this.lookAtTarget(data.entryPoint, data.target);
+            // }
+            // else{
 
-
+            // }
         }
 
     }
 
-    this.lookAt = function(targetPosition, avatarPosition) {
-        var direction = Vec3.normalize(Vec3.subtract(MyAvatar.position, targetPosition));
-
+    this.lookAtTarget = function(entryPoint,target) {
+        //print('SHOULD LOOK AT TARGET')
+        var direction = Vec3.normalize(Vec3.subtract(entryPoint, target));
         var pitch = Quat.angleAxis(Math.asin(-direction.y) * 180.0 / Math.PI, {
             x: 1,
             y: 0,
@@ -69,8 +77,10 @@
             z: 0
         });
 
-        MyAvatar.goToLocation(avatarPosition, true, yaw);
+        MyAvatar.goToLocation(entryPoint, true, yaw);
+
         MyAvatar.headYaw = 0;
+
     }
 
 
@@ -81,7 +91,16 @@
             animationSettings: '{ "frameIndex": 1, "running": false }'
         });
         this.entered = false;
+        if (this.initTimeout !== null) {
+            Script.clearTimeout(this.initTimeout);
+        }
         //playSound();
+    }
+
+    this.unload = function() {
+        if (this.initTimeout !== null) {
+            Script.clearTimeout(this.initTimeout);
+        }
     }
 
     this.hoverEnterEntity = function(entityID) {

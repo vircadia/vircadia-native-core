@@ -48,10 +48,7 @@ static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 const QString ViveControllerManager::NAME = "OpenVR";
 
 bool ViveControllerManager::isSupported() const {
-    auto hmd = acquireOpenVrSystem();
-    bool success = hmd != nullptr;
-    releaseOpenVrSystem();
-    return success;
+    return vr::VR_IsHmdPresent();
 }
 
 void ViveControllerManager::activate() {
@@ -66,10 +63,12 @@ void ViveControllerManager::activate() {
     }
     Q_ASSERT(_hmd);
 
+    // OpenVR provides 3d mesh representations of the controllers
+    // Disabled controller rendering code
+    /*
     auto renderModels = vr::VRRenderModels();
 
     vr::RenderModel_t model;
-    /*
     if (!_hmd->LoadRenderModel(CONTROLLER_MODEL_STRING, &model)) {
         qDebug() << QString("Unable to load render model %1\n").arg(CONTROLLER_MODEL_STRING);
     } else {
@@ -145,6 +144,7 @@ void ViveControllerManager::deactivate() {
 void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
     PerformanceTimer perfTimer("ViveControllerManager::updateRendering");
 
+    /*
     if (_modelLoaded) {
         //auto controllerPayload = new render::Payload<ViveControllerManager>(this);
         //auto controllerPayloadPointer = ViveControllerManager::PayloadPointer(controllerPayload);
@@ -175,9 +175,11 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
             }
         });
     }
+    */
 }
 
 void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign) {
+    /*
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     Transform transform(userInputMapper->getSensorToWorldMat());
     transform.postTranslate(pose.getTranslation() + pose.getRotation() * glm::vec3(0, 0, CONTROLLER_LENGTH_OFFSET));
@@ -199,6 +201,7 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
     //    mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT16, mesh->getIndexBuffer()._buffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    */
 }
 
 

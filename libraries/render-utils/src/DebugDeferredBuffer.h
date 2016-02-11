@@ -27,7 +27,7 @@ public:
     void setMode(int newMode);
  
     int mode{ 0 };
-    glm::vec4 size{ 0.0f, 0.0f, 0.0f, 0.0f };
+    glm::vec4 size{ 0.0f, -1.0f, 1.0f, 1.0f };
 signals:
     void dirty();
 };

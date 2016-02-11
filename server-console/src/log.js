@@ -1,6 +1,7 @@
-var remote = require('electron').remote;
-var os = require('os');
-var Tail = require('always-tail');
+const remote = require('electron').remote;
+const os = require('os');
+const fs = require('fs');
+const Tail = require('always-tail');
 
 function cleanPath(path) {
     if (os.type() == "Windows_NT") {
@@ -27,7 +28,7 @@ function difference(a, b) {
     }
     for (k of b) {
         if (a.indexOf(k) == -1) {
-            // In a, but not in b
+            // In b, but not in a
             add.push(k);
         }
     }
@@ -60,19 +61,29 @@ ready = function() {
 
         var oldLogFilePaths = Object.keys(watchList);
         var diff = difference(oldLogFilePaths, newLogFilePaths);
-        console.log('diff', diff);
         // For each removed file, remove it from our watch list
         diff.subtract.forEach(function(removedLogFilePath) {
             watchList[removedLogFilePath].unwatch();
             delete watchList[removedLogFilePath];
+            console.log("Unwatching", removedLogFilePath);
         });
         diff.add.forEach(function(addedLogFilePath) {
+            const START_AT_X_BYTES_FROM_END = 10000;
             var cleanFilePath = cleanPath(addedLogFilePath);
 
-            var logTail = new Tail(cleanFilePath, '\n', { start: 0, interval: 500 });
+            // For larger files we won't want to start tailing from the beginning of the file,
+            // so start `START_AT_X_BYTES_FROM_END` bytes from the end of the file.
+            var start = 0;
+            try {
+                var fileInfo  = fs.statSync(cleanFilePath);
+                start = Math.max(0, fileInfo.size - START_AT_X_BYTES_FROM_END);
+            } catch (e) {
+                console.error("ERROR READING FILE INFO", e);
+            }
+            var logTail = new Tail(cleanFilePath, '\n', { start: start, interval: 500 });
 
             logTail.on('line', function(msg) {
-                appendLogMessage(0, msg, stream);
+                appendLogMessage(msg, stream);
             });
 
             logTail.on('error', function(error) {
@@ -140,7 +151,7 @@ ready = function() {
         }
     }
 
-    $('ul.tabs li').click(function(){
+    $('ul.tabs li').click(function() {
         setCurrentTab($(this).attr('data-tab'));
     });
 
@@ -153,7 +164,7 @@ ready = function() {
         return !filter || message.toLowerCase().indexOf(filter) >= 0;
     }
 
-    function appendLogMessage(pid, msg, name) {
+    function appendLogMessage(msg, name) {
         var id = name == "ds" ? "domain-server" : "assignment-client";
         var $pidLog = $('#' + id);
 

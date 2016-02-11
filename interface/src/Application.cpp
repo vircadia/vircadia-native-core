@@ -3158,8 +3158,9 @@ void Application::update(float deltaTime) {
             PerformanceTimer perfTimer("havestChanges");
             if (_physicsEngine->hasOutgoingChanges()) {
                 getEntities()->getTree()->withWriteLock([&] {
-                    _entitySimulation.handleOutgoingChanges(_physicsEngine->getOutgoingChanges(), Physics::getSessionUUID());
-                    avatarManager->handleOutgoingChanges(_physicsEngine->getOutgoingChanges());
+                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getOutgoingChanges();
+                    _entitySimulation.handleOutgoingChanges(outgoingChanges, Physics::getSessionUUID());
+                    avatarManager->handleOutgoingChanges(outgoingChanges);
                 });
 
                 auto collisionEvents = _physicsEngine->getCollisionEvents();
@@ -3876,6 +3877,8 @@ void Application::updateWindowTitle(){
 void Application::clearDomainOctreeDetails() {
     qCDebug(interfaceapp) << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
+
+    _physicsEnabled = false;
 
     // reset our node to stats and node to jurisdiction maps... since these must be changing...
     _entityServerJurisdictions.withWriteLock([&] {

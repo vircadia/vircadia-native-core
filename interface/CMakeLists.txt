@@ -261,6 +261,8 @@ if (SCRIPTS_INSTALL_DIR)
   )
 endif()
 
+add_bugsplat()
+
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
 

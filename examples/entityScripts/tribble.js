@@ -1,5 +1,6 @@
 (function () {
     // See tests/performance/tribbles.js
+    Script.include("../libraries/virtualBaton.js");
     var dimensions, oldColor, entityID,
         editRate = 60,
         moveRate = 1,
@@ -7,7 +8,8 @@
         accumulated = 0,
         increment = {red: 1, green: 1, blue: 1},
         hasUpdate = false,
-        shutdown = false;
+        shutdown = false,
+        baton;
     function nextWavelength(color) {
         var old = oldColor[color];
         if (old === 255) {
@@ -27,13 +29,37 @@
             accumulated = 0;
         }
     }
-    function randomCentered() { return Math.random() - 0.5; }
-    function randomVector() { return {x: randomCentered() * dimensions.x, y: randomCentered() * dimensions.y, z: randomCentered() * dimensions.z}; }
+    function randomCentered() {
+        return Math.random() - 0.5;
+    }
+    function randomVector() {
+        return {x: randomCentered() * dimensions.x, y: randomCentered() * dimensions.y, z: randomCentered() * dimensions.z};
+    }
     function move() {
         var newData = {velocity: Vec3.sum({x: 0, y: 1, z: 0}, randomVector()), angularVelocity: Vec3.multiply(Math.PI, randomVector())};
         var nextChange = Math.ceil(Math.random() * 2000 / moveRate);
         Entities.editEntity(entityID, newData);
-        if (!shutdown) { Script.setTimeout(move, nextChange); }
+        if (!shutdown) {
+            Script.setTimeout(move, nextChange);
+        }
+    }
+    function startUpdate() {
+        print('startUpdate', entityID);
+        hasUpdate = true;
+        Script.update.connect(update);
+    }
+    function stopUpdate() {
+        print('stopUpdate', entityID, hasUpdate);
+        if (!hasUpdate) {
+            return;
+        }
+        hasUpdate = false;
+        Script.update.disconnect(update);
+    }
+    function stopUpdateAndReclaim() {
+        print('stopUpdateAndReclaim', entityID);
+        stopUpdate();
+        baton.claim(startUpdate, stopUpdateAndReclaim);
     }
     this.preload = function (givenEntityID) {
         entityID = givenEntityID;
@@ -41,26 +67,35 @@
         var userData = properties.userData && JSON.parse(properties.userData);
         var moveTimeout = userData ? userData.moveTimeout : 0;
         var editTimeout = userData ? userData.editTimeout : 0;
+        var debug = (userData && userData.debug) || {};
         editRate = (userData && userData.editRate) || editRate;
         moveRate = (moveRate && userData.moveRate) || moveRate;
         oldColor = properties.color;
         dimensions = Vec3.multiply(scale, properties.dimensions);
+        baton = virtualBaton({
+            batonName: 'io.highfidelity.tribble:' + entityID, // One winner for each entity
+            debugFlow: debug.flow,
+            debugSend: debug.send,
+            debugReceive: debug.receive
+        });
         if (editTimeout) {
-            hasUpdate = true;
-            Script.update.connect(update);
+            baton.claim(startUpdate, stopUpdateAndReclaim);
             if (editTimeout > 0) {
-                Script.setTimeout(function () { Script.update.disconnect(update); hasUpdate = false; }, editTimeout * 1000);
+                Script.setTimeout(stopUpdate, editTimeout * 1000);
             }
         }
         if (moveTimeout) {
             Script.setTimeout(move, 1000);
             if (moveTimeout > 0) {
-                Script.setTimeout(function () { shutdown = true; }, moveTimeout * 1000);
+                Script.setTimeout(function () {
+                    shutdown = true;
+                }, moveTimeout * 1000);
             }
         }
     };
     this.unload = function () {
+        baton.unload();
         shutdown = true;
-        if (hasUpdate) { Script.update.disconnect(update); }
+        stopUpdate();
     };
 })

@@ -272,7 +272,7 @@ Process.prototype = extend(Process.prototype, {
 
 // ACMonitorProcess is an extension of Process that keeps track of the AC Montior's
 // children status and log locations.
-const CHECK_AC_STATUS_INTERVAL = 5000;
+const CHECK_AC_STATUS_INTERVAL = 1000;
 function ACMonitorProcess(name, path, args, httpStatusPort, logPath) {
     Process.call(this, name, path, args, logPath);
 
@@ -312,7 +312,6 @@ ACMonitorProcess.prototype = extend(ACMonitorProcess.prototype, {
                 stderr: this.childServers[pid].logStderr
             }
         }
-        console.log(logs);
         return logs;
     },
     _updateACMonitorStatus: function() {
@@ -325,18 +324,18 @@ ACMonitorProcess.prototype = extend(ACMonitorProcess.prototype, {
             return;
         }
 
-        console.log("Checking AC Monitor status");
         var options = {
             url: "http://localhost:" + this.httpStatusPort + "/status",
             json: true
         };
         this.pendingRequest = request(options, function(error, response, body) {
+            this.pendingRequest = null;
+
             if (error) {
                 console.error('ERROR Getting AC Monitor status', error);
             } else {
                 this.childServers = body.servers;
             }
-            console.log(body);
 
             this.emit('logs-updated');
 

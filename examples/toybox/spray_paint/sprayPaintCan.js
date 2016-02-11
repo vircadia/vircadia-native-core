@@ -38,20 +38,12 @@
         Controller.Standard.RT,
     ];
     
-    this.setRightHand = function () {
-        this.hand = 1;
-    }
-
-    this.setLeftHand = function () {
-        this.hand = 0;
-    }
-
-    this.startNearGrab = function () {
-        this.whichHand = this.hand;
+    this.startNearGrab = function (entityID, args) {
+        this.hand = args[0] == "left" ? 0 : 1;
     }
 
     this.toggleWithTriggerPressure = function () {
-        this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.whichHand]);
+        this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
         if (this.triggerValue < DISABLE_SPRAY_THRESHOLD && this.spraying === true) {
             this.spraying = false;
             this.disableStream();

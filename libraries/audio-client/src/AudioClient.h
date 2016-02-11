@@ -25,13 +25,7 @@
 #include <QtMultimedia/QAudioInput>
 
 #include <AbstractAudioInterface.h>
-#include <AudioBuffer.h>
 #include <AudioEffectOptions.h>
-#include <AudioFormat.h>
-#include <AudioGain.h>
-#include <AudioRingBuffer.h>
-#include <AudioSourceTone.h>
-#include <AudioSourceNoise.h>
 #include <AudioStreamStats.h>
 
 #include <DependencyManager.h>
@@ -152,10 +146,6 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
 
-    virtual void enableAudioSourceInject(bool enable);
-    virtual void selectAudioSourcePinkNoise();
-    virtual void selectAudioSourceSine440();
-
     virtual void setIsStereoInput(bool stereo);
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
@@ -256,7 +246,6 @@ private:
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
-    bool _audioSourceInjectEnabled;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
@@ -283,23 +272,6 @@ private:
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
     float calculateDeviceToNetworkInputRatio() const;
-
-    // Input framebuffer
-    AudioBufferFloat32 _inputFrameBuffer;
-
-    // Input gain
-    AudioGain _inputGain;
-
-    // Post tone/pink noise generator gain
-    AudioGain _sourceGain;
-
-    // Pink noise source
-    bool _noiseSourceEnabled;
-    AudioSourcePinkNoise _noiseSource;
-
-    // Tone source
-    bool _toneSourceEnabled;
-    AudioSourceTone _toneSource;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
 
