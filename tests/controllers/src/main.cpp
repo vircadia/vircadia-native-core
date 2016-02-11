@@ -99,6 +99,8 @@ public:
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual bool isForeground() override { return true;  }
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
+    virtual bool getBoolSetting(const QString& settingName, bool defaultValue) override { return defaultValue; }
+    virtual void setBoolSetting(const QString& settingName, bool value) override { }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {
