@@ -97,11 +97,10 @@ void AssetServer::completeSetup() {
     qDebug() << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
 
-    bool noExistingAssets = !_resourcesDirectory.exists() \
-    || _resourcesDirectory.entryList(QDir::Files).size() == 0;
+    bool noExistingAssets = !_resourcesDirectory.exists() || _resourcesDirectory.entryList(QDir::Files).size() == 0;
 
     if (noExistingAssets) {
-        qDebug() << "Asset resources directory not found, searching for existing asset resources";
+        qDebug() << "Asset resources directory empty, searching for existing asset resources to migrate";
         QString oldDataDirectory = QCoreApplication::applicationDirPath();
 
         const QString OLD_RESOURCES_PATH = "assets";
