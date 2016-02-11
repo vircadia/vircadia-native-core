@@ -37,9 +37,16 @@
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
+    connect(qApp, &Application::beforeAboutToQuit, [=] {
+        cleanupAllOverlays();
+    });
 }
 
 Overlays::~Overlays() {
+}
+
+
+void Overlays::cleanupAllOverlays() {
     {
         QWriteLocker lock(&_lock);
         QWriteLocker deleteLock(&_deleteLock);
@@ -53,7 +60,6 @@ Overlays::~Overlays() {
         _overlaysWorld.clear();
         _panels.clear();
     }
-    
     cleanupOverlaysToDelete();
 }
 
