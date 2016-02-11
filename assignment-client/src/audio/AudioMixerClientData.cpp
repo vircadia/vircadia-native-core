@@ -163,7 +163,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
 
         static const int INJECTOR_MAX_INACTIVE_BLOCKS = 500;
 
-        // if we don't have new data for an injected stream in the last INJECTOR_INACTIVITY_MSECS then
+        // if we don't have new data for an injected stream in the last INJECTOR_MAX_INACTIVE_BLOCKS then
         // we remove the injector from our streams
         if (stream->getType() == PositionalAudioStream::Injector
             && stream->getConsecutiveNotMixedCount() > INJECTOR_MAX_INACTIVE_BLOCKS) {
@@ -174,7 +174,6 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
 
             // erase the stream to drop our ref to the shared pointer and remove it
             it = _audioStreams.erase(it);
-            
         } else {
             ++it;
         }
