@@ -13,7 +13,7 @@ ApplicationWindow {
     id: appWindow
     visible: true
     width: 1280
-    height: 720
+    height: 800
     title: qsTr("Scratch App")
 
     Desktop {
@@ -36,6 +36,17 @@ ApplicationWindow {
 
             property var tabs: [];
             property var urls: [];
+
+            Button {
+                text: "Running Scripts"
+                property var builder: Component {
+                    RunningScripts { }
+                }
+                onClicked: {
+                    var runningScripts = builder.createObject(desktop);
+                }
+            }
+
             /*
             Button {
                 text: "restore all"
@@ -133,6 +144,7 @@ ApplicationWindow {
             }
         }
 
+        /*
         Window {
             id: blue
             closable: true
@@ -157,6 +169,7 @@ ApplicationWindow {
                 Component.onDestruction: console.log("Blue destroyed")
             }
         }
+        */
         /*
         Window {
             id: green
