@@ -36,8 +36,11 @@ int main(int argc, const char* argv[]) {
 #if HAS_BUGSPLAT
     // Prevent other threads from hijacking the Exception filter, and allocate 4MB up-front that may be useful in
     // low-memory scenarios.
-    DWORD bugSplatFlags = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
-    MiniDmpSender mpSender { "interface_alpha", "Interface", BuildInfo::VERSION.toLatin1().constData(), nullptr, bugSplatFlags };
+    static const DWORD BUG_SPLAT_FLAGS = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
+    static const char* BUG_SPLAT_DATABASE = "interface_alpha";
+    static const char* BUG_SPLAT_APPLICATION_NAME = "Interface";
+    MiniDmpSender mpSender { BUG_SPLAT_DATABASE, BUG_SPLAT_APPLICATION_NAME, BuildInfo::VERSION.toLatin1().constData(),
+                             nullptr, BUG_SPLAT_FLAGS };
 #endif
     
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
