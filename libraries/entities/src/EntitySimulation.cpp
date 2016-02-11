@@ -254,7 +254,7 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;
-        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        if (entity->isMoving() && !entity->getPhysicsInfo()) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);
             ++itemItr;

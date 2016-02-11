@@ -993,10 +993,6 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
 }
 
 bool EntityItem::isMoving() const {
-    return hasVelocity() || hasAngularVelocity();
-}
-
-bool EntityItem::isMovingRelativeToParent() const {
     return hasLocalVelocity() || hasLocalAngularVelocity();
 }
 
