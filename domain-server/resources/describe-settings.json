@@ -183,7 +183,7 @@
           "name": "assets_path",
           "type": "string",
           "label": "Assets Path",
-          "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory. If you change this path you will need to manually copy any existing assets from the previous directory.",
+          "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
           "placeholder": "assets",
           "default": "assets",
           "advanced": true
@@ -386,7 +386,7 @@
         {
           "name": "persistFilePath",
           "label": "Entities File Path",
-          "help": "The path to the file entities are stored in. If this path is relative it will be relative to the application data directory. The filename must end in .json.gz.",
+          "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
           "advanced": true
