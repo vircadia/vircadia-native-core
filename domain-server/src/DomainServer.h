@@ -65,7 +65,6 @@ public slots:
 private slots:
     void aboutToQuit();
 
-    void loginFailed();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
@@ -77,6 +76,8 @@ private slots:
 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
     void handleTempDomainError(QNetworkReply& requestReply);
+
+    void queuedQuit(QString quitMessage, int exitCode);
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
