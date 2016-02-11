@@ -14,7 +14,7 @@ macro(add_bugsplat)
 
   if (NOT BUGSPLAT_CHECKED)
     find_package(BugSplat)
-    set_property(GLOBAL PROPERTY CHECKED_FOR_NSIGHT_ONCE TRUE)
+    set_property(GLOBAL PROPERTY CHECKED_FOR_BUGSPLAT_ONCE TRUE)
   endif ()
 
   if (BUGSPLAT_FOUND)
