@@ -113,11 +113,7 @@ Octree::Index Octree::allocateCell(Index parent, const Location& location) {
     if (_cells[parent].hasChild(location.octant())) {
         return _cells[parent].child(location.octant());
     }
-
-    if (!(_cells[parent].getlocation().child(location.octant()) == location)) {
-        auto parentLoc = _cells[parent].getlocation();
-            assert(false);
-    }
+    assert(_cells[parent].getlocation().child(location.octant()) == location);
 
     Index newIndex;
     if (_freeCells.empty()) {
