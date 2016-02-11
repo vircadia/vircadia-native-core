@@ -90,12 +90,18 @@ hideOverlay();
 
 // MAIN CONTROL
 var wasMuted, isAway;
+var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
+var eventMapping = Controller.newMapping(eventMappingName);
+
 function goAway() {
     if (isAway) {
         return;
     }
     isAway = true;
     print('going "away"');
+    Controller.mousePressEvent.connect(goActive);
+    Controller.keyPressEvent.connect(maybeGoActive);
+    Controller.enableMapping(eventMappingName);
     wasMuted = AudioDevice.getMuted();
     if (!wasMuted) {
         AudioDevice.toggleMute();
@@ -110,6 +116,9 @@ function goActive() {
     }
     isAway = false;
     print('going "active"');
+    Controller.mousePressEvent.disconnect(goActive);
+    Controller.keyPressEvent.disconnect(maybeGoActive);
+    Controller.disableMapping(eventMappingName); // Let hand-controller events through to other scripts.
     if (!wasMuted) {
         AudioDevice.toggleMute();
     }
@@ -117,9 +126,10 @@ function goActive() {
     stopAwayAnimation();
     hideOverlay();
 }
-Script.scriptEnding.connect(goActive);
-Controller.keyPressEvent.connect(function (event) {
+
+function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
+	print('fixme autorepeat');
         return;
     }
     if (!isAway && (event.text === '.')) {
@@ -127,13 +137,26 @@ Controller.keyPressEvent.connect(function (event) {
     } else {
         goActive();
     }
-});
+}
 var wasHmdActive = false;
-Script.update.connect(function () {
+function maybeGoAway() {
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
             goAway();
         }
     }
+}
+
+Script.update.connect(maybeGoAway);
+// Set up the mapping, but don't enable it until we're actually away.
+eventMapping.from(Controller.Standard.LeftPrimaryThumb).to(goActive);
+eventMapping.from(Controller.Standard.RightPrimaryThumb).to(goActive);
+eventMapping.from(Controller.Standard.LeftSecondaryThumb).to(goActive);
+eventMapping.from(Controller.Standard.RightSecondaryThumb).to(goActive);
+
+Script.scriptEnding.connect(function () {
+    Script.update.disconnect(maybeGoAway);
+    goActive();
 });
+
