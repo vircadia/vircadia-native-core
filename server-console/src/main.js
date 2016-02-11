@@ -134,7 +134,7 @@ function shutdownCallback(idx) {
             homeServer.stop();
         }
 
-        updateTrayMenu(null);
+        updateTrayMenu(homeServer.state);
 
         if (homeServer.state == ProcessGroupStates.STOPPED) {
             // if the home server is already down, take down the server console now
@@ -594,7 +594,7 @@ function updateMenuArray(menuArray, serverState) {
 
 function updateTrayMenu(serverState) {
     if (tray) {
-        var menuArray = buildMenuArray(serverState);
+        var menuArray = buildMenuArray(isShuttingDown ? null : serverState);
         tray.setImage(trayIcons[serverState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
