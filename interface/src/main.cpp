@@ -34,8 +34,10 @@ int main(int argc, const char* argv[]) {
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
 #if HAS_BUGSPLAT
-   // BugSplat initialization
-    MiniDmpSender mpSender { "interface_alpha", "Interface", BuildInfo::VERSION.toLatin1().constData() };
+    // Prevent other threads from hijacking the Exception filter, and allocate 4MB up-front that may be useful in
+    // low-memory scenarios.
+    DWORD bugSplatFlags = MDSF_PREVENTHIJACKING | MDSF_USEGUARDMEMORY;
+    MiniDmpSender mpSender { "interface_alpha", "Interface", BuildInfo::VERSION.toLatin1().constData(), nullptr, bugSplatFlags };
 #endif
     
     QString applicationName = "High Fidelity Interface - " + qgetenv("USERNAME");
