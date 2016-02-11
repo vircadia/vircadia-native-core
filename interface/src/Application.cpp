@@ -4333,8 +4333,8 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
     auto filename = QFileInfo(upload->getFilename()).fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
-        (upload->getExtension().endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
-         upload->getExtension().endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
+        (FBX_EXTENSION.endsWith(upload->getExtension(), Qt::CaseInsensitive) ||
+         OBJ_EXTENSION.endsWith(upload->getExtension(), Qt::CaseInsensitive))) {
 
         auto entities = DependencyManager::get<EntityScriptingInterface>();
 
