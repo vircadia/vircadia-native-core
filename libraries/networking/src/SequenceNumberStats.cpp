@@ -15,7 +15,7 @@
 #include <limits>
 
 float PacketStreamStats::getLostRate() const {
-    return (_expectedReceived == 0) ? 0.0f : (float)_lost / _expectedReceived;
+    return (_expectedReceived == 0) ? 0.0f : (float)_lost / (float)_expectedReceived;
 }
 
 SequenceNumberStats::SequenceNumberStats(int statsHistoryLength, bool canDetectOutOfSync)
