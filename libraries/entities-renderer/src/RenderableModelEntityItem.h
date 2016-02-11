@@ -96,7 +96,7 @@ private:
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
 
-    render::ItemID _myMetaItem;
+    render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
     bool _showCollisionHull = false;
 

@@ -109,11 +109,13 @@ Octree::Indices Octree::indexConcreteCellPath(const Locations& path) const {
 Octree::Index Octree::allocateCell(Index parent, const Location& location) {
 
     if (_cells[parent].hasChild(location.octant())) {
-        assert(_cells[parent].child(location.octant()) == INVALID_CELL);
         return _cells[parent].child(location.octant());
     }
 
-    assert(_cells[parent].getlocation().child(location.octant()) == location);
+    if (!(_cells[parent].getlocation().child(location.octant()) == location)) {
+        auto parentLoc = _cells[parent].getlocation();
+            assert(false);
+    }
 
     Index newIndex;
     if (_freeCells.empty()) {

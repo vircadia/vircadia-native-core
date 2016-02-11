@@ -37,7 +37,7 @@ protected:
     void createPipelines();
     
     render::ScenePointer _scene;
-    render::ItemID _renderItemId;
+    render::ItemID _renderItemId{ render::Item::INVALID_ITEM_ID };
     
     NetworkTexturePointer _texture;
     gpu::PipelinePointer _untexturedPipeline;

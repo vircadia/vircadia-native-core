@@ -54,7 +54,7 @@ private:
     Model* _model;
     bool _needsInitialSimulation;
     
-    render::ItemID _myMetaItem;
+    render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 };
 
 #endif // hifi_RenderableZoneEntityItem_h
