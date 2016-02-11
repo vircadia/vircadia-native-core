@@ -125,13 +125,13 @@
             Entities.deleteEntity(this.arrow);
         },
 
-        startEquip: function(hand, avatarID) {
-            this.hand = hand;
-
-            print('START BOW GRAB')
+        startEquip: function(entityID, args) {
+            this.hand = args[0];
+            avatarID = args[1];
 
             //disable the opposite hand in handControllerGrab.js by message
             var handToDisable = this.hand === 'right' ? 'left' : 'right';
+            print("disabling hand: " + handToDisable);
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
@@ -139,7 +139,7 @@
             setEntityCustomData('grabbableKey', this.entityID, data);
 
         },
-        continueEquip: function(hand, avatarID) {
+        continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
 
             //debounce during debugging -- maybe we're updating too fast?
@@ -168,7 +168,7 @@
             this.checkStringHand();
 
         },
-        releaseEquip: function(hand, avatarID) {
+        releaseEquip: function(entityID, args) {
             //  print('RELEASE GRAB EVENT')
             Messages.sendMessage('Hifi-Hand-Disabler', "none")
 

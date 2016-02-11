@@ -334,9 +334,8 @@ function MyController(hand) {
     };
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
-        // print("Entity Method: " + entityMethodName + ", hand: " + this.hand);
-        Entities.callEntityMethod(this.grabbedEntity, entityMethodName, [JSON.stringify(this.hand),
-                                                                         JSON.stringify(MyAvatar.SessionUUID)]);
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(this.grabbedEntity, entityMethodName, args);
     }
 
     this.setState = function(newState) {
@@ -1089,9 +1088,7 @@ function MyController(hand) {
     this.continueDistanceHolding = function() {
         if (this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
-            if (this.isInitialGrab) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            }
+            this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
 
@@ -1325,9 +1322,7 @@ function MyController(hand) {
 
         if (this.state == STATE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
-            if (this.isInitialGrab) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            }
+            this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
 
@@ -1413,9 +1408,7 @@ function MyController(hand) {
     this.continueNearGrabbing = function() {
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
-            if (this.isInitialGrab) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            }
+            this.callEntityMethodOnGrabbed("releaseGrab");
             return;
         }
         if (this.state == STATE_CONTINUE_EQUIP_BD && this.bumperReleased()) {
@@ -1429,9 +1422,7 @@ function MyController(hand) {
         }
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.bumperSqueezed()) {
             this.setState(STATE_CONTINUE_EQUIP_BD);
-            if (this.isInitialGrab) {
-                this.callEntityMethodOnGrabbed("releaseGrab");
-            }
+            this.callEntityMethodOnGrabbed("releaseGrab");
             this.callEntityMethodOnGrabbed("startEquip");
             return;
         }
@@ -1467,10 +1458,8 @@ function MyController(hand) {
         if (this.state === STATE_CONTINUE_EQUIP) {
             this.callEntityMethodOnGrabbed("continueEquip");
         }
-        if (this.isInitialGrab) {
-            if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
-                this.callEntityMethodOnGrabbed("continueNearGrab");
-            }
+        if (this.state == STATE_CONTINUE_NEAR_GRABBING) {
+            this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
@@ -1654,19 +1643,11 @@ function MyController(hand) {
         this.actionID = null;
         this.setState(STATE_OFF);
 
-        if (this.isInitialGrab) {
-            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
-                action: 'release',
-                grabbedEntity: this.grabbedEntity,
-                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
-            }));
-        } else {
-            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
-                action: 'shared-release',
-                grabbedEntity: this.grabbedEntity,
-                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
-            }));
-        }
+        Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+            action: 'release',
+            grabbedEntity: this.grabbedEntity,
+            joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+        }));
 
         this.grabbedEntity = null;
     };
