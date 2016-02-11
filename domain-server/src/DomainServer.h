@@ -142,6 +142,8 @@ private:
     QString _oauthClientSecret;
     QString _hostname;
 
+    std::unordered_map<QUuid, QByteArray> _ephemeralACScripts;
+
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
 
