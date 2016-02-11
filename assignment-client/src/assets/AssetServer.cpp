@@ -63,13 +63,20 @@ void AssetServer::completeSetup() {
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
 
     static const QString ASSET_SERVER_SETTINGS_KEY = "asset_server";
-    auto assetServerObject = settingsObject[ASSET_SERVER_SETTINGS_KEY];
+
+    if (!settingsObject.contains(ASSET_SERVER_SETTINGS_KEY)) {
+        qCritical() << "Received settings from the domain-server with no asset-server section. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
+
+    auto assetServerObject = settingsObject[ASSET_SERVER_SETTINGS_KEY].toObject();
 
     // get the path to the asset folder from the domain server settings
     static const QString ASSETS_PATH_OPTION = "assets_path";
-    auto assetsJSONValue = assetServerObject.toObject()[ASSETS_PATH_OPTION];
+    auto assetsJSONValue = assetServerObject[ASSETS_PATH_OPTION];
 
-    if (assetsJSONValue.type() != QJsonValue::String) {
+    if (!assetsJSONValue.isString()) {
         qCritical() << "Received an assets path from the domain-server that could not be parsed. Stopping assignment.";
         setFinished(true);
         return;
