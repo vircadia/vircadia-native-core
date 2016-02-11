@@ -211,7 +211,7 @@ bool DomainServer::optionallySetupOAuth() {
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
             static const QString MISSING_OAUTH_INFO_MSG = "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
-            static const int MISSING_OAUTH_INFO_ERROR_CODE = 1542;
+            static const int MISSING_OAUTH_INFO_ERROR_CODE = 4;
             QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
                                       Q_ARG(QString, MISSING_OAUTH_INFO_MSG), Q_ARG(int, MISSING_OAUTH_INFO_ERROR_CODE));
             return false;
@@ -420,7 +420,7 @@ bool DomainServer::resetAccountManagerAccessToken() {
         static const QString MISSING_OAUTH_PROVIDER_MSG =
             QString("Missing OAuth provider URL, but a domain-server feature was required that requires authentication.") +
             QString("domain-server will now quit.");
-        static const int MISSING_OAUTH_PROVIDER_ERROR_CODE = 5323;
+        static const int MISSING_OAUTH_PROVIDER_ERROR_CODE = 5;
         QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
                                   Q_ARG(QString, MISSING_OAUTH_PROVIDER_MSG),
                                   Q_ARG(int, MISSING_OAUTH_PROVIDER_ERROR_CODE));
