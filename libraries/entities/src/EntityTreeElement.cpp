@@ -314,9 +314,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // before we consider including it.
                     if (includeThisEntity) {
                         success = true;
-                        // we can't cull a parent-entity by it's dimensions because the child may be larger.  we need to
+                        // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
                         // avoid sending details about a child but not the parent.  the parent's queryAACube should have
-                        // been adjusted to encompase the queryAACube of the child.
+                        // been adjusted to encompass the queryAACube of the child.
                         AABox entityBounds = entity->hasChildren() ? AABox(entityCube) : entity->getAABox(success);
                         if (!success) {
                             // if this entity is a child of an avatar, the entity-server wont be able to determine its
