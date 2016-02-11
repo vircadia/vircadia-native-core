@@ -15,22 +15,26 @@ using namespace model;
 Light::Light() :
     _flags(0),
     _schemaBuffer(),
-    _transform() {
+    _transform(),
+    _maximumRadius(1.0f) {
     // only if created from nothing shall we create the Buffer to store the properties
     Schema schema;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+    updateLightRadius();
 }
 
 Light::Light(const Light& light) :
     _flags(light._flags),
     _schemaBuffer(light._schemaBuffer),
-    _transform(light._transform) {
+    _transform(light._transform),
+    _maximumRadius(1.0f) {
 }
 
 Light& Light::operator= (const Light& light) {
     _flags = (light._flags);
     _schemaBuffer = (light._schemaBuffer);
     _transform = (light._transform);
+    _maximumRadius = (light._maximumRadius);
 
     return (*this);
 }
@@ -70,21 +74,35 @@ void Light::setAmbientIntensity(float intensity) {
     editSchema()._ambientIntensity = intensity;
 }
 
+void Light::setSurfaceRadius(float radius) {
+    if (radius <= 0.0f) {
+        radius = 0.1f;
+    }
+    editSchema()._attenuation.x = radius;
+    updateLightRadius();
+}
 void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
-    editSchema()._attenuation.w = radius;
+    editSchema()._attenuation.y = radius;
     updateLightRadius();
 }
 
 void Light::updateLightRadius() {
-    const float CUTOFF_INTENSITY_RATIO = 0.05f;
     float intensity = getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z);
-    float denom = sqrtf(intensity / CUTOFF_INTENSITY_RATIO) - 1.0f;
-    float surfaceRadius = getMaximumRadius() / std::max(denom, 1.0f);
+    float maximumDistance = getMaximumRadius() - getSurfaceRadius();
 
-    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CUTOFF_INTENSITY_RATIO, getMaximumRadius());
+    float denom = maximumDistance / getSurfaceRadius() + 1;
+
+    // The cutoff intensity biases the light towards the source.
+    // If the source is small and the intensity high, many points may not be shaded.
+    // If the intensity is >=1.0, the lighting attenuation equation gets borked (see Light.slh).
+    // To maintain sanity, we cap it well before then.
+    const float MAX_CUTOFF_INTENSITY = 0.01f; // intensity = maximumRadius = 1.0f, surfaceRadius = 0.1f
+    float cutoffIntensity = std::min(intensity / (denom * denom), MAX_CUTOFF_INTENSITY);
+
+    editSchema()._attenuation.z = cutoffIntensity;
 }
 
 #include <math.h>

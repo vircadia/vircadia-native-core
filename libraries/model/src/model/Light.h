@@ -74,8 +74,17 @@ public:
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
  
+    // Surface Radius is the physical radius of the light sphere through wich the light energy shines
+    // It's expressed in meters and should be small for realistic lights since its in theory about the
+    // size of a light bulb filament (~1cm = 0.01m)
+    void setSurfaceRadius(float radius);
+    float getSurfaceRadius() const { return getSchema()._attenuation.x; }
+
+    // Maximum radius defines the maximum distance of reach of our light model
+    // This is where our radial attenuation will reach 0 (even though in theory it should be infinity)
+    // If MaximumRadius < SurfaceRadius then the radial attenuation is constant at 100% Intensity
     void setMaximumRadius(float radius);
-    float getMaximumRadius() const { return getSchema()._attenuation.w; }
+    float getMaximumRadius() const { return getSchema()._attenuation.y; }
 
     // Spot properties
     bool isSpot() const { return getType() == SPOT; }
@@ -107,7 +116,7 @@ public:
         float _ambientIntensity{0.0f};
         Color _color{1.0f};
         float _intensity{1.0f};
-        Vec4 _attenuation{1.0f};
+        Vec4 _attenuation{0.1f, 1.0f, 0.0f, 0.0f};
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
@@ -122,6 +131,7 @@ protected:
     UniformBufferView _schemaBuffer;
     Transform _transform;
     gpu::SphericalHarmonics _ambientSphere;
+    float _maximumRadius;
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
