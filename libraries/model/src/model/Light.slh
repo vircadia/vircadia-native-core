@@ -29,7 +29,7 @@ vec3 getLightColor(Light l) { return l._color.rgb; }
 float getLightIntensity(Light l) { return l._color.w; }
 float getLightAmbientIntensity(Light l) { return l._direction.w; }
 
- float getLightSpotAngleCos(Light l) {
+float getLightSpotAngleCos(Light l) {
     return l._spot.x;
 }
 

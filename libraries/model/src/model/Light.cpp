@@ -12,11 +12,7 @@
 
 using namespace model;
 
-Light::Light() :
-    _flags(0),
-    _schemaBuffer(),
-    _transform(),
-    _maximumRadius(1.0f) {
+Light::Light() {
     // only if created from nothing shall we create the Buffer to store the properties
     Schema schema;
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
@@ -27,7 +23,7 @@ Light::Light(const Light& light) :
     _flags(light._flags),
     _schemaBuffer(light._schemaBuffer),
     _transform(light._transform),
-    _maximumRadius(1.0f) {
+    _maximumRadius(light._maximumRadius) {
 }
 
 Light& Light::operator= (const Light& light) {

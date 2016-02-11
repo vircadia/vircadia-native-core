@@ -127,11 +127,11 @@ public:
 
 protected:
 
-    Flags _flags;
+    Flags _flags{ 0 };
     UniformBufferView _schemaBuffer;
     Transform _transform;
     gpu::SphericalHarmonics _ambientSphere;
-    float _maximumRadius;
+    float _maximumRadius{ 1.0f };
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
