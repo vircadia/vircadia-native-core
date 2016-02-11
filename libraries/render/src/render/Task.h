@@ -61,10 +61,75 @@ class Job;
 class Task;
 class JobNoIO {};
 
+template <class C> class PersistentConfig : public C {
+public:
+    const QString DEFAULT = "Default";
+    const QString NONE = "None";
+
+    PersistentConfig() = delete;
+    PersistentConfig(const QString& path) :
+        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
+    PersistentConfig(const QStringList& path) :
+        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
+    PersistentConfig(const QString& path, bool enabled) : C(enabled),
+        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+    PersistentConfig(const QStringList& path, bool enabled) : C(enabled),
+        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+
+    QStringList getPresetList() {
+        if (_presets.empty()) {
+            setPresetList(QJsonObject());
+        }
+        return _presets.keys();
+    }
+
+    virtual void setPresetList(const QJsonObject& list) override {
+        assert(_presets.empty());
+
+        _default = toJsonValue(*this).toObject().toVariantMap();
+
+        _presets.unite(list.toVariantMap());
+        if (C::alwaysEnabled || C::enabled) {
+            _presets.insert(DEFAULT, _default);
+        }
+        if (!C::alwaysEnabled) {
+            _presets.insert(NONE, QVariantMap{{ "enabled", false }});
+        }
+
+        auto preset = _preset.get();
+        if (preset != _preset.getDefault() && _presets.contains(preset)) {
+            // Load the persisted configuration
+            C::load(_presets[preset].toMap());
+        }
+    }
+
+    QString getPreset() { return _preset.get(); }
+
+    void setPreset(const QString& preset) {
+        _preset.set(preset);
+        if (_presets.contains(preset)) {
+            // Always start back at default to remain deterministic
+            QVariantMap config = _default;
+            QVariantMap presetConfig = _presets[preset].toMap();
+            for (auto it = presetConfig.cbegin(); it != presetConfig.cend(); it++) {
+                config.insert(it.key(), it.value());
+            }
+            C::load(config);
+        }
+    }
+
+protected:
+    QVariantMap _default;
+    QVariantMap _presets;
+    Setting::Handle<QString> _preset;
+};
+
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
 public:
+    using Persistent = PersistentConfig<JobConfig>;
+
     JobConfig() = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
@@ -96,6 +161,8 @@ signals:
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
+    using Persistent = PersistentConfig<TaskConfig>;
+
     TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
@@ -114,69 +181,6 @@ public slots:
 
 private:
     Task* _task;
-};
-
-template <class C> class PersistentConfig : public C {
-public:
-    const QString DEFAULT = "Default";
-    const QString NONE = "None";
-
-    PersistentConfig() = delete;
-    PersistentConfig(const QString& path) :
-        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
-    PersistentConfig(const QStringList& path) :
-        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
-    PersistentConfig(const QString& path, bool enabled) : C(enabled),
-        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
-    PersistentConfig(const QStringList& path, bool enabled) : C(enabled),
-        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
-
-    QStringList getPresetList() {
-        if (_presets.empty()) {
-            setPresetList(QJsonObject());
-        }
-        return _presets.keys();
-    }
-
-    virtual void setPresetList(const QJsonObject& list) override {
-        assert(_presets.empty());
-
-        _default = toJsonValue(*this).toObject().toVariantMap();
-
-        _presets.unite(list.toVariantMap());
-        if (alwaysEnabled || enabled) {
-            _presets.insert(DEFAULT, _default);
-        }
-        if (!alwaysEnabled) {
-            _presets.insert(NONE, QVariantMap{{ "enabled", false }});
-        }
-
-        auto preset = _preset.get();
-        if (preset != _preset.getDefault() && _presets.contains(preset)) {
-            // Load the persisted configuration
-            load(_presets[preset].toMap());
-        }
-    }
-
-    QString getPreset() { return _preset.get(); }
-
-    void setPreset(const QString& preset) {
-        _preset.set(preset);
-        if (_presets.contains(preset)) {
-            // Always start back at default to remain deterministic
-            QVariantMap config = _default;
-            QVariantMap presetConfig = _presets[preset].toMap();
-            for (auto it = presetConfig.cbegin(); it != presetConfig.cend(); it++) {
-                config.insert(it.key(), it.value());
-            }
-            load(config);
-        }
-    }
-
-protected:
-    QVariantMap _default;
-    QVariantMap _presets;
-    Setting::Handle<QString> _preset;
 };
 
 template <class T, class C> void jobConfigure(T& data, const C& configuration) {
@@ -201,7 +205,6 @@ template <class T, class I, class O> void jobRun(T& data, const SceneContextPoin
 class Job {
 public:
     using Config = JobConfig;
-    using PersistentConfig = PersistentConfig<Config>;
     using QConfigPointer = std::shared_ptr<QObject>;
     using None = JobNoIO;
 
@@ -289,7 +292,6 @@ public:
 class Task {
 public:
     using Config = TaskConfig;
-    using PersistentConfig = PersistentConfig<Config>;
     using QConfigPointer = Job::QConfigPointer;
     using None = Job::None;
 
