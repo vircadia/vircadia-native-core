@@ -195,7 +195,7 @@ namespace render {
             
             // Clear previous values
             for (size_t i = 0; i < NUM_FILTERS; i++) {
-                outItems[i].edit<ItemBounds>().clear();
+                outItems[i].template edit<ItemBounds>().clear();
             }
 
             // For each item, filter it into the buckets
@@ -204,7 +204,7 @@ namespace render {
                 auto itemKey = item.getKey();
                 for (size_t i = 0; i < NUM_FILTERS; i++) {
                     if (_filters[i].test(itemKey)) {
-                        outItems[i].edit<ItemBounds>().emplace_back(itemBound);
+                        outItems[i].template edit<ItemBounds>().emplace_back(itemBound);
                     }
                 }
             }
