@@ -308,8 +308,7 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        Model(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
-            _config = _data._config; // use the data's config
+        Model(const Varying& input, Data data = Data()) : Concept(data._config), _data(data), _input(input), _output(Output()) {
             std::static_pointer_cast<Config>(_config)->init(&_data);
             applyConfiguration();
         }
