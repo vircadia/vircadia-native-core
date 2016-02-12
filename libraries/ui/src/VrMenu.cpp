@@ -28,6 +28,11 @@ public:
         init(menu, qmlObject);
     }
 
+    ~MenuUserData() {
+        _widget->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
+    }
+
     const QUuid uuid{ QUuid::createUuid() };
 
     static MenuUserData* forObject(QObject* object) {
@@ -37,12 +42,17 @@ public:
 private:
     MenuUserData(const MenuUserData&);
     void init(QObject* widgetObject, QObject* qmlObject) {
+        _widget = widgetObject;
+        _qml = qmlObject;
         widgetObject->setUserData(USER_DATA_ID, this);
         qmlObject->setUserData(USER_DATA_ID, this);
         qmlObject->setObjectName(uuid.toString());
         // Make sure we can find it again in the future
         Q_ASSERT(VrMenu::_instance->findMenuObject(uuid.toString()));
     }
+
+    QObject* _widget { nullptr };
+    QObject* _qml { nullptr };
 };
 
 const int MenuUserData::USER_DATA_ID = QObject::registerUserData();
