@@ -111,7 +111,7 @@ void qObjectFromJsonValue(const QJsonValue& j, QObject& o) {
     for (auto it = object.begin(); it != object.end(); it++) {
         std::string key = it.key().toStdString();
         if (it.value().isObject()) {
-            QObject* child = o.findChild<QObject*>(key.c_str(), Qt::FindChildOption::FindDirectChildrenOnly);
+            QObject* child = o.findChild<QObject*>(key.c_str(), Qt::FindDirectChildrenOnly);
             if (child) {
                 qObjectFromJsonValue(it.value(), *child);
             }
