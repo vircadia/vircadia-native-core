@@ -92,9 +92,6 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 
     // find and hook up any entities with this entity as a (previously) missing parent
     fixupMissingParents();
-
-    // indicate that the entity has been added to the tree
-    entity->markAsAddedToTree();
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
