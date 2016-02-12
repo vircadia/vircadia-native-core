@@ -64,9 +64,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const int TRANSPARENT_SHAPE_BUCKET = 1;
     const int LIGHT_BUCKET = 2;
     MultiFilterItem<NUM_FILTERS>::ItemFilterArray triageFilters = {
-        { ItemFilter::Builder::opaqueShape() },
-        { ItemFilter::Builder::transparentShape() },
-        { ItemFilter::Builder::light() }
+        ItemFilter::Builder::opaqueShape(),
+        ItemFilter::Builder::transparentShape(),
+        ItemFilter::Builder::light()
     };
     const auto filteredItemsBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSceneSelection, triageFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
 
@@ -199,9 +199,6 @@ DrawOverlay3D::DrawOverlay3D(bool opaque) :
 void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const render::ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 

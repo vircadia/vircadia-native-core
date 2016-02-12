@@ -64,13 +64,9 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
 void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
 
     // render lights
-
-    auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
-
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
         renderItems(sceneContext, renderContext, inLights);
