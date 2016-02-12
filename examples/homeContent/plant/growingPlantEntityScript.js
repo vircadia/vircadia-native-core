@@ -28,12 +28,14 @@
     GrowingPlant.prototype = {
 
         createFlower: function() {
-            var userData = JSON.stringify({
+            _this.flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
-                    // shaderUrl: "file:///C:/Users/Eric/hifi/examples/shaders/shaderToyWrapper.fs",
+                    uniforms: {
+                        iBloomPct: 0.0
+                    }
                 }
-            });
+            };
             _this.startingFlowerPosition = Vec3.sum(this.position, {
                 x: 0,
                 y: this.dimensions.y/2,
@@ -48,17 +50,19 @@
                     blue: 100
                 },
                 dimensions: _this.startingFlowerDimensions,
-                userData: userData
+                userData: JSON.stringify(_this.flowerUserData)
             });
 
             var curProps = {
                 yDimension: _this.startingFlowerDimensions.y,
-                yPosition: _this.startingFlowerPosition.y
+                yPosition: _this.startingFlowerPosition.y,
+                bloomPct: _this.flowerUserData.ProceduralEntity.uniforms.iBloomPct
             };
             var newYDimension = curProps.yDimension + 2;
             var endProps = {
                 yDimension: newYDimension,
-                yPosition: _this.startingFlowerPosition.y + newYDimension/2
+                yPosition: _this.startingFlowerPosition.y + newYDimension/2,
+                bloomPct: 1
             };
 
             var bloomTween = new TWEEN.Tween(curProps).
@@ -66,9 +70,11 @@
               easing(TWEEN.Easing.Cubic.InOut).
               delay(1000).
               onUpdate(function() {
+                _this.flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
                 Entities.editEntity(_this.flower, {
                     dimensions: {x: _this.startingFlowerDimensions.x, y: curProps.yDimension, z: _this.startingFlowerDimensions.z},
-                    position: {x: _this.startingFlowerPosition.x, y: curProps.yPosition, z: _this.startingFlowerPosition.z}
+                    position: {x: _this.startingFlowerPosition.x, y: curProps.yPosition, z: _this.startingFlowerPosition.z},
+                    userData: JSON.stringify(_this.flowerUserData)
                 });
               }).start();
         },
@@ -85,7 +91,6 @@
  
         update: function() {
             TWEEN.update();
-
         },
 
         unload: function() {
