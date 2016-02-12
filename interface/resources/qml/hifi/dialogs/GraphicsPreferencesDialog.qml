@@ -5,9 +5,9 @@ import "../../dialogs"
 
 PreferencesDialog {
     id: root
-    objectName: "GeneralPreferencesDialog"
-    title: "General Preferences"
-    showCategories: ["Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers"]
+    objectName: "GraphicsPreferencesDialog"
+    title: "Graphics Preferences"
+    showCategories: ["Graphics"]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

@@ -16,7 +16,7 @@
 
 #include "render/DrawTask.h"
 
-class AmbientOcclusionEffectConfig : public render::Job::Config {
+class AmbientOcclusionEffectConfig : public render::Job::Config::Persistent {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty)
     Q_PROPERTY(bool ditheringEnabled MEMBER ditheringEnabled NOTIFY dirty)
@@ -32,7 +32,7 @@ class AmbientOcclusionEffectConfig : public render::Job::Config {
     Q_PROPERTY(int blurRadius MEMBER blurRadius WRITE setBlurRadius)
     Q_PROPERTY(double gpuTime READ getGpuTime)
 public:
-    AmbientOcclusionEffectConfig() : render::Job::Config(false) {}
+    AmbientOcclusionEffectConfig() : render::Job::Config::Persistent("Ambient Occlusion", false) {}
 
     const int MAX_RESOLUTION_LEVEL = 4;
     const int MAX_BLUR_RADIUS = 6;
