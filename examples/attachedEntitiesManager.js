@@ -144,9 +144,9 @@ function AttachedEntitiesManager() {
 
     this.handleEntityRelease = function(grabbedEntity, releasedFromJoint) {
         // if this is still equipped, just rewrite the position information.
-        var grabData = getEntityCustomData('grabKey', entityID, {});
+        var grabData = getEntityCustomData('grabKey', grabbedEntity, {});
         if ("refCount" in grabData && grabData.refCount > 0) {
-            manager.updateRelativeOffsets(parsedMessage.grabbedEntity);
+            manager.updateRelativeOffsets(grabbedEntity);
             return;
         }
 
@@ -185,8 +185,8 @@ function AttachedEntitiesManager() {
                     parentJointIndex: bestJointIndex
                 };
 
-                if (bestJointOffset && bestJointOffset.constructor === Array && bestJointOffset.length > 1) {
-                    if (this.avatarIsInDressingRoom()) {
+                if (bestJointOffset && bestJointOffset.constructor === Array) {
+                    if (this.avatarIsInDressingRoom() || bestJointOffset.length < 2) {
                         this.updateRelativeOffsets(grabbedEntity);
                     } else {
                         // don't snap the entity to the preferred position if the avatar is in the dressing room.
