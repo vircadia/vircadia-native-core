@@ -18,17 +18,24 @@
     var TWEEN = loadTween();
     GrowingPlant = function() {
         _this = this;
-        _this.startingFlowerDimensions = {
-            x: 0.6,
-            y: 0.001,
-            z: 0.6
-        };
+        _this.flowers = [];
     };
 
     GrowingPlant.prototype = {
 
+        createFlowers: function() {
+           for(var i = 0; i < 3; i++) {
+              _this.createFlower();
+           }
+        },
+
         createFlower: function() {
-            _this.flowerUserData = {
+            var startingFlowerDimensions = {
+                x: 0.2,
+                y: 0.001,
+                z: 0.2
+            };
+            var flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
                     uniforms: {
@@ -36,47 +43,56 @@
                     }
                 }
             };
-            _this.startingFlowerPosition = Vec3.sum(this.position, {
-                x: 0,
-                y: this.dimensions.y/2,
+            var startingFlowerPosition = Vec3.sum(_this.position, {
+                x: Math.random(),
+                y: _this.dimensions.y / 2,
                 z: 0
             });
-            _this.flower = Entities.addEntity({
+            var flower = Entities.addEntity({
                 type: "Sphere",
-                position: _this.startingFlowerPosition,
+                position: startingFlowerPosition,
                 color: {
                     red: 100,
                     green: 10,
                     blue: 100
                 },
-                dimensions: _this.startingFlowerDimensions,
-                userData: JSON.stringify(_this.flowerUserData)
+                dimensions: startingFlowerDimensions,
+                userData: JSON.stringify(flowerUserData)
             });
+            _this.flowers.push(flower);
 
             var curProps = {
-                yDimension: _this.startingFlowerDimensions.y,
-                yPosition: _this.startingFlowerPosition.y,
-                bloomPct: _this.flowerUserData.ProceduralEntity.uniforms.iBloomPct
+                yDimension: startingFlowerDimensions.y,
+                yPosition: startingFlowerPosition.y,
+                bloomPct:  flowerUserData.ProceduralEntity.uniforms.iBloomPct
             };
-            var newYDimension = curProps.yDimension + 2;
+            var newYDimension = curProps.yDimension + 1;
             var endProps = {
                 yDimension: newYDimension,
-                yPosition: _this.startingFlowerPosition.y + newYDimension/2,
+                yPosition: startingFlowerPosition.y + newYDimension / 2,
                 bloomPct: 1
             };
 
             var bloomTween = new TWEEN.Tween(curProps).
-              to(endProps, 3000).
-              easing(TWEEN.Easing.Cubic.InOut).
-              delay(1000).
-              onUpdate(function() {
-                _this.flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
-                Entities.editEntity(_this.flower, {
-                    dimensions: {x: _this.startingFlowerDimensions.x, y: curProps.yDimension, z: _this.startingFlowerDimensions.z},
-                    position: {x: _this.startingFlowerPosition.x, y: curProps.yPosition, z: _this.startingFlowerPosition.z},
-                    userData: JSON.stringify(_this.flowerUserData)
+            to(endProps, 3000).
+            easing(TWEEN.Easing.Cubic.InOut).
+            delay(1000).
+            onUpdate(function() {
+                flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
+                Entities.editEntity(flower, {
+                    dimensions: {
+                        x: startingFlowerDimensions.x,
+                        y: curProps.yDimension,
+                        z: startingFlowerDimensions.z
+                    },
+                    position: {
+                        x: startingFlowerPosition.x,
+                        y: curProps.yPosition,
+                        z: startingFlowerPosition.z
+                    },
+                    userData: JSON.stringify(flowerUserData)
                 });
-              }).start();
+            }).start();
         },
 
         preload: function(entityID) {
@@ -85,17 +101,19 @@
             this.props = Entities.getEntityProperties(this.entityID, ["position", "dimensions"]);
             this.position = this.props.position;
             this.dimensions = this.props.dimensions;
-            this.createFlower();
+            this.createFlowers();
             Script.update.connect(_this.update);
         },
- 
+
         update: function() {
             TWEEN.update();
         },
 
         unload: function() {
             Script.update.disconnect(_this.update);
-            Entities.deleteEntity(_this.flower);
+            _this.flowers.forEach(function(flower) {
+                Entities.deleteEntity(flower);
+            });
             print("EBL UNLOAD DONE")
         }
 
