@@ -31,8 +31,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     if (radius > 0.8) {
         discard;
     }
-
-    color = hsb2rgb(vec3((angle/TWO_PI) + 0.5, radius, 1.0));
+    float brightness = (angle * 20./ (TWO_PI)) + 0.5;
+    color = hsb2rgb(vec3( abs(angle/30) - 0.1, 0.8, pow(fract(brightness), 0.3)));
   
     // Map the angle (-PI to PI) to the Hue (from 0 to 1)
     // and the Saturation to the radius
