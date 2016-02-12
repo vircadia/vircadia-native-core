@@ -25,9 +25,75 @@
     GrowingPlant.prototype = {
 
         createFlowers: function() {
-            for (var i = 0; i < 10; i++) {
-                _this.createFlower();
+            var NUM_FLOWERS = 20
+            for (var i = 0; i < NUM_FLOWERS; i++) {
+                var segment = i / NUM_FLOWERS * Math.PI * 2;
+                var radius = randFloat(0.13, 0.25);
+                var position = Vec3.sum(_this.position, {
+                    x: radius * Math.cos(segment),
+                    y: 0.15,
+                    z: radius * Math.sin(segment)
+                });
+                print("EBL position " + JSON.stringify(position));
+                _this.createFlower(position);
             }
+        },
+
+
+        createFlower: function(position) {
+            var startingFlowerDimensions = {
+                x: 0.2,
+                y: 0.001,
+                z: 0.2
+            };
+            var flowerUserData = {
+                ProceduralEntity: {
+                    shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
+                    uniforms: {
+                        iBloomPct: 0.5
+                    }
+                }
+            };
+            var flower = Entities.addEntity({
+                type: "Sphere",
+                position: position,
+                dimensions: startingFlowerDimensions,
+                userData: JSON.stringify(flowerUserData)
+            });
+            _this.flowers.push(flower);
+
+            var curProps = {
+                yDimension: startingFlowerDimensions.y,
+                yPosition: position.y,
+                bloomPct: flowerUserData.ProceduralEntity.uniforms.iBloomPct
+            };
+            var newYDimension = curProps.yDimension + 1;
+            var endProps = {
+                yDimension: newYDimension,
+                yPosition: position.y + newYDimension / 2 + .05,
+                bloomPct: 1
+            };
+
+            var bloomTween = new TWEEN.Tween(curProps).
+            to(endProps, 3000).
+            easing(TWEEN.Easing.Cubic.InOut).
+            delay(randInt(1000, 5000)).
+            onUpdate(function() {
+                // flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
+                Entities.editEntity(flower, {
+                    dimensions: {
+                        x: startingFlowerDimensions.x,
+                        y: curProps.yDimension,
+                        z: startingFlowerDimensions.z
+                    },
+                    position: {
+                        x: position.x,
+                        y: curProps.yPosition,
+                        z: position.z
+                    },
+                    // userData: JSON.stringify(flowerUserData)
+                });
+            }).start();
         },
 
         createCactus: function() {
@@ -72,76 +138,6 @@
             }).start();
         },
 
-        createFlower: function() {
-            var startingFlowerDimensions = {
-                x: 0.2,
-                y: 0.001,
-                z: 0.2
-            };
-            var flowerUserData = {
-                ProceduralEntity: {
-                    shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
-                    uniforms: {
-                        iBloomPct: 0.5
-                    }
-                }
-            };
-            do {
-                var x = randFloat(-_this.dimensions.x/3, this.dimensions.x/3);
-                var z = randFloat(-_this.dimensions.z/3, this.dimensions.z/3);
-                print("EBL X" + x );
-            } while(x < 0.1 && z < 0.1);
-            var startingFlowerPosition = Vec3.sum(_this.position, {
-                x: x,
-                y: _this.dimensions.y / 2 - 0.04,
-                z: z
-            });
-            var flower = Entities.addEntity({
-                type: "Sphere",
-                position: startingFlowerPosition,
-                color: {
-                    red: 100,
-                    green: 10,
-                    blue: 100
-                },
-                dimensions: startingFlowerDimensions,
-                userData: JSON.stringify(flowerUserData)
-            });
-            _this.flowers.push(flower);
-
-            var curProps = {
-                yDimension: startingFlowerDimensions.y,
-                yPosition: startingFlowerPosition.y,
-                bloomPct: flowerUserData.ProceduralEntity.uniforms.iBloomPct
-            };
-            var newYDimension = curProps.yDimension + 1;
-            var endProps = {
-                yDimension: newYDimension,
-                yPosition: startingFlowerPosition.y + newYDimension / 2,
-                bloomPct: 1
-            };
-
-            var bloomTween = new TWEEN.Tween(curProps).
-            to(endProps, 3000).
-            easing(TWEEN.Easing.Cubic.InOut).
-            delay(1000).
-            onUpdate(function() {
-                // flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
-                Entities.editEntity(flower, {
-                    dimensions: {
-                        x: startingFlowerDimensions.x,
-                        y: curProps.yDimension,
-                        z: startingFlowerDimensions.z
-                    },
-                    position: {
-                        x: startingFlowerPosition.x,
-                        y: curProps.yPosition,
-                        z: startingFlowerPosition.z
-                    },
-                    // userData: JSON.stringify(flowerUserData)
-                });
-            }).start();
-        },
 
         preload: function(entityID) {
             print("EBL PRELOAD");

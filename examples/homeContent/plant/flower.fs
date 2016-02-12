@@ -26,9 +26,11 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     if ( iBloomPct < radius || _position.y > 0) {
         discard;
     }
-    float brightness = (angle * 10./ (TWO_PI)) + 0.5;
+
+    // simulate ambient occlusion
+    float brightness = pow(radius, 0.7);
     float hueOffset = sin(iGlobalTime * .07);
-    color = hsb2rgb(vec3( abs(angle/20) + hueOffset, 0.8, pow(fract(brightness), 0.3)));
+    color = hsb2rgb(vec3( abs(angle/20) + hueOffset, 0.8, brightness));
   
 
     fragColor = vec4(color, 1.0);
