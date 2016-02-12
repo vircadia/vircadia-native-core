@@ -1073,7 +1073,9 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
 // TODO: have data-web respond with ice-server hostname to use
 
 void DomainServer::sendHeartbeatToIceServer() {
-    DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+    if (!_iceServerSocket.getAddress().isNull()) {
+        DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+    }
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {

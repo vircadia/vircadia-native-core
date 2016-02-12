@@ -855,6 +855,7 @@ function MyController(hand) {
                 getEntityCustomData(GRABBABLE_DATA_KEY, candidateEntities[i], DEFAULT_GRABBABLE_DATA);
             var grabDataForCandidate = getEntityCustomData(GRAB_USER_DATA_KEY, candidateEntities[i], {});
             var propsForCandidate = Entities.getEntityProperties(candidateEntities[i], GRABBABLE_PROPERTIES);
+            var near = (nearPickedCandidateEntities.indexOf(candidateEntities[i]) >= 0);
 
             var isPhysical = this.propsArePhysical(propsForCandidate);
             var grabbable;
@@ -916,7 +917,7 @@ function MyController(hand) {
                 continue;
             }
 
-            if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE) {
+            if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE && !near) {
                 // we can't distance-grab non-physical
                 if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
                     print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not physical and too far for near-grab");
