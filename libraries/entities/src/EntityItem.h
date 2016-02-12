@@ -408,8 +408,12 @@ public:
     /// Due to the asyncronous nature of signals for add entity and script changing
     /// it's possible for two similar signals to cross paths. This method allows the
     /// entity to definitively state if the preload signal should be sent.
+    ///
+    /// We only want to preload if:
+    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    value have changed since our last preload
     bool shouldPreloadScript() const { return !_script.isEmpty() && 
-                                               _loadedScript != _script && _loadedScriptTimestamp != _scriptTimestamp; }
+                                              ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
 
 protected:
