@@ -18,7 +18,7 @@
     var TWEEN = loadTween();
     GrowingPlant = function() {
         _this = this;
-        this.startingFlowerDimensions = {
+        _this.startingFlowerDimensions = {
             x: 0.6,
             y: 0.001,
             z: 0.6
@@ -64,7 +64,7 @@
             var bloomTween = new TWEEN.Tween(curProps).
               to(endProps, 3000).
               easing(TWEEN.Easing.Cubic.InOut).
-              delay( 10000).
+              delay(1000).
               onUpdate(function() {
                 Entities.editEntity(_this.flower, {
                     dimensions: {x: _this.startingFlowerDimensions.x, y: curProps.yDimension, z: _this.startingFlowerDimensions.z},
@@ -74,6 +74,7 @@
         },
 
         preload: function(entityID) {
+            print("EBL PRELOAD");
             this.entityID = entityID;
             this.props = Entities.getEntityProperties(this.entityID, ["position", "dimensions"]);
             this.position = this.props.position;
@@ -83,7 +84,6 @@
         },
  
         update: function() {
-            print("UPDATE")
             TWEEN.update();
 
         },
@@ -91,6 +91,7 @@
         unload: function() {
             Script.update.disconnect(_this.update);
             Entities.deleteEntity(_this.flower);
+            print("EBL UNLOAD DONE")
         }
 
     };
