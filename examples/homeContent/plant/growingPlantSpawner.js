@@ -32,6 +32,7 @@ function initializePlant() {
   Script.setTimeout(function() {
     var naturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
     Entities.editEntity(pot, {dimensions: naturalDimensions, script: SCRIPT_URL});
+    // Entities.editEntity(pot, {dimensions: naturalDimensions});
   }, 100);
 
 }
