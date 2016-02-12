@@ -27,8 +27,8 @@ panel.newCheckbox("Show Empty Cells",
     function(value) { return (value); }
 );
 panel.newCheckbox("Freeze Frustum",
-    function(value) { Render.RenderDeferredTask.DrawSceneOctree.freezeFrustum = value; },
-    function() { return (Render.RenderDeferredTask.DrawSceneOctree.freezeFrustum); },
+    function(value) { Render.RenderDeferredTask.FetchSceneSelection.freezeFrustum = value; Render.RenderDeferredTask.CullSceneSelection.freezeFrustum = value; },
+    function() { return (Render.RenderDeferredTask.FetchSceneSelection.freezeFrustum); },
     function(value) { return (value); }
 );
 panel.newCheckbox("Show Inside Items",

@@ -80,9 +80,6 @@ const gpu::PipelinePointer DrawSceneOctree::getDrawLODReticlePipeline() {
 void DrawSceneOctree::configure(const Config& config) {
     _showVisibleCells = config.showVisibleCells;
     _showEmptyCells = config.showEmptyCells;
-
-    _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
-    _freezeFrustum = config.freezeFrustum;
 }
 
 

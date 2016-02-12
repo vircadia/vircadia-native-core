@@ -156,7 +156,7 @@ void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContex
 
 
 void FetchSpatialTree::configure(const Config& config) {
-    _justFrozeFrustum = (config.freezeFrustum && !_freezeFrustum);
+    _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);
     _freezeFrustum = config.freezeFrustum;
     _lodAngle = config.lodAngle;
 }
@@ -182,7 +182,7 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
 
     // Octree selection!
 
-    float angle = glm::degrees(args->_viewFrustum->getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
+    float angle = glm::degrees(queryFrustum.getAccuracyAngle(args->_sizeScale, args->_boundaryLevelAdjust));
 
 
     scene->getSpatialTree().selectCellItems(outSelection, _filter, queryFrustum, angle);
@@ -190,6 +190,8 @@ void FetchSpatialTree::run(const SceneContextPointer& sceneContext, const Render
 }
 
 void CullSpatialSelection::configure(const Config& config) {
+    _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);
+    _freezeFrustum = config.freezeFrustum;
 }
 
 void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
@@ -201,6 +203,17 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
 
     auto& details = args->_details.edit(_detailType);
     details._considered += inSelection.numItems();
+
+    // Eventually use a frozen frustum
+    auto queryFrustum = args->_viewFrustum;
+    auto argFrustum = args->_viewFrustum;
+    if (_freezeFrustum) {
+        if (_justFrozeFrustum) {
+            _justFrozeFrustum = false;
+            _frozenFrutstum = *args->_viewFrustum;
+        }
+        args->_viewFrustum = &_frozenFrutstum; // replace the true view frustum by the frozen one
+    }
 
     // Culling Frustum / solidAngle test helper class
     struct Test {
@@ -288,6 +301,12 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     }
 
     details._rendered += outItems.size();
+
+
+    // Restore frustum if using the frozen one:
+    if (_freezeFrustum) {
+        args->_viewFrustum = argFrustum;
+    }
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }

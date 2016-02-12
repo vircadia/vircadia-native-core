@@ -108,12 +108,23 @@ namespace render {
     class CullSpatialSelectionConfig : public Job::Config {
         Q_OBJECT
         Q_PROPERTY(int numItems READ getNumItems)
+        Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
     public:
         int numItems{ 0 };
         int getNumItems() { return numItems; }
+
+        bool freezeFrustum{ false };
+    public slots:
+        void setFreezeFrustum(bool enabled) { freezeFrustum = enabled; emit dirty(); }
+
+    signals:
+        void dirty();
     };
 
     class CullSpatialSelection {
+        bool _freezeFrustum{ false }; // initialized by Config
+        bool _justFrozeFrustum{ false };
+        ViewFrustum _frozenFrutstum;
     public:
         using Config = CullSpatialSelectionConfig;
         using JobModel = Job::ModelIO<CullSpatialSelection, ItemSpatialTree::ItemSelection, ItemBounds, Config>;

@@ -22,7 +22,6 @@ namespace render {
         Q_PROPERTY(bool enabled MEMBER enabled NOTIFY dirty())
         Q_PROPERTY(bool showVisibleCells MEMBER showVisibleCells WRITE setShowVisibleCells)
         Q_PROPERTY(bool showEmptyCells MEMBER showEmptyCells WRITE setShowEmptyCells)
-        Q_PROPERTY(bool freezeFrustum MEMBER freezeFrustum WRITE setFreezeFrustum)
         Q_PROPERTY(int numAllocatedCells READ getNumAllocatedCells)
         Q_PROPERTY(int numFreeCells READ getNumFreeCells)
 
@@ -32,7 +31,6 @@ namespace render {
         
         bool showVisibleCells{ true };
         bool showEmptyCells{ false };
-        bool freezeFrustum{ false };
 
         int numAllocatedCells{ 0 };
         int numFreeCells{ 0 };
@@ -43,7 +41,6 @@ namespace render {
     public slots:
         void setShowVisibleCells(bool show) { showVisibleCells = show; emit dirty(); }
         void setShowEmptyCells(bool show) { showEmptyCells = show; emit dirty(); }
-        void setFreezeFrustum(bool freeze) { freezeFrustum = freeze; emit dirty(); }
 
     signals:
         void dirty();
@@ -63,9 +60,6 @@ namespace render {
 
         bool _showVisibleCells; // initialized by Config
         bool _showEmptyCells; // initialized by Config
-        bool _freezeFrustum{ false }; // initialized by Config
-        bool _justFrozeFrustum{ false };
-        ViewFrustum _frozenFrutstum;
 
     public:
         using Config = DrawSceneOctreeConfig;
