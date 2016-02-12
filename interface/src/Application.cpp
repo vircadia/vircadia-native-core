@@ -3070,13 +3070,18 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
+
+    controller::InputCalibrationData calibrationData = {
+        myAvatar->getSensorToWorldMatrix(),
+        createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
+        myAvatar->getHMDSensorMatrix()
+    };
 
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
-            inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
+            inputPlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;
             }
@@ -4981,14 +4986,9 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         palm.setActive(pose.isValid());
 
-        // transform from sensor space, to world space, to avatar model space.
-        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation() * myAvatar->getScale());
-        glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
-        glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-        glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
-
-        glm::vec3 position = extractTranslation(objectPose);
-        glm::quat rotation = glm::quat_cast(objectPose);
+        // controller pose is in Avatar frame.
+        glm::vec3 position = pose.getTranslation();
+        glm::quat rotation = pose.getRotation();
 
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;

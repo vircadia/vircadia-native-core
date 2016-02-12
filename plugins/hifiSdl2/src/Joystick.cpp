@@ -39,7 +39,7 @@ void Joystick::closeJoystick() {
 #endif
 }
 
-void Joystick::update(float deltaTime, bool jointsCaptured) {
+void Joystick::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     for (auto axisState : _axisStateMap) {
         if (fabsf(axisState.second) < CONTROLLER_THRESHOLD) {
             _axisStateMap[axisState.first] = 0.0f;

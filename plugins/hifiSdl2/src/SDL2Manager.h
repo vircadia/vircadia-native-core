@@ -40,7 +40,7 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override;
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
     
 signals:
     void joystickAdded(Joystick* joystick);
