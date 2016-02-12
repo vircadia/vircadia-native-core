@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1035;
+var version = 1039;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -120,7 +120,7 @@ var scenes = [{
             location: locations.cellLayout[1],
             baseURL: baseLocation
         }),
-        script: "zoom.js?" + version,
+        script: "zoomAndMoveRandomly.js?" + version,
         visible: true
     }],
     boundary: {

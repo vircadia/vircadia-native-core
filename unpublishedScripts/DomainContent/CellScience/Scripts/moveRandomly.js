@@ -8,124 +8,32 @@
 
     var self = this;
 
-    this.preload = function(entityId) {
-        //print('preload move randomly')
+    this.preload=function(entityId){
         this.isConnected = false;
         this.entityId = entityId;
-        this.updateInterval = 100;
-        this.posFrame = 0;
-        this.rotFrame = 0;
-        this.posInterval = 100;
-        this.rotInterval = 100;
         this.minVelocity = 1;
         this.maxVelocity = 5;
         this.minAngularVelocity = 0.01;
         this.maxAngularVelocity = 0.03;
-
-        this.initialize(entityId);
-        this.initTimeout = null;
-
-
-        var userData = {
-            ownershipKey: {
-                owner: MyAvatar.sessionUUID
-            },
-            grabbableKey: {
-                grabbable: false
-            }
-        };
-
-        Entities.editEntity(entityId, {
-            userData: JSON.stringify(userData)
-        })
+        Script.setTimeout(self.move,self.getTotalWait())
     }
 
-    this.initialize = function(entityId) {
-        //print('move randomly  should initialize' + entityId)
-        var properties = Entities.getEntityProperties(entityId);
-        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
-            self.initTimeout = Script.setTimeout(function() {
-                //print('no user data yet, try again in one second')
-                self.initialize(entityId);
-            }, 1000)
 
-        } else {
-            //print('userdata before parse attempt' + properties.userData)
-            self.userData = null;
-            try {
-                self.userData = JSON.parse(properties.userData);
-            } catch (err) {
-                //print('error parsing json');
-                //print('properties are:' + properties.userData);
-                return;
-            }
-            Script.update.connect(self.update);
-            this.isConnected = true;
-        }
-    }
-
-    this.update = function(deltaTime) {
-        // print('jbp in update')
-        var data = Entities.getEntityProperties(self.entityId, 'userData').userData;
-        var userData;
-        try {
-            userData = JSON.parse(data)
-        } catch (e) {
-            //print('error parsing json' + data)
-            return;
-        };
-
-        // print('userdata is' + data)
-        //if the entity doesnt have an owner set yet
-        if (userData.hasOwnProperty('ownershipKey') !== true) {
-            //print('no movement owner yet')
-            return;
-        }
-
-        //print('owner is:::' + userData.ownershipKey.owner)
-            //get all the avatars to see if the owner is around
+    this.getTotalWait = function() {
         var avatars = AvatarList.getAvatarIdentifiers();
-        var ownerIsAround = false;
+        var avatarCount = avatars.length;
+        var random = Math.random() * 2000;
+        var totalWait = random * (avatarCount * 2);
 
-        //if the current owner is not me...
-        if (userData.ownershipKey.owner !== MyAvatar.sessionUUID) {
+        return totalWait
+    }
 
-            //look to see if the current owner is around anymore
-            for (var i = 0; i < avatars.length; i++) {
-                if (avatars[i] === userData.ownershipKey.owner) {
-                    ownerIsAround = true
-                        //the owner is around
-                    return;
-                };
-            }
 
-            //if the owner is not around, then take ownership
-            if (ownerIsAround === false) {
-                //print('taking ownership')
+    this.move = function() {
+            print('jbp im the owner so move it')
+          
+ 
 
-                var userData = {
-                    ownershipKey: {
-                        owner: MyAvatar.sessionUUID
-                    },
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                };
-                Entities.editEntity(self.entityId, {
-                    userData: JSON.stringify(data)
-                })
-            }
-        }
-        //but if the current owner IS me, then move it
-        else {
-            //print('jbp im the owner so move it')
-            self.posFrame++;
-            self.rotFrame++;
-
-            if (self.posFrame > self.posInterval) {
-
-                self.posInterval = 100 * Math.random() + 300;
-                self.posFrame = 0;
 
                 var magnitudeV = self.maxVelocity;
                 var directionV = {
@@ -137,16 +45,9 @@
                 //print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
                 Entities.editEntity(self.entityId, {
                     velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV))
-
                 });
 
-            }
-
-            if (self.rotFrame > self.rotInterval) {
-
-                self.rotInterval = 100 * Math.random() + 250;
-                self.rotFrame = 0;
-
+  
                 var magnitudeAV = self.maxAngularVelocity;
 
                 var directionAV = {
@@ -160,20 +61,13 @@
 
                 });
 
-            }
+ 
 
-        }
-
+        Script.setTimeout(self.move,self.getTotalWait())
     }
 
-    this.unload = function() {
-        if (this.initTimeout !== null) {
-            Script.clearTimeout(this.initTimeout);
-        }
 
-        if (this.isConnected === true) {
-            Script.update.disconnect(this.update);
-        }
+    this.unload = function() {
 
     }
 
