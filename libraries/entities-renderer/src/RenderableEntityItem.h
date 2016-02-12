@@ -83,7 +83,7 @@ public:
     }
 
 private:
-    render::ItemID _myItem = render::Item::INVALID_ITEM_ID;
+    render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
 };
 
 
