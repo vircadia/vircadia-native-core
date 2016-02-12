@@ -165,7 +165,6 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     glm::vec4 _corners[8];
     glm::vec3 _cornersWorld[8];
- //   enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     ::Plane _planes[6]; // How will this be used?
 
     const char* debugPlaneName (int plane) const;
