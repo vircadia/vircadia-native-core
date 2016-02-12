@@ -927,11 +927,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
 
                     // If the script value has changed on us, or it's timestamp has changed to force
-                    // a reload then we want to send out a script changing signal... UNLESS this is the
-                    // first time we've read the entity information, in which case, the entity has
-                    // not yet been added to the tree, and we want to wait for the addEntity. In other
-                    // words it's not a "change" in the script, if it's a first time load.
-                    if (entityItem->isAddedToTree() && (entityScriptBefore != entityScriptAfter || reload)) {
+                    // a reload then we want to send out a script changing signal...
+                    if (entityScriptBefore != entityScriptAfter || reload) {
                         _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
                     }
 
