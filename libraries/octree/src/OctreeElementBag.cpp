@@ -24,17 +24,17 @@ bool OctreeElementBag::isEmpty() {
 }
 
 void OctreeElementBag::insert(OctreeElementPointer element) {
-    _bagElements.insert(element);
+    _bagElements[element.get()] = element;
 }
 
 OctreeElementPointer OctreeElementBag::extract() {
     OctreeElementPointer result;
 
     // Find the first element still alive
-    while (!result && !_bagElements.empty()) {
-        Bag::iterator it = _bagElements.begin();
-        result = (*it).lock(); // Grab head's shared_ptr
-        _bagElements.erase(it);
+    Bag::iterator it = _bagElements.begin();
+    while (it != _bagElements.end() && !result) {
+        result = it->second.lock();
+        it = _bagElements.erase(it);
     }
     return result;
 }

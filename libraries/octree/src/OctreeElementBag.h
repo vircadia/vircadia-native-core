@@ -16,15 +16,12 @@
 #ifndef hifi_OctreeElementBag_h
 #define hifi_OctreeElementBag_h
 
-#include <unordered_set>
-#include <shared/WeakPointerHash.h>
+#include <unordered_map>
 
 #include "OctreeElement.h"
 
 class OctreeElementBag {
-    using OctreeElementWeakPointerHash = WeakPointerHash<OctreeElement>;
-    using OctreeElementWeakPointerEqual = WeakPointerEqual<OctreeElement>;
-    using Bag = std::unordered_set<OctreeElementWeakPointer, OctreeElementWeakPointerHash, OctreeElementWeakPointerEqual>;
+    using Bag = std::unordered_map<OctreeElement*, OctreeElementWeakPointer>;
     
 public:
     void insert(OctreeElementPointer element); // put a element into the bag
