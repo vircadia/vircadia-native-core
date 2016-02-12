@@ -28,7 +28,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     float angle = atan(toCenter.y, toCenter.x);
     float radius = length(toCenter) * 2.0;
 
-    if (radius > 0.8) {
+    // Second check is so we discard the top half of the sphere
+    if (radius > 0.8 || _position.y > 0) {
         discard;
     }
     float brightness = (angle * 20./ (TWO_PI)) + 0.5;

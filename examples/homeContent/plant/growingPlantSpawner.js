@@ -1,6 +1,6 @@
 //
 //  growingPlantSpawner.js
-//  examples/homeContent/
+//  examples/homeContent/plant
 //
 //  Created by Eric Levin on 2/10/16.
 //  Copyright 2016 High Fidelity, Inc.
@@ -32,7 +32,7 @@ function initializePlant() {
   Script.setTimeout(function() {
     var naturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
     Entities.editEntity(pot, {dimensions: naturalDimensions, script: SCRIPT_URL});
-  }, 2000);
+  }, 100);
 
 }
 
