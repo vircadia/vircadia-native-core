@@ -291,23 +291,3 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
 
     std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }
-
-void FilterItemSelection::configure(const Config& config) {
-}
-
-void FilterItemSelection::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    auto& scene = sceneContext->_scene;
-
-    // Now we have a selection of items to render
-    outItems.clear();
-    outItems.reserve(inItems.size());
-
-    for (auto itemBound : inItems) {
-        auto& item = scene->getItem(itemBound.id);
-        if (_filter.test(item.getKey())) {
-            outItems.emplace_back(itemBound);
-        }
-    }
-}

@@ -25,12 +25,10 @@ void renderShapes(const SceneContextPointer& sceneContext, const RenderContextPo
 
 class DrawLight {
 public:
-    using JobModel = Job::Model<DrawLight>;
+    using JobModel = Job::ModelI<DrawLight, ItemBounds>;
 
-    DrawLight(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext);
+    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
-    CullFunctor _cullFunctor;
 };
 
 class PipelineSortShapes {

@@ -171,10 +171,13 @@ public:
         Builder& withLayered()          { _value.set(ItemKey::LAYERED);  _mask.set(ItemKey::LAYERED); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
+        static Builder visibleWorldItems() { return Builder().withVisible().withWorldSpace(); }
         static Builder opaqueShape() { return Builder().withTypeShape().withOpaque().withWorldSpace(); }
         static Builder transparentShape() { return Builder().withTypeShape().withTransparent().withWorldSpace(); }
         static Builder light() { return Builder().withTypeLight(); }
         static Builder background() { return Builder().withViewSpace().withLayered(); }
+        static Builder opaqueShapeLayered() { return Builder().withTypeShape().withOpaque().withWorldSpace().withLayered(); }
+        static Builder transparentShapeLayered() { return Builder().withTypeShape().withTransparent().withWorldSpace().withLayered(); }
     };
 
     ItemFilter(const Builder& builder) : ItemFilter(builder._value, builder._mask) {}

@@ -61,31 +61,19 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
-void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-
-    // render lights
     auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
-
-    ItemBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        auto item = scene->getItem(id);
-        inItems.emplace_back(ItemBound(id, item.getBound()));
-    }
-
     RenderArgs* args = renderContext->args;
 
+    // render lights
+
     auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
-    ItemBounds culledItems;
-    culledItems.reserve(inItems.size());
-    cullItems(renderContext, _cullFunctor, details, inItems, culledItems);
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, culledItems);
+        renderItems(sceneContext, renderContext, inLights);
         args->_batch = nullptr;
     });
 }

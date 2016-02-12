@@ -157,6 +157,60 @@ namespace render {
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 
+    class MultiFilterItemConfig : public Job::Config {
+        Q_OBJECT
+            Q_PROPERTY(int numItems READ getNumItems)
+    public:
+        int numItems{ 0 };
+        int getNumItems() { return numItems; }
+    };
+
+    template < class T, int NUM >
+    class VaryingArray : public std::array<Varying, NUM> {
+    public:
+        VaryingArray() {
+            for (size_t i = 0; i < NUM; i++) {
+                (*this)[i] = Varying(T());
+            }
+        }
+    };
+
+    template <int NUM_FILTERS>
+    class MultiFilterItem {
+    public:
+        using ItemFilterArray = std::array<ItemFilter, NUM_FILTERS>;
+        using ItemBoundsArray = VaryingArray<ItemBounds, NUM_FILTERS>;
+        using Config = MultiFilterItemConfig;
+        using JobModel = Job::ModelIO<MultiFilterItem, ItemBounds, ItemBoundsArray, Config>;
+
+        MultiFilterItem() {}
+        MultiFilterItem(const ItemFilterArray& filters) :
+            _filters(filters) {}
+
+        ItemFilterArray _filters;
+
+        void configure(const Config& config) {}
+        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBoundsArray& outItems) {
+            auto& scene = sceneContext->_scene;
+            
+            // Clear previous values
+            for (size_t i = 0; i < NUM_FILTERS; i++) {
+                outItems[i].edit<ItemBounds>().clear();
+            }
+
+            // For each item, filter it into the buckets
+            for (auto itemBound : inItems) {
+                auto& item = scene->getItem(itemBound.id);
+                auto itemKey = item.getKey();
+                for (size_t i = 0; i < NUM_FILTERS; i++) {
+                    if (_filters[i].test(itemKey)) {
+                        outItems[i].edit<ItemBounds>().emplace_back(itemBound);
+                    }
+                }
+            }
+        }
+    };
+
     class DepthSortItems {
     public:
         using JobModel = Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;

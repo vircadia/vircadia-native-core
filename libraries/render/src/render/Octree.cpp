@@ -342,23 +342,29 @@ bool ItemSpatialTree::removeItem(Index cellIdx, const ItemKey& key, const ItemID
 }
 
 ItemSpatialTree::Index ItemSpatialTree::resetItem(Index oldCell, const ItemKey& oldKey, const AABox& bound, const ItemID& item, ItemKey& newKey) {
-    auto minCoordf = evalCoordf(bound.getMinimumPoint());
-    auto maxCoordf = evalCoordf(bound.getMaximumPoint());
-    Coord3 minCoord(minCoordf);
-    Coord3 maxCoord(maxCoordf);
-    auto location = Location::evalFromRange(minCoord, maxCoord);
+    auto newCell = INVALID_CELL;
+    if (!newKey.isViewSpace()) {
+        auto minCoordf = evalCoordf(bound.getMinimumPoint());
+        auto maxCoordf = evalCoordf(bound.getMaximumPoint());
+        Coord3 minCoord(minCoordf);
+        Coord3 maxCoord(maxCoordf);
+        auto location = Location::evalFromRange(minCoord, maxCoord);
 
-    // Compare range size vs cell location size and tag itemKey accordingly
-    auto rangeSizef = maxCoordf - minCoordf;
-    float cellFitSize = getCellHalfDiagonalSquare(location.depth);
-    bool subcellItem = glm::dot(rangeSizef, rangeSizef) < cellFitSize;
-    if (subcellItem) {
-        newKey.setSmaller(subcellItem);
+        // Compare range size vs cell location size and tag itemKey accordingly
+        // If Item bound fits in sub cell then tag as small
+        auto rangeSizef = maxCoordf - minCoordf;
+        float cellHalfSize = 0.5f * getCellWidth(location.depth);
+        bool subcellItem = std::max(std::max(rangeSizef.x, rangeSizef.y), rangeSizef.z) < cellHalfSize;
+        if (subcellItem) {
+            newKey.setSmaller(subcellItem);
+        } else {
+            newKey.setSmaller(false);
+        }
+
+        newCell = indexCell(location);
     } else {
-        newKey.setSmaller(false);
+        // A very rare case, if we were adding items with boundary semantic expressed in view space
     }
-
-    auto newCell = indexCell(location);
 
     // Did we fail finding a cell for the item?
     if (newCell == INVALID_CELL) {
