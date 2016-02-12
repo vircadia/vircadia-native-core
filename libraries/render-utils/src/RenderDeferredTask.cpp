@@ -64,9 +64,9 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     const int TRANSPARENT_SHAPE_BUCKET = 1;
     const int LIGHT_BUCKET = 2;
     MultiFilterItem<NUM_FILTERS>::ItemFilterArray triageFilters = {
-        ItemFilter::Builder::opaqueShape(),
-        ItemFilter::Builder::transparentShape(),
-        ItemFilter::Builder::light()
+        { ItemFilter::Builder::opaqueShape() },
+        { ItemFilter::Builder::transparentShape() },
+        { ItemFilter::Builder::light() }
     };
     const auto filteredItemsBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSceneSelection, triageFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
 
