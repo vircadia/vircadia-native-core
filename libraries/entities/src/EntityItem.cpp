@@ -76,8 +76,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _physicsInfo(nullptr),
     _simulated(false)
 {
-    setVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
-    setAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
+    setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
+    setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     // explicitly set transform parts to set dirty flags used by batch rendering
     setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
@@ -244,8 +244,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getLocalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
@@ -1054,7 +1054,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getLocalVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(acceleration, getAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
@@ -1066,7 +1066,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getAngularVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
@@ -1561,7 +1561,7 @@ void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask
     } else {
         if (_dynamic) {
             group = BULLET_COLLISION_GROUP_DYNAMIC;
-        } else if (isMoving() || hasActions()) {
+        } else if (isMovingRelativeToParent() || hasActions()) {
             group = BULLET_COLLISION_GROUP_KINEMATIC;
         } else {
             group = BULLET_COLLISION_GROUP_STATIC;

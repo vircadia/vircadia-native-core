@@ -12,7 +12,6 @@
 // FIXME get rid of this
 #include <gl/Config.h>
 #include <plugins/PluginContainer.h>
-
 #include "OculusHelpers.h"
 
 
@@ -140,12 +139,16 @@ const QString OculusDisplayPlugin::NAME("Oculus Rift");
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
+static const bool DEFAULT_MONO_VIEW = true;
 
 void OculusDisplayPlugin::activate() {
+    _monoPreview = _container->getBoolSetting("monoPreview", DEFAULT_MONO_VIEW);
+
     _container->addMenuItem(PluginType::DISPLAY_PLUGIN, MENU_PATH(), MONO_PREVIEW,
         [this](bool clicked) {
             _monoPreview = clicked;
-        }, true, true);
+            _container->setBoolSetting("monoPreview", _monoPreview);
+    }, true, _monoPreview);
     _container->removeMenu(FRAMERATE);
     OculusBaseDisplayPlugin::activate();
 }

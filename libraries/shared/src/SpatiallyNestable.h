@@ -116,6 +116,8 @@ public:
     virtual void setLocalScale(const glm::vec3& scale);
 
     QList<SpatiallyNestablePointer> getChildren() const;
+    bool hasChildren() const;
+
     NestableType getNestableType() const { return _nestableType; }
 
     // this object's frame

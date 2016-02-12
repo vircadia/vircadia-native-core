@@ -158,12 +158,12 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
         }
         return MOTION_TYPE_DYNAMIC;
     }
-    return (_entity->isMoving() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
+    return (_entity->isMovingRelativeToParent() || _entity->hasActions()) ?  MOTION_TYPE_KINEMATIC : MOTION_TYPE_STATIC;
 }
 
 bool EntityMotionState::isMoving() const {
     assert(entityTreeIsLocked());
-    return _entity && _entity->isMoving();
+    return _entity && _entity->isMovingRelativeToParent();
 }
 
 // This callback is invoked by the physics simulation in two cases:
@@ -555,7 +555,7 @@ uint32_t EntityMotionState::getIncomingDirtyFlags() {
         }
         // we add DIRTY_MOTION_TYPE if the body's motion type disagrees with entity velocity settings
         int bodyFlags = _body->getCollisionFlags();
-        bool isMoving = _entity->isMoving();
+        bool isMoving = _entity->isMovingRelativeToParent();
         if (((bodyFlags & btCollisionObject::CF_STATIC_OBJECT) && isMoving) ||
                 (bodyFlags & btCollisionObject::CF_KINEMATIC_OBJECT && !isMoving)) {
             dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
