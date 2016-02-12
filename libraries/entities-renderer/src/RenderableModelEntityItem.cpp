@@ -101,8 +101,9 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 }
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
+    // If textures are unset, revert to original textures
     if (textures == "") {
-        return QVariantMap();
+        return parseTexturesToMap(_originalTextures.join(",\n"));
     }
 
     QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
