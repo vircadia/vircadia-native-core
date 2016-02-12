@@ -14,6 +14,7 @@
     this.entered = true;
 
     this.preload = function(entityID) {
+        print('JBP Zoom PRELOAD')
         this.entityId = entityID;
         this.initialize(entityID);
         this.initTimeout = null;

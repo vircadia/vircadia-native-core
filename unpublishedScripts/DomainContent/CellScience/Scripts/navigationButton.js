@@ -17,6 +17,7 @@
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
     this.preload = function(entityId) {
+        print('JBP NAV PRELOAD')
         this.entityId = entityId;
         this.initialize(entityId);
         this.initTimeout = null;
@@ -58,14 +59,13 @@
             self.buttonImageURL = baseURL + "GUI/GUI_" + self.userData.name + ".png?" + version;
             print('JBP BUTTON IMAGE URL:' + self.buttonImageURL)
             if (self.button === undefined) {
-                // print('NAV NO BUTTON ADDING ONE!!')
+                print('JBP NO BUTTON ADDING ONE!!')
                 self.button = true;
                 self.addButton();
 
             } else {
-                // print('NAV SELF ALREADY HAS A BUTTON!!')
+                print('JBP SELF ALREADY HAS A BUTTON!!')
             }
-
         }
     }
 

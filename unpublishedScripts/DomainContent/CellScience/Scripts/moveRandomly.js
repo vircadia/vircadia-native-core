@@ -9,6 +9,7 @@
     var self = this;
 
     this.preload=function(entityId){
+        print('JBP MOVE RANDOMLY PRELOAD')
         this.isConnected = false;
         this.entityId = entityId;
         this.minVelocity = 1;
@@ -22,7 +23,7 @@
     this.getTotalWait = function() {
         var avatars = AvatarList.getAvatarIdentifiers();
         var avatarCount = avatars.length;
-        var random = Math.random() * 2000;
+        var random = Math.random() * 5000;
         var totalWait = random * (avatarCount * 2);
 
         return totalWait
@@ -30,11 +31,6 @@
 
 
     this.move = function() {
-            print('jbp im the owner so move it')
-          
- 
-
-
                 var magnitudeV = self.maxVelocity;
                 var directionV = {
                     x: Math.random() - 0.5,

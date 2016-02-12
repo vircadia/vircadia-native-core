@@ -124,7 +124,6 @@
 
 
     this.move = function() {
-        print('jbp im the owner so move it')
 
         var magnitudeV = self.maxVelocity;
         var directionV = {

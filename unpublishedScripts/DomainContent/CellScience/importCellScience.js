@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1039;
+var version = 1041;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -645,8 +645,7 @@ function createLayoutLights() {
 }
 
 function CreateNavigationButton(scene, number) {
-    // print('NAV NAVIGATION CREATING NAV!!' +scene.name + " " + number)
-
+    print('JBP NAVIGATION CREATING NAV!!' +scene.name + " " + number)
 
     Entities.addEntity({
         type: "Box",
@@ -657,11 +656,11 @@ function CreateNavigationButton(scene, number) {
             blue: 0
         },
         dimensions: {
-            x: 16000,
-            y: 16000,
-            z: 16000
+            x: 14000,
+            y: 14000,
+            z: 14000
         },
-        visible: false,
+        visible: true,
         userData: JSON.stringify({
             name: scene.name,
             entryPoint: scene.entryPoint,
@@ -9046,3 +9045,8 @@ createLayoutLights();
 Script.scriptEnding.connect(function() {
     Entities.addingEntity.disconnect(makeUngrabbable);
 });
+
+Script.setTimeout(function(){
+    print('JBP stopping cell science import');
+    Script.stop();
+},30000)
