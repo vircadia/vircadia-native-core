@@ -13,6 +13,7 @@
 
 (function() {
     Script.include("../../libraries/tween.js");
+    Script.include("../../libraries/utils.js");
 
     var _this;
     var TWEEN = loadTween();
@@ -24,13 +25,13 @@
     GrowingPlant.prototype = {
 
         createFlowers: function() {
-            for (var i = 0; i < 3; i++) {
+            for (var i = 0; i < 10; i++) {
                 _this.createFlower();
             }
         },
 
         createCactus: function() {
-            var MODEL_URL = "file:///C:/Users/Eric/Desktop/cactus.fbx?v1" + Math.random();
+            var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cactus.fbx"
             var dimensions = {
                 x: 0.09,
                 y: 0.01,
@@ -85,10 +86,15 @@
                     }
                 }
             };
+            do {
+                var x = randFloat(-_this.dimensions.x/3, this.dimensions.x/3);
+                var z = randFloat(-_this.dimensions.z/3, this.dimensions.z/3);
+                print("EBL X" + x );
+            } while(x < 0.1 && z < 0.1);
             var startingFlowerPosition = Vec3.sum(_this.position, {
-                x: Math.random(),
-                y: _this.dimensions.y / 2,
-                z: 0
+                x: x,
+                y: _this.dimensions.y / 2 - 0.04,
+                z: z
             });
             var flower = Entities.addEntity({
                 type: "Sphere",
@@ -120,7 +126,7 @@
             easing(TWEEN.Easing.Cubic.InOut).
             delay(1000).
             onUpdate(function() {
-                flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
+                // flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
                 Entities.editEntity(flower, {
                     dimensions: {
                         x: startingFlowerDimensions.x,
@@ -132,7 +138,7 @@
                         y: curProps.yPosition,
                         z: startingFlowerPosition.z
                     },
-                    userData: JSON.stringify(flowerUserData)
+                    // userData: JSON.stringify(flowerUserData)
                 });
             }).start();
         },
