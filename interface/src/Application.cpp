@@ -4983,7 +4983,6 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
     // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
     // controller::Pose. More work is needed to clean this up.
     hand->modifyPalm(whichHand, [&](PalmData& palm) {
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         palm.setActive(pose.isValid());
 
         // controller pose is in Avatar frame.
