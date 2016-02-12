@@ -155,7 +155,7 @@ static bool cpuSupportsAVX() {
     if (__get_cpuid(0x1, &eax, &ebx, &ecx, &edx) && ((ecx & mask) == mask)) {
 
         __asm__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
-        if (eax & 0x6) == 0x6) {
+        if ((eax & 0x6) == 0x6) {
             result = true;
         }
     }
