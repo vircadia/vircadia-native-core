@@ -25,7 +25,7 @@ StandardController::StandardController() : InputDevice("Standard") {
 StandardController::~StandardController() {
 }
 
-void StandardController::update(float deltaTime, bool jointsCaptured) {
+void StandardController::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
 }
 
 void StandardController::focusOutEvent() {

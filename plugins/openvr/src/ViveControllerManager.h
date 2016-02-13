@@ -41,7 +41,7 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
 
@@ -55,12 +55,12 @@ private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
         virtual void focusOutEvent() override;
 
         void handleButtonEvent(uint32_t button, bool pressed, bool left);
         void handleAxisEvent(uint32_t axis, float x, float y, bool left);
-        void handlePoseEvent(const mat4& mat, bool left);
+        void handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, bool left);
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _hmd;
