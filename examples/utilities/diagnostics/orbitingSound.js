@@ -28,9 +28,15 @@ var properties = {
 
 var objectId = Entities.addEntity(properties);
 var soundOptions = { position: orbitCenter, loop: true, volume: 0.5 };
-var sound = Audio.playSound(soundClip, soundOptions);
+var sound;
 
-function update(deltaTime) { 
+function update(deltaTime) {
+    if (!soundClip.downloaded) {
+        return;
+    }
+    if (!sound) {
+        sound = Audio.playSound(soundClip, soundOptions); // Not until downloaded
+    }
     time += deltaTime; 
     currentPosition = { x: orbitCenter.x + Math.cos(time * SPEED) * RADIUS, y: orbitCenter.y, z: orbitCenter.z + Math.sin(time * SPEED) * RADIUS };
     trailingLoudness = 0.9 * trailingLoudness + 0.1 * sound.loudness;
