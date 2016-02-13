@@ -46,35 +46,19 @@ void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {
     }
     WindowOpenGLDisplayPlugin::internalPresent();
 }
-const uint32_t THROTTLED_FRAMERATE = 15;
-int Basic2DWindowOpenGLDisplayPlugin::getDesiredInterval() const {
-    static const int ULIMIITED_PAINT_TIMER_DELAY_MS = 1;
-    int result = ULIMIITED_PAINT_TIMER_DELAY_MS;
-    if (_isThrottled) {
-        // This test wouldn't be necessary if we could depend on updateFramerate setting _framerateTarget.
-        // Alas, that gets complicated: isThrottled() is const and other stuff depends on it.
-        result = MSECS_PER_SECOND / THROTTLED_FRAMERATE;
-    }
 
-    return result;
-}
+static const uint32_t MIN_THROTTLE_CHECK_FRAMES = 60;
 
 bool Basic2DWindowOpenGLDisplayPlugin::isThrottled() const {
-    static const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Menu.h
-
-    bool shouldThrottle = (!_container->isForeground() && _container->isOptionChecked(ThrottleFPSIfNotFocus));
-    
-    if (_isThrottled != shouldThrottle) {
-        _isThrottled = shouldThrottle;
-        _timer.start(getDesiredInterval());
+    static auto lastCheck = presentCount();
+    // Don't access the menu API every single frame
+    if ((presentCount() - lastCheck) > MIN_THROTTLE_CHECK_FRAMES) {
+        static const QString ThrottleFPSIfNotFocus = "Throttle FPS If Not Focus"; // FIXME - this value duplicated in Menu.h
+        _isThrottled  = (!_container->isForeground() && _container->isOptionChecked(ThrottleFPSIfNotFocus));
+        lastCheck = presentCount();
     }
-    
-    return shouldThrottle;
-}
 
-void Basic2DWindowOpenGLDisplayPlugin::updateFramerate() {
-    int newInterval = getDesiredInterval();
-    _timer.start(newInterval);
+    return _isThrottled;
 }
 
 // FIXME target the screen the window is currently on

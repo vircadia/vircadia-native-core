@@ -508,6 +508,8 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
+    bool _pendingPaint { false };
+    QTimer* _idleTimer { nullptr };
 };
 
 #endif // hifi_Application_h
