@@ -48,11 +48,14 @@ Item {
 
     Rectangle {
         id: sizeOutline
-        width: window ? window.width : 0
-        height: window ? window.height : 0
-        color: "#00000000"
-        border.width: 4
-        radius: 10
+        x: -iconSize
+        y: -(wideTopMargin ? 2 : 1) * iconSize
+        width: window ? window.width + 2 * iconSize : 0
+        height: window ? window.height + (1 + (wideTopMargin ? 2 : 1)) * iconSize : 0
+        color: hifi.colors.baseGrayHighlight15
+        border.width: 3
+        border.color: hifi.colors.white50
+        radius: hifi.dimensions.borderRadius
         visible: window ? !window.content.visible : false
     }
 
@@ -77,6 +80,7 @@ Item {
         onReleased: {
             if (hid) {
                 window.content.visible = true
+                frameContent.visible = true
                 hid = false;
             }
         }
@@ -84,6 +88,7 @@ Item {
             if (pressed) {
                 if (window.content.visible) {
                     window.content.visible = false;
+                    frameContent.visible = false
                     hid = true;
                 }
                 var delta = Qt.vector2d(mouseX, mouseY).minus(pressOrigin);
@@ -96,7 +101,7 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             text: "A"
             size: iconSize / 3 * 2
-            color: sizeDrag.containsMouse ? hifi.colors.white : hifi.colors.lightGray
+            color: sizeDrag.containsMouse || !(window && window.focus) ? hifi.colors.white : hifi.colors.lightGray
         }
     }
 

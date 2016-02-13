@@ -23,6 +23,7 @@ Frame {
 
     Rectangle {
         // Dialog frame
+        id: frameContent
         anchors { margins: -iconSize; topMargin: -iconSize * (wideTopMargin ? 2 : 1); }
         anchors.fill: parent
         color: hifi.colors.baseGrayHighlight40
