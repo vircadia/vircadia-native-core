@@ -13,10 +13,11 @@
 #ifndef hifi_AbstractControllerScriptingInterface_h
 #define hifi_AbstractControllerScriptingInterface_h
 
-#include <unordered_map>
-#include <unordered_set>
+#include <atomic>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -165,12 +166,12 @@ namespace controller {
         QVariantMap _actions;
         QVariantMap _standard;
 
-        bool _mouseCaptured { false };
-        bool _touchCaptured { false };
-        bool _wheelCaptured { false };
-        bool _actionsCaptured { false };
-        bool _reticleVisible { true };
+        bool _mouseCaptured{ false };
+        bool _touchCaptured{ false };
+        bool _wheelCaptured{ false };
+        bool _actionsCaptured{ false };
 
+        bool _reticleVisible{ true };
         float _reticleDepth { 1.0f };
     };
 
