@@ -343,6 +343,8 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                 }
 
                 { // Setup the global lighting
+                    setupKeyLightBatch(batch, locations->lightBufferUnit, SKYBOX_MAP_UNIT);
+                    /*
                     auto globalLight = _allocatedLights[_globalLights.front()];
     
                     if (locations->ambientSphere >= 0) {
@@ -361,7 +363,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
                     if (locations->lightBufferUnit >= 0) {
                         batch.setUniformBuffer(locations->lightBufferUnit, globalLight->getSchemaBuffer());
-                    }
+                    }*/
 
                 }
 
@@ -511,10 +513,29 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
     }
 }
 
-void DeferredLightingEffect::setupBatch(gpu::Batch& batch, int lightBufferUnit) {
+void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     auto globalLight = _allocatedLights[_globalLights.front()];
-    batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
+
+    if (lightBufferUnit >= 0) {
+        batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
+    }
+
+    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
+
+   /* if (ambientSphereBufferUnit >= 0) {
+        gpu::SphericalHarmonics sh = globalLight->getAmbientSphere();
+        if (useSkyboxCubemap && _skybox->getCubemap()->getIrradiance()) {
+            sh = (*_skybox->getCubemap()->getIrradiance());
+        }
+        for (int i =0; i <gpu::SphericalHarmonics::NUM_COEFFICIENTS; i++) {
+            batch._glUniform4fv(ambientSphereBufferUnit + i, 1, (const float*)(&sh) + i * 4);
+        }
+    }*/
+    
+    if (useSkyboxCubemap && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, _skybox->getCubemap());
+    }
 }
 
 static void loadLightProgram(const char* vertSource, const char* fragSource, bool lightVolume, gpu::PipelinePointer& pipeline, LightLocationsPtr& locations) {
@@ -593,6 +614,11 @@ void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const gl
 
 void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
     _skybox = skybox;
+    auto light = _allocatedLights.front();
+
+    if (_skybox && _skybox->getCubemap() && _skybox->getCubemap()->isDefined() && _skybox->getCubemap()->getIrradiance()) {
+        light->setAmbientSphere( (*_skybox->getCubemap()->getIrradiance()) );
+    }
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
