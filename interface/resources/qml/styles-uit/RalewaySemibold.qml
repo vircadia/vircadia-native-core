@@ -16,9 +16,7 @@ Text {
     id: root
     FontLoader { id: iconFont; source: "../../fonts/Raleway-Semibold.ttf"; }
     property int size: 32
-    width: size
-    height: size
-    font.pixelSize: size
+    font.pointSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
     font.family: iconFont.name
