@@ -308,6 +308,11 @@
                 allSections.push(elWebSections);
                 var elWebSourceURL = document.getElementById("property-web-source-url");
     
+
+                var elHyperlinkHref = document.getElementById("property-hyperlink-href");
+                var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
+                var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
+
                 var elParticleSections = document.querySelectorAll(".particle-section");
                 allSections.push(elParticleSections);
                 var elParticleIsEmitting = document.getElementById("property-particle-is-emitting");
@@ -369,9 +374,6 @@
                 var elXTextureURL = document.getElementById("property-x-texture-url");
                 var elYTextureURL = document.getElementById("property-y-texture-url");
                 var elZTextureURL = document.getElementById("property-z-texture-url");
-    
-                var elHyperlinkHref = document.getElementById("property-hyperlink-href");
-                var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
     
                 var elPreviewCameraButton = document.getElementById("preview-camera-button");
     
@@ -492,8 +494,12 @@
                                     for (var j = 0; j < allSections[i].length; j++) {
                                         allSections[i][j].style.display = 'none';
                                     }
+                                }                                    
+
+                                for (var i = 0; i < elHyperlinkSections.length; i++) {
+                                    elHyperlinkSections[i].style.display = 'block';
                                 }
-    
+
                                 if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
                                     elColorSection.style.display = 'block';
                                     elColorRed.value = properties.color.red;
@@ -525,6 +531,9 @@
                                 } else if (properties.type == "Web") {
                                     for (var i = 0; i < elWebSections.length; i++) {
                                         elWebSections[i].style.display = 'block';
+                                    }
+                                    for (var i = 0; i < elHyperlinkSections.length; i++) {
+                                        elHyperlinkSections[i].style.display = 'none';
                                     }
     
                                     elWebSourceURL.value = properties.sourceUrl;
@@ -1158,17 +1167,17 @@
         </div>
 
 
-        <div class="section-header">
+        <div class="section-header hyperlink-section">
             <label>Hyperlink</label>
         </div>
 
-        <div class="property">
+        <div class="hyperlink-section property">
             <div class="label">Href - Hifi://address</div>
             <div class="value">
                 <input id="property-hyperlink-href" class="url">
             </div>
         </div>
-        <div class="property">
+        <div class="hyperlink-section property">
             <div class="label">Description</div>
             <div class="value">
                 <input id="property-hyperlink-description" class="url">
