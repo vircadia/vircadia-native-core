@@ -998,7 +998,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
     // Setting the interval to zero forces this to get called whenever there are no messages
     // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch 
-    // of logic to abort early if it's being called to often.
+    // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
 }
 
@@ -4830,17 +4830,9 @@ void Application::updateDisplayMode() {
 
         foreach(auto displayPlugin, standard) {
             addDisplayPluginToMenu(displayPlugin, first);
-            // This must be a queued connection to avoid a deadlock
-            //QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [=] {
-            //    postEvent(this, new LambdaEvent([=] {
-            //        paintGL(); 
-            //    }), Qt::HighEventPriority);
-            //});
-
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
-
             first = false;
         }
 
