@@ -227,17 +227,17 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             _args(pargs),
             _renderDetails(renderDetails)
         {
-            _eyePos = _args->_viewFrustum->getPosition();
-            
+            // FIXME: Keep this code here even though we don't use it yet
+            /*_eyePos = _args->_viewFrustum->getPosition();
             float a = glm::degrees(_args->_viewFrustum->getAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
             auto angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
             angle = std::max(glm::radians(1.0f / 60.0f), a); // no better than 1 minute of degree
             auto tanAlpha = tan(angle);
             _squareTanAlpha = (float)(tanAlpha * tanAlpha);
+            */
         }
 
         bool frustumTest(const AABox& bound) {
-            PerformanceTimer perfTimer("frustumItemTest");
             if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
                 _renderDetails._outOfView++;
                 return false;
@@ -246,7 +246,6 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
 
         bool solidAngleTest(const AABox& bound) {
-            PerformanceTimer perfTimer("solidAngleItemTest");
             // FIXME: Keep this code here even though we don't use it yet
             //auto eyeToPoint = bound.calcCenter() - _eyePos;
             //auto boundSize = bound.getDimensions();
