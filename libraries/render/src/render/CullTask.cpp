@@ -205,7 +205,6 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     details._considered += inSelection.numItems();
 
     // Eventually use a frozen frustum
-    auto queryFrustum = args->_viewFrustum;
     auto argFrustum = args->_viewFrustum;
     if (_freezeFrustum) {
         if (_justFrozeFrustum) {
@@ -220,12 +219,22 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         CullFunctor _functor;
         RenderArgs* _args;
         RenderDetails::Item& _renderDetails;
+        glm::vec3 _eyePos;
+        float _squareTanAlpha;
 
         Test(CullFunctor& functor, RenderArgs* pargs, RenderDetails::Item& renderDetails) :
             _functor(functor),
             _args(pargs),
             _renderDetails(renderDetails)
-        {}
+        {
+            _eyePos = _args->_viewFrustum->getPosition();
+            
+            float a = glm::degrees(_args->_viewFrustum->getAccuracyAngle(_args->_sizeScale, _args->_boundaryLevelAdjust));
+            auto angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
+            angle = std::max(glm::radians(1.0f / 60.0f), a); // no better than 1 minute of degree
+            auto tanAlpha = tan(angle);
+            _squareTanAlpha = (float)(tanAlpha * tanAlpha);
+        }
 
         bool frustumTest(const AABox& bound) {
             PerformanceTimer perfTimer("frustumItemTest");
@@ -238,6 +247,11 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
 
         bool solidAngleTest(const AABox& bound) {
             PerformanceTimer perfTimer("solidAngleItemTest");
+            // FIXME: Keep this code here even though we don't use it yet
+            //auto eyeToPoint = bound.calcCenter() - _eyePos;
+            //auto boundSize = bound.getDimensions();
+            //float test = (glm::dot(boundSize, boundSize) / glm::dot(eyeToPoint, eyeToPoint)) - squareTanAlpha;
+            //if (test < 0.0f) {
             if (!_functor(_args, bound)) {
                 _renderDetails._tooSmall++;
                 return false;
@@ -255,46 +269,58 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     // filter individually against the _filter
     // visibility cull if partially selected ( octree cell contianing it was partial)
     // distance cull if was a subcell item ( octree cell is way bigger than the item bound itself, so now need to test per item)
-    
+
     // inside & fit items: easy, just filter
-    for (auto id : inSelection.insideItems) {
-        auto& item = scene->getItem(id);
-        if (_filter.test(item.getKey())) {
-            ItemBound itemBound(id, item.getBound());
-            outItems.emplace_back(itemBound);
+    {
+        PerformanceTimer perfTimer("insideFitItems");
+        for (auto id : inSelection.insideItems) {
+            auto& item = scene->getItem(id);
+            if (_filter.test(item.getKey())) {
+                ItemBound itemBound(id, item.getBound());
+                outItems.emplace_back(itemBound);
+            }
         }
     }
 
     // inside & subcell items: filter & distance cull
-    for (auto id : inSelection.insideSubcellItems) {
-        auto& item = scene->getItem(id);
-        if (_filter.test(item.getKey())) {
-            ItemBound itemBound(id, item.getBound());
-            if (test.solidAngleTest(itemBound.bound)) {
-                outItems.emplace_back(itemBound);
+    {
+        PerformanceTimer perfTimer("insideSmallItems");
+        for (auto id : inSelection.insideSubcellItems) {
+            auto& item = scene->getItem(id);
+            if (_filter.test(item.getKey())) {
+                ItemBound itemBound(id, item.getBound());
+                if (test.solidAngleTest(itemBound.bound)) {
+                    outItems.emplace_back(itemBound);
+                }
             }
         }
     }
 
     // partial & fit items: filter & frustum cull
-    for (auto id : inSelection.partialItems) {
-        auto& item = scene->getItem(id);
-        if (_filter.test(item.getKey())) {
-            ItemBound itemBound(id, item.getBound());
-            if (test.frustumTest(itemBound.bound)) {
-                outItems.emplace_back(itemBound);
+    {
+        PerformanceTimer perfTimer("partialFitItems");
+        for (auto id : inSelection.partialItems) {
+            auto& item = scene->getItem(id);
+            if (_filter.test(item.getKey())) {
+                ItemBound itemBound(id, item.getBound());
+                if (test.frustumTest(itemBound.bound)) {
+                    outItems.emplace_back(itemBound);
+                }
             }
         }
     }
 
     // partial & subcell items:: filter & frutum cull & solidangle cull
-    for (auto id : inSelection.partialSubcellItems) {
-        auto& item = scene->getItem(id);
-        if (_filter.test(item.getKey())) {
-            ItemBound itemBound(id, item.getBound());
-            if (test.frustumTest(itemBound.bound)) {
-                if (test.solidAngleTest(itemBound.bound)) {
-                    outItems.emplace_back(itemBound);
+    {
+        PerformanceTimer perfTimer("partialSmallItems");
+        for (auto id : inSelection.partialSubcellItems) {
+            auto& item = scene->getItem(id);
+            if (_filter.test(item.getKey())) {
+                ItemBound itemBound(id, item.getBound());
+                if (test.frustumTest(itemBound.bound)) {
+                    if (test.solidAngleTest(itemBound.bound)) {
+                        outItems.emplace_back(itemBound);
+                    }
                 }
             }
         }
