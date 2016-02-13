@@ -88,7 +88,6 @@ Fadable {
         x: frame.decoration.anchors.margins
         y: frame.decoration.anchors.topMargin
         propagateComposedEvents: true
-        hoverEnabled: true
         acceptedButtons: Qt.AllButtons
         enabled: window.visible
         onPressed: {
