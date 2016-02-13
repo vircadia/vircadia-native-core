@@ -111,10 +111,9 @@ void qObjectFromJsonValue(const QJsonValue& j, QObject& o) {
     for (auto it = object.begin(); it != object.end(); it++) {
         std::string key = it.key().toStdString();
         if (it.value().isObject()) {
-            QVariant child = o.property(key.c_str());
-            if (child.isValid()) {
-                QObject* object = child.value<QObject*>();
-                qObjectFromJsonValue(it.value(), *object);
+            QObject* child = o.findChild<QObject*>(key.c_str(), Qt::FindDirectChildrenOnly);
+            if (child) {
+                qObjectFromJsonValue(it.value(), *child);
             }
         } else {
             o.setProperty(key.c_str(), it.value());

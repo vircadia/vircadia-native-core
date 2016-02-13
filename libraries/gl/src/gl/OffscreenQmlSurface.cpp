@@ -313,7 +313,7 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
     _renderer->stop();
-
+    delete _rootItem;
     delete _renderer;
     delete _qmlComponent;
     delete _qmlEngine;

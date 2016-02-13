@@ -71,6 +71,8 @@ private:
 
     void perSecondActions();
 
+    QString percentageForMixStats(int counter);
+
     bool shouldMute(float quietestFrame);
 
     void parseSettingsObject(const QJsonObject& settingsObject);
@@ -108,19 +110,7 @@ private:
 
     static InboundAudioStream::Settings _streamSettings;
 
-    static bool _printStreamStats;
     static bool _enableFilter;
-
-    quint64 _lastPerSecondCallbackTime;
-
-    bool _sendAudioStreamStats;
-
-    // stats
-    MovingMinMaxAvg<int> _datagramsReadPerCallStats;     // update with # of datagrams read for each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerCallStats;     // update with usecs spent inside each readPendingDatagrams call
-    MovingMinMaxAvg<quint64> _timeSpentPerHashMatchCallStats; // update with usecs spent inside each packetVersionAndHashMatch call
-
-    MovingMinMaxAvg<int> _readPendingCallsPerSecondStats;     // update with # of readPendingDatagrams calls in the last second
 };
 
 #endif // hifi_AudioMixer_h

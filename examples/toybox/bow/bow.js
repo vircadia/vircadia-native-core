@@ -33,7 +33,8 @@
     };
 
     var ARROW_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_textured.fbx";
-    var ARROW_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
+    var ARROW_COLLISION_HULL_URL =
+        "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
 
     var ARROW_DIMENSIONS = {
         x: 0.02,
@@ -94,7 +95,6 @@
     }
 
     Bow.prototype = {
-        isGrabbed: false,
         stringDrawn: false,
         aiming: false,
         arrowTipPosition: null,
@@ -125,33 +125,13 @@
             Entities.deleteEntity(this.arrow);
         },
 
-        setLeftHand: function() {
-            if (this.isGrabbed === true) {
-                return false;
-            }
-            this.hand = 'left';
-        },
-
-        setRightHand: function() {
-            if (this.isGrabbed === true) {
-                return false;
-            }
-            this.hand = 'right';
-        },
-
-        startEquip: function() {
-
-            print('START BOW GRAB')
-            if (this.isGrabbed === true) {
-                return false;
-            }
-
-            this.isGrabbed = true;
-
-            this.initialHand = this.hand;
+        startEquip: function(entityID, args) {
+            this.hand = args[0];
+            avatarID = args[1];
 
             //disable the opposite hand in handControllerGrab.js by message
-            var handToDisable = this.initialHand === 'right' ? 'left' : 'right';
+            var handToDisable = this.hand === 'right' ? 'left' : 'right';
+            print("disabling hand: " + handToDisable);
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
             var data = getEntityCustomData('grabbableKey', this.entityID, {});
@@ -159,7 +139,7 @@
             setEntityCustomData('grabbableKey', this.entityID, data);
 
         },
-        continueEquip: function() {
+        continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
 
             //debounce during debugging -- maybe we're updating too fast?
@@ -188,25 +168,19 @@
             this.checkStringHand();
 
         },
-
-        releaseGrab: function() {
+        releaseEquip: function(entityID, args) {
             //  print('RELEASE GRAB EVENT')
-            if (this.isGrabbed === true && this.hand === this.initialHand) {
+            Messages.sendMessage('Hifi-Hand-Disabler', "none")
 
-                Messages.sendMessage('Hifi-Hand-Disabler', "none")
+            this.stringDrawn = false;
+            this.deleteStrings();
 
-                this.isGrabbed = false;
-                this.stringDrawn = false;
-                this.deleteStrings();
-
-                var data = getEntityCustomData('grabbableKey', this.entityID, {});
-                data.grabbable = true;
-                setEntityCustomData('grabbableKey', this.entityID, data);
-                Entities.deleteEntity(this.arrow);
-                this.aiming = false;
-                this.hasArrowNotched = false;
-
-            }
+            var data = getEntityCustomData('grabbableKey', this.entityID, {});
+            data.grabbable = true;
+            setEntityCustomData('grabbableKey', this.entityID, data);
+            Entities.deleteEntity(this.arrow);
+            this.aiming = false;
+            this.hasArrowNotched = false;
         },
 
         createArrow: function() {
@@ -367,10 +341,10 @@
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
             var triggerLookup;
-            if (this.initialHand === 'left') {
+            if (this.hand === 'left') {
                 triggerLookup = 1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
-            } else if (this.initialHand === 'right') {
+            } else if (this.hand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
                 triggerLookup = 0;
             }

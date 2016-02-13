@@ -168,7 +168,7 @@
     },
     {
       "name": "asset_server",
-      "label": "Asset Server",
+      "label": "Asset Server (ATP)",
       "assignment-types": [3],
       "settings": [
         {
@@ -177,6 +177,14 @@
           "label": "Enabled",
           "help": "Assigns an asset-server in your domain to serve files to clients via the ATP protocol (over UDP)",
           "default": true,
+          "advanced": true
+        },
+        {
+          "name": "assets_path",
+          "type": "string",
+          "label": "Assets Path",
+          "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
+          "default": "",
           "advanced": true
         }
       ]
@@ -366,14 +374,6 @@
           "help": "Dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
           "default": false,
           "advanced": true
-        },
-        {
-          "name": "print_stream_stats",
-          "type": "checkbox",
-          "label": "Print Stream Stats",
-          "help": "Audio upstream and downstream stats of each agent printed to audio-mixer stdout",
-          "default": false,
-          "advanced": true
         }
       ]
     },
@@ -385,7 +385,7 @@
         {
           "name": "persistFilePath",
           "label": "Entities File Path",
-          "help": "The path to the file entities are stored in. If this path is relative it will be relative to the application data directory. The filename must end in .json.gz.",
+          "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
           "placeholder": "models.json.gz",
           "default": "models.json.gz",
           "advanced": true

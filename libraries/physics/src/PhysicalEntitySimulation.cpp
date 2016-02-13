@@ -51,7 +51,7 @@ void PhysicalEntitySimulation::addEntityInternal(EntityItemPointer entity) {
         if (!motionState) {
             _entitiesToAddToPhysics.insert(entity);
         }
-    } else if (entity->isMoving()) {
+    } else if (entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     }
 }
@@ -98,7 +98,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
             _physicalObjects.remove(motionState);
             _outgoingChanges.remove(motionState);
             _entitiesToRemoveFromPhysics.insert(entity);
-            if (entity->isMoving()) {
+            if (entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else {
@@ -109,7 +109,7 @@ void PhysicalEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
         // Perhaps it's shape has changed and it can now be added?
         _entitiesToAddToPhysics.insert(entity);
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
-    } else if (entity->isMoving()) {
+    } else if (entity->isMovingRelativeToParent()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity); // just in case it's non-physical-kinematic
@@ -167,11 +167,13 @@ void PhysicalEntitySimulation::getObjectsToRemoveFromPhysics(VectorOfMotionState
         _entitiesToAddToPhysics.remove(entity);
 
         EntityMotionState* motionState = static_cast<EntityMotionState*>(entity->getPhysicsInfo());
-        assert(motionState);
-        _pendingChanges.remove(motionState);
-        _physicalObjects.remove(motionState);
-        result.push_back(motionState);
-        _entitiesToRelease.insert(entity);
+        if (motionState) {
+            _pendingChanges.remove(motionState);
+            _outgoingChanges.remove(motionState);
+            _physicalObjects.remove(motionState);
+            result.push_back(motionState);
+            _entitiesToRelease.insert(entity);
+        }
 
         if (entity->isSimulated() && entity->isDead()) {
             _entitiesToDelete.insert(entity);
@@ -207,7 +209,7 @@ void PhysicalEntitySimulation::getObjectsToAddToPhysics(VectorOfMotionStates& re
         } else if (!entity->shouldBePhysical()) {
             // this entity should no longer be on the internal _entitiesToAddToPhysics
             entityItr = _entitiesToAddToPhysics.erase(entityItr);
-            if (entity->isMoving()) {
+            if (entity->isMovingRelativeToParent()) {
                 _simpleKinematicEntities.insert(entity);
             }
         } else if (entity->isReadyToComputeShape()) {

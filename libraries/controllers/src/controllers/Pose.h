@@ -40,6 +40,8 @@ namespace controller {
         vec3 getVelocity() const { return velocity; }
         vec3 getAngularVelocity() const { return angularVelocity; }
 
+        Pose transform(const glm::mat4& mat) const;
+
         static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
         static void fromScriptValue(const QScriptValue& object, Pose& event);
     };

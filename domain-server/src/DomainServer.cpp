@@ -55,6 +55,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
+    _ephemeralACScripts(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
@@ -119,6 +120,14 @@ DomainServer::~DomainServer() {
     DependencyManager::destroy<LimitedNodeList>();
 }
 
+void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
+    if (!quitMessage.isEmpty()) {
+        qCritical() << qPrintable(quitMessage);
+    }
+
+    QCoreApplication::exit(exitCode);
+}
+
 void DomainServer::aboutToQuit() {
 
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
@@ -163,8 +172,11 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
 
     } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
-        qDebug() << "Missing certificate or private key. domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_CERT_ERROR_MSG = "Missing certificate or private key. domain-server will now quit.";
+        static const int MISSING_CERT_ERROR_CODE = 3;
+
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_CERT_ERROR_MSG), Q_ARG(int, MISSING_CERT_ERROR_CODE));
         return false;
     }
 
@@ -198,8 +210,10 @@ bool DomainServer::optionallySetupOAuth() {
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
-            qDebug() << "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            static const QString MISSING_OAUTH_INFO_MSG = "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
+            static const int MISSING_OAUTH_INFO_ERROR_CODE = 4;
+            QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                      Q_ARG(QString, MISSING_OAUTH_INFO_MSG), Q_ARG(int, MISSING_OAUTH_INFO_ERROR_CODE));
             return false;
         } else {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
@@ -403,9 +417,13 @@ bool DomainServer::resetAccountManagerAccessToken() {
         return true;
 
     } else {
-        qDebug() << "Missing OAuth provider URL, but a domain-server feature was required that requires authentication." <<
-            "domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_OAUTH_PROVIDER_MSG =
+            QString("Missing OAuth provider URL, but a domain-server feature was required that requires authentication.") +
+            QString("domain-server will now quit.");
+        static const int MISSING_OAUTH_PROVIDER_ERROR_CODE = 5;
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_OAUTH_PROVIDER_MSG),
+                                  Q_ARG(int, MISSING_OAUTH_PROVIDER_ERROR_CODE));
 
         return false;
     }
@@ -514,11 +532,6 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
         connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
     }
-}
-
-void DomainServer::loginFailed() {
-    qDebug() << "Login to data server has failed. domain-server will now quit";
-    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
@@ -1072,7 +1085,9 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
 // TODO: have data-web respond with ice-server hostname to use
 
 void DomainServer::sendHeartbeatToIceServer() {
-    DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+    if (!_iceServerSocket.getAddress().isNull()) {
+        DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+    }
 }
 
 void DomainServer::processNodeJSONStatsPacket(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer sendingNode) {
@@ -1211,13 +1226,14 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         if (matchingAssignment && matchingAssignment->getType() == Assignment::AgentType) {
             // we have a matching assignment and it is for the right type, have the HTTP manager handle it
             // via correct URL for the script so the client can download
-            QFile scriptFile(pathForAssignmentScript(matchingAssignment->getUUID()));
+            const auto it = _ephemeralACScripts.find(matchingAssignment->getUUID());
 
-            if (scriptFile.exists() && scriptFile.open(QIODevice::ReadOnly)) {
-                connection->respond(HTTPConnection::StatusCode200, scriptFile.readAll(), "application/javascript");
+            if (it != _ephemeralACScripts.end()) {
+                connection->respond(HTTPConnection::StatusCode200, it->second, "application/javascript");
             } else {
                 connection->respond(HTTPConnection::StatusCode404, "Resource not found.");
             }
+
             return true;
         }
         
@@ -1387,29 +1403,15 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 
             for (int i = 0; i < numInstances; i++) {
-
                 // create an assignment for this saved script
                 Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, assignmentPool);
 
-                QString newPath = pathForAssignmentScript(scriptAssignment->getUUID());
+                _ephemeralACScripts[scriptAssignment->getUUID()] = formData[0].second;
 
-                // create a file with the GUID of the assignment in the script host location
-                QFile scriptFile(newPath);
-                if (scriptFile.open(QIODevice::WriteOnly)) {
-                    scriptFile.write(formData[0].second);
-
-                    qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
-                                           .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
-
-                    // add the script assigment to the assignment queue
-                    SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
-                    _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
-                    _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
-                } else {
-                    // unable to save script for assignment - we shouldn't be here but debug it out
-                    qDebug() << "Unable to save a script for assignment at" << newPath;
-                    qDebug() << "Script will not be added to queue";
-                }
+                // add the script assigment to the assignment queue
+                SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
+                _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
+                _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
             }
 
             // respond with a 200 code for successful upload

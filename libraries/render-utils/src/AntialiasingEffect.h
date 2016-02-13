@@ -16,11 +16,11 @@
 
 #include "render/DrawTask.h"
 
-class AntiAliasingConfig : public render::Job::Config {
+class AntiAliasingConfig : public render::Job::Config::Persistent {
     Q_OBJECT
     Q_PROPERTY(bool enabled MEMBER enabled)
 public:
-    AntiAliasingConfig() : render::Job::Config(false) {}
+    AntiAliasingConfig() : render::Job::Config::Persistent("Antialiasing", false) {}
 };
 
 class Antialiasing {

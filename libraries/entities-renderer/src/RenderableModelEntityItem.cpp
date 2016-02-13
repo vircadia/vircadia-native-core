@@ -412,7 +412,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
 
-                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
                 if ((movingOrAnimating ||
                      _needsInitialSimulation ||
                      _model->getTranslation() != getPosition() ||

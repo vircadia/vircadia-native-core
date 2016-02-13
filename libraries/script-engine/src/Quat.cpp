@@ -31,7 +31,7 @@ glm::quat Quat::rotationBetween(const glm::vec3& v1, const glm::vec3& v2) {
 }
 
 glm::quat Quat::lookAt(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up) {
-    return glm::quat_cast(glm::lookAt(eye, center, up));
+    return glm::inverse(glm::quat_cast(glm::lookAt(eye, center, up)));  // OpenGL view matrix is inverse of our camera matrix.
 }
 
 glm::quat Quat::lookAtSimple(const glm::vec3& eye, const glm::vec3& center) {

@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1004;
+var version = 1035;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -79,398 +79,138 @@ var locations = {
     }, 1000]
 };
 
-var scenes = [
-    {
-        name: "Cells",
-        objects: "",
-        location: locations.cells[0],
-        entryPoint: locations.cells[1],
-        zone: {
-            dimensions: {
-                x: 4000,
-                y: 4000,
-                z: 4000
-            },
-            light: {
-                r: 255,
-                g: 200,
-                b: 200
-            },
-            intensity: 1.1,
-            ambient: 0.7,
-            sun: true,
-            skybox: "cells_skybox_cross"
+var scenes = [{
+    name: "Cells",
+    objects: "",
+    location: locations.cells[0],
+    entryPoint: locations.cells[1],
+    zone: {
+        dimensions: {
+            x: 4000,
+            y: 4000,
+            z: 4000
         },
-        instances: [{
-            model: "Cell",
+        light: {
+            r: 255,
+            g: 200,
+            b: 200
+        },
+        intensity: 1.1,
+        ambient: 0.7,
+        sun: true,
+        skybox: "cells_skybox_cross"
+    },
+    instances: [{
+        model: "Cell",
+        dimensions: {
+            x: 550,
+            y: 620,
+            z: 550
+        },
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 500,
+        number: 10,
+        userData: JSON.stringify({
+            entryPoint: locations.cellLayout[1],
+            target: locations.cellLayout[1],
+            location: locations.cellLayout[1],
+            baseURL: baseLocation
+        }),
+        script: "zoom.js?" + version,
+        visible: true
+    }],
+    boundary: {
+        radius: locations.cells[2],
+        center: locations.cells[0],
+        location: locations.cellLayout[1],
+        target: locations.cellLayout[0]
+    }
+}, {
+    name: "CellLayout",
+    objects: cellLayout,
+    location: locations.cellLayout[0],
+    entryPoint: locations.cellLayout[1],
+    zone: {
+        dimensions: {
+            x: 4000,
+            y: 4000,
+            z: 4000
+        },
+        light: {
+            r: 247,
+            g: 233,
+            b: 220
+        },
+        intensity: 2.3,
+        ambient: 0.7,
+        sun: true,
+        skybox: "cosmos_skybox_blurred"
+    },
+    instances: [{
+            model: "translation",
             dimensions: {
-                x: 550,
-                y: 620,
-                z: 550
+                x: 10,
+                y: 16,
+                z: 10
             },
             offset: {
                 x: 0,
                 y: 0,
                 z: 0
             },
-            radius: 500,
-            number: 10,
+            radius: 300,
+            number: 7,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                },
+                target: locations.ribosome[1],
+                location: locations.ribosome[0],
+                baseURL: baseLocation
+            }),
+            script: "zoom.js?" + version,
+            visible: true
+        }, {
+            model: "vesicle",
+            dimensions: {
+                x: 60,
+                y: 60,
+                z: 60
+            },
+            randomSize: 10,
+            offset: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            radius: 1000,
+            number: 22,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            }),
             script: "moveRandomly.js?" + version,
             visible: true
-        }],
-        boundary: {
-            radius: locations.cells[2],
-            center: locations.cells[0],
-            location: locations.cellLayout[1],
-            target: locations.cellLayout[0]
-        }
-    }, {
-        name: "CellLayout",
-        objects: cellLayout,
-        location: locations.cellLayout[0],
-        entryPoint: locations.cellLayout[1],
-        zone: {
+        }, { //golgi vesicles
+            model: "vesicle",
             dimensions: {
-                x: 4000,
-                y: 4000,
-                z: 4000
+                x: 10,
+                y: 10,
+                z: 10
             },
-            light: {
-                r: 247,
-                g: 233,
-                b: 220
-            },
-            intensity: 2.3,
-            ambient: 0.7,
-            sun: true,
-            skybox: "cosmos_skybox_blurred"
-        },
-        instances: [{
-                model: "translation",
-                dimensions: {
-                    x: 10,
-                    y: 16,
-                    z: 10
-                },
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 300,
-                number: 15,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    },
-                    target: locations.ribosome[1],
-                    location: locations.ribosome[0],
-                    baseURL: baseLocation
-                }),
-                script: "zoom.js?" + version,
-                visible: true
-            }, {
-                model: "vesicle",
-                dimensions: {
-                    x: 60,
-                    y: 60,
-                    z: 60
-                },
-                randomSize: 10,
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 1000,
-                number: 45,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "moveRandomly.js?" + version,
-                visible: true
-            }, { //golgi vesicles
-                model: "vesicle",
-                dimensions: {
-                    x: 10,
-                    y: 10,
-                    z: 10
-                },
-                randomSize: 10,
-                offset: {
-                    x: -319,
-                    y: 66,
-                    z: 976
-                },
-                radius: 140,
-                number: 20,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "",
-                visible: true
-            }, { //golgi vesicles
-                model: "vesicle",
-                dimensions: {
-                    x: 15,
-                    y: 15,
-                    z: 15
-                },
-                randomSize: 10,
-                offset: {
-                    x: -319,
-                    y: 66,
-                    z: 976
-                },
-                radius: 115,
-                number: 15,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "moveRandomly.js?" + version,
-                visible: true
-            }, {
-                model: "vesicle",
-                dimensions: {
-                    x: 50,
-                    y: 50,
-                    z: 50
-                },
-                randomSize: 10,
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 600,
-                number: 30,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "",
-                visible: true
-            }, { //outer vesicles
-                model: "vesicle",
-                dimensions: {
-                    x: 60,
-                    y: 60,
-                    z: 60
-                },
-                randomSize: 10,
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 1600,
-                number: 45,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "",
-                visible: true
-            }, { //outer vesicles
-                model: "vesicle",
-                dimensions: {
-                    x: 40,
-                    y: 40,
-                    z: 40
-                },
-                randomSize: 10,
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 1400,
-                number: 45,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "moveRandomly.js?" + version,
-                visible: true
-            }, { //outer vesicles
-                model: "vesicle",
-                dimensions: {
-                    x: 80,
-                    y: 80,
-                    z: 80
-                },
-                randomSize: 10,
-                offset: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                radius: 1800,
-                number: 45,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "moveRandomly.js?" + version,
-                visible: true
-            },
-            //          {//wigglies
-            //              model:"wiggly",
-            //              dimensions:{x:320,y:40,z:160},
-            //              randomSize: 10,
-            //              offset:{x:0,y:0,z:0},
-            //              radius:1800,
-            //              number:50,
-            //              userData:"",
-            //              script:"moveRandomly",
-            //              visible:true
-            //          },
-            ////            {//wigglies
-            //              model:"wiggly",
-            //              dimensions:{x:640,y:80,z:320},
-            //              randomSize: 10,
-            //              offset:{x:0,y:0,z:0},
-            //              radius:2100,
-            //              number:50,
-            //              userData:"",
-            //              script:"moveRandomly",
-            //              visible:true
-            //          },
-            {
-                model: "hexokinase",
-                dimensions: {
-                    x: 3,
-                    y: 4,
-                    z: 3
-                },
-                randomSize: 10,
-                offset: {
-                    x: 236,
-                    y: 8,
-                    z: 771
-                },
-                radius: 80,
-                number: 15,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    },
-                    target: locations.hexokinase[1],
-                    location: locations.hexokinase[0],
-                    baseURL: baseLocation
-                }),
-                script: "zoom.js?" + version,
-                visible: true
-            }, {
-                model: "pfructo_kinase",
-                dimensions: {
-                    x: 3,
-                    y: 4,
-                    z: 3
-                },
-                randomSize: 10,
-                offset: {
-                    x: 236,
-                    y: 8,
-                    z: 771
-                },
-                radius: 60,
-                number: 15,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "",
-                visible: true
-            }, {
-                model: "glucose_isomerase",
-                dimensions: {
-                    x: 3,
-                    y: 4,
-                    z: 3
-                },
-                randomSize: 10,
-                offset: {
-                    x: 236,
-                    y: 8,
-                    z: 771
-                },
-                radius: 70,
-                number: 15,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                }),
-                script: "",
-                visible: true
-            }
-            //          {
-            //              model:"NPC",
-            //              dimensions:{x:20,y:20,z:20},
-            //              randomSize: 10,
-            //              offset:{x:208.593693,y:6.113100222,z:153.3202277},
-            //              radius:520,
-            //              number:25,
-            //              userData: "",
-            //              script:"",
-            //              visible:true
-            //          }
-
-
-        ],
-        boundary: {
-            radius: locations.cellLayout[2],
-            center: locations.cellLayout[0],
-            location: locations.cells[1],
-            target: locations.cells[0]
-        }
-    }, {
-        name: "Ribosome",
-        objects: "",
-        location: locations.ribosome[0],
-        entryPoint: locations.ribosome[1],
-        zone: {
-            dimensions: {
-                x: 4000,
-                y: 4000,
-                z: 4000
-            },
-            light: {
-                r: 250,
-                g: 185,
-                b: 182
-            },
-            intensity: 0.6,
-            ambient: 2.9,
-            sun: true,
-            skybox: "ribosome_skybox"
-        },
-        instances: [{
-            model: "translation_highres",
-            dimensions: {
-                x: 500,
-                y: 500,
-                z: 200
-            },
+            randomSize: 10,
             offset: {
-                x: 0,
-                y: 0,
-                z: 0
+                x: -319,
+                y: 66,
+                z: 976
             },
-            radius: 1,
-            number: 1,
+            radius: 140,
+            number: 10,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -478,48 +218,43 @@ var scenes = [
             }),
             script: "",
             visible: true
-        }],
-        boundary: {
-            radius: locations.ribosome[2],
-            center: locations.ribosome[0],
-            location: locations.translation[1],
-            target: locations.translation[0]
-        }
-    }, {
-        name: "Hexokinase",
-        objects: "",
-        location: locations.hexokinase[0],
-        entryPoint: locations.hexokinase[1],
-        zone: {
+        }, { //golgi vesicles
+            model: "vesicle",
             dimensions: {
-                x: 4000,
-                y: 4000,
-                z: 4000
+                x: 15,
+                y: 15,
+                z: 15
             },
-            light: {
-                r: 255,
-                g: 255,
-                b: 255
+            randomSize: 10,
+            offset: {
+                x: -319,
+                y: 66,
+                z: 976
             },
-            intensity: 0.6,
-            ambient: 0.6,
-            sun: true,
-            skybox: "hexokinase_skybox"
-        },
-        instances: [{
-            model: "hexokinase_highres",
+            radius: 115,
+            number: 7,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            }),
+            script: "moveRandomly.js?" + version,
+            visible: true
+        }, {
+            model: "vesicle",
             dimensions: {
-                x: 600,
-                y: 600,
-                z: 600
+                x: 50,
+                y: 50,
+                z: 50
             },
+            randomSize: 10,
             offset: {
                 x: 0,
                 y: 0,
                 z: 0
             },
-            radius: 1,
-            number: 1,
+            radius: 600,
+            number: 15,
             userData: JSON.stringify({
                 grabbableKey: {
                     grabbable: false
@@ -527,15 +262,288 @@ var scenes = [
             }),
             script: "",
             visible: true
-        }],
-        boundary: {
-            radius: locations.hexokinase[2],
-            center: locations.hexokinase[0],
-            location: locations.mitochondria[1],
-            target: locations.mitochondria[0]
+        }, { //outer vesicles
+            model: "vesicle",
+            dimensions: {
+                x: 60,
+                y: 60,
+                z: 60
+            },
+            randomSize: 10,
+            offset: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            radius: 1600,
+            number: 22,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            }),
+            script: "",
+            visible: true
+        }, { //outer vesicles
+            model: "vesicle",
+            dimensions: {
+                x: 40,
+                y: 40,
+                z: 40
+            },
+            randomSize: 10,
+            offset: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            radius: 1400,
+            number: 22,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            }),
+            script: "moveRandomly.js?" + version,
+            visible: true
+        }, { //outer vesicles
+            model: "vesicle",
+            dimensions: {
+                x: 80,
+                y: 80,
+                z: 80
+            },
+            randomSize: 10,
+            offset: {
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            radius: 1800,
+            number: 22,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                }
+            }),
+            script: "moveRandomly.js?" + version,
+            visible: true
+        },
+        //          {//wigglies
+        //              model:"wiggly",
+        //              dimensions:{x:320,y:40,z:160},
+        //              randomSize: 10,
+        //              offset:{x:0,y:0,z:0},
+        //              radius:1800,
+        //              number:50,
+        //              userData:"",
+        //              script:"moveRandomly",
+        //              visible:true
+        //          },
+        ////            {//wigglies
+        //              model:"wiggly",
+        //              dimensions:{x:640,y:80,z:320},
+        //              randomSize: 10,
+        //              offset:{x:0,y:0,z:0},
+        //              radius:2100,
+        //              number:50,
+        //              userData:"",
+        //              script:"moveRandomly",
+        //              visible:true
+        //          },
+        {
+            model: "hexokinase",
+            dimensions: {
+                x: 3,
+                y: 4,
+                z: 3
+            },
+            randomSize: 10,
+            offset: {
+                x: 236,
+                y: 8,
+                z: 771
+            },
+            radius: 80,
+            number: 7,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                },
+                target: locations.hexokinase[1],
+                location: locations.hexokinase[0],
+                baseURL: baseLocation
+            }),
+            script: "zoom.js?" + version,
+            visible: true
+        }, {
+            model: "pfructo_kinase",
+            dimensions: {
+                x: 3,
+                y: 4,
+                z: 3
+            },
+            randomSize: 10,
+            offset: {
+                x: 236,
+                y: 8,
+                z: 771
+            },
+            radius: 60,
+            number: 7,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                },
+                target: locations.hexokinase[1],
+                location: locations.hexokinase[0],
+            }),
+            script: "zoom.js?" + version,
+            visible: true
+        }, {
+            model: "glucose_isomerase",
+            dimensions: {
+                x: 3,
+                y: 4,
+                z: 3
+            },
+            randomSize: 10,
+            offset: {
+                x: 236,
+                y: 8,
+                z: 771
+            },
+            radius: 70,
+            number: 7,
+            userData: JSON.stringify({
+                grabbableKey: {
+                    grabbable: false
+                },
+                target: locations.hexokinase[1],
+                location: locations.hexokinase[0],
+            }),
+            script: "zoom.js?" + version,
+            visible: true
         }
+        //          {
+        //              model:"NPC",
+        //              dimensions:{x:20,y:20,z:20},
+        //              randomSize: 10,
+        //              offset:{x:208.593693,y:6.113100222,z:153.3202277},
+        //              radius:520,
+        //              number:25,
+        //              userData: "",
+        //              script:"",
+        //              visible:true
+        //          }
+
+
+    ],
+    boundary: {
+        radius: locations.cellLayout[2],
+        center: locations.cellLayout[0],
+        location: locations.cells[1],
+        target: locations.cells[0]
     }
-];
+}, {
+    name: "Ribosome",
+    objects: "",
+    location: locations.ribosome[0],
+    entryPoint: locations.ribosome[1],
+    zone: {
+        dimensions: {
+            x: 4000,
+            y: 4000,
+            z: 4000
+        },
+        light: {
+            r: 250,
+            g: 185,
+            b: 182
+        },
+        intensity: 0.6,
+        ambient: 2.9,
+        sun: true,
+        skybox: "ribosome_skybox"
+    },
+    instances: [{
+        model: "translation_highres",
+        dimensions: {
+            x: 500,
+            y: 500,
+            z: 200
+        },
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1,
+        number: 1,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        script: "",
+        visible: true
+    }],
+    boundary: {
+        radius: locations.ribosome[2],
+        center: locations.ribosome[0],
+        location: locations.translation[1],
+        target: locations.translation[0]
+    }
+}, {
+    name: "Hexokinase",
+    objects: "",
+    location: locations.hexokinase[0],
+    entryPoint: locations.hexokinase[1],
+    zone: {
+        dimensions: {
+            x: 4000,
+            y: 4000,
+            z: 4000
+        },
+        light: {
+            r: 255,
+            g: 255,
+            b: 255
+        },
+        intensity: 0.6,
+        ambient: 0.6,
+        sun: true,
+        skybox: "hexokinase_skybox"
+    },
+    instances: [{
+        model: "hexokinase_highres",
+        dimensions: {
+            x: 600,
+            y: 600,
+            z: 600
+        },
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1,
+        number: 1,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        script: "",
+        visible: true
+    }],
+    boundary: {
+        radius: locations.hexokinase[2],
+        center: locations.hexokinase[0],
+        location: locations.mitochondria[1],
+        target: locations.mitochondria[0]
+    }
+}];
 
 
 function ImportScene(scene) {
@@ -594,8 +602,6 @@ function ImportScene(scene) {
     CreateInstances(scene);
     CreateBoundary(scene);
 
-    CreateBackgroundAudio(scene.name, scene.location, scene.dimensions);
-
     // print("done " + scene.name);
 
 }
@@ -637,12 +643,13 @@ function createLayoutLights() {
     })
 
 }
+
 function CreateNavigationButton(scene, number) {
     // print('NAV NAVIGATION CREATING NAV!!' +scene.name + " " + number)
 
 
     Entities.addEntity({
-        type: "Sphere",
+        type: "Box",
         name: scene.name + " navigation button",
         color: {
             red: 200,
@@ -650,9 +657,9 @@ function CreateNavigationButton(scene, number) {
             blue: 0
         },
         dimensions: {
-            x: 10,
-            y: 10,
-            z: 10
+            x: 16000,
+            y: 16000,
+            z: 16000
         },
         visible: false,
         userData: JSON.stringify({
@@ -665,10 +672,13 @@ function CreateNavigationButton(scene, number) {
                 grabbable: false
             }
         }),
-        // position:{x:3000,y:13500,z:3000},
+        position: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
         script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
-
     });
 
 }
@@ -811,7 +821,7 @@ function CreateInstances(scene) {
                 }, idBounds, 150);
 
             }
-            print('Script.clearTimeout SCRIPT AT CREATE ENTITY: ' + script)
+            //print('SCRIPT AT CREATE ENTITY: ' + script)
             CreateEntity(scene.instances[i].model, position, rotation, scene.instances[i].dimensions, url, script, scene.instances[i].userData, scene.instances[i].visible);
         }
     }
@@ -845,27 +855,6 @@ function CreateIdentification(name, position, rotation, dimensions, showDistance
 
 }
 
-function CreateBackgroundAudio(name, position) {
-    Entities.addEntity({
-        type: "Sphere",
-        name: "Location " + name + " background audio",
-        dimensions: {
-            x: 4000,
-            y: 4000,
-            z: 4000
-        },
-        position: position,
-        visible: false,
-        userData: JSON.stringify({
-            name: name,
-            baseURL: baseLocation
-        }),
-        script: baseLocation + "Scripts/playBackgroundAudio.js?" + version,
-        collisionless: true,
-
-    });
-
-}
 
 function getPointOnSphereOfRadius(radius, number, totalNumber) {
 
@@ -890,7 +879,7 @@ function getPointOnSphereOfRadius(radius, number, totalNumber) {
     // print("inc " + inc + " off " + off + " y " + y + " r " + r + " phi " + phi);
 
     if (isNaN(r)) {
-        print("r is not a number");
+        //print("r is not a number");
         r = 1;
     }
 
@@ -913,7 +902,7 @@ function CreateEntity(name, position, rotation, dimensions, url, script, userDat
         scriptLocation = baseLocation + "Scripts/" + script;
     }
 
-    print('Script.clearTimeout SCRIPT LOCATION IN CREATE ENTITY' + scriptLocation)
+    //print(' SCRIPT LOCATION IN CREATE ENTITY' + scriptLocation)
     Entities.addEntity({
         type: "Model",
         name: name,

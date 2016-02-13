@@ -17,8 +17,8 @@ Fadable {
     HifiConstants { id: hifi }
     // The Window size is the size of the content, while the frame
     // decorations can extend outside it.
-    implicitHeight: content.height
-    implicitWidth: content.width
+    implicitHeight: content ? content.height : 0
+    implicitWidth: content ? content.width : 0
     x: -1; y: -1
     enabled: visible
 
