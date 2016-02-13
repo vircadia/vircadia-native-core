@@ -1886,7 +1886,7 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
-
+    Controller.setReticleVisible(true);
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);

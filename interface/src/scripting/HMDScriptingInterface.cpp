@@ -21,7 +21,7 @@ HMDScriptingInterface::HMDScriptingInterface() {
 }
 
 glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
-    glm::vec3 result { position };
+    glm::vec3 result;
     qApp->getApplicationCompositor().calculateRayUICollisionPoint(position, direction, result);
     return result;
 }
