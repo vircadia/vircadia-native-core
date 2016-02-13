@@ -11,6 +11,7 @@
 import QtQuick 2.5
 
 import "../controls-uit"
+import "../styles-uit"
 import "../js/Utils.js" as Utils
 
 Item {
@@ -56,17 +57,19 @@ Item {
     }
 
     MouseArea {
+        // Resize handle
         id: sizeDrag
         width: iconSize
         height: iconSize
         enabled: window ? window.resizable : false
+        hoverEnabled: true
         x: window ? window.width : 0
         y: window ? window.height : 0
         property vector2d pressOrigin
         property vector2d sizeOrigin
         property bool hid: false
         onPressed: {
-            console.log("Pressed on size")
+            //console.log("Pressed on size")
             pressOrigin = Qt.vector2d(mouseX, mouseY)
             sizeOrigin = Qt.vector2d(window.content.width, window.content.height)
             hid = false;
@@ -87,14 +90,13 @@ Item {
                 frame.deltaSize(delta.x, delta.y)
             }
         }
-        FontAwesome {
+        HiFiGlyphs {
             visible: sizeDrag.enabled
-            rotation: -45
             anchors { centerIn: parent }
             horizontalAlignment: Text.AlignHCenter
-            text: "\uf07d"
+            text: "A"
             size: iconSize / 3 * 2
-            style: Text.Outline; styleColor: "white"
+            color: sizeDrag.containsMouse ? hifi.colors.white : hifi.colors.lightGray
         }
     }
 

@@ -4,7 +4,8 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
 import "../../../interface/resources/qml"
-import "../../../interface/resources/qml/windows"
+//import "../../../interface/resources/qml/windows"
+import "../../../interface/resources/qml/windows-uit"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
 import "../../../interface/resources/qml/hifi/dialogs"
@@ -20,7 +21,7 @@ ApplicationWindow {
         id: desktop
         anchors.fill: parent
         rootMenu: StubMenu { id: rootMenu }
-        Component.onCompleted: offscreenWindow = appWindow
+        //Component.onCompleted: offscreenWindow = appWindow
 
         MouseArea {
             anchors.fill: parent

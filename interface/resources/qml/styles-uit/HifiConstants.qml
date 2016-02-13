@@ -9,8 +9,43 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Window 2.2
 
 Item {
+    readonly property alias colors: colors
+    readonly property alias dimensions: dimensions
+    readonly property alias effects: effects
+
+    Item {
+        id: colors
+        readonly property color white: "#ffffff"
+        readonly property color baseGray: "#404040"
+        readonly property color darkGray: "#121212"
+        readonly property color baseGrayShadow: "#252525"
+        readonly property color baseGrayHighlight: "#575757"
+        readonly property color lightGray: "#6a6a6a"
+        readonly property color lightGrayText: "#afafaf"
+        readonly property color faintGray: "#e3e3e3"
+        readonly property color primaryHighlight: "#00b4ef"
+        readonly property color blueHighlight: "#00b4ef"
+        readonly property color blueAccent: "#1080b8"
+        readonly property color redHighlight: "#e2334d"
+        readonly property color redAccent: "#b70a37"
+        readonly property color greenHighlight: "#1ac567"
+        readonly property color greenShadow: "#2c8e72"
+
+        readonly property color baseGrayHighlight40: "#66575757"
+        readonly property color faintGray50: "#80e3e3e3"
+        readonly property color baseGrayShadow60: "#99252525"
+    }
+
+    Item {
+        id: dimensions
+        readonly property real borderRadius: Screen.width >= 1920 && Screen.height >= 1080 ? 7.5 : 5.0
+        readonly property real borderWidth: Screen.width >= 1920 && Screen.height >= 1080 ? 2 : 1
+    }
+
+    /*
     SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
     readonly property alias colors: colors
     readonly property alias layout: layout
@@ -62,6 +97,7 @@ Item {
         readonly property int borderWidth: 5
         readonly property int borderRadius: borderWidth * 2
     }
+    */
 
     QtObject {
         id: effects
