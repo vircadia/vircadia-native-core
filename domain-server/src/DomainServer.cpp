@@ -120,6 +120,14 @@ DomainServer::~DomainServer() {
     DependencyManager::destroy<LimitedNodeList>();
 }
 
+void DomainServer::queuedQuit(QString quitMessage, int exitCode) {
+    if (!quitMessage.isEmpty()) {
+        qCritical() << qPrintable(quitMessage);
+    }
+
+    QCoreApplication::exit(exitCode);
+}
+
 void DomainServer::aboutToQuit() {
 
     // clear the log handler so that Qt doesn't call the destructor on LogHandler
@@ -164,8 +172,11 @@ bool DomainServer::optionallyReadX509KeyAndCertificate() {
         qDebug() << "TCP server listening for HTTPS connections on" << DOMAIN_SERVER_HTTPS_PORT;
 
     } else if (!certPath.isEmpty() || !keyPath.isEmpty()) {
-        qDebug() << "Missing certificate or private key. domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_CERT_ERROR_MSG = "Missing certificate or private key. domain-server will now quit.";
+        static const int MISSING_CERT_ERROR_CODE = 3;
+
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_CERT_ERROR_MSG), Q_ARG(int, MISSING_CERT_ERROR_CODE));
         return false;
     }
 
@@ -199,8 +210,10 @@ bool DomainServer::optionallySetupOAuth() {
             || _hostname.isEmpty()
             || _oauthClientID.isEmpty()
             || _oauthClientSecret.isEmpty()) {
-            qDebug() << "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            static const QString MISSING_OAUTH_INFO_MSG = "Missing OAuth provider URL, hostname, client ID, or client secret. domain-server will now quit.";
+            static const int MISSING_OAUTH_INFO_ERROR_CODE = 4;
+            QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                      Q_ARG(QString, MISSING_OAUTH_INFO_MSG), Q_ARG(int, MISSING_OAUTH_INFO_ERROR_CODE));
             return false;
         } else {
             qDebug() << "OAuth will be used to identify clients using provider at" << _oauthProviderURL.toString();
@@ -404,9 +417,13 @@ bool DomainServer::resetAccountManagerAccessToken() {
         return true;
 
     } else {
-        qDebug() << "Missing OAuth provider URL, but a domain-server feature was required that requires authentication." <<
-            "domain-server will now quit.";
-        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        static const QString MISSING_OAUTH_PROVIDER_MSG =
+            QString("Missing OAuth provider URL, but a domain-server feature was required that requires authentication.") +
+            QString("domain-server will now quit.");
+        static const int MISSING_OAUTH_PROVIDER_ERROR_CODE = 5;
+        QMetaObject::invokeMethod(this, "queuedQuit", Qt::QueuedConnection,
+                                  Q_ARG(QString, MISSING_OAUTH_PROVIDER_MSG),
+                                  Q_ARG(int, MISSING_OAUTH_PROVIDER_ERROR_CODE));
 
         return false;
     }
@@ -515,11 +532,6 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
         connect(_iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToIceServer);
         _iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
     }
-}
-
-void DomainServer::loginFailed() {
-    qDebug() << "Login to data server has failed. domain-server will now quit";
-    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 }
 
 void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes) {
