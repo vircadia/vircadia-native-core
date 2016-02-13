@@ -9,7 +9,6 @@
     var self = this;
 
     this.preload=function(entityId){
-        print('JBP MOVE RANDOMLY PRELOAD')
         this.isConnected = false;
         this.entityId = entityId;
         this.minVelocity = 1;

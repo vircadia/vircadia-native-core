@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1041;
+var version = 1043;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -609,12 +609,10 @@ function ImportScene(scene) {
 clearAllNav();
 
 function clearAllNav() {
-    // print('NAV CLEARING ALL NAV');
     var result = Entities.findEntities(MyAvatar.position, 25000);
     result.forEach(function(r) {
         var properties = Entities.getEntityProperties(r, "name");
         if (properties.name.indexOf('navigation button') > -1) {
-            // print('NAV DELETING NAV BUTTON AT START:: '+r)
             Entities.deleteEntity(r);
         }
     })
@@ -645,8 +643,6 @@ function createLayoutLights() {
 }
 
 function CreateNavigationButton(scene, number) {
-    print('JBP NAVIGATION CREATING NAV!!' +scene.name + " " + number)
-
     Entities.addEntity({
         type: "Box",
         name: scene.name + " navigation button",
@@ -656,11 +652,11 @@ function CreateNavigationButton(scene, number) {
             blue: 0
         },
         dimensions: {
-            x: 14000,
-            y: 14000,
-            z: 14000
+            x: 16000,
+            y: 16000,
+            z: 16000
         },
-        visible: true,
+        visible: false,
         userData: JSON.stringify({
             name: scene.name,
             entryPoint: scene.entryPoint,

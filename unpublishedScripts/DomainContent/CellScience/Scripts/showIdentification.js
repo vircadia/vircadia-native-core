@@ -12,7 +12,6 @@
 
     var version = 3;
     this.preload = function(entityId) {
-        print('JBP SHOW IDENTIFICATION PRELOAD')
         this.soundPlaying = null;
         this.entityId = entityId;
         self.initTimeout = null;
