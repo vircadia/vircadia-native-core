@@ -20,10 +20,15 @@ Item {
     // beyond the window via negative margin sizes
     anchors.fill: parent
 
-    // Convenience accessor for the window
-    property alias window: frame.parent
-    readonly property int iconSize: 24
-    default property var decoration;
+    property alias window: frame.parent  // Convenience accessor for the window
+    default property var decoration
+
+    readonly property int iconSize: 22
+    readonly property int frameMargin: 9
+    readonly property int frameMarginLeft: frameMargin
+    readonly property int frameMarginRight: frameMargin
+    readonly property int frameMarginTop: 2 * frameMargin + iconSize
+    readonly property int frameMarginBottom: iconSize + 2
 
     children: [
         decoration,
@@ -48,10 +53,10 @@ Item {
 
     Rectangle {
         id: sizeOutline
-        x: -iconSize
-        y: -(wideTopMargin ? 2 : 1) * iconSize
-        width: window ? window.width + 2 * iconSize : 0
-        height: window ? window.height + (1 + (wideTopMargin ? 2 : 1)) * iconSize : 0
+        x: -frameMarginLeft
+        y: -frameMarginTop
+        width: window ? window.width + frameMarginLeft + frameMarginRight : 0
+        height: window ? window.height + frameMarginTop + frameMarginBottom : 0
         color: hifi.colors.baseGrayHighlight15
         border.width: 3
         border.color: hifi.colors.white50
@@ -66,7 +71,7 @@ Item {
         height: iconSize
         enabled: window ? window.resizable : false
         hoverEnabled: true
-        x: window ? window.width : 0
+        x: window ? window.width + frameMarginRight - iconSize : 0
         y: window ? window.height : 0
         property vector2d pressOrigin
         property vector2d sizeOrigin
@@ -97,10 +102,10 @@ Item {
         }
         HiFiGlyphs {
             visible: sizeDrag.enabled
-            anchors { centerIn: parent }
-            horizontalAlignment: Text.AlignHCenter
+            x: -5  // Move a little to visually align
+            y: -3  // ""
             text: "A"
-            size: iconSize / 3 * 2
+            size: iconSize + 4
             color: sizeDrag.containsMouse || !(window && window.focus) ? hifi.colors.white : hifi.colors.lightGray
         }
     }

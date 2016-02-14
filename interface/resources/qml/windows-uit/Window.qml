@@ -49,6 +49,9 @@ Fadable {
     // property bool pinnable: false
     // property bool pinned: false
     property bool resizable: false
+
+    readonly property int contentMarginLeft: 12
+    readonly property int contentMarginRight: 12
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 720)
 
@@ -74,8 +77,6 @@ Fadable {
             }
         }
     }
-
-
     onXChanged: rectifier.begin();
     onYChanged: rectifier.begin();
 

@@ -16,15 +16,17 @@ import "../controls-uit"
 import "../styles-uit"
 
 Frame {
-    id: frame
     HifiConstants { id: hifi }
-
-    property bool wideTopMargin: (window && (window.closable || window.title));
 
     Rectangle {
         // Dialog frame
         id: frameContent
-        anchors { margins: -iconSize; topMargin: -iconSize * (wideTopMargin ? 2 : 1); }
+        anchors {
+            topMargin: -frameMarginTop
+            leftMargin: -frameMarginLeft
+            rightMargin: -frameMarginRight
+            bottomMargin: -frameMarginBottom
+        }
         anchors.fill: parent
         color: hifi.colors.baseGrayHighlight40
         border {
@@ -41,7 +43,12 @@ Frame {
 
         Row {
             id: controlsRow
-            anchors { right: parent.right; top: parent.top; rightMargin: iconSize; topMargin: iconSize / 2; }
+            anchors {
+                right: parent.right;
+                top: parent.top;
+                topMargin: frameMargin + 1  // Move down a little to visually align with the title
+                rightMargin: frameMarginRight;
+            }
             spacing: iconSize / 4
 
             HiFiGlyphs {
@@ -49,7 +56,7 @@ Frame {
                 visible: false
                 text: (frame.pinned && !pinClickArea.containsMouse) || (!frame.pinned && pinClickArea.containsMouse) ? "z" : "y"
                 color: pinClickArea.containsMouse && !pinClickArea.pressed ? hifi.colors.redHighlight : hifi.colors.white
-                size: frame.iconSize
+                size: iconSize
                 MouseArea {
                     id: pinClickArea
                     anchors.fill: parent
@@ -64,7 +71,7 @@ Frame {
                 visible: window ? window.closable : false
                 text: closeClickArea.containsPress ? "x" : "w"
                 color: closeClickArea.containsMouse ? hifi.colors.redHighlight : hifi.colors.white
-                size: frame.iconSize
+                size: iconSize
                 MouseArea {
                     id: closeClickArea
                     anchors.fill: parent
@@ -77,7 +84,14 @@ Frame {
         RalewayRegular {
             // Title
             id: titleText
-            anchors { left: parent.left; leftMargin: iconSize; right: controlsRow.left;  rightMargin: iconSize; top: parent.top; topMargin: iconSize / 2; }  // DJRTODO
+            anchors {
+                left: parent.left
+                leftMargin: frameMarginLeft + window.contentMarginLeft
+                right: controlsRow.left
+                rightMargin: iconSize
+                top: parent.top
+                topMargin: frameMargin
+            }
             text: window ? window.title : ""
             color: hifi.colors.white
             size: 16

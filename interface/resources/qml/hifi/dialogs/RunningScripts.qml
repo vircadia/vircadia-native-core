@@ -13,7 +13,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../../styles-uit" as Hifi
+import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows-uit"
 
@@ -25,6 +25,8 @@ Window {
     destroyOnInvisible: true
     x: 40; y: 40
     implicitWidth: 384; implicitHeight: 640
+
+    HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
@@ -77,7 +79,7 @@ Window {
     }
 
     Rectangle {
-        color: "white"
+        color: hifi.colors.baseGray
         anchors.fill: parent
 
         Item {
