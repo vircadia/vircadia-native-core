@@ -58,8 +58,8 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
-        auto getter = []()->bool {return Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode); };
-        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::ComfortMode, value); };
+        auto getter = [=]()->bool {return myAvatar->getSnapTurn(); };
+        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn", getter, setter));
     }
     {
