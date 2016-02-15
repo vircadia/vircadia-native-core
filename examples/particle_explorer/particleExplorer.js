@@ -338,9 +338,7 @@ function writeVec3ToInterface(obj) {
 }
 
 function listenForSettingsUpdates() {
-    console.log("EBL LISTENING FOR EVENTS ON PARTICLE GUI WEB SIDE!")
     EventBridge.scriptEventReceived.connect(function(data) {
-        console.log("EBL RECIEVED EVENT!! ON WEB SIDE - " + JSON.stringify(data));
         data = JSON.parse(data);
         if (data.messageType === 'particle_settings') {
             _.each(data.currentProperties, function(value, key) {

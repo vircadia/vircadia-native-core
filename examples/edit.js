@@ -1881,12 +1881,17 @@ var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
 var particleExplorerTool = ParticleExplorerTool();
+var selectedParticleEntity = 0;
 entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
     var data = JSON.parse(data);
     if (data.type == "selectionUpdate") {
         var ids = data.entityIds;
         if(ids.length === 1) {
-            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect") {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect" ) {
+                if (JSON.stringify(selectedParticleEntity) !== JSON.stringify(ids[0])) {
+                    // We already had a particle entity selected, so destroy that one and create the new one
+                    particleExplorerTool.destroyWebView();
+                }
                 // Now we want to activate the partice explorer panel!
                particleExplorerTool.createWebView();
                 var properties = Entities.getEntityProperties(ids[0]);
@@ -1898,7 +1903,7 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                 Script.setTimeout(function() {
                     // Wait for event bridge on web side to open
                   particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(data));  
-                }, 3000)
+                }, 2000)
 
             } else {
                 particleExplorerTool.destroyWebView();
