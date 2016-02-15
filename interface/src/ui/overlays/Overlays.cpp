@@ -200,17 +200,12 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
     if (overlay->is3D()) {
-        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        if (overlay3D->getDrawOnHUD()) {
-            _overlaysHUD[thisID] = overlay;
-        } else {
-            _overlaysWorld[thisID] = overlay;
+        _overlaysWorld[thisID] = overlay;
 
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-            overlay->addToScene(overlay, scene, pendingChanges);
-            scene->enqueuePendingChanges(pendingChanges);
-        }
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        overlay->addToScene(overlay, scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
     } else {
         _overlaysHUD[thisID] = overlay;
     }
@@ -239,38 +234,20 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         if (thisOverlay->is3D()) {
-            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
-
-            bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
             render::ItemKey oldItemKey = render::payloadGetKey(thisOverlay);
 
             thisOverlay->setProperties(properties);
 
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-            auto itemID = thisOverlay->getRenderItemID();
-
-            bool drawOnHUD = overlay3D->getDrawOnHUD();
             render::ItemKey itemKey = render::payloadGetKey(thisOverlay);
-            if (drawOnHUD != oldDrawOnHUD) {
-                if (drawOnHUD) {
-                    _overlaysWorld.remove(id);
-                    _overlaysHUD[id] = thisOverlay;
-                    if (itemID != render::Item::INVALID_ITEM_ID) {
-                        thisOverlay->removeFromScene(thisOverlay, scene, pendingChanges);
-                    }
-                } else {
-                    _overlaysHUD.remove(id);
-                    _overlaysWorld[id] = thisOverlay;
-                    thisOverlay->addToScene(thisOverlay, scene, pendingChanges);
-                }
-            } else if (itemKey != oldItemKey && !drawOnHUD) {
+            if (itemKey != oldItemKey) {
+                auto itemID = thisOverlay->getRenderItemID();
                 if (itemID != render::Item::INVALID_ITEM_ID) {
+                    render::ScenePointer scene = qApp->getMain3DScene();
+                    render::PendingChanges pendingChanges;
                     pendingChanges.resortItem(itemID, oldItemKey, itemKey);
+                    scene->enqueuePendingChanges(pendingChanges);
                 }
             }
-
-            scene->enqueuePendingChanges(pendingChanges);
         } else {
             thisOverlay->setProperties(properties);
         }
