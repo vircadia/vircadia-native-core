@@ -57,7 +57,11 @@ void setupPreferences() {
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance: ", getter, setter);
         preferences->addPreference(preference);
     }
-
+    {
+        auto getter = []()->bool {return Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode); };
+        auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::ComfortMode, value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn", getter, setter));
+    }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
