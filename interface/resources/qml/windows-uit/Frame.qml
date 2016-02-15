@@ -61,7 +61,7 @@ Item {
         border.width: 3
         border.color: hifi.colors.white50
         radius: hifi.dimensions.borderRadius
-        visible: window ? !window.content.visible : false
+        visible: window ? !windowContent.visible : false
     }
 
     MouseArea {
@@ -84,15 +84,15 @@ Item {
         }
         onReleased: {
             if (hid) {
-                window.content.visible = true
+                windowContent.visible = true
                 frameContent.visible = true
                 hid = false;
             }
         }
         onPositionChanged: {
             if (pressed) {
-                if (window.content.visible) {
-                    window.content.visible = false;
+                if (windowContent.visible) {
+                    windowContent.visible = false;
                     frameContent.visible = false
                     hid = true;
                 }

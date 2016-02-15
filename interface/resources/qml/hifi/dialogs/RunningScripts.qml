@@ -79,11 +79,9 @@ Window {
     }
 
     Rectangle {
-        color: hifi.colors.baseGray
-        anchors.fill: parent
 
-        Item {
-            anchors { fill: parent; margins: 8 }
+        Column {
+
             Text {
                 id: title
                 font.bold: true
@@ -94,8 +92,6 @@ Window {
 
             Row {
                 id: allButtons
-                anchors.top: title.bottom
-                anchors.topMargin: 8
                 spacing: 8
                 Button { text: "Reload all"; onClicked: reloadAll() }
                 Button { text: "Stop all"; onClicked: stopAll() }
@@ -103,14 +99,6 @@ Window {
 
             ScrollView {
                 onActiveFocusChanged: if (activeFocus && listView.currentItem) { listView.currentItem.forceActiveFocus(); }
-                anchors {
-                    top: allButtons.bottom;
-                    left: parent.left;
-                    right: parent.right;
-                    topMargin: 8
-                    bottom: row1.top
-                    bottomMargin: 8
-                }
 
                 ListView {
                     id: listView
@@ -180,20 +168,11 @@ Window {
                 font.bold: true
                 font.pointSize: 16
                 color: "#0e7077"
-
-                anchors.left: parent.left
-                anchors.leftMargin: 0
-                anchors.bottom: filterEdit.top
-                anchors.bottomMargin: 8
             }
 
             Row {
                 id: row1
                 spacing: 8
-                anchors.bottom: filterEdit.top
-                anchors.bottomMargin: 8
-                anchors.right: parent.right
-
 
                 Button {
                     text: "from URL";
@@ -231,10 +210,6 @@ Window {
 
             HifiControls.TextField {
                 id: filterEdit
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: treeView.top
-                anchors.bottomMargin: 8
                 placeholderText: "filter"
                 focus: true
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
@@ -244,10 +219,6 @@ Window {
             TreeView {
                 id: treeView
                 height: 128
-                anchors.bottom: loadButton.top
-                anchors.bottomMargin: 8
-                anchors.left: parent.left
-                anchors.right: parent.right
                 headerVisible: false
                 // FIXME doesn't work?
                 onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
@@ -288,11 +259,6 @@ Window {
             HifiControls.TextField {
                 id: selectedScript
                 readOnly: true
-                anchors.left: parent.left
-                anchors.right: loadButton.left
-                anchors.rightMargin: 8
-                anchors.bottom: loadButton.bottom
-                anchors.top: loadButton.top
                 Connections {
                     target: treeView
                     onCurrentIndexChanged: {
@@ -309,8 +275,6 @@ Window {
 
             Button {
                 id: loadButton
-                anchors.bottom: parent.bottom
-                anchors.right: parent.right
                 text: "Load"
                 enabled: selectedScript.text != ""
                 onClicked: root.loadScript(selectedScript.text)

@@ -121,8 +121,21 @@ Fadable {
     // frame styles, like a full desktop frame to simulate a modal window
     property var frame: DefaultFrame { }
 
+    // Scrollable window content.
+    property var scroller: Rectangle {
+        id: windowContent
+        anchors.fill: parent
+        color: hifi.colors.baseGray
 
-    children: [ swallower, frame, content, activator ]
+        ScrollView {
+            anchors.fill: parent
+            contentItem: content
+            horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
+            verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+        }
+    }
+
+    children: [ swallower, frame, scroller, activator ]
 
     Component.onCompleted: raise();
     Component.onDestruction: windowDestroyed();
