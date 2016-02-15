@@ -67,13 +67,13 @@ private:
     TextRenderer3D* _textRenderer = nullptr;
     
     QString _text;
-    xColor _backgroundColor = xColor{ 0, 0, 0 };
-    float _textAlpha{ 1.0f };
-    float _lineHeight{ 1.0f };
-    float _leftMargin{ 0.1f };
-    float _topMargin{ 0.1f };
-    float _rightMargin{ 0.1f };
-    float _bottomMargin{ 0.1f };
+    xColor _backgroundColor = xColor { 0, 0, 0 };
+    float _textAlpha { 1.0f };
+    float _lineHeight { 1.0f };
+    float _leftMargin { 0.1f };
+    float _topMargin { 0.1f };
+    float _rightMargin { 0.1f };
+    float _bottomMargin { 0.1f };
 };
 
 #endif // hifi_Text3DOverlay_h
