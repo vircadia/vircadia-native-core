@@ -27,7 +27,6 @@ ParticleExplorerTool = function() {
         if (data.messageType === "settings_update") {
             Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
         }
-        print("EBL WEB EVENT RECIEVED FROM PARTICLE GUI");
     }
 
     that.setActiveParticleEntity = function(id) {
