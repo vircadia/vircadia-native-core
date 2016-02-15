@@ -28,6 +28,10 @@
 
         water: function() {
             print("EBL IM BEING WATERED!");
+            _this.cactusDimensions = Vec3.sum(_this.cactusDimensions, {x: 0, y: 0.01, z: 0});
+            // Need to raise up cactus as it stretches so it doesnt burst out the bottom of the plant
+            _this.cactusPosition = Vec3.sum(_this.cactusPosition, {x: 0, y: _this.cactusHeightMovement, z: 0});
+            Entities.editEntity(_this.cactus, {dimensions: _this.cactusDimensions, position: _this.cactusPosition});
         },
 
         createFlowers: function() {
@@ -72,16 +76,18 @@
 
         createCactus: function() {
             var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/cactus.fbx"
-            var dimensions = {
+            _this.cactusDimensions = {
                 x: 0.09,
                 y: 0.01,
                 z: 0.09
             };
+            _this.cactusHeightMovement = _this.cactusDimensions.y/2;
+            _this.cactusPosition = _this.position;
             _this.cactus = Entities.addEntity({
                 type: "Model",
                 modelURL: MODEL_URL,
-                position: _this.position,
-                dimensions: dimensions
+                position: _this.cactusPosition,
+                dimensions: _this.cactusDimensions
             });
 
    
