@@ -26,7 +26,7 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
-    "particle_explorer/particleExplorerTool.js?v1" + Math.random(),
+    "particle_explorer/particleExplorerTool.js",
     "libraries/lightOverlayManager.js",
 ]);
 
@@ -38,17 +38,13 @@ var lightOverlayManager = new LightOverlayManager();
 var cameraManager = new CameraManager();
 
 var grid = Grid();
-// gridTool = GridTool({
-//     horizontalGrid: grid
-// });
-// gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-});
+}); 
 
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
@@ -322,7 +318,7 @@ var toolBar = (function() {
         });
 
         newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "polyvox.svg",
+            imageURL: toolIconUrl + "particle.svg?v1",
             subImage: {
                 x: 0,
                 y: 0,

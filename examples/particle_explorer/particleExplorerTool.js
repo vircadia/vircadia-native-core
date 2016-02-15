@@ -1,3 +1,17 @@
+//
+//  particleExplorerTool.js
+//
+//  Created by Eric Levin on 2/15/16
+//  Copyright 2015 High Fidelity, Inc.
+//  Adds particleExplorer tool to the edit panel when a user selects a particle entity from the edit tool window
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+/*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
+
+
 var PARTICLE_EXPLORER_HTML_URL = Script.resolvePath('particleExplorer.html');
 
 ParticleExplorerTool = function() {
@@ -17,7 +31,6 @@ ParticleExplorerTool = function() {
 
 
     that.destroyWebView = function() {
-        print("EBL DESTROY WEB VIEW" + that.webView);
         that.webView.close();
         that.webView = null;
     }
