@@ -318,7 +318,7 @@ var toolBar = (function() {
         });
 
         newParticleButton = toolBar.addTool({
-            imageURL: toolIconUrl + "particle.svg?v1",
+            imageURL: toolIconUrl + "particle.svg",
             subImage: {
                 x: 0,
                 y: 0,
