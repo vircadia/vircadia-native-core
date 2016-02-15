@@ -93,6 +93,14 @@ void Grid3DOverlay::render(RenderArgs* args) {
     }
 }
 
+const render::ShapeKey Grid3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
 void Grid3DOverlay::setProperties(const QScriptValue& properties) {
     Planar3DOverlay::setProperties(properties);
 

@@ -40,15 +40,20 @@ public:
 
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int numDrawn READ getNumDrawn)
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
     int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
 
-    int numDrawn{ 0 };
     int maxDrawn{ -1 };
+
 signals:
+    void numDrawnChanged();
     void dirty();
+
+protected:
+    int numDrawn{ 0 };
 };
 
 class DrawDeferred {
@@ -68,11 +73,10 @@ protected:
 
 class DrawStencilDeferred {
 public:
-    static const gpu::PipelinePointer& getOpaquePipeline();
+    using JobModel = render::Job::Model<DrawStencilDeferred>;
 
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-
-    using JobModel = render::Job::Model<DrawStencilDeferred>;
+    static const gpu::PipelinePointer& getOpaquePipeline();
 
 protected:
     static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
@@ -87,18 +91,20 @@ public:
 
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(int numItems READ getNumItems)
-    Q_PROPERTY(int numDrawn READ getNumDrawn)
+    Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
-    int getNumItems() { return numItems; }
     int getNumDrawn() { return numDrawn; }
+    void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
 
-    int numItems{ 0 };
-    int numDrawn{ 0 };
     int maxDrawn{ -1 };
+
 signals:
+    void numDrawnChanged();
     void dirty();
+
+protected:
+    int numDrawn{ 0 };
 };
 
 class DrawOverlay3D {
@@ -106,15 +112,13 @@ public:
     using Config = DrawOverlay3DConfig;
     using JobModel = render::Job::Model<DrawOverlay3D, Config>;
 
-    DrawOverlay3D(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawOverlay3D(render::ItemFilter filter);
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
 
-    static const gpu::PipelinePointer& getOpaquePipeline();
-
 protected:
-    static gpu::PipelinePointer _opaquePipeline; //lazy evaluation hence mutable
+    render::ItemFilter _filter;
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
 };

@@ -184,3 +184,13 @@ void PluginContainerProxy::releaseOverlayTexture(uint32_t texture) {
     // FIXME implement present thread compositing
 }
 
+/// settings interface
+bool PluginContainerProxy::getBoolSetting(const QString& settingName, bool defaultValue) {
+    Setting::Handle<bool> settingValue(settingName, defaultValue);
+    return settingValue.get();
+}
+
+void PluginContainerProxy::setBoolSetting(const QString& settingName, bool value) {
+    Setting::Handle<bool> settingValue(settingName, value);
+    return settingValue.set(value);
+}

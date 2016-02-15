@@ -498,14 +498,14 @@ void NeuronPlugin::deactivate() {
 #endif
 }
 
-void NeuronPlugin::pluginUpdate(float deltaTime, bool jointsCaptured) {
+void NeuronPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     std::vector<NeuronJoint> joints;
     {
         // lock and copy
         std::lock_guard<std::mutex> guard(_jointsMutex);
         joints = _joints;
     }
-    _inputDevice->update(deltaTime, joints, _prevJoints);
+    _inputDevice->update(deltaTime, inputCalibrationData, joints, _prevJoints);
     _prevJoints = joints;
 }
 
@@ -537,7 +537,7 @@ QString NeuronPlugin::InputDevice::getDefaultMappingConfig() const {
     return MAPPING_JSON;
 }
 
-void NeuronPlugin::InputDevice::update(float deltaTime, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
+void NeuronPlugin::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const std::vector<NeuronPlugin::NeuronJoint>& joints, const std::vector<NeuronPlugin::NeuronJoint>& prevJoints) {
     for (size_t i = 0; i < joints.size(); i++) {
         glm::vec3 linearVel, angularVel;
         glm::vec3 pos = joints[i].pos;

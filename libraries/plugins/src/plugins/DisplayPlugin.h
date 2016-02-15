@@ -8,6 +8,7 @@
 #pragma once
 
 #include <functional>
+#include <atomic>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -122,10 +123,17 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0f; }
     virtual float presentRate() { return -1.0f; }
+    uint32_t presentCount() const { return _presentedFrameIndex; }
 
     static const QString& MENU_PATH();
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
-    void requestRender();
+
+protected:
+    void incrementPresentCount() { ++_presentedFrameIndex; }
+
+private:
+    std::atomic<uint32_t> _presentedFrameIndex;
 };
 

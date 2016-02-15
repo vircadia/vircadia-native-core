@@ -11,10 +11,20 @@ macro(SETUP_HIFI_LIBRARY)
   
   project(${TARGET_NAME})
   
-  # grab the implemenation and header files
+  # grab the implementation and header files
   file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp" "src/*.c")
   list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
+  # add compiler flags to AVX source files
+  file(GLOB_RECURSE AVX_SRCS "src/avx/*.cpp" "src/avx/*.c")
+  foreach(SRC ${AVX_SRCS})
+    if (WIN32)
+      set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS /arch:AVX)
+    elseif (APPLE OR UNIX)
+      set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS -mavx)
+    endif()
+  endforeach()
+    
   setup_memory_debugger()
 
   # create a library and set the property so it can be referenced later

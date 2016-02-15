@@ -10,6 +10,7 @@
 #define hifi_QmlOverlay_h
 
 #include <QString>
+#include <memory>
 
 #include <SharedUtil.h>
 #include "Overlay2D.h"
@@ -18,7 +19,7 @@ class QQuickItem;
 
 class QmlOverlay : public Overlay2D {
     Q_OBJECT
-    
+
 public:
     QmlOverlay(const QUrl& url);
     QmlOverlay(const QUrl& url, const QmlOverlay* textOverlay);
@@ -34,8 +35,7 @@ private:
     void buildQmlElement(const QUrl& url);
 
 protected:
-    QQuickItem* _qmlElement{ nullptr };
+    std::shared_ptr<QQuickItem> _qmlElement;
 };
 
- 
 #endif // hifi_QmlOverlay_h

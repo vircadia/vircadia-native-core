@@ -138,12 +138,12 @@ void SDL2Manager::pluginFocusOutEvent() {
 #endif
 }
 
-void SDL2Manager::pluginUpdate(float deltaTime, bool jointsCaptured) {
+void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         for (auto joystick : _openJoysticks) {
-            joystick->update(deltaTime, jointsCaptured);
+            joystick->update(deltaTime, inputCalibrationData, jointsCaptured);
         }
         
         PerformanceTimer perfTimer("SDL2Manager::update");

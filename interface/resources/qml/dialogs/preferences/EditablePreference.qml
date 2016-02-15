@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 
 Preference {
     id: root
@@ -24,6 +25,7 @@ Preference {
     TextField {
         id: dataTextField
         placeholderText: preference.placeholderText
+        style:  TextFieldStyle { renderType: Text.QtRendering }
         anchors {
             top: labelText.bottom
             left: parent.left

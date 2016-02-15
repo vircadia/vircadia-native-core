@@ -78,9 +78,6 @@ public:
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
-    /// \brief call bump on any objects that touch the object corresponding to motionState
-    void bump(ObjectMotionState* motionState);
-
     void setCharacterController(CharacterController* character);
 
     void dumpNextStats() { _dumpNextStats = true; }
@@ -94,7 +91,9 @@ public:
 
 private:
     void addObjectToDynamicsWorld(ObjectMotionState* motionState);
-    void removeObjectFromDynamicsWorld(ObjectMotionState* motionState);
+
+    /// \brief bump any objects that touch this one, then remove contact info
+    void bumpAndPruneContacts(ObjectMotionState* motionState);
 
     void removeContacts(ObjectMotionState* motionState);
 

@@ -407,7 +407,14 @@ glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
 
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+// does not handle non-uniform scale correctly, but it's faster then transformVectorFull
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return rot * v;
+}
+
+// handles non-uniform scale.
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v) {
     glm::mat3 rot(m);
     return glm::inverse(glm::transpose(rot)) * v;
 }
@@ -437,7 +444,7 @@ glm::vec2 getFacingDir2D(const glm::quat& rot) {
 }
 
 glm::vec2 getFacingDir2D(const glm::mat4& m) {
-    glm::vec3 facing3D = transformVector(m, Vectors::UNIT_NEG_Z);
+    glm::vec3 facing3D = transformVectorFast(m, Vectors::UNIT_NEG_Z);
     glm::vec2 facing2D(facing3D.x, facing3D.z);
     const float ALMOST_ZERO = 0.0001f;
     if (glm::length(facing2D) < ALMOST_ZERO) {

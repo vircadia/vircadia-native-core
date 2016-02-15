@@ -60,7 +60,6 @@
 #include "ui/OctreeStatsDialog.h"
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
-#include "ui/SnapshotShareDialog.h"
 #include "UndoStackScriptingInterface.h"
 
 class OffscreenGLCanvas;
@@ -168,13 +167,11 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    QImage renderAvatarBillboard(RenderArgs* renderArgs);
-
-    virtual ViewFrustum* getCurrentViewFrustum() { return getDisplayViewFrustum(); }
-    virtual QThread* getMainThread() { return thread(); }
-    virtual PickRay computePickRay(float x, float y) const;
-    virtual glm::vec3 getAvatarPosition() const;
-    virtual qreal getDevicePixelRatio();
+    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual QThread* getMainThread() override { return thread(); }
+    virtual PickRay computePickRay(float x, float y) const override;
+    virtual glm::vec3 getAvatarPosition() const override;
+    virtual qreal getDevicePixelRatio() override;
 
     void setActiveDisplayPlugin(const QString& pluginName);
 
@@ -247,8 +244,6 @@ public slots:
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
-
-    void showFriendsWindow();
 
     void packageModel();
 
@@ -344,7 +339,7 @@ private:
 
     glm::vec3 getSunDirection();
 
-    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool billboard = false);
+    void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region);
 
     int sendNackPackets();
 
@@ -357,7 +352,7 @@ private:
     void initializeAcceptedFiles();
     int getRenderAmbientLight() const;
 
-    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false, bool billboard = false);
+    void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
     bool importSVOFromURL(const QString& urlString);
 
@@ -455,7 +450,6 @@ private:
     NodeToOctreeSceneStats _octreeServerSceneStats;
     ControllerScriptingInterface* _controllerScriptingInterface{ nullptr };
     QPointer<LogDialog> _logDialog;
-    QPointer<SnapshotShareDialog> _snapshotShareDialog;
 
     FileLogger* _logger;
 
@@ -514,6 +508,8 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
+    bool _pendingPaint { false };
+    QTimer* _idleTimer { nullptr };
 };
 
 #endif // hifi_Application_h

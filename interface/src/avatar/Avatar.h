@@ -38,9 +38,6 @@ namespace render {
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
 
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.56f;       // meters
-
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
 
@@ -119,7 +116,6 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL) override;
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
-    virtual void setBillboard(const QByteArray& billboard) override;
 
     void setShowDisplayName(bool showDisplayName);
 
@@ -139,8 +135,6 @@ public:
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
-    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
-    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
 
     Q_INVOKABLE bool getShouldRender() const { return !_shouldSkipRender; }
 
@@ -168,10 +162,10 @@ public:
     virtual void setOrientation(const glm::quat& orientation) override;
 
     // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
-    Q_INVOKABLE virtual const QUuid getParentID() const { return SpatiallyNestable::getParentID(); }
-    Q_INVOKABLE virtual void setParentID(const QUuid& parentID);
-    Q_INVOKABLE virtual quint16 getParentJointIndex() const { return SpatiallyNestable::getParentJointIndex(); }
-    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex);
+    Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+    Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+    Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
 
     // NOT thread safe, must be called on main thread.
     glm::vec3 getUncachedLeftPalmPosition() const;
@@ -254,14 +248,11 @@ protected:
 
 private:
     bool _initialized;
-    NetworkTexturePointer _billboardTexture;
-    bool _shouldRenderBillboard;
+    bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget;
 
-    void renderBillboard(RenderArgs* renderArgs);
-
-    float getBillboardSize() const;
+    float getBoundingRadius() const;
 
     static int _jointConesID;
 

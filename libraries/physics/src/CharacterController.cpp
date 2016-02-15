@@ -15,10 +15,17 @@
 
 #include "PhysicsCollisionGroups.h"
 #include "ObjectMotionState.h"
+#include "PhysicsLogging.h"
 
 const btVector3 LOCAL_UP_AXIS(0.0f, 1.0f, 0.0f);
 const float JUMP_SPEED = 3.5f;
 const float MAX_FALL_HEIGHT = 20.0f;
+
+#ifdef DEBUG_STATE_CHANGE
+#define SET_STATE(desiredState, reason) setState(desiredState, reason)
+#else
+#define SET_STATE(desiredState, reason) setState(desiredState)
+#endif
 
 // helper class for simple ray-traces from character
 class ClosestNotMe : public btCollisionWorld::ClosestRayResultCallback {
@@ -47,23 +54,22 @@ CharacterController::CharacterController() {
 
     _floorDistance = MAX_FALL_HEIGHT;
 
-    _walkVelocity.setValue(0.0f, 0.0f, 0.0f);
+    _targetVelocity.setValue(0.0f, 0.0f, 0.0f);
     _followDesiredBodyTransform.setIdentity();
     _followTimeRemaining = 0.0f;
     _jumpSpeed = JUMP_SPEED;
-    _isOnGround = false;
-    _isJumping = false;
-    _isFalling = false;
-    _isHovering = true;
+    _state = State::Hover;
     _isPushingUp = false;
-    _jumpToHoverStart = 0;
+    _rayHitStartTime = 0;
+    _takeoffToInAirStartTime = 0;
+    _jumpButtonDownStartTime = 0;
+    _jumpButtonDownCount = 0;
     _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
     _hasSupport = false;
 
     _pendingFlags = PENDING_FLAG_UPDATE_SHAPE;
-
 }
 
 bool CharacterController::needsRemoval() const {
@@ -107,6 +113,8 @@ void CharacterController::setDynamicsWorld(btDynamicsWorld* world) {
     }
 }
 
+static const float COS_PI_OVER_THREE = cosf(PI / 3.0f);
+
 bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) const {
     int numManifolds = collisionWorld->getDispatcher()->getNumManifolds();
     for (int i = 0; i < numManifolds; i++) {
@@ -119,8 +127,10 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) cons
                 btManifoldPoint& pt = contactManifold->getContactPoint(j);
 
                 // check to see if contact point is touching the bottom sphere of the capsule.
+                // and the contact normal is not slanted too much.
                 float contactPointY = (obA == _rigidBody) ? pt.m_localPointA.getY() : pt.m_localPointB.getY();
-                if (contactPointY < -_halfHeight) {
+                btVector3 normal = (obA == _rigidBody) ? pt.m_normalWorldOnB : -pt.m_normalWorldOnB;
+                if (contactPointY < -_halfHeight && normal.dot(_currentUp) > COS_PI_OVER_THREE) {
                     return true;
                 }
             }
@@ -153,72 +163,61 @@ void CharacterController::preStep(btCollisionWorld* collisionWorld) {
 }
 
 void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
-    btVector3 actualVelocity = _rigidBody->getLinearVelocity();
-    btScalar actualSpeed = actualVelocity.length();
-
-    btVector3 desiredVelocity = _walkVelocity;
-    btScalar desiredSpeed = desiredVelocity.length();
-
-    const btScalar MIN_UP_PUSH = 0.1f;
-    if (desiredVelocity.dot(_currentUp) < MIN_UP_PUSH) {
-        _isPushingUp = false;
-    }
 
     const btScalar MIN_SPEED = 0.001f;
-    if (_isHovering) {
-        if (desiredSpeed < MIN_SPEED) {
-            if (actualSpeed < MIN_SPEED) {
-                _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
-            } else {
-                const btScalar HOVER_BRAKING_TIMESCALE = 0.1f;
-                btScalar tau = glm::max(dt / HOVER_BRAKING_TIMESCALE, 1.0f);
-                _rigidBody->setLinearVelocity((1.0f - tau) * actualVelocity);
-            }
-        } else {
-            const btScalar HOVER_ACCELERATION_TIMESCALE = 0.1f;
-            btScalar tau = dt / HOVER_ACCELERATION_TIMESCALE;
-            _rigidBody->setLinearVelocity(actualVelocity - tau * (actualVelocity - desiredVelocity));
+
+    btVector3 actualVelocity = _rigidBody->getLinearVelocity() - _parentVelocity;
+    if (actualVelocity.length() < MIN_SPEED) {
+        actualVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    }
+
+    btVector3 desiredVelocity = _targetVelocity;
+    if (desiredVelocity.length() < MIN_SPEED) {
+        desiredVelocity = btVector3(0.0f, 0.0f, 0.0f);
+    }
+
+    // decompose into horizontal and vertical components.
+    btVector3 actualVertVelocity = actualVelocity.dot(_currentUp) * _currentUp;
+    btVector3 actualHorizVelocity = actualVelocity - actualVertVelocity;
+    btVector3 desiredVertVelocity = desiredVelocity.dot(_currentUp) * _currentUp;
+    btVector3 desiredHorizVelocity = desiredVelocity - desiredVertVelocity;
+
+    btVector3 finalVelocity;
+
+    switch (_state) {
+    case State::Ground:
+    case State::Takeoff:
+        {
+            // horizontal ground control
+            const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
+            btScalar tau = dt / WALK_ACCELERATION_TIMESCALE;
+            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
         }
-    } else {
-        if (onGround()) {
-            // walking on ground
-            if (desiredSpeed < MIN_SPEED) {
-                if (actualSpeed < MIN_SPEED) {
-                    _rigidBody->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
-                } else {
-                    const btScalar HOVER_BRAKING_TIMESCALE = 0.1f;
-                    btScalar tau = dt / HOVER_BRAKING_TIMESCALE;
-                    _rigidBody->setLinearVelocity((1.0f - tau) * actualVelocity);
-                }
-            } else {
-                // TODO: modify desiredVelocity using floor normal
-                const btScalar WALK_ACCELERATION_TIMESCALE = 0.1f;
-                btScalar tau = dt / WALK_ACCELERATION_TIMESCALE;
-                btVector3 velocityCorrection = tau * (desiredVelocity - actualVelocity);
-                // subtract vertical component
-                velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
-                _rigidBody->setLinearVelocity(actualVelocity + velocityCorrection);
-            }
-        } else {
-            // transitioning to flying
-            btVector3 velocityCorrection = desiredVelocity - actualVelocity;
+        break;
+    case State::InAir:
+        {
+            // horizontal air control
+            const btScalar IN_AIR_ACCELERATION_TIMESCALE = 2.0f;
+            btScalar tau = dt / IN_AIR_ACCELERATION_TIMESCALE;
+            finalVelocity = tau * desiredHorizVelocity + (1.0f - tau) * actualHorizVelocity + actualVertVelocity;
+        }
+        break;
+    case State::Hover:
+        {
+            // vertical and horizontal air control
             const btScalar FLY_ACCELERATION_TIMESCALE = 0.2f;
             btScalar tau = dt / FLY_ACCELERATION_TIMESCALE;
-            if (!_isPushingUp) {
-                // actually falling --> compute a different velocity attenuation factor
-                const btScalar FALL_ACCELERATION_TIMESCALE = 2.0f;
-                tau = dt / FALL_ACCELERATION_TIMESCALE;
-                // zero vertical component
-                velocityCorrection -= velocityCorrection.dot(_currentUp) * _currentUp;
-            }
-            _rigidBody->setLinearVelocity(actualVelocity + tau * velocityCorrection);
+            finalVelocity = tau * desiredVelocity + (1.0f - tau) * actualVelocity;
         }
+        break;
     }
+
+    _rigidBody->setLinearVelocity(finalVelocity + _parentVelocity);
 
     // Dynamicaly compute a follow velocity to move this body toward the _followDesiredBodyTransform.
     // Rather then add this velocity to velocity the RigidBody, we explicitly teleport the RigidBody towards its goal.
     // This mirrors the computation done in MyAvatar::FollowHelper::postPhysicsUpdate().
-    // These two computations must be kept in sync.
+
     const float MINIMUM_TIME_REMAINING = 0.005f;
     const float MAX_DISPLACEMENT = 0.5f * _radius;
     _followTimeRemaining -= dt;
@@ -254,21 +253,7 @@ void CharacterController::playerStep(btCollisionWorld* dynaWorld, btScalar dt) {
 }
 
 void CharacterController::jump() {
-    // check for case where user is holding down "jump" key...
-    // we'll eventually tansition to "hover"
-    if (!_isJumping) {
-        if (!_isHovering) {
-            _jumpToHoverStart = usecTimestampNow();
-            _pendingFlags |= PENDING_FLAG_JUMP;
-        }
-    } else {
-        quint64 now = usecTimestampNow();
-        const quint64 JUMP_TO_HOVER_PERIOD = 75 * (USECS_PER_SECOND / 100);
-        if (now - _jumpToHoverStart > JUMP_TO_HOVER_PERIOD) {
-            _isPushingUp = true;
-            setHovering(true);
-        }
-    }
+    _pendingFlags |= PENDING_FLAG_JUMP;
 }
 
 bool CharacterController::onGround() const {
@@ -276,18 +261,44 @@ bool CharacterController::onGround() const {
     return _floorDistance < FLOOR_PROXIMITY_THRESHOLD || _hasSupport;
 }
 
-void CharacterController::setHovering(bool hover) {
-    if (hover != _isHovering) {
-        _isHovering = hover;
-        _isJumping = false;
+#ifdef DEBUG_STATE_CHANGE
+static const char* stateToStr(CharacterController::State state) {
+    switch (state) {
+    case CharacterController::State::Ground:
+        return "Ground";
+    case CharacterController::State::Takeoff:
+        return "Takeoff";
+    case CharacterController::State::InAir:
+        return "InAir";
+    case CharacterController::State::Hover:
+        return "Hover";
+    default:
+        return "Unknown";
+    }
+}
+#endif // #ifdef DEBUG_STATE_CHANGE
 
-        if (_rigidBody) {
-            if (hover) {
+#ifdef DEBUG_STATE_CHANGE
+void CharacterController::setState(State desiredState, const char* reason) {
+#else
+void CharacterController::setState(State desiredState) {
+#endif
+    if (desiredState != _state) {
+#ifdef DEBUG_STATE_CHANGE
+        qCDebug(physics) << "CharacterController::setState" << stateToStr(desiredState) << "from" << stateToStr(_state) << "," << reason;
+#endif
+        if (desiredState == State::Hover && _state != State::Hover) {
+            // hover enter
+            if (_rigidBody) {
                 _rigidBody->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-            } else {
+            }
+        } else if (_state == State::Hover && desiredState != State::Hover) {
+            // hover exit
+            if (_rigidBody) {
                 _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
             }
         }
+        _state = desiredState;
     }
 }
 
@@ -335,9 +346,8 @@ void CharacterController::setEnabled(bool enabled) {
                 _pendingFlags |= PENDING_FLAG_REMOVE_FROM_SIMULATION;
             }
             _pendingFlags &= ~ PENDING_FLAG_ADD_TO_SIMULATION;
-            _isOnGround = false;
         }
-        setHovering(true);
+        SET_STATE(State::Hover, "setEnabled");
         _enabled = enabled;
     }
 }
@@ -345,7 +355,7 @@ void CharacterController::setEnabled(bool enabled) {
 void CharacterController::updateUpAxis(const glm::quat& rotation) {
     btVector3 oldUp = _currentUp;
     _currentUp = quatRotate(glmToBullet(rotation), LOCAL_UP_AXIS);
-    if (!_isHovering) {
+    if (_state != State::Hover) {
         const btScalar MIN_UP_ERROR = 0.01f;
         if (oldUp.distance(_currentUp) > MIN_UP_ERROR) {
             _rigidBody->setGravity(DEFAULT_CHARACTER_GRAVITY * _currentUp);
@@ -373,8 +383,11 @@ void CharacterController::getPositionAndOrientation(glm::vec3& position, glm::qu
 }
 
 void CharacterController::setTargetVelocity(const glm::vec3& velocity) {
-    //_walkVelocity = glmToBullet(_avatarData->getTargetVelocity());
-    _walkVelocity = glmToBullet(velocity);
+    _targetVelocity = glmToBullet(velocity);
+}
+
+void CharacterController::setParentVelocity(const glm::vec3& velocity) {
+    _parentVelocity = glmToBullet(velocity);
 }
 
 void CharacterController::setFollowParameters(const glm::mat4& desiredWorldBodyMatrix, float timeRemaining) {
@@ -408,8 +421,14 @@ glm::vec3 CharacterController::getLinearVelocity() const {
 
 void CharacterController::preSimulation() {
     if (_enabled && _dynamicsWorld) {
+        quint64 now = usecTimestampNow();
+
         // slam body to where it is supposed to be
         _rigidBody->setWorldTransform(_characterBodyTransform);
+        btVector3 velocity = _rigidBody->getLinearVelocity();
+
+        btVector3 actualVertVelocity = velocity.dot(_currentUp) * _currentUp;
+        btVector3 actualHorizVelocity = velocity - actualVertVelocity;
 
         // scan for distant floor
         // rayStart is at center of bottom sphere
@@ -419,37 +438,82 @@ void CharacterController::preSimulation() {
         btScalar rayLength = _radius + MAX_FALL_HEIGHT;
         btVector3 rayEnd = rayStart - rayLength * _currentUp;
 
+        const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
+        const quint64 TAKE_OFF_TO_IN_AIR_PERIOD = 250 * MSECS_PER_SECOND;
+        const btScalar MIN_HOVER_HEIGHT = 2.5f;
+        const quint64 JUMP_TO_HOVER_PERIOD = 1100 * MSECS_PER_SECOND;
+        const btScalar MAX_WALKING_SPEED = 2.5f;
+        const quint64 RAY_HIT_START_PERIOD = 500 * MSECS_PER_SECOND;
+
         ClosestNotMe rayCallback(_rigidBody);
         rayCallback.m_closestHitFraction = 1.0f;
         _dynamicsWorld->rayTest(rayStart, rayEnd, rayCallback);
-        if (rayCallback.hasHit()) {
+        bool rayHasHit = rayCallback.hasHit();
+        if (rayHasHit) {
+            _rayHitStartTime = now;
             _floorDistance = rayLength * rayCallback.m_closestHitFraction - _radius;
-            const btScalar MIN_HOVER_HEIGHT = 3.0f;
-            if (_isHovering && _floorDistance < MIN_HOVER_HEIGHT && !_isPushingUp) {
-                setHovering(false);
-            }
-            // TODO: use collision events rather than ray-trace test to disable jumping
-            const btScalar JUMP_PROXIMITY_THRESHOLD = 0.1f * _radius;
-            if (_floorDistance < JUMP_PROXIMITY_THRESHOLD) {
-                _isJumping = false;
-            }
-        } else if (!_hasSupport) {
+        } else if ((now - _rayHitStartTime) < RAY_HIT_START_PERIOD) {
+            rayHasHit = true;
+        } else {
             _floorDistance = FLT_MAX;
-            setHovering(true);
         }
 
-        if (_pendingFlags & PENDING_FLAG_JUMP) {
-            _pendingFlags &= ~ PENDING_FLAG_JUMP;
-            if (onGround()) {
-                _isJumping = true;
-                btVector3 velocity = _rigidBody->getLinearVelocity();
+        // record a time stamp when the jump button was first pressed.
+        if ((_previousFlags & PENDING_FLAG_JUMP) != (_pendingFlags & PENDING_FLAG_JUMP)) {
+            if (_pendingFlags & PENDING_FLAG_JUMP) {
+                _jumpButtonDownStartTime = now;
+                _jumpButtonDownCount++;
+            }
+        }
+
+        bool jumpButtonHeld = _pendingFlags & PENDING_FLAG_JUMP;
+        bool flyingFast = _state == State::Hover && actualHorizVelocity.length() > (MAX_WALKING_SPEED * 0.75f);
+
+        switch (_state) {
+        case State::Ground:
+            if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground detected");
+            } else if (_pendingFlags & PENDING_FLAG_JUMP && _jumpButtonDownCount != _takeoffJumpButtonID) {
+                _takeoffJumpButtonID = _jumpButtonDownCount;
+                _takeoffToInAirStartTime = now;
+                SET_STATE(State::Takeoff, "jump pressed");
+            } else if (rayHasHit && !_hasSupport && _floorDistance > JUMP_PROXIMITY_THRESHOLD) {
+                SET_STATE(State::InAir, "falling");
+            }
+            break;
+        case State::Takeoff:
+            if (!rayHasHit && !_hasSupport) {
+                SET_STATE(State::Hover, "no ground");
+            } else if ((now - _takeoffToInAirStartTime) > TAKE_OFF_TO_IN_AIR_PERIOD) {
+                SET_STATE(State::InAir, "takeoff done");
                 velocity += _jumpSpeed * _currentUp;
                 _rigidBody->setLinearVelocity(velocity);
             }
+            break;
+        case State::InAir: {
+            if ((velocity.dot(_currentUp) <= (JUMP_SPEED / 2.0f)) && ((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport)) {
+                SET_STATE(State::Ground, "hit ground");
+            } else if (jumpButtonHeld && (_takeoffJumpButtonID != _jumpButtonDownCount)) {
+                SET_STATE(State::Hover, "double jump button");
+            } else if (jumpButtonHeld && (now - _jumpButtonDownStartTime) > JUMP_TO_HOVER_PERIOD) {
+                SET_STATE(State::Hover, "jump button held");
+            }
+            break;
+        }
+        case State::Hover:
+            if ((_floorDistance < MIN_HOVER_HEIGHT) && !jumpButtonHeld && !flyingFast) {
+                SET_STATE(State::InAir, "near ground");
+            } else if (((_floorDistance < JUMP_PROXIMITY_THRESHOLD) || _hasSupport) && !flyingFast) {
+                SET_STATE(State::Ground, "touching ground");
+            }
+            break;
         }
     }
-    _followTime = 0.0f;
 
+    _previousFlags = _pendingFlags;
+    _pendingFlags &= ~PENDING_FLAG_JUMP;
+
+    _followTime = 0.0f;
     _followLinearDisplacement = btVector3(0, 0, 0);
     _followAngularDisplacement = btQuaternion::getIdentity();
 }

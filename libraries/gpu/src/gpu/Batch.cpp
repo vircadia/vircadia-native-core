@@ -29,20 +29,6 @@ ProfileRangeBatch::~ProfileRangeBatch() {
 
 using namespace gpu;
 
-Batch::Batch() :
-    _commands(),
-    _commandOffsets(),
-    _params(),
-    _data(),
-    _buffers(),
-    _textures(),
-    _streamFormats(),
-    _transforms(),
-    _pipelines(),
-    _framebuffers()
-{
-}
-
 Batch::Batch(const CacheState& cacheState) : Batch() {
     _commands.reserve(cacheState.commandsSize);
     _commandOffsets.reserve(cacheState.offsetsSize);
@@ -88,6 +74,8 @@ void Batch::draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex
     _params.push_back(startVertex);
     _params.push_back(numVertices);
     _params.push_back(primitiveType);
+
+    captureDrawCallInfo();
 }
 
 void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 startIndex) {
@@ -96,6 +84,8 @@ void Batch::drawIndexed(Primitive primitiveType, uint32 numIndices, uint32 start
     _params.push_back(startIndex);
     _params.push_back(numIndices);
     _params.push_back(primitiveType);
+
+    captureDrawCallInfo();
 }
 
 void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 numVertices, uint32 startVertex, uint32 startInstance) {
@@ -106,6 +96,8 @@ void Batch::drawInstanced(uint32 numInstances, Primitive primitiveType, uint32 n
     _params.push_back(numVertices);
     _params.push_back(primitiveType);
     _params.push_back(numInstances);
+
+    captureDrawCallInfo();
 }
 
 void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, uint32 numIndices, uint32 startIndex, uint32 startInstance) {
@@ -116,6 +108,8 @@ void Batch::drawIndexedInstanced(uint32 numInstances, Primitive primitiveType, u
     _params.push_back(numIndices);
     _params.push_back(primitiveType);
     _params.push_back(numInstances);
+
+    captureDrawCallInfo();
 }
 
 
@@ -123,12 +117,16 @@ void Batch::multiDrawIndirect(uint32 numCommands, Primitive primitiveType) {
     ADD_COMMAND(multiDrawIndirect);
     _params.push_back(numCommands);
     _params.push_back(primitiveType);
+
+    captureDrawCallInfo();
 }
 
 void Batch::multiDrawIndexedIndirect(uint32 nbCommands, Primitive primitiveType) {
     ADD_COMMAND(multiDrawIndexedIndirect);
     _params.push_back(nbCommands);
     _params.push_back(primitiveType);
+
+    captureDrawCallInfo();
 }
 
 void Batch::setInputFormat(const Stream::FormatPointer& format) {
@@ -185,7 +183,8 @@ void Batch::setIndirectBuffer(const BufferPointer& buffer, Offset offset, Offset
 void Batch::setModelTransform(const Transform& model) {
     ADD_COMMAND(setModelTransform);
 
-    _params.push_back(_transforms.cache(model));
+    _currentModel = model;
+    _invalidModel = true;
 }
 
 void Batch::setViewTransform(const Transform& view) {
@@ -344,6 +343,19 @@ void Batch::runLambda(std::function<void()> f) {
     _params.push_back(_lambdas.cache(f));
 }
 
+void Batch::startNamedCall(const std::string& name) {
+    ADD_COMMAND(startNamedCall);
+    _params.push_back(_names.cache(name));
+    
+    _currentNamedCall = name;
+}
+
+void Batch::stopNamedCall() {
+    ADD_COMMAND(stopNamedCall);
+
+    _currentNamedCall.clear();
+}
+
 void Batch::enableStereo(bool enable) {
     _enableStereo = enable;
 }
@@ -360,14 +372,13 @@ bool Batch::isSkyboxEnabled() const {
     return _enableSkybox;
 }
 
-void Batch::setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function) {
-    NamedBatchData& instance = _namedData[instanceName];
-    instance.count += count;
-    instance.function = function;
-}
-
 void Batch::setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function) {
-    setupNamedCalls(instanceName, 1, function);
+    NamedBatchData& instance = _namedData[instanceName];
+    if (!instance.function) {
+        instance.function = function;
+    }
+
+    captureNamedDrawCallInfo(instanceName);
 }
 
 BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t index) {
@@ -376,16 +387,74 @@ BufferPointer Batch::getNamedBuffer(const std::string& instanceName, uint8_t ind
         instance.buffers.resize(index + 1);
     }
     if (!instance.buffers[index]) {
-        instance.buffers[index].reset(new Buffer());
+        instance.buffers[index] = std::make_shared<Buffer>();
     }
     return instance.buffers[index];
 }
 
+Batch::DrawCallInfoBuffer& Batch::getDrawCallInfoBuffer() {
+    if (_currentNamedCall.empty()) {
+        return _drawCallInfos;
+    } else {
+        return _namedData[_currentNamedCall].drawCallInfos;
+    }
+}
+
+const Batch::DrawCallInfoBuffer& Batch::getDrawCallInfoBuffer() const {
+    if (_currentNamedCall.empty()) {
+        return _drawCallInfos;
+    } else {
+        auto it = _namedData.find(_currentNamedCall);
+        Q_ASSERT_X(it != _namedData.end(), Q_FUNC_INFO, (_currentNamedCall + " not in _namedData.").data());
+        return it->second.drawCallInfos;
+    }
+}
+
+void Batch::captureDrawCallInfoImpl() {
+    if (_invalidModel) {
+        TransformObject object;
+        _currentModel.getMatrix(object._model);
+
+        // FIXME - we don't want to be using glm::inverse() here but it fixes the flickering issue we are 
+        // seeing with planky blocks in toybox. Our implementation of getInverseMatrix() is buggy in cases
+        // of non-uniform scale. We need to fix that. In the mean time, glm::inverse() works.
+        //_model.getInverseMatrix(_object._modelInverse);
+        object._modelInverse = glm::inverse(object._model);
+
+        _objects.push_back(object);
+
+        // Flag is clean
+        _invalidModel = false;
+    }
+
+    auto& drawCallInfos = getDrawCallInfoBuffer();
+    drawCallInfos.push_back((uint16)_objects.size() - 1);
+}
+
+void Batch::captureDrawCallInfo() {
+    if (!_currentNamedCall.empty()) {
+        // If we are processing a named call, we don't want to register the raw draw calls
+        return;
+    }
+
+    captureDrawCallInfoImpl();
+}
+
+void Batch::captureNamedDrawCallInfo(std::string name) {
+    std::swap(_currentNamedCall, name); // Set and save _currentNamedCall
+    captureDrawCallInfoImpl();
+    std::swap(_currentNamedCall, name); // Restore _currentNamedCall
+}
+
 void Batch::preExecute() {
     for (auto& mapItem : _namedData) {
-        mapItem.second.process(*this);
+        auto& name = mapItem.first;
+        auto& instance = mapItem.second;
+
+        startNamedCall(name);
+        instance.process(*this);
+        stopNamedCall();
     }
-    _namedData.clear();
 }
 
 QDebug& operator<<(QDebug& debug, const Batch::CacheState& cacheState) {

@@ -250,6 +250,11 @@ Menu::Menu() {
     // View > Mini Mirror
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
+    // View > Center Player In View
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
+        0, true, qApp, SLOT(rotationModeChanged()),
+        UNSPECIFIED_POSITION, "Advanced");
+
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
@@ -305,6 +310,12 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
+    });
+
+    // Settings > Graphics...
+    action = addActionToQMenuAndActionHash(settingsMenu, "Graphics...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"), "GraphicsPreferencesDialog");
     });
 
     // Settings > LOD...-- FIXME: needs implementation
@@ -636,11 +647,6 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
                 NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
-                                           0, false, qApp, SLOT(rotationModeChanged()),
-                                           UNSPECIFIED_POSITION, "Advanced");
-
 #endif
 }
 

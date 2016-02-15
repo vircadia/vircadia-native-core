@@ -25,6 +25,7 @@ public:
     virtual ~Web3DOverlay();
 
     virtual void render(RenderArgs* args);
+    virtual const render::ShapeKey getShapeKey() override;
 
     virtual void update(float deltatime);
 

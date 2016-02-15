@@ -101,9 +101,16 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transform);
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, true, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+}
+
+const render::ShapeKey Web3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 void Web3DOverlay::setProperties(const QScriptValue &properties) {

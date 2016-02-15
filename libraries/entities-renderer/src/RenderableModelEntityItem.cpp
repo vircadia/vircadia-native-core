@@ -412,7 +412,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
 
-                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
                 if ((movingOrAnimating ||
                      _needsInitialSimulation ||
                      _model->getTranslation() != getPosition() ||
@@ -440,8 +440,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         bool success;
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
-            batch.setModelTransform(Transform()); // we want to include the scale as well
-            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
         }
     }
 }

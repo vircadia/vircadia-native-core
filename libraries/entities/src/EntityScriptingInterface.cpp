@@ -8,7 +8,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 #include "EntityScriptingInterface.h"
 
 #include "EntityItemID.h"
@@ -25,11 +24,12 @@
 #include "ZoneEntityItem.h"
 
 
-EntityScriptingInterface::EntityScriptingInterface() :
-    _entityTree(NULL)
+EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership) :
+    _entityTree(NULL),
+    _bidOnSimulationOwnership(bidOnSimulationOwnership)
 {
     auto nodeList = DependencyManager::get<NodeList>();
-    connect(nodeList.data(), &NodeList::canAdjustLocksChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
+    connect(nodeList.data(), &NodeList::isAllowedEditorChanged, this, &EntityScriptingInterface::canAdjustLocksChanged);
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
 }
 
@@ -40,7 +40,7 @@ void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
 
 bool EntityScriptingInterface::canAdjustLocks() {
     auto nodeList = DependencyManager::get<NodeList>();
-    return nodeList->getThisNodeCanAdjustLocks();
+    return nodeList->isAllowedEditor();
 }
 
 bool EntityScriptingInterface::canRez() {
@@ -81,6 +81,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
+    // TODO -- handle velocity and angularVelocity
+
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
 
@@ -93,6 +95,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
     bool success;
+
+    // TODO -- handle velocity and angularVelocity
 
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
@@ -122,6 +126,20 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     EntityItemProperties propertiesWithSimID = convertLocationFromScriptSemantics(properties);
     propertiesWithSimID.setDimensionsInitialized(properties.dimensionsChanged());
 
+    auto dimensions = propertiesWithSimID.getDimensions();
+    float volume = dimensions.x * dimensions.y * dimensions.z;
+    auto density = propertiesWithSimID.getDensity();
+    auto newVelocity = propertiesWithSimID.getVelocity().length();
+    float cost = calculateCost(density * volume, 0, newVelocity);
+    cost *= costMultiplier;
+
+    if(cost > _currentAvatarEnergy) {
+        return QUuid();
+    } else {
+        //debit the avatar energy and continue
+        emit debitEnergySource(cost);
+    }
+
     EntityItemID id = EntityItemID(QUuid::createUuid());
 
     // If we have a local entity tree set, then also update it.
@@ -130,17 +148,20 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
             if (entity) {
-                // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
-                auto nodeList = DependencyManager::get<NodeList>();
-                const QUuid myNodeID = nodeList->getSessionUUID();
-                propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
                 if (propertiesWithSimID.parentRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
                     propertiesWithSimID.setQueryAACube(entity->getQueryAACube());
                 }
 
-                // and make note of it now, so we can act on it right away.
-                entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                if (_bidOnSimulationOwnership) {
+                    // This Node is creating a new object.  If it's in motion, set this Node as the simulator.
+                    auto nodeList = DependencyManager::get<NodeList>();
+                    const QUuid myNodeID = nodeList->getSessionUUID();
+
+                    // and make note of it now, so we can act on it right away.
+                    propertiesWithSimID.setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                    entity->setSimulationOwner(myNodeID, SCRIPT_EDIT_SIMULATION_PRIORITY);
+                }
 
                 entity->setLastBroadcast(usecTimestampNow());
             } else {
@@ -211,9 +232,28 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
+    
+    auto dimensions = properties.getDimensions();
+    float volume = dimensions.x * dimensions.y * dimensions.z;
+    auto density = properties.getDensity();
+    auto newVelocity = properties.getVelocity().length();
+    float oldVelocity = { 0.0f };
+
     EntityItemID entityID(id);
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
+        
+        //if there is no local entity entity tree, no existing velocity, use 0.
+        float cost = calculateCost(density * volume, oldVelocity, newVelocity);
+        cost *= costMultiplier;
+        
+        if(cost > _currentAvatarEnergy) {
+            return QUuid();
+        } else {
+            //debit the avatar energy and continue
+            emit debitEnergySource(cost);
+        }
+        
         return id;
     }
     // If we have a local entity tree set, then also update it.
@@ -227,6 +267,9 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             if (!entity) {
                 return;
             }
+            //existing entity, retrieve old velocity for check down below
+            oldVelocity = entity->getVelocity().length();            
+            
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             }
@@ -242,6 +285,16 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
         }
         properties = convertLocationFromScriptSemantics(properties);
         updatedEntity = _entityTree->updateEntity(entityID, properties);
+
+        float cost = calculateCost(density * volume, oldVelocity, newVelocity);
+        cost *= costMultiplier;
+        
+        if(cost > _currentAvatarEnergy) {
+            updatedEntity = false;
+        } else {
+            //debit the avatar energy and continue
+            emit debitEnergySource(cost);
+        }
     });
 
     if (!updatedEntity) {
@@ -255,7 +308,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             properties.setType(entity->getType());
             bool hasTerseUpdateChanges = properties.hasTerseUpdateChanges();
             bool hasPhysicsChanges = properties.hasMiscPhysicsChanges() || hasTerseUpdateChanges;
-            if (hasPhysicsChanges) {
+            if (_bidOnSimulationOwnership && hasPhysicsChanges) {
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
 
@@ -296,6 +349,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                         EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
+                        newQueryCubeProperties.setLastEdited(properties.getLastEdited());
                         queueEntityMessage(PacketType::EntityEdit, descendant->getID(), newQueryCubeProperties);
                         entityDescendant->setLastBroadcast(usecTimestampNow());
                     }
@@ -316,6 +370,21 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
+                
+                auto dimensions = entity->getDimensions();
+                float volume = dimensions.x * dimensions.y * dimensions.z;
+                auto density = entity->getDensity();
+                auto velocity = entity->getVelocity().length();
+                float cost = calculateCost(density * volume, velocity, 0);
+                cost *= costMultiplier;
+                
+                if(cost > _currentAvatarEnergy) {
+                    return;
+                } else {
+                    //debit the avatar energy and continue
+                    emit debitEnergySource(cost);
+                }
+
                 if (entity->getLocked()) {
                     shouldDelete = false;
                 } else {
@@ -991,4 +1060,21 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
     QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
     return result;
+}
+
+float EntityScriptingInterface::calculateCost(float mass, float oldVelocity, float newVelocity) {
+    return std::abs(mass * (newVelocity - oldVelocity));
+}
+
+void EntityScriptingInterface::setCurrentAvatarEnergy(float energy) {
+  //  qCDebug(entities) << "NEW AVATAR ENERGY IN ENTITY SCRIPTING INTERFACE: " << energy;
+    _currentAvatarEnergy = energy;
+}
+
+float EntityScriptingInterface::getCostMultiplier() {
+    return costMultiplier;
+}
+
+void EntityScriptingInterface::setCostMultiplier(float value) {
+    costMultiplier = value;
 }

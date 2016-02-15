@@ -49,8 +49,11 @@ QString QmlWebWindowClass::getURL() const {
     return result.toString();
 }
 
+// HACK find a good place to declare and store this
+extern QString fixupHifiUrl(const QString& urlString);
+
 void QmlWebWindowClass::setURL(const QString& urlString) {
     DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        _qmlWindow->setProperty(URL_PROPERTY, urlString);
+        _qmlWindow->setProperty(URL_PROPERTY, fixupHifiUrl(urlString));
     });
 }

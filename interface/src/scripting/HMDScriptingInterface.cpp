@@ -20,15 +20,39 @@
 HMDScriptingInterface::HMDScriptingInterface() {
 }
 
+glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
+    glm::vec3 result;
+    qApp->getApplicationCompositor().calculateRayUICollisionPoint(position, direction, result);
+    return result;
+}
+
+glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position) const {
+    return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
+}
+
+glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().sphericalToOverlay(position);
+}
+
+glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().overlayToSpherical(position);
+}
+
+glm::vec2 HMDScriptingInterface::screenToOverlay(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().screenToOverlay(position);
+}
+
+glm::vec2 HMDScriptingInterface::overlayToScreen(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().overlayToScreen(position);
+}
+
+
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
     if (instance->getHUDLookAtPosition3D(hudIntersection)) {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::vec3 sphereCenter = myAvatar->getDefaultEyePosition();
-        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * (hudIntersection - sphereCenter);
-        glm::vec2 polar = glm::vec2(glm::atan(direction.x, -direction.z), glm::asin(direction.y)) * -1.0f;
-        auto overlayPos = qApp->getApplicationCompositor().sphericalToOverlay(polar);
+        glm::vec2 overlayPos = qApp->getApplicationCompositor().overlayFromSphereSurface(hudIntersection);
         return qScriptValueFromValue<glm::vec2>(engine, overlayPos);
     }
     return QScriptValue::NullValue;

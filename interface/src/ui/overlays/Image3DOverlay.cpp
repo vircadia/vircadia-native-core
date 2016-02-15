@@ -95,13 +95,23 @@ void Image3DOverlay::render(RenderArgs* args) {
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
 
-    DependencyManager::get<GeometryCache>()->bindSimpleProgram(*batch, true, false, _emissive, true);
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
     );
 
     batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+}
+
+const render::ShapeKey Image3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    if (_emissive) {
+        builder.withEmissive();
+    }
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 void Image3DOverlay::setProperties(const QScriptValue &properties) {

@@ -39,16 +39,30 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
-        batch->setModelTransform(Transform());
-
         Transform transform = _transform;
         transform.postScale(getDimensions() * SPHERE_OVERLAY_SCALE);
+        batch->setModelTransform(transform);
+
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = args->_pipeline;
+        if (!pipeline) {
+            pipeline = geometryCache->getShapePipeline();
+        }
+
         if (_isSolid) {
-            DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(*batch, transform, sphereColor);
+            geometryCache->renderSolidSphereInstance(*batch, sphereColor, pipeline);
         } else {
-            DependencyManager::get<GeometryCache>()->renderWireSphereInstance(*batch, transform, sphereColor);
+            geometryCache->renderWireSphereInstance(*batch, sphereColor, pipeline);
         }
     }
+}
+
+const render::ShapeKey Sphere3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 Sphere3DOverlay* Sphere3DOverlay::createClone() const {

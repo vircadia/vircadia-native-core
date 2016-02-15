@@ -54,6 +54,7 @@ public:
         Spinner,
         Checkbox,
         Button,
+        ComboBox,
         // Special casing for an unusual preference
         Avatar
     };
@@ -234,6 +235,22 @@ public:
 
 protected:
     QString _placeholderText;
+};
+
+class ComboBoxPreference : public EditPreference {
+    Q_OBJECT
+    Q_PROPERTY(QStringList items READ getItems CONSTANT)
+
+public:
+    ComboBoxPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : EditPreference(category, name, getter, setter) { }
+    Type getType() { return ComboBox; }
+ 
+    const QStringList& getItems() { return _items; }
+    void setItems(const QStringList& items) { _items = items; }
+
+protected:
+    QStringList _items;
 };
 
 class BrowsePreference : public EditPreference {

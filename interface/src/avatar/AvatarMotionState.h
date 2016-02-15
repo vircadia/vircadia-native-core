@@ -61,7 +61,7 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
-    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     friend class AvatarManager;
     friend class Avatar;
@@ -72,7 +72,7 @@ protected:
     ~AvatarMotionState();
 
     virtual bool isReadyToComputeShape() const override { return true; }
-    virtual btCollisionShape* computeNewShape();
+    virtual btCollisionShape* computeNewShape() override;
 
     // The AvatarMotionState keeps a RAW backpointer to its Avatar because all AvatarMotionState
     // instances are "owned" by their corresponding Avatar instance and are deleted in the Avatar dtor.

@@ -28,7 +28,7 @@ public:
 
     // Device functions
     virtual Input::NamedVector getAvailableInputs() const override;
-    virtual void update(float deltaTime, bool jointsCaptured) override;
+    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
     StateController();
