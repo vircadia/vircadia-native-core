@@ -32,6 +32,14 @@
             // Need to raise up cactus as it stretches so it doesnt burst out the bottom of the plant
             _this.cactusPosition = Vec3.sum(_this.cactusPosition, {x: 0, y: _this.cactusHeightMovement, z: 0});
             Entities.editEntity(_this.cactus, {dimensions: _this.cactusDimensions, position: _this.cactusPosition});
+
+            _this.flowers.forEach(_this.waterFlower)
+        },
+
+        waterFlower: function(flower) {
+            var props = Entities.getEntityProperties(flower, ["position, dimensions"]);
+            var newDimensions = Vec3.sum(props.dimensions, {x: 0, y: 0.01, z: 0});
+            Entities.editEntity(flower, {dimensions: newDimensions});
         },
 
         createFlowers: function() {
@@ -88,12 +96,8 @@
                 modelURL: MODEL_URL,
                 position: _this.cactusPosition,
                 dimensions: _this.cactusDimensions
-            });
-
-   
-     
+            });     
         },
-
 
         preload: function(entityID) {
             print("EBL PRELOAD");

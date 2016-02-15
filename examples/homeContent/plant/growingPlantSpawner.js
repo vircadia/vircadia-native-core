@@ -14,7 +14,7 @@ var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
 
 var pot, hose;
 initializePlant();
