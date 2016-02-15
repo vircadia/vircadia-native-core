@@ -151,7 +151,7 @@ Fadable {
                     implicitWidth: 8
                     Rectangle {
                         radius: 4
-                        color: hifi.colors.lightGrayText
+                        color: hifi.colors.white30
                         anchors {
                             fill: parent
                             leftMargin: 2
@@ -164,7 +164,7 @@ Fadable {
                 scrollBarBackground: Item {
                     implicitWidth: 10
                     Rectangle {
-                        color: hifi.colors.baseGrayHighlight
+                        color: hifi.colors.darkGray30
                         radius: 4
                         anchors {
                             fill: parent

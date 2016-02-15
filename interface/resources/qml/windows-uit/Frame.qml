@@ -124,8 +124,7 @@ Item {
             y: -3  // ""
             text: "A"
             size: iconSize + 4
-            color: sizeDrag.containsMouse || !(window && window.focus) ? hifi.colors.white : hifi.colors.lightGray
+            color: sizeDrag.containsMouse || sizeDrag.pressed ? hifi.colors.white : hifi.colors.white50
         }
     }
-
 }
