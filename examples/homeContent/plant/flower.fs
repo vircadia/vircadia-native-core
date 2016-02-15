@@ -3,6 +3,8 @@
 #define TWO_PI 6.28318530718
 
 uniform float iBloomPct = 0.2;
+uniform float hueTwerking = 10.0;
+
 
 vec3 hsb2rgb( in vec3 c ){
     vec3 rgb = clamp(abs(mod(c.x*6.0+vec3(0.0,4.0,2.0),
@@ -29,8 +31,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
 
     // simulate ambient occlusion
     float brightness = pow(radius, 0.7);
-    float hueOffset = sin(iGlobalTime * .07);
-    color = hsb2rgb(vec3( abs(angle/20) + hueOffset, 0.8, brightness));
+    float hueOffset = sin(iGlobalTime * 0.07) + hueTwerking;
+    color = hsb2rgb(vec3( abs(angle/hueTwerking) + hueOffset, 0.8, brightness));
   
 
     fragColor = vec4(color, 1.0);

@@ -20,6 +20,7 @@
     GrowingPlant = function() {
         _this = this;
         _this.flowers = [];
+        _this.delay = 10000;
     };
 
     GrowingPlant.prototype = {
@@ -41,16 +42,18 @@
 
 
         createFlower: function(position) {
+            var size = randFloat(0.1, 0.2);
             var startingFlowerDimensions = {
-                x: 0.2,
+                x: size,
                 y: 0.001,
-                z: 0.2
+                z: size
             };
             var flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
                     uniforms: {
-                        iBloomPct: 0.5
+                        iBloomPct: randFloat(0.4, 0.7),
+                        hueTwerking: randFloat(10, 30)
                     }
                 }
             };
@@ -75,9 +78,9 @@
             };
 
             var bloomTween = new TWEEN.Tween(curProps).
-            to(endProps, 3000).
+            to(endProps, randInt(4000, 6000)).
             easing(TWEEN.Easing.Cubic.InOut).
-            delay(randInt(1000, 5000)).
+            delay(randInt(_this.delay, _this.delay + 3000)).
             onUpdate(function() {
                 // flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
                 Entities.editEntity(flower, {
@@ -121,7 +124,9 @@
             };
 
             var growTween = new TWEEN.Tween(curProps).
-            to(endProps, 2000).
+            to(endProps, 5000).
+            easing(TWEEN.Easing.Cubic.InOut).
+            delay(_this.delay).
             onUpdate(function() {
                 Entities.editEntity(_this.cactus, {
                     dimensions: {
