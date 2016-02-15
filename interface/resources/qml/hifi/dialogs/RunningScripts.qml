@@ -79,7 +79,7 @@ Window {
         scripts.stopAllScripts();
     }
 
-    Rectangle {
+    //Item {
 
         Column {
 
@@ -281,6 +281,6 @@ Window {
                 onClicked: root.loadScript(selectedScript.text)
             }
         }
-    }
+    //}
 }
 

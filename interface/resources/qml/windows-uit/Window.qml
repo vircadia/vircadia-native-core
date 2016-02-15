@@ -10,6 +10,7 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 import QtGraphicalEffects 1.0
 
 import "."
@@ -116,22 +117,71 @@ Fadable {
         onWheel: {}
     }
 
-
     // Default to a standard frame.  Can be overriden to provide custom
     // frame styles, like a full desktop frame to simulate a modal window
     property var frame: DefaultFrame { }
 
     // Scrollable window content.
-    property var scroller: Rectangle {
+    property var scroller: Item {
         id: windowContent
         anchors.fill: parent
-        color: hifi.colors.baseGray
+
+        Rectangle {
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                bottom: parent.bottom
+                rightMargin: theScrollView.height < theScrollView.contentItem.height ? 21 : 0
+            }
+            color: hifi.colors.baseGray
+        }
 
         ScrollView {
-            anchors.fill: parent
+            id: theScrollView
             contentItem: content
             horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
             verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+            anchors.fill: parent
+            anchors.rightMargin: height < contentItem.height ? 4 : 0
+
+            style: ScrollViewStyle {
+
+                handle: Item {
+                    implicitWidth: 8
+                    Rectangle {
+                        radius: 4
+                        color: hifi.colors.lightGrayText
+                        anchors {
+                            fill: parent
+                            leftMargin: 2
+                            topMargin: 1
+                            bottomMargin: 1
+                        }
+                    }
+                }
+
+                scrollBarBackground: Item {
+                    implicitWidth: 10
+                    Rectangle {
+                        color: hifi.colors.baseGrayHighlight
+                        radius: 4
+                        anchors {
+                            fill: parent
+                            topMargin: -1
+                            bottomMargin: -2
+                        }
+                    }
+                }
+
+                incrementControl: Item {
+                    visible: false
+                }
+
+                decrementControl: Item {
+                    visible: false
+                }
+            }
         }
     }
 
@@ -185,7 +235,6 @@ Fadable {
                        window.height - frame.decoration.anchors.topMargin - frame.decoration.anchors.bottomMargin)
     }
 
-
     Keys.onPressed: {
         switch(event.key) {
             case Qt.Key_Control:
@@ -193,7 +242,6 @@ Fadable {
             case Qt.Key_Meta:
             case Qt.Key_Alt:
                 break;
-
 
             case Qt.Key_W:
                 if (window.closable && (event.modifiers === Qt.ControlModifier)) {
