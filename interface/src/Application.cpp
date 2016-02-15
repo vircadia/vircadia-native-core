@@ -210,6 +210,10 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
+static const unsigned int CAPPED_SIM_FRAMERATE = 60;
+static const int CAPPED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / CAPPED_SIM_FRAMERATE;
+
+static const uint32_t INVALID_FRAME = UINT32_MAX;
 
 static const float PHYSICS_READY_RANGE = 3.0f; // how far from avatar to check for entities that aren't ready for simulation
 
@@ -273,7 +277,8 @@ public:
 #endif
 
 enum CustomEventTypes {
-    Lambda = QEvent::User + 1
+    Lambda = QEvent::User + 1,
+    Paint = Lambda + 1,
 };
 
 class LambdaEvent : public QEvent {
@@ -984,6 +989,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
+    _idleTimer = new QTimer(this);
+    connect(_idleTimer, &QTimer::timeout, [=] {
+        idle(usecTimestampNow());
+    });
+    connect(this, &Application::beforeAboutToQuit, [=] {
+        disconnect(_idleTimer);
+    });
+    // Setting the interval to zero forces this to get called whenever there are no messages
+    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch 
+    // of logic to abort early if it's being called too often.
+    _idleTimer->start(0);
 }
 
 void Application::aboutToQuit() {
@@ -1297,9 +1313,6 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
-
-
-
     // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
@@ -1629,6 +1642,7 @@ void Application::paintGL() {
     // Store both values now for use by next cycle.
     _lastInstantaneousFps = instantaneousFps;
     _lastUnsynchronizedFps = 1.0f / (((usecTimestampNow() - now) / (float)USECS_PER_SECOND) + paintWaitAndQTTimerAllowance);
+    _pendingPaint = false;
 }
 
 void Application::runTests() {
@@ -1715,6 +1729,10 @@ bool Application::event(QEvent* event) {
     if ((int)event->type() == (int)Lambda) {
         ((LambdaEvent*)event)->call();
         return true;
+    }
+
+    if ((int)event->type() == (int)Paint) {
+        paintGL();
     }
 
     if (!_keyboardFocusedItem.isInvalidID()) {
@@ -2401,26 +2419,62 @@ bool Application::acceptSnapshot(const QString& urlString) {
     return true;
 }
 
+static uint32_t _renderedFrameIndex { INVALID_FRAME };
+
 void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
-
+    
+    auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
     // perpetuity and not expect events to get backed up.
-    bool isThrottled = getActiveDisplayPlugin()->isThrottled();
+    bool isThrottled = displayPlugin->isThrottled();
     //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
     // This attempts to lock the simulation at 60 updates per second, regardless of framerate
     float timeSinceLastUpdateUs = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_USEC;
     float secondsSinceLastUpdate = timeSinceLastUpdateUs / USECS_PER_SECOND;
 
     if (isThrottled && (timeSinceLastUpdateUs / USECS_PER_MSEC) < THROTTLED_SIM_FRAME_PERIOD_MS) {
+        // Throttling both rendering and idle
         return; // bail early, we're throttled and not enough time has elapsed
     }
 
-    _lastTimeUpdated.start();
+    auto presentCount = displayPlugin->presentCount();
+    if (presentCount < _renderedFrameIndex) {
+        _renderedFrameIndex = INVALID_FRAME;
+    }
 
+    // Nested ifs are for clarity in the logic.  Don't collapse them into a giant single if.
+    // Don't saturate the main thread with rendering, no paint calls until the last one is complete
+    if (!_pendingPaint) {
+        // Also no paint calls until the display plugin has increased by at least one frame 
+        // (don't render at 90fps if the display plugin only goes at 60)
+        if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
+            // Record what present frame we're on
+            _renderedFrameIndex = presentCount;
+            // Don't allow paint requests to stack up in the event queue
+            _pendingPaint = true;
+            // But when we DO request a paint, get to it as soon as possible: high priority
+            postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+        }
+    }  
+    
+    // For the rest of idle, we want to cap at the max sim rate, so we might not call 
+    // the remaining idle work every paint frame, or vice versa
+    // In theory this means we could call idle processing more often than painting,
+    // but in practice, when the paintGL calls aren't keeping up, there's no room left
+    // in the main thread to call idle more often than paint.
+    // This check is mostly to keep idle from burning up CPU cycles by running at 
+    // hundreds of idles per second when the rendering is that fast
+    if ((timeSinceLastUpdateUs / USECS_PER_MSEC) < CAPPED_SIM_FRAME_PERIOD_MS) {
+        // No paint this round, but might be time for a new idle, otherwise return
+        return;
+    }
+
+    // We're going to execute idle processing, so restart the last idle timer
+    _lastTimeUpdated.start();
 
     {
         PROFILE_RANGE(__FUNCTION__);
@@ -3071,13 +3125,18 @@ void Application::update(float deltaTime) {
 
     auto myAvatar = getMyAvatar();
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
-    userInputMapper->setSensorToWorldMat(myAvatar->getSensorToWorldMatrix());
     userInputMapper->update(deltaTime);
+
+    controller::InputCalibrationData calibrationData = {
+        myAvatar->getSensorToWorldMatrix(),
+        createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition()),
+        myAvatar->getHMDSensorMatrix()
+    };
 
     bool jointsCaptured = false;
     for (auto inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isActive()) {
-            inputPlugin->pluginUpdate(deltaTime, jointsCaptured);
+            inputPlugin->pluginUpdate(deltaTime, calibrationData, jointsCaptured);
             if (inputPlugin->isJointController()) {
                 jointsCaptured = true;
             }
@@ -4777,17 +4836,9 @@ void Application::updateDisplayMode() {
 
         foreach(auto displayPlugin, standard) {
             addDisplayPluginToMenu(displayPlugin, first);
-            // This must be a queued connection to avoid a deadlock
-            QObject::connect(displayPlugin.get(), &DisplayPlugin::requestRender, [=] {
-                postEvent(this, new LambdaEvent([=] {
-                    paintGL(); 
-                }), Qt::HighEventPriority);
-            });
-
             QObject::connect(displayPlugin.get(), &DisplayPlugin::recommendedFramebufferSizeChanged, [this](const QSize & size) {
                 resizeGL();
             });
-
             first = false;
         }
 
@@ -4979,17 +5030,11 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
     // of this palm manipulation in the Hand class itself. But unfortunately the Hand and Palm don't knbow about
     // controller::Pose. More work is needed to clean this up.
     hand->modifyPalm(whichHand, [&](PalmData& palm) {
-        auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
         palm.setActive(pose.isValid());
 
-        // transform from sensor space, to world space, to avatar model space.
-        glm::mat4 poseMat = createMatFromQuatAndPos(pose.getRotation(), pose.getTranslation() * myAvatar->getScale());
-        glm::mat4 sensorToWorldMat = myAvatar->getSensorToWorldMatrix();
-        glm::mat4 modelMat = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-        glm::mat4 objectPose = glm::inverse(modelMat) * sensorToWorldMat * poseMat;
-
-        glm::vec3 position = extractTranslation(objectPose);
-        glm::quat rotation = glm::quat_cast(objectPose);
+        // controller pose is in Avatar frame.
+        glm::vec3 position = pose.getTranslation();
+        glm::quat rotation = pose.getRotation();
 
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;

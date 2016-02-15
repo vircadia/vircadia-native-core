@@ -215,7 +215,8 @@ glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v);
 
 // Calculate an orthogonal basis from a primary and secondary axis.
 // The uAxis, vAxis & wAxis will form an orthognal basis.

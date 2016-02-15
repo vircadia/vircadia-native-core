@@ -14,6 +14,7 @@
 
 Script.include("../libraries/utils.js");
 
+
 //
 // add lines where the hand ray picking is happening
 //
@@ -722,6 +723,9 @@ function MyController(hand) {
             this.particleBeamOff();
         }
         this.searchSphereOff();
+
+        Controller.setReticleVisible(true);
+
     };
 
     this.triggerPress = function(value) {
@@ -1018,6 +1022,9 @@ function MyController(hand) {
             this.overlayLineOn(handPosition, searchSphereLocation,
                                (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
+
+        Controller.setReticleVisible(false);
+
     };
 
     this.distanceGrabTimescale = function(mass, distance) {
@@ -1879,7 +1886,7 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
-
+    Controller.setReticleVisible(true);
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);

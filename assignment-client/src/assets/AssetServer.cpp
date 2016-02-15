@@ -45,25 +45,67 @@ AssetServer::AssetServer(ReceivedMessage& message) :
 }
 
 void AssetServer::run() {
+
+    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AssetServer::completeSetup);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AssetServer::domainSettingsRequestFailed);
+
     ThreadedAssignment::commonInit(ASSET_SERVER_LOGGING_TARGET_NAME, NodeType::AssetServer);
+}
 
+void AssetServer::completeSetup() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    const QString RESOURCES_PATH = "assets";
+    auto& domainHandler = nodeList->getDomainHandler();
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
 
-    _resourcesDirectory = QDir(ServerPathUtils::getDataDirectory()).filePath(RESOURCES_PATH);
+    static const QString ASSET_SERVER_SETTINGS_KEY = "asset_server";
+
+    if (!settingsObject.contains(ASSET_SERVER_SETTINGS_KEY)) {
+        qCritical() << "Received settings from the domain-server with no asset-server section. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
+
+    auto assetServerObject = settingsObject[ASSET_SERVER_SETTINGS_KEY].toObject();
+
+    // get the path to the asset folder from the domain server settings
+    static const QString ASSETS_PATH_OPTION = "assets_path";
+    auto assetsJSONValue = assetServerObject[ASSETS_PATH_OPTION];
+
+    if (!assetsJSONValue.isString()) {
+        qCritical() << "Received an assets path from the domain-server that could not be parsed. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
+
+    auto assetsPathString = assetsJSONValue.toString();
+    QDir assetsPath { assetsPathString };
+    QString absoluteFilePath = assetsPath.absolutePath();
+
+    if (assetsPath.isRelative()) {
+        // if the domain settings passed us a relative path, make an absolute path that is relative to the
+        // default data directory
+        absoluteFilePath = ServerPathUtils::getDataFilePath("assets/" + assetsPathString);
+    }
+
+    _resourcesDirectory = QDir(absoluteFilePath);
 
     qDebug() << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
 
-    bool noExistingAssets = !_resourcesDirectory.exists() \
-        || _resourcesDirectory.entryList(QDir::Files).size() == 0;
+    bool noExistingAssets = !_resourcesDirectory.exists() || _resourcesDirectory.entryList(QDir::Files).size() == 0;
 
     if (noExistingAssets) {
-        qDebug() << "Asset resources directory not found, searching for existing asset resources";
+        qDebug() << "Asset resources directory empty, searching for existing asset resources to migrate";
         QString oldDataDirectory = QCoreApplication::applicationDirPath();
-        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + RESOURCES_PATH);
+
+        const QString OLD_RESOURCES_PATH = "assets";
+
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + OLD_RESOURCES_PATH);
 
 
         if (QDir(oldResourcesDirectory).exists()) {
@@ -111,10 +153,12 @@ void AssetServer::run() {
             auto hexHash = hash.toHex();
 
             qDebug() << "\tMoving " << filename << " to " << hexHash;
-
+            
             file.rename(_resourcesDirectory.absoluteFilePath(hexHash) + "." + fileInfo.suffix());
         }
     }
+
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

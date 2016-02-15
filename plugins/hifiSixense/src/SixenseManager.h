@@ -36,7 +36,7 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
 
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
@@ -66,11 +66,11 @@ private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
         virtual void focusOutEvent() override;
 
         void handleButtonEvent(unsigned int buttons, bool left);
-        void handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left);
+        void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const glm::vec3& position, const glm::quat& rotation, bool left);
         void updateCalibration(SixenseControllerData* controllers);
 
         friend class SixenseManager;

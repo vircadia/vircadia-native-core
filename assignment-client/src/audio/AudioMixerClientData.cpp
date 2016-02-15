@@ -157,12 +157,16 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
     while (it != _audioStreams.end()) {
         SharedStreamPointer stream = it->second;
 
-        static const int INJECTOR_INACTIVITY_USECS = 5 * USECS_PER_SECOND;
+        if (stream->popFrames(1, true) > 0) {
+            stream->updateLastPopOutputLoudnessAndTrailingLoudness();
+        }
 
-        // if we don't have new data for an injected stream in the last INJECTOR_INACTIVITY_MSECS then
+        static const int INJECTOR_MAX_INACTIVE_BLOCKS = 500;
+
+        // if we don't have new data for an injected stream in the last INJECTOR_MAX_INACTIVE_BLOCKS then
         // we remove the injector from our streams
         if (stream->getType() == PositionalAudioStream::Injector
-            && stream->usecsSinceLastPacket() > INJECTOR_INACTIVITY_USECS) {
+            && stream->getConsecutiveNotMixedCount() > INJECTOR_MAX_INACTIVE_BLOCKS) {
             // this is an inactive injector, pull it from our streams
 
             // first emit that it is finished so that the HRTF objects for this source can be cleaned up
@@ -170,12 +174,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
 
             // erase the stream to drop our ref to the shared pointer and remove it
             it = _audioStreams.erase(it);
-
         } else {
-            if (stream->popFrames(1, true) > 0) {
-                stream->updateLastPopOutputLoudnessAndTrailingLoudness();
-            }
-
             ++it;
         }
     }

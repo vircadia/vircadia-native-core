@@ -405,18 +405,16 @@ public:
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
-    /// Has the entity been added to an entity tree? This is useful in some state decisions
-    /// for example whether or not to send out a scriptChanging signal.
-    void markAsAddedToTree() { _isAddedToTree = true; }
-    bool isAddedToTree() const { return _isAddedToTree; }
-
     /// Should the external entity script mechanism call a preload for this entity.
     /// Due to the asyncronous nature of signals for add entity and script changing
     /// it's possible for two similar signals to cross paths. This method allows the
     /// entity to definitively state if the preload signal should be sent.
-    bool shouldPreloadScript() const { return !_script.isEmpty() &&  
-                                _loadedScript != _script && _loadedScriptTimestamp != _scriptTimestamp; }
-
+    ///
+    /// We only want to preload if:
+    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    value have changed since our last preload
+    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+                                              ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
     void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
 
 protected:
@@ -461,8 +459,15 @@ protected:
     float _restitution;
     float _friction;
     float _lifetime;
-    QString _script;
-    quint64 _scriptTimestamp;
+
+    QString _script; /// the value of the script property
+    QString _loadedScript; /// the value of _script when the last preload signal was sent
+    quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
+    /// the value of _scriptTimestamp when the last preload signal was sent
+    // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
+    quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
+
     QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
     float _angularDamping;
@@ -523,12 +528,6 @@ protected:
     mutable QHash<QUuid, quint64> _previouslyDeletedActions;
 
     QUuid _sourceUUID; /// the server node UUID we came from
-
-    bool _isAddedToTree { false }; /// this is false until the entity has been added to an entity tree
-
-    QString _loadedScript; /// the value of _script when the last preload signal was sent
-    quint64 _loadedScriptTimestamp { 0 };  /// the value of _scriptTimestamp when the last preload signal was sent
-
 };
 
 #endif // hifi_EntityItem_h

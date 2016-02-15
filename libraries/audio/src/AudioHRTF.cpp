@@ -143,10 +143,23 @@ static bool cpuSupportsAVX() {
     return result;
 }
 
-#elif defined(__GNU__)
+#elif defined(__GNUC__)
+
+#include <cpuid.h>
 
 static bool cpuSupportsAVX() {
-    return __builtin_cpu_supports("avx");
+    unsigned int eax, ebx, ecx, edx;
+    unsigned int mask = (1 << 27) | (1 << 28);   // OSXSAVE and AVX
+
+    bool result = false;
+    if (__get_cpuid(0x1, &eax, &ebx, &ecx, &edx) && ((ecx & mask) == mask)) {
+
+        __asm__("xgetbv" : "=a"(eax), "=d"(edx) : "c"(0));
+        if ((eax & 0x6) == 0x6) {
+            result = true;
+        }
+    }
+    return result;    
 }
 
 #else

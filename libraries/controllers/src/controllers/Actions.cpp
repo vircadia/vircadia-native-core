@@ -120,7 +120,7 @@ namespace controller {
         return availableInputs;
     }
 
-    void ActionsDevice::update(float deltaTime, bool jointsCaptured) {
+    void ActionsDevice::update(float deltaTime, const InputCalibrationData& inpuCalibrationData, bool jointsCaptured) {
     }
 
     void ActionsDevice::focusOutEvent() {

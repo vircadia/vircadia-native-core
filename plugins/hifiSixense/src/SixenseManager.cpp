@@ -132,16 +132,16 @@ void SixenseManager::setSixenseFilter(bool filter) {
 #endif
 }
 
-void SixenseManager::pluginUpdate(float deltaTime, bool jointsCaptured) {
+void SixenseManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     BAIL_IF_NOT_LOADED
-    _inputDevice->update(deltaTime, jointsCaptured);
+    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
     if (_inputDevice->_requestReset) {
         _container->requestReset();
         _inputDevice->_requestReset = false;
     }
 }
 
-void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
+void SixenseManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     BAIL_IF_NOT_LOADED
 #ifdef HAVE_SIXENSE
     _buttonPressedMap.clear();
@@ -205,7 +205,7 @@ void SixenseManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
             if (!jointsCaptured) {
                 //  Rotation of Palm
                 glm::quat rotation(data->rot_quat[3], data->rot_quat[0], data->rot_quat[1], data->rot_quat[2]);
-                handlePoseEvent(deltaTime, position, rotation, left);
+                handlePoseEvent(deltaTime, inputCalibrationData, position, rotation, left);
                 rawPoses[i] = controller::Pose(position, rotation, Vectors::ZERO, Vectors::ZERO);
             } else {
                 _poseStateMap.clear();
@@ -415,7 +415,7 @@ void SixenseManager::InputDevice::handleButtonEvent(unsigned int buttons, bool l
     }
 }
 
-void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 position, glm::quat rotation, bool left) {
+void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const glm::vec3& position, const glm::quat& rotation, bool left) {
     BAIL_IF_NOT_LOADED
 #ifdef HAVE_SIXENSE
     auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
@@ -437,7 +437,7 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
     auto prevPose = _poseStateMap[hand];
 
     // Transform the measured position into body frame.
-    position = _avatarRotation * (position + _avatarPosition);
+    vec3 pos = _avatarRotation * (position + _avatarPosition);
 
     // From ABOVE the hand canonical axes look like this:
     //
@@ -476,7 +476,7 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
     //     rotation = postOffset * Qsh^ * (measuredRotation * preOffset) * Qsh
     //
     // TODO: find a shortcut with fewer rotations.
-    rotation = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
+    glm::quat rot = _avatarRotation * postOffset * glm::inverse(sixenseToHand) * rotation * preOffset * sixenseToHand;
 
     glm::vec3 velocity(0.0f);
     glm::vec3 angularVelocity(0.0f);
@@ -484,11 +484,11 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
     if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
         auto& samples = _collectedSamples[hand];
 
-        velocity = (position - prevPose.getTranslation()) / deltaTime;
+        velocity = (pos - prevPose.getTranslation()) / deltaTime;
         samples.first.addSample(velocity);
         velocity = samples.first.average;
 
-        auto deltaRot = glm::normalize(rotation * glm::conjugate(prevPose.getRotation()));
+        auto deltaRot = glm::normalize(rot * glm::conjugate(prevPose.getRotation()));
         auto axis = glm::axis(deltaRot);
         auto speed = glm::angle(deltaRot) / deltaTime;
         assert(!glm::isnan(speed));
@@ -500,7 +500,10 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, glm::vec3 pos
         _collectedSamples[hand].second.clear();
     }
 
-    _poseStateMap[hand] = controller::Pose(position, rotation, velocity, angularVelocity);
+    // transform pose into avatar frame.
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    auto avatarPose = controller::Pose(pos, rot, velocity, angularVelocity).transform(controllerToAvatar);
+    _poseStateMap[hand] = avatarPose;
 #endif // HAVE_SIXENSE
 }
 
