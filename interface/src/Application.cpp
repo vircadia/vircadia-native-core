@@ -3661,7 +3661,7 @@ public:
     static render::ItemID _item; // unique WorldBoxRenderData
 };
 
-render::ItemID WorldBoxRenderData::_item = 0;
+render::ItemID WorldBoxRenderData::_item { render::Item::INVALID_ITEM_ID };
 
 namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }

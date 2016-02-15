@@ -37,7 +37,7 @@ public:
 protected:
     std::shared_ptr<AnimDebugDrawData> _animDebugDrawData;
     std::shared_ptr<AnimDebugDrawPayload> _animDebugDrawPayload;
-    render::ItemID _itemID;
+    render::ItemID _itemID{ render::Item::INVALID_ITEM_ID };
 
     static gpu::PipelinePointer _pipeline;
 
