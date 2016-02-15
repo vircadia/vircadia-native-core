@@ -127,6 +127,7 @@ Fadable {
         anchors.fill: parent
 
         Rectangle {
+            id: contentBackground
             anchors {
                 left: parent.left
                 right: parent.right
@@ -135,6 +136,21 @@ Fadable {
                 rightMargin: theScrollView.height < theScrollView.contentItem.height ? 21 : 0
             }
             color: hifi.colors.baseGray
+        }
+
+        LinearGradient {
+            anchors {
+                top: contentBackground.bottom
+                left: contentBackground.left
+            }
+            width: contentBackground.width - 1
+            height: 4
+            start: Qt.point(0, 0)
+            end: Qt.point(0, 4)
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: hifi.colors.darkGray }
+                GradientStop { position: 1.0; color: hifi.colors.darkGray0 }
+            }
         }
 
         ScrollView {

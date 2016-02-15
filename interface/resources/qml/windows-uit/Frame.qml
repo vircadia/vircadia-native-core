@@ -29,7 +29,7 @@ Item {
     readonly property int frameMarginLeft: frameMargin
     readonly property int frameMarginRight: frameMargin
     readonly property int frameMarginTop: 2 * frameMargin + iconSize
-    readonly property int frameMarginBottom: iconSize + 2
+    readonly property int frameMarginBottom: iconSize + 6
 
     children: [
         focusShadow,
@@ -90,7 +90,7 @@ Item {
         enabled: window ? window.resizable : false
         hoverEnabled: true
         x: window ? window.width + frameMarginRight - iconSize : 0
-        y: window ? window.height : 0
+        y: window ? window.height + 4 : 0
         property vector2d pressOrigin
         property vector2d sizeOrigin
         property bool hid: false
