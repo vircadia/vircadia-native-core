@@ -9,6 +9,7 @@
 //
 
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 
 import "../controls-uit"
 import "../styles-uit"
@@ -31,10 +32,11 @@ Item {
     readonly property int frameMarginBottom: iconSize + 2
 
     children: [
+        focusShadow,
         decoration,
         sizeOutline,
         debugZ,
-        sizeDrag,
+        sizeDrag
     ]
 
     Text {
@@ -49,6 +51,22 @@ Item {
         newSize = Utils.clampVector(newSize, window.minSize, window.maxSize);
         window.width = newSize.x
         window.height = newSize.y
+    }
+
+    RadialGradient {
+        id: focusShadow
+        width: 2 * window.width
+        height: width
+        x: -width / 4
+        y: window.height / 2 - width / 2
+        visible: window && window.focus && windowContent.visible
+        gradient: Gradient {
+            // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
+            GradientStop { position: 0.0; color: "#ff000000" }    // black, 100% opacity
+            GradientStop { position: 0.333; color: "#1f000000" }  // black, 12% opacity
+            GradientStop { position: 0.5; color: "#00000000" }    // black, 0% opacity
+            GradientStop { position: 1.0; color: "#00000000" }
+        }
     }
 
     Rectangle {
