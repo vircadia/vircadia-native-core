@@ -27,7 +27,7 @@
 
 
         water: function() {
-            print("EBL IM BEING WATERED!")
+            print("EBL IM BEING WATERED!");
         },
 
         createFlowers: function() {
@@ -67,39 +67,7 @@
                 userData: JSON.stringify(flowerUserData)
             });
             _this.flowers.push(flower);
-
-            var curProps = {
-                yDimension: startingFlowerDimensions.y,
-                yPosition: position.y,
-                bloomPct: flowerUserData.ProceduralEntity.uniforms.iBloomPct
-            };
-            var newYDimension = curProps.yDimension + 1;
-            var endProps = {
-                yDimension: newYDimension,
-                yPosition: position.y + newYDimension / 2 + .05,
-                bloomPct: 1
-            };
-
-            var bloomTween = new TWEEN.Tween(curProps).
-            to(endProps, randInt(4000, 6000)).
-            easing(TWEEN.Easing.Cubic.InOut).
-            delay(randInt(_this.delay, _this.delay + 3000)).
-            onUpdate(function() {
-                // flowerUserData.ProceduralEntity.uniforms.iBloomPct = curProps.bloomPct;
-                Entities.editEntity(flower, {
-                    dimensions: {
-                        x: startingFlowerDimensions.x,
-                        y: curProps.yDimension,
-                        z: startingFlowerDimensions.z
-                    },
-                    position: {
-                        x: position.x,
-                        y: curProps.yPosition,
-                        z: position.z
-                    },
-                    // userData: JSON.stringify(flowerUserData)
-                });
-            }).start();
+     
         },
 
         createCactus: function() {
@@ -116,34 +84,8 @@
                 dimensions: dimensions
             });
 
-            var curProps = {
-                yDimension: 0.01,
-                yPosition: _this.position.y
-            };
-
-            var endProps = {
-                yDimension: 0.8,
-                yPosition: _this.position.y + 0.4
-            };
-
-            var growTween = new TWEEN.Tween(curProps).
-            to(endProps, 5000).
-            easing(TWEEN.Easing.Cubic.InOut).
-            delay(_this.delay).
-            onUpdate(function() {
-                Entities.editEntity(_this.cactus, {
-                    dimensions: {
-                        x: dimensions.x,
-                        y: curProps.yDimension,
-                        z: dimensions.z
-                    },
-                    position: {
-                        x: _this.position.x,
-                        y: curProps.yPosition,
-                        z: _this.position.z
-                    }
-                });
-            }).start();
+   
+     
         },
 
 
@@ -155,16 +97,11 @@
             this.dimensions = this.props.dimensions;
             this.createCactus();
             this.createFlowers();
-            // this.createFlower();
-            Script.update.connect(_this.update);
         },
 
-        update: function() {
-            TWEEN.update();
-        },
+    
 
         unload: function() {
-            Script.update.disconnect(_this.update);
             Entities.deleteEntity(_this.cactus);
             _this.flowers.forEach(function(flower) {
                 Entities.deleteEntity(flower);
