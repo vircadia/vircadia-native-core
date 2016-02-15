@@ -129,7 +129,7 @@ private:
     NetworkTexturePointer _zTexture;
 
     const int MATERIAL_GPU_SLOT = 3;
-    render::ItemID _myItem;
+    render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
     static gpu::PipelinePointer _pipeline;
 
     ShapeInfo _shapeInfo;

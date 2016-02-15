@@ -20,112 +20,7 @@
 
 using namespace render;
 
-void render::cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
-                       const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    RenderArgs* args = renderContext->args;
-    ViewFrustum* frustum = args->_viewFrustum;
-
-    details._considered += inItems.size();
-    
-    // Culling / LOD
-    for (auto item : inItems) {
-        if (item.bounds.isNull()) {
-            outItems.emplace_back(item); // One more Item to render
-            continue;
-        }
-
-        // TODO: some entity types (like lights) might want to be rendered even
-        // when they are outside of the view frustum...
-        bool outOfView;
-        {
-            PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = frustum->boxInFrustum(item.bounds) == ViewFrustum::OUTSIDE;
-        }
-        if (!outOfView) {
-            bool bigEnoughToRender;
-            {
-                PerformanceTimer perfTimer("shouldRender");
-                bigEnoughToRender = cullFunctor(args, item.bounds);
-            }
-            if (bigEnoughToRender) {
-                outItems.emplace_back(item); // One more Item to render
-            } else {
-                details._tooSmall++;
-            }
-        } else {
-            details._outOfView++;
-        }
-    }
-    details._rendered += outItems.size();
-}
-
-struct ItemBound {
-    float _centerDepth = 0.0f;
-    float _nearDepth = 0.0f;
-    float _farDepth = 0.0f;
-    ItemID _id = 0;
-    AABox _bounds;
-
-    ItemBound() {}
-    ItemBound(float centerDepth, float nearDepth, float farDepth, ItemID id, const AABox& bounds) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id), _bounds(bounds) {}
-};
-
-struct FrontToBackSort {
-    bool operator() (const ItemBound& left, const ItemBound& right) {
-        return (left._centerDepth < right._centerDepth);
-    }
-};
-
-struct BackToFrontSort {
-    bool operator() (const ItemBound& left, const ItemBound& right) {
-        return (left._centerDepth > right._centerDepth);
-    }
-};
-
-void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    
-    auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->args;
-    
-
-    // Allocate and simply copy
-    outItems.clear();
-    outItems.reserve(inItems.size());
-
-
-    // Make a local dataset of the center distance and closest point distance
-    std::vector<ItemBound> itemBounds;
-    itemBounds.reserve(outItems.size());
-
-    for (auto itemDetails : inItems) {
-        auto item = scene->getItem(itemDetails.id);
-        auto bound = itemDetails.bounds; // item.getBound();
-        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
-
-        itemBounds.emplace_back(ItemBound(distance, distance, distance, itemDetails.id, bound));
-    }
-
-    // sort against Z
-    if (frontToBack) {
-        FrontToBackSort frontToBackSort;
-        std::sort (itemBounds.begin(), itemBounds.end(), frontToBackSort); 
-    } else {
-        BackToFrontSort  backToFrontSort;
-        std::sort (itemBounds.begin(), itemBounds.end(), backToFrontSort); 
-    }
-
-    // FInally once sorted result to a list of itemID
-    for (auto& itemBound : itemBounds) {
-       outItems.emplace_back(ItemIDAndBounds(itemBound._id, itemBound._bounds));
-    }
-}
-
-void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void render::renderItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
 
@@ -152,7 +47,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
 }
 
 void render::renderShapes(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext,
-                          const ShapePlumberPointer& shapeContext, const ItemIDsBounds& inItems, int maxDrawnItems) {
+                          const ShapePlumberPointer& shapeContext, const ItemBounds& inItems, int maxDrawnItems) {
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
     
@@ -166,58 +61,20 @@ void render::renderShapes(const SceneContextPointer& sceneContext, const RenderC
     }
 }
 
-void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemIDsBounds& outItems) {
-    auto& scene = sceneContext->_scene;
-
-    outItems.clear();
-
-    const auto& bucket = scene->getMasterBucket();
-    const auto& items = bucket.find(_filter);
-    if (items != bucket.end()) {
-        outItems.reserve(items->second.size());
-        for (auto& id : items->second) {
-            auto& item = scene->getItem(id);
-            outItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
-        }
-    }
-
-    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
-}
-
-void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ItemIDsBounds& outItems) {
-    depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
-}
-
-void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-
-    // render lights
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::light());
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        auto item = scene->getItem(id);
-        inItems.emplace_back(ItemIDAndBounds(id, item.getBound()));
-    }
-
     RenderArgs* args = renderContext->args;
 
-    auto& details = args->_details.edit(RenderDetails::OTHER_ITEM);
-    ItemIDsBounds culledItems;
-    culledItems.reserve(inItems.size());
-    cullItems(renderContext, _cullFunctor, details, inItems, culledItems);
-
+    // render lights
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
-        renderItems(sceneContext, renderContext, culledItems);
+        renderItems(sceneContext, renderContext, inLights);
         args->_batch = nullptr;
     });
 }
 
-void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems, ShapesIDsBounds& outShapes) {
+void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes) {
     auto& scene = sceneContext->_scene;
     outShapes.clear();
 
@@ -225,7 +82,7 @@ void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const Rend
         auto key = scene->getItem(item.id).getShapeKey();
         auto outItems = outShapes.find(key);
         if (outItems == outShapes.end()) {
-            outItems = outShapes.insert(std::make_pair(key, ItemIDsBounds{})).first;
+            outItems = outShapes.insert(std::make_pair(key, ItemBounds{})).first;
             outItems->second.reserve(inItems.size());
         }
 
@@ -245,7 +102,7 @@ void DepthSortShapes::run(const SceneContextPointer& sceneContext, const RenderC
         auto& inItems = pipeline.second;
         auto outItems = outShapes.find(pipeline.first);
         if (outItems == outShapes.end()) {
-            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemIDsBounds{})).first;
+            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemBounds{})).first;
         }
 
         depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems->second);

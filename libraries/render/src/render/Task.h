@@ -37,7 +37,7 @@ public:
     template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
 
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
-    template <class T> const T& get() { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
+    template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
 protected:
     class Concept {

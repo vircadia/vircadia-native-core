@@ -239,7 +239,7 @@ protected:
 
     virtual void updatePalms();
 
-    render::ItemID _renderItemID;
+    render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
     ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
     ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };
