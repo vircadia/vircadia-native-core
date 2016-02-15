@@ -20,10 +20,15 @@
     GrowingPlant = function() {
         _this = this;
         _this.flowers = [];
-        _this.delay = 10000;
+        _this.delay = 1000;
     };
 
     GrowingPlant.prototype = {
+
+
+        water: function() {
+            print("EBL IM BEING WATERED!")
+        },
 
         createFlowers: function() {
             var NUM_FLOWERS = 20
@@ -35,11 +40,9 @@
                     y: 0.15,
                     z: radius * Math.sin(segment)
                 });
-                print("EBL position " + JSON.stringify(position));
                 _this.createFlower(position);
             }
         },
-
 
         createFlower: function(position) {
             var size = randFloat(0.1, 0.2);
