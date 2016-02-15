@@ -21,6 +21,8 @@
         _this = this;
         _this.flowers = [];
         _this.delay = 1000;
+        _this.MAX_CACTUS_Y_DIMENSION = 0.7;
+        _this.GROW_RATE = 0.001;
     };
 
     GrowingPlant.prototype = {
@@ -28,28 +30,41 @@
 
         water: function() {
             print("EBL IM BEING WATERED!");
-            _this.cactusDimensions = Vec3.sum(_this.cactusDimensions, {x: 0, y: 0.01, z: 0});
+            _this.cactusDimensions = Vec3.sum(_this.cactusDimensions, {x: 0, y: _this.GROW_RATE, z: 0});
+
+            if (_this.cactusDimensions.y > _this.MAX_CACTUS_Y_DIMENSION) {
+                // We don't want to grow our cactus any more than this or it will look bad
+                return;
+            }
             // Need to raise up cactus as it stretches so it doesnt burst out the bottom of the plant
-            _this.cactusPosition = Vec3.sum(_this.cactusPosition, {x: 0, y: _this.cactusHeightMovement, z: 0});
+            _this.cactusPosition = Vec3.sum(_this.cactusPosition, {x: 0, y: _this.cactusHeightMovement * 0.1, z: 0});
             Entities.editEntity(_this.cactus, {dimensions: _this.cactusDimensions, position: _this.cactusPosition});
 
-            _this.flowers.forEach(_this.waterFlower)
+            _this.flowers.forEach(_this.waterFlower);
         },
 
         waterFlower: function(flower) {
             var props = Entities.getEntityProperties(flower, ["position, dimensions"]);
-            var newDimensions = Vec3.sum(props.dimensions, {x: 0, y: 0.01, z: 0});
-            Entities.editEntity(flower, {dimensions: newDimensions});
+            var newDimensions = Vec3.sum(props.dimensions, {x: randFloat(0, 0.0001), y: 0.001, z: randFloat(0, 0.0001)});
+            var newPosition = Vec3.sum(props.position, {x: 0, y: _this.flowerHeightMovement * 0.55, z: 0});
+            Entities.editEntity(flower, {dimensions: newDimensions, position: newPosition});
         },
 
         createFlowers: function() {
+            var size = 0.1;
             var NUM_FLOWERS = 20
+              _this.startingFlowerDimensions = {
+                x: size,
+                y: 0.001,
+                z: size
+            };
+            _this.flowerHeightMovement = _this.startingFlowerDimensions.y;
             for (var i = 0; i < NUM_FLOWERS; i++) {
                 var segment = i / NUM_FLOWERS * Math.PI * 2;
                 var radius = randFloat(0.13, 0.25);
                 var position = Vec3.sum(_this.position, {
                     x: radius * Math.cos(segment),
-                    y: 0.15,
+                    y: 0.16,
                     z: radius * Math.sin(segment)
                 });
                 _this.createFlower(position);
@@ -57,17 +72,12 @@
         },
 
         createFlower: function(position) {
-            var size = randFloat(0.1, 0.2);
-            var startingFlowerDimensions = {
-                x: size,
-                y: 0.001,
-                z: size
-            };
+          
             var flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
                     uniforms: {
-                        iBloomPct: randFloat(0.4, 0.7),
+                        iBloomPct: randFloat(0.4, 0.8),
                         hueTwerking: randFloat(10, 30)
                     }
                 }
@@ -75,7 +85,7 @@
             var flower = Entities.addEntity({
                 type: "Sphere",
                 position: position,
-                dimensions: startingFlowerDimensions,
+                dimensions: _this.startingFlowerDimensions,
                 userData: JSON.stringify(flowerUserData)
             });
             _this.flowers.push(flower);
