@@ -40,6 +40,7 @@ public:
     ~PendingChanges() {}
 
     void resetItem(ItemID id, const PayloadPointer& payload);
+    void resortItem(ItemID id, ItemKey oldKey, ItemKey newKey);
     void removeItem(ItemID id);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
@@ -50,8 +51,11 @@ public:
 
     void merge(PendingChanges& changes);
 
-    Payloads _resetPayloads;
     ItemIDs _resetItems; 
+    Payloads _resetPayloads;
+    ItemIDs _resortItems;
+    ItemKeys _resortOldKeys;
+    ItemKeys _resortNewKeys;
     ItemIDs _removedItems;
     ItemIDs _updatedItems;
     UpdateFunctors _updateFunctors;
@@ -107,6 +111,7 @@ protected:
 
 
     void resetItems(const ItemIDs& ids, Payloads& payloads);
+    void resortItems(const ItemIDs& ids, ItemKeys& oldKeys, ItemKeys& newKeys);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
 
