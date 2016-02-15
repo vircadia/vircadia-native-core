@@ -79,7 +79,9 @@ void PendingChanges::merge(PendingChanges& changes) {
     _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
 }
 
-Scene::Scene() {
+Scene::Scene(glm::vec3 origin, float size) :
+    _masterSpatialTree(origin, size)
+{
     _items.push_back(Item()); // add the itemID #0 to nothing
     _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
 }

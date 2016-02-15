@@ -13,7 +13,7 @@
 #define hifi_render_Scene_h
 
 #include "Item.h"
-#include "Octree.h"
+#include "SpatialTree.h"
 
 namespace render {
 
@@ -68,7 +68,7 @@ typedef std::queue<PendingChanges> PendingChangesQueue;
 // Items are notified accordingly on any update message happening
 class Scene {
 public:
-    Scene();
+    Scene(glm::vec3 origin, float size);
     ~Scene() {}
 
     /// This call is thread safe, can be called from anywhere to allocate a new ID

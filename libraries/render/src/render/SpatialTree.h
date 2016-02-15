@@ -1,5 +1,5 @@
 //
-//  Octree.h
+//  SpatialTree.h
 //  render/src/render
 //
 //  Created by Sam Gateau on 1/25/16.
@@ -89,9 +89,9 @@ namespace render {
 
         // Max depth is 15 => 32Km root down to 1m cells
         using Depth = int8_t;
-        static const Depth ROOT_DEPTH{ 0 };
-        static const Depth MAX_DEPTH{ 15 };
-        static const Depth METRIC_COORD_DEPTH{ 15 };
+        static const Depth ROOT_DEPTH { 0 };
+        static const Depth MAX_DEPTH { 15 };
+        static const Depth METRIC_COORD_DEPTH { 15 };
         static const float INV_DEPTH_DIM[Octree::MAX_DEPTH + 1];
 
         static int getDepthDimension(Depth depth) { return 1 << depth; }
@@ -109,12 +109,12 @@ namespace render {
         static Coord depthBitmask(Depth depth) { return Coord(1 << (MAX_DEPTH - depth)); }
 
         static Depth coordToDepth(Coord length) {
-            Depth d = MAX_DEPTH;
+            Depth depth = MAX_DEPTH;
             while (length) {
                 length >>= 1;
-                d--;
+                depth--;
             }
-            return d;
+            return depth;
         }
 
 
@@ -130,16 +130,16 @@ namespace render {
             Location(const Coord3& xyz, Depth d) : pos(xyz), depth(d) { assertValid(); }
             Location(Depth d) : pos(0), depth(d) { assertValid(); }
 
-            Coord3 pos{ 0 };
-            uint8_t spare{ 0 };
-            Depth depth{ ROOT_DEPTH };
+            Coord3 pos { 0 };
+            uint8_t spare { 0 };
+            Depth depth { ROOT_DEPTH };
 
             Coord3f getCenter() const { 
                 Coord3f center = (Coord3f(pos) + Coord3f(0.5f)) * Coord3f(Octree::getInvDepthDimension(depth));
                 return center;
             }
 
-            bool operator== (const Location& right) const { return pos == right.pos && depth == right.depth; }
+            bool operator== (const Location& other) const { return pos == other.pos && depth == other.depth; }
 
             // Eval the octant of this cell relative to its parent
             Octant octant() const { return  Octant((pos.x & 1) | ((pos.y & 1) << 1) | ((pos.z & 1) << 2)); }
@@ -316,9 +316,11 @@ namespace render {
             float   angle;
             float   squareTanAlpha;
 
+            const float MAX_LOD_ANGLE = glm::radians(45.0f);
+            const float MIN_LOD_ANGLE = glm::radians(1.0f / 60.0f);
+
             void setAngle(float a) {
-                angle = std::min(glm::radians(45.0f), a); // no worse than 45 degrees
-                angle = std::max(glm::radians(1.0f/60.0f), a); // no better than 1 minute of degree
+                angle = std::max(MIN_LOD_ANGLE, std::min(MAX_LOD_ANGLE, a));
                 auto tanAlpha = tan(angle);
                 squareTanAlpha = (float)(tanAlpha * tanAlpha);
             }
@@ -365,11 +367,18 @@ namespace render {
     // An octree of Items organizing them efficiently for culling
     // The octree only cares about the bound & the key of an item to store it a the right cell location
     class ItemSpatialTree : public Octree {
-        float _size{ 32768.0f };
-        float _invSize{ 1.0f / _size };
-        glm::vec3 _origin{ -16384.0f };
+        float _size { 32768.0f };
+        float _invSize { 1.0f / _size };
+        glm::vec3 _origin { -16384.0f };
+
+        void init(glm::vec3 origin, float size) {
+            _size = size;
+            _invSize = 1.0f / _size;
+            _origin = origin;
+        }
     public:
-        ItemSpatialTree() {}
+        // THe overall size and origin of the tree are defined at creation
+        ItemSpatialTree(glm::vec3 origin, float size) { init(origin, size); }
 
         float getSize() const { return _size; }
         const glm::vec3& getOrigin() const { return _origin; }

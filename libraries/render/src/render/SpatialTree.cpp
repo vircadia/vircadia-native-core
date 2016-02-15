@@ -1,5 +1,5 @@
 //
-//  Octree.h
+//  SpatialTree.h
 //  render/src/render
 //
 //  Created by Sam Gateau on 1/25/16.
@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "Octree.h"
+#include "SpatialTree.h"
 
 #include <ViewFrustum.h>
 
