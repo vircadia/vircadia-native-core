@@ -27,18 +27,64 @@
 
         clickDownOnEntity: function() {
             // search for a pot with some seeds nearby
-            Entities.editEntity(_this.waterEffect, {isEmitting: true});
+            _this.startWatering();
+
+        },
+
+        startFarTrigger: function() {
+            print("TRIGGER")
+            _this.startWatering();
+        },
+
+        continueFarTrigger: function() {
+            print("TRIGGER")
+            _this.continueWatering();
+        },
+
+        stopFarTrigger : function() {
+            _this.stopWatering();
+        },
+
+         startNearTrigger: function() {
+            print("TRIGGER")
+            _this.startWatering();
+        },
+
+        continueNearTrigger: function() {
+            print("TRIGGER")
+            _this.continueWatering();
+        },
+
+        stopNearTrigger : function() {
+            _this.stopWatering();
+        },
+
+        holdingClickOnEntity: function() {
+            _this.continueWatering();
+        },
+
+        clickReleaseOnEntity: function() {
+            _this.stopWatering();
+        },
+
+        startWatering: function() {
+            Entities.editEntity(_this.waterEffect, {
+                isEmitting: true
+            });
             var entities = Entities.findEntities(this.position, _this.potSearchRadius);
             entities.forEach(function(entity) {
                 var name = Entities.getEntityProperties(entity, "name").name;
                 if (name === _this.potName) {
                     // We've found out potted plant to grow!
-                    _this.pottedPlant = entity;
+                    Script.setTimeout(function() {
+                        // Wait a bit to assign the pot so the plants grow once water hits
+                      _this.pottedPlant = entity;
+                    }, 1500);
                 }
             });
 
         },
-        holdingClickOnEntity: function() {
+        continueWatering: function() {
             if (!_this.pottedPlant) {
                 // No plant nearby to grow, so return
                 return;
@@ -47,8 +93,11 @@
 
         },
 
-        clickReleaseOnEntity: function() {
-          Entities.editEntity(_this.waterEffect, {isEmitting: false});
+        stopWatering: function() {
+            Entities.editEntity(_this.waterEffect, {
+                isEmitting: false
+            });
+            _this.pottedPlant = null;
         },
 
         preload: function(entityID) {
@@ -71,12 +120,12 @@
                     green: 10,
                     blue: 20
                 },
-                  color: {
+                color: {
                     red: 30,
                     green: 30,
                     blue: 40
                 },
-                 colorFinish: {
+                colorFinish: {
                     red: 50,
                     green: 50,
                     blue: 60
