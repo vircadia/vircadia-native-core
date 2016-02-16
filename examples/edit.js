@@ -1895,16 +1895,18 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                 // Now we want to activate the partice explorer panel!
                particleExplorerTool.createWebView();
                 var properties = Entities.getEntityProperties(ids[0]);
-                var data = {
+                var particleData = {
                     messageType: "particle_settings",
                     currentProperties: properties
                 };
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
-                Script.setTimeout(function() {
-                    // Wait for event bridge on web side to open
-                  particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(data));  
-                }, 2000)
 
+                particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
+                    var data = JSON.parse(data);
+                    if (data.messageType === "page_loaded") {
+                        particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(particleData));  
+                    }
+                });
             } else {
                 particleExplorerTool.destroyWebView();
             }
