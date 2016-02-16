@@ -15,7 +15,6 @@
     Script.include("../../libraries/utils.js");
 
     var _this;
-    var TWEEN = loadTween();
     WaterHose = function() {
         _this = this;
         this.potName = "plant pot";
