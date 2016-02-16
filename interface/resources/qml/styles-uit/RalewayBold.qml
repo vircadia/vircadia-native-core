@@ -15,7 +15,7 @@ import QtQuick.Controls.Styles 1.4
 Text {
     id: root
     FontLoader { id: iconFont; source: "../../fonts/Raleway-Bold.ttf"; }
-    property int size: 32
+    property real size: 32
     font.pointSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
