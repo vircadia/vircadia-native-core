@@ -1260,7 +1260,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        print("  Delete Entities");
+        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
