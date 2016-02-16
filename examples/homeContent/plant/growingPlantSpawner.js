@@ -21,7 +21,7 @@ initializePlant();
 
 function initializePlant() {
   var POT_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/pot.fbx";
-  var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random());
+  var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js");
 
   pot = Entities.addEntity({
     type: "Model",
@@ -31,7 +31,7 @@ function initializePlant() {
   });
 
   var HOSE_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/hose.fbx";
-  var HOSE_SCRIPT_URL = Script.resolvePath("waterHoseEntityScript.js?v1" + Math.random());
+  var HOSE_SCRIPT_URL = Script.resolvePath("waterHoseEntityScript.js");
   hose = Entities.addEntity({
     type: "Model",
     modelURL: HOSE_MODEL_URL,
