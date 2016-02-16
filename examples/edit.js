@@ -109,11 +109,6 @@ var importingSVOImageOverlay = Overlays.addOverlay("image", {
     width: 20,
     height: 20,
     alpha: 1.0,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
     visible: false,
