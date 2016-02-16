@@ -12,8 +12,8 @@
 <@def DEFERRED_BUFFER_SLH@>
 
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+// the albedo texture
+uniform sampler2D albedoMap;
 
 // the normal texture
 uniform sampler2D normalMap;
@@ -83,7 +83,7 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
     DeferredFragment frag;
     frag.depthVal = texture(depthMap, texcoord).r;
     frag.normalVal = texture(normalMap, texcoord);
-    frag.diffuseVal = texture(diffuseMap, texcoord);
+    frag.diffuseVal = texture(albedoMap, texcoord);
     frag.specularVal = texture(specularMap, texcoord);
     frag.obscurance = texture(obscuranceMap, texcoord).x;
 

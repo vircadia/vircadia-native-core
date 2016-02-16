@@ -16,7 +16,7 @@
 <@include model/Material.slh@>
 
 // the diffuse texture
-uniform sampler2D diffuseMap;
+uniform sampler2D albedoMap;
 
 in vec4 _position;
 in vec3 _normal;
@@ -25,15 +25,15 @@ in vec2 _texCoord0;
 
 
 void main(void) {
-    // Fetch diffuse map
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    // Fetch albedo map
+    vec4 albedo = texture(albedoMap, _texCoord0);
 
     Material mat = getMaterial();
 
     packDeferredFragment(
         normalize(_normal.xyz), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialAlbedo(mat) * diffuse.rgb * _color,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

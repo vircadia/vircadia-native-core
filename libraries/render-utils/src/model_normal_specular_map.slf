@@ -16,8 +16,8 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+// the albedo texture
+uniform sampler2D albedoMap;
 
 // the normal map texture
 uniform sampler2D normalMap;
@@ -40,16 +40,16 @@ void main(void) {
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
-    // set the diffuse, normal, specular data
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    // set the albedo, normal, specular data
+    vec4 albedo = texture(albedoMap, _texCoord0);
     vec3 specular = texture(specularMap, _texCoord0).rgb;
 
     Material mat = getMaterial();
 
     packDeferredFragment(
         normalize(viewNormal.xyz), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialAlbedo(mat) * diffuse.rgb * _color,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
         specular, //getMaterialSpecular(mat),
         getMaterialShininess(mat));
 }

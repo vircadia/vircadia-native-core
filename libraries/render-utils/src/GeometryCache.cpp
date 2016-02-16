@@ -1846,7 +1846,7 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emissive, bool depthBiased) {
     batch.setPipeline(getSimplePipeline(textured, culled, emissive, depthBiased));
 
-    // If not textured, set a default diffuse map
+    // If not textured, set a default albedo map
     if (!textured) {
         batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
             DependencyManager::get<TextureCache>()->getWhiteTexture());

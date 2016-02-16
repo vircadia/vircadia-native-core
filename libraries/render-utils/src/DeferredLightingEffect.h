@@ -50,7 +50,7 @@ public:
 
     // update global lighting
     void setAmbientLightMode(int preset);
-    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
+    void setGlobalLight(const glm::vec3& direction, const glm::vec3& color, float intensity, float ambientIntensity);
     void setGlobalSkybox(const model::SkyboxPointer& skybox);
 
     const LightStage& getLightStage() { return _lightStage; }

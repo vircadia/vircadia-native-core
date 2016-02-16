@@ -16,7 +16,7 @@
 out vec4 _color;
 
 void main(void) {
-    // pass along the diffuse color
+    // pass along the color
     _color = colorToLinearRGBA(inColor);
 
     TransformCamera cam = getTransformCamera();

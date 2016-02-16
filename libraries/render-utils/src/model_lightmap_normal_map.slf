@@ -16,8 +16,8 @@
 
 <@include model/Material.slh@>
 
-// the diffuse texture
-uniform sampler2D diffuseMap;
+// the albedo texture
+uniform sampler2D albedoMap;
 
 // the normal map texture
 uniform sampler2D normalMap;
@@ -43,15 +43,15 @@ void main(void) {
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
     // set the diffuse, normal, specular data
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec4 albedo = texture(albedoMap, _texCoord0);
     vec4 emissive = texture(emissiveMap, _texCoord1);
 
     Material mat = getMaterial();
 
     packDeferredFragmentLightmap(
         normalize(viewNormal.xyz), 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialAlbedo(mat) * diffuse.rgb * _color,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialSpecular(mat),
         getMaterialShininess(mat),
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));
