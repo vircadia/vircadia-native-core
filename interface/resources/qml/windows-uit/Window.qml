@@ -125,24 +125,18 @@ Fadable {
     property var scroller: Item {
         id: windowContent
         anchors.fill: parent
+        anchors.rightMargin: theScrollView.height < theScrollView.contentItem.height ? 11 : 0
 
         Rectangle {
             id: contentBackground
-            anchors {
-                left: parent.left
-                right: parent.right
-                top: parent.top
-                bottom: parent.bottom
-                rightMargin: theScrollView.height < theScrollView.contentItem.height ? 21 : 0
-            }
+            anchors.fill: parent
+            anchors.rightMargin: theScrollView.height < theScrollView.contentItem.height ? 11 : 0
             color: hifi.colors.baseGray
         }
 
         LinearGradient {
-            anchors {
-                top: contentBackground.bottom
-                left: contentBackground.left
-            }
+            anchors.top: contentBackground.bottom
+            anchors.left: contentBackground.left
             width: contentBackground.width - 1
             height: 4
             start: Qt.point(0, 0)
@@ -159,9 +153,11 @@ Fadable {
             horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
             verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
             anchors.fill: parent
-            anchors.rightMargin: height < contentItem.height ? 4 : 0
+            anchors.rightMargin: height < contentItem.height ? 1 : 0
 
             style: ScrollViewStyle {
+
+                padding.right: -7  // Move to right away from content.
 
                 handle: Item {
                     implicitWidth: 8
@@ -170,7 +166,7 @@ Fadable {
                         color: hifi.colors.white30
                         anchors {
                             fill: parent
-                            leftMargin: 2
+                            leftMargin: 2  // Finesse size and position.
                             topMargin: 1
                             bottomMargin: 1
                         }
@@ -184,7 +180,7 @@ Fadable {
                         radius: 4
                         anchors {
                             fill: parent
-                            topMargin: -1
+                            topMargin: -1  // Finesse size
                             bottomMargin: -2
                         }
                     }
