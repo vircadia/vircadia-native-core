@@ -56,13 +56,16 @@ public:
     gpu::Stream::FormatPointer _vertexFormat;
     gpu::BufferPointer _vertexBuffer;
     gpu::BufferPointer _indexBuffer;
+
+    render::Item::Bound _bound { glm::vec3(-16384.0f), 32768.0f };
+    bool _isVisible { true };
 };
 
 typedef render::Payload<AnimDebugDrawData> AnimDebugDrawPayload;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return ItemKey::Builder::opaqueShape(); }
-    template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return Item::Bound(); }
+    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()); }
+    template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return data->_bound; }
     template <> void payloadRender(const AnimDebugDrawData::Pointer& data, RenderArgs* args) {
         data->render(args);
     }
@@ -389,6 +392,13 @@ void AnimDebugDraw::update() {
 
         assert(numVerts == (v - verts));
 
+        render::Item::Bound theBound;
+        for (int i = 0; i < numVerts; i++) {
+            theBound += verts[i].pos;
+        }
+
+        data._isVisible = (numVerts > 0);
+        data._bound = theBound;
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
         uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {
