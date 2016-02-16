@@ -12,11 +12,9 @@
 
 
 (function() {
-    Script.include("../../libraries/tween.js");
     Script.include("../../libraries/utils.js");
 
     var _this;
-    var TWEEN = loadTween();
     GrowingPlant = function() {
         _this = this;
         _this.flowers = [];
