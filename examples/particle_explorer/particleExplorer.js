@@ -420,16 +420,26 @@ function prepareSettingsForExport() {
         exportSettings[key] = settings[key];
     });
 
-    return JSON.stringify(exportSettings);
+    return JSON.stringify(exportSettings, null, 4);
 }
 
 function showPreselectedPrompt() {
     var elem = document.getElementById("exported-props");
     var exportSettings = prepareSettingsForExport();
     elem.innerHTML = "";
+    var buttonnode= document.createElement('input');
+    buttonnode.setAttribute('type','button');
+    buttonnode.setAttribute('value','close');
+    elem.appendChild(document.createTextNode("COPY THE BELOW TO CLIPBOARD:"));
+    elem.appendChild(document.createElement("br"));
     elem.appendChild(document.createTextNode(exportSettings));
-    elem.select();
-    document.execCopy('copy');
+    elem.appendChild(document.createElement("br"));
+    elem.appendChild(buttonnode);
+
+    buttonnode.onclick = function() {
+        console.log("click")
+        elem.innerHTML = "";
+    }
 
     //window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
 }
