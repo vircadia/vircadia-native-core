@@ -64,18 +64,6 @@ void WindowScriptingInterface::raiseMainWindow() {
     });
 }
 
-void WindowScriptingInterface::setCursorPosition(int x, int y) {
-    QCursor::setPos(x, y);
-}
-
-QScriptValue WindowScriptingInterface::getCursorPositionX() {
-    return QCursor::pos().x();
-}
-
-QScriptValue WindowScriptingInterface::getCursorPositionY() {
-    return QCursor::pos().y();
-}
-
 /// Display an alert box
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue

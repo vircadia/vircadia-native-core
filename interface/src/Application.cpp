@@ -806,39 +806,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
+                auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto oldPos = QCursor::pos();
-                auto newPos = oldPos;
-                newPos.setX(oldPos.x() + state);
-                QCursor::setPos(newPos);
-
-
-                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-                // remove it after we're done
-                const float REASONABLE_CHANGE = 50.0f;
-                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
-                glm::vec2 newPosG = { newPos.x(), newPos.y() };
-                auto distance = glm::distance(oldPosG, newPosG);
-                if (distance > REASONABLE_CHANGE) {
-                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
-                }
-
+                auto oldPos = _controllerScriptingInterface->getReticlePosition();
+                _controllerScriptingInterface->setReticlePosition({ oldPos.x + state, oldPos.y });
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto oldPos = QCursor::pos();
-                auto newPos = oldPos;
-                newPos.setY(oldPos.y() + state);
-                QCursor::setPos(newPos);
-
-                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-                // remove it after we're done
-                const float REASONABLE_CHANGE = 50.0f;
-                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
-                glm::vec2 newPosG = { newPos.x(), newPos.y() };
-                auto distance = glm::distance(oldPosG, newPosG);
-                if (distance > REASONABLE_CHANGE) {
-                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
-                }
+                auto oldPos = _controllerScriptingInterface->getReticlePosition();
+                _controllerScriptingInterface->setReticlePosition({ oldPos.x, oldPos.y + state });
             }
         }
     });
@@ -2110,7 +2085,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
+        auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
     }
 
     _keysPressed.remove(event->key());
@@ -4727,8 +4703,10 @@ bool Application::isThrottleRendering() const {
     return getActiveDisplayPlugin()->isThrottled();
 }
 
+// FIXME -- consolidate users of getTrueMouse() controllerScriptingInterface->getReticlePosition()
 ivec2 Application::getTrueMouse() const {
-    return toGlm(_glWidget->mapFromGlobal(QCursor::pos()));
+    auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+    return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
 }
 
 bool Application::hasFocus() const {
