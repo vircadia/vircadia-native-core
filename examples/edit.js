@@ -1260,6 +1260,7 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
+        selectedParticleEntity = 0;
         particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
@@ -1888,17 +1889,19 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
         var ids = data.entityIds;
         if(ids.length === 1) {
             if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect" ) {
-                if (JSON.stringify(selectedParticleEntity) !== JSON.stringify(ids[0])) {
-                    // We already had a particle entity selected, so destroy that one and create the new one
-                    particleExplorerTool.destroyWebView();
+                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                    // This particle entity is already selected, so return
+                    return;
                 }
-                // Now we want to activate the partice explorer panel!
+                // Destroy the old particles web view first
+               particleExplorerTool.destroyWebView();
                particleExplorerTool.createWebView();
                 var properties = Entities.getEntityProperties(ids[0]);
                 var particleData = {
                     messageType: "particle_settings",
                     currentProperties: properties
                 };
+                selectedParticleEntity = ids[0];
                 particleExplorerTool.setActiveParticleEntity(ids[0]);
 
                 particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
@@ -1908,6 +1911,7 @@ entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
                     }
                 });
             } else {
+                selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();
             }
         }
