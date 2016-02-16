@@ -58,7 +58,7 @@ Item {
         width: 2 * window.width
         height: width
         x: -width / 4
-        y: window.height / 2 - width / 2
+        y: -width / 4
         visible: window && window.focus && windowContent.visible
         gradient: Gradient {
             // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
