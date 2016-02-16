@@ -117,7 +117,10 @@ public:
     bool isSmall() const { return _flags[SMALLER]; }
     void setSmaller(bool smaller) { (smaller ? _flags.set(SMALLER) : _flags.reset(SMALLER)); }
 
+    bool operator==(const ItemKey& key) { return (_flags == key._flags); }
+    bool operator!=(const ItemKey& key) { return (_flags != key._flags); }
 };
+using ItemKeys = std::vector<ItemKey>;
 
 inline QDebug operator<<(QDebug debug, const ItemKey& itemKey) {
     debug << "[ItemKey: isOpaque:" << itemKey.isOpaque()

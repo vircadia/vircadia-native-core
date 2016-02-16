@@ -40,7 +40,7 @@ namespace render {
             if (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 builder.withLayered();
             }
-            if (overlay->getAlpha() != 1.0f) {
+            if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
                 builder.withTransparent();
             }
         } else {

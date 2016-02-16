@@ -208,9 +208,7 @@ unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
 
             render::ScenePointer scene = qApp->getMain3DScene();
             render::PendingChanges pendingChanges;
-
             overlay->addToScene(overlay, scene, pendingChanges);
-
             scene->enqueuePendingChanges(pendingChanges);
         }
     } else {
@@ -244,18 +242,35 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
             auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
 
             bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
-            thisOverlay->setProperties(properties);
-            bool drawOnHUD = overlay3D->getDrawOnHUD();
+            render::ItemKey oldItemKey = render::payloadGetKey(thisOverlay);
 
+            thisOverlay->setProperties(properties);
+
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            auto itemID = thisOverlay->getRenderItemID();
+
+            bool drawOnHUD = overlay3D->getDrawOnHUD();
+            render::ItemKey itemKey = render::payloadGetKey(thisOverlay);
             if (drawOnHUD != oldDrawOnHUD) {
                 if (drawOnHUD) {
                     _overlaysWorld.remove(id);
                     _overlaysHUD[id] = thisOverlay;
+                    if (itemID != render::Item::INVALID_ITEM_ID) {
+                        thisOverlay->removeFromScene(thisOverlay, scene, pendingChanges);
+                    }
                 } else {
                     _overlaysHUD.remove(id);
                     _overlaysWorld[id] = thisOverlay;
+                    thisOverlay->addToScene(thisOverlay, scene, pendingChanges);
+                }
+            } else if (itemKey != oldItemKey && !drawOnHUD) {
+                if (itemID != render::Item::INVALID_ITEM_ID) {
+                    pendingChanges.resortItem(itemID, oldItemKey, itemKey);
                 }
             }
+
+            scene->enqueuePendingChanges(pendingChanges);
         } else {
             thisOverlay->setProperties(properties);
         }
