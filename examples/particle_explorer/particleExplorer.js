@@ -60,6 +60,7 @@ var keysToAllow = [
     'colorFinish',
     'alpha',
     'alphaSpread',
+    'alphaStart',
     'alphaFinish',
     'emitterShouldTrail'
 ];
