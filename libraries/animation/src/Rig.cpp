@@ -1274,15 +1274,18 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    int numPoses = (int)finalPoses.size();
-    for (int i = 0; i < numPoses; i++) {
-        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
-        AnimPose pose = finalPoses[i];
+    // HACK to reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
+    // from the head to the hips when computing the rest of the bounding capsule.
+    int index = _animSkeleton->nameToJointIndex(QString("Head"));
+    while (index != -1) {
+        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
+        AnimPose pose = finalPoses[index];
         if (shapeInfo.points.size() > 0) {
             for (int j = 0; j < shapeInfo.points.size(); ++j) {
                 totalExtents.addPoint((pose * shapeInfo.points[j]));
             }
         }
+        index = _animSkeleton->getParentIndex(index);
     }
 
     // compute bounding shape parameters
