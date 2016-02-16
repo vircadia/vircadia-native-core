@@ -62,7 +62,8 @@ var keysToAllow = [
     'alphaSpread',
     'alphaStart',
     'alphaFinish',
-    'emitterShouldTrail'
+    'emitterShouldTrail',
+    'textures'
 ];
 
 var individualKeys = [];
