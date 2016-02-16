@@ -20,29 +20,32 @@ var pot, hose;
 initializePlant();
 
 function initializePlant() {
-  var MODEL_URL = "file:///C:/Users/Eric/Desktop/pot.fbx";
+  var POT_MODEL_URL = "file:///C:/Users/Eric/Desktop/pot.fbx";
   var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random());
 
   pot = Entities.addEntity({
     type: "Model",
     name: "plant pot",
-    modelURL: MODEL_URL,
+    modelURL: POT_MODEL_URL,
     position: center
   });
 
+  var HOSE_MODEL_URL = "file:///C:/Users/Eric/Desktop/hose.fbx";
   var HOSE_SCRIPT_URL =  Script.resolvePath("waterHoseEntityScript.js?v1" + Math.random());
   hose = Entities.addEntity({
-    type: "Box",
-    dimensions: {x: 0.1, y: 0.5, z: 0.1},
+    type: "Model",
+    modelURL: HOSE_MODEL_URL,
     position: Vec3.sum(center, {x: 0.5, y: 0, z: 0}),
     color: {red: 200, green: 10, blue: 200},
-    script: HOSE_SCRIPT_URL
   });
 
   Script.setTimeout(function() {
-    var naturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(pot, {dimensions: naturalDimensions, script: PLANT_SCRIPT_URL});
-  }, 100);
+    var potNaturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
+    Entities.editEntity(pot, {dimensions: potNaturalDimensions, script: PLANT_SCRIPT_URL});
+
+    var hoseNaturalDimensions = Entities.getEntityProperties(hose, "naturalDimensions").naturalDimensions;
+    Entities.editEntity(hose, {dimensions: hoseNaturalDimensions, script: HOSE_SCRIPT_URL});
+  }, 200);
 
 }
 
