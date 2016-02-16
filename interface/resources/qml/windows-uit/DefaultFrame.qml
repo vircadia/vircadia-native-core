@@ -86,7 +86,7 @@ Frame {
             id: titleText
             anchors {
                 left: parent.left
-                leftMargin: frameMarginLeft + window.contentMarginLeft
+                leftMargin: frameMarginLeft + hifi.dimensions.contentMargin.x
                 right: controlsRow.left
                 rightMargin: iconSize
                 top: parent.top

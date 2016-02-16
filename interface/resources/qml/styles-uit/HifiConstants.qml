@@ -48,6 +48,7 @@ Item {
         id: dimensions
         readonly property real borderRadius: Screen.width >= 1920 && Screen.height >= 1080 ? 7.5 : 5.0
         readonly property real borderWidth: Screen.width >= 1920 && Screen.height >= 1080 ? 2 : 1
+        readonly property vector2d contentMargin: Qt.vector2d(12, 24)
     }
 
     /*

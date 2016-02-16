@@ -79,17 +79,10 @@ Window {
         scripts.stopAllScripts();
     }
 
-    //Item {
+    Column {
 
-        Column {
-
-            Text {
-                id: title
-                font.bold: true
-                font.pointSize: 16
-                color: "#0e7077"
-                text: "Currently Running"
-            }
+        HifiControls.StaticSection {
+            name: "Currently Running"
 
             Row {
                 id: allButtons
@@ -162,14 +155,11 @@ Window {
                     }
                 }
             }
+        }
 
-            Text {
-                id: loadLabel
-                text: "Load Scripts"
-                font.bold: true
-                font.pointSize: 16
-                color: "#0e7077"
-            }
+        HifiControls.StaticSection {
+            name: "Load Scripts"
+            hasSeparator: true
 
             Row {
                 id: row1
@@ -281,6 +271,6 @@ Window {
                 onClicked: root.loadScript(selectedScript.text)
             }
         }
-    //}
+    }
 }
 
