@@ -43,6 +43,7 @@ ScriptEngines::ScriptEngines()
 
 QString normalizeScriptUrl(const QString& rawScriptUrl) {
     auto lower = rawScriptUrl.toLower();
+#ifndef Q_OS_LINUX
     if (!rawScriptUrl.startsWith("http:") && !rawScriptUrl.startsWith("https:") &&  !rawScriptUrl.startsWith("atp:")) {
         if (rawScriptUrl.startsWith("file:")) {
             return rawScriptUrl.toLower();
@@ -50,6 +51,7 @@ QString normalizeScriptUrl(const QString& rawScriptUrl) {
         // Force lowercase on file scripts because of drive letter weirdness.
         return QUrl::fromLocalFile(rawScriptUrl).toString().toLower();
     }
+#endif
     return QUrl(rawScriptUrl).toString();
 }
 
