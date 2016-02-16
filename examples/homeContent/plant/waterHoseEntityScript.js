@@ -20,13 +20,14 @@
         _this = this;
         this.potName = "plant pot";
         _this.potSearchRadius = 5;
- 
+
     };
 
     WaterHose.prototype = {
 
         clickDownOnEntity: function() {
             // search for a pot with some seeds nearby
+            Entities.editEntity(_this.waterEffect, {isEmitting: true});
             var entities = Entities.findEntities(this.position, _this.potSearchRadius);
             entities.forEach(function(entity) {
                 var name = Entities.getEntityProperties(entity, "name").name;
@@ -46,18 +47,78 @@
 
         },
 
+        clickReleaseOnEntity: function() {
+          Entities.editEntity(_this.waterEffect, {isEmitting: false});
+        },
+
         preload: function(entityID) {
             print("EBL PRELOAD");
             this.entityID = entityID;
             this.props = Entities.getEntityProperties(this.entityID, ["position", "dimensions"]);
             this.position = this.props.position;
             this.dimensions = this.props.dimensions;
- 
+            this.createWaterEffect();
+
+        },
+
+        createWaterEffect: function() {
+            _this.waterEffect = Entities.addEntity({
+                type: "ParticleEffect",
+                isEmitting: false,
+                position: _this.position,
+                colorStart: {
+                    red: 0,
+                    green: 10,
+                    blue: 20
+                },
+                  color: {
+                    red: 30,
+                    green: 30,
+                    blue: 40
+                },
+                 colorFinish: {
+                    red: 50,
+                    green: 50,
+                    blue: 60
+                },
+                maxParticles: 20000,
+                lifespan: 1.5,
+                emitRate: 10000,
+                emitSpeed: .1,
+                speedSpread: 0.0,
+                emitDimensions: {
+                    x: 0.1,
+                    y: 0.01,
+                    z: 0.1
+                },
+                emitAcceleration: {
+                    x: 0.0,
+                    y: -1.0,
+                    z: 0
+                },
+                polarFinish: Math.PI,
+                accelerationSpread: {
+                    x: 0.1,
+                    y: 0.0,
+                    z: 0.1
+                },
+                particleRadius: 0.04,
+                radiusSpread: 0.01,
+                radiusStart: 0.03,
+                alpha: 0.9,
+                alphaSpread: .1,
+                alphaStart: 0.7,
+                alphaFinish: 0.5,
+                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
+                // emitterShouldTrail: true
+            });
+
         },
 
 
         unload: function() {
             print("EBL UNLOAD DONE")
+            Entities.deleteEntity(_this.waterEffect);
         }
 
     };

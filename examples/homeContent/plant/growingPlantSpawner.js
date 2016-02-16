@@ -20,7 +20,7 @@ var pot, hose;
 initializePlant();
 
 function initializePlant() {
-  var POT_MODEL_URL = "file:///C:/Users/Eric/Desktop/pot.fbx";
+  var POT_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/pot.fbx";
   var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random());
 
   pot = Entities.addEntity({
@@ -45,7 +45,7 @@ function initializePlant() {
 
     var hoseNaturalDimensions = Entities.getEntityProperties(hose, "naturalDimensions").naturalDimensions;
     Entities.editEntity(hose, {dimensions: hoseNaturalDimensions, script: HOSE_SCRIPT_URL});
-  }, 200);
+  }, 2000);
 
 }
 
