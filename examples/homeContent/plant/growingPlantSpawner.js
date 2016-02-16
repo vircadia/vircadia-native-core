@@ -30,21 +30,40 @@ function initializePlant() {
     position: center
   });
 
-  var HOSE_MODEL_URL = "file:///C:/Users/Eric/Desktop/hose.fbx?v1" + Math.random();
-  var HOSE_SCRIPT_URL =  Script.resolvePath("waterHoseEntityScript.js?v1" + Math.random());
+  var HOSE_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/hose.fbx";
+  var HOSE_SCRIPT_URL = Script.resolvePath("waterHoseEntityScript.js?v1" + Math.random());
   hose = Entities.addEntity({
     type: "Model",
     modelURL: HOSE_MODEL_URL,
-    position: Vec3.sum(center, {x: 0.0, y: 1, z: 0}),
-    color: {red: 200, green: 10, blue: 200},
+    position: Vec3.sum(center, {
+      x: 0.0,
+      y: 1,
+      z: 0
+    }),
+    color: {
+      red: 200,
+      green: 10,
+      blue: 200
+    },
+    userData: JSON.stringify({
+      grabbableKey: {
+        wantsTrigger: true
+      }
+    })
   });
 
   Script.setTimeout(function() {
     var potNaturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(pot, {dimensions: potNaturalDimensions, script: PLANT_SCRIPT_URL});
+    Entities.editEntity(pot, {
+      dimensions: potNaturalDimensions,
+      script: PLANT_SCRIPT_URL
+    });
 
     var hoseNaturalDimensions = Entities.getEntityProperties(hose, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(hose, {dimensions: hoseNaturalDimensions, script: HOSE_SCRIPT_URL});
+    Entities.editEntity(hose, {
+      dimensions: hoseNaturalDimensions,
+      script: HOSE_SCRIPT_URL
+    });
   }, 2000);
 
 }

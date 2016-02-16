@@ -110,7 +110,6 @@
                 alphaStart: 0.7,
                 alphaFinish: 0.5,
                 textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
-                // emitterShouldTrail: true
             });
 
         },

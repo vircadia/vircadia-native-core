@@ -29,7 +29,6 @@
 
 
         water: function() {
-            print("EBL IM BEING WATERED!");
             _this.cactusDimensions = Vec3.sum(_this.cactusDimensions, {x: 0, y: _this.GROW_RATE, z: 0});
 
             if (_this.cactusDimensions.y > _this.MAX_CACTUS_Y_DIMENSION) {
@@ -75,7 +74,7 @@
           
             var flowerUserData = {
                 ProceduralEntity: {
-                    shaderUrl: "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs",
+                    shaderUrl: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs",
                     uniforms: {
                         iBloomPct: randFloat(0.4, 0.8),
                         hueTwerking: randFloat(10, 30)
@@ -84,6 +83,7 @@
             };
             var flower = Entities.addEntity({
                 type: "Sphere",
+                name: "flower",
                 position: position,
                 dimensions: _this.startingFlowerDimensions,
                 userData: JSON.stringify(flowerUserData)
@@ -104,13 +104,13 @@
             _this.cactus = Entities.addEntity({
                 type: "Model",
                 modelURL: MODEL_URL,
+                name: "cactus",
                 position: _this.cactusPosition,
                 dimensions: _this.cactusDimensions
             });     
         },
 
         preload: function(entityID) {
-            print("EBL PRELOAD");
             this.entityID = entityID;
             this.props = Entities.getEntityProperties(this.entityID, ["position", "dimensions"]);
             this.position = this.props.position;
@@ -126,7 +126,6 @@
             _this.flowers.forEach(function(flower) {
                 Entities.deleteEntity(flower);
             });
-            print("EBL UNLOAD DONE")
         }
 
     };
