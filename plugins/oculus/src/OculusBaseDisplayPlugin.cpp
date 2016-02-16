@@ -11,20 +11,8 @@
 
 #include "OculusHelpers.h"
 
-uvec2 OculusBaseDisplayPlugin::getRecommendedRenderSize() const {
-    return _desiredFramebufferSize;
-}
-
-glm::mat4 OculusBaseDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
-    return _eyeProjections[eye];
-}
-
 void OculusBaseDisplayPlugin::resetSensors() {
     ovr_RecenterPose(_session);
-}
-
-glm::mat4 OculusBaseDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
-    return glm::translate(mat4(), toGlm(_eyeOffsets[eye]));
 }
 
 glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
@@ -70,7 +58,7 @@ void OculusBaseDisplayPlugin::customizeContext() {
     glewExperimental = true;
     GLenum err = glewInit();
     glGetError();
-    WindowOpenGLDisplayPlugin::customizeContext();
+    HmdDisplayPlugin::customizeContext();
 }
 
 void OculusBaseDisplayPlugin::init() {
@@ -88,37 +76,31 @@ void OculusBaseDisplayPlugin::activate() {
         qFatal("Failed to acquire HMD");
     }
 
-    WindowOpenGLDisplayPlugin::activate();
+    HmdDisplayPlugin::activate();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 
     _ipd = ovr_GetFloat(_session, OVR_KEY_IPD, _ipd);
 
     glm::uvec2 eyeSizes[2];
+    _viewScaleDesc.HmdSpaceToWorldScaleInMeters = 1.0f;
+
     ovr_for_each_eye([&](ovrEyeType eye) {
         _eyeFovs[eye] = _hmdDesc.DefaultEyeFov[eye];
         ovrEyeRenderDesc& erd = _eyeRenderDescs[eye] = ovr_GetRenderDesc(_session, eye, _eyeFovs[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
-        _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeViewOffset));
         eyeSizes[eye] = toGlm(ovr_GetFovTextureSize(_session, eye, erd.Fov, 1.0f));
+        _viewScaleDesc.HmdToEyeViewOffset[eye] = erd.HmdToEyeViewOffset;
     });
-    ovrFovPort combined = _eyeFovs[Left];
-    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
-    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
-    ovrMatrix4f ovrPerspectiveProjection =
-        ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
-    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
 
+    auto combinedFov = _eyeFovs[0];
+    combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
+    _cullingProjection = toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
 
-
-    _desiredFramebufferSize = uvec2(
+    _renderTargetSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
 
@@ -144,20 +126,8 @@ void OculusBaseDisplayPlugin::activate() {
 }
 
 void OculusBaseDisplayPlugin::deactivate() {
-    WindowOpenGLDisplayPlugin::deactivate();
-
-#if (OVR_MAJOR_VERSION >= 6)
+    HmdDisplayPlugin::deactivate();
     ovr_Destroy(_session);
     _session = nullptr;
     ovr_Shutdown();
-#endif
-}
-
-
-float OculusBaseDisplayPlugin::getIPD() const {
-    float result = OVR_DEFAULT_IPD;
-#if (OVR_MAJOR_VERSION >= 6)
-    result = ovr_GetFloat(_session, OVR_KEY_IPD, result);
-#endif
-    return result;
 }
