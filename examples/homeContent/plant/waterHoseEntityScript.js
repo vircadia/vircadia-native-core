@@ -20,6 +20,7 @@
         _this = this;
         this.potName = "plant pot";
         _this.potSearchRadius = 5;
+        _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
 
     };
 
@@ -32,12 +33,10 @@
         },
 
         startFarTrigger: function() {
-            print("TRIGGER")
             _this.startWatering();
         },
 
         continueFarTrigger: function() {
-            print("TRIGGER")
             _this.continueWatering();
         },
 
@@ -46,12 +45,10 @@
         },
 
          startNearTrigger: function() {
-            print("TRIGGER")
             _this.startWatering();
         },
 
         continueNearTrigger: function() {
-            print("TRIGGER")
             _this.continueWatering();
         },
 
@@ -68,6 +65,11 @@
         },
 
         startWatering: function() {
+            _this.waterInjector = Audio.playSound(_this.waterSound, {
+                position: _this.position,
+                volume: 0.3,
+                loop: true
+            });
             Entities.editEntity(_this.waterEffect, {
                 isEmitting: true
             });
@@ -94,6 +96,7 @@
         },
 
         stopWatering: function() {
+            _this.waterInjector.stop();
             Entities.editEntity(_this.waterEffect, {
                 isEmitting: false
             });
@@ -101,7 +104,6 @@
         },
 
         preload: function(entityID) {
-            print("EBL PRELOAD");
             this.entityID = entityID;
             this.props = Entities.getEntityProperties(this.entityID, ["position", "dimensions"]);
             this.position = this.props.position;
@@ -165,7 +167,6 @@
 
 
         unload: function() {
-            print("EBL UNLOAD DONE")
             Entities.deleteEntity(_this.waterEffect);
         }
 
