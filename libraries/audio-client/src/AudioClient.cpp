@@ -81,6 +81,7 @@ AudioClient::AudioClient() :
     _outputStarveDetectionStartTimeMsec(0),
     _outputStarveDetectionCount(0),
     _outputBufferSizeFrames("audioOutputBufferSize", DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES),
+    _sessionOutputBufferSizeFrames(_outputBufferSizeFrames.get()),
     _outputStarveDetectionEnabled("audioOutputStarveDetectionEnabled",
                                   DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED),
     _outputStarveDetectionPeriodMsec("audioOutputStarveDetectionPeriod",
@@ -971,10 +972,8 @@ void AudioClient::outputNotify() {
                     _outputStarveDetectionStartTimeMsec = now;
                     _outputStarveDetectionCount = 0;
 
-                    int oldOutputBufferSizeFrames = _outputBufferSizeFrames.get();
-                    int newOutputBufferSizeFrames = oldOutputBufferSizeFrames + 1;
-                    setOutputBufferSize(newOutputBufferSizeFrames);
-                    newOutputBufferSizeFrames = _outputBufferSizeFrames.get();
+                    int oldOutputBufferSizeFrames = _sessionOutputBufferSizeFrames;
+                    int newOutputBufferSizeFrames = setOutputBufferSize(oldOutputBufferSizeFrames + 1, false);
                     if (newOutputBufferSizeFrames > oldOutputBufferSizeFrames) {
                         qCDebug(audioclient) << "Starve detection threshold met, increasing buffer size to " << newOutputBufferSizeFrames <<
                         "on period size" << _audioOutput->periodSize() << "bytes.";
@@ -1039,7 +1038,7 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
             // setup our general output device for audio-mixer audio
             _audioOutput = new QAudioOutput(outputDeviceInfo, _outputFormat, this);
-            _audioOutput->setBufferSize(_outputBufferSizeFrames.get() * _outputFrameSize * sizeof(int16_t));
+            _audioOutput->setBufferSize(_sessionOutputBufferSizeFrames *_outputFrameSize * sizeof(int16_t));
 
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
             connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
@@ -1062,11 +1061,14 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
     return supportedFormat;
 }
 
-void AudioClient::setOutputBufferSize(int numFrames) {
+int AudioClient::setOutputBufferSize(int numFrames, bool persist) {
     numFrames = std::min(std::max(numFrames, MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES), MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES);
-    if (numFrames != _outputBufferSizeFrames.get()) {
+    if (numFrames != _sessionOutputBufferSizeFrames) {
         qCDebug(audioclient) << "Audio output buffer size (frames): " << numFrames;
-        _outputBufferSizeFrames.set(numFrames);
+        _sessionOutputBufferSizeFrames = numFrames;
+        if (persist) {
+            _outputBufferSizeFrames.set(numFrames);
+        }
 
         if (_audioOutput) {
             // The buffer size can't be adjusted after QAudioOutput::start() has been called, so
@@ -1075,6 +1077,7 @@ void AudioClient::setOutputBufferSize(int numFrames) {
             emit changeDevice(outputDeviceInfo);  // On correct thread, please, as setOutputBufferSize can be called from main thread.
         }
     }
+    return numFrames;
 }
 
 // The following constant is operating system dependent due to differences in

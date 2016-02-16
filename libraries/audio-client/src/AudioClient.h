@@ -54,7 +54,7 @@
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
-static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
+static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
@@ -152,7 +152,7 @@ public slots:
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
-    void setOutputBufferSize(int numFrames);
+    int setOutputBufferSize(int numFrames, bool persist = true);
 
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector);
 
@@ -227,6 +227,7 @@ private:
     int _outputStarveDetectionCount;
 
     Setting::Handle<int> _outputBufferSizeFrames;
+    int _sessionOutputBufferSizeFrames;
     Setting::Handle<bool> _outputStarveDetectionEnabled;
     Setting::Handle<int> _outputStarveDetectionPeriodMsec;
      // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
