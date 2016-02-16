@@ -30,12 +30,12 @@ function initializePlant() {
     position: center
   });
 
-  var HOSE_MODEL_URL = "file:///C:/Users/Eric/Desktop/hose.fbx";
+  var HOSE_MODEL_URL = "file:///C:/Users/Eric/Desktop/hose.fbx?v1" + Math.random();
   var HOSE_SCRIPT_URL =  Script.resolvePath("waterHoseEntityScript.js?v1" + Math.random());
   hose = Entities.addEntity({
     type: "Model",
     modelURL: HOSE_MODEL_URL,
-    position: Vec3.sum(center, {x: 0.5, y: 0, z: 0}),
+    position: Vec3.sum(center, {x: 0.0, y: 1, z: 0}),
     color: {red: 200, green: 10, blue: 200},
   });
 
