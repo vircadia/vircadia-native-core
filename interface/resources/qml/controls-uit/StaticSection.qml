@@ -50,7 +50,7 @@ Column {
     RalewayRegular {
         id: sectionName
         text: parent.name
-        size: 11
+        size: hifi.fontSizes.sectionName
         font.capitalization: Font.AllUppercase
         color: hifi.colors.lightGrayText
         verticalAlignment: Text.AlignBottom

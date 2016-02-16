@@ -94,7 +94,7 @@ Frame {
             }
             text: window ? window.title : ""
             color: hifi.colors.white
-            size: 16
+            size: hifi.fontSizes.overlayTitle
         }
 
         DropShadow {

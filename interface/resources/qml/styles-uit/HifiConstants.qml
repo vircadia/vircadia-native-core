@@ -14,6 +14,7 @@ import QtQuick.Window 2.2
 Item {
     readonly property alias colors: colors
     readonly property alias dimensions: dimensions
+    readonly property alias fontSizes: fontSizes
     readonly property alias effects: effects
 
     Item {
@@ -46,9 +47,29 @@ Item {
 
     Item {
         id: dimensions
-        readonly property real borderRadius: Screen.width >= 1920 && Screen.height >= 1080 ? 7.5 : 5.0
-        readonly property real borderWidth: Screen.width >= 1920 && Screen.height >= 1080 ? 2 : 1
+        readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
+        readonly property real borderRadius: largeScreen ? 7.5 : 5.0
+        readonly property real borderWidth: largeScreen ? 2 : 1
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
+        readonly property int contentSpacing: 5
+    }
+
+    Item {
+        id: fontSizes
+        readonly property real overlayTitle: dimensions.largeScreen? 16 : 12
+        readonly property real tabName: dimensions.largeScreen? 11 : 9
+        readonly property real sectionName: dimensions.largeScreen? 11 : 9
+        readonly property real inputLabel: dimensions.largeScreen? 11 : 9
+        readonly property real textFieldInput: dimensions.largeScreen? 16 : 11
+        readonly property real buttonLabel: dimensions.largeScreen? 15 : 10
+        readonly property real button: dimensions.largeScreen? 15 : 10
+        readonly property real listItem: dimensions.largeScreen? 11 : 9
+        readonly property real tabularData: dimensions.largeScreen? 11 : 9
+        readonly property real logo: dimensions.largeScreen? 15 : 10
+        readonly property real code: dimensions.largeScreen? 15 : 10
+        readonly property real rootMenu: dimensions.largeScreen? 11 : 9
+        readonly property real menuItem: dimensions.largeScreen? 11 : 9
+        readonly property real shortcutText: dimensions.largeScreen? 12 : 8
     }
 
     /*
