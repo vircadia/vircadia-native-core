@@ -383,9 +383,9 @@ function importSettings() {
         var keys = _.keys(importedSettings);
 
         _.each(keys, function(key) {
-            var shouldIgnore = _.contains(keysToIgnore, key);
+            var shouldAllow = _.contains(keysToAllow, key);
 
-            if (shouldIgnore) {
+            if (!shouldAllow) {
                 return;
             }
 
@@ -406,9 +406,9 @@ function prepareSettingsForExport() {
     var exportSettings = {};
 
     _.each(keys, function(key) {
-        var shouldIgnore = _.contains(keysToIgnore, key);
+        var shouldAllow = _.contains(keysToAllow, key);
 
-        if (shouldIgnore) {
+        if (!shouldAllow) {
             return;
         }
 
@@ -424,7 +424,14 @@ function prepareSettingsForExport() {
 }
 
 function showPreselectedPrompt() {
-    window.prompt("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
+    var elem = document.getElementById("exported-props");
+    var exportSettings = prepareSettingsForExport();
+    elem.innerHTML = "";
+    elem.appendChild(document.createTextNode(exportSettings));
+    elem.select();
+    document.execCopy('copy');
+
+    //window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
 }
 
 function removeContainerDomElement() {
