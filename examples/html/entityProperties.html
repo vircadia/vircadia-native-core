@@ -264,6 +264,7 @@
                 var elCollisionless = document.getElementById("property-collisionless");
                 var elDynamic = document.getElementById("property-dynamic" );
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
+                var elCollidesWith = document.getElementById("property-collides-with");
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
                 var elScriptTimestamp = document.getElementById("property-script-timestamp");
@@ -482,6 +483,7 @@
                                 elCollisionless.checked = properties.collisionless;
                                 elDynamic.checked = properties.dynamic;
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
+                                elCollidesWith.value = properties.collidesWith;
                                 elLifetime.value = properties.lifetime;
                                 elScriptURL.value = properties.script;
                                 elScriptTimestamp.value = properties.scriptTimestamp;
@@ -703,6 +705,7 @@
                 elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
+                elCollidesWith.addEventListener('change', createEmitTextPropertyUpdateFunction('collidesWith'));
     
                 elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
                 elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
@@ -1385,6 +1388,13 @@
                 <input type='checkbox' id="property-dynamic">
             </span>
         </div>
+
+        <div class="property">
+            <div class="label">collidesWith</div>
+            <div class="value">
+                <input id="property-collides-with">
+            </div>
+        </div>        
 
         <div class="property">
             <div class="label">Collision Sound URL</div>
