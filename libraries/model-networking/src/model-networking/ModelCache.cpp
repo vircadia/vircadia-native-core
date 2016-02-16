@@ -136,7 +136,7 @@ bool NetworkGeometry::isLoadedWithTextures() const {
 
     if (!_isLoadedWithTextures) {
         for (auto&& material : _materials) {
-            if ((material->diffuseTexture && !material->diffuseTexture->isLoaded()) ||
+            if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
                 (material->specularTexture && !material->specularTexture->isLoaded()) ||
                 (material->emissiveTexture && !material->emissiveTexture->isLoaded())) {
@@ -154,15 +154,15 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
         for (auto&& material : _materials) {
             auto networkMaterial = material->_material;
             auto oldTextureMaps = networkMaterial->getTextureMaps();
-            if (material->diffuseTextureName == name) {
-                material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
+            if (material->albedoTextureName == name) {
+                material->albedoTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
 
-                auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
-                diffuseMap->setTextureSource(material->diffuseTexture->_textureSource);
-                diffuseMap->setTextureTransform(
-                    oldTextureMaps[model::MaterialKey::DIFFUSE_MAP]->getTextureTransform());
+                auto albedoMap = model::TextureMapPointer(new model::TextureMap());
+                albedoMap->setTextureSource(material->albedoTexture->_textureSource);
+                albedoMap->setTextureTransform(
+                    oldTextureMaps[model::MaterialKey::ALBEDO_MAP]->getTextureTransform());
 
-                networkMaterial->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
+                networkMaterial->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
 
@@ -200,9 +200,9 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 QStringList NetworkGeometry::getTextureNames() const {
     QStringList result;
     for (auto&& material : _materials) {
-        if (!material->diffuseTextureName.isEmpty() && material->diffuseTexture) {
-            QString textureURL = material->diffuseTexture->getURL().toString();
-            result << material->diffuseTextureName + ":\"" + textureURL + "\"";
+        if (!material->albedoTextureName.isEmpty() && material->albedoTexture) {
+            QString textureURL = material->albedoTexture->getURL().toString();
+            result << material->albedoTextureName + ":\"" + textureURL + "\"";
         }
 
         if (!material->normalTextureName.isEmpty() && material->normalTexture) {
@@ -310,15 +310,15 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
 
     networkMaterial->_material = material._material;
 
-    if (!material.diffuseTexture.filename.isEmpty()) {
-        networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE, material.diffuseTexture.content);
-        networkMaterial->diffuseTextureName = material.diffuseTexture.name;
+    if (!material.albedoTexture.filename.isEmpty()) {
+        networkMaterial->albedoTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.albedoTexture.filename)), DEFAULT_TEXTURE, material.albedoTexture.content);
+        networkMaterial->albedoTextureName = material.albedoTexture.name;
 
-        auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
-        diffuseMap->setTextureSource(networkMaterial->diffuseTexture->_textureSource);
-        diffuseMap->setTextureTransform(material.diffuseTexture.transform);
+        auto albedoMap = model::TextureMapPointer(new model::TextureMap());
+        albedoMap->setTextureSource(networkMaterial->albedoTexture->_textureSource);
+        albedoMap->setTextureTransform(material.albedoTexture.transform);
 
-        material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
+        material._material->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
         networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);

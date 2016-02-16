@@ -195,7 +195,7 @@ public:
     public:
         static const int SKINNING_GPU = 2;
         static const int MATERIAL_GPU = 3;
-        static const int DIFFUSE_MAP = 0;
+        static const int ALBEDO_MAP = 0;
         static const int NORMAL_MAP = 1;
         static const int SPECULAR_MAP = 2;
         static const int LIGHTMAP_MAP = 3;
@@ -206,7 +206,7 @@ public:
     class Locations {
     public:
         int texcoordMatrices;
-        int diffuseTextureUnit;
+        int albedoTextureUnit;
         int normalTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;

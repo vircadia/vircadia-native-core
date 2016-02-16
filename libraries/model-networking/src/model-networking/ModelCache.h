@@ -174,8 +174,8 @@ public:
 class NetworkMaterial {
 public:
     model::MaterialPointer _material;
-    QString diffuseTextureName;
-    QSharedPointer<NetworkTexture> diffuseTexture;
+    QString albedoTextureName;
+    QSharedPointer<NetworkTexture> albedoTexture;
     QString normalTextureName;
     QSharedPointer<NetworkTexture> normalTexture;
     QString specularTextureName;

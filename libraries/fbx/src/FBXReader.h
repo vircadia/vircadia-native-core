@@ -151,7 +151,7 @@ public:
     QString materialID;
     model::MaterialPointer _material;
 
-    FBXTexture diffuseTexture;
+    FBXTexture albedoTexture;
     FBXTexture opacityTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;

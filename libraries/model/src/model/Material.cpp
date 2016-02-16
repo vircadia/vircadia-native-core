@@ -44,9 +44,9 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
-void Material::setDiffuse(const Color& diffuse, bool isSRGB) {
-    _key.setDiffuse(glm::any(glm::greaterThan(diffuse, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._diffuse = (isSRGB ? ColorUtils::toLinearVec3(diffuse) : diffuse);
+void Material::setAlbedo(const Color& albedo, bool isSRGB) {
+    _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::toLinearVec3(albedo) : albedo);
 }
 
 void Material::setMetallic(float metallic) {

@@ -39,7 +39,7 @@ void DebugDeferredBufferConfig::setMode(int newMode) {
 }
 
 enum Slot {
-    Diffuse = 0,
+    Albedo = 0,
     Normal,
     Specular,
     Depth,
@@ -52,9 +52,9 @@ enum Slot {
 
 
 
-static const std::string DEFAULT_DIFFUSE_SHADER {
+static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(pow(texture(diffuseMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
+    "    return vec4(pow(texture(albedoMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
 
@@ -144,8 +144,8 @@ DebugDeferredBuffer::DebugDeferredBuffer() {
 
 std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string customFile) {
     switch (mode) {
-        case DiffuseMode:
-            return DEFAULT_DIFFUSE_SHADER;
+        case AlbedoMode:
+            return DEFAULT_ALBEDO_SHADER;
         case SpecularMode:
             return DEFAULT_SPECULAR_SHADER;
         case RoughnessMode:
@@ -206,7 +206,7 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         const auto program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("diffuseMap", Diffuse));
+        slotBindings.insert(gpu::Shader::Binding("albedoMap", Albedo));
         slotBindings.insert(gpu::Shader::Binding("normalMap", Normal));
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
@@ -262,7 +262,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         
         batch.setPipeline(getPipeline(_mode, first));
         
-        batch.setResourceTexture(Diffuse, framebufferCache->getDeferredColorTexture());
+        batch.setResourceTexture(Albedo, framebufferCache->getDeferredColorTexture());
         batch.setResourceTexture(Normal, framebufferCache->getDeferredNormalTexture());
         batch.setResourceTexture(Specular, framebufferCache->getDeferredSpecularTexture());
         batch.setResourceTexture(Depth, framebufferCache->getPrimaryDepthTexture());

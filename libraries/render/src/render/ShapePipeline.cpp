@@ -53,7 +53,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::SKINNING_GPU));
     slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), Slot::MATERIAL_GPU));
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), Slot::DIFFUSE_MAP));
+    slotBindings.insert(gpu::Shader::Binding(std::string("albedoMap"), Slot::ALBEDO_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), Slot::NORMAL_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), Slot::SPECULAR_MAP));
     slotBindings.insert(gpu::Shader::Binding(std::string("emissiveMap"), Slot::LIGHTMAP_MAP));
@@ -66,7 +66,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->texcoordMatrices = program->getUniforms().findLocation("texcoordMatrices");
     locations->emissiveParams = program->getUniforms().findLocation("emissiveParams");
     locations->normalFittingMapUnit = program->getTextures().findLocation("normalFittingMap");
-    locations->diffuseTextureUnit = program->getTextures().findLocation("diffuseMap");
+    locations->albedoTextureUnit = program->getTextures().findLocation("albedoMap");
     locations->normalTextureUnit = program->getTextures().findLocation("normalMap");
     locations->specularTextureUnit = program->getTextures().findLocation("specularMap");
     locations->emissiveTextureUnit = program->getTextures().findLocation("emissiveMap");

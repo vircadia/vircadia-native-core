@@ -47,7 +47,7 @@ protected:
 
     enum Mode : uint8_t {
         // Use Mode suffix to avoid collisions
-        DiffuseMode = 0,
+        AlbedoMode = 0,
         SpecularMode,
         RoughnessMode,
         NormalMode,

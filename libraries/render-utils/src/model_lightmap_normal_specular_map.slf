@@ -55,7 +55,7 @@ void main(void) {
     packDeferredFragmentLightmap(
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), diffuse.a),
-        getMaterialDiffuse(mat) * diffuse.rgb * _color,
+        getMaterialAlbedo(mat) * diffuse.rgb * _color,
         specular, // no use of getMaterialSpecular(mat)
         getMaterialShininess(mat),
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));

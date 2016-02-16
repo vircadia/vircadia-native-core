@@ -40,7 +40,7 @@ vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 d
     return vec4(color, opacity);
 }
 
-uniform sampler2D diffuseMap;
+uniform sampler2D albedoMap;
 
 in vec2 _texCoord0;
 in vec4 _position;
@@ -51,15 +51,15 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec4 albedo = texture(albedoMap, _texCoord0);
 
     Material mat = getMaterial();
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
-    vec3 fragDiffuse = getMaterialDiffuse(mat) * diffuse.rgb * _color;
+    vec3 fragDiffuse = getMaterialAlbedo(mat) * albedo.rgb * _color;
     vec3 fragSpecular = getMaterialSpecular(mat);
     float fragGloss = getMaterialShininess(mat) / 128;
-    float fragOpacity = getMaterialOpacity(mat) * diffuse.a * _alpha;
+    float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
     _fragColor =  evalGlobalColor(1.0,
         fragPosition,

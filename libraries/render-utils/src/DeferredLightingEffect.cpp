@@ -525,7 +525,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DEFERRED_BUFFER_COLOR_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
@@ -584,10 +584,10 @@ void DeferredLightingEffect::setAmbientLightMode(int preset) {
     }
 }
 
-void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity) {
+void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& color, float intensity, float ambientIntensity) {
     auto light = _allocatedLights.front();
     light->setDirection(direction);
-    light->setColor(diffuse);
+    light->setColor(color);
     light->setIntensity(intensity);
     light->setAmbientIntensity(ambientIntensity);
 }

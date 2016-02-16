@@ -145,20 +145,20 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto textureMaps = _drawMaterial->getTextureMaps();
     glm::mat4 texcoordTransform[2];
 
-    // Diffuse
-    if (materialKey.isDiffuseMap()) {
-        auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-        if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
+    // Albedo
+    if (materialKey.isAlbedoMap()) {
+        auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
+        if (albedoMap && albedoMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, albedoMap->getTextureView());
 
-            if (!diffuseMap->getTextureTransform().isIdentity()) {
-                diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+            if (!albedoMap->getTextureTransform().isIdentity()) {
+                albedoMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map

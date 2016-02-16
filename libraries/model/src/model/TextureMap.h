@@ -27,7 +27,7 @@ typedef glm::vec3 Color;
 class TextureUsage {
 public:
     gpu::Texture::Type _type{ gpu::Texture::TEX_2D };
-    Material::MapFlags _materialUsage{ MaterialKey::DIFFUSE_MAP };
+    Material::MapFlags _materialUsage{ MaterialKey::ALBEDO_MAP };
 
     int _environmentUsage = 0;
 

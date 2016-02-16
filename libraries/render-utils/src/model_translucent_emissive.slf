@@ -14,7 +14,7 @@
 
 <@include model/Material.slh@>
 
-uniform sampler2D diffuseMap;
+uniform sampler2D albedoMap;
 
 in vec2 _texCoord0;
 in vec3 _color;
@@ -23,11 +23,11 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec4 albedo = texture(albedoMap, _texCoord0);
 
     Material mat = getMaterial();
-    vec3 fragColor = getMaterialDiffuse(mat) * diffuse.rgb * _color;
-    float fragOpacity = getMaterialOpacity(mat) * diffuse.a * _alpha;
+    vec3 fragColor = getMaterialAlbedo(mat) * albedo.rgb * _color;
+    float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
     _fragColor = vec4(fragColor, fragOpacity);
 }

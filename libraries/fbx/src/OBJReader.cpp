@@ -555,11 +555,11 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         model::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
-            fbxMaterial.diffuseTexture.filename = objMaterial.diffuseTextureFilename;
+            fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
-        modelMaterial->setDiffuse(fbxMaterial.diffuseColor);
+        modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
         modelMaterial->setGloss(fbxMaterial.shininess);
 
