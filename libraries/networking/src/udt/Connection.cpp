@@ -411,7 +411,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    _isReceivingData = true;
+    _isReceivingData = _hasReceivedData = true;
     
     // mark our last receive time as now (to push the potential expiry farther)
     _lastReceiveTime = p_high_resolution_clock::now();
@@ -725,7 +725,7 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
     
-    if (!_hasReceivedHandshake || _isReceivingData) {
+    if (!_hasReceivedHandshake || _hasReceivedData) {
         // server sent us a handshake - we need to assume this means state should be reset
         // as long as we haven't received a handshake yet or we have and we've received some data
         resetReceiveState();
@@ -799,7 +799,7 @@ void Connection::resetReceiveState() {
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
-    _isReceivingData = false;
+    _isReceivingData = _hasReceivedData = false;
     _connectionStart = p_high_resolution_clock::now();
     
     _acksDuringSYN = 1;
