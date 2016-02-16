@@ -112,7 +112,9 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 ApplicationCompositor::ApplicationCompositor() :
-    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha"))
+    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha")),
+    _reticleInterface(new ReticleInterface(this))
+
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -282,15 +284,13 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         bindCursorTexture(batch);
 
         //Mouse Pointer
-        auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-        bool reticleVisible = controllerScriptingInterface->getReticleVisible();
-        if (reticleVisible) {
+        if (getReticleVisible()) {
             glm::mat4 overlayXfm;
             _modelTransform.getMatrix(overlayXfm);
 
             glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
 
-            float cursorDepth = controllerScriptingInterface->getReticleDepth();
+            float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
             reticleXfm = glm::scale(reticleXfm, reticleScale);

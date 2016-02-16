@@ -724,7 +724,7 @@ function MyController(hand) {
         }
         this.searchSphereOff();
 
-        Controller.setReticleVisible(true);
+        Reticle.setVisible(true);
 
     };
 
@@ -1023,7 +1023,7 @@ function MyController(hand) {
                                (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
         }
 
-        Controller.setReticleVisible(false);
+        Reticle.setVisible(false);
 
     };
 
@@ -1886,7 +1886,7 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
-    Controller.setReticleVisible(true);
+    Reticle.setVisible(true);
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);

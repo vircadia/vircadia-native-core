@@ -806,14 +806,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+                auto reticlePosition = _compositor.getReticlePosition();
                 offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto oldPos = _controllerScriptingInterface->getReticlePosition();
-                _controllerScriptingInterface->setReticlePosition({ oldPos.x + state, oldPos.y });
+                auto oldPos = _compositor.getReticlePosition();
+                _compositor.setReticlePosition({ oldPos.x + state, oldPos.y });
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto oldPos = _controllerScriptingInterface->getReticlePosition();
-                _controllerScriptingInterface->setReticlePosition({ oldPos.x, oldPos.y + state });
+                auto oldPos = _compositor.getReticlePosition();
+                _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
             }
         }
     });
@@ -1254,6 +1254,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    rootContext->setContextProperty("Reticle", _compositor.getReticleInterface());
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
@@ -2085,7 +2086,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+        auto reticlePosition = _compositor.getReticlePosition();
         offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
     }
 
@@ -2542,7 +2543,7 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
-ivec2 Application::getMouse() const {
+ivec2 Application::getMouse() {
     if (isHMDMode()) {
         return _compositor.screenToOverlay(getTrueMouse());
     }
@@ -3566,7 +3567,7 @@ glm::vec3 Application::getSunDirection() {
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
-PickRay Application::computePickRay(float x, float y) const {
+PickRay Application::computePickRay(float x, float y) {
     vec2 pickPoint { x, y };
     PickRay result;
     if (isHMDMode()) {
@@ -4216,6 +4217,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+    scriptEngine->registerGlobalObject("Reticle", _compositor.getReticleInterface());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4695,7 +4697,7 @@ QSize Application::getDeviceSize() const {
     return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
 }
 
-PickRay Application::computePickRay() const {
+PickRay Application::computePickRay() {
     return computePickRay(getTrueMouse().x, getTrueMouse().y);
 }
 
@@ -4703,9 +4705,9 @@ bool Application::isThrottleRendering() const {
     return getActiveDisplayPlugin()->isThrottled();
 }
 
-// FIXME -- consolidate users of getTrueMouse() controllerScriptingInterface->getReticlePosition()
-ivec2 Application::getTrueMouse() const {
-    auto reticlePosition = _controllerScriptingInterface->getReticlePosition();
+// FIXME -- consolidate users of getTrueMouse() _compositor.getReticlePosition()
+ivec2 Application::getTrueMouse() {
+    auto reticlePosition = _compositor.getReticlePosition();
     return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
 }
 

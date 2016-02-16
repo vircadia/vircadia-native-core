@@ -117,7 +117,7 @@ public:
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
-    PickRay computePickRay() const;
+    PickRay computePickRay();
 
     bool isThrottleRendering() const;
 
@@ -139,8 +139,8 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    ivec2 getMouse() const;
-    ivec2 getTrueMouse() const;
+    ivec2 getMouse();
+    ivec2 getTrueMouse();
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -169,7 +169,7 @@ public:
 
     virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() override { return thread(); }
-    virtual PickRay computePickRay(float x, float y) const override;
+    virtual PickRay computePickRay(float x, float y) override;
     virtual glm::vec3 getAvatarPosition() const override;
     virtual qreal getDevicePixelRatio() override;
 

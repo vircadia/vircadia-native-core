@@ -36,7 +36,7 @@ public:
 
     virtual QThread* getMainThread() = 0;
     
-    virtual PickRay computePickRay(float x, float y) const = 0;
+    virtual PickRay computePickRay(float x, float y) = 0;
 
     virtual glm::vec3 getAvatarPosition() const = 0;
 

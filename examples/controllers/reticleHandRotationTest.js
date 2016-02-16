@@ -23,10 +23,10 @@ function length(posA, posB) {
 }
 
 function moveReticleAbsolute(x, y) {
-    var globalPos = Controller.getReticlePosition();
+    var globalPos = Reticle.getPosition();
     globalPos.x = x;
     globalPos.y = y;
-    Controller.setReticlePosition(globalPos);
+    Reticle.setPosition(globalPos);
 }
 
 var MAPPING_NAME = "com.highfidelity.testing.reticleWithHandRotation";

@@ -9,6 +9,7 @@
 #ifndef hifi_ApplicationCompositor_h
 #define hifi_ApplicationCompositor_h
 
+#include <QCursor>
 #include <QObject>
 #include <QPropertyAnimation>
 #include <cstdint>
@@ -22,6 +23,7 @@
 class Camera;
 class PalmData;
 class RenderArgs;
+class ReticleInterface;
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
@@ -80,6 +82,31 @@ public:
     static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
     static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
 
+    Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
+    Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }
+
+    Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
+    Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
+
+    Q_INVOKABLE glm::vec2 getReticlePosition() {
+        return toGlm(QCursor::pos());
+    }
+    Q_INVOKABLE void setReticlePosition(glm::vec2 position) {
+        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+        // remove it after we're done
+        const float REASONABLE_CHANGE = 50.0f;
+        glm::vec2 oldPos = toGlm(QCursor::pos());
+        auto distance = glm::distance(oldPos, position);
+        if (distance > REASONABLE_CHANGE) {
+            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
+        }
+
+        QCursor::setPos(position.x, position.y);
+    }
+
+    ReticleInterface* getReticleInterface() { return _reticleInterface; }
+
+
 private:
     void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
@@ -115,6 +142,35 @@ private:
     Transform _cameraBaseTransform;
 
     std::unique_ptr<QPropertyAnimation> _alphaPropertyAnimation;
+
+    bool _reticleVisible { true };
+    float _reticleDepth { 1.0f };
+
+    ReticleInterface* _reticleInterface;
+
 };
+
+// Scripting interface available to control the Reticle
+class ReticleInterface : public QObject {
+    Q_OBJECT
+        Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+        Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
+        Q_PROPERTY(float depth READ getDepth WRITE setDepth)
+public:
+    ReticleInterface(ApplicationCompositor* outer) : _compositor(outer), QObject(outer) { }
+
+    Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
+    Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }
+
+    Q_INVOKABLE float getDepth() { return _compositor->getReticleDepth(); }
+    Q_INVOKABLE void setDepth(float depth) { _compositor->setReticleDepth(depth); }
+
+    Q_INVOKABLE glm::vec2 getPosition() { return _compositor->getReticlePosition(); }
+    Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
+private:
+    ApplicationCompositor* _compositor;
+};
+
+
 
 #endif // hifi_ApplicationCompositor_h
