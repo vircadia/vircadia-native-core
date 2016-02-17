@@ -25,7 +25,7 @@ Window {
     destroyOnInvisible: true
     x: 40; y: 40
     implicitWidth: 384; implicitHeight: 640
-    minSize: Qt.vector2d(300, 400)
+    minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
 
@@ -86,13 +86,14 @@ Window {
             name: "Currently Running"
 
             Row {
-                id: allButtons
-                spacing: 8
+                spacing: hifi.dimensions.contentSpacing.x
+
                 HifiControls.Button {
                     text: "Reload all"
                     color: hifi.buttons.black
                     onClicked: reloadAll()
                 }
+
                 HifiControls.Button {
                     text: "Stop all"
                     color: hifi.buttons.red
@@ -171,7 +172,7 @@ Window {
             hasSeparator: true
 
             Row {
-                spacing: 8
+                spacing: hifi.dimensions.contentSpacing.x
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -214,8 +215,10 @@ Window {
 
             HifiControls.TextField {
                 id: filterEdit
-                placeholderText: "filter"
                 focus: true
+                colorScheme: hifi.colorSchemes.dark
+                //placeholderText: "filter"
+                label: "Filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
@@ -262,7 +265,13 @@ Window {
 
             HifiControls.TextField {
                 id: selectedScript
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.rightMargin: loadButton.width + hifi.dimensions.contentSpacing.x
+
+                colorScheme: hifi.colorSchemes.dark
                 readOnly: true
+
                 Connections {
                     target: treeView
                     onCurrentIndexChanged: {
@@ -272,18 +281,28 @@ Window {
                         } else {
                             selectedScript.text = ""
                         }
-
                     }
                 }
             }
 
-            HifiControls.Button {
-                id: loadButton
-                text: "Load"
-                color: hifi.buttons.blue
-                enabled: selectedScript.text != ""
-                onClicked: root.loadScript(selectedScript.text)
+            Item {
+                // Take the loadButton out of the column flow.
+                id: loadButtonContainer
+                anchors.top: selectedScript.top
+                anchors.right: parent.right
+
+                HifiControls.Button {
+                    id: loadButton
+                    anchors.right: parent.right
+
+                    text: "Load"
+                    color: hifi.buttons.blue
+                    enabled: selectedScript.text != ""
+                    onClicked: root.loadScript(selectedScript.text)
+                }
             }
+
+            HifiControls.VerticalSpacer { }
         }
     }
 }

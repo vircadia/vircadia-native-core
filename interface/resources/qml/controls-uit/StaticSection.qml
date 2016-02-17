@@ -16,6 +16,8 @@ Column {
     property string name: "Static Section"
     property bool hasSeparator: false
 
+    spacing: hifi.dimensions.contentSpacing.y
+
     anchors {
         left: parent.left
         leftMargin: hifi.dimensions.contentMargin.x
@@ -60,6 +62,4 @@ Column {
             }
         }
     }
-
-    VerticalSpacer { }
 }

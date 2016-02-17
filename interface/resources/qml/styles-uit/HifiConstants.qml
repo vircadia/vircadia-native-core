@@ -13,6 +13,7 @@ import QtQuick.Window 2.2
 
 Item {
     readonly property alias colors: colors
+    readonly property alias colorSchemes: colorSchemes
     readonly property alias dimensions: dimensions
     readonly property alias fontSizes: fontSizes
     readonly property alias buttons: buttons
@@ -27,6 +28,7 @@ Item {
         readonly property color baseGrayHighlight: "#575757"
         readonly property color lightGray: "#6a6a6a"
         readonly property color lightGrayText: "#afafaf"
+        readonly property color lightGrayBackground: "#d4d4d4"
         readonly property color faintGray: "#e3e3e3"
         readonly property color primaryHighlight: "#00b4ef"
         readonly property color blueHighlight: "#00b4ef"
@@ -35,6 +37,7 @@ Item {
         readonly property color redAccent: "#b70a37"
         readonly property color greenHighlight: "#1ac567"
         readonly property color greenShadow: "#2c8e72"
+        readonly property color black: "#000000"
 
         readonly property color white50: "#80ffffff"
         readonly property color white30: "#4dffffff"
@@ -47,12 +50,19 @@ Item {
     }
 
     Item {
+        id: colorSchemes
+        readonly property int light: 0
+        readonly property int dark: 1
+    }
+
+    Item {
         id: dimensions
         readonly property bool largeScreen: Screen.width >= 1920 && Screen.height >= 1080
         readonly property real borderRadius: largeScreen ? 7.5 : 5.0
         readonly property real borderWidth: largeScreen ? 2 : 1
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
-        readonly property int contentSpacing: 5
+        readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
+        readonly property real textPadding: 8
     }
 
     Item {
@@ -61,7 +71,7 @@ Item {
         readonly property real tabName: dimensions.largeScreen? 11 : 9
         readonly property real sectionName: dimensions.largeScreen? 11 : 9
         readonly property real inputLabel: dimensions.largeScreen? 11 : 9
-        readonly property real textFieldInput: dimensions.largeScreen? 16 : 11
+        readonly property real textFieldInput: dimensions.largeScreen? 13.5 : 11
         readonly property real buttonLabel: dimensions.largeScreen? 12 : 10
         readonly property real button: dimensions.largeScreen? 12 : 10
         readonly property real listItem: dimensions.largeScreen? 11 : 9
