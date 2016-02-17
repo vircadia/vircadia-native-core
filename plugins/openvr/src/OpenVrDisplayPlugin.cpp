@@ -88,10 +88,6 @@ void OpenVrDisplayPlugin::customizeContext() {
         glGetError();
     });
     HmdDisplayPlugin::customizeContext();
-
-    enableVsync(false);
-    // Only enable mirroring if we know vsync is disabled
-    _enablePreview = !isVsyncEnabled();
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
@@ -117,10 +113,6 @@ void OpenVrDisplayPlugin::internalPresent() {
     _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
 
     glFinish();
-
-    if (_enablePreview) {
-        swapBuffers();
-    }
 
     _compositor->WaitGetPoses(_presentThreadTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
 

@@ -32,6 +32,7 @@ protected:
     glm::mat4 _cullingProjection;
     glm::uvec2 _renderTargetSize;
     float _ipd { 0.064f };
+private:
     bool _enablePreview { false };
     bool _monoPreview { true };
 };
