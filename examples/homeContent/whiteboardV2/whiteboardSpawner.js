@@ -17,11 +17,16 @@ orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
 
+
 var WHITEBOARD_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteboard-3.fbx";
+var WHITEBOARD_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteboard.obj";
 var whiteboard = Entities.addEntity({
     type: "Model",
     modelURL: WHITEBOARD_MODEL_URL,
-    position: center
+    position: center,
+    shapeType: 'compound',
+    compoundShapeURL: WHITEBOARD_COLLISION_HULL_URL,
+    dimensions: { x: 0.4636, y: 2.7034, z: 1.8653}
 });
 
 
