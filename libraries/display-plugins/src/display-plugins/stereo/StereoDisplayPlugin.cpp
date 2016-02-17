@@ -39,15 +39,10 @@ const float DEFAULT_SEPARATION = DEFAULT_IPD / DEFAULT_SCREEN_WIDTH;
 // Default convergence depth: where is the screen plane in the virtual space (which depth)
 const float DEFAULT_CONVERGENCE = 0.5f;
 
-glm::mat4 StereoDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
+glm::mat4 StereoDisplayPlugin::getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
     // Refer to http://www.nvidia.com/content/gtc-2010/pdfs/2010_gtc2010.pdf on creating 
     // stereo projection matrices.  Do NOT use "toe-in", use translation.
     // Updated version: http://developer.download.nvidia.com/assets/gamedev/docs/Siggraph2011-Stereoscopy_From_XY_to_Z-SG.pdf
-
-    if (eye == Mono) {
-        // FIXME provide a combined matrix, needed for proper culling
-        return baseProjection;
-    }
 
     float frustumshift = DEFAULT_SEPARATION;
     if (eye == Right) {

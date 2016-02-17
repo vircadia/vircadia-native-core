@@ -11,15 +11,14 @@
 
 #include <openvr.h>
 
-#include <display-plugins/WindowOpenGLDisplayPlugin.h>
+#include <display-plugins/hmd/HmdDisplayPlugin.h>
 
 const float TARGET_RATE_OpenVr = 90.0f;  // FIXME: get from sdk tracked device property? This number is vive-only.
 
-class OpenVrDisplayPlugin : public WindowOpenGLDisplayPlugin {
+class OpenVrDisplayPlugin : public HmdDisplayPlugin {
 public:
     virtual bool isSupported() const override;
     virtual const QString& getName() const override { return NAME; }
-    virtual bool isHmd() const override { return true; }
 
     virtual float getTargetFrameRate() override { return TARGET_RATE_OpenVr; }
 
@@ -28,16 +27,9 @@ public:
 
     virtual void customizeContext() override;
 
-    virtual glm::uvec2 getRecommendedRenderSize() const override;
-    virtual glm::uvec2 getRecommendedUiSize() const override { return uvec2(1920, 1080); }
-
     // Stereo specific methods
-    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const override;
     virtual void resetSensors() override;
-
-    virtual glm::mat4 getEyeToHeadTransform(Eye eye) const override;
     virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
-    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
 
 protected:
     virtual void internalPresent() override;
@@ -45,8 +37,6 @@ protected:
 private:
     vr::IVRSystem* _hmd { nullptr };
     static const QString NAME;
-    bool _enablePreview { false };
-    bool _monoPreview { true };
     mutable Mutex _poseMutex;
 };
 
