@@ -218,6 +218,28 @@
             }
         };
 
+        function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
+            if (subPropertyElement.checked) {
+                if (propertyValue.indexOf(subPropertyString)) {
+                    propertyValue += subPropertyString + ',';
+                } 
+            } else {
+                // We've unchecked, so remove 
+                propertyValue = propertyValue.replace(subPropertyString + ",", "");
+            }
+
+            var _properties ={}
+            _properties[propertyName] = propertyValue;
+            
+            EventBridge.emitWebEvent(
+              JSON.stringify({
+                type: "update",
+                properties: _properties
+              })
+            );
+
+        }
+
         function loaded() { 
             openEventBridge(function() {
                 var allSections = [];
@@ -501,7 +523,6 @@
                                 elDynamic.checked = properties.dynamic;
 
 
-                                console.log('STARTCHECK', properties.collidesWith)
                                 elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
                                 elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
                                 elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
@@ -732,31 +753,9 @@
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
 
 
-                function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
-                    console.log("UPDATE CHECKED PROP")
-                    if (subPropertyElement.checked) {
-                        if (propertyValue.indexOf(subPropertyString)) {
-                            propertyValue += subPropertyString + ',';
-                        } 
-                    } else {
-                        // We've unchecked, so remove 
-                        propertyValue = propertyValue.replace(subPropertyString + ",", "");
-                    }
 
-                    var _properties ={}
-                    _properties[propertyName] = propertyValue;
-                    
-                    EventBridge.emitWebEvent(
-                      JSON.stringify({
-                        type: "update",
-                        properties: _properties
-                      })
-                    );
-
-                }
 
                 elCollideDynamic.addEventListener('change', function() {
-                    console.log("CHANGE!")
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
                 });
 
@@ -1459,45 +1458,44 @@
             </span>
         </div>
 
-        <div>
-            <div> collidesWith </div>
+        
+            <div class = "sub-section-header"> Collides With: </div>
+            <div class = "sub-props-checkbox-group">
+                <div class="property">
+                  <span class="label"> Static</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-static">
+                  </span>
+                </div>
 
-            <div class="property">
-              <span class="label">Static</span>
-              <span class="value">
-                <input type='checkbox' id="property-collide-static">
-              </span>
+                <div class="property">
+                  <span class="label"> dynamic</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-dynamic">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> kinematic</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-kinematic">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> myAvatar</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-myAvatar">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> otherAvatar</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-otherAvatar">
+                  </span>
+                </div>
             </div>
-
-            <div class="property">
-              <span class="label">dynamic</span>
-              <span class="value">
-                <input type='checkbox' id="property-collide-dynamic">
-              </span>
-            </div>
-
-            <div class="property">
-              <span class="label">kinematic</span>
-              <span class="value">
-                <input type='checkbox' id="property-collide-kinematic">
-              </span>
-            </div>
-
-            <div class="property">
-              <span class="label">myAvatar</span>
-              <span class="value">
-                <input type='checkbox' id="property-collide-myAvatar">
-              </span>
-            </div>
-
-            <div class="property">
-              <span class="label">otherAvatar</span>
-              <span class="value">
-                <input type='checkbox' id="property-collide-otherAvatar">
-              </span>
-            </div>
-
-
 
 
         </div>

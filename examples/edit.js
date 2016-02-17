@@ -1542,7 +1542,6 @@ PropertiesTool = function(opts) {
                 print(data.message);
             }
         } else if (data.type == "update") {
-            print("EBL WE GOT AN UPDATE! " + JSON.stringify(data))
             selectionManager.saveProperties();
             if (selectionManager.selections.length > 1) {
                 properties = {
