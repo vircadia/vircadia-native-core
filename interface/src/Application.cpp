@@ -849,8 +849,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getAvatarUpdater()->isHMDMode();
     }));
-    _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
-        return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getSnapTurn();
     }));
     _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
