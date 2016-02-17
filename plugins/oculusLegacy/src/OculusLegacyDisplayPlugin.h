@@ -46,7 +46,6 @@ private:
     mutable ovrTrackingState _trackingState;
     ovrEyeRenderDesc _eyeRenderDescs[2];
     ovrFovPort _eyeFovs[2];
-    mutable ovrPosef _eyePoses[2];
     //ovrTexture _eyeTextures[2]; // FIXME - not currently in use
     mutable int _hmdScreen { -1 };
     bool _hswDismissed { false };
