@@ -20,4 +20,5 @@ Text {
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
     font.family: iconFont.name
+    font.bold: true  // Font seems to need this in order to display bold.
 }
