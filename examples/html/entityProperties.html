@@ -501,7 +501,7 @@
                                 elDynamic.checked = properties.dynamic;
 
 
-
+                                console.log('STARTCHECK', properties.collidesWith)
                                 elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
                                 elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
                                 elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
@@ -743,17 +743,20 @@
                         propertyValue = propertyValue.replace(subPropertyString + ",", "");
                     }
 
+                    var _properties ={}
+                    _properties[propertyName] = propertyValue;
+                    
                     EventBridge.emitWebEvent(
                       JSON.stringify({
                         type: "update",
-                        properties: {propertyName: propertyValue}
+                        properties: _properties
                       })
                     );
 
                 }
 
-
                 elCollideDynamic.addEventListener('change', function() {
+                    console.log("CHANGE!")
                     updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
                 });
 
