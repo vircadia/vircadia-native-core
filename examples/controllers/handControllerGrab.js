@@ -478,6 +478,25 @@ function MyController(hand) {
         }
     };
 
+    this.searchIndicatorOn = function(handPosition, distantPickRay) {
+        var SEARCH_SPHERE_SIZE = 0.011;
+        var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
+
+        if (this.intersectionDistance > 0) {
+            //  If we hit something with our pick ray, move the search sphere toward that distance
+            this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE +
+                this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
+        }
+
+        var searchSphereLocation = Vec3.sum(distantPickRay.origin,
+                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
+        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
+                            (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+        if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
+            this.overlayLineOn(handPosition, searchSphereLocation,
+                               (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
+        }
+    }
 
     this.handleDistantParticleBeam = function(handPosition, objectPosition, color) {
 
@@ -1006,24 +1025,7 @@ function MyController(hand) {
             this.lineOn(distantPickRay.origin, Vec3.multiply(distantPickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
         }
 
-        var SEARCH_SPHERE_SIZE = 0.011;
-        var SEARCH_SPHERE_FOLLOW_RATE = 0.50;
-
-        if (this.intersectionDistance > 0) {
-            //  If we hit something with our pick ray, move the search sphere toward that distance
-            this.searchSphereDistance = this.searchSphereDistance * SEARCH_SPHERE_FOLLOW_RATE +
-                this.intersectionDistance * (1.0 - SEARCH_SPHERE_FOLLOW_RATE);
-        }
-
-        var searchSphereLocation = Vec3.sum(distantPickRay.origin,
-                                            Vec3.multiply(distantPickRay.direction, this.searchSphereDistance));
-        this.searchSphereOn(searchSphereLocation, SEARCH_SPHERE_SIZE * this.searchSphereDistance,
-                            (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
-        if ((USE_OVERLAY_LINES_FOR_SEARCHING === true) && PICK_WITH_HAND_RAY) {
-            this.overlayLineOn(handPosition, searchSphereLocation,
-                               (this.triggerSmoothedGrab() || this.bumperSqueezed()) ? INTERSECT_COLOR : NO_INTERSECT_COLOR);
-        }
-
+        this.searchIndicatorOn(handPosition, distantPickRay);
         Controller.setReticleVisible(false);
 
     };
@@ -1551,12 +1553,13 @@ function MyController(hand) {
                     this.callEntityMethodOnGrabbed("stopFarTrigger");
                     return;
                 }
+                if (intersection.intersects) {
+                    this.intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
+                }
+                this.searchIndicatorOn(handPosition, pickRay);
             }
         }
 
-        if (USE_ENTITY_LINES_FOR_MOVING === true) {
-            this.lineOn(pickRay.origin, Vec3.multiply(pickRay.direction, LINE_LENGTH), NO_INTERSECT_COLOR);
-        }
         this.callEntityMethodOnGrabbed("continueFarTrigger");
     };
 
