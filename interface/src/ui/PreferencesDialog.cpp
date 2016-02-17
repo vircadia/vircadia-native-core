@@ -60,7 +60,7 @@ void setupPreferences() {
     {
         auto getter = [=]()->bool {return myAvatar->getSnapTurn(); };
         auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
-        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn", getter, setter));
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn when in HMD", getter, setter));
     }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
