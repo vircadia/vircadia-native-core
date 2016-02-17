@@ -11,9 +11,9 @@
   };
 
   var BALL_DIMENSIONS = {
-      x: 0.025,
-      y: 0.025,
-      z: 0.025
+      x: 0.05,
+      y: 0.05,
+      z: 0.05
   }
   var BALL_COLOR = {
       red: 255,
@@ -58,6 +58,11 @@
           dynamic: true,
           collisionless:false,
           damping:0.6,
+          gravity:{
+            x:0,
+            y:-9.8,
+            z:0
+          }
 
       };
       ball = Entities.addEntity(properties);
