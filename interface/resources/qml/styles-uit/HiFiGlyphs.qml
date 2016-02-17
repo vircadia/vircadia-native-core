@@ -14,12 +14,12 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: iconFont; source: "../../fonts/hifi-glyphs.ttf"; }
+    FontLoader { id: hiFiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
     property int size: 32
     font.pixelSize: size  // Size this font in pixels because it's UI widgets.
     width: size
     height: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: iconFont.name
+    font.family: hiFiGlyphs.name
 }

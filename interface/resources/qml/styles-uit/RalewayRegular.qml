@@ -14,10 +14,10 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: iconFont; source: "../../fonts/Raleway-Regular.ttf"; }
+    FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     property real size: 32
     font.pointSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: iconFont.name
+    font.family: ralewayRegular.name
 }
