@@ -29,6 +29,6 @@ Material getMaterial() {
 float getMaterialOpacity(Material m) { return m._albedoOpacity.a; }
 vec3 getMaterialAlbedo(Material m) { return m._albedoOpacity.rgb; }
 vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }
-float getMaterialShininess(Material m) { return m._specular.a; }
+float getMaterialShininess(Material m) { return (1 - m._specular.a); }
 
 <@endif@>

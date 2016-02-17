@@ -867,6 +867,8 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     FBXMaterial material;
                     if (object.properties.at(1).toByteArray().contains("StingrayPBS1")) {
                         material.isPBSMaterial = true;
+                    } else if (object.properties.at(1).toByteArray().contains("StingrayPBS2")) {
+                        material.isPBSMaterial = true;
                     }
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
