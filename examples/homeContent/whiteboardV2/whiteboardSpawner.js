@@ -14,7 +14,11 @@
 var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
-var whiteboardRotation = Quat.fromVec3Degrees({x: orientation.x, y: orientation.y - 90, z: orientation.z});
+var whiteboardRotation = Quat.fromVec3Degrees({
+    x: orientation.x,
+    y: orientation.y - 90,
+    z: orientation.z
+});
 orientation = Quat.fromVec3Degrees(orientation);
 
 
@@ -28,7 +32,11 @@ var whiteboard = Entities.addEntity({
     rotation: whiteboardRotation,
     shapeType: 'compound',
     compoundShapeURL: WHITEBOARD_COLLISION_HULL_URL,
-    dimensions: { x: 0.4636, y: 2.7034, z: 1.8653}
+    dimensions: {
+        x: 0.4636,
+        y: 2.7034,
+        z: 1.8653
+    }
 });
 
 var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.9, Quat.getFront(orientation)));
@@ -38,11 +46,49 @@ var marker = Entities.addEntity({
     modelURL: MARKER_MODEL_URL,
     shapeType: "box",
     dynamic: true,
-    gravity: {x: 0, y: -1, z: 0},
+    gravity: {
+        x: 0,
+        y: -1,
+        z: 0
+    },
     rotation: whiteboardRotation,
-    velocity: {x: 0, y: -0.1, z: 0},
+    velocity: {
+        x: 0,
+        y: -0.1,
+        z: 0
+    },
     position: markerPosition,
-    dimensions: {x: 0.0270, y: 0.0272, z: 0.1641}
+    dimensions: {
+        x: 0.0270,
+        y: 0.0272,
+        z: 0.1641
+    },
+    userData: JSON.stringify({
+        wearable: {
+            joints: {
+                RightHand: [{
+                    "x": 0.03257002681493759,
+                    "y": 0.15036098659038544,
+                    "z": 0.051217660307884216
+                }, {
+                    "x": -0.5274277329444885,
+                    "y": -0.23446641862392426,
+                    "z": -0.05400913953781128,
+                    "w": 0.8148180246353149
+                }],
+                LeftHand: [{
+                    "x": -0.031699854880571365,
+                    "y": 0.15150733292102814,
+                    "z": 0.041107177734375
+                }, {
+                    "x": 0.649201512336731,
+                    "y": 0.1007731482386589,
+                    "z": 0.3215889632701874,
+                    "w": -0.6818817853927612
+                }]
+            }
+        }
+    })
 });
 
 
