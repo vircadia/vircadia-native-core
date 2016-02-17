@@ -432,9 +432,11 @@ function showPreselectedPrompt() {
     var buttonnode= document.createElement('input');
     buttonnode.setAttribute('type','button');
     buttonnode.setAttribute('value','close');
-    elem.appendChild(document.createTextNode("COPY THE BELOW TO CLIPBOARD:"));
+    elem.appendChild(document.createTextNode("COPY THE BELOW FIELD TO CLIPBOARD:"));
     elem.appendChild(document.createElement("br"));
-    elem.appendChild(document.createTextNode(exportSettings));
+    var textAreaNode = document.createElement("textarea");
+    textAreaNode.value = exportSettings;
+    elem.appendChild(textAreaNode);
     elem.appendChild(document.createElement("br"));
     elem.appendChild(buttonnode);
 
