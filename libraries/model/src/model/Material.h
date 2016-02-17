@@ -229,8 +229,10 @@ public:
     void setMetallic(float metallic);
     float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic.x; }
 
-    void setGloss(float gloss);
-    float getGloss() const { return _schemaBuffer.get<Schema>()._gloss; }
+  //  void setGloss(float gloss);
+    void setRoughness(float gloss);
+    float getGloss() const { return 1.0f - getRoughness(); }
+    float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
 
     void setOpacity(float opacity);
     float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
@@ -242,7 +244,7 @@ public:
         glm::vec3 _albedo{ 0.5f };
         float _opacity{1.f};
         glm::vec3 _metallic{ 0.03f };
-        float _gloss{0.1f};
+        float _roughness{ 0.9f };
         glm::vec3 _emissive{ 0.0f };
         float _spare0{0.0f};
         glm::vec4  _spareVec4{0.0f}; // for alignment beauty, Material size == Mat4x4
@@ -255,6 +257,9 @@ public:
     // The texture map to channel association
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
     const TextureMaps& getTextureMaps() const { return _textureMaps; }
+
+    // conversion from previous properties to PBR equivalent
+    static float shininessToRoughness(float shininess) { return 1.0f - shininess / 128.0f; }
 
 protected:
 

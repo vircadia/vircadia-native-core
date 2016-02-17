@@ -100,15 +100,36 @@ void FBXReader::consolidateFBXMaterials() {
             material.normalTexture = normalTexture;
             detectDifferentUVs |= (normalTexture.texcoordSet != 0) || (!normalTexture.transform.isIdentity());
         }
-        
-                
+
         FBXTexture specularTexture;
         QString specularTextureID = specularTextures.value(material.materialID);
         if (!specularTextureID.isNull()) {
             specularTexture = getTexture(specularTextureID);
             detectDifferentUVs |= (specularTexture.texcoordSet != 0) || (!specularTexture.transform.isIdentity());
-        
             material.specularTexture = specularTexture;            
+        }
+
+        FBXTexture metallicTexture;
+        QString metallicTextureID = metallicTextures.value(material.materialID);
+        if (!metallicTextureID.isNull()) {
+            metallicTexture = getTexture(metallicTextureID);
+            detectDifferentUVs |= (metallicTexture.texcoordSet != 0) || (!metallicTexture.transform.isIdentity());
+            material.metallicTexture = metallicTexture;
+        }
+
+        FBXTexture roughnessTexture;
+        QString roughnessTextureID = roughnessTextures.value(material.materialID);
+        QString shininessTextureID = shininessTextures.value(material.materialID);
+        if (!roughnessTextureID.isNull()) {
+            roughnessTexture = getTexture(roughnessTextureID);
+            roughnessTexture.isGlossmap = false;
+            material.roughnessTexture = roughnessTexture;
+            detectDifferentUVs |= (roughnessTexture.texcoordSet != 0) || (!roughnessTexture.transform.isIdentity());
+        } else if (!shininessTextureID.isNull()) {
+            roughnessTexture = getTexture(roughnessTextureID);
+            roughnessTexture.isGlossmap = true;
+            material.roughnessTexture = roughnessTexture;
+            detectDifferentUVs |= (roughnessTexture.texcoordSet != 0) || (!roughnessTexture.transform.isIdentity());
         }
 
         FBXTexture emissiveTexture;
@@ -142,11 +163,18 @@ void FBXReader::consolidateFBXMaterials() {
         // diffuse *= material.diffuseFactor;
         material._material->setAlbedo(diffuse);
 
-        float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
-        // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
-        // metallic *= material.specularFactor;
-        material._material->setMetallic(metallic);
-        material._material->setGloss(material.shininess);
+        if (material.isPBSMaterial) {
+            material._material->setRoughness(material.roughness);
+            material._material->setMetallic(material.metallic);
+        } else {
+            material._material->setRoughness(model::Material::shininessToRoughness(material.shininess));
+
+            float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
+            // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
+            // metallic *= material.specularFactor;
+            material._material->setMetallic(metallic);
+
+        }
 
         if (material.opacity <= 0.0f) {
             material._material->setOpacity(1.0f);

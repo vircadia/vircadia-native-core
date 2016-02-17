@@ -561,7 +561,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
         modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
-        modelMaterial->setGloss(fbxMaterial.shininess);
+        modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
         if (fbxMaterial.opacity <= 0.0f) {
             modelMaterial->setOpacity(1.0f);

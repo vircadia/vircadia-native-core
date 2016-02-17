@@ -58,11 +58,16 @@ void Material::setEmissive(const Color&  emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
 }
-
+/*
 void Material::setGloss(float gloss) {
-    _key.setGloss((gloss > 0.0f));
-    _schemaBuffer.edit<Schema>()._gloss = gloss;
+    setRoughness(1.0 - gloss);
+}*/
+void Material::setRoughness(float roughness) {
+    roughness = std::min(1.0f, std::max(roughness, 0.0f));
+    _key.setGloss((roughness < 1.0f));
+    _schemaBuffer.edit<Schema>()._roughness = roughness;
 }
+
 
 void Material::setOpacity(float opacity) {
     _key.setTransparent((opacity < 1.0f));

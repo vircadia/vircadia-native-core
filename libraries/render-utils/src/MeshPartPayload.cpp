@@ -167,7 +167,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         if (normalMap && normalMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
@@ -181,7 +181,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         if (specularMap && specularMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
         }

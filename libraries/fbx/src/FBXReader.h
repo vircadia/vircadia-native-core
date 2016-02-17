@@ -111,7 +111,8 @@ public:
     QString texcoordSetName;
     
     bool isBumpmap{ false };
-    
+    bool isGlossmap{ true };
+
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
 
@@ -148,6 +149,9 @@ public:
     float shininess = 23.0f;
     float opacity = 1.0f;
 
+    float metallic{ 0.0f };
+    float roughness{ 1.0f };
+
     QString materialID;
     model::MaterialPointer _material;
 
@@ -156,7 +160,10 @@ public:
     FBXTexture normalTexture;
     FBXTexture specularTexture;
     FBXTexture emissiveTexture;
+    FBXTexture metallicTexture;
+    FBXTexture roughnessTexture;
 
+    bool isPBSMaterial{ false };
     bool needTangentSpace() const;
 };
 
@@ -402,6 +409,9 @@ public:
     QHash<QString, QString> specularTextures;
     QHash<QString, QString> emissiveTextures;
     QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> metallicTextures;
+    QHash<QString, QString> roughnessTextures;
+    QHash<QString, QString> shininessTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 

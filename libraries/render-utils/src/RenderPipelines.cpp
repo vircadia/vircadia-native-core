@@ -69,7 +69,7 @@ gpu::BufferView getDefaultMaterialBuffer() {
     schema._albedo = vec3(1.0f);
     schema._opacity = 1.0f;
     schema._metallic = vec3(0.1f);
-    schema._gloss = 10.0f;
+    schema._roughness = 0.9f;
     return gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(model::Material::Schema), (const gpu::Byte*) &schema));
 }
 
