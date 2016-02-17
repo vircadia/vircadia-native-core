@@ -921,7 +921,8 @@ function MyController(hand) {
                 continue;
             }
 
-            if (this.state == STATE_SEARCHING && !isPhysical && distance > NEAR_PICK_MAX_DISTANCE && !near) {
+            if (this.state == STATE_SEARCHING &&
+                !isPhysical && distance > NEAR_PICK_MAX_DISTANCE && !near && !grabbableDataForCandidate.wantsTrigger) {
                 // we can't distance-grab non-physical
                 if (WANT_DEBUG_SEARCH_NAME && propsForCandidate.name == WANT_DEBUG_SEARCH_NAME) {
                     print("grab is skipping '" + WANT_DEBUG_SEARCH_NAME + "': not physical and too far for near-grab");
@@ -1543,11 +1544,13 @@ function MyController(hand) {
         var now = Date.now();
         if (now - this.lastPickTime > MSECS_PER_SEC / PICKS_PER_SECOND_PER_HAND) {
             var intersection = Entities.findRayIntersection(pickRay, true);
-            this.lastPickTime = now;
-            if (intersection.entityID != this.grabbedEntity) {
-                this.setState(STATE_RELEASE);
-                this.callEntityMethodOnGrabbed("stopFarTrigger");
-                return;
+            if (intersection.accurate) {
+                this.lastPickTime = now;
+                if (intersection.entityID != this.grabbedEntity) {
+                    this.setState(STATE_RELEASE);
+                    this.callEntityMethodOnGrabbed("stopFarTrigger");
+                    return;
+                }
             }
         }
 
