@@ -731,21 +731,44 @@
                 elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
 
-                elCollideDynamic.addEventListener('change', function() {
-                    if (elCollideDynamic.checked) { 
-                        if (properties.collidesWith.indexOf('dynamic') === -1) {
-                        // We just added dynamic to list
-                          properties.collidesWith += "dynamic,"
-                          console.log("Just added dynamic");
+
+                function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
+                    console.log("UPDATE CHECKED PROP")
+                    if (subPropertyElement.checked) {
+                        if (propertyValue.indexOf(subPropertyString)) {
+                            propertyValue += subPropertyString + ',';
                         } 
                     } else {
-                        // We've unchecked, so remove
-                        properties.collidesWith = properties.collidesWith.replace("dynamic,", "");
-                        console.log("WE REMOVED SHIT");
+                        // We've unchecked, so remove 
+                        propertyValue = propertyValue.replace(subPropertyString + ",", "");
                     }
-                    debugger
-                    
-                     
+
+                    EventBridge.emitWebEvent(
+                      JSON.stringify({
+                        type: "update",
+                        properties: {propertyName: propertyValue}
+                      })
+                    );
+
+                }
+
+
+                elCollideDynamic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
+                });
+
+                elCollideKinematic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideKinematic, 'kinematic');
+                });
+
+                elCollideStatic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideStatic, 'static');
+                });
+                elCollideMyAvatar.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideMyAvatar, 'myAvatar');
+                });
+                elCollideOtherAvatar.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
                 });
 
 
