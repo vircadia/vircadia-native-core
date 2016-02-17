@@ -15,6 +15,7 @@ Item {
     readonly property alias colors: colors
     readonly property alias dimensions: dimensions
     readonly property alias fontSizes: fontSizes
+    readonly property alias buttons: buttons
     readonly property alias effects: effects
 
     Item {
@@ -61,8 +62,8 @@ Item {
         readonly property real sectionName: dimensions.largeScreen? 11 : 9
         readonly property real inputLabel: dimensions.largeScreen? 11 : 9
         readonly property real textFieldInput: dimensions.largeScreen? 16 : 11
-        readonly property real buttonLabel: dimensions.largeScreen? 15 : 10
-        readonly property real button: dimensions.largeScreen? 15 : 10
+        readonly property real buttonLabel: dimensions.largeScreen? 12 : 10
+        readonly property real button: dimensions.largeScreen? 12 : 10
         readonly property real listItem: dimensions.largeScreen? 11 : 9
         readonly property real tabularData: dimensions.largeScreen? 11 : 9
         readonly property real logo: dimensions.largeScreen? 15 : 10
@@ -70,6 +71,18 @@ Item {
         readonly property real rootMenu: dimensions.largeScreen? 11 : 9
         readonly property real menuItem: dimensions.largeScreen? 11 : 9
         readonly property real shortcutText: dimensions.largeScreen? 12 : 8
+    }
+
+    Item {
+        id: buttons
+        readonly property int white: 0
+        readonly property int blue: 1
+        readonly property int red: 2
+        readonly property int black: 3
+        readonly property var textColor: [ colors.darkGray, colors.white, colors.white, colors.white ]
+        readonly property var colorStart: [ "#ffffff", "#00b4ef", "#d42043", "#343434" ]
+        readonly property var colorFinish: [ "#afafaf", "#1080b8", "#94132e", "#000000" ]
+        readonly property int radius: 5
     }
 
     /*

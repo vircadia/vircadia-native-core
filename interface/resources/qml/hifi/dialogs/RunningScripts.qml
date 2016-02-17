@@ -88,8 +88,16 @@ Window {
             Row {
                 id: allButtons
                 spacing: 8
-                Button { text: "Reload all"; onClicked: reloadAll() }
-                Button { text: "Stop all"; onClicked: stopAll() }
+                HifiControls.Button {
+                    text: "Reload all"
+                    color: hifi.buttons.black
+                    onClicked: reloadAll()
+                }
+                HifiControls.Button {
+                    text: "Stop all"
+                    color: hifi.buttons.red
+                    onClicked: stopAll()
+                }
             }
 
             ScrollView {
@@ -163,12 +171,14 @@ Window {
             hasSeparator: true
 
             Row {
-                id: row1
                 spacing: 8
+                anchors.right: parent.right
 
-                Button {
-                    text: "from URL";
-                    onClicked: fromUrlTimer.running = true;
+                HifiControls.Button {
+                    text: "from URL"
+                    color: hifi.buttons.black
+                    height: 26
+                    onClicked: fromUrlTimer.running = true
 
                     // For some reason trigginer an API that enters
                     // an internal event loop directly from the button clicked
@@ -186,9 +196,11 @@ Window {
                     }
                 }
 
-                Button {
+                HifiControls.Button {
                     text: "from Disk"
-                    onClicked: fromDiskTimer.running = true;
+                    color: hifi.buttons.black
+                    height: 26
+                    onClicked: fromDiskTimer.running = true
 
                     Timer {
                         id: fromDiskTimer
@@ -265,9 +277,10 @@ Window {
                 }
             }
 
-            Button {
+            HifiControls.Button {
                 id: loadButton
                 text: "Load"
+                color: hifi.buttons.blue
                 enabled: selectedScript.text != ""
                 onClicked: root.loadScript(selectedScript.text)
             }
