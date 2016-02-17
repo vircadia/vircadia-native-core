@@ -1,5 +1,5 @@
 <!--
-//  main.js
+//  particleExplorer.hml
 //  
 //
 //  Created by James B. Pollack @imgntn on 9/26/2015
@@ -16,14 +16,16 @@
 <head>
 <script type="text/javascript" src="dat.gui.min.js"></script>
 <script type="text/javascript" src="underscore-min.js"></script>
-<script type="text/javascript" src="main.js?123"></script>
+<script type="text/javascript" src="qrc:///qtwebchannel/qwebchannel.js"></script>
+<script type="text/javascript" src="../html/eventBridgeLoader.js"></script>
+<script type="text/javascript" src="particleExplorer.js?v42"></script>
 <script>
 </script>
 <style>
 
 body{
-	background-color:black;
-	overflow-x: hidden;
+    background-color:black;
+    overflow-x: hidden;
 }
 
 #my-gui-container{
@@ -31,12 +33,23 @@ body{
 }
 
 .importer{
-	margin-bottom:4px;
+    margin-bottom:4px;
+}
+.exported-props-section {
+    width: 50%;
+    margin: 0 auto; 
+
+}
+#exported-props {
+    /* Set the margin-left and margin-right automatically set */
+    color: white;
+    white-space: pre-wrap;       /* css-3 */
 }
 
+
 ::-webkit-input-placeholder {
-	text-align: center;
-	font-family: Helvetica
+    text-align: center;
+    font-family: Helvetica
 }
 
 #importer-input{
@@ -50,6 +63,8 @@ body{
 <body>
 <div class="importer">
 <input type='text' id="importer-input" placeholder="Import: Paste JSON here."  onkeypress="handleInputKeyPress(event)">
+<div class = "exported-props-section">
+  <div id = "exported-props"></div> 
 </div>
 <div id="my-gui-container">
 </div>

@@ -810,3 +810,9 @@ float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSize
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
     return voxelSizeScale / powf(2, renderLevel);
 }
+
+float ViewFrustum::getAccuracyAngle(float octreeSizeScale, int boundaryLevelAdjust) const {
+    const float maxScale = (float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
+    return atan(maxScale / visibleDistanceAtMaxScale);
+}

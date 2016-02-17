@@ -16,17 +16,22 @@
 #ifndef hifi_OctreeElementBag_h
 #define hifi_OctreeElementBag_h
 
-#include <queue>
+#include <unordered_map>
 
 #include "OctreeElement.h"
 
 class OctreeElementBag {
-    using Bag = std::queue<OctreeElementWeakPointer>;
+    using Bag = std::unordered_map<OctreeElement*, OctreeElementWeakPointer>;
     
 public:
     void insert(OctreeElementPointer element); // put a element into the bag
-    OctreeElementPointer extract(); // pull a element out of the bag (could come in any order)
-    bool isEmpty();
+
+    OctreeElementPointer extract(); /// pull a element out of the bag (could come in any order) and if all of the
+                                    /// elements have expired, a single null pointer will be returned
+
+    bool isEmpty(); /// does the bag contain elements, 
+                    /// if all of the contained elements are expired, they will not report as empty, and
+                    /// a single last item will be returned by extract as a null pointer
     
     void deleteAll();
 

@@ -10,6 +10,7 @@
 
 #include "Circle3DOverlay.h"
 
+#include <GeometryUtil.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
@@ -298,7 +299,10 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
         setEndAt(endAt.toVariant().toFloat());
     }
 
-    QScriptValue outerRadius = properties.property("outerRadius");
+    QScriptValue outerRadius = properties.property("radius");
+    if (!outerRadius.isValid()) {
+        outerRadius = properties.property("outerRadius");
+    }
     if (outerRadius.isValid()) {
         setOuterRadius(outerRadius.toVariant().toFloat());
     }
@@ -365,6 +369,9 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
     if (property == "endAt") {
         return _endAt;
     }
+    if (property == "radius") {
+        return _outerRadius;
+    }
     if (property == "outerRadius") {
         return _outerRadius;
     }
@@ -400,18 +407,18 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                             BoxFace& face, glm::vec3& surfaceNormal) {
 
-    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
+    // Scale the dimensions by the diameter
+    glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();
+    bool intersects = findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
         glm::vec3 localHitPosition = glm::inverse(getRotation()) * (hitPosition - getPosition());
-        localHitPosition.y = localHitPosition.y * getDimensions().x / getDimensions().y;  // Scale to make circular
-
+        localHitPosition.x /= getDimensions().x;
+        localHitPosition.y /= getDimensions().y;
         float distanceToHit = glm::length(localHitPosition);
-        float innerRadius = getDimensions().x / 2.0f * _innerRadius;
-        float outerRadius = getDimensions().x / 2.0f * _outerRadius;
 
-        intersects = innerRadius <= distanceToHit && distanceToHit <= outerRadius;
+        intersects = getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius();
     }
 
     return intersects;

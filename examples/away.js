@@ -90,6 +90,9 @@ hideOverlay();
 
 // MAIN CONTROL
 var wasMuted, isAway;
+var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
+var eventMapping = Controller.newMapping(eventMappingName);
+
 function goAway() {
     if (isAway) {
         return;
@@ -117,8 +120,8 @@ function goActive() {
     stopAwayAnimation();
     hideOverlay();
 }
-Script.scriptEnding.connect(goActive);
-Controller.keyPressEvent.connect(function (event) {
+
+function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
         return;
     }
@@ -127,13 +130,31 @@ Controller.keyPressEvent.connect(function (event) {
     } else {
         goActive();
     }
-});
+}
 var wasHmdActive = false;
-Script.update.connect(function () {
+function maybeGoAway() {
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
             goAway();
         }
     }
+}
+
+Script.update.connect(maybeGoAway);
+Controller.mousePressEvent.connect(goActive);
+Controller.keyPressEvent.connect(maybeGoActive);
+// Note peek() so as to not interfere with other mappings.
+eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive); 
+eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
+eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(goActive);
+eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(goActive);
+Controller.enableMapping(eventMappingName);
+
+Script.scriptEnding.connect(function () {
+    Script.update.disconnect(maybeGoAway);
+    goActive();
+    Controller.disableMapping(eventMappingName);
+    Controller.mousePressEvent.disconnect(goActive);
+    Controller.keyPressEvent.disconnect(maybeGoActive);
 });

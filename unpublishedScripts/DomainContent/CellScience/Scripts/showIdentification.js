@@ -10,24 +10,51 @@
     var self = this;
     var baseURL = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
-    var version = 1;
+    var version = 2;
     this.preload = function(entityId) {
         this.soundPlaying = null;
         this.entityId = entityId;
-        self.getUserData();
-        this.labelURL = baseURL + "GUI/labels_" + self.userData.name + ".png?" + version;
-        this.showDistance = self.userData.showDistance;
-        this.soundURL = baseURL + "Audio/" + self.userData.name + ".wav";
-        this.soundOptions = {
-            stereo: true,
-            loop: false,
-            localOnly: true,
-            volume: 0.035,
-            position: this.position
-        };
-        this.sound = SoundCache.getSound(this.soundURL);
-        this.buttonImageURL = baseURL + "GUI/GUI_audio.png?" + version;
-        self.addButton();
+        self.initTimeout = null;
+        this.initialize(entityId);
+
+
+    }
+
+    this.initialize = function(entityId) {
+        //print(' should initialize' + entityId)
+        var properties = Entities.getEntityProperties(entityId);
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+            self.initTimeout = Script.setTimeout(function() {
+                //print(' no user data yet, try again in one second')
+                self.initialize(entityId);
+            }, 1000)
+
+        } else {
+            //print(' userdata before parse attempt' + properties.userData)
+            self.userData = null;
+            try {
+                self.userData = JSON.parse(properties.userData);
+            } catch (err) {
+                //print(' error parsing json');
+                //print(' properties are:' + properties.userData);
+                return;
+            }
+
+            self.labelURL = baseURL + "GUI/labels_" + self.userData.name + ".png?" + version;
+            self.showDistance = self.userData.showDistance;
+            self.soundURL = baseURL + "Audio/" + self.userData.name + ".wav";
+            self.soundOptions = {
+                stereo: true,
+                loop: false,
+                localOnly: true,
+                volume: 0.035,
+                position: properties.position
+            };
+            self.sound = SoundCache.getSound(self.soundURL);
+            self.buttonImageURL = baseURL + "GUI/GUI_audio.png?" + version;
+            self.addButton();
+
+        }
     }
 
     this.addButton = function() {
@@ -78,9 +105,8 @@
 
     this.enterEntity = function(entityID) {
 
-        //      self.getUserData();
-        print("entering entity and showing" + self.labelURL);
-        //self.buttonShowing = true;
+        // print("entering entity and showing" + self.labelURL);
+
         Overlays.editOverlay(self.button, {
             visible: true
         });
@@ -92,9 +118,8 @@
 
 
     this.leaveEntity = function(entityID) {
-        //      self.getUserData();
-        //      print("leaving entity " + self.userData.name);
-        //self.buttonShowing = false;
+        // print("leaving entity " + self.userData.name);
+
         print(Overlays);
         Overlays.editOverlay(self.button, {
             visible: false
@@ -110,16 +135,16 @@
             y: event.y
         });
         if (clickedOverlay == self.button) {
-            print("button was clicked");
+            //print("button was clicked");
             if (self.sound.downloaded) {
-                print("play sound");
+                // print("play sound");
 
                 Overlays.editOverlay(self.button, {
                     visible: false
                 });
                 this.soundPlaying = Audio.playSound(self.sound, self.soundOptions);
             } else {
-                print("not downloaded");
+                // print("not downloaded");
             }
         }
     }
@@ -129,7 +154,9 @@
         if (this.soundPlaying !== null) {
             this.soundPlaying.stop();
         }
-
+        if (self.initTimeout !== null) {
+            Script.clearTimeout(self.initTimeout);
+        }
         Controller.mousePressEvent.disconnect(this.onClick);
     }
 

@@ -62,6 +62,8 @@ public:
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
     uint32_t getOverlayTexture() const;
 
+    glm::vec2 overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const;
+
     void setCameraBaseTransform(const Transform& transform) { _cameraBaseTransform = transform; }
     const Transform& getCameraBaseTransform() const { return _cameraBaseTransform; }
 

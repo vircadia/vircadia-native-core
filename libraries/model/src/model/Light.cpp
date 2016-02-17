@@ -22,15 +22,14 @@ Light::Light() {
 Light::Light(const Light& light) :
     _flags(light._flags),
     _schemaBuffer(light._schemaBuffer),
-    _transform(light._transform),
-    _maximumRadius(light._maximumRadius) {
+    _transform(light._transform)
+{
 }
 
 Light& Light::operator= (const Light& light) {
     _flags = (light._flags);
     _schemaBuffer = (light._schemaBuffer);
     _transform = (light._transform);
-    _maximumRadius = (light._maximumRadius);
 
     return (*this);
 }
@@ -133,5 +132,10 @@ void Light::setShowContour(float show) {
     editSchema()._control.w = show;
 }
 
+void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
+    editSchema()._ambientSphere = sphere;
+}
 
-
+void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
+    editSchema()._ambientSphere.assignPreset(preset);
+}

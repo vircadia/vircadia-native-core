@@ -41,8 +41,6 @@ void EntityEditPacketSender::queueEditEntityMessage(PacketType type, EntityItemI
         return; // bail early
     }
 
-    assert(properties.getLastEdited() > 0);
-
     QByteArray bufferOut(NLPacket::maxPayloadSize(type), 0);
 
     if (EntityItemProperties::encodeEntityEditPacket(type, modelID, properties, bufferOut)) {

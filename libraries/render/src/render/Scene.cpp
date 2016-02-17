@@ -56,66 +56,16 @@ void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
     (*this)[ItemFilter::Builder::transparentShape().withLayered()];
 }
 
-const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
-
-const float Item::Status::Value::RED = 0.0f;
-const float Item::Status::Value::YELLOW = 60.0f;
-const float Item::Status::Value::GREEN = 120.0f;
-const float Item::Status::Value::CYAN = 180.0f;
-const float Item::Status::Value::BLUE = 240.0f;
-const float Item::Status::Value::MAGENTA = 300.0f;
-
-void Item::Status::Value::setScale(float scale) {
-    _scale = (std::numeric_limits<unsigned short>::max() -1) * 0.5f * (1.0f + std::max(std::min(scale, 1.0f), 0.0f));
- }
-
-void Item::Status::Value::setColor(float hue) {
-    // Convert the HUe from range [0, 360] to signed normalized value
-    const float HUE_MAX = 360.0f;
-    _color = (std::numeric_limits<unsigned char>::max()) * (std::max(std::min(hue, HUE_MAX), 0.0f) / HUE_MAX);
-}
-void Item::Status::Value::setIcon(unsigned char icon) {
-    _icon = icon;
-}
-
-Item::Status::Values Item::Status::getCurrentValues() const {
-    Values currentValues(_values.size());
-    auto currentValue = currentValues.begin();
-    for (auto& getter : _values) {
-        (*currentValue) = getter();
-        currentValue++;
-    }
-    return currentValues;
-}
-
-void Item::PayloadInterface::addStatusGetter(const Status::Getter& getter) {
-    if (!_status) {
-        _status = std::make_shared<Status>();
-    }
-    _status->addGetter(getter);
-}
-
-void Item::PayloadInterface::addStatusGetters(const Status::Getters& getters) {
-    if (!_status) {
-        _status = std::make_shared<Status>();
-    }
-    for (auto& g : getters) {
-        _status->addGetter(g);
-    }
-}
-
-void Item::resetPayload(const PayloadPointer& payload) {
-    if (!payload) {
-        kill();
-    } else {
-        _payload = payload;
-        _key = _payload->getKey();
-    }
-}
 
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
+}
+
+void PendingChanges::resortItem(ItemID id, ItemKey oldKey, ItemKey newKey) {
+    _resortItems.push_back(id);
+    _resortOldKeys.push_back(oldKey);
+    _resortNewKeys.push_back(newKey);
 }
 
 void PendingChanges::removeItem(ItemID id) {
@@ -127,16 +77,20 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
     _updateFunctors.push_back(functor);
 }
 
-        
 void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
+    _resortItems.insert(_resortItems.end(), changes._resortItems.begin(), changes._resortItems.end());
+    _resortOldKeys.insert(_resortOldKeys.end(), changes._resortOldKeys.begin(), changes._resortOldKeys.end());
+    _resortNewKeys.insert(_resortNewKeys.end(), changes._resortNewKeys.begin(), changes._resortNewKeys.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), changes._updatedItems.begin(), changes._updatedItems.end());
     _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
 }
 
-Scene::Scene() {
+Scene::Scene(glm::vec3 origin, float size) :
+    _masterSpatialTree(origin, size)
+{
     _items.push_back(Item()); // add the itemID #0 to nothing
     _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
 }
@@ -179,6 +133,7 @@ void Scene::processPendingChangesQueue() {
         // capture anything coming from the pendingChanges
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+        resortItems(consolidatedPendingChanges._resortItems, consolidatedPendingChanges._resortOldKeys, consolidatedPendingChanges._resortNewKeys);
         removeItems(consolidatedPendingChanges._removedItems);
 
      // ready to go back to rendering activities
@@ -186,29 +141,77 @@ void Scene::processPendingChangesQueue() {
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    auto resetID = ids.begin();
+
     auto resetPayload = payloads.begin();
-    for (;resetID != ids.end(); resetID++, resetPayload++) {
-        auto& item = _items[(*resetID)];
+    for (auto resetID : ids) {
+        // Access the true item
+        auto& item = _items[resetID];
         auto oldKey = item.getKey();
+        auto oldCell = item.getCell();
+
+        // Reset the item with a new payload
         item.resetPayload(*resetPayload);
+        auto newKey = item.getKey();
 
-        _masterBucketMap.reset((*resetID), oldKey, item.getKey());
+
+        // Reset the item in the Bucket map
+        _masterBucketMap.reset(resetID, oldKey, newKey);
+
+        // Reset the item in the spatial tree
+        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+        item.resetCell(newCell, newKey.isSmall());
+
+        // next loop
+        resetPayload++;
     }
+}
 
+void Scene::resortItems(const ItemIDs& ids, ItemKeys& oldKeys, ItemKeys& newKeys) {
+    auto resortID = ids.begin();
+    auto oldKey = oldKeys.begin();
+    auto newKey = newKeys.begin();
+    for (; resortID != ids.end(); resortID++, oldKey++, newKey++) {
+        _masterBucketMap.reset(*resortID, *oldKey, *newKey);
+    }
 }
 
 void Scene::removeItems(const ItemIDs& ids) {
     for (auto removedID :ids) {
-        _masterBucketMap.erase(removedID, _items[removedID].getKey());
-        _items[removedID].kill();
+        // Access the true item
+        auto& item = _items[removedID];
+        auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
+
+        // Remove from Bucket map
+        _masterBucketMap.erase(removedID, item.getKey());
+
+        // Remove from spatial tree
+        _masterSpatialTree.removeItem(oldCell, oldKey, removedID);
+
+        // Kill it
+        item.kill();
     }
 }
 
 void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
-    auto updateID = ids.begin();
+
     auto updateFunctor = functors.begin();
-    for (;updateID != ids.end(); updateID++, updateFunctor++) {
-        _items[(*updateID)].update((*updateFunctor));
+    for (auto updateID : ids) {
+        // Access the true item
+        auto& item = _items[updateID];
+        auto oldCell = item.getCell();
+        auto oldKey = item.getKey();
+
+        // Update it
+        _items[updateID].update((*updateFunctor));
+
+        auto newKey = item.getKey();
+
+        // Update the citem in the spatial tree if needed
+        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+        item.resetCell(newCell, newKey.isSmall());
+
+        // next loop
+        updateFunctor++;
     }
 }

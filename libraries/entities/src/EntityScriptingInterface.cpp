@@ -81,6 +81,8 @@ EntityItemProperties convertLocationToScriptSemantics(const EntityItemProperties
                                                               entitySideProperties.getParentID(),
                                                               entitySideProperties.getParentJointIndex(),
                                                               success);
+    // TODO -- handle velocity and angularVelocity
+
     scriptSideProperties.setPosition(worldPosition);
     scriptSideProperties.setRotation(worldRotation);
 
@@ -93,6 +95,8 @@ EntityItemProperties convertLocationFromScriptSemantics(const EntityItemProperti
     // are set.  If they are set, they overwrite position and rotation.
     EntityItemProperties entitySideProperties = scriptSideProperties;
     bool success;
+
+    // TODO -- handle velocity and angularVelocity
 
     if (scriptSideProperties.localPositionChanged()) {
         entitySideProperties.setPosition(scriptSideProperties.getLocalPosition());
@@ -128,14 +132,14 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     auto newVelocity = propertiesWithSimID.getVelocity().length();
     float cost = calculateCost(density * volume, 0, newVelocity);
     cost *= costMultiplier;
-    
+
     if(cost > _currentAvatarEnergy) {
         return QUuid();
     } else {
         //debit the avatar energy and continue
         emit debitEnergySource(cost);
     }
-    
+
     EntityItemID id = EntityItemID(QUuid::createUuid());
 
     // If we have a local entity tree set, then also update it.

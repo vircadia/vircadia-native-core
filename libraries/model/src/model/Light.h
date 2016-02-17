@@ -103,10 +103,10 @@ public:
     void setAmbientIntensity(float intensity);
     float getAmbientIntensity() const { return getSchema()._ambientIntensity; }
 
-    // Spherical Harmonics storing the Ambien lighting approximation used for the Sun typed light
-    void setAmbientSphere(const gpu::SphericalHarmonics& sphere) { _ambientSphere = sphere; }
-    const gpu::SphericalHarmonics& getAmbientSphere() const { return _ambientSphere; }
-    void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) { _ambientSphere.assignPreset(preset); }
+    // Spherical Harmonics storing the Ambient lighting approximation used for the Sun typed light
+    void setAmbientSphere(const gpu::SphericalHarmonics& sphere);
+    const gpu::SphericalHarmonics& getAmbientSphere() const { return getSchema()._ambientSphere; }
+    void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
 
     // Schema to access the attribute values of the light
     class Schema {
@@ -121,6 +121,8 @@ public:
         Vec4 _shadow{0.0f};
 
         Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};
+
+        gpu::SphericalHarmonics _ambientSphere;
     };
 
     const UniformBufferView& getSchemaBuffer() const { return _schemaBuffer; }
@@ -130,8 +132,6 @@ protected:
     Flags _flags{ 0 };
     UniformBufferView _schemaBuffer;
     Transform _transform;
-    gpu::SphericalHarmonics _ambientSphere;
-    float _maximumRadius{ 1.0f };
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }

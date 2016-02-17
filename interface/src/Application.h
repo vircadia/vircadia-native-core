@@ -479,7 +479,7 @@ private:
 
     quint64 _lastFaceTrackerUpdate;
 
-    render::ScenePointer _main3DScene{ new render::Scene() };
+    render::ScenePointer _main3DScene{ new render::Scene(glm::vec3(-0.5f * (float)TREE_SCALE), (float)TREE_SCALE) };
     render::EnginePointer _renderEngine{ new render::Engine() };
     gpu::ContextPointer _gpuContext; // initialized during window creation
 
@@ -508,6 +508,8 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
+    bool _pendingPaint { false };
+    QTimer* _idleTimer { nullptr };
 };
 
 #endif // hifi_Application_h

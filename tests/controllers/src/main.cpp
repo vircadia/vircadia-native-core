@@ -99,6 +99,8 @@ public:
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
     virtual bool isForeground() override { return true;  }
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
+    virtual bool getBoolSetting(const QString& settingName, bool defaultValue) override { return defaultValue; }
+    virtual void setBoolSetting(const QString& settingName, bool value) override { }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {
@@ -121,8 +123,14 @@ int main(int argc, char** argv) {
         float delta = now - last;
         last = now;
 
+        InputCalibrationData calibrationData = {
+            glm::mat4(),
+            glm::mat4(),
+            glm::mat4()
+        };
+
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-            inputPlugin->pluginUpdate(delta, false);
+            inputPlugin->pluginUpdate(delta, calibrationData, false);
         }
 
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -131,6 +139,12 @@ int main(int argc, char** argv) {
     timer.start(50);
 
     {
+        InputCalibrationData calibrationData = {
+            glm::mat4(),
+            glm::mat4(),
+            glm::mat4()
+        };
+
         DependencyManager::set<controller::UserInputMapper>();
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
             QString name = inputPlugin->getName();
@@ -139,7 +153,7 @@ int main(int argc, char** argv) {
             if (name == KeyboardMouseDevice::NAME) {
                 userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
-            inputPlugin->pluginUpdate(0, false);
+            inputPlugin->pluginUpdate(0, calibrationData, false);
         }
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }

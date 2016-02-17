@@ -12,6 +12,8 @@
 #ifndef hifi_render_Engine_h
 #define hifi_render_Engine_h
 
+#include <SettingHandle.h>
+
 #include "Context.h"
 #include "Task.h"
 
@@ -24,6 +26,10 @@ class Engine : public Task {
 public:
     Engine();
     ~Engine() = default;
+
+    // Load any persisted settings, and set up the presets
+    // This should be run after adding all jobs, and before building ui
+    void load();
 
     // Register the scene
     void registerScene(const ScenePointer& scene) { _sceneContext->_scene = scene; }

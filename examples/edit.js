@@ -26,6 +26,7 @@ Script.include([
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "particle_explorer/particleExplorerTool.js",
     "libraries/lightOverlayManager.js",
 ]);
 
@@ -37,17 +38,13 @@ var lightOverlayManager = new LightOverlayManager();
 var cameraManager = new CameraManager();
 
 var grid = Grid();
-// gridTool = GridTool({
-//     horizontalGrid: grid
-// });
-// gridTool.setVisible(false);
 
 var entityListTool = EntityListTool();
 
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-});
+}); 
 
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
@@ -109,11 +106,6 @@ var importingSVOImageOverlay = Overlays.addOverlay("image", {
     width: 20,
     height: 20,
     alpha: 1.0,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
     visible: false,
@@ -139,9 +131,9 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
 var marketplaceWindow = new OverlayWebWindow({
-    title: 'Marketplace', 
-    source: "about:blank", 
-    width: 900, 
+    title: 'Marketplace',
+    source: "about:blank",
+    width: 900,
     height: 700,
     visible: false
 });
@@ -181,7 +173,8 @@ var toolBar = (function() {
         newTextButton,
         newWebButton,
         newZoneButton,
-        newPolyVoxButton;
+        newPolyVoxButton,
+        newParticleButton
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
@@ -191,7 +184,7 @@ var toolBar = (function() {
             };
         });
 
-  
+
 
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
@@ -319,6 +312,20 @@ var toolBar = (function() {
             visible: false
         });
 
+        newParticleButton = toolBar.addTool({
+            imageURL: toolIconUrl + "particle.svg",
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 256,
+                height: 256
+            },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -365,6 +372,7 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
+        toolBar.showTool(newParticleButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -432,8 +440,8 @@ var toolBar = (function() {
             newModelButtonDown = true;
             return true;
         }
-        
-     
+
+
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
                 type: "Box",
@@ -621,6 +629,22 @@ var toolBar = (function() {
             return true;
         }
 
+        if (newParticleButton === toolBar.clicked(clickedOverlay)) {
+            createNewEntity({
+                type: "ParticleEffect",
+                isEmitting: true,
+                particleRadius: 0.1,
+                emitAcceleration: {x: 0, y: -1, z: 0},
+                accelerationSpread: {x: 5, y: 0, z: 5},
+                emitSpeed: 1,
+                lifespan: 1,
+                particleRadius: 0.025,
+                alphaFinish: 0,
+                emitRate: 100,
+                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+            });
+        }
+
         return false;
     };
 
@@ -641,7 +665,7 @@ var toolBar = (function() {
         }
 
         newModelButtonDown = false;
-     
+
 
         return handled;
     }
@@ -1231,7 +1255,8 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        print("  Delete Entities");
+        selectedParticleEntity = 0;
+        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -1504,8 +1529,8 @@ PropertiesTool = function(opts) {
 
     var url = Script.resolvePath('html/entityProperties.html');
     var webView = new OverlayWebWindow({
-        title: 'Entity Properties', 
-        source: url, 
+        title: 'Entity Properties',
+        source: url,
         toolWindow: true
     });
 
@@ -1559,8 +1584,16 @@ PropertiesTool = function(opts) {
             } else {
                 if (data.properties.dynamic === false) {
                     // this object is leaving dynamic, so we zero its velocities
-                    data.properties["velocity"] = {x: 0, y: 0, z: 0};
-                    data.properties["angularVelocity"] = {x: 0, y: 0, z: 0};
+                    data.properties["velocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
+                    data.properties["angularVelocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
                 }
                 if (data.properties.rotation !== undefined) {
                     var rotation = data.properties.rotation;
@@ -1843,3 +1876,39 @@ propertyMenu.onSelectMenuItem = function(name) {
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
+var particleExplorerTool = ParticleExplorerTool();
+var selectedParticleEntity = 0;
+entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
+    var data = JSON.parse(data);
+    if (data.type == "selectionUpdate") {
+        var ids = data.entityIds;
+        if(ids.length === 1) {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect" ) {
+                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                    // This particle entity is already selected, so return
+                    return;
+                }
+                // Destroy the old particles web view first
+               particleExplorerTool.destroyWebView();
+               particleExplorerTool.createWebView();
+                var properties = Entities.getEntityProperties(ids[0]);
+                var particleData = {
+                    messageType: "particle_settings",
+                    currentProperties: properties
+                };
+                selectedParticleEntity = ids[0];
+                particleExplorerTool.setActiveParticleEntity(ids[0]);
+
+                particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
+                    var data = JSON.parse(data);
+                    if (data.messageType === "page_loaded") {
+                        particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(particleData));  
+                    }
+                });
+            } else {
+                selectedParticleEntity = 0;
+                particleExplorerTool.destroyWebView();
+            }
+        }
+    }
+});

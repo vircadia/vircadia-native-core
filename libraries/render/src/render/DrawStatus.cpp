@@ -43,6 +43,7 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
 
         _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        _drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -104,7 +105,7 @@ void DrawStatus::configure(const Config& config) {
 
 void DrawStatus::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext,
-                     const ItemIDsBounds& inItems) {
+                     const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
@@ -121,19 +122,29 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
         if (!_itemStatus) {
             _itemStatus = std::make_shared<gpu::Buffer>();;
         }
+        if (!_itemCells) {
+            _itemCells = std::make_shared<gpu::Buffer>();;
+        }
 
         _itemBounds->resize((inItems.size() * sizeof(AABox)));
         _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
+        _itemCells->resize((inItems.size() * sizeof(Octree::Location)));
+
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
         for (auto& item : inItems) {
-            if (!item.bounds.isInvalid()) {
-                if (!item.bounds.isNull()) {
-                    (*itemAABox) = item.bounds;
+            if (!item.bound.isInvalid()) {
+                if (!item.bound.isNull()) {
+                    (*itemAABox) = item.bound;
                 } else {
-                    (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
+                    (*itemAABox).setBox(item.bound.getCorner(), 0.1f);
                 }
+                
+
                 auto& itemScene = scene->getItem(item.id);
+
+                (*itemCell) = scene->getSpatialTree().getCellLocation(itemScene.getCell());
 
                 auto itemStatusPointer = itemScene.getStatus();
                 if (itemStatusPointer) {
@@ -159,6 +170,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
                 nbItems++;
                 itemAABox++;
+                itemCell++;
             }
         }
     }
@@ -184,6 +196,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
@@ -191,8 +204,15 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
             for (int i = 0; i < nbItems; i++) {
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+               
+   
+                glm::ivec4 cellLocation(itemCell->pos.x, itemCell->pos.y, itemCell->pos.z, itemCell->depth);
+
+                batch._glUniform4iv(_drawItemCellLocLoc, 1, ((const int*)(&cellLocation)));
+     
 
                 batch.draw(gpu::LINES, 24, 0);
+                itemCell++;
             }
         }
 

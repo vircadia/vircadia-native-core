@@ -62,9 +62,14 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
         }
     }
 
-    qCritical() << "Did not find settings decription in JSON at" << SETTINGS_DESCRIPTION_RELATIVE_PATH
-            << "- Unable to continue. domain-server will quit.";
-    QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+    static const QString MISSING_SETTINGS_DESC_MSG =
+        QString("Did not find settings decription in JSON at %1 - Unable to continue. domain-server will quit.")
+        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH);
+    static const int MISSING_SETTINGS_DESC_ERROR_CODE = 6;
+
+    QMetaObject::invokeMethod(QCoreApplication::instance(), "queuedQuit", Qt::QueuedConnection,
+                              Q_ARG(QString, MISSING_SETTINGS_DESC_MSG),
+                              Q_ARG(int, MISSING_SETTINGS_DESC_ERROR_CODE));
 }
 
 void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message) {

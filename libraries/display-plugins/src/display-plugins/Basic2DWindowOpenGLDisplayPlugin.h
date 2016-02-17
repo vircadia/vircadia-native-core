@@ -31,11 +31,9 @@ public:
     virtual bool isThrottled() const override;
 
 protected:
-    int getDesiredInterval() const;
     mutable bool _isThrottled = false;
 
 private:
-    void updateFramerate();
     static const QString NAME;
     QScreen* getFullscreenTarget();
     std::vector<QAction*> _framerateActions;

@@ -5,7 +5,7 @@
         { "from": "Standard.LX", "to": "Actions.TranslateX" },
 
         { "from": "Standard.RX",
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
           "filters":
             [

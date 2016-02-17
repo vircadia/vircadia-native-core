@@ -19,18 +19,20 @@ var cubeSize = 0.03;
 var cube = Overlays.addOverlay("cube", {
                     position: cubePosition,
                     size: cubeSize,
-                    color: { red: 255, green: 0, blue: 0},
+                    color: { red: 0, green: 255, blue: 0},
                     alpha: 1,
                     solid: false
                 });
 
-var square = Overlays.addOverlay("text", {
+var SQUARE_SIZE = 20;
+
+var square = Overlays.addOverlay("rectangle", {
                     x: 0,
                     y: 0,
-                    width: 20,
-                    height: 20,
-                    color: { red: 255, green: 255, blue: 0},
-                    backgroundColor: { red: 255, green: 255, blue: 0},
+                    width: SQUARE_SIZE,
+                    height: SQUARE_SIZE,
+                    color: { red: 0, green: 255, blue: 0},
+                    backgroundColor: { red: 0, green: 255, blue: 0},
                     alpha: 1
                 });
 
@@ -43,7 +45,7 @@ Script.update.connect(function(deltaTime) {
     Overlays.editOverlay(cube, { position: lookAt3D });
 
     var lookAt2D = HMD.getHUDLookAtPosition2D();
-    Overlays.editOverlay(square, { x: lookAt2D.x, y: lookAt2D.y });
+    Overlays.editOverlay(square, { x: lookAt2D.x - (SQUARE_SIZE/2), y: lookAt2D.y  - (SQUARE_SIZE/2)});
 });
 
 Script.scriptEnding.connect(function(){

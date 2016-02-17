@@ -18,7 +18,7 @@
                 [ "Keyboard.MouseMoveRight" ] 
             ]
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseButton" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn", "Keyboard.RightMouseButton" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -34,7 +34,7 @@
                 [ "Keyboard.TouchpadRight" ] 
             ] 
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -49,7 +49,7 @@
                 ["Keyboard.D", "Keyboard.Right"]
             ]
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
           "filters":
             [
