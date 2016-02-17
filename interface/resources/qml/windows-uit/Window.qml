@@ -120,15 +120,17 @@ Fadable {
     property var frame: DefaultFrame { }
 
     // Scrollable window content.
-    property var scroller: Item {
-        id: windowContent
+    property var pane: Item {
+        property bool isScrolling: scrollView.height < scrollView.contentItem.height
+        property int contentWidth: scrollView.width - (isScrolling ? 11 : 0)
+
         anchors.fill: parent
-        anchors.rightMargin: theScrollView.height < theScrollView.contentItem.height ? 11 : 0
+        anchors.rightMargin: isScrolling ? 11 : 0
 
         Rectangle {
             id: contentBackground
             anchors.fill: parent
-            anchors.rightMargin: theScrollView.height < theScrollView.contentItem.height ? 11 : 0
+            anchors.rightMargin: parent.isScrolling ? 11 : 0
             color: hifi.colors.baseGray
         }
 
@@ -146,12 +148,12 @@ Fadable {
         }
 
         ScrollView {
-            id: theScrollView
+            id: scrollView
             contentItem: content
             horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
             verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
             anchors.fill: parent
-            anchors.rightMargin: height < contentItem.height ? 1 : 0
+            anchors.rightMargin: parent.isScrolling ? 1 : 0
 
             style: ScrollViewStyle {
 
@@ -195,7 +197,7 @@ Fadable {
         }
     }
 
-    children: [ swallower, frame, scroller, activator ]
+    children: [ swallower, frame, pane, activator ]
 
     Component.onCompleted: raise();
     Component.onDestruction: windowDestroyed();

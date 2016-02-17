@@ -59,7 +59,7 @@ Item {
         height: width
         x: -width / 4
         y: -width / 4
-        visible: window && window.focus && windowContent.visible
+        visible: window && window.focus && pane.visible
         gradient: Gradient {
             // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
             GradientStop { position: 0.0; color: "#ff000000" }    // black, 100% opacity
@@ -79,7 +79,7 @@ Item {
         border.width: 3
         border.color: hifi.colors.white50
         radius: hifi.dimensions.borderRadius
-        visible: window ? !windowContent.visible : false
+        visible: window ? !pane.visible : false
     }
 
     MouseArea {
@@ -102,15 +102,15 @@ Item {
         }
         onReleased: {
             if (hid) {
-                windowContent.visible = true
+                pane.visible = true
                 frameContent.visible = true
                 hid = false;
             }
         }
         onPositionChanged: {
             if (pressed) {
-                if (windowContent.visible) {
-                    windowContent.visible = false;
+                if (pane.visible) {
+                    pane.visible = false;
                     frameContent.visible = false
                     hid = true;
                 }

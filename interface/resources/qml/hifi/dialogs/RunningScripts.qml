@@ -80,6 +80,7 @@ Window {
     }
 
     Column {
+        width: pane.contentWidth
 
         HifiControls.StaticSection {
             name: "Currently Running"
