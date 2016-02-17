@@ -425,11 +425,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-    // FIXME this may be excessivly conservative.  On the other hand 
+    // FIXME this may be excessivly conservative.  On the other hand
     // maybe I'm used to having an 8-core machine
-    // Perhaps find the ideal thread count  and subtract 2 or 3 
+    // Perhaps find the ideal thread count  and subtract 2 or 3
     // (main thread, present thread, random OS load)
-    // More threads == faster concurrent loads, but also more concurrent 
+    // More threads == faster concurrent loads, but also more concurrent
     // load on the GPU until we can serialize GPU transfers (off the main thread)
     QThreadPool::globalInstance()->setMaxThreadCount(2);
     thread()->setPriority(QThread::HighPriority);
@@ -560,7 +560,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
-    connect(&locationUpdateTimer, &QTimer::timeout, 
+    connect(&locationUpdateTimer, &QTimer::timeout,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
     locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
@@ -604,7 +604,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
-    
+
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
@@ -625,7 +625,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         getEntities()->reloadEntityScripts();
     }, Qt::QueuedConnection);
 
-    connect(scriptEngines, &ScriptEngines::scriptLoadError, 
+    connect(scriptEngines, &ScriptEngines::scriptLoadError,
         scriptEngines, [](const QString& filename, const QString& error){
         OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
@@ -975,7 +975,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         disconnect(_idleTimer);
     });
     // Setting the interval to zero forces this to get called whenever there are no messages
-    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch 
+    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
 }
@@ -1023,7 +1023,7 @@ void Application::cleanupBeforeQuit() {
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
-    DependencyManager::destroy<ScriptEngines>(); 
+    DependencyManager::destroy<ScriptEngines>();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1212,10 +1212,10 @@ void Application::initializeUi() {
 
     setupPreferences();
 
-    // For some reason there is already an "Application" object in the QML context, 
+    // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
-    rootContext->setContextProperty("ApplicationInterface", this); 
+    rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
@@ -2435,7 +2435,7 @@ void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
-    
+
     auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
@@ -2459,7 +2459,7 @@ void Application::idle(uint64_t now) {
     // Nested ifs are for clarity in the logic.  Don't collapse them into a giant single if.
     // Don't saturate the main thread with rendering, no paint calls until the last one is complete
     if (!_pendingPaint) {
-        // Also no paint calls until the display plugin has increased by at least one frame 
+        // Also no paint calls until the display plugin has increased by at least one frame
         // (don't render at 90fps if the display plugin only goes at 60)
         if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
             // Record what present frame we're on
@@ -2469,14 +2469,14 @@ void Application::idle(uint64_t now) {
             // But when we DO request a paint, get to it as soon as possible: high priority
             postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
         }
-    }  
-    
-    // For the rest of idle, we want to cap at the max sim rate, so we might not call 
+    }
+
+    // For the rest of idle, we want to cap at the max sim rate, so we might not call
     // the remaining idle work every paint frame, or vice versa
     // In theory this means we could call idle processing more often than painting,
     // but in practice, when the paintGL calls aren't keeping up, there's no room left
     // in the main thread to call idle more often than paint.
-    // This check is mostly to keep idle from burning up CPU cycles by running at 
+    // This check is mostly to keep idle from burning up CPU cycles by running at
     // hundreds of idles per second when the rendering is that fast
     if ((timeSinceLastUpdateUs / USECS_PER_MSEC) < CAPPED_SIM_FRAME_PERIOD_MS) {
         // No paint this round, but might be time for a new idle, otherwise return
@@ -3423,7 +3423,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.computeCubeViewLocation(serverBounds);
 
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
@@ -3491,7 +3491,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.computeCubeViewLocation(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
                     } else {
@@ -4752,7 +4752,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
             groupingMenu = "Developer";
             break;
         default:
-            groupingMenu = "Standard"; 
+            groupingMenu = "Standard";
             break;
     }
 

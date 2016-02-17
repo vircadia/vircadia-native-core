@@ -413,9 +413,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     if (!_isBlendShaped) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        
+
         batch.setInputFormat((_drawMesh->getVertexFormat()));
-        
+
         batch.setInputStream(0, _drawMesh->getVertexStream());
     } else {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
@@ -426,7 +426,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputBuffer(1, _model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
-    
+
     // TODO: Get rid of that extra call
     if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -474,8 +474,8 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 #ifdef DEBUG_BOUNDING_PARTS
     {
         AABox partBounds = getPartBounds(_meshIndex, partIndex);
-        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
-        
+        bool inView = args->_viewFrustum->computeBoxViewLocation(partBounds) != ViewFrustum::OUTSIDE;
+
         glm::vec4 cubeColor;
         if (isSkinned) {
             cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
@@ -484,7 +484,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         } else {
             cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
         }
-        
+
         Transform transform;
         transform.setTranslation(partBounds.calcCenter());
         transform.setScale(partBounds.getDimensions());
@@ -492,7 +492,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
 #endif //def DEBUG_BOUNDING_PARTS
-    
+
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
@@ -500,23 +500,23 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations, canCauterize);
-    
+
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
-    
+
     // apply material properties
     bindMaterial(batch, locations);
-        
+
     if (args) {
         args->_details._materialSwitches++;
     }
-    
+
     // Draw!
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
         drawCall(batch);
     }
-    
+
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;

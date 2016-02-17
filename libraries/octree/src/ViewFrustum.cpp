@@ -241,30 +241,18 @@ ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
     return result;
 }
 
-ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point, bool ignoreKeyhole) const {
-    ViewFrustum::location regularResult = INSIDE;
-    ViewFrustum::location keyholeResult = OUTSIDE;
-
-    // If we have a keyholeRadius, check that first, since it's cheaper
-    if (!ignoreKeyhole && _keyholeRadius >= 0.0f) {
-        keyholeResult = pointInKeyhole(point);
-
-        if (keyholeResult == INSIDE) {
-            return keyholeResult;
-        }
-    }
-
-    // If we're not known to be INSIDE the keyhole, then check the regular frustum
+ViewFrustum::location ViewFrustum::computePointFrustumLocation(const glm::vec3& point) const {
+    // only checks against frustum, not sphere
     for(int i = 0; i < 6; ++i) {
         float distance = _planes[i].distance(point);
-        if (distance < 0) {
-            return keyholeResult; // escape early will be the value from checking the keyhole
+        if (distance < 0.0f) {
+            return OUTSIDE;
         }
     }
-    return regularResult;
+    return INSIDE;
 }
 
-ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
+ViewFrustum::location ViewFrustum::computeSphereViewLocation(const glm::vec3& center, float radius) const {
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
@@ -291,7 +279,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 }
 
 
-ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
+ViewFrustum::location ViewFrustum::computeCubeViewLocation(const AACube& cube) const {
 
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
@@ -326,7 +314,7 @@ ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
     return regularResult;
 }
 
-ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+ViewFrustum::location ViewFrustum::computeBoxViewLocation(const AABox& box) const {
 
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
@@ -490,7 +478,7 @@ PickRay ViewFrustum::computePickRay(float x, float y) {
 }
 
 void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
-    origin = _cornersWorld[TOP_LEFT_NEAR] + x * (_cornersWorld[TOP_RIGHT_NEAR] - _cornersWorld[TOP_LEFT_NEAR]) + 
+    origin = _cornersWorld[TOP_LEFT_NEAR] + x * (_cornersWorld[TOP_RIGHT_NEAR] - _cornersWorld[TOP_LEFT_NEAR]) +
         y * (_cornersWorld[BOTTOM_LEFT_NEAR] - _cornersWorld[TOP_LEFT_NEAR]);
     direction = glm::normalize(origin - _position);
 }
@@ -804,7 +792,7 @@ float ViewFrustum::calculateRenderAccuracy(const AABox& bounds, float octreeSize
     // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
     // a floating point for objects that have small angular size to indicate that they may be rendered
     // with lower preciscion
-    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f; 
+    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f;
 }
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
