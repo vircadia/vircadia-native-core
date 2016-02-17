@@ -14,7 +14,7 @@
 //
 (function() {
 
-  var _this;
+    var _this;
 
     function BallDetctor() {
         _this = this;
@@ -22,15 +22,15 @@
     }
 
     BallDetctor.prototype = {
-    enterEntity:function(){
-        print('BALL ENTERED BALL DETECTOR!!')
-    },
-    destroyBall:function(){
+        enterEntity: function() {
+            print('BALL ENTERED BALL DETECTOR!!')
+        },
+        destroyBall: function() {
 
-    }
-    createNewBall:function(){
+        }
+        createNewBall: function() {
 
-    }
+        }
     };
 
     return new BallDetctor();
