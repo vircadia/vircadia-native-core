@@ -12,6 +12,7 @@
 #include "SendQueue.h"
 
 #include <algorithm>
+#include <random>
 #include <thread>
 
 #include <QtCore/QCoreApplication>
@@ -53,10 +54,10 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber));
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
 
     // Setup queue private thread
     QThread* thread = new QThread;
@@ -75,12 +76,23 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
-    _destination(dest),
-    _currentSequenceNumber(currentSequenceNumber)
+    _destination(dest)
 {
-    
+
+    // setup psuedo-random number generation for all instances of SendQueue
+    static std::random_device rd;
+    static std::mt19937 generator(rd());
+    static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
+
+    // randomize the intial sequence number
+    _initialSequenceNumber = SequenceNumber(distribution(generator));
+
+    // set our member variables from randomized initial number
+    _currentSequenceNumber = _initialSequenceNumber - 1;
+    _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
+    _lastACKSequenceNumber = uint32_t(_initialSequenceNumber);
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
