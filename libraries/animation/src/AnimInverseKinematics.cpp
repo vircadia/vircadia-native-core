@@ -278,8 +278,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
             if (axisLength > MIN_AXIS_LENGTH) {
                 // compute angle of rotation that brings tip closer to target
                 axis /= axisLength;
-                float cos_angle = std::min(std::max(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)), -1.0f), 1.0f);
-                float angle = acosf(cos_angle);
+                float cosAngle = std::min(std::max(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)), -1.0f), 1.0f);
+                float angle = acosf(cosAngle);
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a fraction (for stability)
