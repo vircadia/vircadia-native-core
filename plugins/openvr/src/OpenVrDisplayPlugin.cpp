@@ -59,6 +59,9 @@ void OpenVrDisplayPlugin::activate() {
             _eyeOffsets[eye] = toGlm(_hmd->GetEyeToHeadTransform(eye));
             _eyeProjections[eye] = toGlm(_hmd->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
         });
+        // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
+        _cullingProjection = _eyeProjections[0];
+
     }
 
     _compositor = vr::VRCompositor();

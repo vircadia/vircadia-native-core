@@ -15,9 +15,7 @@
 
 #include <GLMHelpers.h>
 #include <plugins/PluginContainer.h>
-
-Q_DECLARE_LOGGING_CATEGORY(displayplugins)
-Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
+#include "../Logging.h"
 
 static const QString MONO_PREVIEW = "Mono Preview";
 static const QString FRAMERATE = DisplayPlugin::MENU_PATH() + ">Framerate";
@@ -87,34 +85,3 @@ void HmdDisplayPlugin::internalPresent() {
         swapBuffers();
     }
 }
-
-
-//// screen preview mirroring
-//if (_enablePreview) {
-//    auto windowSize = toGlm(_window->size());
-//    if (_monoPreview) {
-//        // Find the aspect ratio for one eye
-//        auto eyeAspect = (float)(size.x / 2) / (float)size.y;
-//        auto windowAspect = (float)windowSize.x / (float)windowSize.y;
-//        if (eyeAspect < windowAspect) {
-//            Context::Viewport(windowSize.x * 2, windowSize.y);
-//            Context::Scissor(0, windowSize.y, windowSize.x, windowSize.y);
-//        } else {
-//
-//        }
-//    } else {
-//        Context::Viewport(windowSize.x, windowSize.y);
-//    }
-//    glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
-//    GLenum err = glGetError();
-//    Q_ASSERT(0 == err);
-//    drawUnitQuad();
-//}
-///*
-//The swapbuffer call here is only required if we want to mirror the content to the screen.
-//However, it should only be done if we can reliably disable v-sync on the mirror surface,
-//otherwise the swapbuffer delay will interefere with the framerate of the headset
-//*/
-//if (_enablePreview) {
-//    swapBuffers();
-//}
