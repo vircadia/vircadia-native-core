@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1043;
+var version = 1049;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -194,7 +194,7 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly.js?" + version,
+            script: "moveRandomly2.js?" + version,
             visible: true
         }, { //golgi vesicles
             model: "vesicle",
@@ -238,7 +238,7 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly.js?" + version,
+            script: "moveRandomly2.js?" + version,
             visible: true
         }, {
             model: "vesicle",
@@ -304,7 +304,7 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly.js?" + version,
+            script: "moveRandomly2.js?" + version,
             visible: true
         }, { //outer vesicles
             model: "vesicle",
@@ -326,7 +326,7 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly.js?" + version,
+            script: "moveRandomly2.js?" + version,
             visible: true
         },
         //          {//wigglies

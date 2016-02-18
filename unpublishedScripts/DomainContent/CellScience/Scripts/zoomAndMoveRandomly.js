@@ -9,19 +9,42 @@
     var teleport;
     var portalDestination;
     var animationURL;
-    var self = this;
 
     this.entered = true;
+    Script.include('virtualBaton.js');
+
+    var self = this;
+    var baton;
+    var iOwn = false;
+    var currentInterval;
+    var _entityId;
+
+    function startUpdate() {
+        iOwn = true;
+        print('i am the owner ' + _entityId)
+    }
+
+    function stopUpdateAndReclaim() {
+        print('i released the object ' + _entityId)
+        iOwn = false;
+        baton.claim(startUpdate, stopUpdateAndReclaim);
+    }
 
     this.preload = function(entityID) {
         this.entityId = entityID;
+        _entityId = entityID;
         this.initialize(entityID);
         this.initTimeout = null;
         this.minVelocity = 1;
         this.maxVelocity = 5;
         this.minAngularVelocity = 0.01;
         this.maxAngularVelocity = 0.03;
-        Script.setTimeout(self.move, self.getTotalWait())
+        baton = virtualBaton({
+            batonName: 'io.highfidelity.vesicles:' + entityId, // One winner for each entity
+        });
+        stopUpdateAndReclaim();
+        currentInterval = Script.setInterval(self.move, self.getTotalWait())
+
     }
 
     this.initialize = function(entityID) {
@@ -104,6 +127,8 @@
         if (this.initTimeout !== null) {
             Script.clearTimeout(this.initTimeout);
         }
+        baton.release(function() {});
+        Script.clearInterval(currentInterval);
     }
 
     this.hoverEnterEntity = function(entityID) {
@@ -114,16 +139,13 @@
     }
 
     this.getTotalWait = function() {
-        var avatars = AvatarList.getAvatarIdentifiers();
-        var avatarCount = avatars.length;
-        var random = Math.random() * 2000;
-        var totalWait = random * (avatarCount * 2);
-
-        return totalWait
+        return (Math.random() * 5000) * 2;
     }
 
-
     this.move = function() {
+        if (!iOwn) {
+            return;
+        }
 
         var magnitudeV = self.maxVelocity;
         var directionV = {
@@ -133,11 +155,6 @@
         };
 
         //print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
-        Entities.editEntity(self.entityId, {
-            velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV))
-        });
-
-
 
         var magnitudeAV = self.maxAngularVelocity;
 
@@ -148,11 +165,12 @@
         };
         //print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
         Entities.editEntity(self.entityId, {
+            velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV)),
             angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
 
         });
 
-        Script.setTimeout(self.move, self.getTotalWait())
+
     }
 
 })
