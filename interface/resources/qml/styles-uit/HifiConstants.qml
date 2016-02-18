@@ -52,6 +52,8 @@ Item {
         readonly property color tableRowLightEven: "#1a575757"
         readonly property color tableRowDarkOdd: "#80393939"
         readonly property color tableRowDarkEven: "#a6181818"
+        readonly property color tableScrollHandle: "#707070"
+        readonly property color tableScrollBackground: "#323232"
     }
 
     Item {

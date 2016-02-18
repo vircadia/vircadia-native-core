@@ -45,10 +45,60 @@ TreeView {
 
     backgroundVisible: true
 
+    horizontalScrollBarPolicy: Qt.ScrollBarAlwaysOff
+    verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
+
     style: TreeViewStyle {
         // Needed in order for rows to keep displaying rows after end of table entries.
-        backgroundColor: treeView.isLightColorScheme ? hifi.colors.tableRowLightEven : hifi.colors.tableRowDarkEven
-        alternateBackgroundColor: treeView.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+        backgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightEven : hifi.colors.tableRowDarkEven
+        alternateBackgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
+
+        handle: Item {
+            id: scrollbarHandle
+            implicitWidth: 8
+            Rectangle {
+                radius: 4
+                color: hifi.colors.tableScrollHandle
+                anchors {
+                    fill: parent
+                    leftMargin: 4  // Finesse size and position.
+                    rightMargin: -1
+                    topMargin: 2
+                    bottomMargin: 3
+                }
+            }
+        }
+
+        scrollBarBackground: Item {
+            implicitWidth: 10
+
+            Rectangle {
+                color: hifi.colors.baseGrayHighlight
+                anchors {
+                    fill: parent
+                    leftMargin: 1  // Finesse size and position.
+                    topMargin: -2
+                    bottomMargin: -2
+                }
+            }
+
+            Rectangle {
+                radius: 4
+                color: hifi.colors.tableScrollBackground
+                anchors {
+                    fill: parent
+                    leftMargin: 3  // Finesse position.
+                }
+            }
+        }
+
+        incrementControl: Item {
+            visible: false
+        }
+
+        decrementControl: Item {
+            visible: false
+        }
     }
 
     rowDelegate: Rectangle {
