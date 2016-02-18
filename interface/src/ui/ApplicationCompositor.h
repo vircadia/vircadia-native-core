@@ -162,7 +162,7 @@ class ReticleInterface : public QObject {
         Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
         Q_PROPERTY(float depth READ getDepth WRITE setDepth)
 public:
-    ReticleInterface(ApplicationCompositor* outer) : _compositor(outer), QObject(outer) { }
+    ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
 
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }

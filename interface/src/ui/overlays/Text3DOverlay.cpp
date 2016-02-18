@@ -17,7 +17,6 @@
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
 
-const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;

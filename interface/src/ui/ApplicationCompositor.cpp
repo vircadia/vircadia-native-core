@@ -328,7 +328,6 @@ void ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
         _ignoreMouseMove = false;
         return;
     }
-    auto applicationGeometry = qApp->getApplicationGeometry();
     auto newPosition = QCursor::pos();
     auto changeInRealMouse = newPosition - _lastKnownRealMouse;
     auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
