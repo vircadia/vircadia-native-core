@@ -199,7 +199,7 @@ Fadable {
 
     children: [ swallower, frame, pane, activator ]
 
-    Component.onCompleted: raise();
+    Component.onCompleted: { raise(); setDefaultFocus(); }
     Component.onDestruction: windowDestroyed();
     onParentChanged: raise();
 

@@ -46,6 +46,11 @@ Window {
 
     Component.onCompleted: updateRunningScripts()
 
+    function setDefaultFocus() {
+        // Work around FocusScope of scrollable window.
+        filterEdit.forceActiveFocus();
+    }
+
     function updateRunningScripts() {
         var runningScripts = ScriptDiscoveryService.getRunning();
         runningScriptsModel.clear()
