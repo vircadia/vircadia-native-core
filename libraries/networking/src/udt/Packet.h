@@ -25,6 +25,25 @@ namespace udt {
 class Packet : public BasePacket {
     Q_OBJECT
 public:
+    //                         Packet Header Format
+    //
+    //     0                   1                   2                   3
+    //     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |C|R|M| O |               Sequence Number                       |
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    | P |                     Message Number                        |  Optional (only if M = 1)
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //    |                         Message Part Number                   |  Optional (only if M = 1)
+    //    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //
+    //    C: Control bit
+    //    R: Reliable bit
+    //    M: Message bit
+    //    O: Obfuscation level
+    //    P: Position bits
+
+
     // NOTE: The SequenceNumber is only actually 29 bits to leave room for a bit field
     using SequenceNumberAndBitField = uint32_t;
     
@@ -35,10 +54,10 @@ public:
 
     // Use same size as MessageNumberAndBitField so we can use the enum with bitwise operations
     enum PacketPosition : MessageNumberAndBitField {
-        ONLY   = 0x0,
-        FIRST  = 0x2,
-        MIDDLE = 0x3,
-        LAST   = 0x1
+        ONLY   = 0x0, // 00
+        FIRST  = 0x2, // 10
+        MIDDLE = 0x3, // 11
+        LAST   = 0x1  // 01
     };
     
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
