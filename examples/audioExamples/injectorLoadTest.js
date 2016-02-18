@@ -24,10 +24,25 @@ var soundBoxes = [];
 
 var testSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav");
 
-var numSounds = 45;
-for (var i = 0; i < numSounds; i++) {
-    playSound();
+if(!testSound.downloaded) {
+
+    print("EBL SOUND IS NOT READY YET")
+    testSound.ready.connect(function() {
+        playSounds();
+    });
+} else {
+    // otherwise play sounds right away
+    playSounds();
 }
+
+function playSounds() {
+    print("EBL PLAY SOUNDS!")
+    var numSounds = 45;
+    for (var i = 0; i < numSounds; i++) {
+        playSound();
+    }     
+}
+
 
 function playSound() {
     var position = Vec3.sum(basePosition, {x: randFloat(-.1, .1), y: randFloat(-1, 1), z: randFloat(-3, -.1)});
