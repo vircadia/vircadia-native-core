@@ -32,8 +32,17 @@ public:
     virtual Grid3DOverlay* createClone() const;
 
 private:
-    float _minorGridWidth;
-    int _majorGridEvery;
+    void updateGrid();
+
+    bool _followCamera { true };
+
+    int _majorGridEvery { 5 };
+    float _majorGridRowDivisions;
+    float _majorGridColDivisions;
+
+    float _minorGridEvery { 1.0f };
+    float _minorGridRowDivisions;
+    float _minorGridColDivisions;
 };
 
 #endif // hifi_Grid3DOverlay_h
