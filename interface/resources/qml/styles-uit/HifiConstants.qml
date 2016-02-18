@@ -41,12 +41,17 @@ Item {
 
         readonly property color white50: "#80ffffff"
         readonly property color white30: "#4dffffff"
+        readonly property color white25: "#40ffffff"
         readonly property color baseGrayHighlight15: "#26575757"
         readonly property color baseGrayHighlight40: "#66575757"
         readonly property color darkGray30: "#4d121212"
         readonly property color darkGray0: "#00121212"
         readonly property color faintGray50: "#80e3e3e3"
         readonly property color baseGrayShadow60: "#99252525"
+        readonly property color tableRowLightOdd: white50
+        readonly property color tableRowLightEven: "#1a575757"
+        readonly property color tableRowDarkOdd: "#80393939"
+        readonly property color tableRowDarkEven: "#a6181818"
     }
 
     Item {
@@ -63,6 +68,8 @@ Item {
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
         readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
         readonly property real textPadding: 8
+        readonly property real tablePadding: 12
+        readonly property real tableRowHeight: largeScreen ? 26 : 23
     }
 
     Item {
@@ -72,6 +79,7 @@ Item {
         readonly property real sectionName: dimensions.largeScreen? 11 : 9
         readonly property real inputLabel: dimensions.largeScreen? 11 : 9
         readonly property real textFieldInput: dimensions.largeScreen? 13.5 : 11
+        readonly property real tableText: dimensions.largeScreen? 13.5 : 11
         readonly property real buttonLabel: dimensions.largeScreen? 12 : 10
         readonly property real button: dimensions.largeScreen? 12 : 10
         readonly property real listItem: dimensions.largeScreen? 11 : 9

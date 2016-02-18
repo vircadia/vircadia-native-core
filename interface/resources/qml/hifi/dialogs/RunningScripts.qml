@@ -101,69 +101,12 @@ Window {
                 }
             }
 
-            ScrollView {
-                onActiveFocusChanged: if (activeFocus && listView.currentItem) { listView.currentItem.forceActiveFocus(); }
-
-                ListView {
-                    id: listView
-                    clip: true
-                    anchors { fill: parent; margins: 0 }
-                    model: runningScriptsModel
-                    delegate: FocusScope {
-                        id: scope
-                        anchors { left: parent.left; right: parent.right }
-                        height: scriptName.height + 12 + (ListView.isCurrentItem ? scriptName.height + 6 : 0)
-                        Keys.onDownPressed: listView.incrementCurrentIndex()
-                        Keys.onUpPressed: listView.decrementCurrentIndex()
-                        Rectangle {
-                            id: rectangle
-                            anchors.fill: parent
-                            clip: true
-                            radius: 3
-                            color: scope.ListView.isCurrentItem ? "#79f" :
-                                                            index % 2 ? "#ddd" : "#eee"
-
-                            Text {
-                                id: scriptName
-                                anchors { left: parent.left; leftMargin: 4; top: parent.top; topMargin:6 }
-                                text: name
-                            }
-
-                            Text {
-                                id: scriptUrl
-                                anchors { left: scriptName.left; right: parent.right; rightMargin: 4; top: scriptName.bottom; topMargin: 6 }
-                                text: url
-                                elide: Text.ElideMiddle
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: { listView.currentIndex = index; scope.forceActiveFocus(); }
-                            }
-
-                            Row {
-                                anchors.verticalCenter: scriptName.verticalCenter
-                                anchors.right: parent.right
-                                anchors.rightMargin: 4
-                                spacing: 4
-                                HifiControls.FontAwesome {
-                                    text: "\uf021"; size: scriptName.height;
-                                    MouseArea {
-                                        anchors { fill: parent; margins: -2; }
-                                        onClicked: reloadScript(model.url)
-                                    }
-                                }
-                                HifiControls.FontAwesome {
-                                    size: scriptName.height; text: "\uf00d"
-                                    MouseArea {
-                                        anchors { fill: parent; margins: -2; }
-                                        onClicked: stopScript(model.url)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            HifiControls.Table {
+                tableModel: runningScriptsModel
+                height: 185
+                colorScheme: hifi.colorSchemes.dark
+                anchors.left: parent.left
+                anchors.right: parent.right
             }
         }
 
@@ -215,6 +158,8 @@ Window {
 
             HifiControls.TextField {
                 id: filterEdit
+                anchors.left: parent.left
+                anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
                 //placeholderText: "filter"
@@ -223,44 +168,13 @@ Window {
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
 
-            TreeView {
+            HifiControls.Tree {
                 id: treeView
-                height: 128
-                headerVisible: false
-                // FIXME doesn't work?
-                onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
-                // FIXME not triggered by double click?
-                onActivated: {
-                    var path = scriptsModel.data(index, 0x100)
-                    if (path) {
-                        loadScript(path)
-                    }
-                }
-                model: scriptsModel
-
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.RightButton
-                    onClicked: treeView.foo();
-                }
-
-                function foo() {
-                    var localRect = Qt.rect(0, 0, width, height);
-                    var rect = desktop.mapFromItem(treeView, 0, 0, width, height)
-                    console.log("Local Rect " + localRect)
-                    console.log("Rect " + rect)
-                    console.log("Desktop size " + Qt.size(desktop.width, desktop.height));
-                }
-
-                TableViewColumn {
-                    title: "Name";
-                    role: "display";
-                    //                    delegate: Text {
-                    //                        text: styleData.value
-                    //                        renderType: Text.QtRendering
-                    //                        elite: styleData.elideMode
-                    //                    }
-                }
+                height: 155
+                treeModel: scriptsModel
+                colorScheme: hifi.colorSchemes.dark
+                anchors.left: parent.left
+                anchors.right: parent.right
             }
 
             HifiControls.TextField {

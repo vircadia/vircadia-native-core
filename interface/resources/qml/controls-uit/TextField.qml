@@ -21,9 +21,9 @@ TextField {
     property string label: ""
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
-    font.pointSize: 16
+    font.pointSize: hifi.fontSizes.textFieldInput
 
-    style:  TextFieldStyle {
+    style: TextFieldStyle {
         textColor: textField.colorScheme == hifi.colorSchemes.light
                    ? (textField.focus ? hifi.colors.black : hifi.colors.lightGray)
                    : (textField.focus ? hifi.colors.white : hifi.colors.lightGrayText)
