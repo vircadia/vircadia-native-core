@@ -1080,8 +1080,29 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
+
+        const float HAND_RADIUS = 0.05f;
+        const float BODY_RADIUS = params.bodyCapsuleRadius;
+
+        // project the hips onto the xz plane.
+        auto hipsTrans = _internalPoseSet._absolutePoses[_animSkeleton->nameToJointIndex("Hips")].trans;
+        const glm::vec2 bodyCircleCenter(hipsTrans.x, hipsTrans.z);
+
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", params.leftPosition);
+
+            // project the hand position onto the xz plane.
+            glm::vec2 handCircleCenter(params.leftPosition.x, params.leftPosition.z);
+            auto d = handCircleCenter - bodyCircleCenter;
+
+            // check for 2d overlap of the hand and body circles.
+            float penetrationDistance = HAND_RADIUS + BODY_RADIUS - glm::length(d);
+            if (penetrationDistance > 0) {
+                // push the hands out of the body
+                handCircleCenter += penetrationDistance * glm::normalize(d);
+            }
+
+            glm::vec3 handPosition(handCircleCenter.x, params.leftPosition.y, handCircleCenter.y);
+            _animVars.set("leftHandPosition", handPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
@@ -1089,8 +1110,22 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.unset("leftHandRotation");
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
+
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", params.rightPosition);
+
+            // project the hand position onto the xz plane.
+            glm::vec2 handCircleCenter(params.rightPosition.x, params.rightPosition.z);
+            auto d = handCircleCenter - bodyCircleCenter;
+
+            // check for 2d overlap of the hand and body circles.
+            float penetrationDistance = HAND_RADIUS + BODY_RADIUS - glm::length(d);
+            if (penetrationDistance > 0) {
+                // push the hands out of the body
+                handCircleCenter += penetrationDistance * glm::normalize(d);
+            }
+
+            glm::vec3 handPosition(handCircleCenter.x, params.rightPosition.y, handCircleCenter.y);
+            _animVars.set("rightHandPosition", handPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
