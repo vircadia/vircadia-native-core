@@ -1083,6 +1083,7 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
         const float HAND_RADIUS = 0.05f;
         const float BODY_RADIUS = params.bodyCapsuleRadius;
+        const float MIN_LENGTH = 1.0e-4f;
 
         // project the hips onto the xz plane.
         auto hipsTrans = _internalPoseSet._absolutePoses[_animSkeleton->nameToJointIndex("Hips")].trans;
@@ -1092,13 +1093,14 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
             // project the hand position onto the xz plane.
             glm::vec2 handCircleCenter(params.leftPosition.x, params.leftPosition.z);
-            auto d = handCircleCenter - bodyCircleCenter;
 
             // check for 2d overlap of the hand and body circles.
-            float penetrationDistance = HAND_RADIUS + BODY_RADIUS - glm::length(d);
-            if (penetrationDistance > 0) {
+            auto circleToCircle = handCircleCenter - bodyCircleCenter;
+            const float circleToCircleLength = glm::length(circleToCircle);
+            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
+            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
                 // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(d);
+                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
             }
 
             glm::vec3 handPosition(handCircleCenter.x, params.leftPosition.y, handCircleCenter.y);
@@ -1115,13 +1117,14 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
 
             // project the hand position onto the xz plane.
             glm::vec2 handCircleCenter(params.rightPosition.x, params.rightPosition.z);
-            auto d = handCircleCenter - bodyCircleCenter;
 
             // check for 2d overlap of the hand and body circles.
-            float penetrationDistance = HAND_RADIUS + BODY_RADIUS - glm::length(d);
-            if (penetrationDistance > 0) {
+            auto circleToCircle = handCircleCenter - bodyCircleCenter;
+            const float circleToCircleLength = glm::length(circleToCircle);
+            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
+            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
                 // push the hands out of the body
-                handCircleCenter += penetrationDistance * glm::normalize(d);
+                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
             }
 
             glm::vec3 handPosition(handCircleCenter.x, params.rightPosition.y, handCircleCenter.y);
