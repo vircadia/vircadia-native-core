@@ -2203,11 +2203,9 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
     // compositor reticle
     if (!_fakedMouseEvent) {
-        if (isHMDMode()) {
-            _compositor.handleRealMouseMoveEvent();
+        // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
+        if (_compositor.handleRealMouseMoveEvent()) {
             return; // bail
-        } else {
-            _compositor.trackRealMouseMoveEvent(); // FIXME - super janky
         }
     }
 

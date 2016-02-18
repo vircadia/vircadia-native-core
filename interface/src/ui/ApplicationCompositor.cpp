@@ -319,20 +319,26 @@ void ApplicationCompositor::handleLeaveEvent() {
     }
 }
 
-void ApplicationCompositor::trackRealMouseMoveEvent() {
-    _lastKnownRealMouse = QCursor::pos();
-}
+bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
 
-void ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
+    // If the mouse move came from a capture mouse related move, we completely ignore it.
     if (_ignoreMouseMove) {
         _ignoreMouseMove = false;
-        return;
+        return true; // swallow the event
     }
-    auto newPosition = QCursor::pos();
-    auto changeInRealMouse = newPosition - _lastKnownRealMouse;
-    auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
-    _lastKnownRealMouse = newPosition;
-    setReticlePosition(newReticlePosition, sendFakeEvent);
+
+    // If we're in HMD mode
+    if (qApp->isHMDMode()) {
+        auto newPosition = QCursor::pos();
+        auto changeInRealMouse = newPosition - _lastKnownRealMouse;
+        auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
+        _lastKnownRealMouse = newPosition;
+        setReticlePosition(newReticlePosition, sendFakeEvent);
+        return true;  // swallow the event
+    } else {
+        _lastKnownRealMouse = QCursor::pos();
+    }
+    return false; // let the caller know to process the event
 }
 
 glm::vec2 ApplicationCompositor::getReticlePosition() {

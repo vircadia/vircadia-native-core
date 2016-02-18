@@ -98,8 +98,8 @@ public:
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
-    void handleRealMouseMoveEvent(bool sendFakeEvent = true);
-    void trackRealMouseMoveEvent();
+    /// return value - true means the caller should not process the event further
+    bool handleRealMouseMoveEvent(bool sendFakeEvent = true);
     void handleLeaveEvent();
     QPointF getMouseEventPosition(QMouseEvent* event);
 
