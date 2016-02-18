@@ -112,11 +112,11 @@ TreeView {
 
     itemDelegate: FiraSansSemiBold {
         anchors {
-            left: parent.left
+            left: parent ? parent.left : undefined
             leftMargin: (2 + styleData.depth) * hifi.dimensions.tablePadding
-            right: parent.right
+            right: parent ? parent.right : undefined
             rightMargin: hifi.dimensions.tablePadding
-            verticalCenter: parent.verticalCenter
+            verticalCenter: parent ? parent.verticalCenter : undefined
         }
 
         text: styleData.value

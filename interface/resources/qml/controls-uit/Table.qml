@@ -111,9 +111,9 @@ TableView {
 
     itemDelegate: Item {
         anchors {
-            left: parent.left
+            left: parent ? parent.left : undefined
             leftMargin: hifi.dimensions.tablePadding
-            right: parent.right
+            right: parent ? parent.right : undefined
             rightMargin: hifi.dimensions.tablePadding
         }
 
@@ -166,7 +166,7 @@ TableView {
 
         // FIXME: Automatically use aux. information from tableModel
         FiraSansSemiBold {
-            text: tableModel.get(styleData.row).url
+            text: tableModel.get(styleData.row) ? tableModel.get(styleData.row).url : ""
             elide: Text.ElideMiddle
             size: hifi.fontSizes.tableText
             color: colorScheme == hifi.colorSchemes.light
