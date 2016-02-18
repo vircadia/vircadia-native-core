@@ -127,6 +127,10 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
 
     gpu::Batch& batch = *renderArgs->_batch;
     auto geometryCache = DependencyManager::get<GeometryCache>();
+
+    // Grid uses its own pipeline
+    geometryCache->renderGrid(batch, x, y, w, h, gridRows, gridCols, gridColor, 0.005f, _audioScopeGrid);
+
     geometryCache->useSimpleDrawPipeline(batch);
     auto textureCache = DependencyManager::get<TextureCache>();
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
@@ -139,7 +143,6 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     batch.setViewTransform(Transform());
 
     geometryCache->renderQuad(batch, x, y, w, h, backgroundColor, _audioScopeBackground);
-    geometryCache->renderGrid(batch, x, y, w, h, gridRows, gridCols, gridColor, _audioScopeGrid);
     renderLineStrip(batch, _inputID, inputColor, x, y, _samplesPerScope, _scopeInputOffset, _scopeInput);
     renderLineStrip(batch, _outputLeftID, outputLeftColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputLeft);
     renderLineStrip(batch, _outputRightD, outputRightColor, x, y, _samplesPerScope, _scopeOutputOffset, _scopeOutputRight);
