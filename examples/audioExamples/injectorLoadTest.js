@@ -26,7 +26,7 @@ var testSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-con
 
 if(!testSound.downloaded) {
 
-    print("EBL SOUND IS NOT READY YET")
+    print("SOUND IS NOT READY YET")
     testSound.ready.connect(function() {
         playSounds();
     });
@@ -36,7 +36,7 @@ if(!testSound.downloaded) {
 }
 
 function playSounds() {
-    print("EBL PLAY SOUNDS!")
+    print("PLAY SOUNDS!")
     var numSounds = 45;
     for (var i = 0; i < numSounds; i++) {
         playSound();
