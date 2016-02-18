@@ -48,10 +48,7 @@ static const QString RENDER_CONTROLLERS = "Render Hand Controllers";
 const QString ViveControllerManager::NAME = "OpenVR";
 
 bool ViveControllerManager::isSupported() const {
-    auto hmd = acquireOpenVrSystem();
-    bool success = hmd != nullptr;
-    releaseOpenVrSystem();
-    return success;
+    return vr::VR_IsHmdPresent();
 }
 
 void ViveControllerManager::activate() {
@@ -66,10 +63,12 @@ void ViveControllerManager::activate() {
     }
     Q_ASSERT(_hmd);
 
+    // OpenVR provides 3d mesh representations of the controllers
+    // Disabled controller rendering code
+    /*
     auto renderModels = vr::VRRenderModels();
 
     vr::RenderModel_t model;
-    /*
     if (!_hmd->LoadRenderModel(CONTROLLER_MODEL_STRING, &model)) {
         qDebug() << QString("Unable to load render model %1\n").arg(CONTROLLER_MODEL_STRING);
     } else {
@@ -103,7 +102,7 @@ void ViveControllerManager::activate() {
         //    vertexBufferPtr->getSize() - sizeof(float) * 2,
         //    sizeof(vr::RenderModel_Vertex_t),
         //    gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::RAW)));
-        
+
         gpu::Element formatGPU = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         gpu::Element formatMip = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
         _texture = gpu::TexturePointer(
@@ -145,6 +144,7 @@ void ViveControllerManager::deactivate() {
 void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges) {
     PerformanceTimer perfTimer("ViveControllerManager::updateRendering");
 
+    /*
     if (_modelLoaded) {
         //auto controllerPayload = new render::Payload<ViveControllerManager>(this);
         //auto controllerPayloadPointer = ViveControllerManager::PayloadPointer(controllerPayload);
@@ -175,9 +175,11 @@ void ViveControllerManager::updateRendering(RenderArgs* args, render::ScenePoint
             }
         });
     }
+    */
 }
 
 void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign) {
+    /*
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     Transform transform(userInputMapper->getSensorToWorldMat());
     transform.postTranslate(pose.getTranslation() + pose.getRotation() * glm::vec3(0, 0, CONTROLLER_LENGTH_OFFSET));
@@ -199,11 +201,12 @@ void ViveControllerManager::renderHand(const controller::Pose& pose, gpu::Batch&
     //    mesh->getVertexBuffer()._stride);
     batch.setIndexBuffer(gpu::UINT16, mesh->getIndexBuffer()._buffer, 0);
     batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    */
 }
 
 
-void ViveControllerManager::pluginUpdate(float deltaTime, bool jointsCaptured) { 
-    _inputDevice->update(deltaTime, jointsCaptured); 
+void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
+    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured);
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
 
     if (_inputDevice->_trackedControllers == 0 && _registeredWithInputMapper) {
@@ -219,7 +222,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, bool jointsCaptured) {
     }
 }
 
-void ViveControllerManager::InputDevice::update(float deltaTime, bool jointsCaptured) {
+void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _poseStateMap.clear();
 
     _buttonPressedMap.clear();
@@ -229,29 +232,29 @@ void ViveControllerManager::InputDevice::update(float deltaTime, bool jointsCapt
     int numTrackedControllers = 0;
 
     for (vr::TrackedDeviceIndex_t device = vr::k_unTrackedDeviceIndex_Hmd + 1;
-            device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
-            
+         device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
+
         if (!_hmd->IsTrackedDeviceConnected(device)) {
             continue;
         }
-            
-        if(_hmd->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller) {
+
+        if (_hmd->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller) {
             continue;
         }
 
         if (!_trackedDevicePose[device].bPoseIsValid) {
             continue;
         }
-            
+
         numTrackedControllers++;
         bool left = numTrackedControllers == 2;
-            
+
         const mat4& mat = _trackedDevicePoseMat4[device];
-                  
+
         if (!jointsCaptured) {
-            handlePoseEvent(mat, numTrackedControllers - 1);
+            handlePoseEvent(inputCalibrationData, mat, numTrackedControllers - 1);
         }
-            
+
         // handle inputs
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_hmd->GetControllerState(device, &controllerState)) {
@@ -268,7 +271,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, bool jointsCapt
             }
         }
     }
-        
+
     _trackedControllers = numTrackedControllers;
 }
 
@@ -311,7 +314,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(uint32_t button, bool
     }
 }
 
-void ViveControllerManager::InputDevice::handlePoseEvent(const mat4& mat, bool left) {
+void ViveControllerManager::InputDevice::handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, bool left) {
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
     //
     //                       user
@@ -339,11 +342,11 @@ void ViveControllerManager::InputDevice::handlePoseEvent(const mat4& mat, bool l
     //       |   |                     |   |
     //
 
-    // So when the user is standing in Vive space facing the -zAxis with hands outstretched and palms down 
+    // So when the user is standing in Vive space facing the -zAxis with hands outstretched and palms down
     // the rotation to align the Vive axes with those of the hands is:
     //
     //    QviveToHand = halfTurnAboutY * quaterTurnAboutX
-   
+
     // Due to how the Vive controllers fit into the palm there is an offset that is different for each hand.
     // You can think of this offset as the inverse of the measured rotation when the hands are posed, such that
     // the combination (measurement * offset) is identity at this orientation.
@@ -381,8 +384,11 @@ void ViveControllerManager::InputDevice::handlePoseEvent(const mat4& mat, bool l
 
     position += rotation * (left ? leftTranslationOffset : rightTranslationOffset);
     rotation = rotation * (left ? leftRotationOffset : rightRotationOffset);
-    
-    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = controller::Pose(position, rotation);
+
+    // transform into avatar frame
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    auto avatarPose = controller::Pose(position, rotation).transform(controllerToAvatar);
+    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose;
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
@@ -433,7 +439,7 @@ QString ViveControllerManager::InputDevice::getDefaultMappingConfig() const {
 
 //void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
 //    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//    
+//
 //    // Left Trackpad: Movement, strafing
 //    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
 //    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
@@ -443,17 +449,17 @@ QString ViveControllerManager::InputDevice::getDefaultMappingConfig() const {
 //    // Right Trackpad: Vertical movement, zooming
 //    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
 //    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-//    
+//
 //    // Buttons
 //    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 0));
 //    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 1));
-//    
+//
 //    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(GRIP_BUTTON, 0));
 //    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(GRIP_BUTTON, 1));
 //
 //    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
 //    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
-//    
+//
 //    // Hands
 //    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
 //    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));

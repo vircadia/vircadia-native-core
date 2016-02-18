@@ -81,6 +81,7 @@ Preference {
         property var sliderBuilder: Component { SliderPreference { } }
         property var avatarBuilder: Component { AvatarPreference { } }
         property var buttonBuilder: Component { ButtonPreference { } }
+        property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var preferences: []
 
         function buildPreferences() {
@@ -123,7 +124,11 @@ Preference {
 
                 case Preference.Button:
                     builder = buttonBuilder;
-                    break
+                    break;
+
+                case Preference.ComboBox:
+                    builder = comboBoxBuilder;
+                    break;
             };
 
             if (builder) {

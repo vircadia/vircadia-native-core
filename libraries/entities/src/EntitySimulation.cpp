@@ -70,7 +70,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
 }
 
 void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
         QMutexLocker lock(&_mutex);
         _simpleKinematicEntities.insert(entity);
     }
@@ -78,7 +78,7 @@ void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
 
 void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     QMutexLocker lock(&_mutex);
-    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity);

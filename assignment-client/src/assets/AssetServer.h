@@ -29,6 +29,8 @@ public slots:
     void run();
 
 private slots:
+    void completeSetup();
+
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);

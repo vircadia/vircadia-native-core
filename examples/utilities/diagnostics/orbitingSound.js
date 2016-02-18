@@ -17,7 +17,7 @@ var SPEED = 1.0;
 var currentPosition = { x: 0, y: 0, z: 0 };
 var trailingLoudness = 0.0;
 
-var soundClip = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Tabla+Loops/Tabla1.wav");
+var soundClip = SoundCache.getSound("http://public.highfidelity.io/sounds/Rats_Squeaks_Active.wav");
 
 var properties = { 
     type: "Box",
@@ -27,14 +27,22 @@ var properties = {
 };
 
 var objectId = Entities.addEntity(properties);
-var sound = Audio.playSound(soundClip, { position: orbitCenter, loop: true, volume: 0.5 });
+var soundOptions = { position: orbitCenter, loop: true, volume: 0.5 };
+var sound;
 
-function update(deltaTime) { 
+function update(deltaTime) {
+    if (!soundClip.downloaded) {
+        return;
+    }
+    if (!sound) {
+        sound = Audio.playSound(soundClip, soundOptions); // Not until downloaded
+    }
     time += deltaTime; 
     currentPosition = { x: orbitCenter.x + Math.cos(time * SPEED) * RADIUS, y: orbitCenter.y, z: orbitCenter.z + Math.sin(time * SPEED) * RADIUS };
     trailingLoudness = 0.9 * trailingLoudness + 0.1 * sound.loudness;
     Entities.editEntity( objectId, { position: currentPosition, color: { red: Math.min(trailingLoudness * 2000, 255), green: 0, blue: 0 } } );
-    sound.options = { position: currentPosition };
+    soundOptions.position = currentPosition;
+    sound.setOptions(soundOptions);
 }
 
 Script.scriptEnding.connect(function() {

@@ -7,7 +7,7 @@ PreferencesDialog {
     id: root
     objectName: "GeneralPreferencesDialog"
     title: "General Preferences"
-    showCategories: ["Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers", "Graphics"]
+    showCategories: ["Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers"]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

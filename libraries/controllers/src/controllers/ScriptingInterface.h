@@ -13,10 +13,11 @@
 #ifndef hifi_AbstractControllerScriptingInterface_h
 #define hifi_AbstractControllerScriptingInterface_h
 
-#include <unordered_map>
-#include <unordered_set>
+#include <atomic>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -88,6 +89,12 @@ namespace controller {
         Q_INVOKABLE void disableMapping(const QString& mappingName) { enableMapping(mappingName, false); }
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
+
+        Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
+        Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }
+
+        Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
+        Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
 
         Q_INVOKABLE glm::vec2 getReticlePosition() { 
             return toGlm(QCursor::pos()); 
@@ -163,6 +170,9 @@ namespace controller {
         bool _touchCaptured{ false };
         bool _wheelCaptured{ false };
         bool _actionsCaptured{ false };
+
+        bool _reticleVisible{ true };
+        float _reticleDepth { 1.0f };
     };
 
 

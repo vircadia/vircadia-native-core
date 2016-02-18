@@ -614,142 +614,19 @@ CameraTool = function(cameraManager) {
         visible: false,
     });
 
-    var defaultCubeProps = {
-        size: ORIENTATION_OVERLAY_CUBE_SIZE,
-        alpha: 1,
-        color: {
-            red: 255,
-            green: 0,
-            blue: 0
-        },
-        solid: true,
-        visible: true,
-        drawOnHUD: true,
-    };
-    var defaultLineProps = {
-        lineWidth: 1.5,
-        alpha: 1,
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        start: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        end: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        color: {
-            red: 255,
-            green: 0,
-            blue: 0
-        },
-        visible: false,
-        drawOnHUD: true,
-    };
-
-    var orientationOverlay = OverlayGroup({
-        position: {
-            x: uiPosition.x + UI_WIDTH / 2,
-            y: uiPosition.y + UI_HEIGHT / 2,
-        },
-        visible: false,
-    });
-
-    var OOHS = ORIENTATION_OVERLAY_HALF_SIZE;
-    var cubeX = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: {
-            x: -OOHS,
-            y: OOHS,
-            z: OOHS
-        },
-        color: RED,
-    }));
-    var cubeY = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: {
-            x: OOHS,
-            y: -OOHS,
-            z: OOHS
-        },
-        color: GREEN,
-    }));
-    var cubeZ = orientationOverlay.createOverlay("cube", mergeObjects(defaultCubeProps, {
-        position: {
-            x: OOHS,
-            y: OOHS,
-            z: -OOHS
-        },
-        color: BLUE,
-    }));
-    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: {
-            x: -OOHS,
-            y: OOHS,
-            z: OOHS
-        },
-        end: {
-            x: OOHS,
-            y: OOHS,
-            z: OOHS
-        },
-        color: RED,
-    }));
-    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: {
-            x: OOHS,
-            y: -OOHS,
-            z: OOHS
-        },
-        end: {
-            x: OOHS,
-            y: OOHS,
-            z: OOHS
-        },
-        color: GREEN,
-    }));
-    orientationOverlay.createOverlay("line3d", mergeObjects(defaultLineProps, {
-        start: {
-            x: OOHS,
-            y: OOHS,
-            z: -OOHS
-        },
-        end: {
-            x: OOHS,
-            y: OOHS,
-            z: OOHS
-        },
-        color: BLUE,
-    }));
-
     Script.scriptEnding.connect(function() {
-        orientationOverlay.destroy();
         Overlays.deleteOverlay(background);
         Overlays.deleteOverlay(backgroundBorder);
     });
 
     var flip = Quat.fromPitchYawRollDegrees(0, 180, 0);
     that.update = function() {
-        orientationOverlay.setProperties({
-            rotation: Quat.multiply(flip, Quat.inverse(Camera.orientation)),
-        });
-
         if (Window.innerWidth != lastKnownWidth) {
             lastKnownWidth = Window.innerWidth;
             uiPosition = {
                 x: lastKnownWidth - UI_WIDTH - UI_PADDING,
                 y: UI_PADDING,
             };
-            orientationOverlay.setProperties({
-                position: {
-                    x: uiPosition.x + ORIENTATION_OVERLAY_OFFSET.x,
-                    y: uiPosition.y + ORIENTATION_OVERLAY_OFFSET.y,
-                }
-            });
             Overlays.editOverlay(backgroundBorder, {
                 x: uiPosition.x - BORDER_WIDTH,
                 y: uiPosition.y - BORDER_WIDTH,
@@ -766,29 +643,9 @@ CameraTool = function(cameraManager) {
             x: event.x,
             y: event.y
         });
-
-        if (clickedOverlay == cubeX) {
-            targetPitch = 0;
-            targetYaw = event.isLeftButton ? 90 : -90;
-            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
-            return true;
-        } else if (clickedOverlay == cubeY) {
-            targetPitch = event.isLeftButton ? 90 : -90;
-            targetYaw = 0;
-            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
-            return true;
-        } else if (clickedOverlay == cubeZ) {
-            targetPitch = 0;
-            targetYaw = event.isLeftButton ? 0 : 180;
-            cameraManager.setTargetPitchYaw(targetPitch, targetYaw);
-            return true;
-        }
     };
 
     that.setVisible = function(visible) {
-        orientationOverlay.setProperties({
-            visible: visible
-        });
         Overlays.editOverlay(background, {
             visible: visible
         });

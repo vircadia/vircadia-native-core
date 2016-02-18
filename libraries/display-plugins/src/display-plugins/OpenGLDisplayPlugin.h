@@ -73,7 +73,6 @@ protected:
     // Plugin specific functionality to composite the scene and overlay and present the result
     virtual void internalPresent();
 
-    mutable QTimer _timer;
     ProgramPtr _program;
     ShapeWrapperPtr _plane;
 

@@ -40,6 +40,10 @@ public:
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     
 private:
+    virtual void locationChanged() override { EntityItem::locationChanged(); notifyBoundChanged(); }
+    virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
+    void notifyBoundChanged();
+
     Model* getModel();
     void initialSimulation();
     void updateGeometry();
@@ -50,7 +54,7 @@ private:
     Model* _model;
     bool _needsInitialSimulation;
     
-    render::ItemID _myMetaItem;
+    render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 };
 
 #endif // hifi_RenderableZoneEntityItem_h

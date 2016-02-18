@@ -20,8 +20,8 @@
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
-void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) { 
-    _inputDevice->update(deltaTime, jointsCaptured); 
+void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) { 
+    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured); 
 
     // For touch event, we need to check that the last event is not too long ago
     // Maybe it's a Qt issue, but the touch event sequence (begin, update, end) is not always called properly
@@ -36,7 +36,7 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) {
     }
 }
 
-void KeyboardMouseDevice::InputDevice::update(float deltaTime, bool jointsCaptured) {
+void KeyboardMouseDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _axisStateMap.clear();
 }
 

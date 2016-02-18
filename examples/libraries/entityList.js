@@ -8,11 +8,15 @@ EntityListTool = function(opts) {
         title: 'Entities',  source: url,  toolWindow: true   
     });
 
+
+
     var searchRadius = 100;
 
     var visible = false;
 
     webView.setVisible(visible);
+
+    that.webView = webView;
 
     that.setVisible = function(newVisible) {
         visible = newVisible;
@@ -70,6 +74,7 @@ EntityListTool = function(opts) {
         };
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     }
+
 
     webView.eventBridge.webEventReceived.connect(function(data) {
         data = JSON.parse(data);

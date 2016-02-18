@@ -60,5 +60,14 @@ namespace controller {
         }
     }
 
+    Pose Pose::transform(const glm::mat4& mat) const {
+        auto rot = glmExtractRotation(mat);
+        Pose pose(transformPoint(mat, translation),
+                  rot * rotation,
+                  transformVectorFast(mat, velocity),
+                  rot * angularVelocity);
+        pose.valid = valid;
+        return pose;
+    }
 }
 
