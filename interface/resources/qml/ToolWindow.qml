@@ -16,11 +16,12 @@ Windows.Window {
     closable: true
     visible: false
     width: 384; height: 640;
+    title: "Tools"
     property string newTabSource
     property alias tabView: tabView
     onParentChanged: {
-        x = desktop.width / 2 - width / 2;
-        y = desktop.height / 2 - height / 2;
+        x = 120;
+        y = 120;
     }
 
     Settings {

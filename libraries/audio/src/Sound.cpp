@@ -24,8 +24,6 @@
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
-#include "AudioFormat.h"
-#include "AudioBuffer.h"
 #include "AudioLogging.h"
 #include "Sound.h"
 
@@ -257,6 +255,8 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
         if (waveStream.readRawData(outputAudioByteArray.data(), outputAudioByteArraySize) != (int)outputAudioByteArraySize) {
             qCDebug(audio) << "Error reading WAV file";
         }
+
+        _duration = (float) (outputAudioByteArraySize / (fileHeader.wave.sampleRate * fileHeader.wave.numChannels * fileHeader.wave.bitsPerSample / 8.0f));
 
     } else {
         qCDebug(audio) << "Could not read wav audio file header.";

@@ -38,16 +38,22 @@ var pingPongGun = Entities.addEntity({
     collisionSoundURL: COLLISION_SOUND_URL,
     userData: JSON.stringify({
         grabbableKey: {
-            spatialKey: {
-                relativePosition: {
-                    x: -0.05,
-                    y: 0,
-                    z: 0.0
-                },
-                relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, -90)
-            },
             invertSolidWhileHeld: true
-        }
+        },
+        wearable:{joints:{RightHand:[{x:0.1177130937576294,
+                                      y:0.12922893464565277,
+                                      z:0.08307232707738876},
+                                     {x:0.4934672713279724,
+                                      y:0.3605862259864807,
+                                      z:0.6394805908203125,
+                                      w:-0.4664038419723511}],
+                          LeftHand:[{x:0.09151676297187805,
+                                     y:0.13639454543590546,
+                                     z:0.09354984760284424},
+                                    {x:-0.19628101587295532,
+                                     y:0.6418180465698242,
+                                     z:0.2830369472503662,
+                                     w:0.6851521730422974}]}}
     })
 });
 

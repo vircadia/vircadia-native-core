@@ -46,10 +46,6 @@ const float ADJUST_LOD_UP_BY = 1.1f;
 const float ADJUST_LOD_MIN_SIZE_SCALE = 1.0f;
 const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 
-// The ratio of "visibility" of avatars to other content. A value larger than 1 will mean Avatars "cull" later than entities
-// do. But both are still culled using the same angular size logic.
-const float AVATAR_TO_ENTITY_RATIO = 2.0f;
-
 class RenderArgs;
 class AABox;
 
@@ -68,8 +64,6 @@ public:
     Q_INVOKABLE void setHMDLODDecreaseFPS(float value) { _hmdLODDecreaseFPS = value; }
     Q_INVOKABLE float getHMDLODDecreaseFPS() const { return _hmdLODDecreaseFPS; }
     Q_INVOKABLE float getHMDLODIncreaseFPS() const { return glm::min(_hmdLODDecreaseFPS + INCREASE_LOD_GAP, MAX_LIKELY_HMD_FPS); }
-
-    Q_INVOKABLE float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     
     // User Tweakable LOD Items
     Q_INVOKABLE QString getLODFeedbackText();
@@ -116,13 +110,11 @@ signals:
     
 private:
     LODManager();
-    void calculateAvatarLODDistanceMultiplier();
     
     bool _automaticLODAdjust = true;
     float _desktopLODDecreaseFPS = DEFAULT_DESKTOP_LOD_DOWN_FPS;
     float _hmdLODDecreaseFPS = DEFAULT_HMD_LOD_DOWN_FPS;
 
-    float _avatarLODDistanceMultiplier;
     float _octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE;
     int _boundaryLevelAdjust = 0;
     

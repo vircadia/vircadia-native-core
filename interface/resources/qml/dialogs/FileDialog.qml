@@ -2,6 +2,8 @@ import QtQuick 2.0
 import QtQuick.Controls 1.4
 import Qt.labs.folderlistmodel 2.1
 import Qt.labs.settings 1.0
+import QtQuick.Controls.Styles 1.4
+import QtQuick.Dialogs 1.2 as OriginalDialogs
 
 import ".."
 import "../windows"
@@ -34,17 +36,25 @@ ModalWindow {
     // Set from OffscreenUi::getOpenFile()
     property int options; // <-- FIXME unused
 
+
     property bool selectDirectory: false;
     property bool showHidden: false;
     // FIXME implement
     property bool multiSelect: false;
-    // FIXME implement
     property bool saveDialog: false;
     property var helper: fileDialogHelper
     property alias model: fileTableView.model
+    property var drives: helper.drives()
 
     signal selectedFile(var file);
     signal canceled();
+
+    Component.onCompleted: {
+        console.log("Helper " + helper + " drives " + drives)
+        drivesSelector.onCurrentTextChanged.connect(function(){
+            root.dir = helper.pathToUrl(drivesSelector.currentText);
+        })
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -55,35 +65,50 @@ ModalWindow {
             anchors { left: parent.left; top: parent.top; margins: 8 }
             spacing: 8
             // FIXME implement back button
-//            VrControls.FontAwesome {
-//                id: backButton
-//                text: "\uf0a8"
-//                size: currentDirectory.height
-//                enabled: d.backStack.length != 0
-//                MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
-//            }
-            VrControls.FontAwesome {
+            //VrControls.ButtonAwesome {
+            //    id: backButton
+            //    text: "\uf0a8"
+            //    size: currentDirectory.height
+            //    enabled: d.backStack.length != 0
+            //    MouseArea { anchors.fill: parent; onClicked: d.navigateBack() }
+            //}
+            VrControls.ButtonAwesome {
                 id: upButton
+                enabled: model.parentFolder && model.parentFolder !== ""
                 text: "\uf0aa"
-                size: currentDirectory.height
-                color: enabled ? "black" : "gray"
-                MouseArea { anchors.fill: parent; onClicked: d.navigateUp() }
+                size: 32
+                onClicked: d.navigateUp();
             }
-            VrControls.FontAwesome {
+            VrControls.ButtonAwesome {
                 id: homeButton
                 property var destination: helper.home();
-                visible: destination ? true : false
+                enabled: d.homeDestination ? true : false
                 text: "\uf015"
-                size: currentDirectory.height
-                MouseArea { anchors.fill: parent; onClicked: model.folder = parent.destination }
+                size: 32
+                onClicked: d.navigateHome();
+            }
+
+            VrControls.ComboBox {
+                id: drivesSelector
+                width: 48
+                height: homeButton.height
+                model: drives
+                visible: drives.length > 1
+                currentIndex: 0
+
             }
         }
 
         TextField {
             id: currentDirectory
+            height: homeButton.height
+            style:  TextFieldStyle { renderType: Text.QtRendering }
             anchors { left: navControls.right; right: parent.right; top: parent.top; margins: 8 }
             property var lastValidFolder: helper.urlToPath(model.folder)
             onLastValidFolderChanged: text = lastValidFolder;
+            verticalAlignment: Text.AlignVCenter
+            font.pointSize: 14
+            font.bold: true
 
             // FIXME add support auto-completion
             onAccepted: {
@@ -93,7 +118,6 @@ ModalWindow {
                 }
                 model.folder = helper.pathToUrl(text);
             }
-
         }
 
         QtObject {
@@ -104,6 +128,7 @@ ModalWindow {
             property var backStack: []
             property var tableViewConnection: Connections { target: fileTableView; onCurrentRowChanged: d.update(); }
             property var modelConnection: Connections { target: model; onFolderChanged: d.update(); }
+            property var homeDestination: helper.home();
             Component.onCompleted: update();
 
             function update() {
@@ -118,6 +143,8 @@ ModalWindow {
                 currentSelectionIsFolder = fileTableView.model.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = helper.urlToPath(currentSelectionUrl);
+                } else {
+                    currentSelection.text = ""
                 }
             }
 
@@ -127,12 +154,20 @@ ModalWindow {
                     return true;
                 }
             }
+
+            function navigateHome() {
+                model.folder = homeDestination;
+                return true;
+            }
         }
 
         FileTableView {
             id: fileTableView
             anchors { left: parent.left; right: parent.right; top: currentDirectory.bottom; bottom: currentSelection.top; margins: 8 }
             onDoubleClicked: navigateToRow(row);
+            focus: true
+            Keys.onReturnPressed: navigateToCurrentRow();
+            Keys.onEnterPressed: navigateToCurrentRow();
             model: FolderListModel {
                 id: model
                 nameFilters: selectionType.currentFilter
@@ -145,6 +180,11 @@ ModalWindow {
                     currentDirectory.lastValidFolder  = Qt.binding(function() { return helper.urlToPath(model.folder); });
                     upButton.enabled = Qt.binding(function() { return (model.parentFolder && model.parentFolder != "") ? true : false; });
                     showFiles = !root.selectDirectory
+                }
+                onFolderChanged: {
+                    fileTableView.selection.clear();
+                    fileTableView.selection.select(0);
+                    fileTableView.currentRow = 0;
                 }
             }
 
@@ -159,18 +199,73 @@ ModalWindow {
                 var file = model.get(row, "fileURL");
                 if (isFolder) {
                     fileTableView.model.folder = file
-                    currentRow = -1;
                 } else {
-                    root.selectedFile(file);
-                    root.visible = false;
+                    okAction.trigger();
                 }
+            }
+
+            property string prefix: ""
+
+            function addToPrefix(event) {
+                if (!event.text || event.text === "") {
+                    return false;
+                }
+                var newPrefix = prefix + event.text.toLowerCase();
+                var matchedIndex = -1;
+                for (var i = 0; i < model.count; ++i) {
+                    var name = model.get(i, "fileName").toLowerCase();
+                    if (0 === name.indexOf(newPrefix)) {
+                        matchedIndex = i;
+                        break;
+                    }
+                }
+
+                if (matchedIndex !== -1) {
+                    fileTableView.selection.clear();
+                    fileTableView.selection.select(matchedIndex);
+                    fileTableView.currentRow = matchedIndex;
+                    fileTableView.prefix = newPrefix;
+                }
+                prefixClearTimer.restart();
+                return true;
+            }
+
+            Timer {
+                id: prefixClearTimer
+                interval: 1000
+                repeat: false
+                running: false
+                onTriggered: fileTableView.prefix = "";
+            }
+
+            Keys.onPressed: {
+                switch (event.key) {
+                case Qt.Key_Backspace:
+                case Qt.Key_Tab:
+                case Qt.Key_Backtab:
+                    event.accepted = false;
+                    break;
+
+                default:
+                    if (addToPrefix(event)) {
+                        event.accepted = true
+                    } else {
+                        event.accepted = false;
+                    }
+                    break;
+                }
+
             }
         }
 
         TextField {
             id: currentSelection
+            style:  TextFieldStyle { renderType: Text.QtRendering }
             anchors { right: root.selectDirectory ? parent.right : selectionType.left; rightMargin: 8; left: parent.left; leftMargin: 8; top: selectionType.top }
-            readOnly: true
+            readOnly: !root.saveDialog
+            activeFocusOnTab: !readOnly
+            onActiveFocusChanged: if (activeFocus) { selectAll(); }
+            onAccepted: okAction.trigger();
         }
 
         FileTypeSelection {
@@ -187,34 +282,106 @@ ModalWindow {
             anchors.rightMargin: 8
             anchors.bottom: parent.bottom
             anchors.bottomMargin: 8
-            layoutDirection: Qt.RightToLeft
             spacing: 8
             Button {
-                id: cancelButton
-                text: "Cancel"
-                KeyNavigation.up: selectionType
-                KeyNavigation.left: openButton
-                KeyNavigation.right: fileTableView.contentItem
-                Keys.onReturnPressed: { canceled(); root.enabled = false }
-                onClicked: { canceled(); root.visible = false; }
-            }
-            Button {
                 id: openButton
-                text: root.selectDirectory ? "Choose" : "Open"
-                enabled: currentSelection.text ? true : false
-                onClicked: { selectedFile(d.currentSelectionUrl); root.visible = false; }
-                Keys.onReturnPressed: { selectedFile(d.currentSelectionUrl); root.visible = false; }
-
+                action: okAction
+                Keys.onReturnPressed: okAction.trigger()
                 KeyNavigation.up: selectionType
                 KeyNavigation.left: selectionType
                 KeyNavigation.right: cancelButton
             }
+            Button {
+                id: cancelButton
+                action: cancelAction
+                KeyNavigation.up: selectionType
+                KeyNavigation.left: openButton
+                KeyNavigation.right: fileTableView.contentItem
+                Keys.onReturnPressed: { canceled(); root.enabled = false }
+            }
+        }
+
+        Action {
+            id: okAction
+            text: root.saveDialog ? "Save" : (root.selectDirectory ? "Choose" : "Open")
+            enabled: currentSelection.text ? true : false
+            onTriggered: okActionTimer.start();
+        }
+
+        Timer {
+            id: okActionTimer
+            interval: 50
+            running: false
+            repeat: false
+            onTriggered: {
+                if (!root.saveDialog) {
+                    selectedFile(d.currentSelectionUrl);
+                    root.destroy()
+                    return;
+                }
+
+
+                // Handle the ambiguity between different cases
+                // * typed name (with or without extension)
+                // * full path vs relative vs filename only
+                var selection = helper.saveHelper(currentSelection.text, root.dir, selectionType.currentFilter);
+
+                if (!selection) {
+                    desktop.messageBox({ icon: OriginalDialogs.StandardIcon.Warning, text: "Unable to parse selection" })
+                    return;
+                }
+
+                if (helper.urlIsDir(selection)) {
+                    root.dir = selection;
+                    currentSelection.text = "";
+                    return;
+                }
+
+                // Check if the file is a valid target
+                if (!helper.urlIsWritable(selection)) {
+                    desktop.messageBox({
+                                           icon: OriginalDialogs.StandardIcon.Warning,
+                                           buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                           text: "Unable to write to location " + selection
+                                       })
+                    return;
+                }
+
+                if (helper.urlExists(selection)) {
+                    var messageBox = desktop.messageBox({
+                                                            icon: OriginalDialogs.StandardIcon.Question,
+                                                            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+                                                            text: "Do you wish to overwrite " + selection + "?",
+                                                        });
+                    var result = messageBox.exec();
+                    if (OriginalDialogs.StandardButton.Yes !== result) {
+                        return;
+                    }
+                }
+
+                console.log("Selecting " + selection)
+                selectedFile(selection);
+                root.destroy();
+            }
+        }
+
+        Action {
+            id: cancelAction
+            text: "Cancel"
+            onTriggered: { canceled(); root.visible = false; }
         }
     }
 
     Keys.onPressed: {
-        if (event.key === Qt.Key_Backspace && d.navigateUp()) {
-            event.accepted = true
+        switch (event.key) {
+        case Qt.Key_Backspace:
+            event.accepted = d.navigateUp();
+            break;
+
+        case Qt.Key_Home:
+            event.accepted = d.navigateHome();
+            break;
+
         }
     }
 }

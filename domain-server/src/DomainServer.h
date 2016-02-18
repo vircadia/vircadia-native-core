@@ -65,7 +65,6 @@ public slots:
 private slots:
     void aboutToQuit();
 
-    void loginFailed();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
 
@@ -77,6 +76,8 @@ private slots:
 
     void handleTempDomainSuccess(QNetworkReply& requestReply);
     void handleTempDomainError(QNetworkReply& requestReply);
+
+    void queuedQuit(QString quitMessage, int exitCode);
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -141,6 +142,8 @@ private:
     QString _oauthClientID;
     QString _oauthClientSecret;
     QString _hostname;
+
+    std::unordered_map<QUuid, QByteArray> _ephemeralACScripts;
 
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;

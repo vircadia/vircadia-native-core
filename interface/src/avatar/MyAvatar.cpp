@@ -56,13 +56,14 @@
 using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
-const float YAW_SPEED = 150.0f;   // degrees/sec
-const float PITCH_SPEED = 100.0f; // degrees/sec
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.0f;
 
 const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
+
+const float YAW_SPEED_DEFAULT = 120.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
@@ -86,6 +87,8 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _isPushing(false),
     _isBraking(false),
     _boomLength(ZOOM_DEFAULT),
+    _yawSpeed(YAW_SPEED_DEFAULT),
+    _pitchSpeed(PITCH_SPEED_DEFAULT),
     _thrust(0.0f),
     _keyboardMotorVelocity(0.0f),
     _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
@@ -97,7 +100,6 @@ MyAvatar::MyAvatar(RigPointer rig) :
     _characterController(this),
     _lookAtTargetAvatar(),
     _shouldRender(true),
-    _billboardValid(false),
     _eyeContactTarget(LEFT_EYE),
     _realWorldFieldOfView("realWorldFieldOfView",
                           DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
@@ -229,7 +231,7 @@ void MyAvatar::reset(bool andReload) {
     }
 
     // Reset dynamic state.
-    _wasPushing = _isPushing = _isBraking = _billboardValid = false;
+    _wasPushing = _isPushing = _isBraking = false;
     _follow.deactivate();
     _skeletonModel.reset();
     getHead()->reset();
@@ -285,6 +287,7 @@ void MyAvatar::update(float deltaTime) {
         // However, render/MyAvatar::update/Application::update don't always match (e.g., when using the separate avatar update thread),
         // so we update now. It's ok if it updates again in the normal way.
         updateSensorToWorldMatrix();
+        emit positionGoneTo();
     }
 
     Head* head = getHead();
@@ -295,8 +298,20 @@ void MyAvatar::update(float deltaTime) {
     auto audio = DependencyManager::get<AudioClient>();
     head->setAudioLoudness(audio->getLastInputLoudness());
     head->setAudioAverageLoudness(audio->getAudioAverageInputLoudness());
-
-    simulate(deltaTime);
+    
+     simulate(deltaTime);
+    
+    currentEnergy += energyChargeRate;
+    currentEnergy -= getAccelerationEnergy();
+    currentEnergy -= getAudioEnergy();
+    
+    if(didTeleport()) {
+        currentEnergy = 0.0f;
+    }
+    currentEnergy = max(0.0f, min(currentEnergy,1.0f));
+    emit energyChanged(currentEnergy);
+     
+   
 }
 
 extern QByteArray avatarStateToFrame(const AvatarData* _avatar);
@@ -363,14 +378,12 @@ void MyAvatar::simulate(float deltaTime) {
         recorder->recordFrame(FRAME_TYPE, toFrame(*this));
     }
 
-    // consider updating our billboard
-    maybeUpdateBillboard();
-
     locationChanged();
     // if a entity-child of this avatar has moved outside of its queryAACube, update the cube and tell the entity server.
     EntityTreeRenderer* entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
+        auto now = usecTimestampNow();
         EntityEditPacketSender* packetSender = qApp->getEntityEditPacketSender();
         MovingEntitiesOperator moveOperator(entityTree);
         forEachDescendant([&](SpatiallyNestablePointer object) {
@@ -385,6 +398,7 @@ void MyAvatar::simulate(float deltaTime) {
                 if (packetSender) {
                     EntityItemProperties properties = entity->getProperties();
                     properties.setQueryAACubeDirty();
+                    properties.setLastEdited(now);
                     packetSender->queueEditEntityMessage(PacketType::EntityEdit, entity->getID(), properties);
                     entity->setLastBroadcast(usecTimestampNow());
                 }
@@ -639,6 +653,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
+    settings.setValue("snapTurn", _useSnapTurn);
 
     settings.endGroup();
 }
@@ -732,6 +747,7 @@ void MyAvatar::loadData() {
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
+    setSnapTurn(settings.value("snapTurn").toBool());
 
     settings.endGroup();
 
@@ -982,14 +998,12 @@ void MyAvatar::setFaceModelURL(const QUrl& faceModelURL) {
     Avatar::setFaceModelURL(faceModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
     getHead()->getFaceModel().setVisibleInScene(_prevShouldDrawHead, scene);
-    _billboardValid = false;
 }
 
 void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
     Avatar::setSkeletonModelURL(skeletonModelURL);
     render::ScenePointer scene = qApp->getMain3DScene();
-    _billboardValid = false;
     _skeletonModel.setVisibleInScene(true, scene);
     _headBoneSet.clear();
 }
@@ -1042,7 +1056,6 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         return;
     }
     Avatar::setAttachmentData(attachmentData);
-    _billboardValid = false;
 }
 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
@@ -1069,6 +1082,15 @@ void MyAvatar::rebuildCollisionShape() {
 
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
+
+    bool success;
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    if (!success) {
+        qDebug() << "Warning: getParentVelocity failed" << getID();
+        parentVelocity = glm::vec3();
+    }
+    _characterController.setParentVelocity(parentVelocity);
+
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
@@ -1314,23 +1336,24 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     _prevShouldDrawHead = shouldDrawHead;
 }
 
-const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
+const float RENDER_HEAD_CUTOFF_DISTANCE = 0.6f;
 
 bool MyAvatar::cameraInsideHead() const {
-    const Head* head = getHead();
     const glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
-    return glm::length(cameraPosition - head->getEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
+    return glm::length(cameraPosition - getDefaultEyePosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
-    return ((renderArgs->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) ||
-            (qApp->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) ||
-            !cameraInsideHead());
+    bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
+    bool firstPerson = qApp->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON;
+    bool insideHead = cameraInsideHead();
+    return !defaultMode || !firstPerson || !insideHead;
 }
 
 void MyAvatar::updateOrientation(float deltaTime) {
+
     //  Smoothly rotate body with arrow keys
-    float targetSpeed = _driveKeys[YAW] * YAW_SPEED;
+    float targetSpeed = _driveKeys[YAW] * _yawSpeed;
     if (targetSpeed != 0.0f) {
         const float ROTATION_RAMP_TIMESCALE = 0.1f;
         float blend = deltaTime / ROTATION_RAMP_TIMESCALE;
@@ -1363,10 +1386,41 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += _driveKeys[STEP_YAW];
     }
 
+    // use head/HMD orientation to turn while flying
+    if (getCharacterController()->getState() == CharacterController::State::Hover) {
+
+        // This is the direction the user desires to fly in.
+        glm::vec3 desiredFacing = getHead()->getCameraOrientation() * Vectors::UNIT_Z;
+        desiredFacing.y = 0.0f;
+
+        // This is our reference frame, it is captured when the user begins to move.
+        glm::vec3 referenceFacing = transformVectorFast(_sensorToWorldMatrix, _hoverReferenceCameraFacing);
+        referenceFacing.y = 0.0f;
+        referenceFacing = glm::normalize(referenceFacing);
+        glm::vec3 referenceRight(referenceFacing.z, 0.0f, -referenceFacing.x);
+        const float HOVER_FLY_ROTATION_PERIOD = 0.5f;
+        float tau = glm::clamp(deltaTime / HOVER_FLY_ROTATION_PERIOD, 0.0f, 1.0f);
+
+        // new facing is a linear interpolation between the desired and reference vectors.
+        glm::vec3 newFacing = glm::normalize((1.0f - tau) * referenceFacing + tau * desiredFacing);
+
+        // calcualte the signed delta yaw angle to apply so that we match our newFacing.
+        float sign = copysignf(1.0f, glm::dot(desiredFacing, referenceRight));
+        float deltaAngle = sign * acosf(glm::clamp(glm::dot(referenceFacing, newFacing), -1.0f, 1.0f));
+
+        // speedFactor is 0 when we are at rest adn 1.0 when we are at max flying speed.
+        const float MAX_FLYING_SPEED = 30.0f;
+        float speedFactor = glm::min(glm::length(getVelocity()) / MAX_FLYING_SPEED, 1.0f);
+
+        // apply our delta, but scale it by the speed factor, so we turn faster when we are flying faster.
+        totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
+    }
+
+
     // update body orientation by movement inputs
     setOrientation(getOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, totalBodyYaw, 0.0f))));
 
-    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * PITCH_SPEED * deltaTime);
+    getHead()->setBasePitch(getHead()->getBasePitch() + _driveKeys[PITCH] * _pitchSpeed * deltaTime);
 
     if (qApp->getAvatarUpdater()->isHMDMode()) {
         glm::quat orientation = glm::quat_cast(getSensorToWorldMatrix()) * getHMDSensorOrientation();
@@ -1513,7 +1567,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     // rotate velocity into camera frame
     glm::quat rotation = getHead()->getCameraOrientation();
     glm::vec3 localVelocity = glm::inverse(rotation) * _targetVelocity;
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering());
+    bool isHovering = _characterController.getState() == CharacterController::State::Hover;
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, isHovering);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     // rotate back into world-frame
@@ -1538,6 +1593,16 @@ void MyAvatar::updatePosition(float deltaTime) {
     // update _moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = speed > MOVING_SPEED_THRESHOLD;
+
+
+    // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
+    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) > 0.1f || fabs(_driveKeys[TRANSLATE_X]) > 0.1f)) {
+        _hoverReferenceCameraFacingIsCaptured = true;
+        // transform the camera facing vector into sensor space.
+        _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix), getHead()->getCameraOrientation() * Vectors::UNIT_Z);
+    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(_driveKeys[TRANSLATE_Z]) <= 0.1f && fabs(_driveKeys[TRANSLATE_X]) <= 0.1f)) {
+        _hoverReferenceCameraFacingIsCaptured = false;
+    }
 }
 
 void MyAvatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
@@ -1582,37 +1647,6 @@ bool findAvatarAvatarPenetration(const glm::vec3 positionA, float radiusA, float
     return false;
 }
 
-void MyAvatar::maybeUpdateBillboard() {
-    qApp->getAvatarUpdater()->setRequestBillboardUpdate(false);
-    if (_billboardValid || !(_skeletonModel.isLoadedWithTextures() && getHead()->getFaceModel().isLoadedWithTextures())) {
-        return;
-    }
-    for (auto& model : _attachmentModels) {
-        if (!model->isLoadedWithTextures()) {
-            return;
-        }
-    }
-    qApp->getAvatarUpdater()->setRequestBillboardUpdate(true);
-}
-void MyAvatar::doUpdateBillboard() {
-    RenderArgs renderArgs(qApp->getGPUContext());
-    QImage image = qApp->renderAvatarBillboard(&renderArgs);
-    _billboard.clear();
-    QBuffer buffer(&_billboard);
-    buffer.open(QIODevice::WriteOnly);
-    image.save(&buffer, "PNG");
-#ifdef DEBUG
-    image.save("billboard.png", "PNG");
-#endif
-    _billboardValid = true;
-
-    sendBillboardPacket();
-}
-
-bool MyAvatar::isHovering() const {
-    return _characterController.isHovering();
-}
-
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
@@ -1629,7 +1663,7 @@ void MyAvatar::decreaseSize() {
 
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
-    qCDebug(interfaceapp, "Reseted scale to %f", (double)_targetScale);
+    qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
@@ -1881,5 +1915,33 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
     } else {
         return currentBodyMatrix;
     }
+}
+
+float MyAvatar::getAccelerationEnergy() {
+    glm::vec3 velocity = getVelocity();
+    int changeInVelocity = abs(velocity.length() - priorVelocity.length());
+    float changeInEnergy = priorVelocity.length() * changeInVelocity * AVATAR_MOVEMENT_ENERGY_CONSTANT;
+    priorVelocity = velocity;
+    
+    return changeInEnergy;
+}
+
+float MyAvatar::getEnergy() {
+    return currentEnergy;
+}
+
+void MyAvatar::setEnergy(float value) {
+    currentEnergy = value;
+}
+
+float MyAvatar::getAudioEnergy() {
+    return getAudioLoudness() * AUDIO_ENERGY_CONSTANT;
+}
+
+bool MyAvatar::didTeleport() {
+    glm::vec3 pos = getPosition();
+    glm::vec3 changeInPosition = pos - lastPosition;
+    lastPosition = pos;
+    return (changeInPosition.length() > MAX_AVATAR_MOVEMENT_PER_FRAME);
 }
 

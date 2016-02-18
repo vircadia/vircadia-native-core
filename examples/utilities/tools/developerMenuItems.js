@@ -52,7 +52,7 @@ function setupMenus() {
     }
     if (!Menu.menuExists(ENTITIES_MENU)) {
         Menu.addMenu(ENTITIES_MENU);
-        
+
         // NOTE: these menu items aren't currently working. I've temporarily removed them. Will add them back once we
         // rewire these to work
         /*
@@ -66,20 +66,20 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Disable Light Entities", isCheckable: true, isChecked: false });
         */
     }
-    
+
     if (!Menu.menuExists(RENDER_MENU)) {
         Menu.addMenu(RENDER_MENU);
         createdRenderMenu = true;
     }
-    
+
     if (!Menu.menuItemExists(RENDER_MENU, ENTITIES_ITEM)) {
         Menu.addMenuItem({ menuName: RENDER_MENU, menuItemName: ENTITIES_ITEM, isCheckable: true, isChecked: Scene.shouldRenderEntities })
     }
-    
+
     if (!Menu.menuItemExists(RENDER_MENU, AVATARS_ITEM)) {
         Menu.addMenuItem({ menuName: RENDER_MENU, menuItemName: AVATARS_ITEM, isCheckable: true, isChecked: Scene.shouldRenderAvatars })
     }
-    
+
     if (!Menu.menuExists(AUDIO_MENU)) {
         Menu.addMenu(AUDIO_MENU);
     }
@@ -114,14 +114,6 @@ Menu.menuItemEvent.connect(function (menuItem) {
         Scene.shouldRenderEntities = Menu.isOptionChecked(ENTITIES_ITEM);
     } else if (menuItem == AVATARS_ITEM) {
         Scene.shouldRenderAvatars = Menu.isOptionChecked(AVATARS_ITEM);
-    } else if (menuItem == AUDIO_SOURCE_INJECT && !createdGeneratedAudioMenu) {
-        Audio.injectGeneratedNoise(Menu.isOptionChecked(AUDIO_SOURCE_INJECT));
-    } else if (menuItem == AUDIO_SOURCE_PINK_NOISE && !createdGeneratedAudioMenu) {
-        Audio.selectPinkNoise();
-        Menu.setIsOptionChecked(AUDIO_SOURCE_SINE_440, false);
-    } else if (menuItem == AUDIO_SOURCE_SINE_440 && !createdGeneratedAudioMenu) {
-        Audio.selectSine440();
-        Menu.setIsOptionChecked(AUDIO_SOURCE_PINK_NOISE, false);
     } else if (menuItem == AUDIO_STEREO_INPUT) {
         Audio.setStereoInput(Menu.isOptionChecked(AUDIO_STEREO_INPUT))
     } else if (AUDIO_LISTENER_OPTIONS.indexOf(menuItem) !== -1) {
@@ -145,14 +137,14 @@ Scene.shouldRenderEntitiesChanged.connect(function(shouldRenderEntities) {
 
 function scriptEnding() {
     Menu.removeMenu(ENTITIES_MENU);
-    
+
     if (createdRenderMenu) {
         Menu.removeMenu(RENDER_MENU);
     } else {
         Menu.removeMenuItem(RENDER_MENU, ENTITIES_ITEM);
         Menu.removeMenuItem(RENDER_MENU, AVATARS_ITEM);
     }
-    
+
     if (createdGeneratedAudioMenu) {
         Audio.injectGeneratedNoise(false);
         Menu.removeMenuItem(AUDIO_MENU, AUDIO_SOURCE_INJECT);

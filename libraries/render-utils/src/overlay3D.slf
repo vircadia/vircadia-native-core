@@ -1,7 +1,7 @@
 <@include gpu/Config.slh@>
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
-//  model.frag
+//  overlay3D.slf
 //  fragment shader
 //
 //  Created by Sam Gateau on 6/16/15.
@@ -11,20 +11,64 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-uniform sampler2D diffuseMap;
+<@include DeferredLighting.slh@>
+<@include model/Light.slh@>
 
-in vec2 varTexcoord;
+<@include gpu/Transform.slh@>
+<$declareStandardCameraTransform()$>
 
-in vec3 varEyeNormal;
+vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss, float opacity) {
 
-in vec4 varColor;
-out vec4 outFragColor;
+    // Need the light now
+    Light light = getLight();
+    TransformCamera cam = getTransformCamera();
+    vec3 fragNormal;
+    <$transformEyeToWorldDir(cam, normal, fragNormal)$>
+    vec3 fragEyeVectorView = normalize(-position);
+    vec3 fragEyeDir;
+    <$transformEyeToWorldDir(cam, fragEyeVectorView, fragEyeDir)$>
 
+    vec3 color = opacity * diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
+
+    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
+
+    color += vec3(diffuse * shading.w * opacity + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
+
+    return vec4(color, opacity);
+}
+
+uniform sampler2D originalTexture;
+
+in vec2 _texCoord0;
+in vec4 _position;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(diffuseMap, varTexcoord.st);
-    if (diffuse.a < 0.5) {
+    vec4 diffuse = texture(originalTexture, _texCoord0);
+
+    vec3 fragPosition = _position.xyz;
+    vec3 fragNormal = normalize(_normal);
+    vec3 fragDiffuse = diffuse.rgb * _color;
+    vec3 fragSpecular = vec3(0.1);
+    float fragGloss = 10.0 / 128.0;
+    float fragOpacity = diffuse.a;
+
+    if (fragOpacity <= 0.1) {
         discard;
     }
-    outFragColor = vec4(varColor * diffuse);
+
+    vec4 color =  evalGlobalColor(1.0,
+        fragPosition,
+        fragNormal,
+        fragDiffuse,
+        fragSpecular,
+        fragGloss,
+        fragOpacity);
+
+    // Apply standard tone mapping
+    _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);
 }

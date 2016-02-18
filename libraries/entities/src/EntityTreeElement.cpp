@@ -313,7 +313,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                     // before we consider including it.
                     if (includeThisEntity) {
-                        AABox entityBounds = entity->getAABox(success);
+                        success = true;
+                        // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
+                        // avoid sending details about a child but not the parent.  the parent's queryAACube should have
+                        // been adjusted to encompass the queryAACube of the child.
+                        AABox entityBounds = entity->hasChildren() ? AABox(entityCube) : entity->getAABox(success);
                         if (!success) {
                             // if this entity is a child of an avatar, the entity-server wont be able to determine its
                             // AABox.  If this happens, fall back to the queryAACube.
@@ -459,6 +463,7 @@ bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
     if (!success) {
+        qDebug() << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
         return false;
     }
     return bestFitBounds(queryCube);
@@ -920,6 +925,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     QString entityScriptAfter = entityItem->getScript();
                     quint64 entityScriptTimestampAfter = entityItem->getScriptTimestamp();
                     bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+
+                    // If the script value has changed on us, or it's timestamp has changed to force
+                    // a reload then we want to send out a script changing signal...
                     if (entityScriptBefore != entityScriptAfter || reload) {
                         _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
                     }

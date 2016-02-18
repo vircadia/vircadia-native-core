@@ -268,6 +268,12 @@ void ImageReader::listSupportedImageFormats() {
 }
 
 void ImageReader::run() {
+    auto originalPriority = QThread::currentThread()->priority();
+    if (originalPriority == QThread::InheritPriority) {
+        originalPriority = QThread::NormalPriority;
+    }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
+
     auto texture = _texture.toStrongRef();
     if (!texture) {
         qCWarning(modelnetworking) << "Could not get strong ref";
@@ -306,6 +312,7 @@ void ImageReader::run() {
         Q_ARG(const QImage&, image),
         Q_ARG(void*, theTexture),
         Q_ARG(int, originalWidth), Q_ARG(int, originalHeight));
+    QThread::currentThread()->setPriority(originalPriority);
 }
 
 void NetworkTexture::setImage(const QImage& image, void* voidTexture, int originalWidth,

@@ -13,12 +13,11 @@
 //
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
-
+var OVERLAY_RATIO = 1920 / 1080;
 var OVERLAY_DATA = {
-    text: "Paused:\npress any key to continue",
-    font: {size: 75},
-    color: {red: 200, green: 255, blue: 255},
-    alpha: 0.9
+    imageURL: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
+    color: {red: 255, green: 255, blue: 255},
+    alpha: 1
 };
 
 // ANIMATION
@@ -64,10 +63,24 @@ function stopAwayAnimation() {
 }
 
 // OVERLAY
-var overlay = Overlays.addOverlay("text", OVERLAY_DATA);
+var overlay = Overlays.addOverlay("image", OVERLAY_DATA);
 function showOverlay() {
-    var screen = Controller.getViewportDimensions();
-    Overlays.editOverlay(overlay, {visible: true, x: screen.x / 4, y: screen.y / 4});
+    var properties = {visible: true},
+        // Update for current screen size, keeping overlay proportions constant.
+        screen = Controller.getViewportDimensions(),
+        screenRatio = screen.x / screen.y;
+    if (screenRatio < OVERLAY_RATIO) {
+        properties.width = screen.x;
+        properties.height = screen.x / OVERLAY_RATIO;
+        properties.x = 0;
+        properties.y = (screen.y - properties.height) / 2;
+    } else {
+        properties.height = screen.y;
+        properties.width = screen.y * OVERLAY_RATIO;
+        properties.y = 0;
+        properties.x = (screen.x - properties.width) / 2;
+    }
+    Overlays.editOverlay(overlay, properties);
 }
 function hideOverlay() {
     Overlays.editOverlay(overlay, {visible: false});
@@ -77,6 +90,9 @@ hideOverlay();
 
 // MAIN CONTROL
 var wasMuted, isAway;
+var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
+var eventMapping = Controller.newMapping(eventMappingName);
+
 function goAway() {
     if (isAway) {
         return;
@@ -104,8 +120,8 @@ function goActive() {
     stopAwayAnimation();
     hideOverlay();
 }
-Script.scriptEnding.connect(goActive);
-Controller.keyPressEvent.connect(function (event) {
+
+function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
         return;
     }
@@ -114,13 +130,31 @@ Controller.keyPressEvent.connect(function (event) {
     } else {
         goActive();
     }
-});
+}
 var wasHmdActive = false;
-Script.update.connect(function () {
+function maybeGoAway() {
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
             goAway();
         }
     }
+}
+
+Script.update.connect(maybeGoAway);
+Controller.mousePressEvent.connect(goActive);
+Controller.keyPressEvent.connect(maybeGoActive);
+// Note peek() so as to not interfere with other mappings.
+eventMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(goActive); 
+eventMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(goActive);
+eventMapping.from(Controller.Standard.LeftSecondaryThumb).peek().to(goActive);
+eventMapping.from(Controller.Standard.RightSecondaryThumb).peek().to(goActive);
+Controller.enableMapping(eventMappingName);
+
+Script.scriptEnding.connect(function () {
+    Script.update.disconnect(maybeGoAway);
+    goActive();
+    Controller.disableMapping(eventMappingName);
+    Controller.mousePressEvent.disconnect(goActive);
+    Controller.keyPressEvent.disconnect(maybeGoActive);
 });

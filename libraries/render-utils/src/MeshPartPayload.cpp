@@ -225,8 +225,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
 
-    ShapeKey key = getShapeKey();
-
     auto locations = args->_pipeline->locations;
     assert(locations);
 
@@ -239,13 +237,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
 
-
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }
@@ -475,8 +466,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
 
-    ShapeKey key = getShapeKey();
-    if (!key.isValid()) {
+    if (!getShapeKey().isValid()) {
         return;
     }
 
@@ -517,13 +507,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
         
-        
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-            
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }

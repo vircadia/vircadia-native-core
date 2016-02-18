@@ -50,6 +50,11 @@ GeometryReader::GeometryReader(const QUrl& url, const QByteArray& data, const QV
 }
 
 void GeometryReader::run() {
+    auto originalPriority = QThread::currentThread()->priority();
+    if (originalPriority == QThread::InheritPriority) {
+        originalPriority = QThread::NormalPriority;
+    }
+    QThread::currentThread()->setPriority(QThread::LowPriority);
     try {
         if (_data.isEmpty()) {
             throw QString("Reply is NULL ?!");
@@ -82,6 +87,8 @@ void GeometryReader::run() {
         qCDebug(modelnetworking) << "Error reading " << _url << ": " << error;
         emit onError(NetworkGeometry::ModelParseError, error);
     }
+
+    QThread::currentThread()->setPriority(originalPriority);
 }
 
 NetworkGeometry::NetworkGeometry(const QUrl& url, bool delayLoad, const QVariantHash& mapping, const QUrl& textureBaseUrl) :
@@ -142,23 +149,50 @@ bool NetworkGeometry::isLoadedWithTextures() const {
 }
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
-
-
     if (_meshes.size() > 0) {
         auto textureCache = DependencyManager::get<TextureCache>();
         for (auto&& material : _materials) {
+            auto networkMaterial = material->_material;
+            auto oldTextureMaps = networkMaterial->getTextureMaps();
             if (material->diffuseTextureName == name) {
                 material->diffuseTexture = textureCache->getTexture(url, DEFAULT_TEXTURE);
+
+                auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
+                diffuseMap->setTextureSource(material->diffuseTexture->_textureSource);
+                diffuseMap->setTextureTransform(
+                    oldTextureMaps[model::MaterialKey::DIFFUSE_MAP]->getTextureTransform());
+
+                networkMaterial->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
             } else if (material->normalTextureName == name) {
                 material->normalTexture = textureCache->getTexture(url);
+
+                auto normalMap = model::TextureMapPointer(new model::TextureMap());
+                normalMap->setTextureSource(material->normalTexture->_textureSource);
+
+                networkMaterial->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
             } else if (material->specularTextureName == name) {
                 material->specularTexture = textureCache->getTexture(url);
+
+                auto glossMap = model::TextureMapPointer(new model::TextureMap());
+                glossMap->setTextureSource(material->specularTexture->_textureSource);
+
+                networkMaterial->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
             } else if (material->emissiveTextureName == name) {
                 material->emissiveTexture = textureCache->getTexture(url);
+
+                auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
+                lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
+                lightmapMap->setTextureTransform(
+                    oldTextureMaps[model::MaterialKey::LIGHTMAP_MAP]->getTextureTransform());
+                glm::vec2 oldOffsetScale =
+                    oldTextureMaps[model::MaterialKey::LIGHTMAP_MAP]->getLightmapOffsetScale();
+                lightmapMap->setLightmapOffsetScale(oldOffsetScale.x, oldOffsetScale.y);
+
+                networkMaterial->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
             }
         }
     } else {
-        qCWarning(modelnetworking) << "Ignoring setTextureWirthNameToURL() geometry not ready." << name << url;
+        qCWarning(modelnetworking) << "Ignoring setTextureWithNameToURL() geometry not ready." << name << url;
     }
     _isLoadedWithTextures = false;
 }
@@ -366,7 +400,6 @@ void NetworkGeometry::modelParseError(int error, QString str) {
     delete _resource;
     _resource = nullptr;
 }
-
 
 const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
     if ((shapeID >= 0) && (shapeID < (int)_shapes.size())) {

@@ -104,7 +104,7 @@ public:
     quint64 getLastBroadcast() const { return _lastBroadcast; }
     void setLastBroadcast(quint64 lastBroadcast) { _lastBroadcast = lastBroadcast; }
 
-    void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
+    void markAsChangedOnServer() { _changedOnServer = usecTimestampNow();  }
     quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
@@ -193,9 +193,8 @@ public:
 
     float getDensity() const { return _density; }
 
-    const glm::vec3& getVelocity() const { return _velocity; } /// get velocity in meters
-    void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in meters
-    bool hasVelocity() const { return _velocity != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasVelocity() const { return getVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasLocalVelocity() const { return getLocalVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     const glm::vec3& getGravity() const { return _gravity; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in meters
@@ -252,12 +251,12 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value)
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
+    void setRegistrationPoint(const glm::vec3& value) {
+        _registrationPoint = glm::clamp(value, 0.0f, 1.0f); dimensionsChanged(); // Registration Point affects the bounding box
+    }
 
-    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
-    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
-    bool hasAngularVelocity() const { return _angularVelocity != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
+    bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
 
     float getAngularDamping() const { return _angularDamping; }
     void setAngularDamping(float value) { _angularDamping = value; }
@@ -321,16 +320,20 @@ public:
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
     void updatePosition(const glm::vec3& value);
+    void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);
     void updateRotation(const glm::quat& rotation);
+    void updateRotationFromNetwork(const glm::quat& rotation);
     void updateDensity(float value);
     void updateMass(float value);
     void updateVelocity(const glm::vec3& value);
+    void updateVelocityFromNetwork(const glm::vec3& value);
     void updateDamping(float value);
     void updateRestitution(float value);
     void updateFriction(float value);
     void updateGravity(const glm::vec3& value);
     void updateAngularVelocity(const glm::vec3& value);
+    void updateAngularVelocityFromNetwork(const glm::vec3& value);
     void updateAngularDamping(float value);
     void updateCollisionless(bool value);
     void updateCollisionMask(uint8_t value);
@@ -343,6 +346,7 @@ public:
     void clearDirtyFlags(uint32_t mask = 0xffffffff) { _dirtyFlags &= ~mask; }
 
     bool isMoving() const;
+    bool isMovingRelativeToParent() const;
 
     bool isSimulated() const { return _simulated; }
 
@@ -351,14 +355,14 @@ public:
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
     EntityTreeElementPointer getElement() const { return _element; }
     EntityTreePointer getTree() const;
-    bool wantTerseEditLogging();
+    bool wantTerseEditLogging() const;
 
     glm::mat4 getEntityToWorldMatrix() const;
     glm::mat4 getWorldToEntityMatrix() const;
     glm::vec3 worldToEntity(const glm::vec3& point) const;
     glm::vec3 entityToWorld(const glm::vec3& point) const;
 
-    quint64 getLastEditedFromRemote() { return _lastEditedFromRemote; }
+    quint64 getLastEditedFromRemote() const { return _lastEditedFromRemote; }
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
@@ -401,6 +405,18 @@ public:
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
+    /// Should the external entity script mechanism call a preload for this entity.
+    /// Due to the asyncronous nature of signals for add entity and script changing
+    /// it's possible for two similar signals to cross paths. This method allows the
+    /// entity to definitively state if the preload signal should be sent.
+    ///
+    /// We only want to preload if:
+    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    value have changed since our last preload
+    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+                                              ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
+    void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -409,6 +425,8 @@ protected:
     void setActionDataInternal(QByteArray actionData);
 
     virtual void locationChanged() override;
+    virtual void dimensionsChanged() override;
+
     EntityTypes::EntityType _type;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes
@@ -435,18 +453,23 @@ protected:
     // rather than in all of the derived classes.  If we ever collapse these classes to one we could do it a
     // different way.
     float _volumeMultiplier = 1.0f;
-    glm::vec3 _velocity;
     glm::vec3 _gravity;
     glm::vec3 _acceleration;
     float _damping;
     float _restitution;
     float _friction;
     float _lifetime;
-    QString _script;
-    quint64 _scriptTimestamp;
+
+    QString _script; /// the value of the script property
+    QString _loadedScript; /// the value of _script when the last preload signal was sent
+    quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
+    /// the value of _scriptTimestamp when the last preload signal was sent
+    // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
+    quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
+
     QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
-    glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
     bool _collisionless;

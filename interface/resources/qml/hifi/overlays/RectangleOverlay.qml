@@ -17,7 +17,6 @@ Overlay {
         for (var i = 0; i < keys.length; ++i) {
             var key = keys[i];
             var value = properties[key];
-            console.log("OVERLAY rectangle property " + key + " set to value " + value);
             switch (key) {
                 case "height": root.height = value; break;
                 case "width": root.width = value; break;
@@ -30,7 +29,7 @@ Overlay {
                 case "borderColor": rectangle.border.color = Qt.rgba(value.red / 255, value.green / 255, value.blue / 255, rectangle.border.color.a); break;
                 case "borderWidth": rectangle.border.width = value; break;
                 case "radius": rectangle.radius = value; break;
-                default: console.log("OVERLAY Unhandled rectangle property " + key);
+                default: console.warn("OVERLAY Unhandled rectangle property " + key);
             }
         }
     }

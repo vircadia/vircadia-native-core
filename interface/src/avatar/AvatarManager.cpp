@@ -128,6 +128,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
+    render::PendingChanges pendingChanges;
 
     // simulate avatars
     auto hashCopy = getHashCopy();
@@ -148,8 +149,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->simulate(deltaTime);
             avatar->endUpdate();
             ++avatarIterator;
+
+            avatar->updateRenderItem(pendingChanges);
         }
     }
+    qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);
@@ -267,17 +271,6 @@ QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     }
     return _localLights;
 }
-
-QVector<QUuid> AvatarManager::getAvatarIdentifiers() {
-    QReadLocker locker(&_hashLock);
-    return _avatarHash.keys().toVector();
-}
-
-AvatarData* AvatarManager::getAvatar(QUuid avatarID) {
-    // Null/Default-constructed QUuids will return MyAvatar
-    return getAvatarBySessionID(avatarID).get();
-}
-
 
 void AvatarManager::getObjectsToRemoveFromPhysics(VectorOfMotionStates& result) {
     result.clear();

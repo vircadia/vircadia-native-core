@@ -12,7 +12,14 @@
 #ifndef hifi_render_Task_h
 #define hifi_render_Task_h
 
-#include <qscriptengine.h> // QObject
+#include <QtCore/qobject.h>
+
+#include <QtCore/qjsondocument.h>
+#include <QtCore/qjsonobject.h>
+#include <QtCore/qjsonvalue.h>
+#include <shared/JSONHelpers.h>
+
+#include "SettingHandle.h"
 
 #include "Context.h"
 
@@ -30,7 +37,7 @@ public:
     template <class T> Varying(const T& data) : _concept(std::make_shared<Model<T>>(data)) {}
 
     template <class T> T& edit() { return std::static_pointer_cast<Model<T>>(_concept)->_data; }
-    template <class T> const T& get() { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
+    template <class T> const T& get() const { return std::static_pointer_cast<const Model<T>>(_concept)->_data; }
 
 protected:
     class Concept {
@@ -54,10 +61,75 @@ class Job;
 class Task;
 class JobNoIO {};
 
+template <class C> class PersistentConfig : public C {
+public:
+    const QString DEFAULT = "Default";
+    const QString NONE = "None";
+
+    PersistentConfig() = delete;
+    PersistentConfig(const QString& path) :
+        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
+    PersistentConfig(const QStringList& path) :
+        _preset(QStringList() << "Render" << "Engine" << path, DEFAULT) { }
+    PersistentConfig(const QString& path, bool enabled) : C(enabled),
+        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+    PersistentConfig(const QStringList& path, bool enabled) : C(enabled),
+        _preset(QStringList() << "Render" << "Engine" << path, enabled ? DEFAULT : NONE) { }
+
+    QStringList getPresetList() {
+        if (_presets.empty()) {
+            setPresetList(QJsonObject());
+        }
+        return _presets.keys();
+    }
+
+    virtual void setPresetList(const QJsonObject& list) override {
+        assert(_presets.empty());
+
+        _default = toJsonValue(*this).toObject().toVariantMap();
+
+        _presets.unite(list.toVariantMap());
+        if (C::alwaysEnabled || C::enabled) {
+            _presets.insert(DEFAULT, _default);
+        }
+        if (!C::alwaysEnabled) {
+            _presets.insert(NONE, QVariantMap{{ "enabled", false }});
+        }
+
+        auto preset = _preset.get();
+        if (preset != _preset.getDefault() && _presets.contains(preset)) {
+            // Load the persisted configuration
+            C::load(_presets[preset].toMap());
+        }
+    }
+
+    QString getPreset() { return _preset.get(); }
+
+    void setPreset(const QString& preset) {
+        _preset.set(preset);
+        if (_presets.contains(preset)) {
+            // Always start back at default to remain deterministic
+            QVariantMap config = _default;
+            QVariantMap presetConfig = _presets[preset].toMap();
+            for (auto it = presetConfig.cbegin(); it != presetConfig.cend(); it++) {
+                config.insert(it.key(), it.value());
+            }
+            C::load(config);
+        }
+    }
+
+protected:
+    QVariantMap _default;
+    QVariantMap _presets;
+    Setting::Handle<QString> _preset;
+};
+
 // A default Config is always on; to create an enableable Config, use the ctor JobConfig(bool enabled)
 class JobConfig : public QObject {
     Q_OBJECT
 public:
+    using Persistent = PersistentConfig<JobConfig>;
+
     JobConfig() = default;
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
@@ -65,28 +137,43 @@ public:
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
+
+    virtual void setPresetList(const QJsonObject& object) {
+        for (auto it = object.begin(); it != object.end(); it++) {
+            JobConfig* child = findChild<JobConfig*>(it.key(), Qt::FindDirectChildrenOnly);
+            if (child) {
+                child->setPresetList(it.value().toObject());
+            }
+        }
+    }
+
+    // This must be named toJSON to integrate with the global scripting JSON object
+    Q_INVOKABLE QString toJSON() { return QJsonDocument(toJsonValue(*this).toObject()).toJson(QJsonDocument::Compact); }
+    Q_INVOKABLE void load(const QVariantMap& map) { qObjectFromJsonValue(QJsonObject::fromVariantMap(map), *this); emit loaded(); }
+
+public slots:
+    void load(const QJsonObject& val) { qObjectFromJsonValue(val, *this); emit loaded(); }
+
+signals:
+    void loaded();
 };
 
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
+    using Persistent = PersistentConfig<TaskConfig>;
+
     TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
     void init(Task* task) { _task = task; }
 
+    // getter for qml integration, prefer the templated getter
+    Q_INVOKABLE QObject* getConfig(const QString& name) { return QObject::findChild<JobConfig*>(name); }
+    // getter for cpp (strictly typed), prefer this getter
     template <class T> typename T::Config* getConfig(std::string job = "") const {
         QString name = job.empty() ? QString() : QString(job.c_str()); // an empty string is not a null string
         return findChild<typename T::Config*>(name);
-    }
-
-    template <class T> void setJobEnabled(bool enable = true, std::string job = "") {
-        assert(getConfig<T>(job)->alwaysEnabled != true);
-        getConfig<T>(job)->enabled = enable;
-        refresh(); // trigger a Job->configure
-    }
-    template <class T> bool isJobEnabled(bool enable = true, std::string job = "") const {
-        return getConfig<T>(job)->isEnabled();
     }
 
 public slots:
@@ -221,8 +308,7 @@ public:
         const Varying getInput() const { return _input; }
         const Varying getOutput() const { return _output; }
 
-        Model(const Varying& input, Data data = Data()) : Concept(std::make_shared<C>()), _data(data), _input(input), _output(Output()) {
-            _config = _data._config; // use the data's config
+        Model(const Varying& input, Data data = Data()) : Concept(data._config), _data(data), _input(input), _output(Output()) {
             std::static_pointer_cast<Config>(_config)->init(&_data);
             applyConfiguration();
         }
@@ -257,7 +343,15 @@ public:
         QConfigPointer config = _jobs.back().getConfiguration();
         config->setParent(_config.get());
         config->setObjectName(name.c_str());
-        QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+
+        // Connect loaded->refresh
+        QObject::connect(config.get(), SIGNAL(loaded()), _config.get(), SLOT(refresh()));
+        static const char* DIRTY_SIGNAL = "dirty()";
+        if (config->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
+            // Connect dirty->refresh if defined
+            QObject::connect(config.get(), SIGNAL(dirty()), _config.get(), SLOT(refresh()));
+        }
+
         return _jobs.back().getOutput();
     }
     template <class T, class... A> const Varying addJob(std::string name, A&&... args) {

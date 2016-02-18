@@ -132,7 +132,6 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
-                batch.setModelTransform(Transform());
 
                 bool success;
                 auto shapeTransform = getTransformToCenter(success);
@@ -142,9 +141,11 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 auto geometryCache = DependencyManager::get<GeometryCache>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
-                    geometryCache->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
                 } else {
-                    geometryCache->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
                 }
                 break;
             }
@@ -232,4 +233,18 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shar
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
+}
+
+
+void RenderableZoneEntityItem::notifyBoundChanged() {
+    if (_myMetaItem == render::Item::INVALID_ITEM_ID) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+    });
+
+    scene->enqueuePendingChanges(pendingChanges);
 }

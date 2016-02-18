@@ -1,5 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
 
 import "../../dialogs"
 
@@ -30,6 +31,7 @@ Preference {
         id: dataTextField
         placeholderText: root.placeholderText
         text: preference.value
+        style:  TextFieldStyle { renderType: Text.QtRendering }
         anchors {
             top: labelText.bottom
             left: parent.left
@@ -47,7 +49,7 @@ Preference {
     Button {
         id: button
         anchors { right: parent.right; verticalCenter: dataTextField.verticalCenter }
-        text: "Browse"
+        text: preference.browseLabel
         onClicked: {
             var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
             browser.selectedFile.connect(function(fileUrl){

@@ -14,8 +14,8 @@ var Vec3, Quat, MyAvatar, Entities, Camera, Script, print;
 //  The _TIMEOUT parameters can be 0 for no activity, and -1 to be active indefinitely.
 //
 
-var NUMBER_TO_CREATE = 120;
-var LIFETIME = 60; // seconds
+var NUMBER_TO_CREATE = 100;
+var LIFETIME = 120; // seconds
 var EDIT_RATE = 60; // hz
 var EDIT_TIMEOUT = -1;
 var MOVE_RATE = 1; // hz
@@ -41,8 +41,6 @@ var RANGE = 3;
 var HOW_FAR_IN_FRONT_OF_ME = RANGE * 3;
 var HOW_FAR_UP = RANGE / 1.5;  // higher (for uneven ground) above range/2 (for distribution)
 
-var x = 0;
-var z = 0;
 var totalCreated = 0;
 var offset = Vec3.sum(Vec3.multiply(HOW_FAR_UP, Vec3.UNIT_Y),
                       Vec3.multiply(HOW_FAR_IN_FRONT_OF_ME, Quat.getFront(Camera.orientation)));
@@ -70,7 +68,8 @@ Script.setInterval(function () {
         moveTimeout: MOVE_TIMEOUT,
         moveRate: MOVE_RATE,
         editTimeout: EDIT_TIMEOUT,
-        editRate: EDIT_RATE
+        editRate: EDIT_RATE,
+        debug: {flow: false, send: false, receive: false}
     });
     for (i = 0; (i < numToCreate) && (totalCreated < NUMBER_TO_CREATE); i++) {
         Entities.addEntity({
@@ -87,7 +86,7 @@ Script.setInterval(function () {
             gravity: GRAVITY,
             collisionsWillMove: true,
             lifetime: LIFETIME,
-            script: "https://s3.amazonaws.com/hifi-public/scripts/entityScripts/tribble.js"
+            script: Script.resolvePath("../../entityScripts/tribble.js")
         });
 
         totalCreated++;

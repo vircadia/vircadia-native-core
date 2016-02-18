@@ -57,7 +57,11 @@ void setupPreferences() {
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance: ", getter, setter);
         preferences->addPreference(preference);
     }
-
+    {
+        auto getter = [=]()->bool {return myAvatar->getSnapTurn(); };
+        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn when in HMD", getter, setter));
+    }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
@@ -191,6 +195,24 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 
+    static const QString AVATAR_CAMERA { "Avatar Camera" };
+    {
+        auto getter = [=]()->float { return myAvatar->getPitchSpeed(); };
+        auto setter = [=](float value) { myAvatar->setPitchSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera Pitch Speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->float { return myAvatar->getYawSpeed(); };
+        auto setter = [=](float value) { myAvatar->setYawSpeed(value); };
+        auto preference = new SpinnerPreference(AVATAR_CAMERA, "Camera Yaw Speed (degrees/second)", getter, setter);
+        preference->setMin(1.0f);
+        preference->setMax(360.0f);
+        preferences->addPreference(preference);
+    }
+
     static const QString AUDIO("Audio");
     {
         auto getter = []()->bool {return DependencyManager::get<AudioClient>()->getReceivedAudioStream().getDynamicJitterBuffers(); };
@@ -318,24 +340,31 @@ void setupPreferences() {
     {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
+
+        auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
         {
-            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<AmbientOcclusionEffect>(); };
-            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<AmbientOcclusionEffect>(enable); };
-            auto preference = new CheckPreference(RENDER, "Ambient Occlusion", getter, setter);
+            auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
+            auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto preference = new ComboBoxPreference(RENDER, "Ambient Occlusion", getter, setter);
+            preference->setItems(ambientOcclusionConfig->getPresetList());
             preferences->addPreference(preference);
         }
 
+        auto antialiasingConfig = renderConfig->getConfig<Antialiasing>();
         {
-            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<Antialiasing>(); };
-            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<Antialiasing>(enable); };
-            auto preference = new CheckPreference(RENDER, "Antialiasing", getter, setter);
+            auto getter = [antialiasingConfig]()->QString { return antialiasingConfig->getPreset(); };
+            auto setter = [antialiasingConfig](QString preset) { antialiasingConfig->setPreset(preset); };
+            auto preference = new ComboBoxPreference(RENDER, "Antialiasing", getter, setter);
+            preference->setItems(antialiasingConfig->getPresetList());
             preferences->addPreference(preference);
         }
 
+        auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
         {
-            auto getter = [renderConfig]()->bool { return renderConfig->isJobEnabled<RenderShadowTask>(); };
-            auto setter = [renderConfig](bool enable) { renderConfig->setJobEnabled<RenderShadowTask>(enable); };
-            auto preference = new CheckPreference(RENDER, "Shadows", getter, setter);
+            auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
+            auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
+            preference->setItems(shadowConfig->getPresetList());
             preferences->addPreference(preference);
         }
     }

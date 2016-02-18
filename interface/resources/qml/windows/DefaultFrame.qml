@@ -6,8 +6,10 @@ import "../controls"
 Frame {
     id: frame
 
+    property bool wideTopMargin: (window && (window.closable || window.title));
+
     Rectangle {
-        anchors { margins: -iconSize; topMargin: -iconSize * ((window && window.closable) ? 2 : 1); }
+        anchors { margins: -iconSize; topMargin: -iconSize * (wideTopMargin ? 2 : 1); }
         anchors.fill: parent;
         color: "#7f7f7f7f";
         radius: 3;
@@ -54,10 +56,10 @@ Frame {
         Text {
             id: titleText
             anchors { left: parent.left; leftMargin: iconSize; right: controlsRow.left;  rightMargin: iconSize; top: parent.top; topMargin: iconSize / 2; }
-            text: window.title
+            text: window ? window.title : ""
             elide: Text.ElideRight
             font.bold: true
-            color: window.focus ? "white" : "gray"
+            color: (window && window.focus) ? "white" : "gray"
             style: Text.Outline;
             styleColor: "black"
         }

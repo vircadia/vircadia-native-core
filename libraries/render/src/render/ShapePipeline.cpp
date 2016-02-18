@@ -17,6 +17,12 @@
 
 using namespace render;
 
+void ShapePipeline::prepare(gpu::Batch& batch) {
+    if (batchSetter) {
+        batchSetter(*this, batch);
+    }
+}
+
 ShapeKey::Filter::Builder::Builder() {
     _mask.set(OWN_PIPELINE);
     _mask.set(INVALID);
@@ -90,13 +96,13 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
     PipelinePointer shapePipeline(pipelineIterator->second);
     auto& batch = args->_batch;
 
+    // Setup the one pipeline (to rule them all)
+    batch->setPipeline(shapePipeline->pipeline);
+
     // Run the pipeline's BatchSetter on the passed in batch
     if (shapePipeline->batchSetter) {
         shapePipeline->batchSetter(*shapePipeline, *batch);
     }
-
-    // Setup the one pipeline (to rule them all)
-    batch->setPipeline(shapePipeline->pipeline);
 
     return shapePipeline;
 }

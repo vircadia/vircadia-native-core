@@ -3,6 +3,7 @@
 const electron = require('electron');
 const app = electron.app;  // Module to control application life.
 const BrowserWindow = electron.BrowserWindow;
+const nativeImage = electron.nativeImage;
 
 const notifier = require('node-notifier');
 const util = require('util');
@@ -133,7 +134,7 @@ function shutdownCallback(idx) {
             homeServer.stop();
         }
 
-        updateTrayMenu(null);
+        updateTrayMenu(homeServer.state);
 
         if (homeServer.state == ProcessGroupStates.STOPPED) {
             // if the home server is already down, take down the server console now
@@ -593,7 +594,8 @@ function updateMenuArray(menuArray, serverState) {
 
 function updateTrayMenu(serverState) {
     if (tray) {
-        var menuArray = buildMenuArray(serverState);
+        var menuArray = buildMenuArray(isShuttingDown ? null : serverState);
+        tray.setImage(trayIcons[serverState]);
         tray.setContextMenu(Menu.buildFromTemplate(menuArray));
         if (isShuttingDown) {
             tray.setToolTip('High Fidelity - Shutting Down');
@@ -730,8 +732,18 @@ function maybeShowSplash() {
     }
 }
 
-const trayFilename = (osType == "Darwin" ? "console-tray-Template.png" : "console-tray.png");
-const trayIcon = path.join(__dirname, '../resources/' + trayFilename);
+const trayIconOS = (osType == "Darwin") ? "osx" : "win";
+var trayIcons = {};
+trayIcons[ProcessGroupStates.STARTED] = "console-tray-" + trayIconOS + ".png";
+trayIcons[ProcessGroupStates.STOPPED] = "console-tray-" + trayIconOS + "-stopped.png";
+trayIcons[ProcessGroupStates.STOPPING] = "console-tray-" + trayIconOS + "-stopping.png";
+for (var key in trayIcons) {
+    var fullPath = path.join(__dirname, '../resources/' + trayIcons[key]);
+    var img = nativeImage.createFromPath(fullPath);
+    img.setTemplateImage(osType == 'Darwin');
+    trayIcons[key] = img;
+}
+
 
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
@@ -745,7 +757,7 @@ app.on('ready', function() {
     }
 
     // Create tray icon
-    tray = new Tray(trayIcon);
+    tray = new Tray(trayIcons[ProcessGroupStates.STOPPED]);
     tray.setToolTip('High Fidelity Server Console');
 
     tray.on('click', function() {

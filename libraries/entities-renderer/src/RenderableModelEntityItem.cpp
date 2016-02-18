@@ -101,8 +101,9 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 }
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
+    // If textures are unset, revert to original textures
     if (textures == "") {
-        return QVariantMap();
+        return _originalTexturesMap;
     }
 
     QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
@@ -128,6 +129,7 @@ void RenderableModelEntityItem::remapTextures() {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
+            _originalTexturesMap = parseTexturesToMap(_originalTextures.join(",\n"));
             _originalTexturesRead = true;
         }
     }
@@ -412,7 +414,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
 
-                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
                 if ((movingOrAnimating ||
                      _needsInitialSimulation ||
                      _model->getTranslation() != getPosition() ||
@@ -440,8 +442,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         bool success;
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
-            batch.setModelTransform(Transform()); // we want to include the scale as well
-            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
         }
     }
 }

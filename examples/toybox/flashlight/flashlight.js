@@ -77,15 +77,11 @@
         whichHand: null,
         hasSpotlight: false,
         spotlight: null,
-        setRightHand: function() {
-            this.hand = 'RIGHT';
-        },
 
-        setLeftHand: function() {
-            this.hand = 'LEFT';
-        },
+        startNearGrab: function(entityID, args) {
+            this.hand = args[0];
 
-        startNearGrab: function(entityID) {
+            print("FLASHLIGHT startNearGrab");
             if (!this.hasSpotlight) {
 
                 var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
@@ -144,6 +140,9 @@
             }
 
         },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
+        },
 
         setWhichHand: function() {
             this.whichHand = this.hand;
@@ -157,8 +156,11 @@
                 this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
+        continueEquip: function(entityID, args) {
+            this.continueNearGrab(entityID, args);
+        },
 
-        releaseGrab: function() {
+        releaseGrab: function(entityID, args) {
             //delete the lights and reset state
             if (this.hasSpotlight) {
                 Entities.deleteEntity(this.spotlight);
@@ -169,6 +171,9 @@
                 this.whichHand = null;
                 this.lightOn = false;
             }
+        },
+        releaseEquip: function(entityID, args) {
+            this.releaseGrab(entityID, args);
         },
         
         changeLightWithTriggerPressure: function(flashLightHand) {
