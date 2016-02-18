@@ -1,0 +1,58 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  grid.slf
+//  fragment shader
+//
+//  Created by Zach Pomerantz on 2/16/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+float paintStripe(float value, float offset, float scale, float balance) {
+    float width = fwidth(value);
+    float normalizedWidth = width * scale;
+
+    float x0 = (value + offset) * scale - normalizedWidth / 2;
+    float x1 = x0 + normalizedWidth;
+
+    float i0 = balance * floor(x0) + max(0.0, fract(x0) - balance);
+    float i1 = balance * floor(x1) + max(0.0, fract(x1) - balance);
+    float strip = (i1 - i0) / normalizedWidth;
+
+    return clamp(strip, 0.0, 1.0);
+}
+
+float paintGrid(vec2 value, vec2 offset, vec2 scale, vec2 balance) {
+    return max(
+        paintStripe(value.x, offset.x, scale.x, balance.x),
+        paintStripe(value.y, offset.y, scale.y, balance.y));
+}
+
+struct Grid {
+    vec2 period;
+    vec2 offset;
+    vec2 balance;
+    vec2 _;
+};
+
+uniform gridBuffer { Grid grid; };
+Grid getGrid() { return grid; };
+
+in vec2 varTexCoord0;
+in vec4 varColor;
+
+out vec4 outFragColor;
+
+void main(void) {
+    Grid grid = getGrid();
+
+    float alpha = paintGrid(varTexCoord0, grid.offset, grid.period, grid.balance);
+    if (alpha == 0.0) {
+        discard;
+    }
+
+    outFragColor = vec4(varColor.xyz, varColor.w * alpha);
+}

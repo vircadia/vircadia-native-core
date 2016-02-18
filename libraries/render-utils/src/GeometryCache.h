@@ -32,7 +32,7 @@
 class SimpleProgramKey;
 
 typedef glm::vec3 Vec3Key;
-
+typedef QPair<glm::vec2, float> Vec2FloatPair;
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
@@ -203,8 +203,10 @@ public:
     void renderWireSphere(gpu::Batch& batch);
     size_t getSphereTriangleCount();
 
-    void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
-    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, int rows, int cols, const glm::vec4& color, float edge = 0.01f, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, float edge = 0.01f, int id = UNKNOWN_ID) {
+        renderGrid(batch, glm::vec2(x, y), glm::vec2(x + width, y + height), rows, cols, color, edge, id);
+    }
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
 
@@ -310,6 +312,18 @@ private:
     gpu::BufferPointer _shapeVertices{ std::make_shared<gpu::Buffer>() };
     gpu::BufferPointer _shapeIndices{ std::make_shared<gpu::Buffer>() };
 
+    class GridSchema {
+    public:
+        glm::vec2 period;
+        glm::vec2 offset;
+        glm::vec2 balance;
+        glm::vec2 _;
+    };
+    using GridBuffer = gpu::BufferView;
+    void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer);
+    gpu::PipelinePointer _gridPipeline;
+    int _gridSlot;
+
     class BatchItemDetails {
     public:
         static int population;
@@ -366,11 +380,9 @@ private:
     QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
-    QHash<IntPair, gpu::BufferPointer> _gridBuffers;
-    QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
-    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
-    QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
-    QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
+    QHash<int, Vec2FloatPair> _lastRegisteredGridBuffer;
+    QHash<Vec2FloatPair, GridBuffer> _gridBuffers;
+    QHash<int, GridBuffer> _registeredGridBuffers;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
     
