@@ -31,6 +31,9 @@ public:
 
     virtual Grid3DOverlay* createClone() const;
 
+    // Grids are UI tools, and may not be intersected (pickable)
+    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) { return false; }
+
 private:
     void updateGrid();
 
