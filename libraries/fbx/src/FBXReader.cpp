@@ -923,12 +923,34 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             std::vector<std::string> unknowns;
                             foreach(const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
-                                    if (property.properties.at(0) == "Maya|base_color") {
+                                    if (property.properties.at(0) == "Maya|use_normal_map") {
+                                        material.useNormalMap = (bool)property.properties.at(index).value<double>();
+
+                                    } else if (property.properties.at(0) == "Maya|base_color") {
                                         material.diffuseColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "Maya|metallic") {
-                                        material.metallic = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Maya|use_color_map") {
+                                        material.useAlbedoMap = (bool) property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|roughness") {
                                         material.roughness = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Maya|use_roughness_map") {
+                                        material.useRoughnessMap = (bool)property.properties.at(index).value<double>();
+
+                                    } else if (property.properties.at(0) == "Maya|metallic") {
+                                        material.metallic = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Maya|use_metallic_map") {
+                                        material.useMetallicMap = (bool)property.properties.at(index).value<double>();
+
+                                    } else if (property.properties.at(0) == "Maya|emissive") {
+                                        material.emissiveColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "Maya|emissive_intensity") {
+                                        material.emissiveIntensity = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Maya|use_emissive_map") {
+                                        material.useEmissiveMap = (bool)property.properties.at(index).value<double>();
+
+                                    } else if (property.properties.at(0) == "Maya|use_ao_map") {
+                                        material.useOcclusionMap = (bool)property.properties.at(index).value<double>();
+
                                     } else {
                                         const QString propname = property.properties.at(0).toString();
                                         unknowns.push_back(propname.toStdString());
@@ -1054,7 +1076,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         if (type.contains("diffuse")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_color_map")) {
-                            qDebug() << "insert color map for diffuse!";
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
                             // THis is how Maya assign a texture that affect diffuse color AND transparency ?
@@ -1063,10 +1084,25 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("normal")) {
                             normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("tex_normal_map")) {
+                            normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("specular") || type.contains("reflection")) {
                             specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (type.contains("metallic")) {
+                        } else if (type.contains("tex_metallic_map")) {
                             metallicTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("shininess")) {
+                            shininessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("tex_roughness_map")) {
+                            roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (_loadLightmaps && type.contains("emissive")) {
+                            emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (type.contains("tex_emissive_map")) {
+                            roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (_loadLightmaps && type.contains("ambient")) {
+                            ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if (_loadLightmaps && type.contains("tex_ao_map")) {
+                            occlusionTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+
                         } else if (type == "lcl rotation") {
                             localRotations.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type == "lcl translation") {
@@ -1079,17 +1115,6 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         } else if (type == "d|z") {
                             zComponents.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
-                        } else if (type.contains("shininess")) {
-                            shininessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                            counter++;
-                        } else if (type.contains("roughness")) {
-                            roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1)); 
-                            counter++;
-                        } else if (_loadLightmaps && type.contains("emissive")) {
-                            emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-
-                        } else if (_loadLightmaps && type.contains("ambient")) {
-                            ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else {
                             QString typenam = type.data();
                             counter++;

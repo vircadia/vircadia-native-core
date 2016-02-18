@@ -151,17 +151,29 @@ public:
 
     float metallic{ 0.0f };
     float roughness{ 1.0f };
+    float emissiveIntensity{ 1.0f };
+
+    bool useNormalMap{ false };
+    bool useAlbedoMap{ false };
+    bool useOpacityMap{ false };
+    bool useRoughnessMap{ false };
+    bool useSpecularMap{ false };
+    bool useMetallicMap{ false };
+    bool useEmissiveMap{ false };
+    bool useOcclusionMap{ false };
 
     QString materialID;
     model::MaterialPointer _material;
 
+    FBXTexture normalTexture;
     FBXTexture albedoTexture;
     FBXTexture opacityTexture;
-    FBXTexture normalTexture;
-    FBXTexture specularTexture;
-    FBXTexture emissiveTexture;
-    FBXTexture metallicTexture;
     FBXTexture roughnessTexture;
+    FBXTexture specularTexture;
+    FBXTexture metallicTexture;
+    FBXTexture emissiveTexture;
+    FBXTexture occlusionTexture;
+
 
     bool isPBSMaterial{ false };
     bool needTangentSpace() const;
@@ -407,11 +419,12 @@ public:
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;
     QHash<QString, QString> specularTextures;
-    QHash<QString, QString> emissiveTextures;
-    QHash<QString, QString> ambientTextures;
     QHash<QString, QString> metallicTextures;
     QHash<QString, QString> roughnessTextures;
     QHash<QString, QString> shininessTextures;
+    QHash<QString, QString> emissiveTextures;
+    QHash<QString, QString> ambientTextures;
+    QHash<QString, QString> occlusionTextures;
 
     QHash<QString, FBXMaterial> _fbxMaterials;
 
