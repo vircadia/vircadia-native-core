@@ -41,6 +41,7 @@ var whiteboard = Entities.addEntity({
 
 var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.9, Quat.getFront(orientation)));
 var MARKER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/marker-blue.fbx";
+var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
 var marker = Entities.addEntity({
     type: "Model",
     modelURL: MARKER_MODEL_URL,
@@ -51,7 +52,6 @@ var marker = Entities.addEntity({
         y: -1,
         z: 0
     },
-    // rotation: whiteboardRotation,
     velocity: {
         x: 0,
         y: -0.1,
@@ -63,6 +63,7 @@ var marker = Entities.addEntity({
         y: 0.0272,
         z: 0.1641
     },
+    script: MARKER_SCRIPT_URL,
     userData: JSON.stringify({
         wearable: {
             joints: {
@@ -91,20 +92,11 @@ var marker = Entities.addEntity({
     })
 });
 
-var markerTip = Entities.addEntity({
-    type: "Box",
-    dimensions: {x: 0.05, y: 0.05, z: 0.05},
-    position: Vec3.sum(markerPosition, {x: 0.0, y: 0.001, z: 0.1}),
-    parentID: marker,
-    color: {red: 200, green: 10, blue: 200},
-    collisionless: true
-})
 
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
     Entities.deleteEntity(marker);
-    Entities.deleteEntity(markerTip);
 }
 
 Script.scriptEnding.connect(cleanup);
