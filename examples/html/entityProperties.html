@@ -312,15 +312,7 @@
                 var elHyperlinkHref = document.getElementById("property-hyperlink-href");
                 var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
                 var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
-
-                var elParticleSections = document.querySelectorAll(".particle-section");
-                allSections.push(elParticleSections);
-                var elParticleIsEmitting = document.getElementById("property-particle-is-emitting");
-                var elParticleMaxParticles = document.getElementById("property-particle-maxparticles");
-                var elParticleLifeSpan = document.getElementById("property-particle-lifespan");
-                var elParticleEmitRate = document.getElementById("property-particle-emit-rate");
-                var elParticleRadius = document.getElementById("property-particle-radius");
-                var elParticleTextures = document.getElementById("property-particle-textures");
+              
     
                 var elTextSections = document.querySelectorAll(".text-section");
                 allSections.push(elTextSections);
@@ -602,18 +594,6 @@
                                     elZoneSkyboxURL.value = properties.skybox.url;
     
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
-                                } else if (properties.type == "ParticleEffect") {
-                                    for (var i = 0; i < elParticleSections.length; i++) {
-                                        elParticleSections[i].style.display = 'block';
-                                    }
-    
-                                    elParticleIsEmitting.checked = properties.isEmitting;
-                                    elParticleMaxParticles.value = properties.maxParticles;
-                                    elParticleLifeSpan.value = properties.lifespan.toFixed(2);
-                                    elParticleEmitRate.value = properties.emitRate.toFixed(1);
-                                    elParticleRadius.value = properties.particleRadius.toFixed(3);
-                                    elParticleTextures.value = properties.textures;
-    
                                 } else if (properties.type == "PolyVox") {
                                     for (var i = 0; i < elPolyVoxSections.length; i++) {
                                         elPolyVoxSections[i].style.display = 'block';
@@ -748,13 +728,6 @@
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
     
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
-    
-                elParticleIsEmitting.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isEmitting'));
-                elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
-                elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
-                elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
-                elParticleRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('particleRadius'));
-                elParticleTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
                 elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
