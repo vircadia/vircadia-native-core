@@ -1266,6 +1266,7 @@ void Application::initializeUi() {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
+            _compositor.handleRealMouseMoveEvent(false);
             auto fakeScreen = _compositor.getReticlePosition();
             auto resultVec = _compositor.screenToOverlay(fakeScreen); // toGlm(pt));
             result = QPointF(resultVec.x, resultVec.y);
@@ -2209,12 +2210,13 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
     // compositor reticle
-    if (!_fakedMouseEvent && isHMDMode()) {
-        _compositor.handleRealMouseMoveEvent(event);
-        return; // bail
-    }
     if (!_fakedMouseEvent) {
-        _compositor.trackRealMouseMoveEvent(event); // FIXME - super janky
+        if (isHMDMode()) {
+            _compositor.handleRealMouseMoveEvent();
+            return; // bail
+        } else {
+            _compositor.trackRealMouseMoveEvent(); // FIXME - super janky
+        }
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();

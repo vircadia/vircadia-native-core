@@ -94,12 +94,12 @@ public:
     Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
 
     Q_INVOKABLE glm::vec2 getReticlePosition();
-    Q_INVOKABLE void setReticlePosition(glm::vec2 position);
+    Q_INVOKABLE void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
-    void handleRealMouseMoveEvent(QMouseEvent* event);
-    void trackRealMouseMoveEvent(QMouseEvent* event);
+    void handleRealMouseMoveEvent(bool sendFakeEvent = true);
+    void trackRealMouseMoveEvent();
     void handleLeaveEvent();
     QPointF getMouseEventPosition(QMouseEvent* event);
 

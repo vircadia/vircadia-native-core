@@ -321,14 +321,14 @@ void ApplicationCompositor::handleLeaveEvent() {
     }
 }
 
-void ApplicationCompositor::trackRealMouseMoveEvent(QMouseEvent* event) {
-    qDebug() << __FUNCTION__ << "() BEFORE _lastKnownRealMouse:" << _lastKnownRealMouse;
+void ApplicationCompositor::trackRealMouseMoveEvent() {
+    qDebug() << __FUNCTION__ << "(event) BEFORE _lastKnownRealMouse:" << _lastKnownRealMouse;
     _lastKnownRealMouse = QCursor::pos();
-    qDebug() << __FUNCTION__ << "() AFTER _lastKnownRealMouse:" << _lastKnownRealMouse;
+    qDebug() << __FUNCTION__ << "(event) AFTER _lastKnownRealMouse:" << _lastKnownRealMouse;
 }
 
-void ApplicationCompositor::handleRealMouseMoveEvent(QMouseEvent* event) {
-    qDebug() << __FUNCTION__ << "() event:" << event;
+void ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
+    qDebug() << __FUNCTION__ << "()";
     if (_ignoreMouseMove) {
         qDebug() << __FUNCTION__ << "() IGNORE MOUSE MOVE!!!";
         _ignoreMouseMove = false;
@@ -347,7 +347,7 @@ void ApplicationCompositor::handleRealMouseMoveEvent(QMouseEvent* event) {
     _lastKnownRealMouse = newPosition;
 
     qDebug() << ".... about to call setReticlePosition() newReticlePosition:" << newReticlePosition;
-    setReticlePosition(newReticlePosition);
+    setReticlePosition(newReticlePosition, sendFakeEvent);
 }
 
 glm::vec2 ApplicationCompositor::getReticlePosition() {
@@ -356,17 +356,18 @@ glm::vec2 ApplicationCompositor::getReticlePosition() {
     }
     return toGlm(QCursor::pos());
 }
-void ApplicationCompositor::setReticlePosition(glm::vec2 position) {
+void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
         _reticlePositionInHMD = glm::clamp(position, vec2(0), vec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y));
 
-        // in HMD mode we need to fake our mouse moves...
-        QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
-        QMouseEvent event(QEvent::MouseMove, globalPos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+        if (sendFakeEvent) {
+            // in HMD mode we need to fake our mouse moves...
+            QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+            QMouseEvent event(QEvent::MouseMove, globalPos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
 
-        qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
-        qApp->fakeMouseEvent(&event);
-
+            qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
+            qApp->fakeMouseEvent(&event);
+        }
     } else {
         // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
         // remove it after we're done
