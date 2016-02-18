@@ -21,12 +21,25 @@
     MarkerTip.prototype = {
 
         continueNearGrab: function() {
-            print("EBL Conintue ")
+
+            // cast a ray from marker and see if it hits anything
+
+            var props = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
+
+            var pickRay = {
+                origin: props.position, 
+                direction: Quat.getFront(props.rotation)
+            }
+
+            var intersection = Entities.findRayIntersection(pickRay, true);
+
+            if (intersection.intersects) {
+                print("INTERSECTION!")
+            }
         },
        
         preload: function(entityID) {
             this.entityID = entityID;
-    
         }
     };
 
