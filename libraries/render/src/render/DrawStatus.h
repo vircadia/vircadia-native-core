@@ -25,7 +25,7 @@ namespace render {
 
         void dirtyHelper();
 
-        bool showDisplay{ true }; // FIXME FOR debug
+        bool showDisplay{ false };
         bool showNetwork{ false };
 
     public slots:

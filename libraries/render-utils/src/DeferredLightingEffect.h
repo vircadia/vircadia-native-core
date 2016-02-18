@@ -46,7 +46,7 @@ public:
     void prepare(RenderArgs* args);
     void render(const render::RenderContextPointer& renderContext);
 
-    void setupBatch(gpu::Batch& batch, int lightBufferUnit);
+    void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
     void setAmbientLightMode(int preset);

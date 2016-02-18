@@ -849,8 +849,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _applicationStateDevice->addInputVariant(QString("InHMD"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getAvatarUpdater()->isHMDMode();
     }));
-    _applicationStateDevice->addInputVariant(QString("ComfortMode"), controller::StateController::ReadLambda([]() -> float {
-        return (float)Menu::getInstance()->isOptionChecked(MenuOption::ComfortMode);
+    _applicationStateDevice->addInputVariant(QString("SnapTurn"), controller::StateController::ReadLambda([]() -> float {
+        return (float)qApp->getMyAvatar()->getSnapTurn();
     }));
     _applicationStateDevice->addInputVariant(QString("Grounded"), controller::StateController::ReadLambda([]() -> float {
         return (float)qApp->getMyAvatar()->getCharacterController()->onGround();
@@ -1532,7 +1532,7 @@ void Application::paintGL() {
             // just relying on the left FOV in each case and hoping that the
             // overall culling margin of error doesn't cause popping in the
             // right eye.  There are FIXMEs in the relevant plugins
-            _myCamera.setProjection(displayPlugin->getProjection(Mono, _myCamera.getProjection()));
+            _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
@@ -1563,7 +1563,7 @@ void Application::paintGL() {
 
                 displayPlugin->setEyeRenderPose(_frameCount, eye, headPose);
 
-                eyeProjections[eye] = displayPlugin->getProjection(eye, baseProjection);
+                eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
@@ -5005,7 +5005,7 @@ void Application::updateInputModes() {
 
 mat4 Application::getEyeProjection(int eye) const {
     if (isHMDMode()) {
-        return getActiveDisplayPlugin()->getProjection((Eye)eye, _viewFrustum.getProjection());
+        return getActiveDisplayPlugin()->getEyeProjection((Eye)eye, _viewFrustum.getProjection());
     }
 
     return _viewFrustum.getProjection();

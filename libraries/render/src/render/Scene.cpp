@@ -62,6 +62,12 @@ void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetPayloads.push_back(payload);
 }
 
+void PendingChanges::resortItem(ItemID id, ItemKey oldKey, ItemKey newKey) {
+    _resortItems.push_back(id);
+    _resortOldKeys.push_back(oldKey);
+    _resortNewKeys.push_back(newKey);
+}
+
 void PendingChanges::removeItem(ItemID id) {
     _removedItems.push_back(id);
 }
@@ -74,6 +80,9 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
 void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
+    _resortItems.insert(_resortItems.end(), changes._resortItems.begin(), changes._resortItems.end());
+    _resortOldKeys.insert(_resortOldKeys.end(), changes._resortOldKeys.begin(), changes._resortOldKeys.end());
+    _resortNewKeys.insert(_resortNewKeys.end(), changes._resortNewKeys.begin(), changes._resortNewKeys.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), changes._updatedItems.begin(), changes._updatedItems.end());
     _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
@@ -124,6 +133,7 @@ void Scene::processPendingChangesQueue() {
         // capture anything coming from the pendingChanges
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
+        resortItems(consolidatedPendingChanges._resortItems, consolidatedPendingChanges._resortOldKeys, consolidatedPendingChanges._resortNewKeys);
         removeItems(consolidatedPendingChanges._removedItems);
 
      // ready to go back to rendering activities
@@ -153,6 +163,15 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
 
         // next loop
         resetPayload++;
+    }
+}
+
+void Scene::resortItems(const ItemIDs& ids, ItemKeys& oldKeys, ItemKeys& newKeys) {
+    auto resortID = ids.begin();
+    auto oldKey = oldKeys.begin();
+    auto newKey = newKeys.begin();
+    for (; resortID != ids.end(); resortID++, oldKey++, newKey++) {
+        _masterBucketMap.reset(*resortID, *oldKey, *newKey);
     }
 }
 

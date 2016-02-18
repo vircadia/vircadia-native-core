@@ -12,9 +12,9 @@
 <@def MODEL_MATERIAL_SLH@>
 
 struct Material { 
-    vec4 _albedoOpacity;
-    vec4 _specular;
-    vec4 _emissive;
+    vec4 _emissiveOpacity;
+    vec4 _albedoRoughness;
+    vec4 _fresnelMetallic;
     vec4 _spare;
 };
 
@@ -26,9 +26,15 @@ Material getMaterial() {
     return _mat;
 }
 
-float getMaterialOpacity(Material m) { return m._albedoOpacity.a; }
-vec3 getMaterialAlbedo(Material m) { return m._albedoOpacity.rgb; }
-vec3 getMaterialSpecular(Material m) { return m._specular.rgb; }
-float getMaterialShininess(Material m) { return (1 - m._specular.a); }
+vec3 getMaterialEmissive(Material m) { return m._emissiveOpacity.rgb; }
+float getMaterialOpacity(Material m) { return m._emissiveOpacity.a; }
+
+vec3 getMaterialAlbedo(Material m) { return m._albedoRoughness.rgb; }
+float getMaterialRoughness(Material m) { return m._albedoRoughness.a; }
+
+vec3 getMaterialFresnel(Material m) { return m._fresnelMetallic.rgb; }
+float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
+
+float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
 <@endif@>

@@ -1073,7 +1073,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     if (connection.properties.at(0) == "OP") {
                         int counter = 0;
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
-                        if (type.contains("diffuse")) {
+                        if ((type.contains("diffuse") && !type.contains("tex_global_diffuse"))) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_color_map")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
@@ -1086,7 +1086,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_normal_map")) {
                             normalTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (type.contains("specular") || type.contains("reflection")) {
+                        } else if ((type.contains("specular") && !type.contains("tex_global_specular")) || type.contains("reflection")) {
                             specularTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_metallic_map")) {
                             metallicTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));

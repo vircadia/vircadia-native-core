@@ -605,7 +605,7 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
             qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getGloss();
+            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getRoughness();
             qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
             */
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;

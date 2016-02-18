@@ -128,6 +128,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
+    render::PendingChanges pendingChanges;
 
     // simulate avatars
     auto hashCopy = getHashCopy();
@@ -148,8 +149,11 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             avatar->simulate(deltaTime);
             avatar->endUpdate();
             ++avatarIterator;
+
+            avatar->updateRenderItem(pendingChanges);
         }
     }
+    qApp->getMain3DScene()->enqueuePendingChanges(pendingChanges);
 
     // simulate avatar fades
     simulateAvatarFades(deltaTime);

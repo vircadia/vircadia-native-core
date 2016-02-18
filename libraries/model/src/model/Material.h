@@ -223,31 +223,37 @@ public:
     void setEmissive(const Color& emissive, bool isSRGB = true);
     Color getEmissive(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._emissive) : _schemaBuffer.get<Schema>()._emissive); }
 
+    void setOpacity(float opacity);
+    float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
+
     void setAlbedo(const Color& albedo, bool isSRGB = true);
     Color getAlbedo(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._albedo) : _schemaBuffer.get<Schema>()._albedo); }
 
+    void setFresnel(const Color& fresnel, bool isSRGB = true);
+    Color getFresnel(bool SRGB = true) const { return (SRGB ? ColorUtils::toGamma22Vec3(_schemaBuffer.get<Schema>()._fresnel) : _schemaBuffer.get<Schema>()._fresnel); }
+
     void setMetallic(float metallic);
-    float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic.x; }
+    float getMetallic() const { return _schemaBuffer.get<Schema>()._metallic; }
 
-  //  void setGloss(float gloss);
-    void setRoughness(float gloss);
-    float getGloss() const { return 1.0f - getRoughness(); }
+    void setRoughness(float roughness);
     float getRoughness() const { return _schemaBuffer.get<Schema>()._roughness; }
-
-    void setOpacity(float opacity);
-    float getOpacity() const { return _schemaBuffer.get<Schema>()._opacity; }
 
     // Schema to access the attribute values of the material
     class Schema {
     public:
-        
-        glm::vec3 _albedo{ 0.5f };
-        float _opacity{1.f};
-        glm::vec3 _metallic{ 0.03f };
-        float _roughness{ 0.9f };
         glm::vec3 _emissive{ 0.0f };
-        float _spare0{0.0f};
-        glm::vec4  _spareVec4{0.0f}; // for alignment beauty, Material size == Mat4x4
+        float _opacity{ 1.f };
+
+        glm::vec3 _albedo{ 0.5f };
+        float _roughness{ 0.9f };
+
+        glm::vec3 _fresnel{ 0.03f };
+        float _metallic{ 0.0f };
+
+
+        glm::vec4 _spare0{ 0.0f };
+
+        // for alignment beauty, Material size == Mat4x4
 
         Schema() {}
     };
@@ -258,7 +264,7 @@ public:
     void setTextureMap(MapChannel channel, const TextureMapPointer& textureMap);
     const TextureMaps& getTextureMaps() const { return _textureMaps; }
 
-    // conversion from previous properties to PBR equivalent
+    // conversion from legacy material properties to PBR equivalent
     static float shininessToRoughness(float shininess) { return 1.0f - shininess / 128.0f; }
 
 protected:

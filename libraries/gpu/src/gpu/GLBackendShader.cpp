@@ -172,6 +172,8 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
             filestream.close();
         }
         */
+
+        qCWarning(gpulogging) << srcstr;
         delete[] temp;
 
         glDeleteShader(glshader);

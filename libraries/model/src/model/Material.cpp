@@ -44,35 +44,37 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
+void Material::setEmissive(const Color&  emissive, bool isSRGB) {
+    _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
+}
+
+void Material::setOpacity(float opacity) {
+    _key.setTransparent((opacity < 1.0f));
+    _schemaBuffer.edit<Schema>()._opacity = opacity;
+}
+
 void Material::setAlbedo(const Color& albedo, bool isSRGB) {
     _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
     _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::toLinearVec3(albedo) : albedo);
 }
 
-void Material::setMetallic(float metallic) {
-    _key.setMetallic(metallic > 0.0f);
-    _schemaBuffer.edit<Schema>()._metallic = glm::vec3(metallic);
-}
-
-void Material::setEmissive(const Color&  emissive, bool isSRGB) {
-    _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
-}
-/*
-void Material::setGloss(float gloss) {
-    setRoughness(1.0 - gloss);
-}*/
 void Material::setRoughness(float roughness) {
     roughness = std::min(1.0f, std::max(roughness, 0.0f));
     _key.setGloss((roughness < 1.0f));
     _schemaBuffer.edit<Schema>()._roughness = roughness;
 }
 
-
-void Material::setOpacity(float opacity) {
-    _key.setTransparent((opacity < 1.0f));
-    _schemaBuffer.edit<Schema>()._opacity = opacity;
+void Material::setFresnel(const Color& fresnel, bool isSRGB) {
+    //_key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::toLinearVec3(fresnel) : fresnel);
 }
+
+void Material::setMetallic(float metallic) {
+    _key.setMetallic(metallic > 0.0f);
+    _schemaBuffer.edit<Schema>()._metallic = metallic;
+}
+
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {

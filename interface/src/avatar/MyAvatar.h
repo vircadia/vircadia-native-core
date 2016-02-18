@@ -151,6 +151,9 @@ public:
     // Removes a handler previously added by addAnimationStateHandler.
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
 
+    Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
+    Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -370,6 +373,7 @@ private:
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
     QUrl _animGraphUrl {""};
+    bool _useSnapTurn { true };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
