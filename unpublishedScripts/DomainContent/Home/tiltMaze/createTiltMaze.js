@@ -1,10 +1,20 @@
+//
+//  createTiltMaze.js
+//
+//
+//  Created by James B. Pollack @imgntn on 2/15/2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
   var ball, ballSpawningAnchor, ballDetector, tiltMaze;
 
-  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE4.fbx";
+  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE6.fbx";
   var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE_COLLISION_HULL8.obj";
   var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
-  var BALL_DETECTOR_SCRIPT = Script.resolvePath('ballDetector.js?' + Math.random())
-
 
   var SCALE = 1;
 
@@ -132,7 +142,6 @@
       position: getBallStartLocation(),
       collisionless: true,
       visible: false,
-      script: BALL_DETECTOR_SCRIPT
     };
 
     ballSpawningAnchor = Entities.addEntity(properties);
@@ -156,8 +165,7 @@
       position: position,
       collisionless: true,
       dynamic: false,
-      visible: true,
-      script: BALL_DETECTOR_SCRIPT
+      visible: false,
     };
 
     ballDetector = Entities.addEntity(properties);
@@ -194,7 +202,8 @@
       userData: JSON.stringify({
         tiltMaze: {
           firstBall: ball,
-          ballSpawner: ballSpawningAnchor
+          ballSpawner: ballSpawningAnchor,
+          detector:ballDetector
         }
       })
     })
