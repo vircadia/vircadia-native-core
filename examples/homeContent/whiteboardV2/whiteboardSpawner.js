@@ -40,7 +40,7 @@ var whiteboard = Entities.addEntity({
 });
 
 var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.9, Quat.getFront(orientation)));
-var MARKER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/marker-blue.fbx";
+var MARKER_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-blue.fbx";
 var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
 var marker = Entities.addEntity({
     type: "Model",
@@ -63,33 +63,7 @@ var marker = Entities.addEntity({
         y: 0.0272,
         z: 0.1641
     },
-    script: MARKER_SCRIPT_URL,
-    userData: JSON.stringify({
-        wearable: {
-            joints: {
-                RightHand: [{
-                    "x": 0.03257002681493759,
-                    "y": 0.15036098659038544,
-                    "z": 0.051217660307884216
-                }, {
-                    "x": -0.5274277329444885,
-                    "y": -0.23446641862392426,
-                    "z": -0.05400913953781128,
-                    "w": 0.8148180246353149
-                }],
-                LeftHand: [{
-                    "x": -0.031699854880571365,
-                    "y": 0.15150733292102814,
-                    "z": 0.041107177734375
-                }, {
-                    "x": 0.649201512336731,
-                    "y": 0.1007731482386589,
-                    "z": 0.3215889632701874,
-                    "w": -0.6818817853927612
-                }]
-            }
-        }
-    })
+    script: MARKER_SCRIPT_URL
 });
 
 

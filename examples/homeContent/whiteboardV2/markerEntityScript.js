@@ -13,7 +13,7 @@
 
 (function() {
     Script.include("../../libraries/utils.js");
-   
+
     MarkerTip = function() {
         _this = this;
     };
@@ -22,22 +22,29 @@
 
         continueNearGrab: function() {
 
+            _this.continueHolding();
+        },
+
+        continueEquip: function() {
+            _this.continueHolding();
+        },
+
+        continueHolding: function() {
             // cast a ray from marker and see if it hits anything
 
             var props = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
 
             var pickRay = {
-                origin: props.position, 
+                origin: props.position,
                 direction: Quat.getFront(props.rotation)
             }
 
             var intersection = Entities.findRayIntersection(pickRay, true);
 
             if (intersection.intersects) {
-                print("INTERSECTION!")
             }
         },
-       
+
         preload: function(entityID) {
             this.entityID = entityID;
         }
