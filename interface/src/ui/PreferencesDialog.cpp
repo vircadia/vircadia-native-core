@@ -57,7 +57,11 @@ void setupPreferences() {
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance: ", getter, setter);
         preferences->addPreference(preference);
     }
-
+    {
+        auto getter = [=]()->bool {return myAvatar->getSnapTurn(); };
+        auto setter = [=](bool value) { myAvatar->setSnapTurn(value); };
+        preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Snap Turn when in HMD", getter, setter));
+    }
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };

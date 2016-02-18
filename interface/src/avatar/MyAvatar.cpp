@@ -653,6 +653,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
+    settings.setValue("snapTurn", _useSnapTurn);
 
     settings.endGroup();
 }
@@ -746,6 +747,7 @@ void MyAvatar::loadData() {
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
+    setSnapTurn(settings.value("snapTurn").toBool());
 
     settings.endGroup();
 
