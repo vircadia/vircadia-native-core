@@ -26,46 +26,6 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 
 <@endfunc@>
 
-<@func declareSphericalHarmonics()@>
-struct SphericalHarmonics {
-    vec4 L00;
-    vec4 L1m1;
-    vec4 L10;
-    vec4 L11;
-    vec4 L2m2;
-    vec4 L2m1;
-    vec4 L20;
-    vec4 L21;
-    vec4 L22;
-};
-
-vec4 evalSphericalLight(SphericalHarmonics sh, vec3 direction ) {
-
-    vec3 dir = direction.xzy; // we don;t understand why yet but we need to use z as vertical axis?
-
-    const float C1 = 0.429043;
-    const float C2 = 0.511664;
-    const float C3 = 0.743125;
-    const float C4 = 0.886227;
-    const float C5 = 0.247708;
-
-    vec4 value = C1 * sh.L22 * (dir.x * dir.x - dir.y * dir.y) + 
-                        C3 * sh.L20 * dir.z * dir.z + 
-                        C4 * sh.L00 - C5 * sh.L20 + 
-                        2.0 * C1 * (   sh.L2m2 * dir.x * dir.y + 
-                                    sh.L21  * dir.x * dir.z + 
-                                    sh.L2m1 * dir.y * dir.z ) + 
-                        2.0 * C2 * (   sh.L11  * dir.x + 
-                                    sh.L1m1 * dir.y + 
-                                    sh.L10  * dir.z ) ; 
-    return value;
-}
-
-// Need one SH
-uniform SphericalHarmonics ambientSphere;
-
-<@endfunc@>
-
 // Everything about light
 <@include model/Light.slh@>
 
@@ -91,8 +51,6 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obsc
 
 <@func declareEvalAmbientSphereGlobalColor()@>
 
-<$declareSphericalHarmonics()$>
-
 vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
     Light light = getLight();
@@ -102,7 +60,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
     vec3 ambientNormal = fragNormal.xyz;
-    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, ambientNormal).xyz * obscurance * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * evalSphericalLight(getLightAmbientSphere(light), ambientNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 
@@ -115,7 +73,6 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 <@func declareEvalSkyboxGlobalColor()@>
 
 <$declareSkyboxMap()$>
-<$declareSphericalHarmonics()$>
 
 vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss) {
     // Need the light now
@@ -125,7 +82,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     vec4 fragEyeVector = invViewMat * vec4(-position, 0.0);
     vec3 fragEyeDir = normalize(fragEyeVector.xyz);
     
-    vec3 color = diffuse.rgb * evalSphericalLight(ambientSphere, fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
+    vec3 color = diffuse.rgb * evalSphericalLight(getLightAmbientSphere(light), fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
 

@@ -26,8 +26,7 @@ Base3DOverlay::Base3DOverlay() :
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false),
-    _drawInFront(false),
-    _drawOnHUD(false)
+    _drawInFront(false)
 {
 }
 
@@ -38,8 +37,7 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     _isSolid(base3DOverlay->_isSolid),
     _isDashedLine(base3DOverlay->_isDashedLine),
     _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection),
-    _drawInFront(base3DOverlay->_drawInFront),
-    _drawOnHUD(base3DOverlay->_drawOnHUD)
+    _drawInFront(base3DOverlay->_drawInFront)
 {
 }
 
@@ -51,13 +49,6 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     if (drawInFront.isValid()) {
         bool value = drawInFront.toVariant().toBool();
         setDrawInFront(value);
-    }
-
-    QScriptValue drawOnHUD = properties.property("drawOnHUD");
-
-    if (drawOnHUD.isValid()) {
-        bool value = drawOnHUD.toVariant().toBool();
-        setDrawOnHUD(value);
     }
 
     QScriptValue position = properties.property("position");
@@ -162,9 +153,6 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
     }
     if (property == "drawInFront") {
         return _drawInFront;
-    }
-    if (property == "drawOnHUD") {
-        return _drawOnHUD;
     }
 
     return Overlay::getProperty(property);

@@ -278,8 +278,8 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
             if (axisLength > MIN_AXIS_LENGTH) {
                 // compute angle of rotation that brings tip closer to target
                 axis /= axisLength;
-                float angle = acosf(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)));
-
+                float cosAngle = glm::clamp(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)), -1.0f, 1.0f);
+                float angle = acosf(cosAngle);
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a fraction (for stability)
@@ -348,7 +348,7 @@ int AnimInverseKinematics::solveTargetWithCCD(const IKTarget& target, AnimPoseVe
         }
 
         // keep track of tip's new transform as we descend towards root
-        tipPosition = jointPosition + deltaRotation * leverArm;
+        tipPosition = jointPosition + deltaRotation * (tipPosition - jointPosition);
         tipOrientation = glm::normalize(deltaRotation * tipOrientation);
         tipParentOrientation = glm::normalize(deltaRotation * tipParentOrientation);
 

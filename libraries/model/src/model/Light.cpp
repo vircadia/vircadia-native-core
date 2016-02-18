@@ -116,5 +116,10 @@ void Light::setShowContour(float show) {
     editSchema()._control.w = show;
 }
 
+void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
+    editSchema()._ambientSphere = sphere;
+}
 
-
+void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
+    editSchema()._ambientSphere.assignPreset(preset);
+}

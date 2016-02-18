@@ -322,6 +322,12 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
     }
 }
 
+void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
+    if (_renderItemID != render::Item::INVALID_ITEM_ID) {
+        pendingChanges.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
+    }
+}
+
 void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
     auto& batch = *renderArgs->_batch;
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);

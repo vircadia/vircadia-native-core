@@ -133,11 +133,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
     float cost = calculateCost(density * volume, 0, newVelocity);
     cost *= costMultiplier;
 
-    if(cost > _currentAvatarEnergy) {
+    if (cost > _currentAvatarEnergy) {
         return QUuid();
-    } else {
-        //debit the avatar energy and continue
-        emit debitEnergySource(cost);
     }
 
     EntityItemID id = EntityItemID(QUuid::createUuid());
@@ -173,6 +170,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
 
     // queue the packet
     if (success) {
+        emit debitEnergySource(cost);
         queueEntityMessage(PacketType::EntityAdd, id, propertiesWithSimID);
     }
 
@@ -232,7 +230,7 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
 
 QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties& scriptSideProperties) {
     EntityItemProperties properties = scriptSideProperties;
-    
+
     auto dimensions = properties.getDimensions();
     float volume = dimensions.x * dimensions.y * dimensions.z;
     auto density = properties.getDensity();
@@ -242,18 +240,18 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
     EntityItemID entityID(id);
     if (!_entityTree) {
         queueEntityMessage(PacketType::EntityEdit, entityID, properties);
-        
+
         //if there is no local entity entity tree, no existing velocity, use 0.
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;
-        
-        if(cost > _currentAvatarEnergy) {
+
+        if (cost > _currentAvatarEnergy) {
             return QUuid();
         } else {
             //debit the avatar energy and continue
             emit debitEnergySource(cost);
         }
-        
+
         return id;
     }
     // If we have a local entity tree set, then also update it.
@@ -268,8 +266,8 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 return;
             }
             //existing entity, retrieve old velocity for check down below
-            oldVelocity = entity->getVelocity().length();            
-            
+            oldVelocity = entity->getVelocity().length();
+
             if (!scriptSideProperties.parentIDChanged()) {
                 properties.setParentID(entity->getParentID());
             }
@@ -284,16 +282,18 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             }
         }
         properties = convertLocationFromScriptSemantics(properties);
-        updatedEntity = _entityTree->updateEntity(entityID, properties);
 
         float cost = calculateCost(density * volume, oldVelocity, newVelocity);
         cost *= costMultiplier;
-        
-        if(cost > _currentAvatarEnergy) {
+
+        if (cost > _currentAvatarEnergy) {
             updatedEntity = false;
         } else {
             //debit the avatar energy and continue
-            emit debitEnergySource(cost);
+            updatedEntity = _entityTree->updateEntity(entityID, properties);
+            if (updatedEntity) {
+                emit debitEnergySource(cost);
+            }
         }
     });
 
@@ -370,15 +370,16 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->findEntityByEntityItemID(entityID);
             if (entity) {
-                
+
                 auto dimensions = entity->getDimensions();
                 float volume = dimensions.x * dimensions.y * dimensions.z;
                 auto density = entity->getDensity();
                 auto velocity = entity->getVelocity().length();
                 float cost = calculateCost(density * volume, velocity, 0);
                 cost *= costMultiplier;
-                
-                if(cost > _currentAvatarEnergy) {
+
+                if (cost > _currentAvatarEnergy) {
+                    shouldDelete = false;
                     return;
                 } else {
                     //debit the avatar energy and continue
