@@ -12,6 +12,9 @@
 
 Script.include("../libraries/utils.js");
 
+
+var numSoundsToPlayPerBatch = 1;
+var timeBetweenBatch = 100;
 // A green box represents an injector that is playing
 
 var basePosition = {
@@ -23,6 +26,7 @@ var basePosition = {
 var soundBoxes = [];
 
 var testSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav");
+var totalInjectors = 0;
 
 if(!testSound.downloaded) {
 
@@ -37,10 +41,14 @@ if(!testSound.downloaded) {
 
 function playSounds() {
     print("PLAY SOUNDS!")
-    var numSounds = 45;
-    for (var i = 0; i < numSounds; i++) {
+    for (var i = 0; i < numSoundsToPlayPerBatch; i++) {
         playSound();
-    }     
+    } 
+    print("EBL Total Number of Injectors: " + totalInjectors);
+    
+    Script.setTimeout(function() {
+        playSounds();
+    }, timeBetweenBatch);    
 }
 
 
@@ -48,8 +56,9 @@ function playSound() {
     var position = Vec3.sum(basePosition, {x: randFloat(-.1, .1), y: randFloat(-1, 1), z: randFloat(-3, -.1)});
     var injector = Audio.playSound(testSound, {
         position: position,
-        volume: 0.3
+        volume: 0.1
     });
+    totalInjectors++;
 
     var soundBox = Entities.addEntity({
         type: "Box",
