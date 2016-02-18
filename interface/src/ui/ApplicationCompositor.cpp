@@ -290,7 +290,6 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
             _modelTransform.getMatrix(overlayXfm);
 
             auto reticlePosition = getReticlePosition();
-            //qDebug() << "reticlePosition:" << reticlePosition; // FIXME - remove this debugging
             glm::vec2 projection = screenToSpherical(reticlePosition);
             float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
@@ -354,8 +353,6 @@ void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFake
             auto buttons = QApplication::mouseButtons();
             auto modifiers = QApplication::keyboardModifiers();
             QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
-
-            //qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
             qApp->fakeMouseEvent(&event);
         }
     } else {
