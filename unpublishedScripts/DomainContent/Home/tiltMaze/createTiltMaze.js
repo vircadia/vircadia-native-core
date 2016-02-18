@@ -1,9 +1,9 @@
   var ball, ballSpawningAnchor, ballDetector, tiltMaze;
 
-  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE2.fbx";
-  var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE_COLLISION_HULL3.obj";
+  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE3.fbx";
+  var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE_COLLISION_HULL8.obj";
+  var MAZE_SCRIPT = Script.resolvePath('maze.js?'+Math.random());
   var BALL_DETECTOR_SCRIPT = Script.resolvePath('ballDetector.js?' + Math.random())
-
 
   var MAZE_DIMENSIONS = {
     x: 1,
@@ -12,6 +12,12 @@
   };
 
   var BALL_DIMENSIONS = {
+    x: 0.05,
+    y: 0.05,
+    z: 0.05
+  }
+
+  var BALL_SPAWNER_DIMENSIONS = {
     x: 0.05,
     y: 0.05,
     z: 0.05
@@ -106,6 +112,8 @@
 
     ball = Entities.addEntity(properties);
 
+
+
   };
 
   var createBallSpawningAnchor = function() {
@@ -114,7 +122,7 @@
       parentID: tiltMaze,
       type: 'Box',
       color: DEBUG_COLOR,
-      dimensions: BALL_DETECTOR_DIMENSIONS,
+      dimensions: BALL_SPAWNER_DIMENSIONS,
       position: getBallStartLocation(),
       collisionless: true,
       visible: true,
@@ -134,6 +142,7 @@
       position: position,
       rotiation: rotation,
       collisionless: true,
+      dynamic:false,
       visible: true,
       script: BALL_DETECTOR_SCRIPT
     };
@@ -155,7 +164,8 @@
       angularDamping:MAZE_ANGULAR_DAMPING,
       rotation: Quat.fromPitchYawRollDegrees(0, 0, 180),
       dynamic: true,
-      density: MAZE_DENSITY
+      density: MAZE_DENSITY,
+      script:MAZE_SCRIPT
     }
 
     tiltMaze = Entities.addEntity(properties)
@@ -164,9 +174,17 @@
 
   var createAll = function() {
     createTiltMaze(center);
-    //  createBallSpawningAnchor();
+     createBallSpawningAnchor();
     // createBallDetector();
-    createBall(center);
+      createBall(center);
+        Entities.editEntity(tiltMaze,{
+      userData:JSON.stringify({
+        tiltMaze:{
+          firstBall:ball,
+          ballSpawner:ballSpawningAnchor
+        }
+      })
+    })
   }
 
   createAll();

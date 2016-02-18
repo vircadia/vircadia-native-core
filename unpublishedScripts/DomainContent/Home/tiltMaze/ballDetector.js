@@ -13,7 +13,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 (function() {
-
+    var BALL_DISTANCE_THRESHOLD;
     var _this;
 
     function BallDetctor() {
@@ -22,14 +22,14 @@
     }
 
     BallDetctor.prototype = {
+        preload:function(entityID){
+            this.entityID = entityID,
+            this.maze = Entities.getEntityProperties(entityID,'parentID').parentID;
+        },
         enterEntity: function() {
             print('BALL ENTERED BALL DETECTOR!!')
-        },
-        destroyBall: function() {
-
-        }
-        createNewBall: function() {
-
+             Entities.callEntityMethod(this.maze,'destroyBall');
+             Entities.callEntityMethod(this.maze,'createBall');
         }
     };
 
