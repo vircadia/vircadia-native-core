@@ -10,6 +10,7 @@
 #define hifi_ApplicationCompositor_h
 
 #include <QCursor>
+#include <QMouseEvent>
 #include <QObject>
 #include <QPropertyAnimation>
 #include <cstdint>
@@ -24,6 +25,10 @@ class Camera;
 class PalmData;
 class RenderArgs;
 class ReticleInterface;
+
+const int VIRTUAL_SCREEN_SIZE_X = 4096;
+const int VIRTUAL_SCREEN_SIZE_Y = 2160;
+
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
@@ -88,23 +93,15 @@ public:
     Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
     Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
 
-    Q_INVOKABLE glm::vec2 getReticlePosition() {
-        return toGlm(QCursor::pos());
-    }
-    Q_INVOKABLE void setReticlePosition(glm::vec2 position) {
-        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-        // remove it after we're done
-        const float REASONABLE_CHANGE = 50.0f;
-        glm::vec2 oldPos = toGlm(QCursor::pos());
-        auto distance = glm::distance(oldPos, position);
-        if (distance > REASONABLE_CHANGE) {
-            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
-        }
-
-        QCursor::setPos(position.x, position.y);
-    }
+    Q_INVOKABLE glm::vec2 getReticlePosition();
+    Q_INVOKABLE void setReticlePosition(glm::vec2 position);
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
+
+    void handleRealMouseMoveEvent(QMouseEvent* event);
+    void trackRealMouseMoveEvent(QMouseEvent* event);
+    void handleLeaveEvent();
+    QPointF getMouseEventPosition(QMouseEvent* event);
 
 
 private:
@@ -145,6 +142,14 @@ private:
 
     bool _reticleVisible { true };
     float _reticleDepth { 1.0f };
+
+    // NOTE: when the compositor is running in HMD mode, it will control the reticle position as a custom
+    // application specific position, when it's in desktop mode, the reticle position will simply move
+    // the system mouse.
+    glm::vec2 _reticlePositionInHMD{ 0.0f, 0.0f };
+    QPointF _lastKnownRealMouse;
+    QPoint _lastKnownCursorPos;
+    bool _ignoreMouseMove { false };
 
     ReticleInterface* _reticleInterface;
 

@@ -114,6 +114,8 @@ public:
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
+    QRect getApplicationGeometry() const;
+
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
@@ -218,6 +220,8 @@ public:
     void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
+
+    void fakeMouseEvent(QMouseEvent* event);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -368,10 +372,10 @@ private:
     void focusOutEvent(QFocusEvent* event);
     void focusInEvent(QFocusEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseMoveEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseDoublePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
 
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
@@ -381,6 +385,7 @@ private:
     void dropEvent(QDropEvent* event);
     void dragEnterEvent(QDragEnterEvent* event);
 
+    void maybeToggleMenuVisible(QMouseEvent* event);
 
     bool _dependencyManagerIsSetup;
 
@@ -510,6 +515,8 @@ private:
     bool _settingsLoaded { false };
     bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
+
+    bool _fakedMouseEvent { false };
 };
 
 #endif // hifi_Application_h

@@ -85,7 +85,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
             _texture = textureId;
         });
 
-        auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+        auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
             // Ignore mouse interaction if we're locked
             if (this->getLocked()) {
                 return;

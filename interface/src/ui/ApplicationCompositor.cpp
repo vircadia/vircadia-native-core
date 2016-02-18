@@ -216,7 +216,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
         //draw the mouse pointer
         // Get the mouse coordinates and convert to NDC [-1, 1]
-        vec2 canvasSize = qApp->getCanvasSize();
+        vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
         vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
         // Invert the Y axis
         mousePosition.y *= -1.0f;
@@ -246,7 +246,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     updateTooltips();
 
-    vec2 canvasSize = qApp->getCanvasSize();
+    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize(); // HMD use virtual screen size
+    vec2 canvasSize = screenSize;
     _textureAspectRatio = aspect(canvasSize);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -288,8 +289,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
             glm::mat4 overlayXfm;
             _modelTransform.getMatrix(overlayXfm);
 
-            glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
-
+            auto reticlePosition = getReticlePosition();
+            //qDebug() << "reticlePosition:" << reticlePosition; // FIXME - remove this debugging
+            glm::vec2 projection = screenToSpherical(reticlePosition);
             float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
@@ -298,6 +300,85 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
         }
     });
+}
+
+QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
+    if (qApp->isHMDMode()) {
+        return QPointF(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+    }
+    return event->localPos();
+}
+
+
+void ApplicationCompositor::handleLeaveEvent() {
+    if (qApp->isHMDMode()) {
+        auto applicationGeometry = qApp->getApplicationGeometry();
+        qDebug() << "SENDING mouse back to center:" << applicationGeometry.center();
+        _ignoreMouseMove = true;
+        auto sendToPos = applicationGeometry.center();
+        QCursor::setPos(sendToPos);
+        _lastKnownRealMouse = sendToPos;
+    }
+}
+
+void ApplicationCompositor::trackRealMouseMoveEvent(QMouseEvent* event) {
+    qDebug() << __FUNCTION__ << "() BEFORE _lastKnownRealMouse:" << _lastKnownRealMouse;
+    _lastKnownRealMouse = QCursor::pos();
+    qDebug() << __FUNCTION__ << "() AFTER _lastKnownRealMouse:" << _lastKnownRealMouse;
+}
+
+void ApplicationCompositor::handleRealMouseMoveEvent(QMouseEvent* event) {
+    qDebug() << __FUNCTION__ << "() event:" << event;
+    if (_ignoreMouseMove) {
+        qDebug() << __FUNCTION__ << "() IGNORE MOUSE MOVE!!!";
+        _ignoreMouseMove = false;
+        return;
+    }
+
+    auto applicationGeometry = qApp->getApplicationGeometry();
+    qDebug() << ".... applicationGeometry:" << applicationGeometry;
+
+    auto newPosition = QCursor::pos();
+    auto changeInRealMouse = newPosition - _lastKnownRealMouse;
+    qDebug() << __FUNCTION__ << "() ..... _lastKnownRealMouse:" << _lastKnownRealMouse;
+    qDebug() << __FUNCTION__ << "() ............. newPosition:" << newPosition;
+    qDebug() << __FUNCTION__ << "() ....... changeInRealMouse:" << changeInRealMouse;
+    auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
+    _lastKnownRealMouse = newPosition;
+
+    qDebug() << ".... about to call setReticlePosition() newReticlePosition:" << newReticlePosition;
+    setReticlePosition(newReticlePosition);
+}
+
+glm::vec2 ApplicationCompositor::getReticlePosition() {
+    if (qApp->isHMDMode()) {
+        return _reticlePositionInHMD;
+    }
+    return toGlm(QCursor::pos());
+}
+void ApplicationCompositor::setReticlePosition(glm::vec2 position) {
+    if (qApp->isHMDMode()) {
+        _reticlePositionInHMD = glm::clamp(position, vec2(0), vec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y));
+
+        // in HMD mode we need to fake our mouse moves...
+        QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+        QMouseEvent event(QEvent::MouseMove, globalPos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+
+        qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
+        qApp->fakeMouseEvent(&event);
+
+    } else {
+        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+        // remove it after we're done
+        const float REASONABLE_CHANGE = 50.0f;
+        glm::vec2 oldPos = toGlm(QCursor::pos());
+        auto distance = glm::distance(oldPos, position);
+        if (distance > REASONABLE_CHANGE) {
+            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
+        }
+
+        QCursor::setPos(position.x, position.y);
+    }
 }
 
 
@@ -460,7 +541,7 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
 }
 
 glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
-    auto screenSize = qApp->getCanvasSize();
+    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize();
     glm::vec2 result;
     result.x = -(screenPos.x / screenSize.x - 0.5f);
     result.y = (screenPos.y / screenSize.y - 0.5f);
@@ -470,11 +551,12 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
 }
 
 glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
+    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize();
     glm::vec2 result = sphericalPos;
     result.x *= -1.0f;
     result /= MOUSE_RANGE;
     result += 0.5f;
-    result *= qApp->getCanvasSize();
+    result *= screenSize;
     return result;
 }
 
