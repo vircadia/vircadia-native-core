@@ -1743,7 +1743,7 @@ bool Application::event(QEvent* event) {
 
     switch (event->type()) {
         case QEvent::MouseMove:
-            qDebug() << __FUNCTION__ << "(QEvent::MouseMove)... line:" << __LINE__;
+            //qDebug() << __FUNCTION__ << "(QEvent::MouseMove)... line:" << __LINE__;
             mouseMoveEvent((QMouseEvent*)event);
             return true;
         case QEvent::MouseButtonPress:
@@ -1781,7 +1781,7 @@ bool Application::event(QEvent* event) {
             dropEvent(static_cast<QDropEvent*>(event));
             return true;
         case QEvent::Leave:
-            qDebug() << __FUNCTION__ << "().... QEvent::Leave";
+            //qDebug() << __FUNCTION__ << "().... QEvent::Leave";
             break; // fall through
         default:
             break;
@@ -1813,7 +1813,7 @@ bool Application::event(QEvent* event) {
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::Leave) {
-        qDebug() << __FUNCTION__ << "().... QEvent::Leave";
+        //qDebug() << __FUNCTION__ << "().... QEvent::Leave";
         _compositor.handleLeaveEvent();
     }
 
@@ -2204,7 +2204,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (_aboutToQuit) {
         return;
     }
-    qDebug() << __FUNCTION__ << "line:" << __LINE__ << "event:" << event << "_fakedMouseEvent:" << _fakedMouseEvent;
+    //qDebug() << __FUNCTION__ << "line:" << __LINE__ << "event:" << event << "_fakedMouseEvent:" << _fakedMouseEvent;
 
     maybeToggleMenuVisible(event);
 
@@ -2261,13 +2261,13 @@ void Application::mousePressEvent(QMouseEvent* event) {
     // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
     // will consume all keyboard events.
     offscreenUi->unfocusWindows();
-    qDebug() << __FUNCTION__ << "event:" << event;
+    //qDebug() << __FUNCTION__ << "event:" << event;
 
     auto eventPosition = _compositor.getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
 
-    qDebug() << __FUNCTION__ << " eventPosition:" << eventPosition;
-    qDebug() << __FUNCTION__ << "transformedPos:" << transformedPos;
+    //qDebug() << __FUNCTION__ << " eventPosition:" << eventPosition;
+    //qDebug() << __FUNCTION__ << "transformedPos:" << transformedPos;
 
     QMouseEvent mappedEvent(event->type(),
         transformedPos,

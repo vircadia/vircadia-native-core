@@ -313,7 +313,6 @@ QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
 void ApplicationCompositor::handleLeaveEvent() {
     if (qApp->isHMDMode()) {
         auto applicationGeometry = qApp->getApplicationGeometry();
-        qDebug() << "SENDING mouse back to center:" << applicationGeometry.center();
         _ignoreMouseMove = true;
         auto sendToPos = applicationGeometry.center();
         QCursor::setPos(sendToPos);
@@ -322,31 +321,19 @@ void ApplicationCompositor::handleLeaveEvent() {
 }
 
 void ApplicationCompositor::trackRealMouseMoveEvent() {
-    qDebug() << __FUNCTION__ << "(event) BEFORE _lastKnownRealMouse:" << _lastKnownRealMouse;
     _lastKnownRealMouse = QCursor::pos();
-    qDebug() << __FUNCTION__ << "(event) AFTER _lastKnownRealMouse:" << _lastKnownRealMouse;
 }
 
 void ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
-    qDebug() << __FUNCTION__ << "()";
     if (_ignoreMouseMove) {
-        qDebug() << __FUNCTION__ << "() IGNORE MOUSE MOVE!!!";
         _ignoreMouseMove = false;
         return;
     }
-
     auto applicationGeometry = qApp->getApplicationGeometry();
-    qDebug() << ".... applicationGeometry:" << applicationGeometry;
-
     auto newPosition = QCursor::pos();
     auto changeInRealMouse = newPosition - _lastKnownRealMouse;
-    qDebug() << __FUNCTION__ << "() ..... _lastKnownRealMouse:" << _lastKnownRealMouse;
-    qDebug() << __FUNCTION__ << "() ............. newPosition:" << newPosition;
-    qDebug() << __FUNCTION__ << "() ....... changeInRealMouse:" << changeInRealMouse;
     auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
     _lastKnownRealMouse = newPosition;
-
-    qDebug() << ".... about to call setReticlePosition() newReticlePosition:" << newReticlePosition;
     setReticlePosition(newReticlePosition, sendFakeEvent);
 }
 
@@ -363,9 +350,12 @@ void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFake
         if (sendFakeEvent) {
             // in HMD mode we need to fake our mouse moves...
             QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
-            QMouseEvent event(QEvent::MouseMove, globalPos, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+            auto button = Qt::NoButton;
+            auto buttons = QApplication::mouseButtons();
+            auto modifiers = QApplication::keyboardModifiers();
+            QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
 
-            qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
+            //qDebug() << "about to call .... qApp->fakeMouseEvent(&event);";
             qApp->fakeMouseEvent(&event);
         }
     } else {
