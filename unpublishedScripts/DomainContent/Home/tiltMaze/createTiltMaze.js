@@ -3,6 +3,8 @@
   var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE4.fbx";
   var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE_COLLISION_HULL8.obj";
   var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
+  var BALL_DETECTOR_SCRIPT = Script.resolvePath('ballDetector.js?' + Math.random())
+
 
   var SCALE = 1;
 
@@ -154,7 +156,8 @@
       position: position,
       collisionless: true,
       dynamic: false,
-      visible: false,
+      visible: true,
+      script: BALL_DETECTOR_SCRIPT
     };
 
     ballDetector = Entities.addEntity(properties);
@@ -191,8 +194,7 @@
       userData: JSON.stringify({
         tiltMaze: {
           firstBall: ball,
-          ballSpawner: ballSpawningAnchor,
-          detector:ballDetector
+          ballSpawner: ballSpawningAnchor
         }
       })
     })
@@ -205,6 +207,5 @@
       Entities.deleteEntity(tiltMaze);
       Entities.deleteEntity(ball);
       Entities.deleteEntity(ballSpawningAnchor);
-      Entities.deleteEntity(ballDetector);
     })
   };

@@ -69,7 +69,7 @@
         },
         continueNearGrab: function() {
             print('near grab')
-                //  this.testWinDistance();
+            this.testWinDistance();
             this.testBallDistance();
         },
         continueDistantGrab: function() {
@@ -147,6 +147,8 @@
                 print('data is null in userData')
                 return;
             }
+
+            print('DATA IS:'+JSON.stringify(data))
 
             var ballPosition;
             if (this.ball === null) {
