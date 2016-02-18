@@ -14,9 +14,12 @@
 //
 (function() {
 
-    Script.include('../../../../libraries/utils.js')
+    Script.include('../../../../libraries/utils.js');
+
+    var VICTORY_SOUND;
     var BALL_DISTANCE_THRESHOLD = 1;
 
+    var BALL_DETECTOR_THRESHOLD = 0.2;
     var BALL_FORWARD_OFFSET = -0.2;
     var BALL_RIGHT_OFFSET = -0.4;
     var BALL_VERTICAL_OFFSET = 0.02;
@@ -52,25 +55,31 @@
         return;
     }
 
+    print('jbp test')
+
     Maze.prototype = {
         ball: null,
+        ballLocked: false,
         preload: function(entityID) {
             this.entityID = entityID;
+            VICTORY_SOUND = SoundCache.getSound("http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/levelUp.wav");
         },
-
         startNearGrab: function() {
             //check to make sure a ball is in range, otherwise create one
         },
         continueNearGrab: function() {
-
+            print('near grab')
+                //  this.testWinDistance();
             this.testBallDistance();
         },
         continueDistantGrab: function() {
-
+            print('distant grab')
             this.testBallDistance();
+            this.testWinDistance();
         },
         releaseGrab: function() {
             this.testBallDistance();
+            //   this.testWinDistance();
         },
         getBallStartLocation: function() {
             var mazeProps = Entities.getEntityProperties(this.entityID);
@@ -89,6 +98,9 @@
             return location;
         },
         createBall: function() {
+            if (this.ballLocked === true) {
+                return;
+            }
             print('making ball')
             var properties = {
                 name: 'Hifi Tilt Maze Ball',
@@ -114,17 +126,16 @@
             res.forEach(function(r) {
                 var props = Entities.getEntityProperties(r, ['name']);
                 var isAMazeBall = props.name.indexOf('Maze Ball');
-                print('found a maze ball at destory ' + isAMazeBall)
-                print('JBP R ' +r )
-                print('JBP THIS BALL' + _this.ball)
                 if (isAMazeBall > -1 && r === _this.ball) {
-                    print('found a ball to delete')
                     Entities.deleteEntity(r);
                 }
             })
         },
         testBallDistance: function() {
-
+            if (this.ballLocked === true) {
+                return;
+            }
+            print('test ball dsitance')
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
             var data = null;
             try {
@@ -149,17 +160,68 @@
             var ballSpawnerPosition = Entities.getEntityProperties(data.tiltMaze.ballSpawner, 'position').position;
 
             var separation = Vec3.distance(ballPosition, ballSpawnerPosition);
-            print('testing ball distance:::' + separation)
             if (separation > BALL_DISTANCE_THRESHOLD) {
+                print('BALL TOO FAR MAKE A NEW ONE')
                 this.destroyBall();
                 this.createBall();
             } else {
 
             }
         },
-        playVictorySound:function(){
-            
-        }
+        testWinDistance: function() {
+            if (this.ballLocked === true) {
+                return;
+            }
+            print('testing win distance')
+            var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
+            var data = null;
+            try {
+                data = JSON.parse(userData)
+            } catch (e) {
+                print('error parsing json in maze userdata')
+            }
+            if (data === null) {
+                print('data is null in userData')
+                return;
+            }
+
+            var ballPosition;
+            if (this.ball === null) {
+                this.ball = data.tiltMaze.firstBall;
+                ballPosition = Entities.getEntityProperties(data.tiltMaze.firstBall, 'position').position;
+
+            } else {
+                ballPosition = Entities.getEntityProperties(this.ball, 'position').position
+            }
+
+            var ballDetectorPosition = Entities.getEntityProperties(data.tiltMaze.detector, 'position').position;
+
+            var separation = Vec3.distance(ballPosition, ballDetectorPosition);
+            print('separation from win:' + separation)
+            if (separation < BALL_DETECTOR_THRESHOLD) {
+                print('BALL IS IN DETECTOR, MAKE A NEW ONE')
+                this.ballLocked = true;
+                this.destroyBall();
+                this.playVictorySound();
+                Script.setTimeout(function() {
+                    _this.ballLocked = false;
+                    _this.createBall()
+                }, 1500)
+            } else {
+
+            }
+
+        },
+        playVictorySound: function() {
+            var position = Entities.getEntityProperties(this.entityID, "position").position;
+
+            var audioProperties = {
+                volume: 0.25,
+                position: position
+            };
+            Audio.playSound(VICTORY_SOUND, audioProperties);
+
+        },
     };
 
     return new Maze();

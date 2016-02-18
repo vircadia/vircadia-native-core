@@ -1,15 +1,16 @@
   var ball, ballSpawningAnchor, ballDetector, tiltMaze;
 
-  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE3.fbx";
+  var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE4.fbx";
   var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/MAZE_COLLISION_HULL8.obj";
-  var MAZE_SCRIPT = Script.resolvePath('maze.js?'+Math.random());
-  var BALL_DETECTOR_SCRIPT = Script.resolvePath('ballDetector.js?' + Math.random())
+  var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
 
-  var MAZE_DIMENSIONS = {
+  var SCALE = 1;
+
+  var MAZE_DIMENSIONS = Vec3.multiply(SCALE,{
     x: 1,
     y: 0.3,
     z: 1
-  };
+  });
 
   var BALL_DIMENSIONS = {
     x: 0.05,
@@ -24,9 +25,9 @@
   }
 
   var BALL_DETECTOR_DIMENSIONS = {
-    x: 1,
-    y: 0.15,
-    z: 1,
+    x: 0.1,
+    y: 0.1,
+    z: 0.1
   }
 
   var BALL_COLOR = {
@@ -71,7 +72,9 @@
   var MAZE_DAMPING = 0.6;
   var MAZE_ANGULAR_DAMPING = 0.6;
 
-  var DETECTOR_VERTICAL_OFFSET = MAZE_DIMENSIONS.y / 2;
+  var DETECTOR_VERTICAL_OFFSET = 0.0;
+  var DETECTOR_FORWARD_OFFSET=  0.4;
+  var DETECTOR_RIGHT_OFFSET = 0.4;
 
   var getBallStartLocation = function() {
     var mazeProps = Entities.getEntityProperties(tiltMaze);
@@ -106,7 +109,7 @@
       gravity: BALL_GRAVITY,
       density: BALL_DENSITY,
       color: BALL_COLOR,
-      dimensions:BALL_DIMENSIONS
+      dimensions: BALL_DIMENSIONS
 
     };
 
@@ -117,6 +120,7 @@
   };
 
   var createBallSpawningAnchor = function() {
+
     var properties = {
       name: 'Hifi Tilt Maze Ball Detector',
       parentID: tiltMaze,
@@ -125,14 +129,22 @@
       dimensions: BALL_SPAWNER_DIMENSIONS,
       position: getBallStartLocation(),
       collisionless: true,
-      visible: true,
+      visible: false,
       script: BALL_DETECTOR_SCRIPT
     };
 
     ballSpawningAnchor = Entities.addEntity(properties);
   }
 
-  var createBallDetector = function(position, rotation) {
+  var createBallDetector = function() {
+    var mazeProps = Entities.getEntityProperties(tiltMaze);
+    var right = Quat.getRight(mazeProps.rotation);
+    var forward = Quat.getFront(mazeProps.rotation);
+    var up = Quat.getUp(mazeProps.rotation);
+  
+    var position = Vec3.sum(mazeProps.position,Vec3.multiply(up,DETECTOR_VERTICAL_OFFSET));
+    position = Vec3.sum(position,Vec3.multiply(right,DETECTOR_RIGHT_OFFSET));
+    position = Vec3.sum(position,Vec3.multiply(forward,DETECTOR_FORWARD_OFFSET));
     var properties = {
       name: 'Hifi Tilt Maze Ball Detector',
       parentID: tiltMaze,
@@ -140,11 +152,9 @@
       color: DEBUG_COLOR,
       dimensions: BALL_DETECTOR_DIMENSIONS,
       position: position,
-      rotiation: rotation,
       collisionless: true,
-      dynamic:false,
-      visible: true,
-      script: BALL_DETECTOR_SCRIPT
+      dynamic: false,
+      visible: false,
     };
 
     ballDetector = Entities.addEntity(properties);
@@ -160,12 +170,12 @@
       dimensions: MAZE_DIMENSIONS,
       position: position,
       restitution: MAZE_RESTITUTION,
-      damping:MAZE_DAMPING,
-      angularDamping:MAZE_ANGULAR_DAMPING,
+      damping: MAZE_DAMPING,
+      angularDamping: MAZE_ANGULAR_DAMPING,
       rotation: Quat.fromPitchYawRollDegrees(0, 0, 180),
       dynamic: true,
       density: MAZE_DENSITY,
-      script:MAZE_SCRIPT
+      script: MAZE_SCRIPT
     }
 
     tiltMaze = Entities.addEntity(properties)
@@ -174,14 +184,15 @@
 
   var createAll = function() {
     createTiltMaze(center);
-     createBallSpawningAnchor();
-    // createBallDetector();
-      createBall(center);
-        Entities.editEntity(tiltMaze,{
-      userData:JSON.stringify({
-        tiltMaze:{
-          firstBall:ball,
-          ballSpawner:ballSpawningAnchor
+    createBallSpawningAnchor();
+    createBallDetector(center);
+    createBall(center);
+    Entities.editEntity(tiltMaze, {
+      userData: JSON.stringify({
+        tiltMaze: {
+          firstBall: ball,
+          ballSpawner: ballSpawningAnchor,
+          detector:ballDetector
         }
       })
     })
@@ -194,5 +205,6 @@
       Entities.deleteEntity(tiltMaze);
       Entities.deleteEntity(ball);
       Entities.deleteEntity(ballSpawningAnchor);
+      Entities.deleteEntity(ballDetector);
     })
   };
