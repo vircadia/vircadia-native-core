@@ -12,7 +12,6 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
 import "."
-import "../controls-uit"
 import "../styles-uit"
 
 Frame {

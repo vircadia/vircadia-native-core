@@ -11,15 +11,12 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
-import "../controls-uit"
 import "../styles-uit"
 import "../js/Utils.js" as Utils
 
 Item {
     id: frame
-    // Frames always fill their parents, but their decorations may extend
-    // beyond the window via negative margin sizes
-    anchors.fill: parent
+    HifiConstants { id: hifi }
 
     property alias window: frame.parent  // Convenience accessor for the window
     default property var decoration
@@ -30,6 +27,10 @@ Item {
     readonly property int frameMarginRight: frameMargin
     readonly property int frameMarginTop: 2 * frameMargin + iconSize
     readonly property int frameMarginBottom: iconSize + 6
+
+    // Frames always fill their parents, but their decorations may extend
+    // beyond the window via negative margin sizes
+    anchors.fill: parent
 
     children: [
         focusShadow,
@@ -67,6 +68,7 @@ Item {
             GradientStop { position: 0.5; color: "#00000000" }    // black, 0% opacity
             GradientStop { position: 1.0; color: "#00000000" }
         }
+        cached: true
     }
 
     Rectangle {

@@ -48,6 +48,16 @@ ApplicationWindow {
                 }
             }
 
+            Button {
+                text: "Attachments"
+                property var builder: Component {
+                    AttachmentsDialog { }
+                }
+                onClicked: {
+                    var attachmentsDialog = builder.createObject(desktop);
+                }
+            }
+
             /*
             Button {
                 text: "restore all"

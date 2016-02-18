@@ -128,7 +128,6 @@ TreeView {
 
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
 
-    // FIXME not triggered by double click?
     onActivated: {
         var path = scriptsModel.data(index, 0x100)
         if (path) {

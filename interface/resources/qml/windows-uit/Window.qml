@@ -26,6 +26,7 @@ import "../styles-uit"
 Fadable {
     id: window
     HifiConstants { id: hifi }
+
     // The Window size is the size of the content, while the frame
     // decorations can extend outside it.
     implicitHeight: content ? content.height : 0
@@ -145,6 +146,7 @@ Fadable {
                 GradientStop { position: 0.0; color: hifi.colors.darkGray }
                 GradientStop { position: 1.0; color: hifi.colors.darkGray0 }
             }
+            cached: true
         }
 
         ScrollView {
