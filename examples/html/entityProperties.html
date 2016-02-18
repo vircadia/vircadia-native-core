@@ -47,6 +47,17 @@
                 );
             };
         }
+
+        function createEmitCheckedToStringPropertyUpdateFunction(checkboxElement, name, propertyName) {
+            var newString = "";
+            if (checkboxElement.checked) {
+                newString += name + "";
+            } else {
+
+            }
+
+        }
+
         function createEmitGroupCheckedPropertyUpdateFunction(group, propertyName) {
             return function () {
                 var properties = {};
@@ -207,6 +218,28 @@
             }
         };
 
+        function updateCheckedSubProperty(propertyName, propertyValue, subPropertyElement, subPropertyString) {
+            if (subPropertyElement.checked) {
+                if (propertyValue.indexOf(subPropertyString)) {
+                    propertyValue += subPropertyString + ',';
+                } 
+            } else {
+                // We've unchecked, so remove 
+                propertyValue = propertyValue.replace(subPropertyString + ",", "");
+            }
+
+            var _properties ={}
+            _properties[propertyName] = propertyValue;
+            
+            EventBridge.emitWebEvent(
+              JSON.stringify({
+                type: "update",
+                properties: _properties
+              })
+            );
+
+        }
+
         function loaded() { 
             openEventBridge(function() {
                 var allSections = [];
@@ -263,6 +296,11 @@
                 var elDensity = document.getElementById("property-density");
                 var elCollisionless = document.getElementById("property-collisionless");
                 var elDynamic = document.getElementById("property-dynamic" );
+                var elCollideStatic = document.getElementById("property-collide-static");
+                var elCollideDynamic = document.getElementById("property-collide-dynamic");
+                var elCollideKinematic = document.getElementById("property-collide-kinematic");
+                var elCollideMyAvatar = document.getElementById("property-collide-myAvatar");
+                var elCollideOtherAvatar = document.getElementById("property-collide-otherAvatar");
                 var elCollisionSoundURL = document.getElementById("property-collision-sound-url");
                 var elLifetime = document.getElementById("property-lifetime");
                 var elScriptURL = document.getElementById("property-script-url");
@@ -312,15 +350,7 @@
                 var elHyperlinkHref = document.getElementById("property-hyperlink-href");
                 var elHyperlinkDescription = document.getElementById("property-hyperlink-description");
                 var elHyperlinkSections = document.querySelectorAll(".hyperlink-section");
-
-                var elParticleSections = document.querySelectorAll(".particle-section");
-                allSections.push(elParticleSections);
-                var elParticleIsEmitting = document.getElementById("property-particle-is-emitting");
-                var elParticleMaxParticles = document.getElementById("property-particle-maxparticles");
-                var elParticleLifeSpan = document.getElementById("property-particle-lifespan");
-                var elParticleEmitRate = document.getElementById("property-particle-emit-rate");
-                var elParticleRadius = document.getElementById("property-particle-radius");
-                var elParticleTextures = document.getElementById("property-particle-textures");
+              
     
                 var elTextSections = document.querySelectorAll(".text-section");
                 allSections.push(elTextSections);
@@ -378,6 +408,7 @@
                 var elPreviewCameraButton = document.getElementById("preview-camera-button");
     
                 if (window.EventBridge !== undefined) {
+                    var properties;
                     EventBridge.scriptEventReceived.connect(function(data) {
                         data = JSON.parse(data);
                         if (data.type == "update") {
@@ -419,7 +450,7 @@
                                     var  selected = false;
                                 }
     
-                                var properties = data.selections[0].properties;
+                                properties = data.selections[0].properties;
     
                                 elID.innerHTML = properties.id;
     
@@ -433,6 +464,7 @@
                                 } else {
                                     enableChildren(document.getElementById("properties-list"), 'input');
                                 }
+
     
                                 elName.value = properties.name;
     
@@ -481,6 +513,15 @@
                                 elDensity.value = properties.density.toFixed(4);
                                 elCollisionless.checked = properties.collisionless;
                                 elDynamic.checked = properties.dynamic;
+
+
+                                elCollideStatic.checked = properties.collidesWith.indexOf("static") > -1;
+                                elCollideKinematic.checked = properties.collidesWith.indexOf("kinematic") > -1;
+                                elCollideDynamic.checked = properties.collidesWith.indexOf("dynamic") > -1;
+                                elCollideMyAvatar.checked = properties.collidesWith.indexOf("myAvatar") > -1;
+                                elCollideOtherAvatar.checked = properties.collidesWith.indexOf("otherAvatar") > -1;
+
+
                                 elCollisionSoundURL.value = properties.collisionSoundURL;
                                 elLifetime.value = properties.lifetime;
                                 elScriptURL.value = properties.script;
@@ -602,18 +643,6 @@
                                     elZoneSkyboxURL.value = properties.skybox.url;
     
                                     showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
-                                } else if (properties.type == "ParticleEffect") {
-                                    for (var i = 0; i < elParticleSections.length; i++) {
-                                        elParticleSections[i].style.display = 'block';
-                                    }
-    
-                                    elParticleIsEmitting.checked = properties.isEmitting;
-                                    elParticleMaxParticles.value = properties.maxParticles;
-                                    elParticleLifeSpan.value = properties.lifespan.toFixed(2);
-                                    elParticleEmitRate.value = properties.emitRate.toFixed(1);
-                                    elParticleRadius.value = properties.particleRadius.toFixed(3);
-                                    elParticleTextures.value = properties.textures;
-    
                                 } else if (properties.type == "PolyVox") {
                                     for (var i = 0; i < elPolyVoxSections.length; i++) {
                                         elPolyVoxSections[i].style.display = 'block';
@@ -702,6 +731,29 @@
                 elDensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('density'));
                 elCollisionless.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionless'));
                 elDynamic.addEventListener('change', createEmitCheckedPropertyUpdateFunction('dynamic'));
+
+
+
+
+                elCollideDynamic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideDynamic, 'dynamic');
+                });
+
+                elCollideKinematic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideKinematic, 'kinematic');
+                });
+
+                elCollideStatic.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideStatic, 'static');
+                });
+                elCollideMyAvatar.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideMyAvatar, 'myAvatar');
+                });
+                elCollideOtherAvatar.addEventListener('change', function() {
+                    updateCheckedSubProperty("collidesWith", properties.collidesWith, elCollideOtherAvatar, 'otherAvatar');
+                });
+
+
                 elCollisionSoundURL.addEventListener('change', createEmitTextPropertyUpdateFunction('collisionSoundURL'));
     
                 elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
@@ -748,13 +800,6 @@
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
     
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
-    
-                elParticleIsEmitting.addEventListener('change', createEmitCheckedPropertyUpdateFunction('isEmitting'));
-                elParticleMaxParticles.addEventListener('change', createEmitNumberPropertyUpdateFunction('maxParticles'));
-                elParticleLifeSpan.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifespan'));
-                elParticleEmitRate.addEventListener('change', createEmitNumberPropertyUpdateFunction('emitRate'));
-                elParticleRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('particleRadius'));
-                elParticleTextures.addEventListener('change', createEmitTextPropertyUpdateFunction('textures'));
     
                 elModelURL.addEventListener('change', createEmitTextPropertyUpdateFunction('modelURL'));
                 elShapeType.addEventListener('change', createEmitTextPropertyUpdateFunction('shapeType'));
@@ -1384,6 +1429,48 @@
             <span class="value">
                 <input type='checkbox' id="property-dynamic">
             </span>
+        </div>
+
+        
+            <div class = "sub-section-header"> Collides With: </div>
+            <div class = "sub-props-checkbox-group">
+                <div class="property">
+                  <span class="label"> static</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-static">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> dynamic</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-dynamic">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> kinematic</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-kinematic">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> myAvatar</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-myAvatar">
+                  </span>
+                </div>
+
+                <div class="property">
+                  <span class="label"> otherAvatar</span>
+                  <span class="value">
+                    <input type='checkbox' id="property-collide-otherAvatar">
+                  </span>
+                </div>
+            </div>
+
+
         </div>
 
         <div class="property">
