@@ -81,18 +81,6 @@ public:
         acuity,
         unspecified
     };
-    Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
-    Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
-    Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
-    Q_INVOKABLE bool getRenderDistanceControllerIsLogging() { return _renderDistanceController.getIsLogging(); }
-    Q_INVOKABLE void setRenderDistanceControllerHistory(QString label, int size) { return _renderDistanceController.setHistorySize(label, size); }
-    Q_INVOKABLE float getRenderDistanceInverseLowLimit() { return _renderDistanceController.getControlledValueLowLimit(); }
-    Q_INVOKABLE void setRenderDistanceInverseLowLimit(float newValue) { _renderDistanceController.setControlledValueLowLimit(newValue); }
-    Q_INVOKABLE float getRenderDistanceInverseHighLimit() { return _renderDistanceController.getControlledValueHighLimit(); }
-    Q_INVOKABLE void setRenderDistanceInverseHighLimit(float newValue);
-    void updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled);
-    float getRenderDistance();
-    int getRenderedCount();
 
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     void autoAdjustLOD(float currentFPS);
@@ -123,9 +111,6 @@ private:
     SimpleMovingAverage _fpsAverageStartWindow = START_DELAY_SAMPLES_OF_FRAMES;
     SimpleMovingAverage _fpsAverageDownWindow = DOWN_SHIFT_SAMPLES_OF_FRAMES;
     SimpleMovingAverage _fpsAverageUpWindow = UP_SHIFT_SAMPLES_OF_FRAMES;
-    
-    PIDController _renderDistanceController{};
-    SimpleMovingAverage _renderDistanceAverage{ 10 };
 };
 
 #endif // hifi_LODManager_h
