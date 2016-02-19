@@ -101,9 +101,16 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     float frameDuration = 1.f / displayFrequency;
     float vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
 
+#if THREADED_PRESENT
     // TODO: this seems awfuly long, 44ms total, but it produced the best results.
     const float NUM_PREDICTION_FRAMES = 3.0f;
     float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
+#else
+    uint64_t frameCounter;
+    float timeSinceLastVsync;
+    _system->GetTimeSinceLastVsync(&timeSinceLastVsync, &frameCounter);
+    float predictedSecondsFromNow = 3.0f * frameDuration - timeSinceLastVsync + vsyncToPhotons;
+#endif
 
     vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, predictedSecondsFromNow, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
@@ -125,8 +132,6 @@ void OpenVrDisplayPlugin::internalPresent() {
 
     _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
-
-    glFinish();
 
     vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
