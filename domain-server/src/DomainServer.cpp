@@ -198,7 +198,6 @@ bool DomainServer::optionallySetupOAuth() {
     }
 
     AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.disableSettingsFilePersistence();
     accountManager.setAuthURL(_oauthProviderURL);
 
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();

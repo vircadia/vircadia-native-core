@@ -62,11 +62,11 @@ public:
                                  QHttpMultiPart* dataMultiPart = NULL,
                                  const QVariantMap& propertyMap = QVariantMap());
 
+    void setIsAgent(bool isAgent);
+
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
-
-    void disableSettingsFilePersistence() { _shouldPersistToSettingsFile = false; }
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
@@ -107,10 +107,11 @@ private slots:
 
 private:
     AccountManager();
-    AccountManager(AccountManager const& other); // not implemented
-    void operator=(AccountManager const& other); // not implemented
+    AccountManager(AccountManager const& other) = delete;
+    void operator=(AccountManager const& other) = delete;
 
     void persistAccountToSettings();
+    void removeAccountFromSettings();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
@@ -121,7 +122,7 @@ private:
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
-    bool _shouldPersistToSettingsFile;
+    bool _isAgent { false };
 };
 
 #endif // hifi_AccountManager_h

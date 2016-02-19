@@ -12,10 +12,12 @@
 #include <memory>
 
 #include <QtCore/QDataStream>
+#include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QMap>
 #include <QtCore/QStringList>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
@@ -60,13 +62,13 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
     updateReciever(updateReceiver),
     updateSlot(updateSlot)
 {
+    
 }
 
 AccountManager::AccountManager() :
     _authURL(),
     _pendingCallbackMap(),
-    _accountInfo(),
-    _shouldPersistToSettingsFile(true)
+    _accountInfo()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -80,9 +82,18 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-    
-    // once we have a profile in account manager make sure we generate a new keypair
-    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
+}
+
+void AccountManager::setIsAgent(bool isAgent) {
+    if (_isAgent != isAgent) {
+        if (_isAgent) {
+            // any profile changes in account manager should generate a new keypair
+            connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
+        } else {
+            // disconnect the generation of a new keypair during profile changes
+            disconnect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
+        }
+    }
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -93,16 +104,9 @@ void AccountManager::logout() {
 
     emit balanceChanged(0);
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-    
-    if (_shouldPersistToSettingsFile) {
-        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        Setting::Handle<DataServerAccountInfo>(path).remove();
-        
-        qCDebug(networking) << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
-    } else {
-        qCDebug(networking) << "Cleared data server account info in account manager.";
-    }
+
+    // remove this account from the account settings file
+    removeAccountFromSettings();
 
     emit logoutComplete();
     // the username has changed to blank
@@ -124,35 +128,59 @@ void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
     emit balanceChanged(newBalance);
 }
 
+QString accountFilePath() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/AccountInfo.bin";
+}
+
+QVariantMap accountMapFromFile(bool& success) {
+    QFile accountFile { accountFilePath() };
+
+    if (accountFile.open(QIODevice::ReadOnly)) {
+        // grab the current QVariantMap from the settings file
+        QDataStream readStream(&accountFile);
+        QVariantMap accountMap;
+
+        readStream >> accountMap;
+
+        // close the file now that we have read the data
+        accountFile.close();
+
+        success = true;
+
+        return accountMap;
+    } else {
+        // failed to open file, return empty QVariantMap with failure
+        success = false;
+
+        return QVariantMap();
+    }
+}
+
 void AccountManager::setAuthURL(const QUrl& authURL) {
     if (_authURL != authURL) {
         _authURL = authURL;
 
         qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
         
-        if (_shouldPersistToSettingsFile) {
-            // check if there are existing access tokens to load from settings
-            Settings settings;
-            settings.beginGroup(ACCOUNTS_GROUP);
+        // check if there are existing access tokens to load from settings
+        bool loadedFile = false;
+        auto accountsMap = accountMapFromFile(loadedFile);
+
+        if (loadedFile) {
+            // pull out the stored access token and store it in memory
+            _accountInfo = accountsMap[_authURL.toString()].value<DataServerAccountInfo>();
             
-            foreach(const QString& key, settings.allKeys()) {
-                // take a key copy to perform the double slash replacement
-                QString keyCopy(key);
-                QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
-                
-                if (keyURL == _authURL) {
-                    // pull out the stored access token and store it in memory
-                    _accountInfo = settings.value(key).value<DataServerAccountInfo>();
-                    qCDebug(networking) << "Found a data-server access token for" << qPrintable(keyURL.toString());
-                    
-                    // profile info isn't guaranteed to be saved too
-                    if (_accountInfo.hasProfile()) {
-                        emit profileChanged();
-                    } else {
-                        requestProfile();
-                    }
-                }
+            qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
+
+            // profile info isn't guaranteed to be saved too
+            if (_accountInfo.hasProfile()) {
+                emit profileChanged();
+            } else {
+                requestProfile();
             }
+
+        } else {
+            qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
         }
 
         // tell listeners that the auth endpoint has changed
@@ -324,13 +352,58 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
     }
 }
 
-void AccountManager::persistAccountToSettings() {
-    if (_shouldPersistToSettingsFile) {
-        // store this access token into the local settings
-        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        Setting::Handle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
+bool writeAccountMapToFile(const QVariantMap& accountMap) {
+    // re-open the file and truncate it
+    QFile accountFile { accountFilePath() };
+    if (accountFile.open(QIODevice::WriteOnly)) {
+        QDataStream writeStream(&accountFile);
+
+        // persist the updated account QVariantMap to file
+        writeStream << accountMap;
+
+        // close the file with the newly persisted settings
+        accountFile.close();
+
+        return true;
+    } else {
+        return false;
     }
+}
+
+void AccountManager::persistAccountToSettings() {
+
+    qCDebug(networking) << "Persisting AccountManager accounts to" << accountFilePath();
+
+    bool wasLoaded = false;
+    auto accountMap = accountMapFromFile(wasLoaded);
+
+    if (wasLoaded) {
+        // replace the current account information for this auth URL in the account map
+        accountMap[_authURL.toString()] = QVariant::fromValue(_accountInfo);
+
+        // re-open the file and truncate it
+        if (writeAccountMapToFile(accountMap)) {
+            return;
+        }
+    }
+
+    qCWarning(networking) << "Could not load accounts file - unable to persist account information to file.";
+}
+
+void AccountManager::removeAccountFromSettings() {
+    bool wasLoaded = false;
+    auto accountMap = accountMapFromFile(wasLoaded);
+
+    if (wasLoaded) {
+        accountMap.remove(_authURL.toString());
+        if (writeAccountMapToFile(accountMap)) {
+            qCDebug(networking) << "Removed account info for" << _authURL << "from settings file.";
+            return;
+        }
+    }
+
+    qCWarning(networking) << "Count not load accounts file - unable to remove account information for" << _authURL
+        << "from settings file.";
 }
 
 bool AccountManager::hasValidAccessToken() {
@@ -369,6 +442,8 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
     qCDebug(networking) << "Setting new account manager access token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
     
     _accountInfo.setAccessToken(newOAuthToken);
+
+    persistAccountToSettings();
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
