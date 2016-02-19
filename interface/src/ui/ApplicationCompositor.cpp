@@ -401,6 +401,18 @@ void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFake
     }
 }
 
+#include <QDesktopWidget>
+
+glm::vec2 ApplicationCompositor::getReticleMaximumPosition() const {
+    glm::vec2 result;
+    if (qApp->isHMDMode()) {
+        result = glm::vec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y);
+    } else {
+        QRect rec = QApplication::desktop()->screenGeometry();
+        result = glm::vec2(rec.right(), rec.bottom());
+    }
+    return result;
+}
 
 // FIXME - this probably is hella buggy and probably doesn't work correctly
 // we should kill it asap.
@@ -571,7 +583,7 @@ glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
 }
 
 glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
-    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize();
+    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y };
     glm::vec2 result = sphericalPos;
     result.x *= -1.0f;
     result /= MOUSE_RANGE;

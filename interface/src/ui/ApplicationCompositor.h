@@ -96,6 +96,8 @@ public:
     Q_INVOKABLE glm::vec2 getReticlePosition();
     Q_INVOKABLE void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
 
+    Q_INVOKABLE glm::vec2 getReticleMaximumPosition() const;
+
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
     /// return value - true means the caller should not process the event further
@@ -160,9 +162,11 @@ private:
 // Scripting interface available to control the Reticle
 class ReticleInterface : public QObject {
     Q_OBJECT
-        Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
-        Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
-        Q_PROPERTY(float depth READ getDepth WRITE setDepth)
+    Q_PROPERTY(glm::vec2 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
+    Q_PROPERTY(float depth READ getDepth WRITE setDepth)
+    Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
+
 public:
     ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
 
@@ -174,6 +178,8 @@ public:
 
     Q_INVOKABLE glm::vec2 getPosition() { return _compositor->getReticlePosition(); }
     Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
+
+    Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
 private:
     ApplicationCompositor* _compositor;
 };
