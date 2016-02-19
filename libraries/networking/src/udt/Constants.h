@@ -55,17 +55,18 @@ namespace udt {
     static const int MESSAGE_PART_NUMBER_OFFSET = 0;
 
     // Masks
-    static const uint32_t CONTROL_BIT_MASK = uint32_t(0b1) << CONTROL_BIT_OFFSET;
-    static const uint32_t RELIABILITY_BIT_MASK = uint32_t(0b1) << RELIABILITY_BIT_OFFSET;
-    static const uint32_t MESSAGE_BIT_MASK = uint32_t(0b1) << MESSAGE_BIT_OFFSET;
-    static const uint32_t OBFUSCATION_LEVEL_MASK = uint32_t(0b11) << OBFUSCATION_LEVEL_OFFSET;
+    static const uint32_t CONTROL_BIT_MASK = uint32_t(1) << CONTROL_BIT_OFFSET;
+    static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << RELIABILITY_BIT_OFFSET;
+    static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << MESSAGE_BIT_OFFSET;
+    static const uint32_t OBFUSCATION_LEVEL_MASK = uint32_t(3) << OBFUSCATION_LEVEL_OFFSET;
     static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK | OBFUSCATION_LEVEL_MASK;
     static const uint32_t SEQUENCE_NUMBER_MASK = ~BIT_FIELD_MASK;
 
-    static const uint32_t PACKET_POSITION_MASK = uint32_t(0b11) << PACKET_POSITION_OFFSET;
+    static const uint32_t PACKET_POSITION_MASK = uint32_t(3) << PACKET_POSITION_OFFSET;
     static const uint32_t MESSAGE_NUMBER_MASK = ~PACKET_POSITION_MASK;
 
     static const uint32_t MESSAGE_PART_NUMBER_MASK = ~uint32_t(0);
+
 
     // Static checks
     static_assert(CONTROL_BIT_SIZE + RELIABILITY_BIT_SIZE + MESSAGE_BIT_SIZE +
@@ -73,17 +74,17 @@ namespace udt {
     static_assert(PACKET_POSITION_SIZE + MESSAGE_NUMBER_SIZE == 32, "Message number line size incorrect");
     static_assert(MESSAGE_PART_NUMBER_SIZE  == 32, "Message part number line size incorrect");
 
-    static_assert(CONTROL_BIT_MASK         == 0b10000000000000000000000000000000, "CONTROL_BIT_MASK incorrect");
-    static_assert(RELIABILITY_BIT_MASK     == 0b01000000000000000000000000000000, "RELIABILITY_BIT_MASK incorrect");
-    static_assert(MESSAGE_BIT_MASK         == 0b00100000000000000000000000000000, "MESSAGE_BIT_MASK incorrect");
-    static_assert(OBFUSCATION_LEVEL_MASK   == 0b00011000000000000000000000000000, "OBFUSCATION_LEVEL_MASK incorrect");
-    static_assert(BIT_FIELD_MASK           == 0b11111000000000000000000000000000, "BIT_FIELD_MASK incorrect");
-    static_assert(SEQUENCE_NUMBER_MASK     == 0b00000111111111111111111111111111, "SEQUENCE_NUMBER_MASK incorrect");
+    static_assert(CONTROL_BIT_MASK == 0x80000000, "CONTROL_BIT_MASK incorrect");
+    static_assert(RELIABILITY_BIT_MASK == 0x40000000, "RELIABILITY_BIT_MASK incorrect");
+    static_assert(MESSAGE_BIT_MASK == 0x20000000, "MESSAGE_BIT_MASK incorrect");
+    static_assert(OBFUSCATION_LEVEL_MASK == 0x18000000, "OBFUSCATION_LEVEL_MASK incorrect");
+    static_assert(BIT_FIELD_MASK == 0xF8000000, "BIT_FIELD_MASK incorrect");
+    static_assert(SEQUENCE_NUMBER_MASK == 0x07FFFFFF, "SEQUENCE_NUMBER_MASK incorrect");
 
-    static_assert(PACKET_POSITION_MASK     == 0b11000000000000000000000000000000, "PACKET_POSITION_MASK incorrect");
-    static_assert(MESSAGE_NUMBER_MASK      == 0b00111111111111111111111111111111, "MESSAGE_NUMBER_MASK incorrect");
+    static_assert(PACKET_POSITION_MASK == 0xC0000000, "PACKET_POSITION_MASK incorrect");
+    static_assert(MESSAGE_NUMBER_MASK == 0x3FFFFFFF, "MESSAGE_NUMBER_MASK incorrect");
 
-    static_assert(MESSAGE_PART_NUMBER_MASK == 0b11111111111111111111111111111111, "MESSAGE_PART_NUMBER_MASK incorrect");
+    static_assert(MESSAGE_PART_NUMBER_MASK == 0xFFFFFFFF, "MESSAGE_PART_NUMBER_MASK incorrect");
 }
 
 #endif // hifi_udt_Constants_h
