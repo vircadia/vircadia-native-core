@@ -110,6 +110,7 @@ AudioClient::AudioClient() :
 
     connect(&_receivedAudioStream, &MixedProcessedAudioStream::processSamples,
             this, &AudioClient::processReceivedSamples, Qt::DirectConnection);
+    connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
 
     _inputDevices = getDeviceNames(QAudio::AudioInput);
     _outputDevices = getDeviceNames(QAudio::AudioOutput);
@@ -1042,7 +1043,6 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
             _audioOutput->setBufferSize(requestedSize);
 
             connect(_audioOutput, &QAudioOutput::notify, this, &AudioClient::outputNotify);
-            connect(this, &AudioClient::changeDevice, this, [=](const QAudioDeviceInfo& outputDeviceInfo) { switchOutputToAudioDevice(outputDeviceInfo); });
 
             _audioOutputIODevice.start();
             _audioOutput->start(&_audioOutputIODevice);
@@ -1151,6 +1151,12 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     }
 
     int bytesAudioOutputUnplayed = _audio->_audioOutput->bufferSize() - _audio->_audioOutput->bytesFree();
+    if (!bytesAudioOutputUnplayed) {
+        qCDebug(audioclient) << "empty audio buffer";
+    }
+    if (!bytesWritten) {
+        qCDebug(audioclient) << "no audio written" << _audio->_audioOutput->bytesFree() << "free," << _audio->_audioOutput->bufferSize() << "buffer";
+    }
     if (bytesAudioOutputUnplayed == 0 && bytesWritten == 0) {
         _unfulfilledReads++;
     }
