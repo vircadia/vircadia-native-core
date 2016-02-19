@@ -36,4 +36,4 @@ function setDebugBufferSize(x) {
     Render.RenderDeferredTask.DebugDeferredBuffer.size = {x: x, y: -1, z: 1, w: 1};
 }
 
-Script.scriptEnding.connect(function() { Render.fromJSON(oldConfig); } );
+Script.scriptEnding.connect(function() { Render.load(oldConfig); } );
