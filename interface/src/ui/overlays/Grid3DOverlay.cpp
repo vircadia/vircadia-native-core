@@ -13,6 +13,8 @@
 
 #include <QScriptValue>
 
+#include <OctreeConstants.h>
+
 #include <avatar/AvatarManager.h>
 #include <avatar/MyAvatar.h>
 
@@ -36,6 +38,15 @@ Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
     _minorGridEvery(grid3DOverlay->_minorGridEvery)
 {
     updateGrid();
+}
+
+AABox Grid3DOverlay::getBounds() const {
+    if (_followCamera) {
+        // This is a UI element that should always be in view, lie to the octree to avoid culling
+        const AABox DOMAIN_BOX = AABox(glm::vec3(-TREE_SCALE / 2), TREE_SCALE);
+        return DOMAIN_BOX;
+    }
+    return Planar3DOverlay::getBounds();
 }
 
 void Grid3DOverlay::render(RenderArgs* args) {

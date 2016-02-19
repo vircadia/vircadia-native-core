@@ -24,6 +24,8 @@ public:
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
 
+    virtual AABox getBounds() const;
+
     virtual void render(RenderArgs* args);
     virtual const render::ShapeKey getShapeKey() override;
     virtual void setProperties(const QScriptValue& properties);
