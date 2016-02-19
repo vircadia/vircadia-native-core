@@ -187,10 +187,10 @@ Grid = function(opts) {
             that.setVisible(data.visible, true);
         }
 
-        updateGrid();
+        updateGrid(true);
     }
 
-    function updateGrid() {
+    function updateGrid(noUpdate) {
         Overlays.editOverlay(gridOverlay, {
             position: { x: 0, y: origin.y, z: 0 },
             visible: that.visible && that.enabled,
@@ -200,7 +200,9 @@ Grid = function(opts) {
             alpha: gridAlpha,
         });
 
-        that.emitUpdate();
+        if (!noUpdate) {
+            that.emitUpdate();
+        }
     }
 
     function cleanup() {
@@ -243,7 +245,7 @@ GridTool = function(opts) {
         } else if (data.type == "update") {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {
-                listeners[i](data);
+                listeners[i] && listeners[i](data);
             }
         } else if (data.type == "action") {
             var action = data.action;
