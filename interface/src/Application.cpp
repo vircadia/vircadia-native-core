@@ -2064,9 +2064,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
+                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getTrueMouse().x, getTrueMouse().y));
+                                                   computePickRay(getMouse().x, getMouse().y));
                     sendEvent(this, &startActionEvent);
                 }
 
@@ -2115,9 +2116,10 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     switch (event->key()) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
+                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
                 // this ends the HFActionEvent
                 HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getTrueMouse().x, getTrueMouse().y));
+                                             computePickRay(getMouse().x, getMouse().y));
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -2577,10 +2579,15 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 ivec2 Application::getMouse() {
+    auto reticlePosition = _compositor.getReticlePosition();
+
+    // in the HMD, the reticlePosition is the mouse position
     if (isHMDMode()) {
-        return getTrueMouse(); // FIXME
+        return reticlePosition;
     }
-    return getTrueMouse();
+
+    // in desktop mode, we need to map from global to widget space
+    return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -4738,18 +4745,8 @@ QSize Application::getDeviceSize() const {
     return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
 }
 
-PickRay Application::computePickRay() {
-    return computePickRay(getTrueMouse().x, getTrueMouse().y);
-}
-
 bool Application::isThrottleRendering() const {
     return getActiveDisplayPlugin()->isThrottled();
-}
-
-// FIXME -- consolidate users of getTrueMouse() _compositor.getReticlePosition()
-ivec2 Application::getTrueMouse() {
-    auto reticlePosition = _compositor.getReticlePosition();
-    return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
 }
 
 bool Application::hasFocus() const {

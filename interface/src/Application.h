@@ -119,7 +119,6 @@ public:
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
-    PickRay computePickRay();
 
     bool isThrottleRendering() const;
 
@@ -142,7 +141,6 @@ public:
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse();
-    ivec2 getTrueMouse();
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
