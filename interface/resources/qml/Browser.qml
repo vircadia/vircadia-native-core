@@ -129,10 +129,6 @@ Window {
                 id: webviewProfile
                 storageName: "qmlUserBrowser"
             }
-                
-            onFeaturePermissionRequested: {
-                grantFeaturePermission(securityOrigin, feature, true);
-            }
 
         }
     } // item
