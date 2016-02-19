@@ -421,8 +421,8 @@ private:
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
     bool _hoverReferenceCameraFacingIsCaptured { false };
-    glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
-    
+    glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
+
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
     float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };
