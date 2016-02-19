@@ -21,6 +21,7 @@
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         this.strokeForwardOffset = 0.0005;
         this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
+        this.STROKE_WIDTH = 0.003;
     };
 
     MarkerTip.prototype = {
@@ -78,12 +79,12 @@
             }
 
             var localPoint = Vec3.subtract(position, this.strokeBasePosition);
-            // localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
-            _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
+            localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
+            // _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
-            this.strokeWidths.push(0.02);
+            this.strokeWidths.push(_this.STROKE_WIDTH);
 
             Entities.editEntity(_this.currentStroke, {
                 linePoints: _this.linePoints,
@@ -104,7 +105,7 @@
         setWhiteboard: function(myId, data) {
             _this.whiteboard = JSON.parse(data[0]);
             var props = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            _this.whiteboardNormal = Vec3.multiply(Quat.getRight(props.rotation), -1);
+            _this.whiteboardNormal = Quat.getRight(props.rotation);
         }
     };
 
