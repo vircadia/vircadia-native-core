@@ -11,6 +11,10 @@
 
 #include "Packet.h"
 
+#include <LogHandler.h>
+
+#include "SaltShaker.h"
+
 using namespace udt;
 
 static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
@@ -67,6 +71,26 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
     BasePacket(std::move(data), size, senderSockAddr)
 {
     readHeader();
+
+    if (getObfuscationLevel() != Packet::NoObfuscation) {
+        SaltShaker shaker;
+        shaker.unsalt(*this, getObfuscationLevel());
+        readHeader(); // read packet header again as some of the data was obfuscated
+
+        QString debugString = "Unobfuscating packet %1 with level %2";
+        debugString = debugString.arg(QString::number((uint32_t)getSequenceNumber()),
+                                      QString::number(getObfuscationLevel()));
+
+        if (isPartOfMessage()) {
+            debugString += "\n";
+            debugString += "    Message Number: %1, Part Number: %2.";
+            debugString = debugString.arg(QString::number(getMessageNumber()),
+                                          QString::number(getMessagePartNumber()));
+        }
+
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .{0,1000}");
+        qDebug() << qPrintable(debugString);
+    }
 
     adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
 }

@@ -23,7 +23,7 @@ static const std::array<Key, 4> KEYS {{
     0x54c92e8d2c871642
 }};
 
-void saltingHelper(char* start, int size, Key key) {;
+void saltingHelper(char* start, int size, Key key) {
     const auto end = start + size;
 
     auto p = start;
@@ -42,13 +42,13 @@ std::unique_ptr<Packet> SaltShaker::salt(const Packet& packet, unsigned int salt
     Q_ASSERT_X(saltiness < KEYS.size(), Q_FUNC_INFO, "");
 
     auto copy = Packet::createCopy(packet);
-    saltingHelper(copy->getPayload(), copy->getPayloadSize(), KEYS[saltiness]);
     copy->writeSequenceNumber(copy->getSequenceNumber(), (Packet::ObfuscationLevel)saltiness);
+    saltingHelper(copy->getData() + 4, copy->getDataSize() - 4, KEYS[saltiness]);
     return copy;
 }
 
-void unsalt(Packet& packet, unsigned int saltiness) {
+void SaltShaker::unsalt(Packet& packet, unsigned int saltiness) {
     Q_ASSERT_X(saltiness < KEYS.size(), Q_FUNC_INFO, "");
 
-    saltingHelper(packet.getPayload(), packet.getPayloadSize(), KEYS[saltiness]);
+    saltingHelper(packet.getData() + 4, packet.getDataSize() - 4, KEYS[saltiness]);
 }

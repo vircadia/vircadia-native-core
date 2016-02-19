@@ -338,6 +338,8 @@ bool SendQueue::maybeSendNewPacket() {
     return false;
 }
 
+#include <LogHandler.h>
+
 bool SendQueue::maybeResendPacket() {
     
     // the following while makes sure that we find a packet to re-send, if there is one
@@ -362,27 +364,26 @@ bool SendQueue::maybeResendPacket() {
                 auto& resendPacket = *(entry.second);
                 ++entry.first; // Add 1 resend
 
-                static const int OBFUSCATION_THRESHOLD = 3;
-                if (entry.first > OBFUSCATION_THRESHOLD) {
+                auto saltiness = entry.first < 2 ? 0 : (entry.first - 2) % 4;
 
-                    if (entry.first % OBFUSCATION_THRESHOLD == 0) {
-                        QString debugString = "Obfuscating packet %1 with level %2 for the first time.";
-                        debugString = debugString.arg((uint32_t)resendPacket.getSequenceNumber(),
-                                                      entry.first / OBFUSCATION_THRESHOLD);
+                if (saltiness != 0) {
+                    QString debugString = "Obfuscating packet %1 with level %2";
+                    debugString = debugString.arg(QString::number((uint32_t)resendPacket.getSequenceNumber()),
+                                                  QString::number(saltiness));
 
-                        if (resendPacket.isPartOfMessage()) {
-                            debugString += "\n";
-                            debugString += "    Message Number: %1, Part Number: %2.";
-                            debugString = debugString.arg(resendPacket.getMessageNumber(),
-                                                          resendPacket.getMessagePartNumber());
-                        }
-
-                        qCritical() << qPrintable(debugString);
+                    if (resendPacket.isPartOfMessage()) {
+                        debugString += "\n";
+                        debugString += "    Message Number: %1, Part Number: %2.";
+                        debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
+                                                      QString::number(resendPacket.getMessagePartNumber()));
                     }
 
 
+                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .{0,1000}");
+                    qCritical() << qPrintable(debugString);
+
                     SaltShaker shaker;
-                    auto packet = shaker.salt(resendPacket, glm::min(entry.first / OBFUSCATION_THRESHOLD, 3));
+                    auto packet = shaker.salt(resendPacket, saltiness);
 
                     // unlock the sent packets
                     sentLocker.unlock();
