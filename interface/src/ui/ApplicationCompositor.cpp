@@ -315,9 +315,31 @@ bool ApplicationCompositor::shouldCaptureMouse() const {
 
 void ApplicationCompositor::handleLeaveEvent() {
     if (shouldCaptureMouse()) {
-        auto applicationGeometry = qApp->getApplicationGeometry();
+        QWidget* mainWidget = (QWidget*)qApp->getWindow();
+        QRect mainWidgetFrame = qApp->getApplicationGeometry();
+        QRect uncoveredRect = mainWidgetFrame;
+        foreach(QWidget* widget, QApplication::topLevelWidgets()) {
+            if (widget->isWindow() && widget->isVisible() && widget != mainWidget) {
+                QRect widgetFrame = widget->frameGeometry();
+                if (widgetFrame.intersects(uncoveredRect)) {
+                    QRect intersection = uncoveredRect & widgetFrame;
+                    if (intersection.top() > uncoveredRect.top()) {
+                        uncoveredRect.setBottom(intersection.top() - 1);
+                    } else if (intersection.bottom() < uncoveredRect.bottom()) {
+                        uncoveredRect.setTop(intersection.bottom() + 1);
+                    }
+
+                    if (intersection.left() > uncoveredRect.left()) {
+                        uncoveredRect.setRight(intersection.left() - 1);
+                    } else if (intersection.right() < uncoveredRect.right()) {
+                        uncoveredRect.setLeft(intersection.right() + 1);
+                    }
+                }
+            }
+        }
+
         _ignoreMouseMove = true;
-        auto sendToPos = applicationGeometry.center();
+        auto sendToPos = uncoveredRect.center();
         QCursor::setPos(sendToPos);
         _lastKnownRealMouse = sendToPos;
     }
@@ -336,8 +358,9 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
         auto newPosition = QCursor::pos();
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
-        _lastKnownRealMouse = newPosition;
         setReticlePosition(newReticlePosition, sendFakeEvent);
+        _ignoreMouseMove = true;
+        QCursor::setPos(QPoint(_lastKnownRealMouse.x(), _lastKnownRealMouse.y())); // move cursor back to where it was
         return true;  // swallow the event
     } else {
         _lastKnownRealMouse = QCursor::pos();
