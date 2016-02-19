@@ -35,7 +35,7 @@ protected:
     virtual void internalPresent() override;
 
 private:
-    vr::IVRSystem* _hmd { nullptr };
+    vr::IVRSystem* _system { nullptr };
     static const QString NAME;
     mutable Mutex _poseMutex;
 };
