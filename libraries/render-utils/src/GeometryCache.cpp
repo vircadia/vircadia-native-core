@@ -600,9 +600,9 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
         gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
         gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
         gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
-        gridBuffer.edit<GridSchema>().balance = glm::vec4(glm::vec2(1.0f - majorEdge),
+        gridBuffer.edit<GridSchema>().edge = glm::vec4(glm::vec2(majorEdge),
             // If rows or columns are not set, do not draw minor gridlines
-            glm::vec2((minorRows != 0 && minorCols != 0) ? 1.0f - minorEdge : 0.0f));
+            glm::vec2((minorRows != 0 && minorCols != 0) ? minorEdge : 0.0f));
     }
 
     // Set the grid pipeline

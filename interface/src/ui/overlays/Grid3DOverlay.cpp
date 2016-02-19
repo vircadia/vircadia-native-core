@@ -81,7 +81,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Grid3DOverlay::getShapeKey() {
-    return render::ShapeKey::Builder().withTranslucent();
+    return render::ShapeKey::Builder().withOwnPipeline();
 }
 
 void Grid3DOverlay::setProperties(const QScriptValue& properties) {

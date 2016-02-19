@@ -11,36 +11,37 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-float paintStripe(float value, float offset, float scale, float balance) {
+float paintStripe(float value, float offset, float scale, float edge) {
     float width = fwidth(value);
     float normalizedWidth = width * scale;
 
     float x0 = (value + offset) * scale - normalizedWidth / 2;
     float x1 = x0 + normalizedWidth;
 
-    float i0 = balance * floor(x0) + max(0.0, fract(x0) - balance);
-    float i1 = balance * floor(x1) + max(0.0, fract(x1) - balance);
+    float balance = 1.0 - edge;
+    float i0 = edge * floor(x0) + max(0.0, fract(x0) - balance);
+    float i1 = edge * floor(x1) + max(0.0, fract(x1) - balance);
     float strip = (i1 - i0) / normalizedWidth;
 
     return clamp(strip, 0.0, 1.0);
 }
 
-float paintGrid(vec2 value, vec2 offset, vec2 scale, vec2 balance) {
+float paintGrid(vec2 value, vec2 offset, vec2 scale, vec2 edge) {
     return max(
-        paintStripe(value.x, offset.x, scale.x, balance.x),
-        paintStripe(value.y, offset.y, scale.y, balance.y));
+        paintStripe(value.x, offset.x, scale.x, edge.x),
+        paintStripe(value.y, offset.y, scale.y, edge.y));
 }
 
-float paintGridMajorMinor(vec2 value, vec4 offset, vec4 scale, vec4 balance) {
+float paintGridMajorMinor(vec2 value, vec4 offset, vec4 scale, vec4 edge) {
     return max(
-        paintGrid(value, offset.xy, scale.xy, balance.xy),
-        paintGrid(value, offset.zw, scale.zw, balance.zw));
+        paintGrid(value, offset.xy, scale.xy, edge.xy),
+        paintGrid(value, offset.zw, scale.zw, edge.zw));
 }
 
 struct Grid {
     vec4 period;
     vec4 offset;
-    vec4 balance;
+    vec4 edge;
 };
 
 uniform gridBuffer { Grid grid; };
@@ -55,10 +56,10 @@ void main(void) {
     Grid grid = getGrid();
 
     float alpha;
-    if (grid.balance.z == 0.0) {
-        alpha = paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.balance.xy);
+    if (grid.edge.z == 0.0) {
+        alpha = paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.edge.xy);
     } else {
-        alpha = paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.balance);
+        alpha = paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.edge);
     }
     if (alpha == 0.0) {
         discard;

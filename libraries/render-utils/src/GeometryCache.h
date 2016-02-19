@@ -322,7 +322,7 @@ private:
         // data is arranged as majorRow, majorCol, minorRow, minorCol
         glm::vec4 period;
         glm::vec4 offset;
-        glm::vec4 balance;
+        glm::vec4 edge;
     };
     using GridBuffer = gpu::BufferView;
     void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer);
