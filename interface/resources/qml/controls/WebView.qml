@@ -53,9 +53,12 @@ WebEngineView {
         }
     }
 
-    profile: WebEngineProfile {
-        id: webviewProfile
-        httpUserAgent: "Mozilla/5.0 (HighFidelityInterface)"
-        storageName: "qmlWebEngine"
+    onNewViewRequested:{
+            var component = Qt.createComponent("../Browser.qml");
+            var newWindow = component.createObject(desktop);
+            request.openIn(newWindow.webView)
     }
+
+
+    profile: desktop.browserProfile
 }
