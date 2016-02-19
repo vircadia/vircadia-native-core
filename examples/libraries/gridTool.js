@@ -12,7 +12,7 @@ Grid = function(opts) {
     ];
     var colorIndex = 0;
     var gridAlpha = 0.6;
-    var origin = { x: 0, y: 0, z: 0 };
+    var origin = { x: 0, y: +MyAvatar.getJointPosition('LeftToeBase').y.toFixed(1) + 0.1, z: 0 };
     var scale = 500;
     var minorGridEvery = 1.0;
     var majorGridEvery = 5;
@@ -23,12 +23,13 @@ Grid = function(opts) {
     var snapToGrid = false;
 
     var gridOverlay = Overlays.addOverlay("grid", {
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         dimensions: { x: scale, y: scale, z: scale },
+        position: origin,
         visible: false,
         drawInFront: false,
         color: colors[0],
         alpha: gridAlpha,
-        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         minorGridEvery: minorGridEvery,
         majorGridEvery: majorGridEvery,
     });

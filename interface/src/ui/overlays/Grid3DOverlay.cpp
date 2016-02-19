@@ -75,10 +75,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
             auto cameraPosition =
                 (float)_majorGridEvery * glm::round(args->_viewFrustum->getPosition() / (float)_majorGridEvery);
 
-            // Get the plane of the avatar's feet (or collision ground)
-            auto avatarBaseHeight = avatar->getPosition().y - avatar->getUniformScale();
-
-            position += glm::vec3(cameraPosition.x, avatarBaseHeight, cameraPosition.z);
+            position += glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z);
         }
 
         Transform transform;
