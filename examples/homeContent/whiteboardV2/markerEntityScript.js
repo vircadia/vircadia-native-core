@@ -14,6 +14,8 @@
 (function() {
     Script.include("../../libraries/utils.js");
 
+    var MAX_POINTS_PER_STROKE = 40;
+
     MarkerTip = function() {
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/paintStroke.png";
@@ -40,7 +42,7 @@
                 direction: Quat.getFront(props.rotation)
             }
 
-            var intersection = Entities.findRayIntersection(pickRay, true);
+            var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
 
             if (intersection.intersects) {
 
@@ -83,6 +85,10 @@
                 normals: _this.normals,
                 strokeWidths: _this.strokeWidths
             });
+
+            if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
+                _this.currentStroke = null;
+            }
         },
 
         preload: function(entityID) {
@@ -93,7 +99,7 @@
         setWhiteboard: function(myId, data) {
             _this.whiteboard = JSON.parse(data[0]);
             var props = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            this._whiteboardNormal = Vec3.multiply(Quat.getFront(props.rotation), -1);
+            this._whiteboardNormal = Vec3.multiply(Quat.getRight(props.rotation), -1);
         }
     };
 
