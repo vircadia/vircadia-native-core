@@ -139,7 +139,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
                 (material->specularTexture && !material->specularTexture->isLoaded()) ||
-                (material->emissiveTexture && !material->emissiveTexture->isLoaded())) {
+                (material->emissiveTexture && !material->emissiveTexture->isLoaded()) ||
+                (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
             }
         }
@@ -180,6 +181,13 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
             } else if (material->emissiveTextureName == name) {
                 material->emissiveTexture = textureCache->getTexture(url);
 
+                auto emissiveMap = model::TextureMapPointer(new model::TextureMap());
+                emissiveMap->setTextureSource(material->emissiveTexture->_textureSource);
+
+                networkMaterial->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
+            } else if (material->lightmapTextureName == name) {
+                material->emissiveTexture = textureCache->getTexture(url);
+
                 auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
                 lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
                 lightmapMap->setTextureTransform(
@@ -218,6 +226,10 @@ QStringList NetworkGeometry::getTextureNames() const {
         if (!material->emissiveTextureName.isEmpty() && material->emissiveTexture) {
             QString textureURL = material->emissiveTexture->getURL().toString();
             result << material->emissiveTextureName + ":\"" + textureURL + "\"";
+        }
+        if (!material->lightmapTextureName.isEmpty() && material->lightmapTexture) {
+            QString textureURL = material->lightmapTexture->getURL().toString();
+            result << material->lightmapTextureName + ":\"" + textureURL + "\"";
         }
     }
 
@@ -333,20 +345,38 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE, material.specularTexture.content);
         networkMaterial->specularTextureName = material.specularTexture.name;
 
-        auto glossMap = model::TextureMapPointer(new model::TextureMap());
-        glossMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
+        auto specularMap = model::TextureMapPointer(new model::TextureMap());
+        specularMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
 
-        material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
+        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, specularMap);
+    }
+    if (!material.roughnessTexture.filename.isEmpty()) {
+        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
+        networkMaterial->roughnessTextureName = material.roughnessTexture.name;
+
+        auto roughnessMap = model::TextureMapPointer(new model::TextureMap());
+        roughnessMap->setTextureSource(networkMaterial->roughnessTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, roughnessMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
-        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), LIGHTMAP_TEXTURE, material.emissiveTexture.content);
+        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
+
+        auto emissiveMap = model::TextureMapPointer(new model::TextureMap());
+        emissiveMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
+    }
+    if (!material.lightmapTexture.filename.isEmpty()) {
+        networkMaterial->lightmapTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.lightmapTexture.filename)), LIGHTMAP_TEXTURE, material.lightmapTexture.content);
+        networkMaterial->lightmapTextureName = material.lightmapTexture.name;
 
 
         auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-        lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
-        lightmapMap->setTextureTransform(material.emissiveTexture.transform);
-        lightmapMap->setLightmapOffsetScale(material.emissiveParams.x, material.emissiveParams.y);
+        lightmapMap->setTextureSource(networkMaterial->lightmapTexture->_textureSource);
+        lightmapMap->setTextureTransform(material.lightmapTexture.transform);
+        lightmapMap->setLightmapOffsetScale(material.lightmapParams.x, material.lightmapParams.y);
 
         material._material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
     }

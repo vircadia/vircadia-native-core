@@ -80,10 +80,19 @@ void FBXReader::consolidateFBXMaterials() {
             }
 
             material.albedoTexture = diffuseTexture;
-
             detectDifferentUVs = (diffuseTexture.texcoordSet != 0) || (!diffuseTexture.transform.isIdentity());
         }
-                
+
+
+        FBXTexture transparentTexture;
+        QString transparentTextureID = transparentTextures.value(material.materialID);
+        if (!transparentTextureID.isNull()) {
+            transparentTexture = getTexture(transparentTextureID);
+         
+            material.opacityTexture = transparentTexture;
+            detectDifferentUVs |= (transparentTexture.texcoordSet != 0) || (!transparentTexture.transform.isIdentity());
+        }
+
         FBXTexture normalTexture;
         QString bumpTextureID = bumpTextures.value(material.materialID);
         QString normalTextureID = normalTextures.value(material.materialID);
@@ -133,25 +142,23 @@ void FBXReader::consolidateFBXMaterials() {
         }
 
         FBXTexture emissiveTexture;
-        glm::vec2 emissiveParams(0.f, 1.f);
-        emissiveParams.x = _lightmapOffset;
-        emissiveParams.y = _lightmapLevel;
-
         QString emissiveTextureID = emissiveTextures.value(material.materialID);
-        QString ambientTextureID = ambientTextures.value(material.materialID);
-        if (_loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
-
-            if (!emissiveTextureID.isNull()) {
-                emissiveTexture = getTexture(emissiveTextureID);
-                emissiveParams.y = 4.0f;
-            } else if (!ambientTextureID.isNull()) {
-                emissiveTexture = getTexture(ambientTextureID);
-            }
-
-            material.emissiveParams = emissiveParams;
-            material.emissiveTexture = emissiveTexture;
-
+        if (!emissiveTextureID.isNull()) {
+            emissiveTexture = getTexture(emissiveTextureID);
             detectDifferentUVs |= (emissiveTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
+            material.emissiveTexture = emissiveTexture;
+        }
+
+        glm::vec2 lightmapParams(0.f, 1.f);
+        lightmapParams.x = _lightmapOffset;
+        lightmapParams.y = _lightmapLevel;
+        FBXTexture ambientTexture;
+        QString ambientTextureID = ambientTextures.value(material.materialID);
+        if (_loadLightmaps && !ambientTextureID.isNull()) {
+            ambientTexture = getTexture(ambientTextureID);
+            detectDifferentUVs |= (ambientTexture.texcoordSet != 0) || (!ambientTexture.transform.isIdentity());
+            material.lightmapTexture = ambientTexture;
+            material.lightmapParams = lightmapParams;
         }
 
         // Finally create the true material representation
@@ -168,7 +175,6 @@ void FBXReader::consolidateFBXMaterials() {
             material._material->setMetallic(material.metallic);
         } else {
             material._material->setRoughness(model::Material::shininessToRoughness(material.shininess));
-
             float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
             // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
             // metallic *= material.specularFactor;

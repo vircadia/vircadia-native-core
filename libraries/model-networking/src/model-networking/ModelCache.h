@@ -180,8 +180,12 @@ public:
     QSharedPointer<NetworkTexture> normalTexture;
     QString specularTextureName;
     QSharedPointer<NetworkTexture> specularTexture;
+    QString roughnessTextureName;
+    QSharedPointer<NetworkTexture> roughnessTexture;
     QString emissiveTextureName;
     QSharedPointer<NetworkTexture> emissiveTexture;
+    QString lightmapTextureName;
+    QSharedPointer<NetworkTexture> lightmapTexture;
 };
 
 

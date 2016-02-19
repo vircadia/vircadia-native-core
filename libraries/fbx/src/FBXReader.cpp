@@ -865,9 +865,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material;
-                    if (object.properties.at(1).toByteArray().contains("StingrayPBS1")) {
-                        material.isPBSMaterial = true;
-                    } else if (object.properties.at(1).toByteArray().contains("StingrayPBS2")) {
+                    if (object.properties.at(1).toByteArray().contains("StingrayPBS")) {
                         material.isPBSMaterial = true;
                     }
                     foreach (const FBXNode& subobject, object.children) {
@@ -1079,7 +1077,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("transparentcolor")) { // it should be TransparentColor...
                             // THis is how Maya assign a texture that affect diffuse color AND transparency ?
-                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            transparentTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("bump")) {
                             bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("normal")) {
@@ -1094,13 +1092,13 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             shininessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_roughness_map")) {
                             roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (_loadLightmaps && type.contains("emissive")) {
+                        } else if (type.contains("emissive")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_emissive_map")) {
                             roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (_loadLightmaps && type.contains("ambient")) {
+                        } else if (type.contains("ambient")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
-                        } else if (_loadLightmaps && type.contains("tex_ao_map")) {
+                        } else if (type.contains("tex_ao_map")) {
                             occlusionTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
                         } else if (type == "lcl rotation") {

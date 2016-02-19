@@ -105,7 +105,7 @@ DeferredFragment unpackDeferredFragment(DeferredTransform deferredTransform, vec
 
     frag.diffuse = frag.diffuseVal.xyz;
     frag.specular = frag.specularVal.xyz;
-    frag.gloss = frag.specularVal.w;
+    frag.gloss = (frag.specularVal.w * 125)*(frag.specularVal.w * 125);
 
 
     return frag;

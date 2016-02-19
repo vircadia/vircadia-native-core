@@ -212,6 +212,10 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
             return TextureLoaderFunc(model::TextureUsage::createNormalTextureFromNormalImage);
             break;
         }
+        case ROUGHNESS_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromImage);
+            break;
+        }
         case CUSTOM_TEXTURE: {
             return _textureLoader;
             break;

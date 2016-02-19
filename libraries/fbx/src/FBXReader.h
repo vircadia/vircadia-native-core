@@ -135,7 +135,7 @@ public:
         diffuseColor(diffuseColor),
         specularColor(specularColor),
         emissiveColor(emissiveColor),
-        emissiveParams(emissiveParams),
+        lightmapParams(emissiveParams),
         shininess(shininess),
         opacity(opacity)  {}
 
@@ -145,7 +145,6 @@ public:
     float specularFactor = 1.0f;
 
     glm::vec3 emissiveColor{ 0.0f };
-    glm::vec2 emissiveParams{ 0.0f, 1.0f };
     float shininess = 23.0f;
     float opacity = 1.0f;
 
@@ -173,6 +172,8 @@ public:
     FBXTexture metallicTexture;
     FBXTexture emissiveTexture;
     FBXTexture occlusionTexture;
+    FBXTexture lightmapTexture;
+    glm::vec2 lightmapParams{ 0.0f, 1.0f };
 
 
     bool isPBSMaterial{ false };
@@ -416,6 +417,7 @@ public:
 
 
     QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> transparentTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;
     QHash<QString, QString> specularTextures;

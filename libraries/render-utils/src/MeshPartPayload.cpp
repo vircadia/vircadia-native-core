@@ -175,9 +175,9 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
-    // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
-    if (materialKey.isGlossMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+    // Metallic map
+    if (materialKey.isMetallicMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
         if (specularMap && specularMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
 
