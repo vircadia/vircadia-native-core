@@ -120,19 +120,10 @@ void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition posi
 }
 
 void Packet::writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel level) const {
-    _obfuscationLevel = level;
     _sequenceNumber = sequenceNumber;
+    _obfuscationLevel = level;
     writeHeader();
 }
-
-static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 2);
-static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
-static const uint32_t OBFUSCATION_LEVEL_MASK = uint32_t(0x03) << (SEQUENCE_NUMBER_BITS - 5);
-static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK | OBFUSCATION_LEVEL_MASK;
-
-static const uint8_t PACKET_POSITION_OFFSET = 30;
-static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << PACKET_POSITION_OFFSET;
-static const uint32_t MESSAGE_NUMBER_MASK = ~PACKET_POSITION_MASK;
 
 void Packet::readHeader() const {
     SequenceNumberAndBitField* seqNumBitField = reinterpret_cast<SequenceNumberAndBitField*>(_packet.get());
@@ -141,8 +132,8 @@ void Packet::readHeader() const {
     
     _isReliable = (bool) (*seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
     _isPartOfMessage = (bool) (*seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
-    _obfuscationLevel = (ObfuscationLevel)((*seqNumBitField & OBFUSCATION_LEVEL_MASK) >> (SEQUENCE_NUMBER_BITS - 5));
-    _sequenceNumber = SequenceNumber{ *seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
+    _obfuscationLevel = (ObfuscationLevel)((*seqNumBitField & OBFUSCATION_LEVEL_MASK) >> OBFUSCATION_LEVEL_OFFSET);
+    _sequenceNumber = SequenceNumber{ *seqNumBitField & SEQUENCE_NUMBER_MASK }; // Remove the bit field
 
     if (_isPartOfMessage) {
         MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
@@ -168,7 +159,7 @@ void Packet::writeHeader() const {
     }
 
     if (_obfuscationLevel != NoObfuscation) {
-        *seqNumBitField |= (_obfuscationLevel << (SEQUENCE_NUMBER_BITS - 5));
+        *seqNumBitField |= (_obfuscationLevel << OBFUSCATION_LEVEL_OFFSET);
     }
     
     if (_isPartOfMessage) {

@@ -65,7 +65,7 @@ public:
         NoObfuscation = 0x0, // 00
         ObfuscationL1 = 0x1, // 01
         ObfuscationL2 = 0x2, // 10
-        ObfuscationL3 = 0x3, // 01
+        ObfuscationL3 = 0x3, // 11
     };
 
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
