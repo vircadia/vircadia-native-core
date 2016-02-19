@@ -13,7 +13,7 @@
 Script.include("../libraries/utils.js");
 
 
-var numSoundsToPlayPerBatch = 41
+var numSoundsToPlayPerBatch = 60
 var numSoundsPlaying = 0;
 var timeBetweenBatch = 100000;
 // A green box represents an injector that is playing
