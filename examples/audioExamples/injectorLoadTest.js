@@ -13,7 +13,7 @@
 Script.include("../libraries/utils.js");
 
 
-var numSoundsToPlayPerBatch = 50
+var numSoundsToPlayPerBatch = 35
 var numSoundsPlaying = 0;
 var timeBetweenBatch = 30000;
 // A green box represents an injector that is playing
@@ -28,16 +28,19 @@ var soundBoxes = [];
 
 var testSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/dove.wav");
 var totalInjectors = 0;
+var clipDuration;
 
 if(!testSound.downloaded) {
 
     print("SOUND IS NOT READY YET")
     testSound.ready.connect(function() {
         playSounds();
+        clipDuration = testSound.duration;
     });
 } else {
     // otherwise play sounds right away
     playSounds();
+    clipDuration = testSound.duration;
 }
 
 function playSounds() {
@@ -48,7 +51,7 @@ function playSounds() {
 
     Script.setTimeout(function() {
         numSoundsPlaying = 0;
-    }, 1500);
+    }, clipDuration);
     print("EBL Total Number of Injectors: " + totalInjectors);
     
     Script.setTimeout(function() {
