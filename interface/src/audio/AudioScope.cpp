@@ -131,7 +131,7 @@ void AudioScope::render(RenderArgs* renderArgs, int width, int height) {
     // Grid uses its own pipeline, so draw it before setting another
     const float GRID_EDGE = 0.005f;
     geometryCache->renderGrid(batch, glm::vec2(x, y), glm::vec2(x + w, y + h),
-        gridRows, gridCols, GRID_EDGE, gridColor, _audioScopeGrid);
+        gridRows, gridCols, GRID_EDGE, gridColor, true, _audioScopeGrid);
 
     geometryCache->useSimpleDrawPipeline(batch);
     auto textureCache = DependencyManager::get<TextureCache>();

@@ -207,10 +207,10 @@ public:
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
         int majorRows, int majorCols, float majorEdge,
         int minorRows, int minorCols, float minorEdge,
-        const glm::vec4& color, int id = UNKNOWN_ID);
+        const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID);
     void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
-        int rows, int cols, float edge, const glm::vec4& color, int id = UNKNOWN_ID) {
-        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, id);
+        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID) {
+        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, isLayered, id);
     }
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
@@ -325,8 +325,9 @@ private:
         glm::vec4 edge;
     };
     using GridBuffer = gpu::BufferView;
-    void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer);
+    void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered);
     gpu::PipelinePointer _gridPipeline;
+    gpu::PipelinePointer _gridPipelineLayered;
     int _gridSlot;
 
     class BatchItemDetails {

@@ -569,7 +569,7 @@ void GeometryCache::renderWireSphere(gpu::Batch& batch) {
 void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
                             int majorRows, int majorCols, float majorEdge,
                             int minorRows, int minorCols, float minorEdge,
-                            const glm::vec4& color, int id) {
+                            const glm::vec4& color, bool isLayered, int id) {
     static const glm::vec2 MIN_TEX_COORD(0.0f, 0.0f);
     static const glm::vec2 MAX_TEX_COORD(1.0f, 1.0f);
 
@@ -606,7 +606,7 @@ void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, co
     }
 
     // Set the grid pipeline
-    useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key]);
+    useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key], isLayered);
 
     renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
@@ -1656,20 +1656,27 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     }
 }
 
-void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer) {
+void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered) {
     if (!_gridPipeline) {
         auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
         auto ps = gpu::Shader::createPixel(std::string(grid_frag));
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
-
-        auto state = std::make_shared<gpu::State>();
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-
-        _gridPipeline = gpu::Pipeline::create(program, state);
         _gridSlot = program->getBuffers().findLocation("gridBuffer");
+
+        auto stateLayered = std::make_shared<gpu::State>();
+        stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _gridPipelineLayered = gpu::Pipeline::create(program, stateLayered);
+
+        auto state = std::make_shared<gpu::State>(stateLayered->getValues());
+        const float DEPTH_BIAS = 0.001f;
+        state->setDepthBias(DEPTH_BIAS);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        _gridPipeline = gpu::Pipeline::create(program, state);
     }
-    batch.setPipeline(_gridPipeline);
+
+    gpu::PipelinePointer pipeline = isLayered ? _gridPipelineLayered : _gridPipeline;
+    batch.setPipeline(pipeline);
     batch.setUniformBuffer(_gridSlot, gridBuffer);
 }
 

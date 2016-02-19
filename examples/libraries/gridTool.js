@@ -25,7 +25,7 @@ Grid = function(opts) {
     var gridOverlay = Overlays.addOverlay("grid", {
         dimensions: { x: scale, y: scale, z: scale },
         visible: false,
-        drawInFront: true,
+        drawInFront: false,
         color: colors[0],
         alpha: gridAlpha,
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
@@ -132,9 +132,7 @@ Grid = function(opts) {
 
 
     that.setPosition = function(newPosition, noUpdate) {
-        origin = newPosition;
-        origin.x = 0;
-        origin.z = 0;
+        origin = { x: 0, y: newPosition.y, z: 0 };
         updateGrid();
 
         if (!noUpdate) {
