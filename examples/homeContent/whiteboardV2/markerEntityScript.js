@@ -43,12 +43,20 @@
 
             if (intersection.intersects) {
                 var name = Entities.getEntityProperties(intersection.entityID);
+
+                this.paint()
             }
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
             print("EBL PRELOAD");
+        },
+
+        setWhiteboard: function(myId, data) {
+            _this.whiteboard = JSON.parse(data[0]);
+            var props = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
+            Entities.editEntity(_this.whiteboard, {position: {x: 0, y: 1, z: 0}});
         }
     };
 

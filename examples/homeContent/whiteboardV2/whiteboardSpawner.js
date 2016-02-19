@@ -94,6 +94,10 @@ var marker = Entities.addEntity({
     })
 });
 
+Script.setTimeout(function() {
+  Entities.callEntityMethod(marker, "setWhiteboard", [JSON.stringify(whiteboard)]);
+}, 1000)
+
 
 
 function cleanup() {
