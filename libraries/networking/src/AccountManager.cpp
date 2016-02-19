@@ -82,7 +82,7 @@ AccountManager::AccountManager() :
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
     
     // once we have a profile in account manager make sure we generate a new keypair
-    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewKeypair);
+    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -482,23 +482,32 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
     qCDebug(networking) << "AccountManager requestProfileError - " << error;
 }
 
-void AccountManager::generateNewKeypair() {
+void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainID) {
+    if (!isUserKeypair && domainID.isNull()) {
+        qWarning() << "AccountManager::generateNewKeypair called for domain keypair with no domain ID. Will not generate keypair.";
+        return;
+    }
+
     // setup a new QThread to generate the keypair on, in case it takes a while
     QThread* generateThread = new QThread(this);
     generateThread->setObjectName("Account Manager Generator Thread");
-    
+
     // setup a keypair generator
     RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();
-    
+
+    if (!isUserKeypair) {
+        keypairGenerator->setDomainID(domainID);
+    }
+
     connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
     connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
     connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
             this, &AccountManager::handleKeypairGenerationError);
     connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
     connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
-    
+
     keypairGenerator->moveToThread(generateThread);
-    
+
     qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA key-pair.";
     generateThread->start();
 }

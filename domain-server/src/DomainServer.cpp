@@ -526,6 +526,8 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     // we need this DS to know what our public IP is - start trying to figure that out now
     limitedNodeList->startSTUNPublicSocketUpdate();
 
+    // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
+
     if (!_iceHeartbeatTimer) {
         // setup a timer to heartbeat with the ice-server every so often
         _iceHeartbeatTimer = new QTimer { this };

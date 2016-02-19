@@ -87,7 +87,9 @@ public slots:
     void logout();
     void updateBalance();
     void accountInfoBalanceChanged(qint64 newBalance);
-    void generateNewKeypair();
+    void generateNewUserKeypair() { generateNewKeypair(); }
+    void generateNewDomainKeypair(const QUuid& domainID) { generateNewKeypair(false, domainID); }
+
 signals:
     void authRequired();
     void authEndpointChanged();
@@ -97,10 +99,12 @@ signals:
     void loginFailed();
     void logoutComplete();
     void balanceChanged(qint64 newBalance);
+
 private slots:
     void processReply();
     void handleKeypairGenerationError();
     void processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
+
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
@@ -110,6 +114,8 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
+
+    void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
     QUrl _authURL;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
