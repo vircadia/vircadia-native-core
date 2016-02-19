@@ -71,15 +71,12 @@ void Grid3DOverlay::render(RenderArgs* args) {
         transform.setTranslation(position);
         batch->setModelTransform(transform);
 
-        // Minor grid
         const float MINOR_GRID_EDGE = 0.0025f;
-        DependencyManager::get<GeometryCache>()->renderGrid(*batch,
-            minCorner, maxCorner, _minorGridRowDivisions, _minorGridColDivisions, gridColor, MINOR_GRID_EDGE);
-
-        // Major grid
-        const float MAJOR_GRID_EDGE = 0.01f;
-        DependencyManager::get<GeometryCache>()->renderGrid(*batch,
-            minCorner, maxCorner, _majorGridRowDivisions, _majorGridColDivisions, gridColor, MAJOR_GRID_EDGE);
+        const float MAJOR_GRID_EDGE = 0.005f;
+        DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
+            _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
+            _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
+            gridColor);
     }
 }
 

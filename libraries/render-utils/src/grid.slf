@@ -31,11 +31,16 @@ float paintGrid(vec2 value, vec2 offset, vec2 scale, vec2 balance) {
         paintStripe(value.y, offset.y, scale.y, balance.y));
 }
 
+float paintGridMajorMinor(vec2 value, vec4 offset, vec4 scale, vec4 balance) {
+    return max(
+        paintGrid(value, offset.xy, scale.xy, balance.xy),
+        paintGrid(value, offset.zw, scale.zw, balance.zw));
+}
+
 struct Grid {
-    vec2 period;
-    vec2 offset;
-    vec2 balance;
-    vec2 _;
+    vec4 period;
+    vec4 offset;
+    vec4 balance;
 };
 
 uniform gridBuffer { Grid grid; };
@@ -49,7 +54,12 @@ out vec4 outFragColor;
 void main(void) {
     Grid grid = getGrid();
 
-    float alpha = paintGrid(varTexCoord0, grid.offset, grid.period, grid.balance);
+    float alpha;
+    if (grid.balance.z == 0.0) {
+        alpha = paintGrid(varTexCoord0, grid.offset.xy, grid.period.xy, grid.balance.xy);
+    } else {
+        alpha = paintGridMajorMinor(varTexCoord0, grid.offset, grid.period, grid.balance);
+    }
     if (alpha == 0.0) {
         discard;
     }

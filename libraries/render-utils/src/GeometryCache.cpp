@@ -566,14 +566,17 @@ void GeometryCache::renderWireSphere(gpu::Batch& batch) {
     renderWireShape(batch, Sphere);
 }
 
-void GeometryCache::renderGrid(gpu::Batch& batch,
-                            const glm::vec2& minCorner, const glm::vec2& maxCorner,
-                            int rows, int cols, const glm::vec4& color, float edge, int id) {
-    static const glm::vec2 minTexCoord(0.0f, 1.0f);
-    static const glm::vec2 maxTexCoord(1.0f, 0.0f);
+void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                            int majorRows, int majorCols, float majorEdge,
+                            int minorRows, int minorCols, float minorEdge,
+                            const glm::vec4& color, int id) {
+    static const glm::vec2 MIN_TEX_COORD(0.0f, 0.0f);
+    static const glm::vec2 MAX_TEX_COORD(1.0f, 1.0f);
 
     bool registered = (id != UNKNOWN_ID);
-    Vec2FloatPair key(glm::vec2(rows, cols), edge);
+    Vec2FloatPair majorKey(glm::vec2(majorRows, majorCols), majorEdge);
+    Vec2FloatPair minorKey(glm::vec2(minorRows, minorCols), minorEdge);
+    Vec2FloatPairPair key(majorKey, minorKey);
 
     // Make the gridbuffer
     if ((registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) ||
@@ -592,16 +595,20 @@ void GeometryCache::renderGrid(gpu::Batch& batch,
             _gridBuffers[key] = gridBuffer;
         }
 
-        gridBuffer.edit<GridSchema>().period = glm::vec2(cols, rows);
-        gridBuffer.edit<GridSchema>().offset.x = -(edge / cols) / 2;
-        gridBuffer.edit<GridSchema>().offset.y = -(edge / rows) / 2;
-        gridBuffer.edit<GridSchema>().balance = glm::vec2(1 - edge);
+        gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
+        gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
+        gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
+        gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
+        gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
+        gridBuffer.edit<GridSchema>().balance = glm::vec4(glm::vec2(1.0f - majorEdge),
+            // If rows or columns are not set, do not draw minor gridlines
+            glm::vec2((minorRows != 0 && minorCols != 0) ? 1.0f - minorEdge : 0.0f));
     }
 
     // Set the grid pipeline
     useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key]);
 
-    renderQuad(batch, minCorner, maxCorner, minTexCoord, maxTexCoord, color, id);
+    renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {

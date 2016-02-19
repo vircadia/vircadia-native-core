@@ -32,6 +32,7 @@
 class SimpleProgramKey;
 
 typedef QPair<glm::vec2, float> Vec2FloatPair;
+typedef QPair<Vec2FloatPair, Vec2FloatPair> Vec2FloatPairPair;
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
@@ -42,14 +43,10 @@ typedef QPair<Vec3Pair, Vec4Pair> Vec3PairVec4Pair;
 typedef QPair<Vec4Pair, glm::vec4> Vec4PairVec4;
 typedef QPair<Vec4Pair, Vec4Pair> Vec4PairVec4Pair;
 
-inline uint qHash(const glm::vec2& v, uint seed) {
+inline uint qHash(const Vec2FloatPairPair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
-    return qHash(v.x + 5009 * v.y, seed);
-}
-
-inline uint qHash(const Vec2FloatPair& v, uint seed) {
-    // multiply by prime numbers greater than the possible size
-    return qHash(v.first.x + 5009 * v.first.y + 5011 * v.second);
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.second +
+        5021 * v.second.first.x + 5023 * v.second.first.y + 5039 * v.second.second);
 }
 
 inline uint qHash(const Vec2Pair& v, uint seed) {
@@ -207,9 +204,13 @@ public:
     void renderWireSphere(gpu::Batch& batch);
     size_t getSphereTriangleCount();
 
-    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner, int rows, int cols, const glm::vec4& color, float edge = 0.01f, int id = UNKNOWN_ID);
-    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, float edge = 0.01f, int id = UNKNOWN_ID) {
-        renderGrid(batch, glm::vec2(x, y), glm::vec2(x + width, y + height), rows, cols, color, edge, id);
+    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+        int majorRows, int majorCols, float majorEdge,
+        int minorRows, int minorCols, float minorEdge,
+        const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+        int rows, int cols, float edge, const glm::vec4& color, int id = UNKNOWN_ID) {
+        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, id);
     }
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
@@ -318,10 +319,10 @@ private:
 
     class GridSchema {
     public:
-        glm::vec2 period;
-        glm::vec2 offset;
-        glm::vec2 balance;
-        glm::vec2 _;
+        // data is arranged as majorRow, majorCol, minorRow, minorCol
+        glm::vec4 period;
+        glm::vec4 offset;
+        glm::vec4 balance;
     };
     using GridBuffer = gpu::BufferView;
     void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer);
@@ -384,8 +385,8 @@ private:
     QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
-    QHash<int, Vec2FloatPair> _lastRegisteredGridBuffer;
-    QHash<Vec2FloatPair, GridBuffer> _gridBuffers;
+    QHash<int, Vec2FloatPairPair> _lastRegisteredGridBuffer;
+    QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
