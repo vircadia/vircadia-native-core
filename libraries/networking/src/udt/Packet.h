@@ -59,7 +59,15 @@ public:
         MIDDLE = 0x3, // 11
         LAST   = 0x1  // 01
     };
-    
+
+    // Use same size as SequenceNumberAndBitField so we can use the enum with bitwise operations
+    enum ObfuscationLevel : SequenceNumberAndBitField {
+        NoObfuscation = 0x0, // 00
+        ObfuscationL1 = 0x1, // 01
+        ObfuscationL2 = 0x2, // 10
+        ObfuscationL3 = 0x3, // 01
+    };
+
     static std::unique_ptr<Packet> create(qint64 size = -1, bool isReliable = false, bool isPartOfMessage = false);
     static std::unique_ptr<Packet> fromReceivedPacket(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& senderSockAddr);
     
@@ -75,14 +83,15 @@ public:
     
     bool isPartOfMessage() const { return _isPartOfMessage; }
     bool isReliable() const { return _isReliable; }
-    
+
+    ObfuscationLevel getObfuscationLevel() const { return _obfuscationLevel; }
     SequenceNumber getSequenceNumber() const { return _sequenceNumber; }
     MessageNumber getMessageNumber() const { return _messageNumber; }
     PacketPosition getPacketPosition() const { return _packetPosition; }
     MessagePartNumber getMessagePartNumber() const { return _messagePartNumber; }
     
     void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber);
-    void writeSequenceNumber(SequenceNumber sequenceNumber) const;
+    void writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel level = NoObfuscation) const;
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
@@ -102,6 +111,7 @@ private:
     // Simple holders to prevent multiple reading and bitwise ops
     mutable bool _isReliable { false };
     mutable bool _isPartOfMessage { false };
+    mutable ObfuscationLevel _obfuscationLevel { NoObfuscation };
     mutable SequenceNumber _sequenceNumber { 0 };
     mutable MessageNumber _messageNumber { 0 };
     mutable PacketPosition _packetPosition { PacketPosition::ONLY };

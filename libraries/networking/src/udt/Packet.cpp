@@ -119,14 +119,16 @@ void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition posi
     writeHeader();
 }
 
-void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
+void Packet::writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel level) const {
+    _obfuscationLevel = level;
     _sequenceNumber = sequenceNumber;
     writeHeader();
 }
 
 static const uint32_t RELIABILITY_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 2);
 static const uint32_t MESSAGE_BIT_MASK = uint32_t(1) << (SEQUENCE_NUMBER_BITS - 3);
-static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK;
+static const uint32_t OBFUSCATION_LEVEL_MASK = uint32_t(0x03) << (SEQUENCE_NUMBER_BITS - 5);
+static const uint32_t BIT_FIELD_MASK = CONTROL_BIT_MASK | RELIABILITY_BIT_MASK | MESSAGE_BIT_MASK | OBFUSCATION_LEVEL_MASK;
 
 static const uint8_t PACKET_POSITION_OFFSET = 30;
 static const uint32_t PACKET_POSITION_MASK = uint32_t(0x03) << PACKET_POSITION_OFFSET;
@@ -139,6 +141,7 @@ void Packet::readHeader() const {
     
     _isReliable = (bool) (*seqNumBitField & RELIABILITY_BIT_MASK); // Only keep reliability bit
     _isPartOfMessage = (bool) (*seqNumBitField & MESSAGE_BIT_MASK); // Only keep message bit
+    _obfuscationLevel = (ObfuscationLevel)((*seqNumBitField & OBFUSCATION_LEVEL_MASK) >> (SEQUENCE_NUMBER_BITS - 5));
     _sequenceNumber = SequenceNumber{ *seqNumBitField & ~BIT_FIELD_MASK }; // Remove the bit field
 
     if (_isPartOfMessage) {
@@ -162,6 +165,10 @@ void Packet::writeHeader() const {
     
     if (_isReliable) {
         *seqNumBitField |= RELIABILITY_BIT_MASK;
+    }
+
+    if (_obfuscationLevel != NoObfuscation) {
+        *seqNumBitField |= (_obfuscationLevel << (SEQUENCE_NUMBER_BITS - 5));
     }
     
     if (_isPartOfMessage) {
