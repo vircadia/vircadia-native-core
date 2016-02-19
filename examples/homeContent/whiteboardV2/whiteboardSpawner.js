@@ -95,7 +95,11 @@ var marker = Entities.addEntity({
 });
 
 Script.setTimeout(function() {
-  Entities.callEntityMethod(marker, "setWhiteboard", [JSON.stringify(whiteboard)]);
+ var data = {
+    whiteboard: whiteboard,
+    markerColor: {red: 10, green: 10, blue: 200}
+ }
+  Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
 }, 1000)
 
 

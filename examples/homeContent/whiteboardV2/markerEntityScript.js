@@ -72,7 +72,7 @@
                 },
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
-                color: {red: 0, green: 10, blue: 200}
+                color: _this.markerColor
             });
 
             _this.linePoints = [];
@@ -127,10 +127,12 @@
             print("EBL PRELOAD");
         },
 
-        setWhiteboard: function(myId, data) {
-            _this.whiteboard = JSON.parse(data[0]);
+        setProperties: function(myId, data) {
+            var data = JSON.parse(data);
+            _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
             _this.whiteboardNormal = Quat.getRight(whiteboardProps.rotation);
+            _this.markerColor = data.markerColor;
         }
     };
 
