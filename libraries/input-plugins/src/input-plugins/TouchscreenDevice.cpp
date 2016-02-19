@@ -51,7 +51,7 @@ void TouchscreenDevice::pluginUpdate(float deltaTime, bool jointsCaptured) {
     }
 }
 
-void TouchscreenDevice::InputDevice::update(float deltaTime, bool jointsCaptured) {
+void TouchscreenDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _axisStateMap.clear();
 }
 
