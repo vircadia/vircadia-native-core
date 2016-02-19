@@ -37,11 +37,6 @@ WebEngineView {
         }
     }
 
-    onFeaturePermissionRequested: {
-        console.log('permission requested',securityOrigin, feature)
-        grantFeaturePermission(securityOrigin, feature, true);
-    }
-
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {
