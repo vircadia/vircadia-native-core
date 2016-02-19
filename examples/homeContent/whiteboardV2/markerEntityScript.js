@@ -22,7 +22,7 @@
         this.strokeForwardOffset = 0.0005;
         this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
         this.STROKE_WIDTH = 0.003
-        _this.MAX_MARKER_TO_BOARD_DISTANCE = 0.5;
+        _this.MAX_MARKER_TO_BOARD_DISTANCE = 0.2;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
@@ -56,6 +56,7 @@
                 this.paint(intersection.intersection)
             } else {
                 _this.currentStroke = null;
+                _this.oldPosition = null;
             }
         },
 
@@ -82,11 +83,16 @@
         },
 
         paint: function(position) {
+            var basePosition = position;
             if (!_this.currentStroke) {
-                _this.newStroke(position);
+                if (_this.oldPosition) {
+                    basePosition = _this.oldPosition;
+                    print("EBL USE OLD POSITION FOR NEW STROKE!")
+                }
+               _this.newStroke(basePosition);
             }
 
-            var localPoint = Vec3.subtract(position, this.strokeBasePosition);
+            var localPoint = Vec3.subtract(basePosition, this.strokeBasePosition);
             localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
             // _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
@@ -111,6 +117,7 @@
 
             if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
                 _this.currentStroke = null;
+                _this.oldPosition = position;
             }
         },
 
