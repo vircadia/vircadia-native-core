@@ -39,14 +39,17 @@
                 direction: Quat.getFront(props.rotation)
             }
 
-            var intersection = Entities.findRayIntersection(pickRay, true);
+            var intersection = Entities.findRayIntersection(pickRay, true, [], [_this.entityID]);
 
             if (intersection.intersects) {
+                var name = Entities.getEntityProperties(intersection.entityID);
+                print("intersection")
             }
         },
 
         preload: function(entityID) {
             this.entityID = entityID;
+            print("EBL PRELOAD");
         }
     };
 

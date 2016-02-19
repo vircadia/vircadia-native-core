@@ -27,6 +27,7 @@ var WHITEBOARD_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteb
 var WHITEBOARD_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteboard.obj";
 var whiteboard = Entities.addEntity({
     type: "Model",
+    name: "whiteboard",
     modelURL: WHITEBOARD_MODEL_URL,
     position: whiteboardPosition,
     rotation: whiteboardRotation,
@@ -63,6 +64,7 @@ var marker = Entities.addEntity({
         y: 0.0272,
         z: 0.1641
     },
+    name: "marker",
     script: MARKER_SCRIPT_URL
 });
 
