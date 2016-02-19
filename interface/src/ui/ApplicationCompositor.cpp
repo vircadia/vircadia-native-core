@@ -249,7 +249,6 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     updateTooltips();
 
-    //glm::uvec2 screenSize{ VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize(); // HMD use virtual screen size
     glm::uvec2 screenSize = qApp->getUiSize(); // HMD use virtual screen size
     vec2 canvasSize = screenSize;
     _textureAspectRatio = aspect(canvasSize);
@@ -294,7 +293,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
             _modelTransform.getMatrix(overlayXfm);
 
             auto reticlePosition = getReticlePosition();
-            glm::vec2 projection = overlayToSpherical(reticlePosition); //screenToSpherical(reticlePosition);
+            glm::vec2 projection = overlayToSpherical(reticlePosition);
             float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
