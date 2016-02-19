@@ -13,7 +13,7 @@
 Script.include("../libraries/utils.js");
 
 
-var numSoundsToPlayPerBatch = 35
+var numSoundsToPlayPerBatch = 35 // Number of simultaneously playing sounds
 var numSoundsPlaying = 0;
 var timeBetweenBatch = 30000;
 // A green box represents an injector that is playing
@@ -76,6 +76,7 @@ function playSound() {
 
     var soundBox = Entities.addEntity({
         type: "Box",
+        name: "Debug Sound Box",
         color: {red: 200, green: 10, blue: 200},
         dimensions: {x: 0.1, y: 0.1, z: 0.1},
         position: position
