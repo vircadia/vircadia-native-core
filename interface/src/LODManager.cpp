@@ -20,11 +20,6 @@
 
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
-// There are two different systems in use, based on lodPreference:
-// pid: renderDistance is adjusted by a PID such that frame rate targets are met.
-// acuity:  a pseudo-acuity target is held, or adjusted to match minimum frame rates (and a PID controlls avatar rendering distance)
-// If unspecified, acuity is used only if user has specified non-default minumum frame rates.
-Setting::Handle<int> lodPreference("lodPreference", (int)LODManager::LODPreference::acuity);
 
 LODManager::LODManager() {
 }

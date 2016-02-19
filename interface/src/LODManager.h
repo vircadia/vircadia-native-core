@@ -76,12 +76,6 @@ public:
     Q_INVOKABLE float getLODDecreaseFPS();
     Q_INVOKABLE float getLODIncreaseFPS();
     
-    enum class LODPreference {
-        pid = 0,
-        acuity,
-        unspecified
-    };
-
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     void autoAdjustLOD(float currentFPS);
     
