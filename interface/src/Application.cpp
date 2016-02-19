@@ -1265,8 +1265,7 @@ void Application::initializeUi() {
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
             _compositor.handleRealMouseMoveEvent(false);
-            auto fakeScreen = _compositor.getReticlePosition();
-            auto resultVec = _compositor.screenToOverlay(fakeScreen); // toGlm(pt));
+            auto resultVec = _compositor.getReticlePosition();
             result = QPointF(resultVec.x, resultVec.y);
         }
         return result.toPoint();
@@ -2579,7 +2578,7 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 
 ivec2 Application::getMouse() {
     if (isHMDMode()) {
-        return _compositor.screenToOverlay(getTrueMouse());
+        return getTrueMouse(); // FIXME
     }
     return getTrueMouse();
 }

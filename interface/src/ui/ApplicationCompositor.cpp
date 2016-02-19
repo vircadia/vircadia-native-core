@@ -37,8 +37,11 @@ static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 static const float reticleSize = TWO_PI / 100.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
-static const float MOUSE_PITCH_RANGE = 1.0f * PI;
-static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
+
+static const float DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_ANGULAR_SIZE / 180.0f) * PI;
+static const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE / 180.0f) * PI;
+static const float MOUSE_PITCH_RANGE = DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
+static const float MOUSE_YAW_RANGE = VIRTUAL_SCREEN_SIZE_X / VIRTUAL_SCREEN_SIZE_Y * DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
 static const glm::vec2 MOUSE_RANGE(MOUSE_YAW_RANGE, MOUSE_PITCH_RANGE);
 
 static gpu::BufferPointer _hemiVertices;
@@ -246,7 +249,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     updateTooltips();
 
-    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize(); // HMD use virtual screen size
+    //glm::uvec2 screenSize{ VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize(); // HMD use virtual screen size
+    glm::uvec2 screenSize = qApp->getUiSize(); // HMD use virtual screen size
     vec2 canvasSize = screenSize;
     _textureAspectRatio = aspect(canvasSize);
 
@@ -290,7 +294,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
             _modelTransform.getMatrix(overlayXfm);
 
             auto reticlePosition = getReticlePosition();
-            glm::vec2 projection = screenToSpherical(reticlePosition);
+            glm::vec2 projection = overlayToSpherical(reticlePosition); //screenToSpherical(reticlePosition);
             float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
@@ -314,6 +318,7 @@ bool ApplicationCompositor::shouldCaptureMouse() const {
 }
 
 void ApplicationCompositor::handleLeaveEvent() {
+
     if (shouldCaptureMouse()) {
         QWidget* mainWidget = (QWidget*)qApp->getWindow();
         QRect mainWidgetFrame = qApp->getApplicationGeometry();
@@ -376,7 +381,8 @@ glm::vec2 ApplicationCompositor::getReticlePosition() {
 }
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
-        _reticlePositionInHMD = glm::clamp(position, vec2(0), vec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y));
+        glm::vec2 maxReticlePosition = qApp->getUiSize();
+        _reticlePositionInHMD = glm::clamp(position, vec2(0), maxReticlePosition);
 
         if (sendFakeEvent) {
             // in HMD mode we need to fake our mouse moves...
@@ -572,26 +578,6 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.drawIndexed(gpu::TRIANGLES, _hemiIndexCount);
 }
 
-glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
-    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y }; // = qApp->getCanvasSize();
-    glm::vec2 result;
-    result.x = -(screenPos.x / screenSize.x - 0.5f);
-    result.y = (screenPos.y / screenSize.y - 0.5f);
-    result.x *= MOUSE_YAW_RANGE;
-    result.y *= MOUSE_PITCH_RANGE;
-    return result;
-}
-
-glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
-    glm::uvec2 screenSize { VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y };
-    glm::vec2 result = sphericalPos;
-    result.x *= -1.0f;
-    result /= MOUSE_RANGE;
-    result += 0.5f;
-    result *= screenSize;
-    return result;
-}
-
 glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
     glm::vec2 result = sphericalPos;
     result.x *= -1.0f;
@@ -610,14 +596,6 @@ glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos
     result.x *= _textureAspectRatio;
     result.x *= -1.0f;
     return result;
-}
-
-glm::vec2 ApplicationCompositor::screenToOverlay(const glm::vec2& screenPos) const {
-    return sphericalToOverlay(screenToSpherical(screenPos));
-}
-
-glm::vec2 ApplicationCompositor::overlayToScreen(const glm::vec2& overlayPos) const {
-    return sphericalToScreen(overlayToSpherical(overlayPos));
 }
 
 glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const {

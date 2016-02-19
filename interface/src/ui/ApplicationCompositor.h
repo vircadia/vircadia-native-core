@@ -26,15 +26,16 @@ class PalmData;
 class RenderArgs;
 class ReticleInterface;
 
-const int VIRTUAL_SCREEN_SIZE_X = 4096;
-const int VIRTUAL_SCREEN_SIZE_Y = 2160;
 
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
-const float DEFAULT_HMD_UI_ANGULAR_SIZE = 72.0f;
+const int VIRTUAL_SCREEN_SIZE_X = 3840;
+const int VIRTUAL_SCREEN_SIZE_Y = 1536;
+const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE = 180.0f;
+const float DEFAULT_HMD_UI_ANGULAR_SIZE = DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE * (float)VIRTUAL_SCREEN_SIZE_Y / (float)VIRTUAL_SCREEN_SIZE_X;
 
 // Handles the drawing of the overlays to the screen
 // TODO, move divide up the rendering, displaying and input handling
@@ -57,15 +58,10 @@ public:
 
     // Converter from one frame of reference to another.
     // Frame of reference:
-    // Screen: Position on the screen (x,y)
     // Spherical: Polar coordinates that gives the position on the sphere we project on (yaw,pitch)
     // Overlay: Position on the overlay (x,y)
-    // (x,y) in Overlay are similar than (x,y) in Screen except they can be outside of the bound of te screen.
-    // This allows for picking outside of the screen projection in 3D.
     glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
-    glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
-    glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
     void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
     uint32_t getOverlayTexture() const;
 
@@ -83,9 +79,6 @@ public:
 
     float getAlpha() const { return _alpha; }
     void setAlpha(float alpha) { _alpha = alpha; }
-
-    static glm::vec2 screenToSpherical(const glm::vec2 & screenPos);
-    static glm::vec2 sphericalToScreen(const glm::vec2 & sphericalPos);
 
     Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
     Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }

@@ -38,16 +38,6 @@ glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) 
     return qApp->getApplicationCompositor().overlayToSpherical(position);
 }
 
-glm::vec2 HMDScriptingInterface::screenToOverlay(const glm::vec2 & position) const {
-    return qApp->getApplicationCompositor().screenToOverlay(position);
-}
-
-glm::vec2 HMDScriptingInterface::overlayToScreen(const glm::vec2 & position) const {
-    return qApp->getApplicationCompositor().overlayToScreen(position);
-}
-
-
-
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();

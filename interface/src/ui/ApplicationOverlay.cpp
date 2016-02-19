@@ -251,11 +251,12 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
-    QSize desiredSize = qApp->getDeviceSize();
+    auto uiSize = qApp->getUiSize();
+    QSize desiredSize (uiSize.x, uiSize.y);
     int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
     int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
     QSize frameBufferCurrentSize(currentWidth, currentHeight);
-    
+
     if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
         // Already built
         return;
