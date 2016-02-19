@@ -31,7 +31,6 @@
 
 class SimpleProgramKey;
 
-typedef glm::vec3 Vec3Key;
 typedef QPair<glm::vec2, float> Vec2FloatPair;
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
@@ -46,6 +45,11 @@ typedef QPair<Vec4Pair, Vec4Pair> Vec4PairVec4Pair;
 inline uint qHash(const glm::vec2& v, uint seed) {
     // multiply by prime numbers greater than the possible size
     return qHash(v.x + 5009 * v.y, seed);
+}
+
+inline uint qHash(const Vec2FloatPair& v, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(v.first.x + 5009 * v.first.y + 5011 * v.second);
 }
 
 inline uint qHash(const Vec2Pair& v, uint seed) {
