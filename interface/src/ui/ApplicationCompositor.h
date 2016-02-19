@@ -105,6 +105,8 @@ public:
 
 
 private:
+    bool shouldCaptureMouse() const;
+
     void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
     void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);

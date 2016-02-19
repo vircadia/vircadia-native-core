@@ -308,9 +308,13 @@ QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
     return event->localPos();
 }
 
+bool ApplicationCompositor::shouldCaptureMouse() const {
+    // if we're in HMD mode, and some window of ours is active, but we're not currently showing a popup menu
+    return qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
+}
 
 void ApplicationCompositor::handleLeaveEvent() {
-    if (qApp->isHMDMode()) {
+    if (shouldCaptureMouse()) {
         auto applicationGeometry = qApp->getApplicationGeometry();
         _ignoreMouseMove = true;
         auto sendToPos = applicationGeometry.center();
@@ -328,7 +332,7 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
     }
 
     // If we're in HMD mode
-    if (qApp->isHMDMode()) {
+    if (shouldCaptureMouse()) {
         auto newPosition = QCursor::pos();
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);

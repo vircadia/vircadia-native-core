@@ -968,6 +968,7 @@ int Menu::positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPositi
     return requestedPosition;
 }
 
+bool Menu::_isSomeSubmenuShown = false;
 
 MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     QStringList menuTree = menuName.split(">");
@@ -994,6 +995,12 @@ MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     }
 
     QMenuBar::repaint();
+
+    // hook our show/hide for popup menus, so we can keep track of whether or not one
+    // of our submenus is currently showing.
+    connect(menu->_realMenu, &QMenu::aboutToShow, []() { _isSomeSubmenuShown = true; });
+    connect(menu->_realMenu, &QMenu::aboutToHide, []() { _isSomeSubmenuShown = false; });
+
     return menu;
 }
 
