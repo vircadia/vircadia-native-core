@@ -24,6 +24,7 @@
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "PacketList.h"
+#include "SaltShaker.h"
 #include "Socket.h"
 
 using namespace udt;
@@ -225,7 +226,9 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     {
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
-        _sentPackets[newPacket->getSequenceNumber()].swap(newPacket);
+        auto& entry = _sentPackets[newPacket->getSequenceNumber()];
+        entry.first = 0; // No resend
+        entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     
@@ -354,14 +357,45 @@ bool SendQueue::maybeResendPacket() {
             auto it = _sentPackets.find(resendNumber);
             
             if (it != _sentPackets.end()) {
+                auto& entry = it->second;
                 // we found the packet - grab it
-                auto& resendPacket = *(it->second);
-                
-                // send it off
-                sendPacket(resendPacket);
-                
-                // unlock the sent packets
-                sentLocker.unlock();
+                auto& resendPacket = *(entry.second);
+                ++entry.first; // Add 1 resend
+
+                static const int OBFUSCATION_THRESHOLD = 3;
+                if (entry.first > OBFUSCATION_THRESHOLD) {
+
+                    if (entry.first % OBFUSCATION_THRESHOLD == 0) {
+                        QString debugString = "Obfuscating packet %1 with level %2 for the first time.";
+                        debugString = debugString.arg((uint32_t)resendPacket.getSequenceNumber(),
+                                                      entry.first / OBFUSCATION_THRESHOLD);
+
+                        if (resendPacket.isPartOfMessage()) {
+                            debugString += "\n";
+                            debugString += "    Message Number: %1, Part Number: %2.";
+                            debugString = debugString.arg(resendPacket.getMessageNumber(),
+                                                          resendPacket.getMessagePartNumber());
+                        }
+
+                        qCritical() << qPrintable(debugString);
+                    }
+
+
+                    SaltShaker shaker;
+                    auto packet = shaker.salt(resendPacket, glm::min(entry.first / OBFUSCATION_THRESHOLD, 3));
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+
+                    // send it off
+                    sendPacket(*packet);
+                } else {
+                    // send it off
+                    sendPacket(resendPacket);
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+                }
                 
                 emit packetRetransmitted();
                 
