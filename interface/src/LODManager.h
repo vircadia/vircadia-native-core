@@ -81,8 +81,6 @@ public:
         acuity,
         unspecified
     };
-    static bool getUseAcuity();
-    static void setUseAcuity(bool newValue);
     Q_INVOKABLE void setRenderDistanceKP(float newValue) { _renderDistanceController.setKP(newValue); }
     Q_INVOKABLE void setRenderDistanceKI(float newValue) { _renderDistanceController.setKI(newValue); }
     Q_INVOKABLE void setRenderDistanceKD(float newValue) { _renderDistanceController.setKD(newValue); }
@@ -95,7 +93,6 @@ public:
     void updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled);
     float getRenderDistance();
     int getRenderedCount();
-    QString getLODStatsRenderText();
 
     static bool shouldRender(const RenderArgs* args, const AABox& bounds);
     void autoAdjustLOD(float currentFPS);

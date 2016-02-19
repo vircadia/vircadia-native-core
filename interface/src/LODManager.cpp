@@ -237,17 +237,11 @@ QString LODManager::getLODFeedbackText() {
 static float renderDistance = (float)TREE_SCALE;
 static int renderedCount = 0;
 static int lastRenderedCount = 0;
-bool LODManager::getUseAcuity() { return lodPreference.get() == (int)LODManager::LODPreference::acuity; }
-void LODManager::setUseAcuity(bool newValue) { lodPreference.set(newValue ? (int)LODManager::LODPreference::acuity : (int)LODManager::LODPreference::pid); }
 float LODManager::getRenderDistance() {
     return renderDistance;
 }
 int LODManager::getRenderedCount() {
     return lastRenderedCount;
-}
-QString LODManager::getLODStatsRenderText() {
-    const QString label = "Rendered objects: ";
-    return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
 }
 // compare autoAdjustLOD()
 void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
@@ -270,17 +264,6 @@ void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, flo
 }
 
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
-    // NOTE: this branch of code is the alternate form of LOD that uses PID controllers.
-    if (!getUseAcuity()) {
-        float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
-        float largestDimension = bounds.getLargestDimension();
-        const float scenerySize = 300; // meters
-        bool isRendered = (largestDimension > scenerySize) || // render scenery regardless of distance
-            (distanceToCamera < renderDistance + largestDimension);
-        renderedCount += isRendered ? 1 : 0;
-        return isRendered;
-    }
-    
     // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
     // to use in rendering.
     float renderAccuracy = args->_viewFrustum->calculateRenderAccuracy(bounds, args->_sizeScale, args->_boundaryLevelAdjust);
@@ -299,12 +282,6 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
-
-    if (lodPreference.get() == (int)LODManager::LODPreference::unspecified) {
-        setUseAcuity((getDesktopLODDecreaseFPS() != DEFAULT_DESKTOP_LOD_DOWN_FPS) || (getHMDLODDecreaseFPS() != DEFAULT_HMD_LOD_DOWN_FPS));
-    }
-    Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(getUseAcuity());
-    Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(getUseAcuity());
 }
 
 void LODManager::saveSettings() {

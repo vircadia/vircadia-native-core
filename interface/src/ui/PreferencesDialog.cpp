@@ -87,13 +87,6 @@ void setupPreferences() {
     }
     
     static const QString LOD_TUNING("Level of Detail Tuning");
-    CheckPreference* acuityToggle;
-    {
-        auto getter = []()->bool { return DependencyManager::get<LODManager>()->getUseAcuity(); };
-        auto setter = [](bool value) { DependencyManager::get<LODManager>()->setUseAcuity(value); };
-        preferences->addPreference(acuityToggle = new CheckPreference(LOD_TUNING, "Render based on visual acuity", getter, setter));
-    }
-
     {
         auto getter = []()->float { return DependencyManager::get<LODManager>()->getDesktopLODDecreaseFPS(); };
         auto setter = [](float value) { DependencyManager::get<LODManager>()->setDesktopLODDecreaseFPS(value); };
@@ -101,7 +94,6 @@ void setupPreferences() {
         preference->setMin(0);
         preference->setMax(120);
         preference->setStep(1);
-        preference->setEnabler(acuityToggle);
         preferences->addPreference(preference);
     }
 
@@ -112,18 +104,6 @@ void setupPreferences() {
         preference->setMin(0);
         preference->setMax(120);
         preference->setStep(1);
-        preference->setEnabler(acuityToggle);
-        preferences->addPreference(preference);
-    }
-
-    {
-        auto getter = []()->float { return 1.0f / DependencyManager::get<LODManager>()->getRenderDistanceInverseHighLimit(); };
-        auto setter = [](float value) { DependencyManager::get<LODManager>()->setRenderDistanceInverseHighLimit(1.0f / value); };
-        auto preference = new SpinnerPreference(LOD_TUNING, "Minimum Display Distance", getter, setter);
-        preference->setMin(5);
-        preference->setMax(32768);
-        preference->setStep(1);
-        preference->setEnabler(acuityToggle, true);
         preferences->addPreference(preference);
     }
 
