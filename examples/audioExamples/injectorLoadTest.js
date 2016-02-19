@@ -15,7 +15,7 @@ Script.include("../libraries/utils.js");
 
 var numSoundsToPlayPerBatch = 41
 var numSoundsPlaying = 0;
-var timeBetweenBatch = 10000;
+var timeBetweenBatch = 100000;
 // A green box represents an injector that is playing
 
 var basePosition = {
@@ -45,6 +45,10 @@ function playSounds() {
     for (var i = 0; i < numSoundsToPlayPerBatch; i++) {
         playSound();
     } 
+
+    Script.setTimeout(function() {
+        numSoundsPlaying = 0;
+    }, 1500);
     print("EBL Total Number of Injectors: " + totalInjectors);
     
     Script.setTimeout(function() {
@@ -57,11 +61,13 @@ function playSound() {
     var position = Vec3.sum(basePosition, {x: randFloat(-.1, .1), y: randFloat(-1, 1), z: randFloat(-3, -.1)});
     var injector = Audio.playSound(testSound, {
         position: position,
-        volume: 0.1
+        volume: 0.2
     });
 
+    numSoundsPlaying++;
+    print("NUM SOUNDS PLAYING: " + numSoundsPlaying);
+    print("*******************************************");
     print("INJECTOR VALUE: " + JSON.stringify(injector));
-
     totalInjectors++;
 
     var soundBox = Entities.addEntity({
