@@ -21,7 +21,11 @@
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         this.strokeForwardOffset = 0.0005;
         this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
-        this.STROKE_WIDTH = 0.003;
+        this.STROKE_WIDTH = 0.003
+        _this.MAX_MARKER_TO_BOARD_DISTANCE = 0.5;
+        _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
+        _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
+        _this.strokes = [];
     };
 
     MarkerTip.prototype = {
@@ -38,18 +42,20 @@
         continueHolding: function() {
             // cast a ray from marker and see if it hits anything
 
-            var props = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
+            var markerProps = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
+
 
             var pickRay = {
-                origin: props.position,
-                direction: Quat.getFront(props.rotation)
+                origin: markerProps.position,
+                direction: Quat.getFront(markerProps.rotation)
             }
 
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
 
-            if (intersection.intersects) {
-
+            if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 this.paint(intersection.intersection)
+            } else {
+                _this.currentStroke = null;
             }
         },
 
@@ -71,6 +77,8 @@
             _this.linePoints = [];
             _this.normals = [];
             _this.strokeWidths = [];
+
+            _this.strokes.push(_this.currentStroke);
         },
 
         paint: function(position) {
@@ -81,6 +89,15 @@
             var localPoint = Vec3.subtract(position, this.strokeBasePosition);
             localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
             // _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
+
+            if (_this.linePoints.length > 0) {
+                var distance  = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length-1]);
+                if (distance < _this.MIN_DISTANCE_BETWEEN_POINTS) {
+                    print("EBL not enough distance")
+                    return;
+                }
+            }
+
 
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
@@ -99,13 +116,14 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
+           
             print("EBL PRELOAD");
         },
 
         setWhiteboard: function(myId, data) {
             _this.whiteboard = JSON.parse(data[0]);
-            var props = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            _this.whiteboardNormal = Quat.getRight(props.rotation);
+            var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
+            _this.whiteboardNormal = Quat.getRight(whiteboardProps.rotation);
         }
     };
 
