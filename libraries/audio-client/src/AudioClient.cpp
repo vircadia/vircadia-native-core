@@ -1154,9 +1154,6 @@ qint64 AudioClient::AudioOutputIODevice::readData(char * data, qint64 maxSize) {
     if (!bytesAudioOutputUnplayed) {
         qCDebug(audioclient) << "empty audio buffer";
     }
-    if (!bytesWritten) {
-        qCDebug(audioclient) << "no audio written" << _audio->_audioOutput->bytesFree() << "free," << _audio->_audioOutput->bufferSize() << "buffer";
-    }
     if (bytesAudioOutputUnplayed == 0 && bytesWritten == 0) {
         _unfulfilledReads++;
     }
