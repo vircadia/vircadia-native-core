@@ -59,9 +59,14 @@ void Grid3DOverlay::render(RenderArgs* args) {
         if (_followCamera) {
             auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
 
-            // Add the camera position at the plane of the avatar's base (the floor)
-            auto cameraPosition = args->_viewFrustum->getPosition();
+            // Get the camera position rounded to the nearest major grid line
+            // This grid is for UI and should lie on worldlines
+            auto cameraPosition =
+                (float)_majorGridEvery * glm::round(args->_viewFrustum->getPosition() / (float)_majorGridEvery);
+
+            // Get the plane of the avatar's feet (or collision ground)
             auto avatarBaseHeight = avatar->getPosition().y - avatar->getUniformScale();
+
             position += glm::vec3(cameraPosition.x, avatarBaseHeight, cameraPosition.z);
         }
 
