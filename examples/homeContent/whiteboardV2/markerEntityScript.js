@@ -99,11 +99,9 @@
             if (_this.linePoints.length > 0) {
                 var distance  = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length-1]);
                 if (distance < _this.MIN_DISTANCE_BETWEEN_POINTS) {
-                    print("EBL not enough distance")
                     return;
                 }
             }
-
 
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
@@ -131,6 +129,7 @@
             var data = JSON.parse(data);
             _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
+            print("EBL: MARKER COLOR " + JSON.stringify(data.markerColor));
             _this.whiteboardNormal = Quat.getRight(whiteboardProps.rotation);
             _this.markerColor = data.markerColor;
         }
