@@ -76,15 +76,23 @@ Packet::Packet(const Packet& other) :
 {
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
     _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
 }
 
 Packet& Packet::operator=(const Packet& other) {
     BasePacket::operator=(other);
-    
+
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
     _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
 
     return *this;
 }
@@ -94,19 +102,23 @@ Packet::Packet(Packet&& other) :
 {
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
     _sequenceNumber = other._sequenceNumber;
     _packetPosition = other._packetPosition;
     _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
 }
 
 Packet& Packet::operator=(Packet&& other) {
     BasePacket::operator=(std::move(other));
-    
+
     _isReliable = other._isReliable;
     _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
     _sequenceNumber = other._sequenceNumber;
     _packetPosition = other._packetPosition;
     _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
 
     return *this;
 }
