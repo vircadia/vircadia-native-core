@@ -10,6 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+Script.include("../../libraries/utils.js")
 
 var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
@@ -62,19 +63,23 @@ function createMarkers() {
         blue: 200
     });
 
-    markerPosition = Vec3.sum(markerPosition, Vec3.multiply(-0.2, Quat.getFront(markerRotation)));
-    createMarker(modelURLS[1], markerPosition, {
-        red: 200,
-        green: 10,
-        blue: 10
-    });
 
-    markerPosition = Vec3.sum(markerPosition, Vec3.multiply(0.4, Quat.getFront(markerRotation)));
-    createMarker(modelURLS[2], markerPosition, {
-        red: 10,
-        green: 10,
-        blue: 10
-    });
+    Script.setTimeout(function() {
+
+        markerPosition = Vec3.sum(markerPosition, Vec3.multiply(-0.2, Quat.getFront(markerRotation)));
+        createMarker(modelURLS[1], markerPosition, {
+            red: 200,
+            green: 10,
+            blue: 10
+        });
+    }, 1000);
+
+    // markerPosition = Vec3.sum(markerPosition, Vec3.multiply(0.4, Quat.getFront(markerRotation)));
+    // createMarker(modelURLS[2], markerPosition, {
+    //     red: 10,
+    //     green: 10,
+    //     blue: 10
+    // });
 }
 
 
@@ -139,6 +144,10 @@ function createMarker(modelURL, markerPosition, markerColor) {
             whiteboard: whiteboard,
             markerColor: markerColor
         }
+        var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
+        print("EBL MARKER URL " + JSON.stringify(modelURL))
+        print("EBL MARKER COLOR " + JSON.stringify(markerColor))
+   
         Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
     }, 1000)
 

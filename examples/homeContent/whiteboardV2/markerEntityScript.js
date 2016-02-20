@@ -15,7 +15,7 @@
     Script.include("../../libraries/utils.js");
 
     var MAX_POINTS_PER_STROKE = 40;
-
+var _this;
     MarkerTip = function() {
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
@@ -49,12 +49,17 @@
                 origin: markerProps.position,
                 direction: Quat.getFront(markerProps.rotation)
             }
-
+            print('MARKER ID'+_this.entityID)
+            print('MARKER POSITION'+JSON.stringify(markerProps.position))
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
-
+            print('WHITEBOARD AT CONTINUE:: '+_this.whiteboard);
+            print('DOES INTERSECT??'+intersection.intersects)
+             print('MARKER DISTANCE::'+Vec3.distance(intersection.intersection, markerProps.position))
+             print('MAX DISTANCE::'+_this.MAX_MARKER_TO_BOARD_DISTANCE)
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 this.paint(intersection.intersection)
             } else {
+                print('not painting because intersection')
                 _this.currentStroke = null;
                 _this.oldPosition = null;
             }
@@ -103,6 +108,7 @@
                 }
             }
 
+            print("PAINT " + JSON.stringify(_this.markerColor));
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
             this.strokeWidths.push(_this.STROKE_WIDTH);
@@ -127,9 +133,10 @@
 
         setProperties: function(myId, data) {
             var data = JSON.parse(data);
+                        print("EBL SET PROPERTIES! ON " + JSON.stringify(data.markerColor)+ "id:"+ JSON.stringify(myId));
+
             _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            print("EBL: MARKER COLOR " + JSON.stringify(data.markerColor));
             _this.whiteboardNormal = Quat.getRight(whiteboardProps.rotation);
             _this.markerColor = data.markerColor;
         }
