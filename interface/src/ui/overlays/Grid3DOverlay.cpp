@@ -15,9 +15,6 @@
 
 #include <OctreeConstants.h>
 
-#include <avatar/AvatarManager.h>
-#include <avatar/MyAvatar.h>
-
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PathUtils.h>
@@ -68,8 +65,6 @@ void Grid3DOverlay::render(RenderArgs* args) {
 
         auto position = getPosition();
         if (_followCamera) {
-            auto avatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-
             // Get the camera position rounded to the nearest major grid line
             // This grid is for UI and should lie on worldlines
             auto cameraPosition =
