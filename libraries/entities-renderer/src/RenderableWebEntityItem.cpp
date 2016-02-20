@@ -58,7 +58,9 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
 
     qDebug() << "Building web surface";
     ++_currentWebCount;
+    // Save the original GL context, because creating a QML surface will create a new context
     QOpenGLContext * currentContext = QOpenGLContext::currentContext();
+    QSurface * currentSurface = currentContext->surface();
     _webSurface = new OffscreenQmlSurface();
     _webSurface->create(currentContext);
     _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
@@ -68,6 +70,8 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     _connection = QObject::connect(_webSurface, &OffscreenQmlSurface::textureUpdated, [&](GLuint textureId) {
         _texture = textureId;
     });
+    // Restore the original GL context
+    currentContext->makeCurrent(currentSurface);
 
     auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
         // Ignore mouse interaction if we're locked
@@ -142,7 +146,6 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
             QCoreApplication::sendEvent(_webSurface->getWindow(), &mappedEvent);
         }
     };
-
     _mousePressConnection = QObject::connect(renderer, &EntityTreeRenderer::mousePressOnEntity, forwardMouseEvent);
     _mouseReleaseConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseReleaseOnEntity, forwardMouseEvent);
     _mouseMoveConnection = QObject::connect(renderer, &EntityTreeRenderer::mouseMoveOnEntity, forwardMouseEvent);
@@ -176,16 +179,12 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     }
 
     _lastRenderTime = usecTimestampNow();
-    QOpenGLContext * currentContext = QOpenGLContext::currentContext();
-    QSurface * currentSurface = currentContext->surface();
-
     glm::vec2 dims = glm::vec2(getDimensions());
     dims *= METERS_TO_INCHES * DPI;
     // The offscreen surface is idempotent for resizes (bails early
     // if it's a no-op), so it's safe to just call resize every frame 
     // without worrying about excessive overhead.
     _webSurface->resize(QSize(dims.x, dims.y));
-    currentContext->makeCurrent(currentSurface);
 
     PerformanceTimer perfTimer("RenderableWebEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Web);
