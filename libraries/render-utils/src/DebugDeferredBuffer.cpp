@@ -54,25 +54,51 @@ enum Slot {
 
 static const std::string DEFAULT_ALBEDO_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(pow(texture(albedoMap, uv).xyz, vec3(1.0 / 2.2)), 1.0);"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(pow(frag.diffuse, vec3(1.0 / 2.2)), 1.0);"
     " }"
 };
 
-static const std::string DEFAULT_SPECULAR_SHADER {
+static const std::string DEFAULT_FRESNEL_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(texture(specularMap, uv).xyz, 1.0);"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(pow(frag.specular, vec3(1.0 / 2.2)), 1.0);"
+    " }"
+};
+
+static const std::string DEFAULT_METALLIC_SHADER {
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(vec3(frag.metallic), 1.0);"
     " }"
 };
 static const std::string DEFAULT_ROUGHNESS_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(specularMap, uv).a), 1.0);"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(vec3(frag.roughness), 1.0);"
     " }"
 };
 static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
-    "    return vec4(normalize(texture(normalMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return vec4(normalize(frag.normal), 1.0);"
     " }"
 };
+
+static const std::string DEFAULT_EMISSIVE_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return (frag.mode != LIGHT_MAPPED ? vec4(pow(frag.emissive, vec3(1.0 / 2.2)), 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
+static const std::string DEFAULT_LIGHTMAP_SHADER{
+    "vec4 getFragmentColor() {"
+    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
+    "    return (frag.mode == LIGHT_MAPPED ? vec4(frag.emissive, 1.0) : vec4(vec3(0.0), 1.0));"
+    " }"
+};
+
 static const std::string DEFAULT_DEPTH_SHADER {
     "vec4 getFragmentColor() {"
     "    return vec4(vec3(texture(depthMap, uv).x), 1.0);"
@@ -146,14 +172,20 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
     switch (mode) {
         case AlbedoMode:
             return DEFAULT_ALBEDO_SHADER;
-        case SpecularMode:
-            return DEFAULT_SPECULAR_SHADER;
+        case FresnelMode:
+            return DEFAULT_FRESNEL_SHADER;
+        case MetallicMode:
+            return DEFAULT_METALLIC_SHADER;
         case RoughnessMode:
             return DEFAULT_ROUGHNESS_SHADER;
         case NormalMode:
             return DEFAULT_NORMAL_SHADER;
         case DepthMode:
             return DEFAULT_DEPTH_SHADER;
+        case EmissiveMode:
+            return DEFAULT_EMISSIVE_SHADER;
+        case LightmapMode:
+            return DEFAULT_LIGHTMAP_SHADER;
         case LightingMode:
             return DEFAULT_LIGHTING_SHADER;
         case ShadowMode:

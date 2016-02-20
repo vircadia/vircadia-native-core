@@ -37,8 +37,9 @@ void main(void) {
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
     vec3 fragAlbedo = getMaterialAlbedo(mat) * albedo.rgb * _color;
+    float fragMetallic = getMaterialMetallic(mat);
     vec3 fragFresnel = getMaterialFresnel(mat);
-    float fragGloss = getMaterialShininess(mat) / 128;
+    float fragRoughness = getMaterialRoughness(mat);
     float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
     TransformCamera cam = getTransformCamera();
@@ -50,7 +51,8 @@ void main(void) {
         fragPosition,
         fragNormal,
         fragAlbedo,
+        fragMetallic,
         fragFresnel,
-        fragGloss),
+        fragRoughness),
         fragOpacity);
 }

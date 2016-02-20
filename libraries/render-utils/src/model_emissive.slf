@@ -32,7 +32,8 @@ void main(void) {
         normalize(_normal), 
         texel.a,
         vec3(1.0),
+        getMaterialRoughness(mat),
+        getMaterialMetallic(mat),
         getMaterialFresnel(mat),
-        getMaterialShininess(mat),
         fragColor);
 }

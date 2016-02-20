@@ -26,8 +26,20 @@ Column {
         ExclusiveGroup { id: bufferGroup }
         Repeater {
             model: [
-                "Off", "Diffuse", "Metallic", "Roughness", "Normal", "Depth",
-                "Lighting", "Shadow", "Pyramid Depth", "Ambient Occlusion", "Custom Shader"
+                "Off",
+                "Depth",
+                "Diffuse",
+                "Normal",
+                "Roughness",
+                "Metallic",              
+                "Fresnel",
+                "Emissive",
+                "Lightmap",
+                "Lighting",
+                "Shadow",
+                "Pyramid Depth",
+                "Ambient Occlusion",
+                "Custom Shader"
             ]
            RadioButton {
                 text: qsTr(modelData)

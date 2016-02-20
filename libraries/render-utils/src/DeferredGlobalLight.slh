@@ -30,7 +30,7 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
 <@include model/Light.slh@>
 
 <@func declareEvalAmbientGlobalColor()@>
-vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float gloss) {
+vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness) {
 
     // Need the light now
     Light light = getLight();
@@ -41,7 +41,7 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obsc
 
     vec3 color = albedo * getLightColor(light) * obscurance * getLightAmbientIntensity(light);
 
-    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, fresnel, gloss);
+    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, fresnel, roughness);
 
     color += vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 
@@ -52,7 +52,7 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obsc
 <@func declareEvalAmbientSphereGlobalColor()@>
 
 
-vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float gloss) {
+vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness) {
     // Need the light now
     Light light = getLight();
     
@@ -64,7 +64,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
     vec3 color = albedo * evalSphericalLight(getLightAmbientSphere(light), ambientNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
-    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, fresnel, gloss);
+    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, fresnel, roughness);
 
     color += vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 
@@ -76,7 +76,7 @@ vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, floa
 
 <$declareSkyboxMap()$>
 
-vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, vec3 fresnel, float gloss) {
+vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 fresnel, float roughness) {
     // Need the light now
     Light light = getLight();
     
@@ -87,7 +87,7 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
     vec3 color = albedo * evalSphericalLight(getLightAmbientSphere(light), fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
 
-    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, fresnel, gloss);
+    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, fresnel, roughness);
 
     color += vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
 

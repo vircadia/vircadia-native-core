@@ -14,15 +14,17 @@
 
 <@func declareEvalPBRShading()@>
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
+vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 specular, float roughness) {
     // Diffuse Lighting
     float diffuseDot = dot(fragNormal, fragLightDir);
     float facingLight = step(0.0, diffuseDot);
     float diffuse = diffuseDot * facingLight;
  
-    // Specular Lighting depends on the half vector and the gloss
+    // Specular Lighting depends on the half vector and the roughness
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
+    float gloss = (1.0 - roughness) * 128.0;
+    gloss *= gloss;
     float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss);
     specularPower *= (gloss * 0.125 + 0.25);
 
@@ -38,15 +40,17 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 sp
 
 <@func declareEvalBlinnRShading()@>
 
-vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
+vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float roughness) {
     // Diffuse Lighting
     float diffuseDot = dot(fragNormal, fragLightDir);
     float facingLight = step(0.0, diffuseDot);
     float diffuse = diffuseDot * facingLight;
  
-    // Specular Lighting depends on the half vector and the gloss
+    // Specular Lighting depends on the half vector and the roughness
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
+    float gloss = (1.0 - roughness) * 128.0;
+    glos *= gloss;
     float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss);
     vec3 reflect = specularPower * specular * diffuse;
 
@@ -59,8 +63,8 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
-vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
-    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
+vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 specular, float roughness) {
+    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, specular, roughness);
 }
 
 <@endif@>

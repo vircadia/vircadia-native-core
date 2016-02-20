@@ -30,13 +30,13 @@ public:
         EMISSIVE_VAL_BIT = 0,
         ALBEDO_VAL_BIT,
         METALLIC_VAL_BIT,
-        GLOSS_VAL_BIT,
+        GLOSSY_VAL_BIT,
         TRANSPARENT_VAL_BIT,
 
         EMISSIVE_MAP_BIT,
         ALBEDO_MAP_BIT,
         METALLIC_MAP_BIT,
-        GLOSS_MAP_BIT,
+        ROUGHNESS_MAP_BIT,
         TRANSPARENT_MAP_BIT,
         NORMAL_MAP_BIT,
         LIGHTMAP_MAP_BIT,
@@ -49,7 +49,7 @@ public:
         EMISSIVE_MAP = 0,
         ALBEDO_MAP,
         METALLIC_MAP,
-        GLOSS_MAP,
+        ROUGHNESS_MAP,
         TRANSPARENT_MAP,
         NORMAL_MAP,
         LIGHTMAP_MAP,
@@ -73,13 +73,13 @@ public:
         Builder& withEmissive() { _flags.set(EMISSIVE_VAL_BIT); return (*this); }
         Builder& withAlbedo() { _flags.set(ALBEDO_VAL_BIT); return (*this); }
         Builder& withMetallic() { _flags.set(METALLIC_VAL_BIT); return (*this); }
-        Builder& withGloss() { _flags.set(GLOSS_VAL_BIT); return (*this); }
+        Builder& withGlossy() { _flags.set(GLOSSY_VAL_BIT); return (*this); }
         Builder& withTransparent() { _flags.set(TRANSPARENT_VAL_BIT); return (*this); }
 
         Builder& withEmissiveMap() { _flags.set(EMISSIVE_MAP_BIT); return (*this); }
         Builder& withAlbedoMap() { _flags.set(ALBEDO_MAP_BIT); return (*this); }
         Builder& withMetallicMap() { _flags.set(METALLIC_MAP_BIT); return (*this); }
-        Builder& withGlossMap() { _flags.set(GLOSS_MAP_BIT); return (*this); }
+        Builder& withRoughnessMap() { _flags.set(ROUGHNESS_MAP_BIT); return (*this); }
         Builder& withTransparentMap() { _flags.set(TRANSPARENT_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
@@ -107,11 +107,12 @@ public:
     void setMetallicMap(bool value) { _flags.set(METALLIC_MAP_BIT, value); }
     bool isMetallicMap() const { return _flags[METALLIC_MAP_BIT]; }
 
-    void setGloss(bool value) { _flags.set(GLOSS_VAL_BIT, value); }
-    bool isGloss() const { return _flags[GLOSS_VAL_BIT]; }
+    void setGlossy(bool value) { _flags.set(GLOSSY_VAL_BIT, value); }
+    bool isGlossy() const { return _flags[GLOSSY_VAL_BIT]; }
+    bool isRough() const { return !_flags[GLOSSY_VAL_BIT]; }
 
-    void setGlossMap(bool value) { _flags.set(GLOSS_MAP_BIT, value); }
-    bool isGlossMap() const { return _flags[GLOSS_MAP_BIT]; }
+    void setRoughnessMap(bool value) { _flags.set(ROUGHNESS_MAP_BIT, value); }
+    bool isRoughnessMap() const { return _flags[ROUGHNESS_MAP_BIT]; }
 
     void setTransparent(bool value) { _flags.set(TRANSPARENT_VAL_BIT, value); }
     bool isTransparent() const { return _flags[TRANSPARENT_VAL_BIT]; }
@@ -166,11 +167,11 @@ public:
         Builder& withoutMetallicMap()       { _value.reset(MaterialKey::METALLIC_MAP_BIT); _mask.set(MaterialKey::METALLIC_MAP_BIT); return (*this); }
         Builder& withMetallicMap()        { _value.set(MaterialKey::METALLIC_MAP_BIT);  _mask.set(MaterialKey::METALLIC_MAP_BIT); return (*this); }
 
-        Builder& withoutGloss()       { _value.reset(MaterialKey::GLOSS_VAL_BIT); _mask.set(MaterialKey::GLOSS_VAL_BIT); return (*this); }
-        Builder& withGloss()        { _value.set(MaterialKey::GLOSS_VAL_BIT);  _mask.set(MaterialKey::GLOSS_VAL_BIT); return (*this); }
+        Builder& withoutGlossy()       { _value.reset(MaterialKey::GLOSSY_VAL_BIT); _mask.set(MaterialKey::GLOSSY_VAL_BIT); return (*this); }
+        Builder& withGlossy()        { _value.set(MaterialKey::GLOSSY_VAL_BIT);  _mask.set(MaterialKey::GLOSSY_VAL_BIT); return (*this); }
 
-        Builder& withoutGlossMap()       { _value.reset(MaterialKey::GLOSS_MAP_BIT); _mask.set(MaterialKey::GLOSS_MAP_BIT); return (*this); }
-        Builder& withGlossMap()        { _value.set(MaterialKey::GLOSS_MAP_BIT);  _mask.set(MaterialKey::GLOSS_MAP_BIT); return (*this); }
+        Builder& withoutRoughnessMap()       { _value.reset(MaterialKey::ROUGHNESS_MAP_BIT); _mask.set(MaterialKey::ROUGHNESS_MAP_BIT); return (*this); }
+        Builder& withRoughnessMap()        { _value.set(MaterialKey::ROUGHNESS_MAP_BIT);  _mask.set(MaterialKey::ROUGHNESS_MAP_BIT); return (*this); }
 
         Builder& withoutTransparent()       { _value.reset(MaterialKey::TRANSPARENT_VAL_BIT); _mask.set(MaterialKey::TRANSPARENT_VAL_BIT); return (*this); }
         Builder& withTransparent()        { _value.set(MaterialKey::TRANSPARENT_VAL_BIT);  _mask.set(MaterialKey::TRANSPARENT_VAL_BIT); return (*this); }
@@ -241,14 +242,14 @@ public:
     // Schema to access the attribute values of the material
     class Schema {
     public:
-        glm::vec3 _emissive{ 0.0f };
-        float _opacity{ 1.f };
+        glm::vec3 _emissive{ 0.0f }; // No Emissive
+        float _opacity{ 1.f }; // Opacity = 1 => Not Transparent
 
-        glm::vec3 _albedo{ 0.5f };
-        float _roughness{ 0.9f };
+        glm::vec3 _albedo{ 0.5f }; // Grey albedo => isAlbedo
+        float _roughness{ 1.0f }; // Roughness = 1 => Not Glossy
 
-        glm::vec3 _fresnel{ 0.03f };
-        float _metallic{ 0.0f };
+        glm::vec3 _fresnel{ 0.03f }; // Fresnel value for a default non metallic
+        float _metallic{ 0.0f }; // Not Metallic
 
 
         glm::vec4 _spare0{ 0.0f };

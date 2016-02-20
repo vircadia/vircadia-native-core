@@ -106,7 +106,7 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isGlossMap()) {
+    if (drawMaterialKey.isMetallicMap()) {
         builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
@@ -174,6 +174,20 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     } else {
         batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
+
+    // Roughness map
+ /*   if (materialKey.isRoughnessMap()) {
+        auto roughnessMap = textureMaps[model::MaterialKey::ROUGHNESS_MAP];
+        if (roughnessMap && roughnessMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, roughnessMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getBlackTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, nullptr);
+    }*/
 
     // Metallic map
     if (materialKey.isMetallicMap()) {

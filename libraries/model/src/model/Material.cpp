@@ -61,7 +61,7 @@ void Material::setAlbedo(const Color& albedo, bool isSRGB) {
 
 void Material::setRoughness(float roughness) {
     roughness = std::min(1.0f, std::max(roughness, 0.0f));
-    _key.setGloss((roughness < 1.0f));
+    _key.setGlossy((roughness < 1.0f));
     _schemaBuffer.edit<Schema>()._roughness = roughness;
 }
 

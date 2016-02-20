@@ -177,7 +177,7 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 auto glossMap = model::TextureMapPointer(new model::TextureMap());
                 glossMap->setTextureSource(material->specularTexture->_textureSource);
 
-                networkMaterial->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
+                networkMaterial->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, glossMap);
             } else if (material->emissiveTextureName == name) {
                 material->emissiveTexture = textureCache->getTexture(url);
 
@@ -350,6 +350,15 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
 
         material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, specularMap);
     }
+    if (!material.metallicTexture.filename.isEmpty()) {
+        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.metallicTexture.filename)), SPECULAR_TEXTURE, material.metallicTexture.content);
+        networkMaterial->specularTextureName = material.metallicTexture.name;
+
+        auto metallicMap = model::TextureMapPointer(new model::TextureMap());
+        metallicMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
+    }
     if (!material.roughnessTexture.filename.isEmpty()) {
         networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
         networkMaterial->roughnessTextureName = material.roughnessTexture.name;
@@ -357,7 +366,7 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
         auto roughnessMap = model::TextureMapPointer(new model::TextureMap());
         roughnessMap->setTextureSource(networkMaterial->roughnessTexture->_textureSource);
 
-        material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, roughnessMap);
+        material._material->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, roughnessMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
         networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);

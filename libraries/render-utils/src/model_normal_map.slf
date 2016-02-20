@@ -45,6 +45,7 @@ void main(void) {
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialFresnel(mat),
-        getMaterialShininess(mat));
+        getMaterialRoughness(mat),
+        getMaterialMetallic(mat),
+        getMaterialFresnel(mat));
 }
