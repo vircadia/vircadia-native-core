@@ -598,16 +598,24 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
     generateThread->setObjectName("Account Manager Generator Thread");
 
     // setup a keypair generator
-    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();
+    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator { this };
 
     if (!isUserKeypair) {
         keypairGenerator->setDomainID(domainID);
     }
 
+    // start keypair generation when the thread starts
     connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
+
+    // handle success or failure of keypair generation
     connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
     connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
             this, &AccountManager::handleKeypairGenerationError);
+
+    // cleanup the keypair generator and the thread once the generation succeeds or fails
+    connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, keypairGenerator, &RSAKeypairGenerator::deleteLater);
+    connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair, keypairGenerator, &RSAKeypairGenerator::deleteLater);
+
     connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
     connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
 
@@ -617,7 +625,7 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
     generateThread->start();
 }
 
-void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey) {
+void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey) {
     
     qCDebug(networking) << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
     
@@ -641,12 +649,8 @@ void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const 
     
     sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
                 JSONCallbackParameters(), QByteArray(), requestMultiPart);
-    
-    // get rid of the keypair generator now that we don't need it anymore
-    sender()->deleteLater();
 }
 
 void AccountManager::handleKeypairGenerationError() {
-    // for now there isn't anything we do with this except get the worker thread to clean up
-    sender()->deleteLater();
+    qCritical() << "Error generating keypair - this is likely to cause authentication issues.";
 }

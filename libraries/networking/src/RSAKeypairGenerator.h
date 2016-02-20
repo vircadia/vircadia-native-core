@@ -28,7 +28,7 @@ public slots:
 
 signals:
     void errorGeneratingKeypair();
-    void generatedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
+    void generatedKeypair(QByteArray publicKey, QByteArray privateKey);
 
 private:
     QUuid _domainID;

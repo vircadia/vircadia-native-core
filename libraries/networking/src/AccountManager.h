@@ -103,7 +103,7 @@ signals:
 private slots:
     void processReply();
     void handleKeypairGenerationError();
-    void processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
+    void processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey);
 
 private:
     AccountManager();
