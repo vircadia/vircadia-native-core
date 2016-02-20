@@ -49,17 +49,10 @@ var _this;
                 origin: markerProps.position,
                 direction: Quat.getFront(markerProps.rotation)
             }
-            print('MARKER ID'+_this.entityID)
-            print('MARKER POSITION'+JSON.stringify(markerProps.position))
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
-            print('WHITEBOARD AT CONTINUE:: '+_this.whiteboard);
-            print('DOES INTERSECT??'+intersection.intersects)
-             print('MARKER DISTANCE::'+Vec3.distance(intersection.intersection, markerProps.position))
-             print('MAX DISTANCE::'+_this.MAX_MARKER_TO_BOARD_DISTANCE)
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 this.paint(intersection.intersection)
             } else {
-                print('not painting because intersection')
                 _this.currentStroke = null;
                 _this.oldPosition = null;
             }
@@ -92,7 +85,6 @@ var _this;
             if (!_this.currentStroke) {
                 if (_this.oldPosition) {
                     basePosition = _this.oldPosition;
-                    print("EBL USE OLD POSITION FOR NEW STROKE!")
                 }
                _this.newStroke(basePosition);
             }
@@ -108,7 +100,6 @@ var _this;
                 }
             }
 
-            print("PAINT " + JSON.stringify(_this.markerColor));
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
             this.strokeWidths.push(_this.STROKE_WIDTH);
@@ -128,12 +119,10 @@ var _this;
         preload: function(entityID) {
             this.entityID = entityID;
            
-            print("EBL PRELOAD");
         },
 
         setProperties: function(myId, data) {
             var data = JSON.parse(data);
-                        print("EBL SET PROPERTIES! ON " + JSON.stringify(data.markerColor)+ "id:"+ JSON.stringify(myId));
 
             _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);

@@ -144,8 +144,6 @@ function createMarker(modelURL, markerPosition, markerColor) {
             markerColor: markerColor
         }
         var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
-        print("EBL MARKER URL " + JSON.stringify(modelURL))
-        print("EBL MARKER COLOR " + JSON.stringify(markerColor))
 
         Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
     }, 1000)
