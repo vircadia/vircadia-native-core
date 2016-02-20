@@ -210,7 +210,7 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
-static const unsigned int CAPPED_SIM_FRAMERATE = 60;
+static const unsigned int CAPPED_SIM_FRAMERATE = 120;
 static const int CAPPED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / CAPPED_SIM_FRAMERATE;
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
@@ -1733,6 +1733,7 @@ bool Application::event(QEvent* event) {
 
     if ((int)event->type() == (int)Paint) {
         paintGL();
+        return true;
     }
 
     if (!_keyboardFocusedItem.isInvalidID()) {
