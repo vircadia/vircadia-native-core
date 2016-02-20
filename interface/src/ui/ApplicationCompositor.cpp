@@ -38,13 +38,6 @@ static const float reticleSize = TWO_PI / 100.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
 
-static const float DEFAULT_HMD_UI_VERT_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_VERT_ANGULAR_SIZE / 180.0f) * PI;
-static const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE / 180.0f) * PI;
-
-//static const float MOUSE_PITCH_RANGE = DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
-//static const float MOUSE_YAW_RANGE = VIRTUAL_SCREEN_SIZE_X / VIRTUAL_SCREEN_SIZE_Y * DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
-//static const glm::vec2 MOUSE_RANGE(MOUSE_YAW_RANGE, MOUSE_PITCH_RANGE);
-
 static gpu::BufferPointer _hemiVertices;
 static gpu::BufferPointer _hemiIndices;
 static int _hemiIndexCount{ 0 };
