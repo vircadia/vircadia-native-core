@@ -612,10 +612,6 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
     connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
             this, &AccountManager::handleKeypairGenerationError);
 
-    // cleanup the keypair generator and the thread once the generation succeeds or fails
-    connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, keypairGenerator, &RSAKeypairGenerator::deleteLater);
-    connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair, keypairGenerator, &RSAKeypairGenerator::deleteLater);
-
     connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
     connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
 
@@ -625,32 +621,43 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
     generateThread->start();
 }
 
-void AccountManager::processGeneratedKeypair(QByteArray publicKey, QByteArray privateKey) {
+void AccountManager::processGeneratedKeypair() {
     
     qCDebug(networking) << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
-    
-    // set the private key on our metaverse API account info
-    _accountInfo.setPrivateKey(privateKey);
-    persistAccountToSettings();
-    
-    // upload the public key so data-web has an up-to-date key
-    const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
-    
-    // setup a multipart upload to send up the public key
-    QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    
-    QHttpPart keyPart;
-    keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                      QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-    keyPart.setBody(publicKey);
-    
-    requestMultiPart->append(keyPart);
-    
-    sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
-                JSONCallbackParameters(), QByteArray(), requestMultiPart);
+
+    RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
+
+    if (keypairGenerator) {
+        // set the private key on our metaverse API account info
+        _accountInfo.setPrivateKey(keypairGenerator->getPrivateKey());
+        persistAccountToSettings();
+
+        // upload the public key so data-web has an up-to-date key
+        const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+
+        // setup a multipart upload to send up the public key
+        QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+        QHttpPart keyPart;
+        keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+        keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                          QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+        keyPart.setBody(keypairGenerator->getPublicKey());
+
+        requestMultiPart->append(keyPart);
+
+        sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
+                    JSONCallbackParameters(), QByteArray(), requestMultiPart);
+        
+        keypairGenerator->deleteLater();
+    } else {
+        qCWarning(networking) << "Expected processGeneratedKeypair to be called by a live RSAKeypairGenerator"
+            << "but the casted sender is NULL. Will not process generated keypair.";
+    }
 }
 
 void AccountManager::handleKeypairGenerationError() {
     qCritical() << "Error generating keypair - this is likely to cause authentication issues.";
+
+    sender()->deleteLater();
 }

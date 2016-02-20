@@ -85,12 +85,12 @@ void RSAKeypairGenerator::generateKeypair() {
     // we can cleanup the RSA struct before we continue on
     RSA_free(keyPair);
     
-    QByteArray publicKeyArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
-    QByteArray privateKeyArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
+    _publicKey = QByteArray { reinterpret_cast<char*>(publicKeyDER), publicKeyLength };
+    _privateKey = QByteArray { reinterpret_cast<char*>(privateKeyDER), privateKeyLength };
     
     // cleanup the publicKeyDER and publicKeyDER data
     OPENSSL_free(publicKeyDER);
     OPENSSL_free(privateKeyDER);
     
-    emit generatedKeypair(publicKeyArray, privateKeyArray);
+    emit generatedKeypair();
 }
