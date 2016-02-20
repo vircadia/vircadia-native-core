@@ -30,6 +30,7 @@ TableView {
     anchors { left: parent.left; right: parent.right }
 
     headerVisible: false
+    headerDelegate: Item { }  // Fix OSX QML bug that displays scrollbar starting too low.
 
     // Use rectangle to draw border with rounded corners.
     frameVisible: false
