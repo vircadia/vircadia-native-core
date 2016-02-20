@@ -136,6 +136,9 @@ Fadable {
         }
 
         LinearGradient {
+            // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX.
+            // Check again when have a later version of QtQuick.
+            visible: Qt.platform.os != "osx"
             anchors.top: contentBackground.bottom
             anchors.left: contentBackground.left
             width: contentBackground.width - 1

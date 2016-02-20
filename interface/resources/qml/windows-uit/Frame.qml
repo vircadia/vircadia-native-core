@@ -60,7 +60,9 @@ Item {
         height: width
         x: -width / 4
         y: -width / 4
-        visible: window && window.focus && pane.visible
+        // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX.
+        // Check again when have a later version of QtQuick.
+        visible: window && window.focus && pane.visible && Qt.platform.os != "osx"
         gradient: Gradient {
             // GradientStop position 0.5 is at full circumference of circle that fits inside the square.
             GradientStop { position: 0.0; color: "#ff000000" }    // black, 100% opacity
