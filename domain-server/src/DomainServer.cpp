@@ -489,6 +489,10 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     limitedNodeList->startSTUNPublicSocketUpdate();
 
     // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
+    auto& accountManager = AccountManager::getInstance();
+    if (!accountManager.getAccountInfo().hasPrivateKey()) {
+        accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+    }
 
     if (!_iceHeartbeatTimer) {
         // setup a timer to heartbeat with the ice-server every so often

@@ -589,7 +589,7 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
 
 void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainID) {
     if (!isUserKeypair && domainID.isNull()) {
-        qWarning() << "AccountManager::generateNewKeypair called for domain keypair with no domain ID. Will not generate keypair.";
+        qCWarning(networking) << "AccountManager::generateNewKeypair called for domain keypair with no domain ID. Will not generate keypair.";
         return;
     }
 
@@ -633,7 +633,15 @@ void AccountManager::processGeneratedKeypair() {
         persistAccountToSettings();
 
         // upload the public key so data-web has an up-to-date key
-        const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+        const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+        const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
+
+        QString uploadPath;
+        if (keypairGenerator->getDomainID().isNull()) {
+            uploadPath = USER_PUBLIC_KEY_UPDATE_PATH;
+        } else {
+            uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(keypairGenerator->getDomainID()));
+        }
 
         // setup a multipart upload to send up the public key
         QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
@@ -646,7 +654,7 @@ void AccountManager::processGeneratedKeypair() {
 
         requestMultiPart->append(keyPart);
 
-        sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
+        sendRequest(uploadPath, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
                     JSONCallbackParameters(), QByteArray(), requestMultiPart);
         
         keypairGenerator->deleteLater();
