@@ -274,7 +274,7 @@ void setupPreferences() {
     {
         auto getter = []()->float { return DependencyManager::get<AudioClient>()->getOutputBufferSize(); };
         auto setter = [](float value) { DependencyManager::get<AudioClient>()->setOutputBufferSize(value); };
-        auto preference = new SpinnerPreference(AUDIO, "Output Buffer Size (frames)", getter, setter);
+        auto preference = new SpinnerPreference(AUDIO, "Output Buffer Initial Size (frames)", getter, setter);
         preference->setMin(1);
         preference->setMax(20);
         preference->setStep(1);
