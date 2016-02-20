@@ -257,9 +257,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
         auto displayPlugin = qApp->getActiveDisplayPlugin();
-        auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
+        auto headPose = qApp->getHMDSensorPose();
         auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
-        camMat = (headPose * eyeToHead) * camMat;
+        camMat = (headPose * eyeToHead) * camMat; // FIXME - why are not all transforms are doing this aditioanl eyeToHead
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
         batch.setProjectionTransform(qApp->getEyeProjection(eye));
@@ -425,41 +425,16 @@ glm::vec2 ApplicationCompositor::getReticleMaximumPosition() const {
     return result;
 }
 
-// FIXME - this probably is hella buggy and probably doesn't work correctly
-// we should kill it asap.
 void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
-    const glm::vec2 projection = overlayToSpherical(cursorPos);
-    // The overlay space orientation of the mouse coordinates
-    const glm::quat cursorOrientation(glm::vec3(-projection.y, projection.x, 0.0f));
-
-    // The orientation and position of the HEAD, not the overlay
-    glm::vec3 worldSpaceHeadPosition = qApp->getCamera()->getPosition();
-    glm::quat worldSpaceOrientation = qApp->getCamera()->getOrientation();
-
-    auto headPose = qApp->getHMDSensorPose();
-    auto headOrientation = glm::quat_cast(headPose);
-    auto headTranslation = extractTranslation(headPose);
-
-    auto overlayOrientation = worldSpaceOrientation * glm::inverse(headOrientation);
-    auto overlayPosition = worldSpaceHeadPosition - (overlayOrientation * headTranslation);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
-        overlayPosition = _modelTransform.getTranslation();
-        overlayOrientation = _modelTransform.getRotation();
-    }
-
-    // Intersection in world space
-    glm::vec3 worldSpaceIntersection = ((overlayOrientation * (cursorOrientation * Vectors::FRONT)) * _oculusUIRadius) + overlayPosition;
-
-    origin = worldSpaceHeadPosition;
-    direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
+    auto surfacePointAt = sphereSurfaceFromOverlay(cursorPos); // in world space
+    glm::vec3 worldSpaceCameraPosition = qApp->getCamera()->getPosition();
+    origin = worldSpaceCameraPosition;
+    direction = glm::normalize(surfacePointAt - worldSpaceCameraPosition);
 }
 
 //Finds the collision point of a world space ray
 bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-
-    auto displayPlugin = qApp->getActiveDisplayPlugin();
-    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
-
+    auto headPose = qApp->getHMDSensorPose();
     auto myCamera = qApp->getCamera();
     mat4 cameraMat = myCamera->getTransform();
     auto UITransform = cameraMat * glm::inverse(headPose);
@@ -604,9 +579,7 @@ glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos
 }
 
 glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const {
-
-    auto displayPlugin = qApp->getActiveDisplayPlugin();
-    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
+    auto headPose = qApp->getHMDSensorPose();
     auto myCamera = qApp->getCamera();
     mat4 cameraMat = myCamera->getTransform();
     auto UITransform = cameraMat * glm::inverse(headPose);
@@ -614,11 +587,23 @@ glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& spher
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
     auto center = vec3(0); // center of HUD in HUD space
     auto direction = relativePosition - center; // direction to relative position in HUD space
-
     glm::vec2 polar = glm::vec2(glm::atan(direction.x, -direction.z), glm::asin(direction.y)) * -1.0f;
     auto overlayPos = sphericalToOverlay(polar);
     return overlayPos;
 }
+
+glm::vec3 ApplicationCompositor::sphereSurfaceFromOverlay(const glm::vec2& overlay) const {
+    auto spherical = overlayToSpherical(overlay);
+    auto sphereSurfacePoint = getPoint(spherical.x, spherical.y);
+    auto headPose = qApp->getHMDSensorPose();
+    auto myCamera = qApp->getCamera();
+    mat4 cameraMat = myCamera->getTransform();
+    auto UITransform = cameraMat * glm::inverse(headPose);
+    auto position4 = UITransform * vec4(sphereSurfacePoint, 1);
+    auto position = vec3(position4) / position4.w;
+    return position;
+}
+
 
 void ApplicationCompositor::updateTooltips() {
     if (_hoverItemId != _noItemId) {

@@ -66,6 +66,7 @@ public:
     uint32_t getOverlayTexture() const;
 
     glm::vec2 overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const;
+    glm::vec3 sphereSurfaceFromOverlay(const glm::vec2& overlay) const;
 
     void setCameraBaseTransform(const Transform& transform) { _cameraBaseTransform = transform; }
     const Transform& getCameraBaseTransform() const { return _cameraBaseTransform; }

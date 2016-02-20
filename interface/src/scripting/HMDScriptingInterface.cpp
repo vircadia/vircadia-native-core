@@ -30,6 +30,10 @@ glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position
     return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
 }
 
+glm::vec3 HMDScriptingInterface::worldPointFromOverlay(const glm::vec2& overlay) const {
+    return qApp->getApplicationCompositor().sphereSurfaceFromOverlay(overlay);
+}
+
 glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) const {
     return qApp->getApplicationCompositor().sphericalToOverlay(position);
 }
