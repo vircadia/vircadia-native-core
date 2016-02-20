@@ -32,9 +32,9 @@ const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
-const int VIRTUAL_SCREEN_SIZE_X = 3840;
-const int VIRTUAL_SCREEN_SIZE_Y = 1536;
-const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE = 180.0f;
+const int VIRTUAL_SCREEN_SIZE_X = 3960; // ~10% more pixel density than old version, 72dx240d FOV
+const int VIRTUAL_SCREEN_SIZE_Y = 1188; // ~10% more pixel density than old version, 72dx240d FOV
+const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE = 240.0f;
 const float DEFAULT_HMD_UI_VERT_ANGULAR_SIZE = DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE * (float)VIRTUAL_SCREEN_SIZE_Y / (float)VIRTUAL_SCREEN_SIZE_X;
 
 // Handles the drawing of the overlays to the screen

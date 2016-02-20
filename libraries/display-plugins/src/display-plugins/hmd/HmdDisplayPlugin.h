@@ -20,8 +20,8 @@ public:
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
     glm::uvec2 getRecommendedUiSize() const override final { 
         // FIXME - would be good to have these values sync with ApplicationCompositor in a better way.
-        const int VIRTUAL_SCREEN_SIZE_X = 3840;
-        const int VIRTUAL_SCREEN_SIZE_Y = 1536;
+        const int VIRTUAL_SCREEN_SIZE_X = 3960; // ~10% more pixel density than old version, 72dx240d FOV
+        const int VIRTUAL_SCREEN_SIZE_Y = 1188; // ~10% more pixel density than old version, 72dx240d FOV
         auto result = uvec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y);
         return result;
     }
