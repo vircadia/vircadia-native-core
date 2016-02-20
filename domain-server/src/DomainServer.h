@@ -83,11 +83,9 @@ private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
-    bool optionallySetupAssignmentPayment();
 
     void optionallyGetTemporaryName(const QStringList& arguments);
 
-    bool didSetupAccountManagerWithAccessToken();
     bool resetAccountManagerAccessToken();
 
     void setupAutomaticNetworking();

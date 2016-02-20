@@ -96,7 +96,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
 
@@ -376,15 +376,6 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-bool DomainServer::didSetupAccountManagerWithAccessToken() {
-    if (AccountManager::getInstance().hasValidAccessToken()) {
-        // we already gave the account manager a valid access token
-        return true;
-    }
-
-    return resetAccountManagerAccessToken();
-}
-
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
 
 bool DomainServer::resetAccountManagerAccessToken() {
@@ -428,34 +419,6 @@ bool DomainServer::resetAccountManagerAccessToken() {
     }
 }
 
-bool DomainServer::optionallySetupAssignmentPayment() {
-    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
-    if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
-        settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
-        didSetupAccountManagerWithAccessToken()) {
-
-        qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
-
-        // assume that the fact we are authing against HF data server means we will pay for assignments
-        // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* creditSetupTimer = new QTimer(this);
-        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-
-        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-
-        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
-    }
-
-    return true;
-}
-
 void DomainServer::setupAutomaticNetworking() {
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -466,7 +429,7 @@ void DomainServer::setupAutomaticNetworking() {
         setupICEHeartbeatForFullNetworking();
     }
 
-    if (!didSetupAccountManagerWithAccessToken()) {
+    if (!resetAccountManagerAccessToken()) {
         qDebug() << "Cannot send heartbeat to data server without an access token.";
         qDebug() << "Add an access token to your config file or via the web interface.";
 

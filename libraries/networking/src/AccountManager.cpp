@@ -86,6 +86,8 @@ AccountManager::AccountManager() :
 
 void AccountManager::setIsAgent(bool isAgent) {
     if (_isAgent != isAgent) {
+        _isAgent = isAgent;
+
         if (_isAgent) {
             // any profile changes in account manager should generate a new keypair
             connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
@@ -149,8 +151,9 @@ QVariantMap accountMapFromFile(bool& success) {
 
         return accountMap;
     } else {
-        // failed to open file, return empty QVariantMap with failure
-        success = false;
+        // failed to open file, return empty QVariantMap
+        // there was only an error if the account file existed when we tried to load it
+        success = !accountFile.exists();
 
         return QVariantMap();
     }
@@ -163,26 +166,51 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
         
         // check if there are existing access tokens to load from settings
-        bool loadedFile = false;
-        auto accountsMap = accountMapFromFile(loadedFile);
+        QFile accountsFile { accountFilePath() };
+        bool loadedMap = false;
+        auto accountsMap = accountMapFromFile(loadedMap);
 
-        if (loadedFile) {
+        if (accountsFile.exists() && loadedMap) {
             // pull out the stored access token and store it in memory
             _accountInfo = accountsMap[_authURL.toString()].value<DataServerAccountInfo>();
 
             qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
+        } else {
+            // we didn't have a file - see if we can migrate old settings and store them in the new file
 
-            if (_isAgent) {
-                // profile info isn't guaranteed to be saved too
-                if (_accountInfo.hasProfile()) {
-                    emit profileChanged();
-                } else {
-                    requestProfile();
+            // check if there are existing access tokens to load from settings
+            Settings settings;
+            settings.beginGroup(ACCOUNTS_GROUP);
+
+            foreach(const QString& key, settings.allKeys()) {
+                // take a key copy to perform the double slash replacement
+                QString keyCopy(key);
+                QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
+
+                if (keyURL == _authURL) {
+                    // pull out the stored access token and store it in memory
+                    _accountInfo = settings.value(key).value<DataServerAccountInfo>();
+
+                    qCDebug(networking) << "Migrated an access token for" << qPrintable(keyURL.toString())
+                        <<  "from previous settings file";
                 }
             }
 
-        } else {
-            qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
+            if (_accountInfo.getAccessToken().token.isEmpty()) {
+                qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
+            } else {
+                // persist the migrated settings to file
+                persistAccountToSettings();
+            }
+        }
+
+        if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty()) {
+            // profile info isn't guaranteed to be saved too
+            if (_accountInfo.hasProfile()) {
+                emit profileChanged();
+            } else {
+                requestProfile();
+            }
         }
 
         // tell listeners that the auth endpoint has changed
