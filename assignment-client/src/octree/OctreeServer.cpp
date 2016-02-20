@@ -236,10 +236,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
 {
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
-
-    // make sure the AccountManager has an Auth URL for payment redemptions
-
-    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {

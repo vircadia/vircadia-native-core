@@ -169,14 +169,16 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         if (loadedFile) {
             // pull out the stored access token and store it in memory
             _accountInfo = accountsMap[_authURL.toString()].value<DataServerAccountInfo>();
-            
+
             qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
 
-            // profile info isn't guaranteed to be saved too
-            if (_accountInfo.hasProfile()) {
-                emit profileChanged();
-            } else {
-                requestProfile();
+            if (_isAgent) {
+                // profile info isn't guaranteed to be saved too
+                if (_accountInfo.hasProfile()) {
+                    emit profileChanged();
+                } else {
+                    requestProfile();
+                }
             }
 
         } else {
@@ -327,7 +329,7 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
 
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received JSON response from data-server that has no matching callback.";
+            qCDebug(networking) << "Received JSON response from metaverse API that has no matching callback.";
             qCDebug(networking) << QJsonDocument::fromJson(requestReply->readAll());
         }
     }
@@ -345,7 +347,7 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
         _pendingCallbackMap.remove(requestReply);
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received error response from data-server that has no matching callback.";
+            qCDebug(networking) << "Received error response from metaverse API that has no matching callback.";
             qCDebug(networking) << "Error" << requestReply->error() << "-" << requestReply->errorString();
             qCDebug(networking) << requestReply->readAll();
         }
@@ -591,7 +593,7 @@ void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const 
     
     qCDebug(networking) << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
     
-    // set the private key on our data-server account info
+    // set the private key on our metaverse API account info
     _accountInfo.setPrivateKey(privateKey);
     persistAccountToSettings();
     
