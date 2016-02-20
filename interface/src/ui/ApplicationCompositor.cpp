@@ -38,11 +38,12 @@ static const float reticleSize = TWO_PI / 100.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
 
-static const float DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_ANGULAR_SIZE / 180.0f) * PI;
+static const float DEFAULT_HMD_UI_VERT_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_VERT_ANGULAR_SIZE / 180.0f) * PI;
 static const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE_IN_RADIANS = (DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE / 180.0f) * PI;
-static const float MOUSE_PITCH_RANGE = DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
-static const float MOUSE_YAW_RANGE = VIRTUAL_SCREEN_SIZE_X / VIRTUAL_SCREEN_SIZE_Y * DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
-static const glm::vec2 MOUSE_RANGE(MOUSE_YAW_RANGE, MOUSE_PITCH_RANGE);
+
+//static const float MOUSE_PITCH_RANGE = DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
+//static const float MOUSE_YAW_RANGE = VIRTUAL_SCREEN_SIZE_X / VIRTUAL_SCREEN_SIZE_Y * DEFAULT_HMD_UI_ANGULAR_SIZE_IN_RADIANS;
+//static const glm::vec2 MOUSE_RANGE(MOUSE_YAW_RANGE, MOUSE_PITCH_RANGE);
 
 static gpu::BufferPointer _hemiVertices;
 static gpu::BufferPointer _hemiIndices;
@@ -378,10 +379,22 @@ glm::vec2 ApplicationCompositor::getReticlePosition() {
     }
     return toGlm(QCursor::pos());
 }
+
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
-        glm::vec2 maxReticlePosition = qApp->getUiSize();
-        _reticlePositionInHMD = glm::clamp(position, vec2(0), maxReticlePosition);
+        const float MOUSE_EXTENTS_VERT_ANGULAR_SIZE = 170.0f; // 5deg from poles
+        const float MOUSE_EXTENTS_VERT_PIXELS = VIRTUAL_SCREEN_SIZE_Y * (MOUSE_EXTENTS_VERT_ANGULAR_SIZE / DEFAULT_HMD_UI_VERT_ANGULAR_SIZE);
+        const float MOUSE_EXTENTS_HORZ_ANGULAR_SIZE = 360.0f; // full sphere
+        const float MOUSE_EXTENTS_HORZ_PIXELS = VIRTUAL_SCREEN_SIZE_X * (MOUSE_EXTENTS_HORZ_ANGULAR_SIZE / DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE);
+
+        glm::vec2 maxOverlayPosition = qApp->getUiSize();
+        float extaPixelsX = (MOUSE_EXTENTS_HORZ_PIXELS - maxOverlayPosition.x) / 2.0f;
+        float extaPixelsY = (MOUSE_EXTENTS_VERT_PIXELS - maxOverlayPosition.y) / 2.0f;
+        glm::vec2 mouseExtra { extaPixelsX, extaPixelsY };
+        glm::vec2 minMouse = vec2(0) - mouseExtra;
+        glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
+
+        _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
 
         if (sendFakeEvent) {
             // in HMD mode we need to fake our mouse moves...
