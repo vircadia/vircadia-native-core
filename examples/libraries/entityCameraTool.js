@@ -281,8 +281,8 @@ CameraManager = function() {
 
     that.mouseMoveEvent = function(event) {
         if (that.enabled && that.mode != MODE_INACTIVE) {
-            var x = Window.getCursorPositionX();
-            var y = Window.getCursorPositionY();
+            var x = Reticle.getPosition().x;
+            var y = Reticle.getPosition().y;
             if (!hasDragged) {
                 that.lastMousePosition.x = x;
                 that.lastMousePosition.y = y;
@@ -337,7 +337,7 @@ CameraManager = function() {
             }
 
             if (updatePosition) {
-                Window.setCursorPosition(newX, newY);
+                Reticle.setPosition({ x: newX, y: newY});
             }
 
             that.lastMousePosition.x = newX;
@@ -384,7 +384,7 @@ CameraManager = function() {
         if (!that.enabled) return;
 
         that.mode = MODE_INACTIVE;
-        Window.setCursorVisible(true);
+        Reticle.setVisible(true);
 
     }
 
