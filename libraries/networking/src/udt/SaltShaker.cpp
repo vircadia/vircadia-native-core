@@ -27,11 +27,9 @@ void saltingHelper(char* start, int size, Key key) {
     const auto end = start + size;
 
     auto p = start;
-    for (; p < end; p += sizeof(Key)) {
+    for (; p + sizeof(Key) < end; p += sizeof(Key)) {
         *reinterpret_cast<Key*>(p) ^= key;
     }
-
-    p -= sizeof(Key);
 
     for (int i = 0; p < end; ++p || ++i) {
         *p ^= *(reinterpret_cast<const char*>(&key) + i);
