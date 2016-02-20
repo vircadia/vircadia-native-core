@@ -91,9 +91,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.computeCubeViewLocation(serverBounds);
-
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                if ((bool)(_viewFrustum.cubeInFrustum(serverBounds))) {
                     inViewServers++;
                 }
             }
@@ -164,13 +162,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.computeCubeViewLocation(serverBounds);
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    inView = true;
-                } else {
-                    inView = false;
-                }
+                inView = (bool)(_viewFrustum.cubeInFrustum(serverBounds));
             }
 
             if (inView) {

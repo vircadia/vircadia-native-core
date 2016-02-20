@@ -41,8 +41,8 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
         // when they are outside of the view frustum...
         bool outOfView;
         {
-            PerformanceTimer perfTimer("computeBoxViewLocation");
-            outOfView = frustum->computeBoxViewLocation(item.bound) == ViewFrustum::OUTSIDE;
+            PerformanceTimer perfTimer("boxInFrustum");
+            outOfView = frustum->boxInFrustum(item.bound) == ViewFrustum::OUTSIDE;
         }
         if (!outOfView) {
             bool bigEnoughToRender;
@@ -238,7 +238,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
 
         bool viewTest(const AABox& bound) {
-            if (_args->_viewFrustum->computeBoxViewLocation(bound) == ViewFrustum::OUTSIDE) {
+            if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
                 _renderDetails._outOfView++;
                 return false;
             }

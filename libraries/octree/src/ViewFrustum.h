@@ -89,13 +89,16 @@ public:
 
     void calculate();
 
-    typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
+    typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } location;
 
-    ViewFrustum::location computePointFrustumLocation(const glm::vec3& point) const;
+    ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
+    ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
+    ViewFrustum::location cubeInFrustum(const AACube& cube) const;
+    ViewFrustum::location boxInFrustum(const AABox& box) const;
 
-    ViewFrustum::location computeSphereViewLocation(const glm::vec3& center, float radius) const;
-    ViewFrustum::location computeCubeViewLocation(const AACube& cube) const;
-    ViewFrustum::location computeBoxViewLocation(const AABox& box) const;
+    bool sphereTouchesKeyhole(const glm::vec3& center, float radius) const;
+    bool cubeTouchesKeyhole(const AACube& cube) const;
+    bool boxTouchesKeyhole(const AABox& box) const;
 
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
@@ -132,12 +135,6 @@ public:
 
     const ::Plane* getPlanes() const { return _planes; }
 private:
-    // Used for keyhole calculations
-    ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
-    ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
-    ViewFrustum::location boxInKeyhole(const AABox& box) const;
-
     // camera location/orientation attributes
     glm::vec3 _position; // the position in world-frame
     glm::quat _orientation;
@@ -166,7 +163,7 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     glm::vec4 _corners[8];
     glm::vec3 _cornersWorld[8];
-    ::Plane _planes[6]; // How will this be used?
+    ::Plane _planes[6]; // plane normals point inside frustum
 
     const char* debugPlaneName (int plane) const;
 

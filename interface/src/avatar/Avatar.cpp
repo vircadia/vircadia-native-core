@@ -188,8 +188,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inViewFrustum = qApp->getViewFrustum()->computeSphereViewLocation(getPosition(), boundingRadius) !=
-        ViewFrustum::OUTSIDE;
+    bool inViewFrustum = (bool)(qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius));
 
     {
         PerformanceTimer perfTimer("hand");
@@ -401,7 +400,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         frustum = qApp->getDisplayViewFrustum();
     }
 
-    if (frustum->computeSphereViewLocation(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+    if ((bool)(frustum->sphereInFrustum(getPosition(), boundingRadius))) {
         endRender();
         return;
     }
@@ -517,7 +516,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         auto& frustum = *renderArgs->_viewFrustum;
         auto textPosition = getDisplayNamePosition();
 
-        if (frustum.computePointFrustumLocation(textPosition) == ViewFrustum::INSIDE) {
+        if ((bool)frustum.pointInFrustum(textPosition)) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
@@ -671,7 +670,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
 }
 
 Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
-    Q_ASSERT_X(frustum.computePointFrustumLocation(textPosition) == ViewFrustum::INSIDE,
+    Q_ASSERT_X((bool)(frustum.pointInFrustum(textPosition)),
                "Avatar::calculateDisplayNameTransform", "Text not in viewfrustum.");
     glm::vec3 toFrustum = frustum.getPosition() - textPosition;
 
