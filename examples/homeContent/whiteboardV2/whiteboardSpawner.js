@@ -15,7 +15,7 @@ Script.include("../../libraries/utils.js")
 var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
 var markerRotation = Quat.fromVec3Degrees({
-    x: orientation.x + 10, 
+    x: orientation.x + 10,
     y: orientation.y - 90,
     z: orientation.z
 })
@@ -48,6 +48,7 @@ var whiteboard = Entities.addEntity({
 });
 
 createMarkers();
+
 function createMarkers() {
     var modelURLS = [
         "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-blue.fbx",
@@ -64,22 +65,20 @@ function createMarkers() {
     });
 
 
-    Script.setTimeout(function() {
 
-        markerPosition = Vec3.sum(markerPosition, Vec3.multiply(-0.2, Quat.getFront(markerRotation)));
-        createMarker(modelURLS[1], markerPosition, {
-            red: 200,
-            green: 10,
-            blue: 10
-        });
-    }, 1000);
+    markerPosition = Vec3.sum(markerPosition, Vec3.multiply(-0.2, Quat.getFront(markerRotation)));
+    createMarker(modelURLS[1], markerPosition, {
+        red: 200,
+        green: 10,
+        blue: 10
+    });
 
-    // markerPosition = Vec3.sum(markerPosition, Vec3.multiply(0.4, Quat.getFront(markerRotation)));
-    // createMarker(modelURLS[2], markerPosition, {
-    //     red: 10,
-    //     green: 10,
-    //     blue: 10
-    // });
+    markerPosition = Vec3.sum(markerPosition, Vec3.multiply(0.4, Quat.getFront(markerRotation)));
+    createMarker(modelURLS[2], markerPosition, {
+        red: 10,
+        green: 10,
+        blue: 10
+    });
 }
 
 
@@ -147,7 +146,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
         var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
         print("EBL MARKER URL " + JSON.stringify(modelURL))
         print("EBL MARKER COLOR " + JSON.stringify(markerColor))
-   
+
         Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
     }, 1000)
 
@@ -158,7 +157,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
-    markers.forEach(function(marker){
+    markers.forEach(function(marker) {
         Entities.deleteEntity(marker);
     });
 }
