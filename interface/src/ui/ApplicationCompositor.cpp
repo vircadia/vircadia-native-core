@@ -113,6 +113,7 @@ ApplicationCompositor::ApplicationCompositor() :
     _reticleInterface(new ReticleInterface(this))
 
 {
+    _reticlePositionInHMD.store(glm::vec2(0.0f));
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
     _reticleQuad = geometryCache->allocateID();
@@ -300,7 +301,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
 QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
     if (qApp->isHMDMode()) {
-        return QPointF(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+        auto reticlePositionInHMD = _reticlePositionInHMD.load();
+        return QPointF(reticlePositionInHMD.x, reticlePositionInHMD.y);
     }
     return event->localPos();
 }
@@ -314,7 +316,7 @@ void ApplicationCompositor::handleLeaveEvent() {
 
     if (shouldCaptureMouse()) {
         QWidget* mainWidget = (QWidget*)qApp->getWindow();
-        QRect mainWidgetFrame = qApp->getApplicationGeometry();
+        QRect mainWidgetFrame = qApp->getRenderingGeometry();
         QRect uncoveredRect = mainWidgetFrame;
         foreach(QWidget* widget, QApplication::topLevelWidgets()) {
             if (widget->isWindow() && widget->isVisible() && widget != mainWidget) {
@@ -355,7 +357,8 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
     if (shouldCaptureMouse()) {
         auto newPosition = QCursor::pos();
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
-        auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
+        auto reticlePositionInHMD = _reticlePositionInHMD.load();
+        auto newReticlePosition = reticlePositionInHMD + toGlm(changeInRealMouse);
         setReticlePosition(newReticlePosition, sendFakeEvent);
         _ignoreMouseMove = true;
         QCursor::setPos(QPoint(_lastKnownRealMouse.x(), _lastKnownRealMouse.y())); // move cursor back to where it was
@@ -387,11 +390,12 @@ void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFake
         glm::vec2 minMouse = vec2(0) - mouseExtra;
         glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
 
-        _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+        auto reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+        _reticlePositionInHMD.store(reticlePositionInHMD);
 
         if (sendFakeEvent) {
             // in HMD mode we need to fake our mouse moves...
-            QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+            QPoint globalPos(reticlePositionInHMD.x, reticlePositionInHMD.y);
             auto button = Qt::NoButton;
             auto buttons = QApplication::mouseButtons();
             auto modifiers = QApplication::keyboardModifiers();

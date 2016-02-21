@@ -4720,7 +4720,7 @@ glm::uvec2 Application::getCanvasSize() const {
     return glm::uvec2(_glWidget->width(), _glWidget->height());
 }
 
-QRect Application::getApplicationGeometry() const { 
+QRect Application::getRenderingGeometry() const {
     auto geometry = _glWidget->geometry(); 
     auto topLeft = geometry.topLeft();
     auto topLeftScreen = _glWidget->mapToGlobal(topLeft);

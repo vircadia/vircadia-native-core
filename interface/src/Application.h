@@ -114,7 +114,7 @@ public:
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
-    QRect getApplicationGeometry() const;
+    QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;

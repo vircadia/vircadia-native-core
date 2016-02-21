@@ -252,12 +252,8 @@ void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
     auto uiSize = qApp->getUiSize();
-    QSize desiredSize (uiSize.x, uiSize.y);
-    int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-    int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-    QSize frameBufferCurrentSize(currentWidth, currentHeight);
 
-    if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
+    if (_overlayFramebuffer && uiSize == _overlayFramebuffer->getSize()) {
         // Already built
         return;
     }
@@ -271,8 +267,8 @@ void ApplicationOverlay::buildFramebufferObject() {
     _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-   auto width = desiredSize.width();
-   auto height = desiredSize.height();
+   auto width = uiSize.x;
+   auto height = uiSize.y;
 
    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
    _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
