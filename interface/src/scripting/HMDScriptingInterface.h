@@ -29,11 +29,10 @@ class HMDScriptingInterface : public AbstractHMDScriptingInterface, public Depen
 public:
     Q_INVOKABLE glm::vec3 calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const;
     Q_INVOKABLE glm::vec2 overlayFromWorldPoint(const glm::vec3& position) const;
+    Q_INVOKABLE glm::vec3 worldPointFromOverlay(const glm::vec2& overlay) const;
 
     Q_INVOKABLE glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     Q_INVOKABLE glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
-    Q_INVOKABLE glm::vec2 screenToOverlay(const glm::vec2 & screenPos) const;
-    Q_INVOKABLE glm::vec2 overlayToScreen(const glm::vec2 & overlayPos) const;
 
 public:
     HMDScriptingInterface();

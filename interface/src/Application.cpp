@@ -786,8 +786,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
-            auto globalPos = QCursor::pos();
-            auto localPos = _glWidget->mapFromGlobal(globalPos);
+            auto reticlePos = _compositor.getReticlePosition();
+            QPoint globalPos(reticlePos.x, reticlePos.y);
+
+            // FIXME - it would be nice if this was self contained in the _compositor or Reticle class
+            auto localPos = isHMDMode() ? globalPos : _glWidget->mapFromGlobal(globalPos);
             if (state) {
                 QMouseEvent mousePress(QEvent::MouseButtonPress, localPos, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
                 sendEvent(_glWidget, &mousePress);
@@ -806,39 +809,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
+                auto reticlePosition = _compositor.getReticlePosition();
+                offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto oldPos = QCursor::pos();
-                auto newPos = oldPos;
-                newPos.setX(oldPos.x() + state);
-                QCursor::setPos(newPos);
-
-
-                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-                // remove it after we're done
-                const float REASONABLE_CHANGE = 50.0f;
-                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
-                glm::vec2 newPosG = { newPos.x(), newPos.y() };
-                auto distance = glm::distance(oldPosG, newPosG);
-                if (distance > REASONABLE_CHANGE) {
-                    qDebug() << "Action::RETICLE_X... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
-                }
-
+                auto oldPos = _compositor.getReticlePosition();
+                _compositor.setReticlePosition({ oldPos.x + state, oldPos.y });
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto oldPos = QCursor::pos();
-                auto newPos = oldPos;
-                newPos.setY(oldPos.y() + state);
-                QCursor::setPos(newPos);
-
-                // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-                // remove it after we're done
-                const float REASONABLE_CHANGE = 50.0f;
-                glm::vec2 oldPosG = { oldPos.x(), oldPos.y() };
-                glm::vec2 newPosG = { newPos.x(), newPos.y() };
-                auto distance = glm::distance(oldPosG, newPosG);
-                if (distance > REASONABLE_CHANGE) {
-                    qDebug() << "Action::RETICLE_Y... UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPosG << " newPos:" << newPosG;
-                }
+                auto oldPos = _compositor.getReticlePosition();
+                _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
             }
         }
     });
@@ -980,7 +958,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     // If the user clicks somewhere where there is NO entity at all, we will release focus
     connect(getEntities(), &EntityTreeRenderer::mousePressOffEntity,
-        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event, unsigned int deviceId) {
+        [=](const RayToEntityIntersectionResult& entityItemID, const QMouseEvent* event) {
         _keyboardFocusedItem = UNKNOWN_ENTITY_ID;
         if (_keyboardFocusHighlight) {
             _keyboardFocusHighlight->setVisible(false);
@@ -1279,13 +1257,15 @@ void Application::initializeUi() {
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    rootContext->setContextProperty("Reticle", _compositor.getReticleInterface());
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
-            auto resultVec = _compositor.screenToOverlay(toGlm(pt));
+            _compositor.handleRealMouseMoveEvent(false);
+            auto resultVec = _compositor.getReticlePosition();
             result = QPointF(resultVec.x, resultVec.y);
         }
         return result.toPoint();
@@ -1819,6 +1799,11 @@ bool Application::event(QEvent* event) {
 }
 
 bool Application::eventFilter(QObject* object, QEvent* event) {
+
+    if (event->type() == QEvent::Leave) {
+        _compositor.handleLeaveEvent();
+    }
+
     if (event->type() == QEvent::ShortcutOverride) {
         if (DependencyManager::get<OffscreenUi>()->shouldSwallowShortcut(event)) {
             event->accept();
@@ -2074,9 +2059,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
+                    // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   computePickRay(getTrueMouse().x, getTrueMouse().y));
+                                                   computePickRay(getMouse().x, getMouse().y));
                     sendEvent(this, &startActionEvent);
                 }
 
@@ -2105,7 +2091,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QCursor::pos()));
+        auto reticlePosition = _compositor.getReticlePosition();
+        offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
     }
 
     _keysPressed.remove(event->key());
@@ -2124,9 +2111,10 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     switch (event->key()) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
+                // FIXME -- I don't think we've tested the HFActionEvent in a while... this looks possibly dubious
                 // this ends the HFActionEvent
                 HFActionEvent endActionEvent(HFActionEvent::endType(),
-                                             computePickRay(getTrueMouse().x, getTrueMouse().y));
+                                             computePickRay(getMouse().x, getMouse().y));
                 sendEvent(this, &endActionEvent);
             }
             break;
@@ -2170,13 +2158,7 @@ void Application::focusOutEvent(QFocusEvent* event) {
     _keysPressed.clear();
 }
 
-void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-    PROFILE_RANGE(__FUNCTION__);
-
-    if (_aboutToQuit) {
-        return;
-    }
-
+void Application::maybeToggleMenuVisible(QMouseEvent* event) {
 #ifndef Q_OS_MAC
     // If in full screen, and our main windows menu bar is hidden, and we're close to the top of the QMainWindow
     // then show the menubar.
@@ -2188,7 +2170,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
                 if (event->pos().y() <= MENU_TOGGLE_AREA) {
                     menuBar->setVisible(true);
                 }
-            } else {
+            }  else {
                 if (event->pos().y() > MENU_TOGGLE_AREA) {
                     menuBar->setVisible(false);
                 }
@@ -2196,9 +2178,36 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         }
     }
 #endif
+}
+
+/// called by ApplicationCompositor when in HMD mode and we're faking our mouse movement
+void Application::fakeMouseEvent(QMouseEvent* event) {
+    _fakedMouseEvent = true;
+    sendEvent(_glWidget, event);
+    _fakedMouseEvent = false;
+}
+
+void Application::mouseMoveEvent(QMouseEvent* event) {
+    PROFILE_RANGE(__FUNCTION__);
+
+    if (_aboutToQuit) {
+        return;
+    }
+
+    maybeToggleMenuVisible(event);
+
+    // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
+    // compositor reticle
+    if (!_fakedMouseEvent) {
+        // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
+        if (_compositor.handleRealMouseMoveEvent()) {
+            return; // bail
+        }
+    }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    auto eventPosition = _compositor.getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     auto button = event->button();
     auto buttons = event->buttons();
     // Determine if the ReticleClick Action is 1 and if so, fake include the LeftMouseButton
@@ -2214,21 +2223,21 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         event->screenPos(), button,
         buttons, event->modifiers());
 
-    getEntities()->mouseMoveEvent(&mappedEvent, deviceID);
-    _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent, deviceID); // send events to any registered scripts
+    getEntities()->mouseMoveEvent(&mappedEvent);
+    _controllerScriptingInterface->emitMouseMoveEvent(&mappedEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
     }
 
-    if (deviceID == 0 && Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
-        _keyboardMouseDevice->mouseMoveEvent(event, deviceID);
+    if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        _keyboardMouseDevice->mouseMoveEvent(event);
     }
 
 }
 
-void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+void Application::mousePressEvent(QMouseEvent* event) {
     // Inhibit the menu if the user is using alt-mouse dragging
     _altPressed = false;
 
@@ -2238,14 +2247,16 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     // keyboard shortcuts not to be swallowed by them.  In particular, WebEngineViews
     // will consume all keyboard events.
     offscreenUi->unfocusWindows();
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+
+    auto eventPosition = _compositor.getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        getEntities()->mousePressEvent(&mappedEvent, deviceID);
+        getEntities()->mousePressEvent(&mappedEvent);
     }
 
     _controllerScriptingInterface->emitMousePressEvent(&mappedEvent); // send events to any registered scripts
@@ -2257,7 +2268,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 
     if (hasFocus()) {
-        if (deviceID == 0 && Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
             _keyboardMouseDevice->mousePressEvent(event);
         }
 
@@ -2271,7 +2282,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 }
 
-void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) {
+void Application::mouseDoublePressEvent(QMouseEvent* event) {
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface->isMouseCaptured()) {
         return;
@@ -2280,17 +2291,18 @@ void Application::mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceI
     _controllerScriptingInterface->emitMouseDoublePressEvent(event);
 }
 
-void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+void Application::mouseReleaseEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QPointF transformedPos = offscreenUi->mapToVirtualScreen(event->localPos(), _glWidget);
+    auto eventPosition = _compositor.getMouseEventPosition(event);
+    QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
         event->screenPos(), event->button(),
         event->buttons(), event->modifiers());
 
     if (!_aboutToQuit) {
-        getEntities()->mouseReleaseEvent(&mappedEvent, deviceID);
+        getEntities()->mouseReleaseEvent(&mappedEvent);
     }
 
     _controllerScriptingInterface->emitMouseReleaseEvent(&mappedEvent); // send events to any registered scripts
@@ -2301,7 +2313,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     }
 
     if (hasFocus()) {
-        if (deviceID == 0 && Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
+        if (Menu::getInstance()->isOptionChecked(KeyboardMouseDevice::NAME)) {
             _keyboardMouseDevice->mouseReleaseEvent(event);
         }
 
@@ -2561,11 +2573,16 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
     controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
 }
 
-ivec2 Application::getMouse() const {
+ivec2 Application::getMouse() {
+    auto reticlePosition = _compositor.getReticlePosition();
+
+    // in the HMD, the reticlePosition is the mouse position
     if (isHMDMode()) {
-        return _compositor.screenToOverlay(getTrueMouse());
+        return reticlePosition;
     }
-    return getTrueMouse();
+
+    // in desktop mode, we need to map from global to widget space
+    return toGlm(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -4231,6 +4248,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+    scriptEngine->registerGlobalObject("Reticle", _compositor.getReticleInterface());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4702,6 +4720,14 @@ glm::uvec2 Application::getCanvasSize() const {
     return glm::uvec2(_glWidget->width(), _glWidget->height());
 }
 
+QRect Application::getRenderingGeometry() const {
+    auto geometry = _glWidget->geometry(); 
+    auto topLeft = geometry.topLeft();
+    auto topLeftScreen = _glWidget->mapToGlobal(topLeft);
+    geometry.moveTopLeft(topLeftScreen);
+    return geometry;
+}
+
 glm::uvec2 Application::getUiSize() const {
     return getActiveDisplayPlugin()->getRecommendedUiSize();
 }
@@ -4710,16 +4736,8 @@ QSize Application::getDeviceSize() const {
     return fromGlm(getActiveDisplayPlugin()->getRecommendedRenderSize());
 }
 
-PickRay Application::computePickRay() const {
-    return computePickRay(getTrueMouse().x, getTrueMouse().y);
-}
-
 bool Application::isThrottleRendering() const {
     return getActiveDisplayPlugin()->isThrottled();
-}
-
-ivec2 Application::getTrueMouse() const {
-    return toGlm(_glWidget->mapFromGlobal(QCursor::pos()));
 }
 
 bool Application::hasFocus() const {

@@ -70,10 +70,10 @@ public:
     
     void handleMetaEvent(HFMetaEvent* event);
 
-    void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0); 
-    void emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void emitMouseMoveEvent(QMouseEvent* event);
+    void emitMousePressEvent(QMouseEvent* event); 
+    void emitMouseDoublePressEvent(QMouseEvent* event);
+    void emitMouseReleaseEvent(QMouseEvent* event);
 
     void emitTouchBeginEvent(const TouchEvent& event);
     void emitTouchEndEvent(const TouchEvent& event); 
@@ -111,10 +111,10 @@ signals:
     void backStartEvent();
     void backEndEvent();
 
-    void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
-    void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
-    void mouseDoublePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(const MouseEvent& event, unsigned int deviceID = 0);
+    void mouseMoveEvent(const MouseEvent& event);
+    void mousePressEvent(const MouseEvent& event);
+    void mouseDoublePressEvent(const MouseEvent& event);
+    void mouseReleaseEvent(const MouseEvent& event);
 
     void touchBeginEvent(const TouchEvent& event);
     void touchEndEvent(const TouchEvent& event);
