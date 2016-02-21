@@ -168,7 +168,7 @@ public:
 
     virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() override { return thread(); }
-    virtual PickRay computePickRay(float x, float y) override;
+    virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
     virtual qreal getDevicePixelRatio() override;
 
