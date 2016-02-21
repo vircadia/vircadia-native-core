@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var lastX = Window.getCursorPositionX();
-var lastY = Window.getCursorPositionY();
+var lastX = Reticle.getPosition().x;
+var lastY = Reticle.getPosition().y;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 
@@ -121,9 +121,9 @@ var mouseLook = (function () {
 
     function onScriptUpdate(dt) {
         if (active && Window.hasFocus()) {
-            var x = Window.getCursorPositionX();
+            var x = Reticle.getPosition().x;
             // I'm not sure why this + 0.5 is necessary?
-            var y = Window.getCursorPositionY() + 0.5;
+            var y = Reticle.getPosition().y; + 0.5;
 
             yawFromMouse += ((x - lastX) * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
             pitchFromMouse += ((y - lastY) * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
@@ -155,7 +155,7 @@ var mouseLook = (function () {
     function resetCursorPosition() {
         var newX = Window.x + Window.innerWidth / 2.0;
         var newY = Window.y + Window.innerHeight / 2.0;
-        Window.setCursorPosition(newX, newY);
+        Reticle.setPosition({ x: newX, y: newY});
         lastX = newX;
         lastY = newY;
     }

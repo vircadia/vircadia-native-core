@@ -58,7 +58,7 @@ void KeyboardMouseDevice::keyReleaseEvent(QKeyEvent* event) {
     _inputDevice->_buttonPressedMap.erase(input.getChannel());
 }
 
-void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event) {
     if (_enableMouse) {
         auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
         auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
@@ -73,7 +73,7 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int devic
     }
 }
 
-void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event) {
     if (_enableMouse) {
         auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
         _inputDevice->_buttonPressedMap.erase(input.getChannel());
@@ -94,7 +94,7 @@ void KeyboardMouseDevice::eraseMouseClicked() {
     _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::RightButton, true).getChannel());
 }
 
-void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     if (_enableMouse) {
         QPoint currentPos = event->pos();
         QPoint currentMove = currentPos - _lastCursor;
