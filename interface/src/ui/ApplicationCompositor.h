@@ -90,6 +90,9 @@ public:
     Q_INVOKABLE glm::vec2 getReticlePosition();
     Q_INVOKABLE void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
 
+    Q_INVOKABLE void setReticleApparentPosition(glm::vec3 position) { _drawAt3D = true; _drawAt3DPosition = position; }
+    Q_INVOKABLE void restoreReticleApparentPosition() { _drawAt3D = false; }
+
     Q_INVOKABLE glm::vec2 getReticleMaximumPosition() const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
@@ -140,6 +143,8 @@ private:
 
     bool _reticleVisible { true };
     float _reticleDepth { 1.0f };
+    bool _drawAt3D { false };
+    glm::vec3 _drawAt3DPosition;
 
     // NOTE: when the compositor is running in HMD mode, it will control the reticle position as a custom
     // application specific position, when it's in desktop mode, the reticle position will simply move
@@ -174,6 +179,10 @@ public:
     Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
+
+    Q_INVOKABLE void setApparentPosition(glm::vec3 position) { _compositor->setReticleApparentPosition(position); }
+    Q_INVOKABLE void restoreApparentPosition() { _compositor->restoreReticleApparentPosition(); }
+
 private:
     ApplicationCompositor* _compositor;
 };

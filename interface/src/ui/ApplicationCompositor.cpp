@@ -283,16 +283,51 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         //Mouse Pointer
         if (getReticleVisible()) {
-            glm::mat4 overlayXfm;
-            _modelTransform.getMatrix(overlayXfm);
+            if (_drawAt3D) {
+                //auto headPose = qApp->getHMDSensorPose();
+                auto myCamera = qApp->getCamera();
+                mat4 cameraMat = myCamera->getTransform();
+                auto cameraOrientation = myCamera->getOrientation();
+                auto UITransform = cameraMat * glm::inverse(headPose);
+                auto relativePosition4 = glm::inverse(UITransform) * vec4(_drawAt3DPosition, 1);
+                auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
+                auto relativeDistance = glm::length(relativePosition);
 
-            auto reticlePosition = getReticlePosition();
-            glm::vec2 projection = overlayToSpherical(reticlePosition);
-            float cursorDepth = getReticleDepth();
-            mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-            mat4 reticleXfm = overlayXfm * pointerXfm;
-            reticleXfm = glm::scale(reticleXfm, reticleScale);
-            batch.setModelTransform(reticleXfm);
+                // look at borrowed from overlays
+                float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
+                float azimuth = atan2f(relativePosition.x, relativePosition.z);
+                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, 0, -1)); // this extra *quat(vec3(0,0,-1)) was required to get the quad to flip this seems like we could optimize
+
+                qDebug() << "_drawAt3DPosition:" << _drawAt3DPosition;
+                qDebug() << "relativePosition:" << relativePosition;
+                qDebug() << "relativeDistance:" << relativeDistance;
+
+                Transform transform;
+                transform.setTranslation(relativePosition);
+                transform.setScale(reticleScale);
+                transform.postScale(relativeDistance); // scale not quite working, distant things too large
+                transform.setRotation(faceCamera);
+                batch.setModelTransform(transform);
+
+                /* 
+                // this definitely doesn't work
+                mat4 pointerXfm = glm::scale(mat4(), vec3(relativeDistance)) * glm::mat4_cast(faceCamera) * glm::translate(mat4(), relativePosition);
+                batch.setModelTransform(pointerXfm);
+                */
+
+            }
+            else {
+                glm::mat4 overlayXfm;
+                _modelTransform.getMatrix(overlayXfm);
+
+                auto reticlePosition = getReticlePosition();
+                glm::vec2 projection = overlayToSpherical(reticlePosition);
+                float cursorDepth = getReticleDepth();
+                mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                mat4 reticleXfm = overlayXfm * pointerXfm;
+                reticleXfm = glm::scale(reticleXfm, reticleScale);
+                batch.setModelTransform(reticleXfm);
+            }
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
         }
     });
