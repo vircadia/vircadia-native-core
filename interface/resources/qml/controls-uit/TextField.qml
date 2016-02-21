@@ -21,7 +21,9 @@ TextField {
     property string label: ""
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
+    font.family: firaSansSemiBold.name
     font.pointSize: hifi.fontSizes.textFieldInput
+    height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
 
     style: TextFieldStyle {
         textColor: textField.colorScheme == hifi.colorSchemes.light
@@ -43,7 +45,7 @@ TextField {
 
     RalewaySemibold {
         text: textField.label
-        size: 13.5
+        size: hifi.fontSizes.inputLabel
         color: hifi.colors.lightGray
         anchors.left: parent.left
         anchors.bottom: parent.top
