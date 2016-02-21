@@ -55,40 +55,37 @@ TableView {
 
         handle: Item {
             id: scrollbarHandle
-            implicitWidth: 8
+            implicitWidth: 6
             Rectangle {
-                radius: 4
-                color: hifi.colors.tableScrollHandle
                 anchors {
                     fill: parent
-                    leftMargin: 4  // Finesse size and position.
-                    rightMargin: -1
-                    topMargin: 2
-                    bottomMargin: 3
+                    leftMargin: 2       // Move it right
+                    rightMargin: -2     // ""
+                    topMargin: 3        // Shrink vertically
+                    bottomMargin: 3     // ""
                 }
+                radius: 3
+                color: hifi.colors.tableScrollHandle
             }
         }
 
         scrollBarBackground: Item {
             implicitWidth: 10
-
             Rectangle {
-                color: hifi.colors.baseGrayHighlight
                 anchors {
                     fill: parent
-                    leftMargin: 1  // Finesse size and position.
-                    topMargin: -2
-                    bottomMargin: -2
+                    margins: -1     // Expand
                 }
+                color: hifi.colors.baseGrayHighlight
             }
 
             Rectangle {
-                radius: 4
-                color: hifi.colors.tableScrollBackground
                 anchors {
                     fill: parent
-                    leftMargin: 3  // Finesse position.
+                    margins: 1      // Shrink
                 }
+                radius: 4
+                color: hifi.colors.tableScrollBackground
             }
         }
 
