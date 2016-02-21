@@ -146,7 +146,9 @@ private:
     // NOTE: when the compositor is running in HMD mode, it will control the reticle position as a custom
     // application specific position, when it's in desktop mode, the reticle position will simply move
     // the system mouse.
-    std::atomic<glm::vec2> _reticlePositionInHMD;
+    glm::vec2 _reticlePositionInHMD { 0.0f, 0.0f };
+    mutable QMutex _reticlePositionInHMDLock{ QMutex::Recursive };
+
     QPointF _lastKnownRealMouse;
     bool _ignoreMouseMove { false };
 
