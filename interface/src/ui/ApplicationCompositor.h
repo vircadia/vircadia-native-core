@@ -101,9 +101,9 @@ public:
     void handleLeaveEvent();
     QPointF getMouseEventPosition(QMouseEvent* event);
 
+    bool shouldCaptureMouse() const;
 
 private:
-    bool shouldCaptureMouse() const;
 
     void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
     void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
@@ -162,9 +162,12 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(bool visible READ getVisible WRITE setVisible)
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
+    Q_PROPERTY(bool mouseCaptured READ isMouseCaptured)
 
 public:
     ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
+
+    Q_INVOKABLE bool isMouseCaptured() { return _compositor->shouldCaptureMouse(); }
 
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }
     Q_INVOKABLE void setVisible(bool visible) { _compositor->setReticleVisible(visible); }
