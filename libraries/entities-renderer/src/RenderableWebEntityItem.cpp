@@ -73,7 +73,7 @@ bool RenderableWebEntityItem::buildWebSurface(EntityTreeRenderer* renderer) {
     // Restore the original GL context
     currentContext->makeCurrent(currentSurface);
 
-    auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
+    auto forwardMouseEvent = [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
         // Ignore mouse interaction if we're locked
         if (this->getLocked()) {
             return;
