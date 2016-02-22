@@ -85,19 +85,19 @@ void Light::setMaximumRadius(float radius) {
 }
 
 void Light::updateLightRadius() {
+    // This function relies on the attenuation equation:
+    // I = Li / (1 + (d + Lr)/Lr)^2
+    // where I = calculated intensity, Li = light intensity, Lr = light surface radius, d = distance from surface 
+    // see: https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
+    // This equation is biased back by Lr so that all lights act as true points, regardless of surface radii
+
+    const float MIN_CUTOFF_INTENSITY = 0.001f;
+    // Get cutoff radius at minimum intensity
     float intensity = getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z);
-    float maximumDistance = getMaximumRadius() - getSurfaceRadius();
+    float cutoffRadius = getSurfaceRadius() * ((glm::sqrt(intensity / MIN_CUTOFF_INTENSITY) - 1) - 1);
 
-    float denom = maximumDistance / getSurfaceRadius() + 1;
-
-    // The cutoff intensity biases the light towards the source.
-    // If the source is small and the intensity high, many points may not be shaded.
-    // If the intensity is >=1.0, the lighting attenuation equation gets borked (see Light.slh).
-    // To maintain sanity, we cap it well before then.
-    const float MAX_CUTOFF_INTENSITY = 0.01f; // intensity = maximumRadius = 1.0f, surfaceRadius = 0.1f
-    float cutoffIntensity = std::min(intensity / (denom * denom), MAX_CUTOFF_INTENSITY);
-
-    editSchema()._attenuation.z = cutoffIntensity;
+    // If it is less than max radius, store it to buffer to avoid extra shading
+    editSchema()._attenuation.z = std::min(getMaximumRadius(), cutoffRadius);
 }
 
 #include <math.h>

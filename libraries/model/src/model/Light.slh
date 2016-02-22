@@ -87,29 +87,22 @@ float getLightSquareRadius(Light l) {
 }
 
 float getLightCutoffRadius(Light l) {
-    return l._attenuation.y;
+    return l._attenuation.z;
 }
 
 float getLightCutoffSquareRadius(Light l) {
     return getLightCutoffRadius(l) * getLightCutoffRadius(l);
 }
 
-float getLightCutoffIntensity(Light l) {
-    return l._attenuation.z;
-}
-
 float getLightShowContour(Light l) {
     return l._control.w;
 }
 
-float evalLightAttenuation(Light l, float r) {
+float evalLightAttenuation(Light l, float d) {
     float radius = getLightRadius(l);
-    float cutoff = getLightCutoffIntensity(l);
-    float d = max(r - radius, 0.0);
-    float denom = d/radius + 1.0;
+    float denom = d / radius + 1.0;
     float attenuation = min(1.0, 1.0 / (denom * denom));
-    // Scale attenuation using cutoff from maximum radius
-    return max(0, (attenuation - cutoff) / (1 - cutoff));
+    return attenuation;
 }
 
 SphericalHarmonics getLightAmbientSphere(Light l) {

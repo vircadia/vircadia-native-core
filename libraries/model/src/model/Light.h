@@ -74,15 +74,15 @@ public:
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
  
-    // Surface Radius is the physical radius of the light sphere through wich the light energy shines
-    // It's expressed in meters and should be small for realistic lights since its in theory about the
-    // size of a light bulb filament (~1cm = 0.01m)
+    // Surface radius is the physical radius of the light sphere through which energy shines,
+    // expressed in meters. It is used only to calculate the falloff curve of the light.
+    // Actual lights will all have surface radii approaching 0.
     void setSurfaceRadius(float radius);
     float getSurfaceRadius() const { return getSchema()._attenuation.x; }
 
-    // Maximum radius defines the maximum distance of reach of our light model
-    // This is where our radial attenuation will reach 0 (even though in theory it should be infinity)
-    // If MaximumRadius < SurfaceRadius then the radial attenuation is constant at 100% Intensity
+    // Maximum radius is the cutoff radius of the light energy, expressed in meters.
+    // It is used to bound light entities, and *will not* affect the falloff curve of the light.
+    // Setting it low will result in a noticeable cutoff.
     void setMaximumRadius(float radius);
     float getMaximumRadius() const { return getSchema()._attenuation.y; }
 
