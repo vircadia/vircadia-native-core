@@ -90,7 +90,7 @@ public:
     PacketPosition getPacketPosition() const { return _packetPosition; }
     MessagePartNumber getMessagePartNumber() const { return _messagePartNumber; }
     
-    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) const;
+    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber);
     void writeSequenceNumber(SequenceNumber sequenceNumber) const;
     void obfuscate(ObfuscationLevel level);
 

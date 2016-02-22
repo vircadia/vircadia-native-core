@@ -365,6 +365,7 @@ bool SendQueue::maybeResendPacket() {
                 Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
                 if (level != Packet::NoObfuscation) {
+#ifdef UDT_CONNECTION_DEBUG
                     QString debugString = "Obfuscating packet %1 with level %2";
                     debugString = debugString.arg(QString::number((uint32_t)resendPacket.getSequenceNumber()),
                                                   QString::number(level));
@@ -376,7 +377,7 @@ bool SendQueue::maybeResendPacket() {
                     }
                     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .*");
                     qCritical() << qPrintable(debugString);
-
+#endif
 
                     // Create copy of the packet
                     auto packet = Packet::createCopy(resendPacket);

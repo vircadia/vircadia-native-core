@@ -96,6 +96,7 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
     adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
 
     if (getObfuscationLevel() != Packet::NoObfuscation) {
+#ifdef UDT_CONNECTION_DEBUG
         QString debugString = "Unobfuscating packet %1 with level %2";
         debugString = debugString.arg(QString::number((uint32_t)getSequenceNumber()),
                                       QString::number(getObfuscationLevel()));
@@ -109,6 +110,7 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
 
         static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .*");
         qDebug() << qPrintable(debugString);
+#endif
 
         obfuscate(NoObfuscation); // Undo obfuscation
     }
@@ -138,7 +140,7 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) const {
+void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) {
     _isPartOfMessage = true;
     _messageNumber = messageNumber;
     _packetPosition = position;
