@@ -129,7 +129,7 @@ Grid3DOverlay* Grid3DOverlay::createClone() const {
 
 void Grid3DOverlay::updateGrid() {
     const int MAJOR_GRID_EVERY_MIN = 1;
-    const float MINOR_GRID_EVERY_MIN = 0.2f;
+    const float MINOR_GRID_EVERY_MIN = 0.01f;
 
     _majorGridEvery = std::max(_majorGridEvery, MAJOR_GRID_EVERY_MIN);
     _minorGridEvery = std::max(_minorGridEvery, MINOR_GRID_EVERY_MIN);
