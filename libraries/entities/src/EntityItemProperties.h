@@ -35,6 +35,7 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 #include "EntityPropertyFlags.h"
+#include "LightEntityItem.h"
 #include "LineEntityItem.h"
 #include "ParticleEffectEntityItem.h"
 #include "PolyVoxEntityItem.h"
@@ -129,11 +130,11 @@ public:
     DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
     DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t, ENTITY_COLLISION_MASK_DEFAULT);
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
-    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, false);
-    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, 1.0f);
-    DEFINE_PROPERTY(PROP_SURFACE_RADIUS, SurfaceRadius, surfaceRadius, float, ENTITY_ITEM_DEFAULT_SURFACE_RADIUS);
-    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, 0.0f);
-    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, ENTITY_ITEM_DEFAULT_CUTOFF);
+    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, LightEntityItem::DEFAULT_IS_SPOTLIGHT);
+    DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, LightEntityItem::DEFAULT_INTENSITY);
+    DEFINE_PROPERTY(PROP_SURFACE_RADIUS, SurfaceRadius, surfaceRadius, float, LightEntityItem::DEFAULT_SURFACE_RADIUS);
+    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, LightEntityItem::DEFAULT_EXPONENT);
+    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, LightEntityItem::DEFAULT_CUTOFF);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
     DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString, "");
     DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString, ENTITY_ITEM_DEFAULT_USER_DATA);

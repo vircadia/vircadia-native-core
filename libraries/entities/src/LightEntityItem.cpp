@@ -21,6 +21,12 @@
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
 
+const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
+const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
+const float LightEntityItem::DEFAULT_SURFACE_RADIUS = 0.1f;
+const float LightEntityItem::DEFAULT_EXPONENT = 0.0f;
+const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
+
 bool LightEntityItem::_lightsArePickable = false;
 
 EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -32,13 +38,7 @@ EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const E
 // our non-pure virtual subclass for now...
 LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Light;
-
-    // default property values
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
-    _intensity = 1.0f;
-    _surfaceRadius = 0.1f;
-    _exponent = 0.0f;
-    _cutoff = PI;
 }
 
 void LightEntityItem::setDimensions(const glm::vec3& value) {
