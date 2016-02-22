@@ -11,13 +11,34 @@
 
 #include "Packet.h"
 
-#include <LogHandler.h>
+#include <array>
 
-#include "SaltShaker.h"
+#include <LogHandler.h>
 
 using namespace udt;
 
 static int packetMetaTypeId = qRegisterMetaType<Packet*>("Packet*");
+
+using Key = uint64_t;
+static const std::array<Key, 4> KEYS {{
+    0x0,
+    0x6362726973736574,
+    0x7362697261726461,
+    0x72687566666d616e,
+}};
+
+void xorHelper(char* start, int size, Key key) {
+    const auto end = start + size;
+
+    auto p = start;
+    for (; p + sizeof(Key) < end; p += sizeof(Key)) {
+        *reinterpret_cast<Key*>(p) ^= key;
+    }
+
+    for (int i = 0; p < end; ++p || ++i) {
+        *p ^= *(reinterpret_cast<const char*>(&key) + i);
+    }
+}
 
 int Packet::localHeaderSize(bool isPartOfMessage) {
     return sizeof(Packet::SequenceNumberAndBitField) +
@@ -72,11 +93,9 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
 {
     readHeader();
 
-    if (getObfuscationLevel() != Packet::NoObfuscation) {
-        SaltShaker shaker;
-        shaker.unsalt(*this, getObfuscationLevel());
-        readHeader(); // read packet header again as some of the data was obfuscated
+    adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
 
+    if (getObfuscationLevel() != Packet::NoObfuscation) {
         QString debugString = "Unobfuscating packet %1 with level %2";
         debugString = debugString.arg(QString::number((uint32_t)getSequenceNumber()),
                                       QString::number(getObfuscationLevel()));
@@ -90,9 +109,9 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
 
         static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .{0,1000}");
         qDebug() << qPrintable(debugString);
-    }
 
-    adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
+        obfuscate(NoObfuscation); // Undo obfuscation
+    }
 }
 
 Packet::Packet(const Packet& other) : BasePacket(other) {
@@ -119,7 +138,7 @@ Packet& Packet::operator=(Packet&& other) {
     return *this;
 }
 
-void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) {
+void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) const {
     _isPartOfMessage = true;
     _messageNumber = messageNumber;
     _packetPosition = position;
@@ -127,10 +146,21 @@ void Packet::writeMessageNumber(MessageNumber messageNumber, PacketPosition posi
     writeHeader();
 }
 
-void Packet::writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel level) const {
+void Packet::writeSequenceNumber(SequenceNumber sequenceNumber) const {
     _sequenceNumber = sequenceNumber;
-    _obfuscationLevel = level;
     writeHeader();
+}
+
+void Packet::obfuscate(ObfuscationLevel level) {
+    auto obfuscationKey = KEYS[getObfuscationLevel()] ^ KEYS[level]; // Undo old and apply new one.
+    if (obfuscationKey != 0) {
+        xorHelper(getData() + localHeaderSize(isPartOfMessage()),
+                  getDataSize() - localHeaderSize(isPartOfMessage()), obfuscationKey);
+
+        // Update members and header
+        _obfuscationLevel = level;
+        writeHeader();
+    }
 }
 
 void Packet::copyMembers(const Packet& other) {
@@ -155,6 +185,7 @@ void Packet::readHeader() const {
 
     if (_isPartOfMessage) {
         MessageNumberAndBitField* messageNumberAndBitField = seqNumBitField + 1;
+
         _messageNumber = *messageNumberAndBitField & MESSAGE_NUMBER_MASK;
         _packetPosition = static_cast<PacketPosition>(*messageNumberAndBitField >> PACKET_POSITION_OFFSET);
 

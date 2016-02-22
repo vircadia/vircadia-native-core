@@ -18,13 +18,13 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "../NetworkLogging.h"
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "PacketList.h"
-#include "SaltShaker.h"
 #include "Socket.h"
 
 using namespace udt;
@@ -338,8 +338,6 @@ bool SendQueue::maybeSendNewPacket() {
     return false;
 }
 
-#include <LogHandler.h>
-
 bool SendQueue::maybeResendPacket() {
     
     // the following while makes sure that we find a packet to re-send, if there is one
@@ -364,13 +362,12 @@ bool SendQueue::maybeResendPacket() {
                 auto& resendPacket = *(entry.second);
                 ++entry.first; // Add 1 resend
 
-                auto saltiness = entry.first < 2 ? 0 : (entry.first - 2) % 4;
+                Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
 
-                if (saltiness != 0) {
+                if (level != Packet::NoObfuscation) {
                     QString debugString = "Obfuscating packet %1 with level %2";
                     debugString = debugString.arg(QString::number((uint32_t)resendPacket.getSequenceNumber()),
-                                                  QString::number(saltiness));
-
+                                                  QString::number(level));
                     if (resendPacket.isPartOfMessage()) {
                         debugString += "\n";
                         debugString += "    Message Number: %1, Part Number: %2.";
@@ -382,11 +379,15 @@ bool SendQueue::maybeResendPacket() {
                     static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .{0,1000}");
                     qCritical() << qPrintable(debugString);
 
-                    SaltShaker shaker;
-                    auto packet = shaker.salt(resendPacket, saltiness);
+
+                    // Create copy of the packet
+                    auto packet = Packet::createCopy(resendPacket);
 
                     // unlock the sent packets
                     sentLocker.unlock();
+
+                    // Obfuscate packet
+                    packet->obfuscate(level);
 
                     // send it off
                     sendPacket(*packet);

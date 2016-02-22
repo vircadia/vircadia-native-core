@@ -90,8 +90,9 @@ public:
     PacketPosition getPacketPosition() const { return _packetPosition; }
     MessagePartNumber getMessagePartNumber() const { return _messagePartNumber; }
     
-    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber);
-    void writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel level = NoObfuscation) const;
+    void writeMessageNumber(MessageNumber messageNumber, PacketPosition position, MessagePartNumber messagePartNumber) const;
+    void writeSequenceNumber(SequenceNumber sequenceNumber) const;
+    void obfuscate(ObfuscationLevel level);
 
 protected:
     Packet(qint64 size, bool isReliable = false, bool isPartOfMessage = false);
