@@ -1589,31 +1589,32 @@ function MyController(hand) {
         ids.forEach(function(id) {
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
             if (props.name === 'pointer') {
-                return;
-            } else if (props.boundingBox) {
-                var entityMinPoint = props.boundingBox.brn;
-                var entityMaxPoint = props.boundingBox.tfl;
-                var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
-                var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
-
-                if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
-                    // we haven't been touched before, but either right or left is touching us now
-                    _this.allTouchedIDs[id] = true;
-                    _this.startTouch(id);
-                } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
-                    // we have been touched before and are still being touched
-                    // continue touch
-                    _this.continueTouch(id);
-                } else if (_this.allTouchedIDs[id]) {
-                    delete _this.allTouchedIDs[id];
-                    _this.stopTouch(id);
-
-                } else {
-                    //we are in another state
-                    return;
-                }
+                continue;
             }
+            if (!props || !props.boundingBox) {
+                continue;
+            }
+            var entityMinPoint = props.boundingBox.brn;
+            var entityMaxPoint = props.boundingBox.tfl;
+            var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
+            var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
 
+            if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
+                // we haven't been touched before, but either right or left is touching us now
+                _this.allTouchedIDs[id] = true;
+                _this.startTouch(id);
+            } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
+                // we have been touched before and are still being touched
+                // continue touch
+                _this.continueTouch(id);
+            } else if (_this.allTouchedIDs[id]) {
+                delete _this.allTouchedIDs[id];
+                _this.stopTouch(id);
+
+            } else {
+                //we are in another state
+                return;
+            }
         });
     };
 
