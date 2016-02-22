@@ -37,11 +37,12 @@ public:
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
-        float intensity = 0.5f);
+        float intensity = 0.5f, float surfaceRadius = 0.01f);
         
     /// Adds a spot light to render for the current frame.
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
-        float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
+        float intensity = 0.5f, float surfaceRadius = 0.01f,
+        const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
     void render(const render::RenderContextPointer& renderContext);

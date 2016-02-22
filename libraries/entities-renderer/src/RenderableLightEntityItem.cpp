@@ -36,15 +36,16 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     glm::vec3 color = toGlm(getXColor());
 
     float intensity = getIntensity();
+    float surfaceRadius = getSurfaceRadius();
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
     if (_isSpotlight) {
         DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position, largestDiameter / 2.0f,
-            color, intensity, rotation, exponent, cutoff);
+            color, intensity, surfaceRadius, rotation, exponent, cutoff);
     } else {
         DependencyManager::get<DeferredLightingEffect>()->addPointLight(position, largestDiameter / 2.0f,
-            color, intensity);
+            color, intensity, surfaceRadius);
     }
     
 #ifdef WANT_DEBUG
