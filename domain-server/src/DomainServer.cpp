@@ -1055,6 +1055,8 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
 
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
+        // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
+        // QDataStream and the possibility of IPv6 address for the sockets.
         static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
 
         bool shouldRecreatePacket = false;
