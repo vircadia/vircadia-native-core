@@ -22,16 +22,18 @@
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 
-#include "standardTransformPNTC_vert.h"
-#include "standardDrawTexture_frag.h"
-
 #include "gpu/StandardShaderLib.h"
 
 #include "model/TextureMap.h"
 
+#include "standardTransformPNTC_vert.h"
+#include "standardDrawTexture_frag.h"
+
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
 #include "simple_textured_emisive_frag.h"
+
+#include "grid_frag.h"
 
 //#define WANT_DEBUG
 
@@ -564,186 +566,49 @@ void GeometryCache::renderWireSphere(gpu::Batch& batch) {
     renderWireShape(batch, Sphere);
 }
 
+void GeometryCache::renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+                            int majorRows, int majorCols, float majorEdge,
+                            int minorRows, int minorCols, float minorEdge,
+                            const glm::vec4& color, bool isLayered, int id) {
+    static const glm::vec2 MIN_TEX_COORD(0.0f, 0.0f);
+    static const glm::vec2 MAX_TEX_COORD(1.0f, 1.0f);
 
-void GeometryCache::renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color) {
-    IntPair key(xDivisions, yDivisions);
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, yDivisions), glm::vec3(color.z, color.y, xDivisions));
-
-    int vertices = (xDivisions + 1 + yDivisions + 1) * 2;
-    if (!_gridBuffers.contains(key)) {
-        auto verticesBuffer = std::make_shared<gpu::Buffer>();
-
-        float* vertexData = new float[vertices * 2];
-        float* vertex = vertexData;
-
-        for (int i = 0; i <= xDivisions; i++) {
-            float x = (float)i / xDivisions;
-        
-            *(vertex++) = x;
-            *(vertex++) = 0.0f;
-            
-            *(vertex++) = x;
-            *(vertex++) = 1.0f;
-        }
-        for (int i = 0; i <= yDivisions; i++) {
-            float y = (float)i / yDivisions;
-            
-            *(vertex++) = 0.0f;
-            *(vertex++) = y;
-            
-            *(vertex++) = 1.0f;
-            *(vertex++) = y;
-        }
-
-        verticesBuffer->append(sizeof(float) * vertices * 2, (gpu::Byte*) vertexData);
-        delete[] vertexData;
-        
-        _gridBuffers[key] = verticesBuffer;
-    }
-
-    if (!_gridColors.contains(colorKey)) {
-        auto colorBuffer = std::make_shared<gpu::Buffer>();
-        _gridColors[colorKey] = colorBuffer;
-
-        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-                            ((int(color.y * 255.0f) & 0xFF) << 8) |
-                            ((int(color.z * 255.0f) & 0xFF) << 16) |
-                            ((int(color.w * 255.0f) & 0xFF) << 24);
-
-        int* colorData = new int[vertices];
-        int* colorDataAt = colorData;
-                            
-        for(int v = 0; v < vertices; v++) {
-            *(colorDataAt++) = compactColor;
-        }
-
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
-        delete[] colorData;
-    }
-    gpu::BufferPointer verticesBuffer = _gridBuffers[key];
-    gpu::BufferPointer colorBuffer = _gridColors[colorKey];
-
-    const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
-    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-    
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-
-    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
-    
-    batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, verticesView);
-    batch.setInputBuffer(COLOR_SLOT, colorView);
-    batch.draw(gpu::LINES, vertices, 0);
-}
-
-// TODO: why do we seem to create extra BatchItemDetails when we resize the window?? what's that??
-void GeometryCache::renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id) {
-    #ifdef WANT_DEBUG
-        qCDebug(renderutils) << "GeometryCache::renderGrid(x["<<x<<"], "
-            "y["<<y<<"],"
-            "w["<<width<<"],"
-            "h["<<height<<"],"
-            "rows["<<rows<<"],"
-            "cols["<<cols<<"],"
-            " id:"<<id<<")...";
-    #endif
-            
     bool registered = (id != UNKNOWN_ID);
-    Vec3Pair key(glm::vec3(x, y, width), glm::vec3(height, rows, cols));
-    Vec3Pair colorKey(glm::vec3(color.x, color.y, rows), glm::vec3(color.z, color.y, cols));
+    Vec2FloatPair majorKey(glm::vec2(majorRows, majorCols), majorEdge);
+    Vec2FloatPair minorKey(glm::vec2(minorRows, minorCols), minorEdge);
+    Vec2FloatPairPair key(majorKey, minorKey);
 
-    int vertices = (cols + 1 + rows + 1) * 2;
-    if ((registered && (!_registeredAlternateGridBuffers.contains(id) || _lastRegisteredAlternateGridBuffers[id] != key))
-        || (!registered && !_alternateGridBuffers.contains(key))) {
+    // Make the gridbuffer
+    if ((registered && (!_registeredGridBuffers.contains(id) || _lastRegisteredGridBuffer[id] != key)) ||
+        (!registered && !_gridBuffers.contains(key))) {
+        GridSchema gridSchema;
+        GridBuffer gridBuffer = std::make_shared<gpu::Buffer>(sizeof(GridSchema), (const gpu::Byte*) &gridSchema);
 
-        if (registered && _registeredAlternateGridBuffers.contains(id)) {
-            _registeredAlternateGridBuffers[id].reset();
-            #ifdef WANT_DEBUG
-                qCDebug(renderutils) << "renderGrid()... RELEASING REGISTERED VERTICES BUFFER";
-            #endif
+        if (registered && _registeredGridBuffers.contains(id)) {
+            gridBuffer = _registeredGridBuffers[id];
         }
 
-        auto verticesBuffer = std::make_shared<gpu::Buffer>();
         if (registered) {
-            _registeredAlternateGridBuffers[id] = verticesBuffer;
-            _lastRegisteredAlternateGridBuffers[id] = key;
+            _registeredGridBuffers[id] = gridBuffer;
+            _lastRegisteredGridBuffer[id] = key;
         } else {
-            _alternateGridBuffers[key] = verticesBuffer;
+            _gridBuffers[key] = gridBuffer;
         }
 
-        float* vertexData = new float[vertices * 2];
-        float* vertex = vertexData;
-
-        int dx = width / cols;
-        int dy = height / rows;
-        int tx = x;
-        int ty = y;
-
-        // Draw horizontal grid lines
-        for (int i = rows + 1; --i >= 0; ) {
-            *(vertex++) = x;
-            *(vertex++) = ty;
-
-            *(vertex++) = x + width;
-            *(vertex++) = ty;
-
-            ty += dy;
-        }
-        // Draw vertical grid lines
-        for (int i = cols + 1; --i >= 0; ) {
-            *(vertex++) = tx;
-            *(vertex++) = y;
-
-            *(vertex++) = tx;
-            *(vertex++) = y + height;
-            tx += dx;
-        }
-
-        verticesBuffer->append(sizeof(float) * vertices * 2, (gpu::Byte*) vertexData);
-        delete[] vertexData;
+        gridBuffer.edit<GridSchema>().period = glm::vec4(majorRows, majorCols, minorRows, minorCols);
+        gridBuffer.edit<GridSchema>().offset.x = -(majorEdge / majorRows) / 2;
+        gridBuffer.edit<GridSchema>().offset.y = -(majorEdge / majorCols) / 2;
+        gridBuffer.edit<GridSchema>().offset.z = -(minorEdge / minorRows) / 2;
+        gridBuffer.edit<GridSchema>().offset.w = -(minorEdge / minorCols) / 2;
+        gridBuffer.edit<GridSchema>().edge = glm::vec4(glm::vec2(majorEdge),
+            // If rows or columns are not set, do not draw minor gridlines
+            glm::vec2((minorRows != 0 && minorCols != 0) ? minorEdge : 0.0f));
     }
 
-    if (!_gridColors.contains(colorKey)) {
-        auto colorBuffer = std::make_shared<gpu::Buffer>();
-        _gridColors[colorKey] = colorBuffer;
+    // Set the grid pipeline
+    useGridPipeline(batch, registered ? _registeredGridBuffers[id] : _gridBuffers[key], isLayered);
 
-        int compactColor = ((int(color.x * 255.0f) & 0xFF)) |
-                            ((int(color.y * 255.0f) & 0xFF) << 8) |
-                            ((int(color.z * 255.0f) & 0xFF) << 16) |
-                            ((int(color.w * 255.0f) & 0xFF) << 24);
-
-        int* colorData = new int[vertices];
-        int* colorDataAt = colorData;
-                            
-                            
-        for(int v = 0; v < vertices; v++) {
-            *(colorDataAt++) = compactColor;
-        }
-
-        colorBuffer->append(sizeof(int) * vertices, (gpu::Byte*) colorData);
-        delete[] colorData;
-    }
-    gpu::BufferPointer verticesBuffer = registered ? _registeredAlternateGridBuffers[id] : _alternateGridBuffers[key];
-    
-    gpu::BufferPointer colorBuffer = _gridColors[colorKey];
-
-    const int VERTICES_SLOT = 0;
-    const int COLOR_SLOT = 1;
-    auto streamFormat = std::make_shared<gpu::Stream::Format>(); // 1 for everyone
-    
-    streamFormat->setAttribute(gpu::Stream::POSITION, VERTICES_SLOT, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ), 0);
-    streamFormat->setAttribute(gpu::Stream::COLOR, COLOR_SLOT, gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA));
-
-    gpu::BufferView verticesView(verticesBuffer, 0, verticesBuffer->getSize(), streamFormat->getAttributes().at(gpu::Stream::POSITION)._element);
-    gpu::BufferView colorView(colorBuffer, streamFormat->getAttributes().at(gpu::Stream::COLOR)._element);
-
-    batch.setInputFormat(streamFormat);
-    batch.setInputBuffer(VERTICES_SLOT, verticesView);
-    batch.setInputBuffer(COLOR_SLOT, colorView);
-    batch.draw(gpu::LINES, vertices, 0);
+    renderQuad(batch, minCorner, maxCorner, MIN_TEX_COORD, MAX_TEX_COORD, color, id);
 }
 
 void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, const glm::vec4& color) {
@@ -1772,7 +1637,6 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
         auto state = std::make_shared<gpu::State>();
 
-
         // enable decal blend
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
 
@@ -1790,6 +1654,30 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
     } else {
         batch.setPipeline(_standardDrawPipeline);
     }
+}
+
+void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered) {
+    if (!_gridPipeline) {
+        auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
+        auto ps = gpu::Shader::createPixel(std::string(grid_frag));
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+        _gridSlot = program->getBuffers().findLocation("gridBuffer");
+
+        auto stateLayered = std::make_shared<gpu::State>();
+        stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _gridPipelineLayered = gpu::Pipeline::create(program, stateLayered);
+
+        auto state = std::make_shared<gpu::State>(stateLayered->getValues());
+        const float DEPTH_BIAS = 0.001f;
+        state->setDepthBias(DEPTH_BIAS);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        _gridPipeline = gpu::Pipeline::create(program, state);
+    }
+
+    gpu::PipelinePointer pipeline = isLayered ? _gridPipelineLayered : _gridPipeline;
+    batch.setPipeline(pipeline);
+    batch.setUniformBuffer(_gridSlot, gridBuffer);
 }
 
 
