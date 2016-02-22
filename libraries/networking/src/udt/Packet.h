@@ -104,6 +104,8 @@ protected:
     Packet& operator=(Packet&& other);
 
 private:
+    void copyMembers(const Packet& other);
+
     // Header readers - these read data to member variables after pulling packet off wire
     void readHeader() const;
     void writeHeader() const;

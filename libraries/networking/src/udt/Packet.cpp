@@ -95,54 +95,26 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
     adjustPayloadStartAndCapacity(Packet::localHeaderSize(_isPartOfMessage), _payloadSize > 0);
 }
 
-Packet::Packet(const Packet& other) :
-    BasePacket(other)
-{
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _obfuscationLevel = other._obfuscationLevel;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
-    _messagePartNumber = other._messagePartNumber;
+Packet::Packet(const Packet& other) : BasePacket(other) {
+    copyMembers(other);
 }
 
 Packet& Packet::operator=(const Packet& other) {
     BasePacket::operator=(other);
 
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _obfuscationLevel = other._obfuscationLevel;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
-    _messagePartNumber = other._messagePartNumber;
+    copyMembers(other);
 
     return *this;
 }
 
-Packet::Packet(Packet&& other) :
-    BasePacket(std::move(other))
-{
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _obfuscationLevel = other._obfuscationLevel;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
-    _messagePartNumber = other._messagePartNumber;
+Packet::Packet(Packet&& other) : BasePacket(std::move(other)) {
+    copyMembers(other);
 }
 
 Packet& Packet::operator=(Packet&& other) {
     BasePacket::operator=(std::move(other));
 
-    _isReliable = other._isReliable;
-    _isPartOfMessage = other._isPartOfMessage;
-    _obfuscationLevel = other._obfuscationLevel;
-    _sequenceNumber = other._sequenceNumber;
-    _packetPosition = other._packetPosition;
-    _messageNumber = other._messageNumber;
-    _messagePartNumber = other._messagePartNumber;
+    copyMembers(other);
 
     return *this;
 }
@@ -159,6 +131,16 @@ void Packet::writeSequenceNumber(SequenceNumber sequenceNumber, ObfuscationLevel
     _sequenceNumber = sequenceNumber;
     _obfuscationLevel = level;
     writeHeader();
+}
+
+void Packet::copyMembers(const Packet& other) {
+    _isReliable = other._isReliable;
+    _isPartOfMessage = other._isPartOfMessage;
+    _obfuscationLevel = other._obfuscationLevel;
+    _sequenceNumber = other._sequenceNumber;
+    _packetPosition = other._packetPosition;
+    _messageNumber = other._messageNumber;
+    _messagePartNumber = other._messagePartNumber;
 }
 
 void Packet::readHeader() const {
