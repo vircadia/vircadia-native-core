@@ -287,7 +287,6 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
                 //auto headPose = qApp->getHMDSensorPose();
                 auto myCamera = qApp->getCamera();
                 mat4 cameraMat = myCamera->getTransform();
-                auto cameraOrientation = myCamera->getOrientation();
                 auto UITransform = cameraMat * glm::inverse(headPose);
                 auto relativePosition4 = glm::inverse(UITransform) * vec4(_drawAt3DPosition, 1);
                 auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
