@@ -56,10 +56,10 @@ Item {
 
     RadialGradient {
         id: focusShadow
-        width: 2 * window.width
-        height: width
-        x: -width / 4
-        y: -width / 4
+        width: 1.66 * window.width
+        height: 1.66 * window.height
+        x: (window.width - width) / 2
+        y: window.height / 2 - 0.375 * height
         // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX.
         // Check again when have a later version of QtQuick.
         visible: window && window.focus && pane.visible && Qt.platform.os != "osx"
