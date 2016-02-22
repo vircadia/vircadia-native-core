@@ -44,12 +44,6 @@
 
     this.getTotalWait = function() {
         return (Math.random() * 5000) * 2;
-        // var avatars = AvatarList.getAvatarIdentifiers();
-        // var avatarCount = avatars.length;
-        // var random = Math.random() * 5000;
-        // var totalWait = random * (avatarCount * 2);
-        // print('cellscience color avatarcount, totalwait: ', avatarCount, totalWait)
-        // return totalWait
     }
 
 
@@ -86,7 +80,9 @@
 
 
     this.unload = function() {
-        baton.release(function() {});
+        if (baton) {
+            baton.release(function() {});
+        }
         Script.clearInterval(currentInterval);
     }
 

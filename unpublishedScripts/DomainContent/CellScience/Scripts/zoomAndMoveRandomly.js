@@ -40,7 +40,7 @@
         this.minAngularVelocity = 0.01;
         this.maxAngularVelocity = 0.03;
         baton = virtualBaton({
-            batonName: 'io.highfidelity.vesicles:' + entityId, // One winner for each entity
+            batonName: 'io.highfidelity.vesicles:' + entityID, // One winner for each entity
         });
         stopUpdateAndReclaim();
         currentInterval = Script.setInterval(self.move, self.getTotalWait())
@@ -127,7 +127,10 @@
         if (this.initTimeout !== null) {
             Script.clearTimeout(this.initTimeout);
         }
-        baton.release(function() {});
+        if (baton) {
+            baton.release(function() {});
+        }
+
         Script.clearInterval(currentInterval);
     }
 
