@@ -1235,13 +1235,11 @@ Script.update.connect(function(deltaTime) {
                 // + JSON.stringify(result)
                 print("something hovered!! result.distance:" +result.distance);
                 Vec3.print("something hovered!! result.intersection:", result.intersection);
-                //Reticle.setDepth(result.distance);
-                Reticle.setApparentPosition(result.intersection);
+                Reticle.setDepth(result.distance);
                 Overlays.editOverlay(intersectionBeacon, { position: result.intersection, visible: false });
 
             } else {
-                //Reticle.setDepth(1.0);
-                Reticle.restoreApparentPosition();
+                Reticle.setDepth(100.0);
                 print("NO INTERSECTION...");
                 var pointAt2D = Reticle.position;
                 var pointAt3D = HMD.worldPointFromOverlay(pointAt2D);

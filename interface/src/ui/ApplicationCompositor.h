@@ -29,6 +29,7 @@ class RenderArgs;
 class ReticleInterface;
 
 
+const float DEFAULT_RETICLE_DEPTH = 1.0f; // FIXME - probably should be based on UI radius
 
 const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
@@ -88,12 +89,10 @@ public:
 
     float getReticleDepth() { return _reticleDepth; }
     void setReticleDepth(float depth) { _reticleDepth = depth; }
+    void resetReticleDepth() { _reticleDepth = DEFAULT_RETICLE_DEPTH; }
 
     glm::vec2 getReticlePosition();
     void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
-
-    void setReticleApparentPosition(glm::vec3 position) { _drawAt3D = true; _drawAt3DPosition = position; }
-    void restoreReticleApparentPosition() { _drawAt3D = false; }
 
     glm::vec2 getReticleMaximumPosition() const;
 
@@ -150,10 +149,7 @@ private:
     // application specific position, when it's in desktop mode, the reticle position will simply move
     // the system mouse.
     glm::vec2 _reticlePositionInHMD { 0.0f, 0.0f };
-    mutable QMutex _reticlePositionInHMDLock { QMutex::Recursive };
-
-    bool _drawAt3D { false };
-    glm::vec3 _drawAt3DPosition;
+    mutable QMutex _reticleLock { QMutex::Recursive };
 
     QPointF _lastKnownRealMouse;
     bool _ignoreMouseMove { false };
@@ -185,9 +181,6 @@ public:
     Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
-
-    Q_INVOKABLE void setApparentPosition(glm::vec3 position) { _compositor->setReticleApparentPosition(position); }
-    Q_INVOKABLE void restoreApparentPosition() { _compositor->restoreReticleApparentPosition(); }
 
 private:
     ApplicationCompositor* _compositor;
