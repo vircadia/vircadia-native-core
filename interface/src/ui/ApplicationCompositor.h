@@ -105,6 +105,9 @@ public:
 
     bool shouldCaptureMouse() const;
 
+    /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
+    bool isReticlePointingAtSystemOverlay() const { return _reticleOverQml; }
+
 private:
 
     void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
@@ -154,6 +157,8 @@ private:
     QPointF _lastKnownRealMouse;
     bool _ignoreMouseMove { false };
 
+    bool _reticleOverQml { false };
+
     ReticleInterface* _reticleInterface;
 };
 
@@ -165,6 +170,7 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
     Q_PROPERTY(bool mouseCaptured READ isMouseCaptured)
+    Q_PROPERTY(bool pointingAtSystemOverlay READ isPointingAtSystemOverlay)
 
 public:
     ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
@@ -181,6 +187,9 @@ public:
     Q_INVOKABLE void setPosition(glm::vec2 position) { _compositor->setReticlePosition(position); }
 
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
+
+    Q_INVOKABLE bool isPointingAtSystemOverlay() { return _compositor->isReticlePointingAtSystemOverlay(); }
+
 
 private:
     ApplicationCompositor* _compositor;

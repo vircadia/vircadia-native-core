@@ -6,24 +6,27 @@ Script.update.connect(function(deltaTime) {
     var timeSinceLastDepthCheck = Date.now() - lastDepthCheckTime;
     if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS) {
         var reticlePosition = Reticle.position;
-        var pickRay = Camera.computePickRay(reticlePosition.x, reticlePosition.y);
-        var result = Overlays.findRayIntersection(pickRay);
 
-        if (!result.intersects) {
-            result = Entities.findRayIntersection(pickRay, true);
-        }
-        if (result.intersects) {
-            // + JSON.stringify(result)
-            print("something hovered!! result.distance:" +result.distance);
-            Vec3.print("something hovered!! result.intersection:", result.intersection);
-            Reticle.setDepth(result.distance);
-
+        // first check the 2D Overlays
+        if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(reticlePosition)) {
+            print("intersecting with 2D overlay...");
+            Reticle.setDepth(1.0);
         } else {
-            Reticle.setDepth(100.0);
-            print("NO INTERSECTION...");
-            var pointAt2D = Reticle.position;
-            var pointAt3D = HMD.worldPointFromOverlay(pointAt2D);
-        }
+            var pickRay = Camera.computePickRay(reticlePosition.x, reticlePosition.y);
+            var result = Overlays.findRayIntersection(pickRay);
 
+            if (!result.intersects) {
+                result = Entities.findRayIntersection(pickRay, true);
+            }
+            if (result.intersects) {
+                // + JSON.stringify(result)
+                print("something hovered!! result.distance:" +result.distance);
+                Vec3.print("something hovered!! result.intersection:", result.intersection);
+                Reticle.setDepth(result.distance);
+            } else {
+                Reticle.setDepth(100.0);
+                print("NO INTERSECTION...");
+            }
+        }
     }
 });
