@@ -16,13 +16,14 @@
 
     Script.include('../../../../libraries/utils.js');
 
+var SCALE= 0.5
     var VICTORY_SOUND;
-    var BALL_DISTANCE_THRESHOLD = 1;
+    var BALL_DISTANCE_THRESHOLD = 1*SCALE;
 
-    var BALL_DETECTOR_THRESHOLD = 0.2;
-    var BALL_FORWARD_OFFSET = -0.2;
-    var BALL_RIGHT_OFFSET = -0.4;
-    var BALL_VERTICAL_OFFSET = 0.02;
+    var BALL_DETECTOR_THRESHOLD = 0.2*SCALE;
+    var BALL_FORWARD_OFFSET = -0.2*SCALE;
+    var BALL_RIGHT_OFFSET = -0.4*SCALE;
+    var BALL_VERTICAL_OFFSET = 0.02*SCALE;
 
 
     var BALL_FRICTION = 0.7;
@@ -30,17 +31,17 @@
     var BALL_DAMPING = 0.6;
     var BALL_ANGULAR_DAMPING = 0.2;
     var BALL_DENSITY = 1000;
-    var BALL_GRAVITY = {
+    var BALL_GRAVITY ={
         x: 0,
         y: -9.8,
         z: 0
     };
 
-    var BALL_DIMENSIONS = {
+    var BALL_DIMENSIONS =  Vec3.multiply(SCALE,{
         x: 0.05,
         y: 0.05,
         z: 0.05
-    }
+    })
 
     var BALL_COLOR = {
         red: 255,
