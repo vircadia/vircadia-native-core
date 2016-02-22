@@ -67,6 +67,7 @@ public:
     struct HandParameters {
         bool isLeftEnabled;
         bool isRightEnabled;
+        float bodyCapsuleRadius;
         glm::vec3 leftPosition = glm::vec3();     // rig space
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space

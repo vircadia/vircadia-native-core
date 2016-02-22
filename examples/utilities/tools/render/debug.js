@@ -14,9 +14,6 @@ Render.RenderShadowTask.enabled = true;
 var RDT = Render.RenderDeferredTask;
 RDT.AmbientOcclusion.enabled = true;
 RDT.DebugDeferredBuffer.enabled = false;
-["DrawOpaqueDeferred", "DrawTransparentDeferred", "DrawOverlay3DOpaque", "DrawOverlay3DTransparent"]
-    .map(function(name) { return RDT[name]; })
-	.forEach(function(job) { job.maxDrawn = job.numDrawn; });
 
 // Set up the qml ui
 var qml = Script.resolvePath('main.qml');
@@ -39,4 +36,4 @@ function setDebugBufferSize(x) {
     Render.RenderDeferredTask.DebugDeferredBuffer.size = {x: x, y: -1, z: 1, w: 1};
 }
 
-Script.scriptEnding.connect(function() { Render.fromJSON(oldConfig); } );
+Script.scriptEnding.connect(function() { Render.load(oldConfig); } );

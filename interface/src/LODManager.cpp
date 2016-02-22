@@ -20,29 +20,8 @@
 
 Setting::Handle<float> desktopLODDecreaseFPS("desktopLODDecreaseFPS", DEFAULT_DESKTOP_LOD_DOWN_FPS);
 Setting::Handle<float> hmdLODDecreaseFPS("hmdLODDecreaseFPS", DEFAULT_HMD_LOD_DOWN_FPS);
-// There are two different systems in use, based on lodPreference:
-// pid: renderDistance is adjusted by a PID such that frame rate targets are met.
-// acuity:  a pseudo-acuity target is held, or adjusted to match minimum frame rates (and a PID controlls avatar rendering distance)
-// If unspecified, acuity is used only if user has specified non-default minumum frame rates.
-Setting::Handle<int> lodPreference("lodPreference", (int)LODManager::LODPreference::acuity);
-const float SMALLEST_REASONABLE_HORIZON = 50.0f; // meters
-Setting::Handle<float> renderDistanceInverseHighLimit("renderDistanceInverseHighLimit", 1.0f / SMALLEST_REASONABLE_HORIZON);
-void LODManager::setRenderDistanceInverseHighLimit(float newValue) {
-    renderDistanceInverseHighLimit.set(newValue); // persist it, and tell all the controllers that use it
-    _renderDistanceController.setControlledValueHighLimit(newValue);
-}
 
 LODManager::LODManager() {
-
-    setRenderDistanceInverseHighLimit(renderDistanceInverseHighLimit.get());
-    setRenderDistanceInverseLowLimit(1.0f / (float)TREE_SCALE);
-    // Advice for tuning parameters:
-    // See PIDController.h. There's a section on tuning in the reference.
-    // Turn on logging with the following (or from js with LODManager.setRenderDistanceControllerHistory("render pid", 240))
-    //setRenderDistanceControllerHistory("render pid", 60 * 4);
-    // Note that extra logging/hysteresis is turned off in Avatar.cpp when the above logging is on.
-    setRenderDistanceKP(0.000012f); // Usually about 0.6 of largest that doesn't oscillate when other parameters 0.
-    setRenderDistanceKI(0.00002f); // Big enough to bring us to target with the above KP.
 }
 
 float LODManager::getLODDecreaseFPS() {
@@ -234,53 +213,7 @@ QString LODManager::getLODFeedbackText() {
     return result;
 }
 
-static float renderDistance = (float)TREE_SCALE;
-static int renderedCount = 0;
-static int lastRenderedCount = 0;
-bool LODManager::getUseAcuity() { return lodPreference.get() == (int)LODManager::LODPreference::acuity; }
-void LODManager::setUseAcuity(bool newValue) { lodPreference.set(newValue ? (int)LODManager::LODPreference::acuity : (int)LODManager::LODPreference::pid); }
-float LODManager::getRenderDistance() {
-    return renderDistance;
-}
-int LODManager::getRenderedCount() {
-    return lastRenderedCount;
-}
-QString LODManager::getLODStatsRenderText() {
-    const QString label = "Rendered objects: ";
-    return label + QString::number(getRenderedCount()) + " w/in " + QString::number((int)getRenderDistance()) + "m";
-}
-// compare autoAdjustLOD()
-void LODManager::updatePIDRenderDistance(float targetFps, float measuredFps, float deltaTime, bool isThrottled) {
-    float distance;
-    if (!isThrottled) {
-        _renderDistanceController.setMeasuredValueSetpoint(targetFps); // No problem updating in flight.
-        // The PID controller raises the controlled value when the measured value goes up.
-        // The measured value is frame rate. When the controlled value (1 / render cutoff distance)
-        // goes up, the render cutoff distance gets closer, the number of rendered avatars is less, and frame rate
-        // goes up.
-        distance = 1.0f / _renderDistanceController.update(measuredFps, deltaTime);
-    } else {
-        // Here we choose to just use the maximum render cutoff distance if throttled.
-        distance = 1.0f / _renderDistanceController.getControlledValueLowLimit();
-    }
-    _renderDistanceAverage.updateAverage(distance);
-    renderDistance = _renderDistanceAverage.getAverage(); // average only once per cycle
-    lastRenderedCount = renderedCount;
-    renderedCount = 0;
-}
-
 bool LODManager::shouldRender(const RenderArgs* args, const AABox& bounds) {
-    // NOTE: this branch of code is the alternate form of LOD that uses PID controllers.
-    if (!getUseAcuity()) {
-        float distanceToCamera = glm::length(bounds.calcCenter() - args->_viewFrustum->getPosition());
-        float largestDimension = bounds.getLargestDimension();
-        const float scenerySize = 300; // meters
-        bool isRendered = (largestDimension > scenerySize) || // render scenery regardless of distance
-            (distanceToCamera < renderDistance + largestDimension);
-        renderedCount += isRendered ? 1 : 0;
-        return isRendered;
-    }
-    
     // FIXME - eventually we want to use the render accuracy as an indicator for the level of detail
     // to use in rendering.
     float renderAccuracy = args->_viewFrustum->calculateRenderAccuracy(bounds, args->_sizeScale, args->_boundaryLevelAdjust);
@@ -299,12 +232,6 @@ void LODManager::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
 void LODManager::loadSettings() {
     setDesktopLODDecreaseFPS(desktopLODDecreaseFPS.get());
     setHMDLODDecreaseFPS(hmdLODDecreaseFPS.get());
-
-    if (lodPreference.get() == (int)LODManager::LODPreference::unspecified) {
-        setUseAcuity((getDesktopLODDecreaseFPS() != DEFAULT_DESKTOP_LOD_DOWN_FPS) || (getHMDLODDecreaseFPS() != DEFAULT_HMD_LOD_DOWN_FPS));
-    }
-    Menu::getInstance()->getActionForOption(MenuOption::LodTools)->setEnabled(getUseAcuity());
-    Menu::getInstance()->getSubMenuFromName(MenuOption::RenderResolution, Menu::getInstance()->getSubMenuFromName("Render", Menu::getInstance()->getMenu("Developer")))->setEnabled(getUseAcuity());
 }
 
 void LODManager::saveSettings() {

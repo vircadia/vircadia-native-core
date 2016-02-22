@@ -335,6 +335,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
 QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
     if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
         return QPointF(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
     }
     return event->localPos();
@@ -349,7 +350,7 @@ void ApplicationCompositor::handleLeaveEvent() {
 
     if (shouldCaptureMouse()) {
         QWidget* mainWidget = (QWidget*)qApp->getWindow();
-        QRect mainWidgetFrame = qApp->getApplicationGeometry();
+        QRect mainWidgetFrame = qApp->getRenderingGeometry();
         QRect uncoveredRect = mainWidgetFrame;
         foreach(QWidget* widget, QApplication::topLevelWidgets()) {
             if (widget->isWindow() && widget->isVisible() && widget != mainWidget) {
@@ -388,6 +389,7 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
 
     // If we're in HMD mode
     if (shouldCaptureMouse()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
         auto newPosition = QCursor::pos();
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
@@ -403,6 +405,7 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
 
 glm::vec2 ApplicationCompositor::getReticlePosition() {
     if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
         return _reticlePositionInHMD;
     }
     return toGlm(QCursor::pos());
@@ -410,6 +413,7 @@ glm::vec2 ApplicationCompositor::getReticlePosition() {
 
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
         const float MOUSE_EXTENTS_VERT_ANGULAR_SIZE = 170.0f; // 5deg from poles
         const float MOUSE_EXTENTS_VERT_PIXELS = VIRTUAL_SCREEN_SIZE_Y * (MOUSE_EXTENTS_VERT_ANGULAR_SIZE / DEFAULT_HMD_UI_VERT_ANGULAR_SIZE);
         const float MOUSE_EXTENTS_HORZ_ANGULAR_SIZE = 360.0f; // full sphere

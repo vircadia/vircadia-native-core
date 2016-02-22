@@ -114,7 +114,7 @@ public:
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
-    QRect getApplicationGeometry() const;
+    QRect getRenderingGeometry() const;
 
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
@@ -157,7 +157,6 @@ public:
     float getFps() const { return _fps; }
     float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -169,7 +168,7 @@ public:
 
     virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() override { return thread(); }
-    virtual PickRay computePickRay(float x, float y) override;
+    virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
     virtual qreal getDevicePixelRatio() override;
 
@@ -405,7 +404,6 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;

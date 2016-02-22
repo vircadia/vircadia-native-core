@@ -9,11 +9,13 @@
 #ifndef hifi_ApplicationCompositor_h
 #define hifi_ApplicationCompositor_h
 
+#include <atomic>
+#include <cstdint>
+
 #include <QCursor>
 #include <QMouseEvent>
 #include <QObject>
 #include <QPropertyAnimation>
-#include <cstdint>
 
 #include <EntityItemID.h>
 #include <GeometryCache.h>
@@ -81,19 +83,19 @@ public:
     float getAlpha() const { return _alpha; }
     void setAlpha(float alpha) { _alpha = alpha; }
 
-    Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
-    Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }
+    bool getReticleVisible() { return _reticleVisible; }
+    void setReticleVisible(bool visible) { _reticleVisible = visible; }
 
-    Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
-    Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
+    float getReticleDepth() { return _reticleDepth; }
+    void setReticleDepth(float depth) { _reticleDepth = depth; }
 
-    Q_INVOKABLE glm::vec2 getReticlePosition();
-    Q_INVOKABLE void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
+    glm::vec2 getReticlePosition();
+    void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
 
-    Q_INVOKABLE void setReticleApparentPosition(glm::vec3 position) { _drawAt3D = true; _drawAt3DPosition = position; }
-    Q_INVOKABLE void restoreReticleApparentPosition() { _drawAt3D = false; }
+    void setReticleApparentPosition(glm::vec3 position) { _drawAt3D = true; _drawAt3DPosition = position; }
+    void restoreReticleApparentPosition() { _drawAt3D = false; }
 
-    Q_INVOKABLE glm::vec2 getReticleMaximumPosition() const;
+    glm::vec2 getReticleMaximumPosition() const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
@@ -141,21 +143,22 @@ private:
 
     std::unique_ptr<QPropertyAnimation> _alphaPropertyAnimation;
 
-    bool _reticleVisible { true };
-    float _reticleDepth { 1.0f };
-    bool _drawAt3D { false };
-    glm::vec3 _drawAt3DPosition;
+    std::atomic<bool> _reticleVisible { true };
+    std::atomic<float> _reticleDepth { 1.0f };
 
     // NOTE: when the compositor is running in HMD mode, it will control the reticle position as a custom
     // application specific position, when it's in desktop mode, the reticle position will simply move
     // the system mouse.
-    glm::vec2 _reticlePositionInHMD{ 0.0f, 0.0f };
+    glm::vec2 _reticlePositionInHMD { 0.0f, 0.0f };
+    mutable QMutex _reticlePositionInHMDLock { QMutex::Recursive };
+
+    bool _drawAt3D { false };
+    glm::vec3 _drawAt3DPosition;
+
     QPointF _lastKnownRealMouse;
-    QPoint _lastKnownCursorPos;
     bool _ignoreMouseMove { false };
 
     ReticleInterface* _reticleInterface;
-
 };
 
 // Scripting interface available to control the Reticle
