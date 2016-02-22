@@ -36,6 +36,7 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(
     // default property values
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
     _intensity = 1.0f;
+    _surfaceRadius = 0.1f;
     _exponent = 0.0f;
     _cutoff = PI;
 }
@@ -62,8 +63,13 @@ EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(intensity, getIntensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(exponent, getExponent);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(surfaceRadius, getSurfaceRadius);
 
     return properties;
+}
+
+void LightEntityItem::setSurfaceRadius(float value) {
+    _surfaceRadius = glm::max(value, 0.0f);
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
@@ -101,6 +107,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(intensity, setIntensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(exponent, setExponent);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cutoff, setCutoff);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(surfaceRadius, setSurfaceRadius);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -150,6 +157,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
+        READ_ENTITY_PROPERTY(PROP_SURFACE_RADIUS, float, setSurfaceRadius);
     }
 
     return bytesRead;
@@ -164,6 +172,7 @@ EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_INTENSITY;
     requestedProperties += PROP_EXPONENT;
     requestedProperties += PROP_CUTOFF;
+    requestedProperties += PROP_SURFACE_RADIUS;
     return requestedProperties;
 }
 
@@ -181,4 +190,5 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_EXPONENT, getExponent());
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, getCutoff());
+    APPEND_ENTITY_PROPERTY(PROP_SURFACE_RADIUS, getSurfaceRadius());
 }

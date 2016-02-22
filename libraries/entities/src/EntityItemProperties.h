@@ -131,6 +131,7 @@ public:
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, false);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, 1.0f);
+    DEFINE_PROPERTY(PROP_SURFACE_RADIUS, SurfaceRadius, surfaceRadius, float, ENTITY_ITEM_DEFAULT_SURFACE_RADIUS);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, 0.0f);
     DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, ENTITY_ITEM_DEFAULT_CUTOFF);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);

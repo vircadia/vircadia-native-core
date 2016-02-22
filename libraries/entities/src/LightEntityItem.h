@@ -65,6 +65,9 @@ public:
     float getIntensity() const { return _intensity; }
     void setIntensity(float value) { _intensity = value; }
 
+    float getSurfaceRadius() const { return _surfaceRadius; }
+    void setSurfaceRadius(float value);
+
     float getExponent() const { return _exponent; }
     void setExponent(float value) { _exponent = value; }
 
@@ -80,6 +83,7 @@ protected:
     rgbColor _color;
     bool _isSpotlight;
     float _intensity;
+    float _surfaceRadius;
     float _exponent;
     float _cutoff;
 
