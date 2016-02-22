@@ -92,15 +92,15 @@ void Model::setScale(const glm::vec3& scale) {
     _scaledToFit = false;
 }
 
-const float METERS_PER_MILLIMETER = 0.01f; 
+const float SCALE_CHANGE_EPSILON = 0.01f;
 
 void Model::setScaleInternal(const glm::vec3& scale) {
-    if (glm::distance(_scale, scale) > METERS_PER_MILLIMETER) {
+    if (glm::distance(_scale, scale) > SCALE_CHANGE_EPSILON) {
         _scale = scale;
         if (_scale.x == 0.0f || _scale.y == 0.0f || _scale.z == 0.0f) {
             assert(false);
         }
-        initJointTransforms();
+        simulate(0.0f, true);
     }
 }
 

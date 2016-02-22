@@ -283,9 +283,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
-        STAT_UPDATE(lodStatsRenderText, DependencyManager::get<LODManager>()->getLODStatsRenderText());
     }
-    STAT_UPDATE(showAcuity, (_expanded || force) && DependencyManager::get<LODManager>()->getUseAcuity());
 
     bool performanceTimerIsActive = PerformanceTimer::isActive();
     bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
