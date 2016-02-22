@@ -33,7 +33,7 @@
 #include "AccountManager.h"
 #include "NetworkLogging.h"
 
-const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
+const bool VERBOSE_HTTP_REQUEST_DEBUGGING = true;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
     static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());

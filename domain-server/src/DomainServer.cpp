@@ -42,7 +42,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "localhost";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -1053,11 +1053,55 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
                                               domainUpdateJSON.toUtf8());
 }
 
-// TODO: have data-web respond with ice-server hostname to use
-
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
-        DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+        static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
+
+        bool shouldRecreatePacket = false;
+
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+        if (heartbeatPacket->getPayloadSize() > 0) {
+            // if either of our sockets have changed we need to re-sign the heartbeat
+            // first read the sockets out from the current packet
+            heartbeatPacket->seek(0);
+            QDataStream heartbeatStream(heartbeatPacket.get());
+
+            QUuid senderUUID;
+            HifiSockAddr publicSocket, localSocket;
+            heartbeatStream >> senderUUID >> publicSocket >> localSocket;
+
+            if (publicSocket != limitedNodeList->getPublicSockAddr() || localSocket != limitedNodeList->getLocalSockAddr()) {
+                shouldRecreatePacket = true;
+            }
+        } else {
+            shouldRecreatePacket = true;
+        }
+
+        if (shouldRecreatePacket) {
+            // either we don't have a heartbeat packet yet or sockets have changed and we need to make a new one
+
+            // reset the position in the packet before writing
+            heartbeatPacket->reset();
+
+            // write our plaintext data to the packet
+            QDataStream heartbeatDataStream(heartbeatPacket.get());
+            heartbeatDataStream << limitedNodeList->getSessionUUID()
+                << limitedNodeList->getPublicSockAddr() << limitedNodeList->getLocalSockAddr();
+
+            // setup a QByteArray that points to the plaintext data
+            auto plaintext = QByteArray::fromRawData(heartbeatPacket->getPayload(), heartbeatPacket->getPayloadSize());
+
+            // generate a signature for the plaintext data in the packet
+            auto& accountManager = AccountManager::getInstance();
+            auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
+
+            // pack the signature with the data
+            heartbeatDataStream << plaintext;
+        }
+
+        // send the heartbeat packet to the ice server now
+        limitedNodeList->sendUnreliablePacket(*heartbeatPacket, _iceServerSocket);
     }
 }
 

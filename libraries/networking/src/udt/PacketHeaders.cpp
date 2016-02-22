@@ -45,6 +45,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
+        case PacketType::ICEServerHeartbeat:
+            return 18; // ICE Server Heartbeat signing
         default:
             return 17;
     }

@@ -54,6 +54,8 @@ public:
     bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
     void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
 
+    QByteArray signPlaintext(const QByteArray& plaintext);
+
     void setDomainID(const QUuid& domainID) { _domainID = domainID; }
     const QUuid& getDomainID() const { return _domainID; }
 
