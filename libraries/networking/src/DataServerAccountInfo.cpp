@@ -25,19 +25,6 @@
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 
-DataServerAccountInfo::DataServerAccountInfo() :
-    _accessToken(),
-    _username(),
-    _xmppPassword(),
-    _discourseApiKey(),
-    _walletID(),
-    _balance(0),
-    _hasBalance(false),
-    _privateKey()
-{
-
-}
-
 DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherInfo) : QObject() {
     _accessToken = otherInfo._accessToken;
     _username = otherInfo._username;
@@ -47,6 +34,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _balance = otherInfo._balance;
     _hasBalance = otherInfo._hasBalance;
     _privateKey = otherInfo._privateKey;
+    _domainID = otherInfo._domainID;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -66,6 +54,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_balance, otherInfo._balance);
     swap(_hasBalance, otherInfo._hasBalance);
     swap(_privateKey, otherInfo._privateKey);
+    swap(_domainID, otherInfo._domainID);
 }
 
 void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
@@ -129,53 +118,49 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
 
 QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionToken) {
     
-        if (!_privateKey.isEmpty()) {
-            const char* privateKeyData = _privateKey.constData();
-            RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
-                                                   reinterpret_cast<const unsigned char**>(&privateKeyData),
-                                                   _privateKey.size());
-            if (rsaPrivateKey) {
-                QByteArray lowercaseUsername = _username.toLower().toUtf8();
-                QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
-                                                                        QCryptographicHash::Sha256);
-                
-                QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
-                unsigned int usernameSignatureSize = 0;
-                
-                int encryptReturn = RSA_sign(NID_sha256,
-                                             reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
-                                             usernameWithToken.size(),
-                                             reinterpret_cast<unsigned char*>(usernameSignature.data()),
-                                             &usernameSignatureSize,
-                                             rsaPrivateKey);
-                
-                // free the private key RSA struct now that we are done with it
-                RSA_free(rsaPrivateKey);
+    if (!_privateKey.isEmpty()) {
+        const char* privateKeyData = _privateKey.constData();
+        RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
+                                               reinterpret_cast<const unsigned char**>(&privateKeyData),
+                                               _privateKey.size());
+        if (rsaPrivateKey) {
+            QByteArray lowercaseUsername = _username.toLower().toUtf8();
+            QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
+                                                                    QCryptographicHash::Sha256);
+            
+            QByteArray usernameSignature(RSA_size(rsaPrivateKey), 0);
+            unsigned int usernameSignatureSize = 0;
+            
+            int encryptReturn = RSA_sign(NID_sha256,
+                                         reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
+                                         usernameWithToken.size(),
+                                         reinterpret_cast<unsigned char*>(usernameSignature.data()),
+                                         &usernameSignatureSize,
+                                         rsaPrivateKey);
+            
+            // free the private key RSA struct now that we are done with it
+            RSA_free(rsaPrivateKey);
 
-                if (encryptReturn == -1) {
-                    qCDebug(networking) << "Error encrypting username signature.";
-                    qCDebug(networking) << "Will re-attempt on next domain-server check in.";
-                } else {
-                    qDebug(networking) << "Returning username" << _username << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
-                    return usernameSignature;
-                }
-                
-            } else {
-                qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
+            if (encryptReturn == -1) {
+                qCDebug(networking) << "Error encrypting username signature.";
                 qCDebug(networking) << "Will re-attempt on next domain-server check in.";
+            } else {
+                qDebug(networking) << "Returning username" << _username << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
+                return usernameSignature;
             }
+            
+        } else {
+            qCDebug(networking) << "Could not create RSA struct from QByteArray private key.";
+            qCDebug(networking) << "Will re-attempt on next domain-server check in.";
         }
+    }
     return QByteArray();
-}
-
-void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {
-    _privateKey = privateKey;
-    
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
     out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
         << info._walletID << info._privateKey << info._domainID;
+
     return out;
 }
 

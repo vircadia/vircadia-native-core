@@ -23,7 +23,7 @@ const float SATOSHIS_PER_CREDIT = 100000000.0f;
 class DataServerAccountInfo : public QObject {
     Q_OBJECT
 public:
-    DataServerAccountInfo();
+    DataServerAccountInfo() {};
     DataServerAccountInfo(const DataServerAccountInfo& otherInfo);
     DataServerAccountInfo& operator=(const DataServerAccountInfo& otherInfo);
 
@@ -52,7 +52,7 @@ public:
 
     QByteArray getUsernameSignature(const QUuid& connectionToken);
     bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
-    void setPrivateKey(const QByteArray& privateKey);
+    void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
 
     void setDomainID(const QUuid& domainID) { _domainID = domainID; }
     const QUuid& getDomainID() const { return _domainID; }
@@ -73,8 +73,8 @@ private:
     QString _xmppPassword;
     QString _discourseApiKey;
     QUuid _walletID;
-    qint64 _balance;
-    bool _hasBalance;
+    qint64 _balance { 0 };
+    bool _hasBalance { false };
     QUuid _domainID; // if this holds account info for a domain, this holds the ID of that domain
     QByteArray _privateKey;
 

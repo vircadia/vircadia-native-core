@@ -67,8 +67,7 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
 
 AccountManager::AccountManager() :
     _authURL(),
-    _pendingCallbackMap(),
-    _accountInfo()
+    _pendingCallbackMap()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -171,7 +170,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
         auto accountsMap = accountMapFromFile(loadedMap);
 
         if (accountsFile.exists() && loadedMap) {
-            // pull out the stored access token and store it in memory
+            // pull out the stored account info and store it in memory
             _accountInfo = accountsMap[_authURL.toString()].value<DataServerAccountInfo>();
 
             qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
@@ -462,10 +461,7 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken) {
-    // clear our current DataServerAccountInfo
-    _accountInfo = DataServerAccountInfo();
-    
-    // start the new account info with a new OAuthAccessToken
+    // replace the account info access token with a new OAuthAccessToken
     OAuthAccessToken newOAuthToken;
     newOAuthToken.token = accessToken;
     
@@ -598,10 +594,12 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
     generateThread->setObjectName("Account Manager Generator Thread");
 
     // setup a keypair generator
-    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator { this };
+    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator;
 
     if (!isUserKeypair) {
         keypairGenerator->setDomainID(domainID);
+        _accountInfo.setDomainID(domainID);
+        qDebug() << "The account info domain ID is now" << _accountInfo.getDomainID();
     }
 
     // start keypair generation when the thread starts
@@ -617,13 +615,13 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
 
     keypairGenerator->moveToThread(generateThread);
 
-    qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA key-pair.";
+    qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair.";
     generateThread->start();
 }
 
 void AccountManager::processGeneratedKeypair() {
     
-    qCDebug(networking) << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
+    qCDebug(networking) << "Generated 2048-bit RSA keypair. Storing private key and uploading public key.";
 
     RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
 

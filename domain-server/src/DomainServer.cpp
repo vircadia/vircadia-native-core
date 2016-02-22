@@ -492,6 +492,7 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
     auto& accountManager = AccountManager::getInstance();
     auto domainID = accountManager.getAccountInfo().getDomainID();
+
     if (!accountManager.getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
         accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
     }
