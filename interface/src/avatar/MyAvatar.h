@@ -151,6 +151,9 @@ public:
     // Removes a handler previously added by addAnimationStateHandler.
     Q_INVOKABLE void removeAnimationStateHandler(QScriptValue handler) { _rig->removeAnimationStateHandler(handler); }
 
+    Q_INVOKABLE bool getSnapTurn() const { return _useSnapTurn; }
+    Q_INVOKABLE void setSnapTurn(bool on) { _useSnapTurn = on; }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -370,6 +373,7 @@ private:
     QUrl _fullAvatarURLFromPreferences;
     QString _fullAvatarModelName;
     QUrl _animGraphUrl {""};
+    bool _useSnapTurn { true };
 
     // cache of the current HMD sensor position and orientation
     // in sensor space.
@@ -417,8 +421,8 @@ private:
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
     bool _hoverReferenceCameraFacingIsCaptured { false };
-    glm::vec3 _hoverReferenceCameraFacing; // hmd sensor space
-    
+    glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
+
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };
     float MAX_AVATAR_MOVEMENT_PER_FRAME { 30.0f };

@@ -35,7 +35,6 @@ QtObject {
     readonly property string centerPlayerInView: "Center Player In View";
     readonly property string chat: "Chat...";
     readonly property string collisions: "Collisions";
-    readonly property string comfortMode: "Comfort Mode";
     readonly property string connexion: "Activate 3D Connexion Devices";
     readonly property string console_: "Console...";
     readonly property string controlWithSpeech: "Control With Speech";

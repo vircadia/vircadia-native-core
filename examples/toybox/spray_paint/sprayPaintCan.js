@@ -81,7 +81,8 @@
                 green: 20,
                 blue: 150
             },
-            lifetime: 50, //probably wont be holding longer than this straight
+            lifetime: 50, //probably wont be holding longer than this straight,
+            emitterShouldTrail: true
         });
 
         setEntityCustomData(this.resetKey, this.paintStream, {

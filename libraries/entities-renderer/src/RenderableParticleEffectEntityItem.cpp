@@ -310,3 +310,14 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         _texturedPipeline = gpu::Pipeline::create(program, state);
     }
 }
+
+void RenderableParticleEffectEntityItem::notifyBoundChanged() {
+    if (_renderItemId == render::Item::INVALID_ITEM_ID) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [](ParticlePayloadData& payload) {
+    });
+
+    _scene->enqueuePendingChanges(pendingChanges);
+}

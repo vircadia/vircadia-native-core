@@ -30,6 +30,10 @@ glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position
     return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
 }
 
+glm::vec3 HMDScriptingInterface::worldPointFromOverlay(const glm::vec2& overlay) const {
+    return qApp->getApplicationCompositor().sphereSurfaceFromOverlay(overlay);
+}
+
 glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) const {
     return qApp->getApplicationCompositor().sphericalToOverlay(position);
 }
@@ -37,16 +41,6 @@ glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) 
 glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
     return qApp->getApplicationCompositor().overlayToSpherical(position);
 }
-
-glm::vec2 HMDScriptingInterface::screenToOverlay(const glm::vec2 & position) const {
-    return qApp->getApplicationCompositor().screenToOverlay(position);
-}
-
-glm::vec2 HMDScriptingInterface::overlayToScreen(const glm::vec2 & position) const {
-    return qApp->getApplicationCompositor().overlayToScreen(position);
-}
-
-
 
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;

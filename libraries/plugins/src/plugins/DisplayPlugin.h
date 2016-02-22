@@ -24,8 +24,7 @@ class QImage;
 
 enum Eye {
     Left,
-    Right,
-    Mono
+    Right
 };
 
 /*
@@ -95,9 +94,14 @@ public:
     }
 
     // Stereo specific methods
-    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;
     }
+
+    virtual glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
 
     // Fetch the most recently displayed image as a QImage
     virtual QImage getScreenshot() const = 0;

@@ -164,10 +164,10 @@ InputController::Key InputController::getKey() const {
 void ControllerScriptingInterface::emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
 void ControllerScriptingInterface::emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
 
-void ControllerScriptingInterface::emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
-void ControllerScriptingInterface::emitMousePressEvent(QMouseEvent* event, unsigned int deviceID) { emit mousePressEvent(MouseEvent(*event, deviceID)); }
-void ControllerScriptingInterface::emitMouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseDoublePressEvent(MouseEvent(*event, deviceID)); }
-void ControllerScriptingInterface::emitMouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) { emit mouseReleaseEvent(MouseEvent(*event, deviceID)); }
+void ControllerScriptingInterface::emitMouseMoveEvent(QMouseEvent* event) { emit mouseMoveEvent(MouseEvent(*event)); }
+void ControllerScriptingInterface::emitMousePressEvent(QMouseEvent* event) { emit mousePressEvent(MouseEvent(*event)); }
+void ControllerScriptingInterface::emitMouseDoublePressEvent(QMouseEvent* event) { emit mouseDoublePressEvent(MouseEvent(*event)); }
+void ControllerScriptingInterface::emitMouseReleaseEvent(QMouseEvent* event) { emit mouseReleaseEvent(MouseEvent(*event)); }
 
 void ControllerScriptingInterface::emitTouchBeginEvent(const TouchEvent& event) { emit touchBeginEvent(event); }
 void ControllerScriptingInterface::emitTouchEndEvent(const TouchEvent& event) { emit touchEndEvent(event); }

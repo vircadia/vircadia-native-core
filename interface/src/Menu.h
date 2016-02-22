@@ -42,6 +42,7 @@ public:
     QAction* newAction() {
         return new QAction(_realMenu);
     }
+
 private:
     MenuWrapper(QMenu* menu);
 
@@ -117,6 +118,8 @@ public slots:
     void toggleDeveloperMenus();
     void toggleAdvancedMenus();
 
+    static bool isSomeSubmenuShown() { return _isSomeSubmenuShown; }
+
 private:
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
@@ -142,6 +145,8 @@ private:
     bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }
     QHash<QString, bool> _groupingVisible;
     QHash<QString, QSet<QAction*>> _groupingActions;
+
+    static bool _isSomeSubmenuShown;
 };
 
 namespace MenuOption {
@@ -177,7 +182,6 @@ namespace MenuOption {
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
-    const QString ComfortMode = "Comfort Mode";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";

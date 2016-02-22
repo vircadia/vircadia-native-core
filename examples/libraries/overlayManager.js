@@ -221,7 +221,7 @@
 
     var Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
         "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
-        "ignoreRayIntersection", "drawInFront", "drawOnHUD"
+        "ignoreRayIntersection", "drawInFront"
     ]);
 
     var Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [

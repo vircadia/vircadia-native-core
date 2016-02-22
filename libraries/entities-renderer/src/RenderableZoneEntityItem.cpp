@@ -234,3 +234,17 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shar
         _model->removeFromScene(scene, pendingChanges);
     }
 }
+
+
+void RenderableZoneEntityItem::notifyBoundChanged() {
+    if (_myMetaItem == render::Item::INVALID_ITEM_ID) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+    });
+
+    scene->enqueuePendingChanges(pendingChanges);
+}
