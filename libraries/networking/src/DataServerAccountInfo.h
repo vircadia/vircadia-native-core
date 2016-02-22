@@ -42,10 +42,6 @@ public:
     
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
-    
-    QByteArray getUsernameSignature(const QUuid& connectionToken);
-    bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
-    void setPrivateKey(const QByteArray& privateKey);
 
     qint64 getBalance() const { return _balance; }
     float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
@@ -53,6 +49,13 @@ public:
     bool hasBalance() const { return _hasBalance; }
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
     Q_INVOKABLE void setBalanceFromJSON(QNetworkReply& requestReply);
+
+    QByteArray getUsernameSignature(const QUuid& connectionToken);
+    bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
+    void setPrivateKey(const QByteArray& privateKey);
+
+    void setDomainID(const QUuid& domainID) { _domainID = domainID; }
+    const QUuid& getDomainID() const { return _domainID; }
 
     bool hasProfile() const;
 
@@ -72,6 +75,7 @@ private:
     QUuid _walletID;
     qint64 _balance;
     bool _hasBalance;
+    QUuid _domainID; // if this holds account info for a domain, this holds the ID of that domain
     QByteArray _privateKey;
 
 };

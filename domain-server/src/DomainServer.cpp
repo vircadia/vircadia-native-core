@@ -349,7 +349,8 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // nodes will currently use this to add resources to data-web that relate to our domain
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
-        nodeList->setSessionUUID(idValueVariant->toString());
+        QUuid domainID { idValueVariant->toString() };
+        nodeList->setSessionUUID(domainID);
     }
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
@@ -490,7 +491,8 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
 
     // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
     auto& accountManager = AccountManager::getInstance();
-    if (!accountManager.getAccountInfo().hasPrivateKey()) {
+    auto domainID = accountManager.getAccountInfo().getDomainID();
+    if (!accountManager.getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
         accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
     }
 

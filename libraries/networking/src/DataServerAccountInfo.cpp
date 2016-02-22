@@ -175,12 +175,12 @@ void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
     out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
-        << info._walletID << info._privateKey;
+        << info._walletID << info._privateKey << info._domainID;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
     in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey
-        >> info._walletID >> info._privateKey;
+        >> info._walletID >> info._privateKey >> info._domainID;
     return in;
 }
