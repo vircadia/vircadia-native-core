@@ -227,7 +227,7 @@ protected:
 
     bool isAnimatingSomething() const;
     
-    Particle createParticle();
+    Particle createParticle(const glm::vec3& position);
     void stepSimulation(float deltaTime);
     void integrateParticle(Particle& particle, float deltaTime);
     
@@ -275,7 +275,7 @@ protected:
     float _azimuthStart = DEFAULT_AZIMUTH_START;
     float _azimuthFinish = DEFAULT_AZIMUTH_FINISH;
     
-
+    glm::vec3 _previousPosition;
     quint64 _lastSimulated { 0 };
     bool _isEmitting { true };
 

@@ -18,7 +18,13 @@ public:
     glm::mat4 getEyeToHeadTransform(Eye eye) const override final { return _eyeOffsets[eye]; }
     glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const override final { return _eyeProjections[eye]; }
     glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const override final { return _cullingProjection; }
-    glm::uvec2 getRecommendedUiSize() const override final { return uvec2(1920, 1080); }
+    glm::uvec2 getRecommendedUiSize() const override final { 
+        // FIXME - would be good to have these values sync with ApplicationCompositor in a better way.
+        const int VIRTUAL_SCREEN_SIZE_X = 3960; // ~10% more pixel density than old version, 72dx240d FOV
+        const int VIRTUAL_SCREEN_SIZE_Y = 1188; // ~10% more pixel density than old version, 72dx240d FOV
+        auto result = uvec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y);
+        return result;
+    }
     glm::uvec2 getRecommendedRenderSize() const override final { return _renderTargetSize; }
     void activate() override;
     void deactivate() override;

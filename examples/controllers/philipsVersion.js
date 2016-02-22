@@ -24,9 +24,9 @@ var PITCH_SCALING = 10.0;
 var YAW_SCALING = 10.0; 
 
 var EXPECTED_CHANGE = 50;
-var lastPos = Controller.getReticlePosition();
+var lastPos = Reticle.getPosition();
 function moveReticle(dY, dX) {
-    var globalPos = Controller.getReticlePosition();
+    var globalPos = Reticle.getPosition();
 
     // some debugging to see if position is jumping around on us...
     var distanceSinceLastMove = length(lastPos, globalPos);
@@ -45,7 +45,7 @@ function moveReticle(dY, dX) {
 
     globalPos.x += dX;
     globalPos.y += dY;
-    Controller.setReticlePosition(globalPos);
+    Reticle.setPosition(globalPos);
     lastPos = globalPos;
 }
 
