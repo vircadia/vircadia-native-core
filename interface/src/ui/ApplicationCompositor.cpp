@@ -37,9 +37,6 @@ static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 static const float reticleSize = TWO_PI / 100.0f;
 
 static const float CURSOR_PIXEL_SIZE = 32.0f;
-static const float MOUSE_PITCH_RANGE = 1.0f * PI;
-static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
-static const glm::vec2 MOUSE_RANGE(MOUSE_YAW_RANGE, MOUSE_PITCH_RANGE);
 
 static gpu::BufferPointer _hemiVertices;
 static gpu::BufferPointer _hemiIndices;
@@ -112,7 +109,9 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 ApplicationCompositor::ApplicationCompositor() :
-    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha"))
+    _alphaPropertyAnimation(new QPropertyAnimation(this, "alpha")),
+    _reticleInterface(new ReticleInterface(this))
+
 {
     auto geometryCache = DependencyManager::get<GeometryCache>();
 
@@ -214,7 +213,7 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
 
         //draw the mouse pointer
         // Get the mouse coordinates and convert to NDC [-1, 1]
-        vec2 canvasSize = qApp->getCanvasSize();
+        vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
         vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
         // Invert the Y axis
         mousePosition.y *= -1.0f;
@@ -244,7 +243,8 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
     updateTooltips();
 
-    vec2 canvasSize = qApp->getCanvasSize();
+    glm::uvec2 screenSize = qApp->getUiSize(); // HMD use virtual screen size
+    vec2 canvasSize = screenSize;
     _textureAspectRatio = aspect(canvasSize);
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -257,9 +257,9 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         mat4 camMat;
         _cameraBaseTransform.getMatrix(camMat);
         auto displayPlugin = qApp->getActiveDisplayPlugin();
-        auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
+        auto headPose = qApp->getHMDSensorPose();
         auto eyeToHead = displayPlugin->getEyeToHeadTransform((Eye)eye);
-        camMat = (headPose * eyeToHead) * camMat;
+        camMat = (headPose * eyeToHead) * camMat; // FIXME - why are not all transforms are doing this aditioanl eyeToHead
         batch.setViewportTransform(renderArgs->_viewport);
         batch.setViewTransform(camMat);
         batch.setProjectionTransform(qApp->getEyeProjection(eye));
@@ -282,15 +282,13 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
         bindCursorTexture(batch);
 
         //Mouse Pointer
-        auto controllerScriptingInterface = DependencyManager::get<controller::ScriptingInterface>();
-        bool reticleVisible = controllerScriptingInterface->getReticleVisible();
-        if (reticleVisible) {
+        if (getReticleVisible()) {
             glm::mat4 overlayXfm;
             _modelTransform.getMatrix(overlayXfm);
 
-            glm::vec2 projection = screenToSpherical(qApp->getTrueMouse());
-
-            float cursorDepth = controllerScriptingInterface->getReticleDepth();
+            auto reticlePosition = getReticlePosition();
+            glm::vec2 projection = overlayToSpherical(reticlePosition);
+            float cursorDepth = getReticleDepth();
             mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
             mat4 reticleXfm = overlayXfm * pointerXfm;
             reticleXfm = glm::scale(reticleXfm, reticleScale);
@@ -300,42 +298,147 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
     });
 }
 
+QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
+    if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
+        return QPointF(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+    }
+    return event->localPos();
+}
 
-// FIXME - this probably is hella buggy and probably doesn't work correctly
-// we should kill it asap.
-void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
-    const glm::vec2 projection = overlayToSpherical(cursorPos);
-    // The overlay space orientation of the mouse coordinates
-    const glm::quat cursorOrientation(glm::vec3(-projection.y, projection.x, 0.0f));
+bool ApplicationCompositor::shouldCaptureMouse() const {
+    // if we're in HMD mode, and some window of ours is active, but we're not currently showing a popup menu
+    return qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
+}
 
-    // The orientation and position of the HEAD, not the overlay
-    glm::vec3 worldSpaceHeadPosition = qApp->getCamera()->getPosition();
-    glm::quat worldSpaceOrientation = qApp->getCamera()->getOrientation();
+void ApplicationCompositor::handleLeaveEvent() {
 
-    auto headPose = qApp->getHMDSensorPose();
-    auto headOrientation = glm::quat_cast(headPose);
-    auto headTranslation = extractTranslation(headPose);
+    if (shouldCaptureMouse()) {
+        QWidget* mainWidget = (QWidget*)qApp->getWindow();
+        QRect mainWidgetFrame = qApp->getRenderingGeometry();
+        QRect uncoveredRect = mainWidgetFrame;
+        foreach(QWidget* widget, QApplication::topLevelWidgets()) {
+            if (widget->isWindow() && widget->isVisible() && widget != mainWidget) {
+                QRect widgetFrame = widget->frameGeometry();
+                if (widgetFrame.intersects(uncoveredRect)) {
+                    QRect intersection = uncoveredRect & widgetFrame;
+                    if (intersection.top() > uncoveredRect.top()) {
+                        uncoveredRect.setBottom(intersection.top() - 1);
+                    } else if (intersection.bottom() < uncoveredRect.bottom()) {
+                        uncoveredRect.setTop(intersection.bottom() + 1);
+                    }
 
-    auto overlayOrientation = worldSpaceOrientation * glm::inverse(headOrientation);
-    auto overlayPosition = worldSpaceHeadPosition - (overlayOrientation * headTranslation);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::StandingHMDSensorMode)) {
-        overlayPosition = _modelTransform.getTranslation();
-        overlayOrientation = _modelTransform.getRotation();
+                    if (intersection.left() > uncoveredRect.left()) {
+                        uncoveredRect.setRight(intersection.left() - 1);
+                    } else if (intersection.right() < uncoveredRect.right()) {
+                        uncoveredRect.setLeft(intersection.right() + 1);
+                    }
+                }
+            }
+        }
+
+        _ignoreMouseMove = true;
+        auto sendToPos = uncoveredRect.center();
+        QCursor::setPos(sendToPos);
+        _lastKnownRealMouse = sendToPos;
+    }
+}
+
+bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
+
+    // If the mouse move came from a capture mouse related move, we completely ignore it.
+    if (_ignoreMouseMove) {
+        _ignoreMouseMove = false;
+        return true; // swallow the event
     }
 
-    // Intersection in world space
-    glm::vec3 worldSpaceIntersection = ((overlayOrientation * (cursorOrientation * Vectors::FRONT)) * _oculusUIRadius) + overlayPosition;
+    // If we're in HMD mode
+    if (shouldCaptureMouse()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
+        auto newPosition = QCursor::pos();
+        auto changeInRealMouse = newPosition - _lastKnownRealMouse;
+        auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
+        setReticlePosition(newReticlePosition, sendFakeEvent);
+        _ignoreMouseMove = true;
+        QCursor::setPos(QPoint(_lastKnownRealMouse.x(), _lastKnownRealMouse.y())); // move cursor back to where it was
+        return true;  // swallow the event
+    } else {
+        _lastKnownRealMouse = QCursor::pos();
+    }
+    return false; // let the caller know to process the event
+}
 
-    origin = worldSpaceHeadPosition;
-    direction = glm::normalize(worldSpaceIntersection - worldSpaceHeadPosition);
+glm::vec2 ApplicationCompositor::getReticlePosition() {
+    if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
+        return _reticlePositionInHMD;
+    }
+    return toGlm(QCursor::pos());
+}
+
+void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
+    if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticlePositionInHMDLock);
+        const float MOUSE_EXTENTS_VERT_ANGULAR_SIZE = 170.0f; // 5deg from poles
+        const float MOUSE_EXTENTS_VERT_PIXELS = VIRTUAL_SCREEN_SIZE_Y * (MOUSE_EXTENTS_VERT_ANGULAR_SIZE / DEFAULT_HMD_UI_VERT_ANGULAR_SIZE);
+        const float MOUSE_EXTENTS_HORZ_ANGULAR_SIZE = 360.0f; // full sphere
+        const float MOUSE_EXTENTS_HORZ_PIXELS = VIRTUAL_SCREEN_SIZE_X * (MOUSE_EXTENTS_HORZ_ANGULAR_SIZE / DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE);
+
+        glm::vec2 maxOverlayPosition = qApp->getUiSize();
+        float extaPixelsX = (MOUSE_EXTENTS_HORZ_PIXELS - maxOverlayPosition.x) / 2.0f;
+        float extaPixelsY = (MOUSE_EXTENTS_VERT_PIXELS - maxOverlayPosition.y) / 2.0f;
+        glm::vec2 mouseExtra { extaPixelsX, extaPixelsY };
+        glm::vec2 minMouse = vec2(0) - mouseExtra;
+        glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
+
+        _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+
+        if (sendFakeEvent) {
+            // in HMD mode we need to fake our mouse moves...
+            QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+            auto button = Qt::NoButton;
+            auto buttons = QApplication::mouseButtons();
+            auto modifiers = QApplication::keyboardModifiers();
+            QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
+            qApp->fakeMouseEvent(&event);
+        }
+    } else {
+        // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
+        // remove it after we're done
+        const float REASONABLE_CHANGE = 50.0f;
+        glm::vec2 oldPos = toGlm(QCursor::pos());
+        auto distance = glm::distance(oldPos, position);
+        if (distance > REASONABLE_CHANGE) {
+            qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
+        }
+
+        QCursor::setPos(position.x, position.y);
+    }
+}
+
+#include <QDesktopWidget>
+
+glm::vec2 ApplicationCompositor::getReticleMaximumPosition() const {
+    glm::vec2 result;
+    if (qApp->isHMDMode()) {
+        result = glm::vec2(VIRTUAL_SCREEN_SIZE_X, VIRTUAL_SCREEN_SIZE_Y);
+    } else {
+        QRect rec = QApplication::desktop()->screenGeometry();
+        result = glm::vec2(rec.right(), rec.bottom());
+    }
+    return result;
+}
+
+void ApplicationCompositor::computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const {
+    auto surfacePointAt = sphereSurfaceFromOverlay(cursorPos); // in world space
+    glm::vec3 worldSpaceCameraPosition = qApp->getCamera()->getPosition();
+    origin = worldSpaceCameraPosition;
+    direction = glm::normalize(surfacePointAt - worldSpaceCameraPosition);
 }
 
 //Finds the collision point of a world space ray
 bool ApplicationCompositor::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const {
-
-    auto displayPlugin = qApp->getActiveDisplayPlugin();
-    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
-
+    auto headPose = qApp->getHMDSensorPose();
     auto myCamera = qApp->getCamera();
     mat4 cameraMat = myCamera->getTransform();
     auto UITransform = cameraMat * glm::inverse(headPose);
@@ -459,25 +562,6 @@ void ApplicationCompositor::drawSphereSection(gpu::Batch& batch) {
     batch.drawIndexed(gpu::TRIANGLES, _hemiIndexCount);
 }
 
-glm::vec2 ApplicationCompositor::screenToSpherical(const glm::vec2& screenPos) {
-    auto screenSize = qApp->getCanvasSize();
-    glm::vec2 result;
-    result.x = -(screenPos.x / screenSize.x - 0.5f);
-    result.y = (screenPos.y / screenSize.y - 0.5f);
-    result.x *= MOUSE_YAW_RANGE;
-    result.y *= MOUSE_PITCH_RANGE;
-    return result;
-}
-
-glm::vec2 ApplicationCompositor::sphericalToScreen(const glm::vec2& sphericalPos) {
-    glm::vec2 result = sphericalPos;
-    result.x *= -1.0f;
-    result /= MOUSE_RANGE;
-    result += 0.5f;
-    result *= qApp->getCanvasSize();
-    return result;
-}
-
 glm::vec2 ApplicationCompositor::sphericalToOverlay(const glm::vec2&  sphericalPos) const {
     glm::vec2 result = sphericalPos;
     result.x *= -1.0f;
@@ -498,18 +582,8 @@ glm::vec2 ApplicationCompositor::overlayToSpherical(const glm::vec2&  overlayPos
     return result;
 }
 
-glm::vec2 ApplicationCompositor::screenToOverlay(const glm::vec2& screenPos) const {
-    return sphericalToOverlay(screenToSpherical(screenPos));
-}
-
-glm::vec2 ApplicationCompositor::overlayToScreen(const glm::vec2& overlayPos) const {
-    return sphericalToScreen(overlayToSpherical(overlayPos));
-}
-
 glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const {
-
-    auto displayPlugin = qApp->getActiveDisplayPlugin();
-    auto headPose = displayPlugin->getHeadPose(qApp->getFrameCount());
+    auto headPose = qApp->getHMDSensorPose();
     auto myCamera = qApp->getCamera();
     mat4 cameraMat = myCamera->getTransform();
     auto UITransform = cameraMat * glm::inverse(headPose);
@@ -517,11 +591,23 @@ glm::vec2 ApplicationCompositor::overlayFromSphereSurface(const glm::vec3& spher
     auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
     auto center = vec3(0); // center of HUD in HUD space
     auto direction = relativePosition - center; // direction to relative position in HUD space
-
     glm::vec2 polar = glm::vec2(glm::atan(direction.x, -direction.z), glm::asin(direction.y)) * -1.0f;
     auto overlayPos = sphericalToOverlay(polar);
     return overlayPos;
 }
+
+glm::vec3 ApplicationCompositor::sphereSurfaceFromOverlay(const glm::vec2& overlay) const {
+    auto spherical = overlayToSpherical(overlay);
+    auto sphereSurfacePoint = getPoint(spherical.x, spherical.y);
+    auto headPose = qApp->getHMDSensorPose();
+    auto myCamera = qApp->getCamera();
+    mat4 cameraMat = myCamera->getTransform();
+    auto UITransform = cameraMat * glm::inverse(headPose);
+    auto position4 = UITransform * vec4(sphereSurfacePoint, 1);
+    auto position = vec3(position4) / position4.w;
+    return position;
+}
+
 
 void ApplicationCompositor::updateTooltips() {
     if (_hoverItemId != _noItemId) {

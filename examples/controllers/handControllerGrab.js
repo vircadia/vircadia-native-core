@@ -743,7 +743,7 @@ function MyController(hand) {
         }
         this.searchSphereOff();
 
-        Controller.setReticleVisible(true);
+        Reticle.setVisible(true);
 
     };
 
@@ -1026,7 +1026,7 @@ function MyController(hand) {
         }
 
         this.searchIndicatorOn(handPosition, distantPickRay);
-        Controller.setReticleVisible(false);
+        Reticle.setVisible(false);
 
     };
 
@@ -1587,48 +1587,43 @@ function MyController(hand) {
         }
 
         ids.forEach(function(id) {
-
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
             if (props.name === 'pointer') {
                 return;
-            } else {
-                var entityMinPoint = props.boundingBox.brn;
-                var entityMaxPoint = props.boundingBox.tfl;
-                var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
-                var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
-
-                if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
-                    // we haven't been touched before, but either right or left is touching us now
-                    _this.allTouchedIDs[id] = true;
-                    _this.startTouch(id);
-                } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
-                    // we have been touched before and are still being touched
-                    // continue touch
-                    _this.continueTouch(id);
-                } else if (_this.allTouchedIDs[id]) {
-                    delete _this.allTouchedIDs[id];
-                    _this.stopTouch(id);
-
-                } else {
-                    //we are in another state
-                    return;
-                }
             }
+            var entityMinPoint = props.boundingBox.brn;
+            var entityMaxPoint = props.boundingBox.tfl;
+            var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
+            var rightIsTouching = pointInExtents(rightHandPosition, entityMinPoint, entityMaxPoint);
 
+            if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id] === undefined) {
+                // we haven't been touched before, but either right or left is touching us now
+                _this.allTouchedIDs[id] = true;
+                _this.startTouch(id);
+            } else if ((leftIsTouching || rightIsTouching) && _this.allTouchedIDs[id]) {
+                // we have been touched before and are still being touched
+                // continue touch
+                _this.continueTouch(id);
+            } else if (_this.allTouchedIDs[id]) {
+                delete _this.allTouchedIDs[id];
+                _this.stopTouch(id);
+            }
         });
-
     };
 
     this.startTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("startTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "startTouch", args);
     };
 
     this.continueTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("continueTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "continueTouch", args);
     };
 
     this.stopTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("stopTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
     this.release = function() {
@@ -1892,7 +1887,7 @@ function cleanup() {
     rightController.cleanup();
     leftController.cleanup();
     Controller.disableMapping(MAPPING_NAME);
-    Controller.setReticleVisible(true);
+    Reticle.setVisible(true);
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);

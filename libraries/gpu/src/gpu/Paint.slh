@@ -1,0 +1,47 @@
+<!
+//  Paint.slh
+//  libraries/gpu/src
+//
+//  Created by Zach Pomerantz on 2/19/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Fragment shader utility functions. Will fail compilation in vertex shaders.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not GPU_PAINT_SLH@>
+<@def GPU_PAINT_SLH@>
+
+float paintStripe(float value, float offset, float scale, float edge) {
+    float width = fwidth(value);
+    float normalizedWidth = width * scale;
+
+    float x0 = (value + offset) * scale - normalizedWidth / 2;
+    float x1 = x0 + normalizedWidth;
+
+    float balance = 1.0 - edge;
+    float i0 = edge * floor(x0) + max(0.0, fract(x0) - balance);
+    float i1 = edge * floor(x1) + max(0.0, fract(x1) - balance);
+    float strip = (i1 - i0) / normalizedWidth;
+
+    return clamp(strip, 0.0, 1.0);
+}
+
+float paintGrid(vec2 value, vec2 offset, vec2 scale, vec2 edge) {
+    return max(
+        paintStripe(value.x, offset.x, scale.x, edge.x),
+        paintStripe(value.y, offset.y, scale.y, edge.y));
+}
+
+float paintGridMajor(vec2 value, vec2 offset, vec2 scale, vec2 edge) {
+    return paintGrid(value, offset, scale, edge);
+}
+
+float paintGridMajorMinor(vec2 value, vec4 offset, vec4 scale, vec4 edge) {
+    return max(
+        paintGrid(value, offset.xy, scale.xy, edge.xy),
+        paintGrid(value, offset.zw, scale.zw, edge.zw));
+}
+
+<@endif@>

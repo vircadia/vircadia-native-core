@@ -114,10 +114,11 @@ public:
     bool eventFilter(QObject* object, QEvent* event) override;
 
     glm::uvec2 getCanvasSize() const;
+    QRect getRenderingGeometry() const;
+
     glm::uvec2 getUiSize() const;
     QSize getDeviceSize() const;
     bool hasFocus() const;
-    PickRay computePickRay() const;
 
     bool isThrottleRendering() const;
 
@@ -139,8 +140,7 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
-    ivec2 getMouse() const;
-    ivec2 getTrueMouse() const;
+    ivec2 getMouse();
 
     FaceTracker* getActiveFaceTracker();
     FaceTracker* getSelectedFaceTracker();
@@ -157,7 +157,6 @@ public:
     float getFps() const { return _fps; }
     float getTargetFrameRate(); // frames/second
     float getLastInstanteousFps() const { return _lastInstantaneousFps; }
-    float getLastUnsynchronizedFps() const { return _lastUnsynchronizedFps; }
 
     float getFieldOfView() { return _fieldOfView.get(); }
     void setFieldOfView(float fov);
@@ -218,6 +217,8 @@ public:
     void setAvatarSimrateSample(float sample);
 
     float getAverageSimsPerSecond();
+
+    void fakeMouseEvent(QMouseEvent* event);
 
 signals:
     void svoImportRequested(const QString& url);
@@ -368,10 +369,10 @@ private:
     void focusOutEvent(QFocusEvent* event);
     void focusInEvent(QFocusEvent* event);
 
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseDoublePressEvent(QMouseEvent* event, unsigned int deviceID = 0);
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID = 0);
+    void mouseMoveEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseDoublePressEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event);
 
     void touchBeginEvent(QTouchEvent* event);
     void touchEndEvent(QTouchEvent* event);
@@ -381,6 +382,7 @@ private:
     void dropEvent(QDropEvent* event);
     void dragEnterEvent(QDragEnterEvent* event);
 
+    void maybeToggleMenuVisible(QMouseEvent* event);
 
     bool _dependencyManagerIsSetup;
 
@@ -402,7 +404,6 @@ private:
     QElapsedTimer _timerStart;
     QElapsedTimer _lastTimeUpdated;
     float _lastInstantaneousFps { 0.0f };
-    float _lastUnsynchronizedFps { 0.0f };
 
     ShapeManager _shapeManager;
     PhysicalEntitySimulation _entitySimulation;
@@ -510,6 +511,8 @@ private:
     bool _settingsLoaded { false };
     bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
+
+    bool _fakedMouseEvent { false };
 };
 
 #endif // hifi_Application_h

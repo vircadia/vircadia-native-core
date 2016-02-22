@@ -492,16 +492,16 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
     connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId){
-        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event){
+        entityScriptingInterface->mousePressOnEntity(intersection.entityID, MouseEvent(*event));
     });
     connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
-        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
+        entityScriptingInterface->mouseMoveOnEntity(intersection.entityID, MouseEvent(*event));
     });
     connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface,
-        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId) {
-        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event, deviceId));
+        [=](const RayToEntityIntersectionResult& intersection, const QMouseEvent* event) {
+        entityScriptingInterface->mouseReleaseOnEntity(intersection.entityID, MouseEvent(*event));
     });
 
     connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
@@ -519,7 +519,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(DependencyManager::get<SceneScriptingInterface>().data(), &SceneScriptingInterface::shouldRenderEntitiesChanged, this, &EntityTreeRenderer::updateEntityRenderStatus, Qt::QueuedConnection);
 }
 
-void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+void EntityTreeRenderer::mousePressEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
@@ -540,20 +540,20 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
 
         }
 
-        emit mousePressOnEntity(rayPickResult, event, deviceID);
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", MouseEvent(*event, deviceID));
+        emit mousePressOnEntity(rayPickResult, event);
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mousePressOnEntity", MouseEvent(*event));
     
         _currentClickingOnEntityID = rayPickResult.entityID;
-        emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
-        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", MouseEvent(*event, deviceID));
+        emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "clickDownOnEntity", MouseEvent(*event));
     } else {
-        emit mousePressOffEntity(rayPickResult, event, deviceID);
+        emit mousePressOffEntity(rayPickResult, event);
     }
-    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEvent = MouseEvent(*event);
     _lastMouseEventValid = true;
 }
 
-void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
@@ -565,24 +565,24 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qCDebug(entitiesrenderer) << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
-        emit mouseReleaseOnEntity(rayPickResult, event, deviceID);
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", MouseEvent(*event, deviceID));
+        emit mouseReleaseOnEntity(rayPickResult, event);
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseReleaseOnEntity", MouseEvent(*event));
     }
 
     // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
     // we're releasing the button, then this is considered a clickOn event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", MouseEvent(*event, deviceID));
+        emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "clickReleaseOnEntity", MouseEvent(*event));
     }
 
     // makes it the unknown ID, we just released so we can't be clicking on anything
     _currentClickingOnEntityID = UNKNOWN_ENTITY_ID;
-    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEvent = MouseEvent(*event);
     _lastMouseEventValid = true;
 }
 
-void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
     // If we don't have a tree, or we're in the process of shutting down, then don't
     // process these events.
     if (!_tree || _shuttingDown) {
@@ -596,28 +596,28 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
 
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", MouseEvent(*event, deviceID));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", MouseEvent(*event, deviceID));
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveEvent", MouseEvent(*event));
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "mouseMoveOnEntity", MouseEvent(*event));
     
         // handle the hover logic...
     
         // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
         // then we need to send the hover leave.
         if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
-            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event, deviceID));
+            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
         }
 
         // If the new hover entity does not match the previous hover entity then we are entering the new one
         // this is true if the _currentHoverOverEntityID is known or unknown
         if (rayPickResult.entityID != _currentHoverOverEntityID) {
-            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", MouseEvent(*event, deviceID));
+            _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverEnterEntity", MouseEvent(*event));
         }
 
         // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
         // we should send our hover over event
-        emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
-        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", MouseEvent(*event, deviceID));
+        emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event));
+        _entitiesScriptEngine->callEntityScriptMethod(rayPickResult.entityID, "hoverOverEntity", MouseEvent(*event));
 
         // remember what we're hovering over
         _currentHoverOverEntityID = rayPickResult.entityID;
@@ -627,8 +627,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
         // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to
         // send the hover leave for our previous entity
         if (!_currentHoverOverEntityID.isInvalidID()) {
-            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
-            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event, deviceID));
+            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event));
+            _entitiesScriptEngine->callEntityScriptMethod(_currentHoverOverEntityID, "hoverLeaveEntity", MouseEvent(*event));
             _currentHoverOverEntityID = UNKNOWN_ENTITY_ID; // makes it the unknown ID
         }
     }
@@ -636,10 +636,10 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
     // not yet released the hold then this is still considered a holdingClickOnEntity event
     if (!_currentClickingOnEntityID.isInvalidID()) {
-        emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
-        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", MouseEvent(*event, deviceID));
+        emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event));
+        _entitiesScriptEngine->callEntityScriptMethod(_currentClickingOnEntityID, "holdingClickOnEntity", MouseEvent(*event));
     }
-    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEvent = MouseEvent(*event);
     _lastMouseEventValid = true;
 }
 

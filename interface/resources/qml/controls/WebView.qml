@@ -11,6 +11,7 @@ WebEngineView {
         root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
             console.log("Web Window JS message: " + sourceID + " " + lineNumber + " " +  message);
         });
+
     }
 
     // FIXME hack to get the URL with the auth token included.  Remove when we move to Qt 5.6
@@ -36,6 +37,10 @@ WebEngineView {
         }
     }
 
+    onFeaturePermissionRequested: {
+        grantFeaturePermission(securityOrigin, feature, true);
+    }
+
     onLoadingChanged: {
         // Required to support clicking on "hifi://" links
         if (WebEngineView.LoadStartedStatus == loadRequest.status) {
@@ -48,9 +53,12 @@ WebEngineView {
         }
     }
 
-    profile: WebEngineProfile {
-        id: webviewProfile
-        httpUserAgent: "Mozilla/5.0 (HighFidelityInterface)"
-        storageName: "qmlWebEngine"
+    onNewViewRequested:{
+            var component = Qt.createComponent("../Browser.qml");
+            var newWindow = component.createObject(desktop);
+            request.openIn(newWindow.webView)
     }
+
+
+    profile: desktop.browserProfile
 }
