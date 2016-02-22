@@ -285,6 +285,7 @@
                 var elLightColorBlue = document.getElementById("property-light-color-blue");
     
                 var elLightIntensity = document.getElementById("property-light-intensity");
+                var elLightSurfaceRadius = document.getElementById("property-light-surface-radius");
                 var elLightExponent = document.getElementById("property-light-exponent");
                 var elLightCutoff = document.getElementById("property-light-cutoff");
     
@@ -564,6 +565,7 @@
                                     elLightColorBlue.value = properties.color.blue;
     
                                     elLightIntensity.value = properties.intensity;
+                                    elLightSurfaceRadius.value = properties.surfaceRadius;
                                     elLightExponent.value = properties.exponent;
                                     elLightCutoff.value = properties.cutoff;
                                 } else if (properties.type == "Zone") {
@@ -744,6 +746,7 @@
                 })
     
                 elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
+                elLightSurfaceRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('surfaceRadius'));
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
     
@@ -1505,12 +1508,6 @@
         </div>
         
         <div class="light-section property">
-            <span class="label">Spot Light</span>
-            <span class="value">
-                <input type='checkbox' id="property-light-spot-light">
-            </span>
-        </div>
-        <div class="light-section property">
             <div class="label">Color</div>
             <div class="value">
                 <div class='color-picker' id="property-light-color"></div>
@@ -1524,6 +1521,18 @@
             <div class="value">
                 <input class="coord" type='number' id="property-light-intensity">
             </div>
+        </div>
+        <div class="light-section property">
+            <div class="label">Apparent Surface Radius (falloff factor)"</div>
+            <div class="value">
+                <input class="coord" type='number' id="property-light-surface-radius">
+            </div>
+        </div>
+        <div class="light-section property">
+            <span class="label">Spot Light</span>
+            <span class="value">
+                <input type='checkbox' id="property-light-spot-light">
+            </span>
         </div>
         <div class="light-section property">
             <div class="label">Spot Light Exponent</div>
