@@ -13,28 +13,33 @@
 
 
 <@func declareEvalPBRShading()@>
-// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 specular, float roughness) {
-    // Diffuse Lighting
-    float diffuseDot = dot(fragNormal, fragLightDir);
-    float facingLight = step(0.0, diffuseDot);
-    float diffuse = diffuseDot * facingLight;
- 
-    // Specular Lighting depends on the half vector and the roughness
-    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
+vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
+    return fresnelColor + (1.0f - fresnelColor) * pow(1.0f - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+}
+
+float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
     float gloss = (1.0 - roughness) * 128.0;
     gloss *= gloss;
-    float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss);
-    specularPower *= (gloss * 0.125 + 0.25);
+    float power = pow(clamp(dot(halfDir, normal), 0.0, 1.0), gloss);
+    power *= (gloss * 0.125 + 0.25);
+    return power;
+}
 
-    float shlickPower = (1.0 - dot(fragLightDir,halfDir));
-    float shlickPower2 = shlickPower * shlickPower;
-    float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
-    vec3 fresnel = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
-    vec3 reflect = specularPower * fresnel * diffuse;
+// Frag Shading returns the diffuse amount as W and the specular rgb as xyz
+vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
+    // Diffuse Lighting
+    //float diffuseDot = dot(fragNormal, fragLightDir);
+    //float facingLight = step(0.0, diffuseDot);
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+    
+    // Specular Lighting
+    vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
+    float power = specularDistribution(roughness, fragNormal, halfDir);
+    vec3 specular = power * fresnelColor * diffuse;
 
-    return vec4(reflect, diffuse * (1 - fresnel.x));
+    return vec4(specular, diffuse * (1 - fresnelColor.x));
 }
 <@endfunc@>
 

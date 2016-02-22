@@ -50,9 +50,9 @@ void packDeferredFragment(vec3 normal, float alpha, vec3 albedo, float roughness
     if (alpha != 1.0) {
         discard;
     }
-
-    _fragColor0 = vec4(albedo.rgb, 1.0); // Opaque
-    _fragColor1 = vec4(bestFitNormal(normal), 1.0);
+    vec3 baseColor = ((metallic < 0.5) ? albedo : fresnel);
+    _fragColor0 = vec4(baseColor, metallic);
+    _fragColor1 = vec4(bestFitNormal(normal), 0.5 * clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(fresnel, roughness);
 }
 
@@ -61,8 +61,9 @@ void packDeferredFragmentLightmap(vec3 normal, float alpha, vec3 albedo, float r
         discard;
     }
 
-    _fragColor0 = vec4(albedo.rgb, 0.5);
-    _fragColor1 = vec4(bestFitNormal(normal), 0.5);
+    vec3 baseColor = ((metallic < 0.5) ? albedo : fresnel);
+    _fragColor0 = vec4(baseColor, metallic);
+    _fragColor1 = vec4(bestFitNormal(normal), 0.5 + 0.5 * clamp(roughness, 0.0, 1.0));
     _fragColor2 = vec4(emissive, roughness);
 }
 
