@@ -564,7 +564,7 @@ function MyController(hand) {
             "additiveBlending": 0,
             "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
         }
-       
+
         this.particleBeamObject = Entities.addEntity(particleBeamPropertiesObject);
     };
 
@@ -1587,11 +1587,10 @@ function MyController(hand) {
         }
 
         ids.forEach(function(id) {
-
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
             if (props.name === 'pointer') {
                 return;
-            } else {
+            } else if (props.boundingBox) {
                 var entityMinPoint = props.boundingBox.brn;
                 var entityMaxPoint = props.boundingBox.tfl;
                 var leftIsTouching = pointInExtents(leftHandPosition, entityMinPoint, entityMaxPoint);
@@ -1616,7 +1615,6 @@ function MyController(hand) {
             }
 
         });
-
     };
 
     this.startTouch = function(entityID) {
