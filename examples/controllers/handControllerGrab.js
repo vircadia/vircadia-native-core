@@ -1610,24 +1610,23 @@ function MyController(hand) {
             } else if (_this.allTouchedIDs[id]) {
                 delete _this.allTouchedIDs[id];
                 _this.stopTouch(id);
-
-            } else {
-                //we are in another state
-                return;
             }
         });
     };
 
     this.startTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("startTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "startTouch", args);
     };
 
     this.continueTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("continueTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "continueTouch", args);
     };
 
     this.stopTouch = function(entityID) {
-        this.callEntityMethodOnGrabbed("stopTouch");
+        var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+        Entities.callEntityMethod(entityID, "stopTouch", args);
     };
 
     this.release = function() {
