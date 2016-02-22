@@ -15,18 +15,19 @@
 
     var self = this;
     var baton;
-    var iOwn = false;
+
+    this.iOwn = false;
     var currentInterval;
     var _entityId;
 
     function startUpdate() {
-        iOwn = true;
+        self.iOwn = true;
         print('i am the owner ' + _entityId)
     }
 
     function stopUpdateAndReclaim() {
         print('i released the object ' + _entityId)
-        iOwn = false;
+        self.iOwn = false;
         baton.claim(startUpdate, stopUpdateAndReclaim);
     }
 
@@ -40,7 +41,7 @@
         this.minAngularVelocity = 0.01;
         this.maxAngularVelocity = 0.03;
         baton = virtualBaton({
-            batonName: 'io.highfidelity.vesicles:' + entityID, // One winner for each entity
+            batonName: 'io.highfidelity.cells:' + entityID, // One winner for each entity
         });
         stopUpdateAndReclaim();
         currentInterval = Script.setInterval(self.move, self.getTotalWait())
@@ -146,18 +147,10 @@
     }
 
     this.move = function() {
-        if (!iOwn) {
+        if (self.iOwn===false) {
+            print('cell is not owned by me...')
             return;
         }
-
-        // var magnitudeV = self.maxVelocity;
-        // var directionV = {
-        //     x: Math.random() - 0.5,
-        //     y: Math.random() - 0.5,
-        //     z: Math.random() - 0.5
-        // };
-
-        //print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
 
         var magnitudeAV = self.maxAngularVelocity;
 
@@ -166,7 +159,7 @@
             y: Math.random() - 0.5,
             z: Math.random() - 0.5
         };
-        //print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
+        print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
         Entities.editEntity(self.entityId, {
             // velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV)),
             angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
