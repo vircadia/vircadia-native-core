@@ -107,7 +107,7 @@ Packet::Packet(std::unique_ptr<char[]> data, qint64 size, const HifiSockAddr& se
                                           QString::number(getMessagePartNumber()));
         }
 
-        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .{0,1000}");
+        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Unobfuscating packet .*");
         qDebug() << qPrintable(debugString);
 
         obfuscate(NoObfuscation); // Undo obfuscation

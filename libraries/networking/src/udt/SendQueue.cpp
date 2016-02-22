@@ -374,9 +374,7 @@ bool SendQueue::maybeResendPacket() {
                         debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
                                                       QString::number(resendPacket.getMessagePartNumber()));
                     }
-
-
-                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .{0,1000}");
+                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .*");
                     qCritical() << qPrintable(debugString);
 
 
