@@ -45,8 +45,11 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(Sound* sound, const Audi
         // stereo option isn't set from script, this comes from sound metadata or filename
         AudioInjectorOptions optionsCopy = injectorOptions;
         optionsCopy.stereo = sound->isStereo();
-
-        return new ScriptAudioInjector(AudioInjector::playSound(sound->getByteArray(), optionsCopy, _localAudioInterface));
+        auto injector = AudioInjector::playSound(sound->getByteArray(), optionsCopy, _localAudioInterface);
+        if (!injector) {
+            return NULL;
+        }
+        return new ScriptAudioInjector(injector);
 
     } else {
         qCDebug(scriptengine) << "AudioScriptingInterface::playSound called with null Sound object.";

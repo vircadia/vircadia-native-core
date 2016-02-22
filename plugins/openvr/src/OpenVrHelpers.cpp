@@ -16,6 +16,7 @@
 
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
+Q_LOGGING_CATEGORY(displayplugins, "hifi.plugins.display")
 
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;

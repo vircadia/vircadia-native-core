@@ -74,9 +74,9 @@ public:
     void deleteReleasedModels();
     
     // event handles which may generate entity related events
-    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID);
-    void mousePressEvent(QMouseEvent* event, unsigned int deviceID);
-    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID);
+    void mouseReleaseEvent(QMouseEvent* event);
+    void mousePressEvent(QMouseEvent* event);
+    void mouseMoveEvent(QMouseEvent* event);
 
     /// connect our signals to anEntityScriptingInterface for firing of events related clicking,
     /// hovering over, and entering entities
@@ -86,10 +86,10 @@ public:
     QList<EntityItemID>& getEntitiesLastInScene() { return _entityIDsLastInScene; }
 
 signals:
-    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
-    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
-    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
-    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event, unsigned int deviceId);
+    void mousePressOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mousePressOffEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mouseMoveOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
+    void mouseReleaseOnEntity(const RayToEntityIntersectionResult& intersection, const QMouseEvent* event);
 
     void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);

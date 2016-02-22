@@ -95,7 +95,7 @@ private:
     bool _paused{ true };
     uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
-
+    QWindow* _proxyWindow { nullptr };
 };
 
 #endif

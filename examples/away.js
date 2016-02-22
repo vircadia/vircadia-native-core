@@ -132,10 +132,22 @@ function maybeGoActive(event) {
     }
 }
 var wasHmdActive = false;
+var wasMouseCaptured = false;
 function maybeGoAway() {
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;
         if (wasHmdActive) {
+            goAway();
+        }
+    }
+
+    // If the mouse has gone from captured, to non-captured state,
+    // then it likely means the person is still in the HMD, but has
+    // tabbed away from the application (meaning they don't have mouse 
+    // control) and they likely want to go into an away state
+    if (Reticle.mouseCaptured !== wasMouseCaptured) {
+        wasMouseCaptured = !wasMouseCaptured;
+        if (!wasMouseCaptured) {
             goAway();
         }
     }
