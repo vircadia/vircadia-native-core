@@ -25,7 +25,7 @@
         this.strokeForwardOffset = 0.0005;
         this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
         this.STROKE_WIDTH = 0.003
-        _this.MAX_MARKER_TO_BOARD_DISTANCE = 0.2;
+        _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
@@ -122,13 +122,14 @@
             });
 
             if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
-                _this.resetStroke();
+                _this.currentStroke = null;
+                _this.oldPosition = position;
             }
         },
 
         resetStroke: function() {
             _this.currentStroke = null;
-            _this.oldPosition = position;
+            _this.oldPosition = null;
         },
 
         preload: function(entityID) {

@@ -44,7 +44,8 @@ var whiteboard = Entities.addEntity({
         x: 0.4636,
         y: 2.7034,
         z: 1.8653
-    }
+    },
+    // visible: false
 });
 
 var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
@@ -58,7 +59,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
     dimensions: {
         x: 1.85,
         y: 1.8,
-        z: 0.03
+        z: 0.04
     },
     color: {
         red: 200,
@@ -68,7 +69,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
     position: whiteboardSurfacePosition,
     rotation: orientation,
     visible: false,
-    parentID: whiteboard
+    // parentID: whiteboard
 });
 
 
