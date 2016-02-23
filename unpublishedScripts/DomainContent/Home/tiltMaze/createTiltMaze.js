@@ -10,24 +10,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var ball, ballSpawningAnchor, ballDetector, tiltMaze;
+var ball, ballSpawningAnchor, ballDetector, tiltMaze, lightAtTheEnd;
 
-var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze.fbx";
-var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_hull.obj";
+var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/newmaze_tex-2.fbx";
+var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/alan/dev/newmaze_tex-2.obj";
 var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
 
 var SCALE = 0.5;
 
 var MAZE_DIMENSIONS = Vec3.multiply(SCALE, {
   x: 1,
-  y: 0.3,
+  y: 0.15,
   z: 1
 });
 
 var BALL_DIMENSIONS = Vec3.multiply(SCALE, {
-  x: 0.05,
-  y: 0.05,
-  z: 0.05
+  x: 0.035,
+  y: 0.035,
+  z: 0.035
 })
 
 var BALL_SPAWNER_DIMENSIONS = Vec3.multiply(SCALE, {
@@ -66,7 +66,6 @@ var BALL_FORWARD_OFFSET = -0.2 * SCALE;
 var BALL_RIGHT_OFFSET = -0.4 * SCALE;
 var BALL_VERTICAL_OFFSET = 0.02 * SCALE;
 
-
 var BALL_FRICTION = 0.7;
 var BALL_RESTITUTION = 0.1;
 var BALL_DAMPING = 0.6;
@@ -78,15 +77,30 @@ var BALL_GRAVITY = {
   z: 0
 };
 
-
 var MAZE_DENSITY = 1000;
 var MAZE_RESTITUTION = 0.1;
 var MAZE_DAMPING = 0.6;
 var MAZE_ANGULAR_DAMPING = 0.6;
 
 var DETECTOR_VERTICAL_OFFSET = 0.0 * SCALE;
-var DETECTOR_FORWARD_OFFSET = 0.4 * SCALE;
-var DETECTOR_RIGHT_OFFSET = 0.4 * SCALE;
+var DETECTOR_FORWARD_OFFSET = 0.35 * SCALE;
+var DETECTOR_RIGHT_OFFSET = 0.35 * SCALE;
+
+var END_LIGHT_COLOR = {
+  red: 255,
+  green: 0,
+  blue: 0
+};
+
+var END_LIGHT_DIMENSIONS = {
+  x: 0.2,
+  y: 0.2,
+  z: 0.8
+};
+
+var END_LIGHT_INTENSITY = 0.035;
+var END_LIGHT_CUTOFF = 30;
+var END_LIGHT_EXPONENT = 1;
 
 var getBallStartLocation = function() {
   var mazeProps = Entities.getEntityProperties(tiltMaze);
@@ -101,9 +115,22 @@ var getBallStartLocation = function() {
   var finalOffset = Vec3.sum(vertical, Vec3.multiply(right, BALL_RIGHT_OFFSET));
   finalOffset = Vec3.sum(finalOffset, Vec3.multiply(front, BALL_FORWARD_OFFSET));
   var location = Vec3.sum(mazeProps.position, finalOffset);
-  print('BALL START LOCATOIN:: ' + JSON.stringify(location))
   return location;
 }
+
+var getBallFinishLocation = function() {
+  var mazeProps = Entities.getEntityProperties(tiltMaze);
+  var right = Quat.getRight(mazeProps.rotation);
+  var forward = Quat.getFront(mazeProps.rotation);
+  var up = Quat.getUp(mazeProps.rotation);
+
+  var position = Vec3.sum(mazeProps.position, Vec3.multiply(up, DETECTOR_VERTICAL_OFFSET));
+  position = Vec3.sum(position, Vec3.multiply(right, DETECTOR_RIGHT_OFFSET));
+  position = Vec3.sum(position, Vec3.multiply(forward, DETECTOR_FORWARD_OFFSET));
+
+  return position;
+}
+
 
 var createBall = function(position) {
 
@@ -121,18 +148,20 @@ var createBall = function(position) {
     gravity: BALL_GRAVITY,
     density: BALL_DENSITY,
     color: BALL_COLOR,
-    dimensions: BALL_DIMENSIONS
+    dimensions: BALL_DIMENSIONS,
+    userData: JSON.stringify({
+      grabbableKey: {
+        grabbable: false
+      }
+    })
 
   };
 
   ball = Entities.addEntity(properties);
 
-
-
 };
 
 var createBallSpawningAnchor = function() {
-
   var properties = {
     name: 'Hifi Tilt Maze Ball Detector',
     parentID: tiltMaze,
@@ -147,22 +176,17 @@ var createBallSpawningAnchor = function() {
   ballSpawningAnchor = Entities.addEntity(properties);
 }
 
-var createBallDetector = function() {
-  var mazeProps = Entities.getEntityProperties(tiltMaze);
-  var right = Quat.getRight(mazeProps.rotation);
-  var forward = Quat.getFront(mazeProps.rotation);
-  var up = Quat.getUp(mazeProps.rotation);
 
-  var position = Vec3.sum(mazeProps.position, Vec3.multiply(up, DETECTOR_VERTICAL_OFFSET));
-  position = Vec3.sum(position, Vec3.multiply(right, DETECTOR_RIGHT_OFFSET));
-  position = Vec3.sum(position, Vec3.multiply(forward, DETECTOR_FORWARD_OFFSET));
+var createBallDetector = function() {
+
   var properties = {
     name: 'Hifi Tilt Maze Ball Detector',
     parentID: tiltMaze,
     type: 'Box',
     color: DEBUG_COLOR,
+    shapeType: 'none',
     dimensions: BALL_DETECTOR_DIMENSIONS,
-    position: position,
+    position: getBallFinishLocation(),
     collisionless: true,
     dynamic: false,
     visible: false,
@@ -183,7 +207,6 @@ var createTiltMaze = function(position) {
     restitution: MAZE_RESTITUTION,
     damping: MAZE_DAMPING,
     angularDamping: MAZE_ANGULAR_DAMPING,
-    // rotation: Quat.fromPitchYawRollDegrees(0, 0, 180),
     dynamic: true,
     density: MAZE_DENSITY,
     script: MAZE_SCRIPT
@@ -193,17 +216,47 @@ var createTiltMaze = function(position) {
 
 }
 
+var createLightAtTheEnd = function() {
+
+  var mazeProps = Entities.getEntityProperties(tiltMaze, 'position');
+
+  var up = Quat.getUp(mazeProps.rotation);
+  var down = Vec3.multiply(-1, up);
+
+  var emitOrientation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, down)
+
+  var position = getBallFinishLocation();
+  var lightProperties = {
+    parentID: tiltMaze,
+    name: 'Hifi Tilt Maze End Light',
+    type: "Light",
+    isSpotlight: true,
+    dimensions: END_LIGHT_DIMENSIONS,
+    color: END_LIGHT_COLOR,
+    intensity: END_LIGHT_INTENSITY,
+    exponent: END_LIGHT_EXPONENT,
+    cutoff: END_LIGHT_CUTOFF,
+    lifetime: -1,
+    position: position,
+    rotation: emitOrientation
+  };
+
+  lightAtTheEnd = Entities.addEntity(lightProperties);
+}
+
 var createAll = function() {
   createTiltMaze(center);
   createBallSpawningAnchor();
   createBallDetector(center);
   createBall(center);
+  createLightAtTheEnd();
   Entities.editEntity(tiltMaze, {
     userData: JSON.stringify({
       tiltMaze: {
         firstBall: ball,
         ballSpawner: ballSpawningAnchor,
-        detector: ballDetector
+        detector: ballDetector,
+        lightAtTheEnd: lightAtTheEnd
       }
     })
   })
@@ -216,5 +269,6 @@ if (CLEANUP === true) {
     Entities.deleteEntity(tiltMaze);
     Entities.deleteEntity(ball);
     Entities.deleteEntity(ballSpawningAnchor);
+    Entities.deleteEntity(lightAtTheEnd);
   })
 };

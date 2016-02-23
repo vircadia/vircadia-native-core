@@ -20,7 +20,7 @@ var SCALE= 0.5
     var VICTORY_SOUND;
     var BALL_DISTANCE_THRESHOLD = 1*SCALE;
 
-    var BALL_DETECTOR_THRESHOLD = 0.2*SCALE;
+    var BALL_DETECTOR_THRESHOLD = 0.1*SCALE;
     var BALL_FORWARD_OFFSET = -0.2*SCALE;
     var BALL_RIGHT_OFFSET = -0.4*SCALE;
     var BALL_VERTICAL_OFFSET = 0.02*SCALE;
@@ -65,6 +65,7 @@ var SCALE= 0.5
         },
         startNearGrab: function() {
             //check to make sure a ball is in range, otherwise create one
+            this.testBallDistance();
         },
         continueNearGrab: function() {
             this.testWinDistance();
@@ -76,7 +77,6 @@ var SCALE= 0.5
         },
         releaseGrab: function() {
             this.testBallDistance();
-            //   this.testWinDistance();
         },
         getBallStartLocation: function() {
             var mazeProps = Entities.getEntityProperties(this.entityID);
