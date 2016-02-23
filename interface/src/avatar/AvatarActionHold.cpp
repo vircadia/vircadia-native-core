@@ -243,22 +243,6 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
         if (_kinematicSetVelocity) {
             rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
             rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
-            /*
-            if (_previousSet) {
-                // smooth velocity over 2 frames
-                glm::vec3 positionalDelta = _positionalTarget - _previousPositionalTarget;
-                glm::vec3 positionalVelocity =
-                    (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
-                rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-
-                if (_hand == "right") {
-                    qDebug() << "AJT: rb vel = " << positionalVelocity.x << positionalVelocity.y << positionalVelocity.z;
-                }
-
-                _previousPositionalDelta = positionalDelta;
-                _previousDeltaTimeStep = deltaTimeStep;
-            }
-            */
         }
 
         btTransform worldTrans = rigidBody->getWorldTransform();
