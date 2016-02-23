@@ -304,7 +304,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // frustum culling on rendering.
                     bool success;
                     AACube entityCube = entity->getQueryAACube(success);
-                    if (!success || params.viewFrustum->cubeIntersectsKeyhole(entityCube)) {
+                    if (!success || !params.viewFrustum->cubeIntersectsKeyhole(entityCube)) {
                         includeThisEntity = false; // out of view, don't include it
                     } else {
                         // Check the size of the entity, it's possible that a "too small to see" entity is included in a
