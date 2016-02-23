@@ -26,7 +26,7 @@ Item {
     readonly property int frameMarginLeft: frameMargin
     readonly property int frameMarginRight: frameMargin
     readonly property int frameMarginTop: 2 * frameMargin + iconSize
-    readonly property int frameMarginBottom: iconSize + 6
+    readonly property int frameMarginBottom: iconSize + 11
 
     // Frames always fill their parents, but their decorations may extend
     // beyond the window via negative margin sizes
@@ -124,10 +124,10 @@ Item {
         }
         HiFiGlyphs {
             visible: sizeDrag.enabled
-            x: -5  // Move a little to visually align
-            y: -3  // ""
+            x: -11  // Move a little to visually align
+            y: -4   // ""
             text: "A"
-            size: iconSize + 4
+            size: iconSize + 10
             color: sizeDrag.containsMouse || sizeDrag.pressed ? hifi.colors.white : hifi.colors.white50
         }
     }
