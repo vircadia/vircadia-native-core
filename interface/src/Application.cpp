@@ -3773,8 +3773,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // The pending changes collecting the changes here
     render::PendingChanges pendingChanges;
 
+    // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
     // Background rendering decision
-    if (BackgroundRenderData::_item == 0) {
+    if (!render::Item::isValidID(BackgroundRenderData::_item)) {
         auto backgroundRenderData = make_shared<BackgroundRenderData>();
         auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
         BackgroundRenderData::_item = _main3DScene->allocateID();
@@ -3799,8 +3800,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         }
     }
 
+    // FIXME: Move this out of here!, WorldBox should be driven by the entity content just like the other entities
     // Make sure the WorldBox is in the scene
-    if (WorldBoxRenderData::_item == 0) {
+    if (!render::Item::isValidID(WorldBoxRenderData::_item)) {
         auto worldBoxRenderData = make_shared<WorldBoxRenderData>();
         auto worldBoxRenderPayload = make_shared<WorldBoxRenderData::Payload>(worldBoxRenderData);
 
