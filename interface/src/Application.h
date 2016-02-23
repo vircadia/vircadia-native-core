@@ -289,7 +289,6 @@ private slots:
 
     void activeChanged(Qt::ApplicationState state);
 
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
     void notifyPacketVersionMismatch();
 
     void loadSettings();
