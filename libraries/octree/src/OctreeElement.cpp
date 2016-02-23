@@ -458,7 +458,7 @@ float OctreeElement::getEnclosingRadius() const {
     return getScale() * sqrtf(3.0f) / 2.0f;
 }
 
-ViewFrustum::location OctreeElement::computeViewLocation(const ViewFrustum& viewFrustum) const {
+ViewFrustum::intersection OctreeElement::computeViewIntersection(const ViewFrustum& viewFrustum) const {
     return viewFrustum.calculateCubeKeyholeIntersection(_cube);
 }
 

@@ -130,9 +130,9 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-ViewFrustum::location ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
+ViewFrustum::intersection ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
     // only check against frustum
-    ViewFrustum::location result = INSIDE;
+    ViewFrustum::intersection result = INSIDE;
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         // check distance to farthest cube point
@@ -151,9 +151,9 @@ ViewFrustum::location ViewFrustum::calculateCubeFrustumIntersection(const AACube
 
 const float HALF_SQRT_THREE = 0.8660254f;
 
-ViewFrustum::location ViewFrustum::calculateCubeKeyholeIntersection(const AACube& cube) const {
+ViewFrustum::intersection ViewFrustum::calculateCubeKeyholeIntersection(const AACube& cube) const {
     // check against centeral sphere
-    ViewFrustum::location sphereResult = INTERSECT;
+    ViewFrustum::intersection sphereResult = INTERSECT;
     glm::vec3 cubeOffset = cube.calcCenter() - _position;
     float distance = glm::length(cubeOffset);
     if (distance > EPSILON) {
@@ -171,7 +171,7 @@ ViewFrustum::location ViewFrustum::calculateCubeKeyholeIntersection(const AACube
     }
 
     // check against frustum
-    ViewFrustum::location frustumResult = calculateCubeFrustumIntersection(cube);
+    ViewFrustum::intersection frustumResult = calculateCubeFrustumIntersection(cube);
 
     return (frustumResult == OUTSIDE) ? sphereResult : frustumResult;
 }
@@ -201,7 +201,6 @@ bool ViewFrustum::sphereIntersectsFrustum(const glm::vec3& center, float radius)
 
 bool ViewFrustum::boxIntersectsFrustum(const AABox& box) const {
     // only check against frustum
-    ViewFrustum::location result = INSIDE;
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
         // check distance to farthest box point

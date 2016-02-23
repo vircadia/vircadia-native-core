@@ -92,11 +92,11 @@ public:
 
     void calculate();
 
-    typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } location;
+    typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } intersection;
 
     /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
-    ViewFrustum::location calculateCubeFrustumIntersection(const AACube& cube) const;
-    ViewFrustum::location calculateCubeKeyholeIntersection(const AACube& cube) const;
+    ViewFrustum::intersection calculateCubeFrustumIntersection(const AACube& cube) const;
+    ViewFrustum::intersection calculateCubeKeyholeIntersection(const AACube& cube) const;
 
     bool pointIntersectsFrustum(const glm::vec3& point) const;
     bool sphereIntersectsFrustum(const glm::vec3& center, float radius) const;
