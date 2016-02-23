@@ -1198,7 +1198,8 @@ void Application::initializeUi() {
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-    
+    connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
@@ -3906,16 +3907,8 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
-
     getActiveDisplayPlugin()->resetSensors();
-
-    QScreen* currentScreen = _window->windowHandle()->screen();
-    QWindow* mainWindow = _window->windowHandle();
-    QPoint windowCenter = mainWindow->geometry().center();
-    _glWidget->cursor().setPos(currentScreen, windowCenter);
-
     getMyAvatar()->reset(andReload);
-
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 
@@ -5134,5 +5127,11 @@ void Application::readArgumentsFromLocalSocket() {
     // If we received a message, try to open it as a URL
     if (message.length() > 0) {
         qApp->openUrl(QString::fromUtf8(message));
+    }
+}
+
+void Application::showDesktop() {
+    if (!_overlayConductor.getEnabled()) {
+        _overlayConductor.setEnabled(true);
     }
 }

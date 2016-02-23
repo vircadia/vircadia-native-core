@@ -260,10 +260,22 @@ QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
+    if (!qApp) {
+        return netReply;
+    }
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-    netReply->waitForReadyRead(-1); // so we might as well block this thread waiting for the response, rather than
+
+    bool aboutToQuit { false };
+    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
+        aboutToQuit = true;
+    });
+    static const int WAIT_TIMEOUT_MS = 500;
+    while (qApp && !aboutToQuit && !netReply->isReadable()) {
+        netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
+    }
+    QObject::disconnect(connection);
     return netReply;                // trying to sync later on.
 }
 
