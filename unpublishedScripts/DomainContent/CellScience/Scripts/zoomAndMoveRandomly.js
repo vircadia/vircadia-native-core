@@ -38,8 +38,8 @@
         this.initTimeout = null;
         this.minVelocity = 1;
         this.maxVelocity = 5;
-        this.minAngularVelocity = 0.01;
-        this.maxAngularVelocity = 0.03;
+        this.minAngularVelocity = 0.03;
+        this.maxAngularVelocity = 0.10;
         baton = virtualBaton({
             batonName: 'io.highfidelity.cells:' + entityID, // One winner for each entity
         });
@@ -69,7 +69,7 @@
             };
 
             self.teleportSound = SoundCache.getSound("https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Audio/whoosh.wav");
-            // print(" portal destination is " + self.portalDestination);
+
         }
     }
 
@@ -81,13 +81,6 @@
             print("Teleporting to (" + data.location.x + ", " + data.location.y + ", " + data.location.z + ")");
 
             MyAvatar.position = data.location;
-
-            // if (data.hasOwnProperty('entryPoint') && data.hasOwnProperty('target')) {
-            //     this.lookAtTarget(data.entryPoint, data.target);
-            // }
-            // else{
-
-            // }
         }
 
     }
@@ -143,11 +136,11 @@
     }
 
     this.getTotalWait = function() {
-        return (Math.random() * 5000) * 2;
+        return (Math.random() * 5000) * 3;
     }
 
     this.move = function() {
-        if (self.iOwn===false) {
+        if (self.iOwn === false) {
             print('cell is not owned by me...')
             return;
         }
@@ -159,9 +152,8 @@
             y: Math.random() - 0.5,
             z: Math.random() - 0.5
         };
-        print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
+        // print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
         Entities.editEntity(self.entityId, {
-            // velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV)),
             angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
 
         });

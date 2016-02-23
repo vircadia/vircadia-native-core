@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1055;
+var version = 1057;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -103,16 +103,16 @@ var scenes = [{
     instances: [{
         model: "Cell",
         dimensions: {
-            x: 550,
-            y: 620,
-            z: 550
+            x: 500,
+            y: 570,
+            z: 500
         },
         offset: {
             x: 0,
             y: 0,
             z: 0
         },
-        radius: 500,
+        radius: 450,
         number: 10,
         userData: JSON.stringify({
             entryPoint: locations.cellLayout[1],
