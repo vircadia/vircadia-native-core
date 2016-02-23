@@ -112,6 +112,7 @@ void OffscreenUi::create(QOpenGLContext* context) {
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
+    emit showDesktop();
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // First load?
     if (!item) {
@@ -127,6 +128,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     QQuickItem* item = getRootItem()->findChild<QQuickItem*>(name);
     // Already loaded?  
     if (item) {
+        emit showDesktop();
         item->setVisible(!item->isVisible());
         return;
     }
@@ -134,6 +136,7 @@ void OffscreenUi::toggle(const QUrl& url, const QString& name, std::function<voi
     load(url, f);
     item = getRootItem()->findChild<QQuickItem*>(name);
     if (item && !item->isVisible()) {
+        emit showDesktop();
         item->setVisible(true);
     }
 }
@@ -439,6 +442,8 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     new VrMenu(this);
 
     new KeyboardFocusHack();
+
+    connect(_desktop, SIGNAL(showDesktop()), this, SLOT(showDesktop()));
 }
 
 QQuickItem* OffscreenUi::getDesktop() {

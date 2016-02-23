@@ -106,6 +106,9 @@ public:
     // Compatibility with QInputDialog::getItem
     static QString getItem(void *ignored, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
 
+signals:
+    void showDesktop();
+
 private:
     QString fileDialog(const QVariantMap& properties);
 
