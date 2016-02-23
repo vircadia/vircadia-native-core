@@ -135,7 +135,6 @@ bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a
             << MAX_INJECTORS_PER_THREAD << "current audio injectors.";
         return true;
     }
-    qDebug() << "current injectors:" << _injectors.size();
     return false;
 }
 
