@@ -23,6 +23,7 @@ private slots:
     void testSphereInFrustum();
     void testCubeInFrustum();
     void testBoxInFrustum();
+    void testCubeInKeyhole();
     void testSphereTouchesKeyhole();
     void testCubeTouchesKeyhole();
     void testBoxTouchesKeyhole();

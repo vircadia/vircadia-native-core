@@ -198,6 +198,33 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
     return result;
 }
 
+const float HALF_SQRT_THREE = 0.8660254f;
+
+ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
+    // check against centeral sphere
+    ViewFrustum::location sphereResult = INTERSECT;
+    glm::vec3 cubeOffset = cube.calcCenter() - _position;
+    float distance = glm::length(cubeOffset);
+    if (distance > EPSILON) {
+        glm::vec3 vertex = cube.getFarthestVertex(cubeOffset) - _position;
+        if (glm::dot(vertex, cubeOffset) < _keyholeRadius * distance) {
+            // the most outward cube vertex is inside central sphere
+            return INSIDE;
+        }
+        if (!cube.touchesSphere(_position, _keyholeRadius)) {
+            sphereResult = OUTSIDE;
+        }
+    } else if (_keyholeRadius > HALF_SQRT_THREE * cube.getScale()) {
+        // the cube is in center of sphere and its bounding radius is inside
+        return INSIDE;
+    }
+
+    // check against frustum
+    ViewFrustum::location frustumResult = cubeInFrustum(cube);
+
+    return (frustumResult == OUTSIDE) ? sphereResult : frustumResult;
+}
+
 bool ViewFrustum::sphereTouchesKeyhole(const glm::vec3& center, float radius) const {
     // check positive touch against central sphere
     if (glm::length(center - _position) <= (radius + _keyholeRadius)) {

@@ -96,6 +96,9 @@ public:
     ViewFrustum::location cubeInFrustum(const AACube& cube) const;
     ViewFrustum::location boxInFrustum(const AABox& box) const;
 
+    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
+
+    // more efficient methods when only need boolean result
     bool sphereTouchesKeyhole(const glm::vec3& center, float radius) const;
     bool cubeTouchesKeyhole(const AACube& cube) const;
     bool boxTouchesKeyhole(const AABox& box) const;
