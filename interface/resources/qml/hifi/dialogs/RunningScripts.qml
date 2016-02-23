@@ -24,7 +24,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 384; implicitHeight: 640
+    implicitWidth: 384; implicitHeight: 650
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
