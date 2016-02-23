@@ -31,9 +31,9 @@ function length(posA, posB) {
 }
 
 var EXPECTED_CHANGE = 50;
-var lastPos = Controller.getReticlePosition();
+var lastPos = Reticle.getPosition();
 function moveReticle(dX, dY) {
-    var globalPos = Controller.getReticlePosition();
+    var globalPos = Reticle.getPosition();
 
     // some debugging to see if position is jumping around on us...
     var distanceSinceLastMove = length(lastPos, globalPos);
@@ -52,7 +52,7 @@ function moveReticle(dX, dY) {
 
     globalPos.x += dX;
     globalPos.y += dY;
-    Controller.setReticlePosition(globalPos);
+    Reticle.setPosition(globalPos);
     lastPos = globalPos;
 }
 

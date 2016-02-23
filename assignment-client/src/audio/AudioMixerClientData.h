@@ -58,13 +58,8 @@ public:
     void incrementOutgoingMixedAudioSequenceNumber() { _outgoingMixedAudioSequenceNumber++; }
     quint16 getOutgoingSequenceNumber() const { return _outgoingMixedAudioSequenceNumber; }
 
-    void printUpstreamDownstreamStats();
-
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
-
-private:
-    void printAudioStreamStats(const AudioStreamStats& streamStats) const;
 
 private:
     QReadWriteLock _streamsLock;

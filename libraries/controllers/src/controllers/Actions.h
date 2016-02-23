@@ -110,7 +110,7 @@ class ActionsDevice : public QObject, public InputDevice {
 public:
     virtual EndpointPointer createEndpoint(const Input& input) const override;
     virtual Input::NamedVector getAvailableInputs() const override;
-    virtual void update(float deltaTime, bool jointsCaptured) override;
+    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
     ActionsDevice();

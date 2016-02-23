@@ -179,6 +179,7 @@ void RenderableParticleEffectEntityItem::removeFromScene(EntityItemPointer self,
                                                          render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemId);
     _scene = nullptr;
+    render::Item::clearID(_renderItemId);
 };
 
 void RenderableParticleEffectEntityItem::update(const quint64& now) {
@@ -199,7 +200,8 @@ void RenderableParticleEffectEntityItem::update(const quint64& now) {
 }
 
 void RenderableParticleEffectEntityItem::updateRenderItem() {
-    if (!_scene) {
+    // this 2 tests are synonyms for this class, but we would like to get rid of the _scene pointer ultimately
+    if (!_scene || !render::Item::isValidID(_renderItemId)) { 
         return;
     }
     if (!getVisible()) {
@@ -309,4 +311,15 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         auto program = gpu::Shader::createProgram(vertShader, fragShader);
         _texturedPipeline = gpu::Pipeline::create(program, state);
     }
+}
+
+void RenderableParticleEffectEntityItem::notifyBoundChanged() {
+    if (!render::Item::isValidID(_renderItemId)) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    pendingChanges.updateItem<ParticlePayloadData>(_renderItemId, [](ParticlePayloadData& payload) {
+    });
+
+    _scene->enqueuePendingChanges(pendingChanges);
 }

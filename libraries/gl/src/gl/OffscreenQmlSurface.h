@@ -74,6 +74,7 @@ signals:
 public slots:
     void requestUpdate();
     void requestRender();
+    void onAboutToQuit();
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -95,7 +96,7 @@ private:
     bool _paused{ true };
     uint8_t _maxFps{ 60 };
     MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
-
+    QWindow* _proxyWindow { nullptr };
 };
 
 #endif

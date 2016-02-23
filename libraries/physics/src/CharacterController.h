@@ -78,6 +78,8 @@ public:
 
     glm::vec3 getLinearVelocity() const;
 
+    float getCapsuleRadius() const { return _radius; }
+
     enum class State {
         Ground = 0,
         Takeoff,

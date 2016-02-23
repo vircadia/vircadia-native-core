@@ -312,6 +312,12 @@ Menu::Menu() {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
     });
 
+    // Settings > Graphics...
+    action = addActionToQMenuAndActionHash(settingsMenu, "Graphics...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"), "GraphicsPreferencesDialog");
+    });
+
     // Settings > LOD...-- FIXME: needs implementation
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
@@ -484,7 +490,6 @@ Menu::Menu() {
         avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, false,
         avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
@@ -963,6 +968,7 @@ int Menu::positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPositi
     return requestedPosition;
 }
 
+bool Menu::_isSomeSubmenuShown = false;
 
 MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     QStringList menuTree = menuName.split(">");
@@ -989,6 +995,12 @@ MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     }
 
     QMenuBar::repaint();
+
+    // hook our show/hide for popup menus, so we can keep track of whether or not one
+    // of our submenus is currently showing.
+    connect(menu->_realMenu, &QMenu::aboutToShow, []() { _isSomeSubmenuShown = true; });
+    connect(menu->_realMenu, &QMenu::aboutToHide, []() { _isSomeSubmenuShown = false; });
+
     return menu;
 }
 

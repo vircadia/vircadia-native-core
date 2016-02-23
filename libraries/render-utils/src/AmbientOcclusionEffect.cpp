@@ -288,6 +288,11 @@ void AmbientOcclusionEffect::run(const render::SceneContextPointer& sceneContext
 
     RenderArgs* args = renderContext->args;
 
+    // FIXME: Different render modes should have different tasks
+    if (args->_renderMode != RenderArgs::DEFAULT_RENDER_MODE) {
+        return;
+    }
+
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     auto depthBuffer = framebufferCache->getPrimaryDepthTexture();
     auto normalBuffer = framebufferCache->getDeferredNormalTexture();

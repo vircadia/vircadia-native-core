@@ -97,9 +97,6 @@ namespace controller {
         // Update means go grab all the device input channels and update the output channel values
         void update(float deltaTime);
 
-        void setSensorToWorldMat(glm::mat4 sensorToWorldMat) { _sensorToWorldMat = sensorToWorldMat; }
-        glm::mat4 getSensorToWorldMat() { return _sensorToWorldMat; }
-
         const DevicesMap& getDevices() { return _registeredDevices; }
         uint16 getStandardDeviceID() const { return STANDARD_DEVICE; }
         InputDevice::Pointer getStandardDevice() { return _registeredDevices[getStandardDeviceID()]; }
@@ -130,8 +127,6 @@ namespace controller {
         std::vector<float> _lastActionStates = std::vector<float>(toInt(Action::NUM_ACTIONS), 0.0f);
         std::vector<Pose> _poseStates = std::vector<Pose>(toInt(Action::NUM_ACTIONS));
         std::vector<float> _lastStandardStates = std::vector<float>();
-
-        glm::mat4 _sensorToWorldMat;
 
         int recordDeviceOfType(const QString& deviceName);
         QHash<const QString&, int> _deviceCounts;

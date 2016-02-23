@@ -49,10 +49,10 @@
 
         startEquip: function(id, params) {
             this.equipped = true;
-            this.hand = JSON.parse(params[0]);
+            this.hand = params[0] == "left" ? 0 : 1;
         },
 
-        continueEquip: function() {
+        continueEquip: function(id, params) {
             if (!this.equipped) {
                 return;
             }
@@ -111,7 +111,7 @@
             });
         },
 
-        unequip: function() {
+        releaseEquip: function(id, params) {
             this.hand = null;
             this.equipped = false;
             Overlays.editOverlay(this.laser, {

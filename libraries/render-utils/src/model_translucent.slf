@@ -5,7 +5,7 @@
 //  model_translucent.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/19/14.
+//  Created by Sam Gateau on 2/15/2016.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -14,31 +14,13 @@
 
 <@include model/Material.slh@>
 
-<@include DeferredLighting.slh@>
-<@include model/Light.slh@>
+<@include DeferredGlobalLight.slh@>
+<$declareEvalAmbientSphereGlobalColor()$>
 
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-vec4 evalGlobalColor(float shadowAttenuation, vec3 position, vec3 normal, vec3 diffuse, vec3 specular, float gloss, float opacity) {
 
-    // Need the light now
-    Light light = getLight();
-    TransformCamera cam = getTransformCamera();
-    vec3 fragNormal;
-    <$transformEyeToWorldDir(cam, normal, fragNormal)$>
-    vec3 fragEyeVectorView = normalize(-position);
-    vec3 fragEyeDir;
-    <$transformEyeToWorldDir(cam, fragEyeVectorView, fragEyeDir)$>
-
-    vec3 color = opacity * diffuse.rgb * getLightColor(light) * getLightAmbientIntensity(light);
-
-    vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, specular, gloss);
-
-    color += vec3(diffuse * shading.w * opacity + shading.rgb) * shadowAttenuation * getLightColor(light) * getLightIntensity(light);
-
-    return vec4(color, opacity);
-}
 
 uniform sampler2D diffuseMap;
 
@@ -61,11 +43,16 @@ void main(void) {
     float fragGloss = getMaterialShininess(mat) / 128;
     float fragOpacity = getMaterialOpacity(mat) * diffuse.a * _alpha;
 
-    _fragColor =  evalGlobalColor(1.0,
+    TransformCamera cam = getTransformCamera();
+
+    _fragColor =  vec4(evalAmbientSphereGlobalColor(
+        cam._viewInverse,
+        1.0,
+        1.0,
         fragPosition,
         fragNormal,
         fragDiffuse,
         fragSpecular,
-        fragGloss,
+        fragGloss),
         fragOpacity);
 }

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <functional>
+#include <atomic>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -23,8 +24,7 @@ class QImage;
 
 enum Eye {
     Left,
-    Right,
-    Mono
+    Right
 };
 
 /*
@@ -94,9 +94,14 @@ public:
     }
 
     // Stereo specific methods
-    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;
     }
+
+    virtual glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
 
     // Fetch the most recently displayed image as a QImage
     virtual QImage getScreenshot() const = 0;
@@ -122,10 +127,17 @@ public:
     virtual void resetSensors() {}
     virtual float devicePixelRatio() { return 1.0f; }
     virtual float presentRate() { return -1.0f; }
+    uint32_t presentCount() const { return _presentedFrameIndex; }
 
     static const QString& MENU_PATH();
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
-    void requestRender();
+
+protected:
+    void incrementPresentCount() { ++_presentedFrameIndex; }
+
+private:
+    std::atomic<uint32_t> _presentedFrameIndex;
 };
 

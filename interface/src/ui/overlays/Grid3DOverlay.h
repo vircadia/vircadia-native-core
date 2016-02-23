@@ -24,6 +24,8 @@ public:
     Grid3DOverlay();
     Grid3DOverlay(const Grid3DOverlay* grid3DOverlay);
 
+    virtual AABox getBounds() const;
+
     virtual void render(RenderArgs* args);
     virtual const render::ShapeKey getShapeKey() override;
     virtual void setProperties(const QScriptValue& properties);
@@ -31,9 +33,21 @@ public:
 
     virtual Grid3DOverlay* createClone() const;
 
+    // Grids are UI tools, and may not be intersected (pickable)
+    virtual bool findRayIntersection(const glm::vec3&, const glm::vec3&, float&, BoxFace&, glm::vec3&) { return false; }
+
 private:
-    float _minorGridWidth;
-    int _majorGridEvery;
+    void updateGrid();
+
+    bool _followCamera { true };
+
+    int _majorGridEvery { 5 };
+    float _majorGridRowDivisions;
+    float _majorGridColDivisions;
+
+    float _minorGridEvery { 1.0f };
+    float _minorGridRowDivisions;
+    float _minorGridColDivisions;
 };
 
 #endif // hifi_Grid3DOverlay_h

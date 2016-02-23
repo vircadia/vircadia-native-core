@@ -157,12 +157,16 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
     while (it != _audioStreams.end()) {
         SharedStreamPointer stream = it->second;
 
-        static const int INJECTOR_INACTIVITY_USECS = 5 * USECS_PER_SECOND;
+        if (stream->popFrames(1, true) > 0) {
+            stream->updateLastPopOutputLoudnessAndTrailingLoudness();
+        }
 
-        // if we don't have new data for an injected stream in the last INJECTOR_INACTIVITY_MSECS then
+        static const int INJECTOR_MAX_INACTIVE_BLOCKS = 500;
+
+        // if we don't have new data for an injected stream in the last INJECTOR_MAX_INACTIVE_BLOCKS then
         // we remove the injector from our streams
         if (stream->getType() == PositionalAudioStream::Injector
-            && stream->usecsSinceLastPacket() > INJECTOR_INACTIVITY_USECS) {
+            && stream->getConsecutiveNotMixedCount() > INJECTOR_MAX_INACTIVE_BLOCKS) {
             // this is an inactive injector, pull it from our streams
 
             // first emit that it is finished so that the HRTF objects for this source can be cleaned up
@@ -170,12 +174,7 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend() {
 
             // erase the stream to drop our ref to the shared pointer and remove it
             it = _audioStreams.erase(it);
-
         } else {
-            if (stream->popFrames(1, true) > 0) {
-                stream->updateLastPopOutputLoudnessAndTrailingLoudness();
-            }
-
             ++it;
         }
     }
@@ -310,49 +309,4 @@ QJsonObject AudioMixerClientData::getAudioStreamStats() {
     result["injectors"] = injectorArray;
 
     return result;
-}
-
-void AudioMixerClientData::printUpstreamDownstreamStats() {
-    auto streamsCopy = getAudioStreams();
-
-    // print the upstream (mic stream) stats if the mic stream exists
-    auto it = streamsCopy.find(QUuid());
-    if (it != streamsCopy.end()) {
-        printf("Upstream:\n");
-        printAudioStreamStats(it->second->getAudioStreamStats());
-    }
-    // print the downstream stats if they contain valid info
-    if (_downstreamAudioStreamStats._packetStreamStats._received > 0) {
-        printf("Downstream:\n");
-        printAudioStreamStats(_downstreamAudioStreamStats);
-    }
-}
-
-void AudioMixerClientData::printAudioStreamStats(const AudioStreamStats& streamStats) const {
-    printf("                      Packet loss | overall: %5.2f%% (%d lost), last_30s: %5.2f%% (%d lost)\n",
-           (double)(streamStats._packetStreamStats.getLostRate() * 100.0f),
-           streamStats._packetStreamStats._lost,
-           (double)(streamStats._packetStreamWindowStats.getLostRate() * 100.0f),
-           streamStats._packetStreamWindowStats._lost);
-
-    printf("                Ringbuffer frames | desired: %u, avg_available(10s): %u, available: %u\n",
-        streamStats._desiredJitterBufferFrames,
-        streamStats._framesAvailableAverage,
-        streamStats._framesAvailable);
-
-    printf("                 Ringbuffer stats | starves: %u, prev_starve_lasted: %u, frames_dropped: %u, overflows: %u\n",
-        streamStats._starveCount,
-        streamStats._consecutiveNotMixedCount,
-        streamStats._framesDropped,
-        streamStats._overflowCount);
-
-    printf("  Inter-packet timegaps (overall) | min: %9s, max: %9s, avg: %9s\n",
-        formatUsecTime(streamStats._timeGapMin).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapMax).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapAverage).toLatin1().data());
-
-    printf(" Inter-packet timegaps (last 30s) | min: %9s, max: %9s, avg: %9s\n",
-        formatUsecTime(streamStats._timeGapWindowMin).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapWindowMax).toLatin1().data(),
-        formatUsecTime(streamStats._timeGapWindowAverage).toLatin1().data());
 }

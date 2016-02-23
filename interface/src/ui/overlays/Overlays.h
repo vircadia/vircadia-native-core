@@ -145,6 +145,7 @@ signals:
 
 private:
     void cleanupOverlaysToDelete();
+    void cleanupAllOverlays();
 
     QMap<unsigned int, Overlay::Pointer> _overlaysHUD;
     QMap<unsigned int, Overlay::Pointer> _overlaysWorld;

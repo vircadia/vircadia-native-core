@@ -16,7 +16,7 @@
 using namespace udt;
 
 MessageNumber PacketQueue::getNextMessageNumber() {
-    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_BITS;
+    static const MessageNumber MAX_MESSAGE_NUMBER = MessageNumber(1) << MESSAGE_NUMBER_SIZE;
     _currentMessageNumber = (_currentMessageNumber + 1) % MAX_MESSAGE_NUMBER;
     return _currentMessageNumber;
 }

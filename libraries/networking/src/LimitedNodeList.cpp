@@ -671,7 +671,7 @@ const int NUM_BYTES_STUN_HEADER = 20;
 
 void LimitedNodeList::sendSTUNRequest() {
 
-    if (!_stunSockAddr.isNull()) {
+    if (!_stunSockAddr.getAddress().isNull()) {
         const int NUM_INITIAL_STUN_REQUESTS_BEFORE_FAIL = 10;
 
         if (!_hasCompletedInitialSTUN) {
@@ -840,7 +840,7 @@ void LimitedNodeList::startSTUNPublicSocketUpdate() {
 }
 
 void LimitedNodeList::possiblyTimeoutSTUNAddressLookup() {
-    if (_stunSockAddr.isNull()) {
+    if (_stunSockAddr.getAddress().isNull()) {
         // our stun address is still NULL, but we've been waiting for long enough - time to force a fail
         stopInitialSTUNUpdate(false);
     }

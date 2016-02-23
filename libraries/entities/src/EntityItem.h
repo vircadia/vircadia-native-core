@@ -251,8 +251,9 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
 
     /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value)
-            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); requiresRecalcBoxes(); }
+    void setRegistrationPoint(const glm::vec3& value) {
+        _registrationPoint = glm::clamp(value, 0.0f, 1.0f); dimensionsChanged(); // Registration Point affects the bounding box
+    }
 
     bool hasAngularVelocity() const { return getAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
     bool hasLocalAngularVelocity() const { return getLocalAngularVelocity() != ENTITY_ITEM_ZERO_VEC3; }
@@ -404,6 +405,18 @@ public:
 
     virtual void loader() {} // called indirectly when urls for geometry are updated
 
+    /// Should the external entity script mechanism call a preload for this entity.
+    /// Due to the asyncronous nature of signals for add entity and script changing
+    /// it's possible for two similar signals to cross paths. This method allows the
+    /// entity to definitively state if the preload signal should be sent.
+    ///
+    /// We only want to preload if:
+    ///    there is some script, and either the script value or the scriptTimestamp 
+    ///    value have changed since our last preload
+    bool shouldPreloadScript() const { return !_script.isEmpty() && 
+                                              ((_loadedScript != _script) || (_loadedScriptTimestamp != _scriptTimestamp)); }
+    void scriptHasPreloaded() { _loadedScript = _script; _loadedScriptTimestamp = _scriptTimestamp; }
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -412,6 +425,8 @@ protected:
     void setActionDataInternal(QByteArray actionData);
 
     virtual void locationChanged() override;
+    virtual void dimensionsChanged() override;
+
     EntityTypes::EntityType _type;
     quint64 _lastSimulated; // last time this entity called simulate(), this includes velocity, angular velocity,
                             // and physics changes
@@ -444,8 +459,15 @@ protected:
     float _restitution;
     float _friction;
     float _lifetime;
-    QString _script;
-    quint64 _scriptTimestamp;
+
+    QString _script; /// the value of the script property
+    QString _loadedScript; /// the value of _script when the last preload signal was sent
+    quint64 _scriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP }; /// the script loaded property used for forced reload
+
+    /// the value of _scriptTimestamp when the last preload signal was sent
+    // NOTE: on construction we want this to be different from _scriptTimestamp so we intentionally bump it
+    quint64 _loadedScriptTimestamp{ ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
+
     QString _collisionSoundURL;
     glm::vec3 _registrationPoint;
     float _angularDamping;

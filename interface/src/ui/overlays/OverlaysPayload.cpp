@@ -36,11 +36,11 @@
 namespace render {
     template <> const ItemKey payloadGetKey(const Overlay::Pointer& overlay) {
         auto builder = ItemKey::Builder().withTypeShape();
-        if (overlay->is3D() && !std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawOnHUD()) {
-            if (std::dynamic_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
+        if (overlay->is3D()) {
+            if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 builder.withLayered();
             }
-            if (overlay->getAlpha() != 1.0f) {
+            if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
                 builder.withTransparent();
             }
         } else {

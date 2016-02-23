@@ -158,10 +158,7 @@ Mouse.prototype.startRotateDrag = function() {
         x: this.current.x,
         y: this.current.y
     };
-    this.cursorRestore = {
-        x: Window.getCursorPositionX(),
-        y: Window.getCursorPositionY()
-    };
+    this.cursorRestore = Reticle.getPosition();
 }
 
 Mouse.prototype.getDrag = function() {
@@ -177,7 +174,7 @@ Mouse.prototype.getDrag = function() {
 }
 
 Mouse.prototype.restoreRotateCursor = function() {
-    Window.setCursorPosition(this.cursorRestore.x, this.cursorRestore.y);
+    Reticle.setPosition(this.cursorRestore);
     this.current = {
         x: this.rotateStart.x,
         y: this.rotateStart.y

@@ -392,9 +392,15 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
 }
 
 glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
-    glm::vec3 parentVelocity = getParentVelocity(success);
-    Transform parentTransform = getParentTransform(success);
     glm::vec3 result;
+    glm::vec3 parentVelocity = getParentVelocity(success);
+    if (!success) {
+        return result;
+    }
+    Transform parentTransform = getParentTransform(success);
+    if (!success) {
+        return result;
+    }
     _velocityLock.withReadLock([&] {
         // TODO: take parent angularVelocity into account.
         result = parentVelocity + parentTransform.getRotation() * _velocity;
@@ -431,16 +437,25 @@ void SpatiallyNestable::setVelocity(const glm::vec3& velocity) {
 glm::vec3 SpatiallyNestable::getParentVelocity(bool& success) const {
     glm::vec3 result;
     SpatiallyNestablePointer parent = getParentPointer(success);
-    if (success && parent) {
+    if (!success) {
+        return result;
+    }
+    if (parent) {
         result = parent->getVelocity(success);
     }
     return result;
 }
 
 glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
-    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
-    Transform parentTransform = getParentTransform(success);
     glm::vec3 result;
+    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
+    if (!success) {
+        return result;
+    }
+    Transform parentTransform = getParentTransform(success);
+    if (!success) {
+        return result;
+    }
     _angularVelocityLock.withReadLock([&] {
         result = parentAngularVelocity + parentTransform.getRotation() * _angularVelocity;
     });
@@ -475,7 +490,10 @@ void SpatiallyNestable::setAngularVelocity(const glm::vec3& angularVelocity) {
 glm::vec3 SpatiallyNestable::getParentAngularVelocity(bool& success) const {
     glm::vec3 result;
     SpatiallyNestablePointer parent = getParentPointer(success);
-    if (success && parent) {
+    if (!success) {
+        return result;
+    }
+    if (parent) {
         result = parent->getAngularVelocity(success);
     }
     return result;
@@ -670,6 +688,16 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
         }
     });
     return children;
+}
+
+bool SpatiallyNestable::hasChildren() const {
+    bool result = false;
+    _childrenLock.withReadLock([&] {
+        if (_children.size() > 0) {
+            result = true;
+        }
+    });
+    return result;
 }
 
 const Transform SpatiallyNestable::getAbsoluteJointTransformInObjectFrame(int jointIndex) const {

@@ -13,6 +13,8 @@
 
 #include <QScriptValue>
 
+#include <OctreeConstants.h>
+
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PathUtils.h>
@@ -20,17 +22,28 @@
 
 
 QString const Grid3DOverlay::TYPE = "grid";
+const float DEFAULT_SCALE = 100.0f;
 
-Grid3DOverlay::Grid3DOverlay() :
-    _minorGridWidth(1.0),
-    _majorGridEvery(5) {
+Grid3DOverlay::Grid3DOverlay() {
+    setDimensions(DEFAULT_SCALE);
+    updateGrid();
 }
 
 Grid3DOverlay::Grid3DOverlay(const Grid3DOverlay* grid3DOverlay) :
     Planar3DOverlay(grid3DOverlay),
-    _minorGridWidth(grid3DOverlay->_minorGridWidth),
-    _majorGridEvery(grid3DOverlay->_majorGridEvery)
+    _majorGridEvery(grid3DOverlay->_majorGridEvery),
+    _minorGridEvery(grid3DOverlay->_minorGridEvery)
 {
+    updateGrid();
+}
+
+AABox Grid3DOverlay::getBounds() const {
+    if (_followCamera) {
+        // This is a UI element that should always be in view, lie to the octree to avoid culling
+        const AABox DOMAIN_BOX = AABox(glm::vec3(-TREE_SCALE / 2), TREE_SCALE);
+        return DOMAIN_BOX;
+    }
+    return Planar3DOverlay::getBounds();
 }
 
 void Grid3DOverlay::render(RenderArgs* args) {
@@ -38,14 +51,7 @@ void Grid3DOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-    const int MINOR_GRID_DIVISIONS = 200;
-    const int MAJOR_GRID_DIVISIONS = 100;
     const float MAX_COLOR = 255.0f;
-
-    // center the grid around the camera position on the plane
-    glm::vec3 rotated = glm::inverse(getRotation()) * args->_viewFrustum->getPosition();
-
-    float spacing = _minorGridWidth;
 
     float alpha = getAlpha();
     xColor color = getColor();
@@ -54,71 +60,64 @@ void Grid3DOverlay::render(RenderArgs* args) {
     auto batch = args->_batch;
 
     if (batch) {
+        auto minCorner = glm::vec2(-0.5f, -0.5f);
+        auto maxCorner = glm::vec2(0.5f, 0.5f);
+
+        auto position = getPosition();
+        if (_followCamera) {
+            // Get the camera position rounded to the nearest major grid line
+            // This grid is for UI and should lie on worldlines
+            auto cameraPosition =
+                (float)_majorGridEvery * glm::round(args->_viewFrustum->getPosition() / (float)_majorGridEvery);
+
+            position += glm::vec3(cameraPosition.x, 0.0f, cameraPosition.z);
+        }
+
         Transform transform;
         transform.setRotation(getRotation());
+        transform.setScale(glm::vec3(getDimensions(), 1.0f));
+        transform.setTranslation(position);
+        batch->setModelTransform(transform);
 
-
-        // Minor grid
-        {
-            auto position = glm::vec3(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
-                                      spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2),
-                                      getPosition().z);
-            float scale = MINOR_GRID_DIVISIONS * spacing;
-
-            transform.setTranslation(position);
-            transform.setScale(scale);
-
-            batch->setModelTransform(transform);
-
-            DependencyManager::get<GeometryCache>()->renderGrid(*batch, MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS, gridColor);
-        }
-
-        // Major grid
-        {
-            spacing *= _majorGridEvery;
-            auto position = glm::vec3(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
-                                      spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2),
-                                      getPosition().z);
-            float scale = MAJOR_GRID_DIVISIONS * spacing;
-
-            transform.setTranslation(position);
-            transform.setScale(scale);
-
-            // FIXME: THe line width of 4.0f is not supported anymore, we ll need a workaround
-
-            batch->setModelTransform(transform);
-
-            DependencyManager::get<GeometryCache>()->renderGrid(*batch, MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS, gridColor);
-        }
+        const float MINOR_GRID_EDGE = 0.0025f;
+        const float MAJOR_GRID_EDGE = 0.005f;
+        DependencyManager::get<GeometryCache>()->renderGrid(*batch, minCorner, maxCorner,
+            _minorGridRowDivisions, _minorGridColDivisions, MINOR_GRID_EDGE,
+            _majorGridRowDivisions, _majorGridColDivisions, MAJOR_GRID_EDGE,
+            gridColor, _drawInFront);
     }
 }
 
 const render::ShapeKey Grid3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
-    if (getAlpha() != 1.0f) {
-        builder.withTranslucent();
-    }
-    return builder.build();
+    return render::ShapeKey::Builder().withOwnPipeline();
 }
 
 void Grid3DOverlay::setProperties(const QScriptValue& properties) {
     Planar3DOverlay::setProperties(properties);
-
-    if (properties.property("minorGridWidth").isValid()) {
-        _minorGridWidth = properties.property("minorGridWidth").toVariant().toFloat();
+    if (properties.property("followCamera").isValid()) {
+        _followCamera = properties.property("followCamera").toVariant().toBool();
     }
 
     if (properties.property("majorGridEvery").isValid()) {
         _majorGridEvery = properties.property("majorGridEvery").toVariant().toInt();
     }
+
+    if (properties.property("minorGridEvery").isValid()) {
+        _minorGridEvery = properties.property("minorGridEvery").toVariant().toFloat();
+    }
+
+    updateGrid();
 }
 
 QScriptValue Grid3DOverlay::getProperty(const QString& property) {
-    if (property == "minorGridWidth") {
-        return _minorGridWidth;
+    if (property == "followCamera") {
+        return _followCamera;
     }
     if (property == "majorGridEvery") {
         return _majorGridEvery;
+    }
+    if (property == "minorGridEvery") {
+        return _minorGridEvery;
     }
 
     return Planar3DOverlay::getProperty(property);
@@ -128,3 +127,16 @@ Grid3DOverlay* Grid3DOverlay::createClone() const {
     return new Grid3DOverlay(this);
 }
 
+void Grid3DOverlay::updateGrid() {
+    const int MAJOR_GRID_EVERY_MIN = 1;
+    const float MINOR_GRID_EVERY_MIN = 0.01f;
+
+    _majorGridEvery = std::max(_majorGridEvery, MAJOR_GRID_EVERY_MIN);
+    _minorGridEvery = std::max(_minorGridEvery, MINOR_GRID_EVERY_MIN);
+
+    _majorGridRowDivisions = getDimensions().x / _majorGridEvery;
+    _majorGridColDivisions = getDimensions().y / _majorGridEvery;
+
+    _minorGridRowDivisions = getDimensions().x / _minorGridEvery;
+    _minorGridColDivisions = getDimensions().y / _minorGridEvery;
+}

@@ -1080,8 +1080,31 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
 
 void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
+
+        const float HAND_RADIUS = 0.05f;
+        const float BODY_RADIUS = params.bodyCapsuleRadius;
+        const float MIN_LENGTH = 1.0e-4f;
+
+        // project the hips onto the xz plane.
+        auto hipsTrans = _internalPoseSet._absolutePoses[_animSkeleton->nameToJointIndex("Hips")].trans;
+        const glm::vec2 bodyCircleCenter(hipsTrans.x, hipsTrans.z);
+
         if (params.isLeftEnabled) {
-            _animVars.set("leftHandPosition", params.leftPosition);
+
+            // project the hand position onto the xz plane.
+            glm::vec2 handCircleCenter(params.leftPosition.x, params.leftPosition.z);
+
+            // check for 2d overlap of the hand and body circles.
+            auto circleToCircle = handCircleCenter - bodyCircleCenter;
+            const float circleToCircleLength = glm::length(circleToCircle);
+            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
+            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
+                // push the hands out of the body
+                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            }
+
+            glm::vec3 handPosition(handCircleCenter.x, params.leftPosition.y, handCircleCenter.y);
+            _animVars.set("leftHandPosition", handPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
@@ -1089,8 +1112,23 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
             _animVars.unset("leftHandRotation");
             _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
         }
+
         if (params.isRightEnabled) {
-            _animVars.set("rightHandPosition", params.rightPosition);
+
+            // project the hand position onto the xz plane.
+            glm::vec2 handCircleCenter(params.rightPosition.x, params.rightPosition.z);
+
+            // check for 2d overlap of the hand and body circles.
+            auto circleToCircle = handCircleCenter - bodyCircleCenter;
+            const float circleToCircleLength = glm::length(circleToCircle);
+            const float penetrationDistance = HAND_RADIUS + BODY_RADIUS - circleToCircleLength;
+            if (penetrationDistance > 0.0f && circleToCircleLength > MIN_LENGTH) {
+                // push the hands out of the body
+                handCircleCenter += penetrationDistance * glm::normalize(circleToCircle);
+            }
+
+            glm::vec3 handPosition(handCircleCenter.x, params.rightPosition.y, handCircleCenter.y);
+            _animVars.set("rightHandPosition", handPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
         } else {
@@ -1274,15 +1312,18 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    int numPoses = (int)finalPoses.size();
-    for (int i = 0; i < numPoses; i++) {
-        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(i).shapeInfo;
-        AnimPose pose = finalPoses[i];
+    // HACK to reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
+    // from the head to the hips when computing the rest of the bounding capsule.
+    int index = _animSkeleton->nameToJointIndex(QString("Head"));
+    while (index != -1) {
+        const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
+        AnimPose pose = finalPoses[index];
         if (shapeInfo.points.size() > 0) {
             for (int j = 0; j < shapeInfo.points.size(); ++j) {
                 totalExtents.addPoint((pose * shapeInfo.points[j]));
             }
         }
+        index = _animSkeleton->getParentIndex(index);
     }
 
     // compute bounding shape parameters

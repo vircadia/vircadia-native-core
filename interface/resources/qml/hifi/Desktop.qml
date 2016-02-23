@@ -9,7 +9,7 @@ Desktop {
     id: desktop
 
     Component.onCompleted: {
-        WebEngine.settings.javascriptCanOpenWindows = false;
+        WebEngine.settings.javascriptCanOpenWindows = true;
         WebEngine.settings.javascriptCanAccessClipboard = false;
         WebEngine.settings.spatialNavigationEnabled = true;
         WebEngine.settings.localContentCanAccessRemoteUrls = true;
@@ -18,6 +18,12 @@ Desktop {
     // The tool window, one instance
     property alias toolWindow: toolWindow
     ToolWindow { id: toolWindow }
+
+    property var browserProfile: WebEngineProfile {
+        id: webviewProfile
+        httpUserAgent: "Chrome/48.0 (HighFidelityInterface)"
+        storageName: "qmlWebEngine"
+    }
 
     Action {
         text: "Open Browser"

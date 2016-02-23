@@ -101,8 +101,9 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 }
 
 QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
+    // If textures are unset, revert to original textures
     if (textures == "") {
-        return QVariantMap();
+        return _originalTexturesMap;
     }
 
     QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
@@ -128,6 +129,7 @@ void RenderableModelEntityItem::remapTextures() {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
+            _originalTexturesMap = parseTexturesToMap(_originalTextures.join(",\n"));
             _originalTexturesRead = true;
         }
     }
@@ -249,6 +251,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
@@ -412,7 +415,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
 
-                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
                 if ((movingOrAnimating ||
                      _needsInitialSimulation ||
                      _model->getTranslation() != getPosition() ||
