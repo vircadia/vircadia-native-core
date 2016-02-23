@@ -588,6 +588,12 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
 }
 
 void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainID) {
+
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "generateNewKeypair", Q_ARG(bool, isUserKeypair), Q_ARG(QUuid, domainID));
+        return;
+    }
+
     if (!isUserKeypair && domainID.isNull()) {
         qCWarning(networking) << "AccountManager::generateNewKeypair called for domain keypair with no domain ID. Will not generate keypair.";
         return;

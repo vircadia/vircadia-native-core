@@ -265,6 +265,28 @@ void NodeList::sendDomainServerCheckIn() {
 
         }
 
+        // check if we're missing a keypair we need to verify ourselves with the domain-server
+        auto& accountManager = AccountManager::getInstance();
+        const QUuid& connectionToken = _domainHandler.getConnectionToken();
+
+        // we assume that we're on the same box as the DS if it has the same local address and
+        // it didn't present us with a connection token to use for username signature
+        bool localhostDomain = _domainHandler.getSockAddr().getAddress() == QHostAddress::LocalHost
+            || (_domainHandler.getSockAddr().getAddress() == _localSockAddr.getAddress() && connectionToken.isNull());
+
+        bool requiresUsernameSignature = !_domainHandler.isConnected() && !connectionToken.isNull() && !localhostDomain;
+
+        if (requiresUsernameSignature && !accountManager.getAccountInfo().hasPrivateKey()) {
+            qWarning() << "A keypair is required to present a username signature to the domain-server"
+                << "but no keypair is present. Waiting for keypair generation to complete.";
+            accountManager.generateNewUserKeypair();
+
+            connect(&accountManager, &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
+
+            // don't send the check in packet - wait for the keypair first
+            return;
+        }
+
         auto domainPacket = NLPacket::create(domainPacketType);
         
         QDataStream packetStream(domainPacket.get());
@@ -289,23 +311,15 @@ void NodeList::sendDomainServerCheckIn() {
 
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
-        
-        // if this is a connect request, and we can present a username signature, send it along
-        if (!_domainHandler.isConnected() ) {
-            
-            DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
+
+        if (!_domainHandler.isConnected()) {
+            DataServerAccountInfo& accountInfo = accountManager.getAccountInfo();
             packetStream << accountInfo.getUsername();
-            
-            // get connection token from the domain-server
-            const QUuid& connectionToken = _domainHandler.getConnectionToken();
-            
-            if (!connectionToken.isNull()) {
-                
-                const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature(connectionToken);
-                
-                if (!usernameSignature.isEmpty()) {
-                    packetStream << usernameSignature;
-                }
+
+            // if this is a connect request, and we can present a username signature, send it along
+            if (requiresUsernameSignature && accountManager.getAccountInfo().hasPrivateKey()) {
+                const QByteArray& usernameSignature = accountManager.getAccountInfo().getUsernameSignature(connectionToken);
+                packetStream << usernameSignature;
             }
         }
 

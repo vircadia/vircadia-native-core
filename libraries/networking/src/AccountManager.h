@@ -107,6 +107,7 @@ private slots:
     void processGeneratedKeypair();
     void publicKeyUploadSucceeded(QNetworkReply& reply);
     void publicKeyUploadFailed(QNetworkReply& reply);
+    void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
 private:
     AccountManager();
@@ -118,8 +119,6 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
-
-    void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
 
     QUrl _authURL;
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
