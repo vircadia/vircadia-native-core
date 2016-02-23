@@ -1259,6 +1259,8 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     rootContext->setContextProperty("Reticle", _compositor.getReticleInterface());
 
+    rootContext->setContextProperty("ApplicationCompositor", &_compositor);
+
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;

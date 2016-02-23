@@ -395,7 +395,7 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
     return false; // let the caller know to process the event
 }
 
-glm::vec2 ApplicationCompositor::getReticlePosition() {
+glm::vec2 ApplicationCompositor::getReticlePosition() const {
     if (qApp->isHMDMode()) {
         QMutexLocker locker(&_reticleLock);
         return _reticlePositionInHMD;
