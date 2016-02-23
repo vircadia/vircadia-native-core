@@ -94,7 +94,7 @@ void DomainHandler::softReset() {
     clearSettings();
 
     _connectionDenialsSinceKeypairRegen = 0;
-    
+
     // cancel the failure timeout for any pending requests for settings
     QMetaObject::invokeMethod(&_settingsTimer, "stop");
 }
@@ -107,7 +107,9 @@ void DomainHandler::hardReset() {
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
+
     _hasCheckedForAccessToken = false;
+    _domainConnectionRefusals.clear();
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
@@ -369,7 +371,7 @@ void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<Rec
 
     auto& accountManager = AccountManager::getInstance();
 
-    if (_hasCheckedForAccessToken) {
+    if (!_hasCheckedForAccessToken) {
         accountManager.checkAndSignalForAccessToken();
         _hasCheckedForAccessToken = true;
     }
