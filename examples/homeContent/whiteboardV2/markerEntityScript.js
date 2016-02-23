@@ -13,9 +13,12 @@
 
 (function() {
     Script.include("../../libraries/utils.js");
-
+    var TRIGGER_CONTROLS = [
+        Controller.Standard.LT,
+        Controller.Standard.RT,
+    ];
     var MAX_POINTS_PER_STROKE = 40;
-var _this;
+    var _this;
     MarkerTip = function() {
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
@@ -30,20 +33,24 @@ var _this;
 
     MarkerTip.prototype = {
 
-        continueNearGrab: function() {
-
-            _this.continueHolding();
+        startEquip: function(id, params) {
+            _this.equipped = true;
+            _this.hand = params[0] == "left" ? 0 : 1;
         },
-
         continueEquip: function() {
-            _this.continueHolding();
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
+            if (_this.triggerValue > 0.2) {
+                print("EBL PAINZT");
+                _this.continueHolding();
+            } else {
+                _this.currentStroke = null;
+            }
         },
+
 
         continueHolding: function() {
             // cast a ray from marker and see if it hits anything
-
             var markerProps = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
-
 
             var pickRay = {
                 origin: markerProps.position,
@@ -87,7 +94,7 @@ var _this;
                 if (_this.oldPosition) {
                     basePosition = _this.oldPosition;
                 }
-               _this.newStroke(basePosition);
+                _this.newStroke(basePosition);
             }
 
             var localPoint = Vec3.subtract(basePosition, this.strokeBasePosition);
@@ -95,7 +102,7 @@ var _this;
             // _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
             if (_this.linePoints.length > 0) {
-                var distance  = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length-1]);
+                var distance = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length - 1]);
                 if (distance < _this.MIN_DISTANCE_BETWEEN_POINTS) {
                     return;
                 }
@@ -119,7 +126,7 @@ var _this;
 
         preload: function(entityID) {
             this.entityID = entityID;
-           
+
         },
 
         setProperties: function(myId, data) {
