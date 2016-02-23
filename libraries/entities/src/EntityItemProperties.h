@@ -361,6 +361,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dynamic, dynamic, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SurfaceRadius, surfaceRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");
