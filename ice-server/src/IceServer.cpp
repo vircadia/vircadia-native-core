@@ -11,6 +11,9 @@
 
 #include "IceServer.h"
 
+#include <openssl/rsa.h>
+#include <openssl/x509.h>
+
 #include <QtCore/QJsonDocument>
 #include <QtCore/QTimer>
 #include <QtNetwork/QNetworkReply>
@@ -159,14 +162,43 @@ bool IceServer::isVerifiedHeartbeat(const QUuid& domainID, const QByteArray& pla
     auto it = _domainPublicKeys.find(domainID);
     if (it != _domainPublicKeys.end()) {
 
-        return true;
-    } else {
-        // we don't have a public key for this domain so we can't verify this heartbeat
-        // ask the metaverse API for the right public key and return false to indicate that this is not verified
-        requestDomainPublicKey(domainID);
+        // attempt to verify the signature for this heartbeat
+        const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(it->second.constData());
 
-        return false;
+        // first load up the public key into an RSA struct
+        RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, it->second.size());
+
+        if (rsaPublicKey) {
+            auto hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
+            int verificationResult = RSA_verify(NID_sha256,
+                                                reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+                                                hashedPlaintext.size(),
+                                                reinterpret_cast<const unsigned char*>(signature.constData()),
+                                                signature.size(),
+                                                rsaPublicKey);
+
+            // free up the public key and remove connection token before we return
+            RSA_free(rsaPublicKey);
+
+            if (verificationResult == 1) {
+                // this is the only success case - we return true here to indicate that the heartbeat is verified
+                return true;
+            } else {
+                qDebug() << "Failed to verify heartbeat for" << domainID << "- re-requesting public key from API.";
+            }
+
+        } else {
+            // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+            qWarning() << "Could not convert in-memory public key for" << domainID << "to usable RSA public key.";
+            qWarning() << "Re-requesting public key from API";
+        }
     }
+
+    // we could not verify this heartbeat (missing public key, could not load public key, bad actor)
+    // ask the metaverse API for the right public key and return false to indicate that this is not verified
+    requestDomainPublicKey(domainID);
+
+    return false;
 }
 
 void IceServer::requestDomainPublicKey(const QUuid& domainID) {

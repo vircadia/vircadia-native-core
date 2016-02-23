@@ -1099,7 +1099,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
 
             // pack the signature with the data
-            heartbeatDataStream << plaintext;
+            heartbeatDataStream << signature;
         }
 
         // send the heartbeat packet to the ice server now

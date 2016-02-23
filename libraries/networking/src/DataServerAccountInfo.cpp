@@ -117,11 +117,10 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
 }
 
 QByteArray DataServerAccountInfo::getUsernameSignature(const QUuid& connectionToken) {
-    QByteArray lowercaseUsername = _username.toLower().toUtf8();
-    QByteArray usernameWithToken = QCryptographicHash::hash(lowercaseUsername.append(connectionToken.toRfc4122()),
-                                                            QCryptographicHash::Sha256);
+    auto lowercaseUsername = _username.toLower().toUtf8();
+    auto plaintext = lowercaseUsername.append(connectionToken.toRfc4122());
 
-    auto signature = signPlaintext(usernameWithToken);
+    auto signature = signPlaintext(plaintext);
     if (!signature.isEmpty()) {
         qDebug(networking) << "Returning username" << _username
             << "signed with connection UUID" << uuidStringWithoutCurlyBraces(connectionToken);
@@ -143,9 +142,11 @@ QByteArray DataServerAccountInfo::signPlaintext(const QByteArray& plaintext) {
             QByteArray signature(RSA_size(rsaPrivateKey), 0);
             unsigned int signatureBytes = 0;
 
+            QByteArray hashedPlaintext = QCryptographicHash::hash(plaintext, QCryptographicHash::Sha256);
+
             int encryptReturn = RSA_sign(NID_sha256,
-                                         reinterpret_cast<const unsigned char*>(plaintext.constData()),
-                                         plaintext.size(),
+                                         reinterpret_cast<const unsigned char*>(hashedPlaintext.constData()),
+                                         hashedPlaintext.size(),
                                          reinterpret_cast<unsigned char*>(signature.data()),
                                          &signatureBytes,
                                          rsaPrivateKey);
