@@ -237,7 +237,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             */
         }
 
-        bool viewTest(const AABox& bound) {
+        bool frustumTest(const AABox& bound) {
             if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
                 _renderDetails._outOfView++;
                 return false;
@@ -302,7 +302,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.viewTest(itemBound.bound)) {
+                if (test.frustumTest(itemBound.bound)) {
                     outItems.emplace_back(itemBound);
                 }
             }
@@ -316,7 +316,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.viewTest(itemBound.bound)) {
+                if (test.frustumTest(itemBound.bound)) {
                     if (test.solidAngleTest(itemBound.bound)) {
                         outItems.emplace_back(itemBound);
                     }
