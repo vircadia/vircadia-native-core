@@ -498,6 +498,9 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
         accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
     }
 
+    // hookup to the signal from account manager that tells us when keypair is available
+    connect(&accountManager, &AccountManager::newKeypair, this, &DomainServer::handleKeypairChange);
+
     if (!_iceHeartbeatTimer) {
         // setup a timer to heartbeat with the ice-server every so often
         _iceHeartbeatTimer = new QTimer { this };
@@ -1064,9 +1067,6 @@ void DomainServer::sendHeartbeatToIceServer() {
             qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
             qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
-            // hookup this slot to the signal from account manager that tells us when keypair is available
-            connect(&accountManager, &AccountManager::newKeypair, this, &DomainServer::sendHeartbeatToIceServer);
-
             if (!limitedNodeList->getSessionUUID().isNull()) {
                 accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
@@ -1078,15 +1078,17 @@ void DomainServer::sendHeartbeatToIceServer() {
 
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
         // QDataStream and the possibility of IPv6 address for the sockets.
-        static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
+        if (!_iceServerHeartbeatPacket) {
+            _iceServerHeartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
+        }
 
         bool shouldRecreatePacket = false;
 
-        if (heartbeatPacket->getPayloadSize() > 0) {
+        if (_iceServerHeartbeatPacket->getPayloadSize() > 0) {
             // if either of our sockets have changed we need to re-sign the heartbeat
             // first read the sockets out from the current packet
-            heartbeatPacket->seek(0);
-            QDataStream heartbeatStream(heartbeatPacket.get());
+            _iceServerHeartbeatPacket->seek(0);
+            QDataStream heartbeatStream(_iceServerHeartbeatPacket.get());
 
             QUuid senderUUID;
             HifiSockAddr publicSocket, localSocket;
@@ -1105,15 +1107,15 @@ void DomainServer::sendHeartbeatToIceServer() {
             // either we don't have a heartbeat packet yet or sockets have changed and we need to make a new one
 
             // reset the position in the packet before writing
-            heartbeatPacket->reset();
+            _iceServerHeartbeatPacket->reset();
 
             // write our plaintext data to the packet
-            QDataStream heartbeatDataStream(heartbeatPacket.get());
+            QDataStream heartbeatDataStream(_iceServerHeartbeatPacket.get());
             heartbeatDataStream << limitedNodeList->getSessionUUID()
                 << limitedNodeList->getPublicSockAddr() << limitedNodeList->getLocalSockAddr();
 
             // setup a QByteArray that points to the plaintext data
-            auto plaintext = QByteArray::fromRawData(heartbeatPacket->getPayload(), heartbeatPacket->getPayloadSize());
+            auto plaintext = QByteArray::fromRawData(_iceServerHeartbeatPacket->getPayload(), _iceServerHeartbeatPacket->getPayloadSize());
 
             // generate a signature for the plaintext data in the packet
             auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
@@ -1123,7 +1125,7 @@ void DomainServer::sendHeartbeatToIceServer() {
         }
 
         // send the heartbeat packet to the ice server now
-        limitedNodeList->sendUnreliablePacket(*heartbeatPacket, _iceServerSocket);
+        limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
     }
 }
 
@@ -2022,5 +2024,16 @@ void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<Received
 
         // reset our number of heartbeat denials
         numHeartbeatDenials = 0;
+    }
+}
+
+void DomainServer::handleKeypairChange() {
+    if (_iceServerHeartbeatPacket) {
+        // reset the payload size of the ice-server heartbeat packet - this causes the packet to be re-generated
+        // the next time we go to send an ice-server heartbeat
+        _iceServerHeartbeatPacket->setPayloadSize(0);
+
+        // send a heartbeat to the ice server immediately
+        sendHeartbeatToIceServer();
     }
 }

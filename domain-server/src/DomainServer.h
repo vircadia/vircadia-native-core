@@ -79,6 +79,8 @@ private slots:
     void handleTempDomainError(QNetworkReply& requestReply);
 
     void queuedQuit(QString quitMessage, int exitCode);
+
+    void handleKeypairChange();
     
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
@@ -152,6 +154,7 @@ private:
     DomainServerSettingsManager _settingsManager;
 
     HifiSockAddr _iceServerSocket;
+    std::unique_ptr<NLPacket> _iceServerHeartbeatPacket;
 
     QTimer* _iceHeartbeatTimer { nullptr }; // this looks like it dangles when created but it's parented to the DomainServer
     
