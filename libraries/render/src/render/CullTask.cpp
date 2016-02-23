@@ -39,12 +39,12 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
 
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-        bool outOfView;
+        bool inView;
         {
-            PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = frustum->boxInFrustum(item.bound) == ViewFrustum::OUTSIDE;
+            PerformanceTimer perfTimer("boxIntersectsFrustum");
+            inView = frustum->boxIntersectsFrustum(item.bound);
         }
-        if (!outOfView) {
+        if (inView) {
             bool bigEnoughToRender;
             {
                 PerformanceTimer perfTimer("shouldRender");
@@ -238,7 +238,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
 
         bool frustumTest(const AABox& bound) {
-            if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
+            if (!_args->_viewFrustum->boxIntersectsFrustum(bound)) {
                 _renderDetails._outOfView++;
                 return false;
             }

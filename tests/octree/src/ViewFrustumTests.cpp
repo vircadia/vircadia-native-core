@@ -78,521 +78,7 @@ void ViewFrustumTests::testInit() {
     QCOMPARE_WITH_ABS_ERROR(upDot, 1.0f, ACCEPTABLE_DOT_ERROR);
 }
 
-void ViewFrustumTests::testPointInFrustum() {
-    float aspect = 1.0f;
-    float fovX = PI / 2.0f;
-    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
-    float nearClip = 1.0f;
-    float farClip = 100.0f;
-    float holeRadius = 10.0f;
-
-    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
-
-    float angle = PI / 7.0f;
-    glm::vec3 axis = Vectors::UNIT_Y;
-    glm::quat rotation = glm::angleAxis(angle, axis);
-
-    ViewFrustum view;
-    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
-    view.setPosition(center);
-    view.setOrientation(rotation);
-    view.setCenterRadius(holeRadius);
-    view.calculate();
-
-    float delta = 0.1f;
-    float deltaAngle = 0.01f;
-    glm::quat elevation, swing;
-    glm::vec3 point, localOffset;
-    float pointDistance = farClip;
-
-    // farPlane
-    localOffset = (pointDistance - delta) * localForward;
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    localOffset = (pointDistance + delta) * localForward;
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-
-    // nearPlane
-    localOffset = (nearClip + delta) * localForward;
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    localOffset = (nearClip - delta) * localForward;
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-
-    // topPlane
-    angle = 0.5f * fovY;
-    elevation = glm::angleAxis(angle - deltaAngle, localRight);
-    localOffset = elevation * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle + deltaAngle, localRight);
-    localOffset = elevation * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-
-    // bottom plane
-    angle = -0.5f * fovY;
-    elevation = glm::angleAxis(angle + deltaAngle, localRight);
-    localOffset = elevation * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle - deltaAngle, localRight);
-    localOffset = elevation * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-
-    // right plane
-    angle = 0.5f * fovX;
-    swing = glm::angleAxis(angle - deltaAngle, localUp);
-    localOffset = swing * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle + deltaAngle, localUp);
-    localOffset = swing * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-
-    // left plane
-    angle = -0.5f * fovX;
-    swing = glm::angleAxis(angle + deltaAngle, localUp);
-    localOffset = swing * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle - deltaAngle, localUp);
-    localOffset = swing * (pointDistance * localForward);
-    point = center + rotation * localOffset;
-    QCOMPARE(view.pointInFrustum(point), ViewFrustum::OUTSIDE);
-}
-
-void ViewFrustumTests::testSphereInFrustum() {
-    float aspect = 1.0f;
-    float fovX = PI / 2.0f;
-    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
-    float nearClip = 1.0f;
-    float farClip = 100.0f;
-    float holeRadius = 10.0f;
-
-    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
-
-    float angle = PI / 7.0f;
-    glm::vec3 axis = Vectors::UNIT_Y;
-    glm::quat rotation = glm::angleAxis(angle, axis);
-
-    ViewFrustum view;
-    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
-    view.setPosition(center);
-    view.setOrientation(rotation);
-    view.setCenterRadius(holeRadius);
-    view.calculate();
-
-    float delta = 0.1f;
-    float deltaAngle = 0.01f;
-    glm::quat elevation, swing;
-    glm::vec3 sphereCenter, localOffset;
-
-    float sphereRadius = 2.68f; // must be much smaller than sphereDistance for small angle approx below
-    float sphereDistance = farClip;
-    float sphereAngle = sphereRadius / sphereDistance; // sine of small angles approximation
-
-    // farPlane
-    localOffset = (sphereDistance - sphereRadius - delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    localOffset = (sphereDistance + sphereRadius - delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    localOffset = (sphereDistance + sphereRadius + delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-
-    // nearPlane
-    localOffset = (nearClip + 2.0f * sphereRadius + delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    localOffset = (nearClip - sphereRadius + delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    localOffset = (nearClip - sphereRadius - delta) * localForward;
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-
-    // topPlane
-    angle = 0.5f * fovY - sphereAngle;
-    elevation = glm::angleAxis(angle - deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    angle = 0.5f * fovY + sphereAngle;
-    elevation = glm::angleAxis(angle - deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle + deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-
-    // bottom plane
-    angle = -0.5f * fovY + sphereAngle;
-    elevation = glm::angleAxis(angle + deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    angle = -0.5f * fovY - sphereAngle;
-    elevation = glm::angleAxis(angle + deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle - deltaAngle, localRight);
-    localOffset = elevation * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-
-    // right plane
-    angle = 0.5f * fovX - sphereAngle;
-    swing = glm::angleAxis(angle - deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    angle = 0.5f * fovX + sphereAngle;
-    swing = glm::angleAxis(angle - deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle + deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-
-    // left plane
-    angle = -0.5f * fovX + sphereAngle;
-    swing = glm::angleAxis(angle + deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INSIDE);
-
-    angle = -0.5f * fovX - sphereAngle;
-    swing = glm::angleAxis(angle + deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle - sphereAngle - deltaAngle, localUp);
-    localOffset = swing * (sphereDistance * localForward);
-    sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereInFrustum(sphereCenter, sphereRadius), ViewFrustum::OUTSIDE);
-}
-
-void ViewFrustumTests::testCubeInFrustum() {
-    float aspect = 1.0f;
-    float fovX = PI / 2.0f;
-    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
-    float nearClip = 1.0f;
-    float farClip = 100.0f;
-    float holeRadius = 10.0f;
-
-    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
-
-    float angle = PI / 7.0f;
-    glm::vec3 axis = Vectors::UNIT_Y;
-    glm::quat rotation = glm::angleAxis(angle, axis);
-
-    ViewFrustum view;
-    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
-    view.setPosition(center);
-    view.setOrientation(rotation);
-    view.setCenterRadius(holeRadius);
-    view.calculate();
-
-    float delta = 0.1f;
-    float deltaAngle = 0.01f;
-    glm::quat elevation, swing;
-    glm::vec3 cubeCenter, localOffset;
-
-    float cubeScale = 2.68f; // must be much smaller than cubeDistance for small angle approx below
-    glm::vec3 halfScaleOffset = 0.5f * glm::vec3(cubeScale);
-    float cubeDistance = farClip;
-    float cubeBoundingRadius = 0.5f * sqrtf(3.0f) * cubeScale;
-    float cubeAngle = cubeBoundingRadius / cubeDistance; // sine of small angles approximation
-    AACube cube(center, cubeScale);
-
-    // farPlane
-    localOffset = (cubeDistance - cubeBoundingRadius - delta) * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    localOffset = cubeDistance * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    localOffset = (cubeDistance + cubeBoundingRadius + delta) * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-
-    // nearPlane
-    localOffset = (nearClip + 2.0f * cubeBoundingRadius + delta) * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    localOffset = (nearClip + delta) * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    localOffset = (nearClip - cubeBoundingRadius - delta) * localForward;
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-
-    // topPlane
-    angle = 0.5f * fovY;
-    elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-
-    // bottom plane
-    angle = -0.5f * fovY;
-    elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
-    localOffset = elevation * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-
-    // right plane
-    angle = 0.5f * fovX;
-    swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-
-    // left plane
-    angle = -0.5f * fovX;
-    swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
-    localOffset = swing * (cubeDistance * localForward);
-    cubeCenter = center + rotation * localOffset;
-    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInFrustum(cube), ViewFrustum::OUTSIDE);
-}
-
-void ViewFrustumTests::testBoxInFrustum() {
-    float aspect = 1.0f;
-    float fovX = PI / 2.0f;
-    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
-    float nearClip = 1.0f;
-    float farClip = 100.0f;
-    float holeRadius = 10.0f;
-
-    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
-
-    float angle = PI / 7.0f;
-    glm::vec3 axis = Vectors::UNIT_Y;
-    glm::quat rotation = glm::angleAxis(angle, axis);
-
-    ViewFrustum view;
-    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
-    view.setPosition(center);
-    view.setOrientation(rotation);
-    view.setCenterRadius(holeRadius);
-    view.calculate();
-
-    float delta = 0.1f;
-    float deltaAngle = 0.01f;
-    glm::quat elevation, swing;
-    glm::vec3 boxCenter, localOffset;
-
-    glm::vec3 boxScale = glm::vec3(2.68f, 1.78f, 0.431f);
-    float boxDistance = farClip;
-    float boxBoundingRadius = 0.5f * glm::length(boxScale);
-    float boxAngle = boxBoundingRadius / boxDistance; // sine of small angles approximation
-    AABox box(center, boxScale);
-
-    // farPlane
-    localOffset = (boxDistance - boxBoundingRadius - delta) * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    localOffset = boxDistance * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    localOffset = (boxDistance + boxBoundingRadius + delta) * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-
-    // nearPlane
-    localOffset = (nearClip + 2.0f * boxBoundingRadius + delta) * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    localOffset = nearClip * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    localOffset = (nearClip - boxBoundingRadius - delta) * localForward;
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-
-    // topPlane
-    angle = 0.5f * fovY;
-    elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-
-    // bottom plane
-    angle = -0.5f * fovY;
-    elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    elevation = glm::angleAxis(angle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
-    localOffset = elevation * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-
-    // right plane
-    angle = 0.5f * fovX;
-    swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-
-    // left plane
-    angle = -0.5f * fovX;
-    swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INSIDE);
-
-    swing = glm::angleAxis(angle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::INTERSECT);
-
-    swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
-    localOffset = swing * (boxDistance * localForward);
-    boxCenter = center + rotation * localOffset;
-    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
-    QCOMPARE(view.boxInFrustum(box), ViewFrustum::OUTSIDE);
-}
-
-void ViewFrustumTests::testCubeInKeyhole() {
+void ViewFrustumTests::testCubeKeyholeIntersection() {
     float aspect = 1.0f;
     float fovX = PI / 2.0f;
     float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
@@ -790,6 +276,520 @@ void ViewFrustumTests::testCubeInKeyhole() {
     QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT); // larger than sphere
 }
 
+void ViewFrustumTests::testCubeFrustumIntersection() {
+    float aspect = 1.0f;
+    float fovX = PI / 2.0f;
+    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
+    float nearClip = 1.0f;
+    float farClip = 100.0f;
+    float holeRadius = 10.0f;
+
+    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
+
+    float angle = PI / 7.0f;
+    glm::vec3 axis = Vectors::UNIT_Y;
+    glm::quat rotation = glm::angleAxis(angle, axis);
+
+    ViewFrustum view;
+    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
+    view.setPosition(center);
+    view.setOrientation(rotation);
+    view.setCenterRadius(holeRadius);
+    view.calculate();
+
+    float delta = 0.1f;
+    float deltaAngle = 0.01f;
+    glm::quat elevation, swing;
+    glm::vec3 cubeCenter, localOffset;
+
+    float cubeScale = 2.68f; // must be much smaller than cubeDistance for small angle approx below
+    glm::vec3 halfScaleOffset = 0.5f * glm::vec3(cubeScale);
+    float cubeDistance = farClip;
+    float cubeBoundingRadius = 0.5f * sqrtf(3.0f) * cubeScale;
+    float cubeAngle = cubeBoundingRadius / cubeDistance; // sine of small angles approximation
+    AACube cube(center, cubeScale);
+
+    // farPlane
+    localOffset = (cubeDistance - cubeBoundingRadius - delta) * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    localOffset = cubeDistance * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    localOffset = (cubeDistance + cubeBoundingRadius + delta) * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+
+    // nearPlane
+    localOffset = (nearClip + 2.0f * cubeBoundingRadius + delta) * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    localOffset = (nearClip + delta) * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    localOffset = (nearClip - cubeBoundingRadius - delta) * localForward;
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+
+    // topPlane
+    angle = 0.5f * fovY;
+    elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    elevation = glm::angleAxis(angle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+
+    // bottom plane
+    angle = -0.5f * fovY;
+    elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    elevation = glm::angleAxis(angle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
+    localOffset = elevation * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+
+    // right plane
+    angle = 0.5f * fovX;
+    swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    swing = glm::angleAxis(angle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+
+    // left plane
+    angle = -0.5f * fovX;
+    swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INSIDE);
+
+    swing = glm::angleAxis(angle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::INTERSECT);
+
+    swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
+    localOffset = swing * (cubeDistance * localForward);
+    cubeCenter = center + rotation * localOffset;
+    cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
+    QCOMPARE(view.calculateCubeFrustumIntersection(cube), ViewFrustum::OUTSIDE);
+}
+
+void ViewFrustumTests::testPointIntersectsFrustum() {
+    float aspect = 1.0f;
+    float fovX = PI / 2.0f;
+    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
+    float nearClip = 1.0f;
+    float farClip = 100.0f;
+    float holeRadius = 10.0f;
+
+    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
+
+    float angle = PI / 7.0f;
+    glm::vec3 axis = Vectors::UNIT_Y;
+    glm::quat rotation = glm::angleAxis(angle, axis);
+
+    ViewFrustum view;
+    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
+    view.setPosition(center);
+    view.setOrientation(rotation);
+    view.setCenterRadius(holeRadius);
+    view.calculate();
+
+    float delta = 0.1f;
+    float deltaAngle = 0.01f;
+    glm::quat elevation, swing;
+    glm::vec3 point, localOffset;
+    float pointDistance = farClip;
+
+    // farPlane
+    localOffset = (pointDistance - delta) * localForward;
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    localOffset = (pointDistance + delta) * localForward;
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+
+    // nearPlane
+    localOffset = (nearClip + delta) * localForward;
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    localOffset = (nearClip - delta) * localForward;
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+
+    // topPlane
+    angle = 0.5f * fovY;
+    elevation = glm::angleAxis(angle - deltaAngle, localRight);
+    localOffset = elevation * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    elevation = glm::angleAxis(angle + deltaAngle, localRight);
+    localOffset = elevation * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+
+    // bottom plane
+    angle = -0.5f * fovY;
+    elevation = glm::angleAxis(angle + deltaAngle, localRight);
+    localOffset = elevation * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    elevation = glm::angleAxis(angle - deltaAngle, localRight);
+    localOffset = elevation * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+
+    // right plane
+    angle = 0.5f * fovX;
+    swing = glm::angleAxis(angle - deltaAngle, localUp);
+    localOffset = swing * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    swing = glm::angleAxis(angle + deltaAngle, localUp);
+    localOffset = swing * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+
+    // left plane
+    angle = -0.5f * fovX;
+    swing = glm::angleAxis(angle + deltaAngle, localUp);
+    localOffset = swing * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), true); // inside
+
+    swing = glm::angleAxis(angle - deltaAngle, localUp);
+    localOffset = swing * (pointDistance * localForward);
+    point = center + rotation * localOffset;
+    QCOMPARE(view.pointIntersectsFrustum(point), false); // outside
+}
+
+void ViewFrustumTests::testSphereIntersectsFrustum() {
+    float aspect = 1.0f;
+    float fovX = PI / 2.0f;
+    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
+    float nearClip = 1.0f;
+    float farClip = 100.0f;
+    float holeRadius = 10.0f;
+
+    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
+
+    float angle = PI / 7.0f;
+    glm::vec3 axis = Vectors::UNIT_Y;
+    glm::quat rotation = glm::angleAxis(angle, axis);
+
+    ViewFrustum view;
+    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
+    view.setPosition(center);
+    view.setOrientation(rotation);
+    view.setCenterRadius(holeRadius);
+    view.calculate();
+
+    float delta = 0.1f;
+    float deltaAngle = 0.01f;
+    glm::quat elevation, swing;
+    glm::vec3 sphereCenter, localOffset;
+
+    float sphereRadius = 2.68f; // must be much smaller than sphereDistance for small angle approx below
+    float sphereDistance = farClip;
+    float sphereAngle = sphereRadius / sphereDistance; // sine of small angles approximation
+
+    // farPlane
+    localOffset = (sphereDistance - sphereRadius - delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    localOffset = (sphereDistance + sphereRadius - delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    localOffset = (sphereDistance + sphereRadius + delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+
+    // nearPlane
+    localOffset = (nearClip + 2.0f * sphereRadius + delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    localOffset = (nearClip - sphereRadius + delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    localOffset = (nearClip - sphereRadius - delta) * localForward;
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+
+    // topPlane
+    angle = 0.5f * fovY - sphereAngle;
+    elevation = glm::angleAxis(angle - deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    angle = 0.5f * fovY + sphereAngle;
+    elevation = glm::angleAxis(angle - deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    elevation = glm::angleAxis(angle + deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+
+    // bottom plane
+    angle = -0.5f * fovY + sphereAngle;
+    elevation = glm::angleAxis(angle + deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    angle = -0.5f * fovY - sphereAngle;
+    elevation = glm::angleAxis(angle + deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    elevation = glm::angleAxis(angle - deltaAngle, localRight);
+    localOffset = elevation * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+
+    // right plane
+    angle = 0.5f * fovX - sphereAngle;
+    swing = glm::angleAxis(angle - deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    angle = 0.5f * fovX + sphereAngle;
+    swing = glm::angleAxis(angle - deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    swing = glm::angleAxis(angle + deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+
+    // left plane
+    angle = -0.5f * fovX + sphereAngle;
+    swing = glm::angleAxis(angle + deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // inside
+
+    angle = -0.5f * fovX - sphereAngle;
+    swing = glm::angleAxis(angle + deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), true); // straddle
+
+    swing = glm::angleAxis(angle - sphereAngle - deltaAngle, localUp);
+    localOffset = swing * (sphereDistance * localForward);
+    sphereCenter = center + rotation * localOffset;
+    QCOMPARE(view.sphereIntersectsFrustum(sphereCenter, sphereRadius), false); // outside
+}
+
+void ViewFrustumTests::testBoxIntersectsFrustum() {
+    float aspect = 1.0f;
+    float fovX = PI / 2.0f;
+    float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
+    float nearClip = 1.0f;
+    float farClip = 100.0f;
+    float holeRadius = 10.0f;
+
+    glm::vec3 center = glm::vec3(12.3f, 4.56f, 89.7f);
+
+    float angle = PI / 7.0f;
+    glm::vec3 axis = Vectors::UNIT_Y;
+    glm::quat rotation = glm::angleAxis(angle, axis);
+
+    ViewFrustum view;
+    view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
+    view.setPosition(center);
+    view.setOrientation(rotation);
+    view.setCenterRadius(holeRadius);
+    view.calculate();
+
+    float delta = 0.1f;
+    float deltaAngle = 0.01f;
+    glm::quat elevation, swing;
+    glm::vec3 boxCenter, localOffset;
+
+    glm::vec3 boxScale = glm::vec3(2.68f, 1.78f, 0.431f);
+    float boxDistance = farClip;
+    float boxBoundingRadius = 0.5f * glm::length(boxScale);
+    float boxAngle = boxBoundingRadius / boxDistance; // sine of small angles approximation
+    AABox box(center, boxScale);
+
+    // farPlane
+    localOffset = (boxDistance - boxBoundingRadius - delta) * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    localOffset = boxDistance * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    localOffset = (boxDistance + boxBoundingRadius + delta) * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+
+    // nearPlane
+    localOffset = (nearClip + 2.0f * boxBoundingRadius + delta) * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    localOffset = nearClip * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    localOffset = (nearClip - boxBoundingRadius - delta) * localForward;
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+
+    // topPlane
+    angle = 0.5f * fovY;
+    elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    elevation = glm::angleAxis(angle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+
+    // bottom plane
+    angle = -0.5f * fovY;
+    elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    elevation = glm::angleAxis(angle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
+    localOffset = elevation * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+
+    // right plane
+    angle = 0.5f * fovX;
+    swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    swing = glm::angleAxis(angle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+
+    // left plane
+    angle = -0.5f * fovX;
+    swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // inside
+
+    swing = glm::angleAxis(angle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), true); // straddle
+
+    swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
+    localOffset = swing * (boxDistance * localForward);
+    boxCenter = center + rotation * localOffset;
+    box.setBox(boxCenter - 0.5f * boxScale, boxScale);
+    QCOMPARE(view.boxIntersectsFrustum(box), false); // outside
+}
+
 void ViewFrustumTests::testSphereIntersectsKeyhole() {
     float aspect = 1.0f;
     float fovX = PI / 2.0f;
@@ -827,7 +827,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
 
     localOffset = sphereDistance * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     localOffset = (sphereDistance + sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
@@ -840,7 +840,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
 
     localOffset = (nearClip - sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     localOffset = (nearClip - sphereRadius - delta) * localForward;
     sphereCenter = center + rotation * localOffset;
@@ -857,7 +857,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
     elevation = glm::angleAxis(angle - deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     elevation = glm::angleAxis(angle + deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
@@ -875,7 +875,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
     elevation = glm::angleAxis(angle + deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     elevation = glm::angleAxis(angle - deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
@@ -893,7 +893,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
     swing = glm::angleAxis(angle - deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     swing = glm::angleAxis(angle + deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
@@ -911,7 +911,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
     swing = glm::angleAxis(angle + deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle
 
     swing = glm::angleAxis(angle - sphereAngle - deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
@@ -925,7 +925,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
 
     localOffset = holeRadius * localRight;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect right
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle right
 
     localOffset = (holeRadius + sphereRadius + delta) * localRight;
     sphereCenter = center + rotation * localOffset;
@@ -938,7 +938,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
 
     localOffset = holeRadius * localUp;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect up
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle up
 
     localOffset = (holeRadius + sphereRadius + delta) * localUp;
     sphereCenter = center + rotation * localOffset;
@@ -951,7 +951,7 @@ void ViewFrustumTests::testSphereIntersectsKeyhole() {
 
     localOffset = - holeRadius * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect back
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // straddle back
 
     localOffset = (-holeRadius - sphereRadius - delta) * localForward;
     sphereCenter = center + rotation * localOffset;
@@ -1016,7 +1016,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = (nearClip + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle
 
     localOffset = (nearClip - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
@@ -1035,7 +1035,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle
 
     elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
@@ -1055,7 +1055,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle
 
     elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
@@ -1075,7 +1075,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle
 
     swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
@@ -1095,7 +1095,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle
 
     swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
@@ -1112,7 +1112,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = holeRadius * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect right
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle right
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localRight;
     cubeCenter = center + rotation * localOffset;
@@ -1128,7 +1128,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = holeRadius * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect up
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle up
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localUp;
     cubeCenter = center + rotation * localOffset;
@@ -1144,7 +1144,7 @@ void ViewFrustumTests::testCubeIntersectsKeyhole() {
     localOffset = - holeRadius * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect back
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // straddle back
 
     localOffset = (-holeRadius - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
@@ -1210,7 +1210,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = (nearClip + delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle
 
     localOffset = (nearClip - boxBoundingRadius - delta) * localForward;
     boxCenter = center + rotation * localOffset;
@@ -1229,7 +1229,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle
 
     elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
     localOffset = elevation * (boxDistance * localForward);
@@ -1249,7 +1249,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle
 
     elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
     localOffset = elevation * (boxDistance * localForward);
@@ -1269,7 +1269,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle
 
     swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
     localOffset = swing * (boxDistance * localForward);
@@ -1289,7 +1289,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle
 
     swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
     localOffset = swing * (boxDistance * localForward);
@@ -1306,7 +1306,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = holeRadius * localRight;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect right
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle right
 
     localOffset = (holeRadius + boxBoundingRadius + delta) * localRight;
     boxCenter = center + rotation * localOffset;
@@ -1322,7 +1322,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = holeRadius * localUp;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect up
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle up
 
     localOffset = (holeRadius + boxBoundingRadius + delta) * localUp;
     boxCenter = center + rotation * localOffset;
@@ -1338,7 +1338,7 @@ void ViewFrustumTests::testBoxIntersectsKeyhole() {
     localOffset = - holeRadius * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect back
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // straddle back
 
     localOffset = (-holeRadius - boxBoundingRadius - delta) * localForward;
     boxCenter = center + rotation * localOffset;

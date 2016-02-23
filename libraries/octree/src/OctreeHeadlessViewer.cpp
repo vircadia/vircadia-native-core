@@ -91,7 +91,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                if (_viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
+                if ((bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds))) {
                     inViewServers++;
                 }
             }
@@ -162,7 +162,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                inView = _viewFrustum.cubeInFrustum(serverBounds);
+                inView = (bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds));
             }
 
             if (inView) {

@@ -478,7 +478,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         glm::vec4 cubeColor(1.0f, 1.0f, 0.0f, 1.0f);
         if (isSkinned) {
             cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if ((bool)(args->_viewFrustum->boxInFrustum(partBounds))) {
+        } else if (args->_viewFrustum->boxIntersectsFrustum(partBounds)) {
             cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
         }
 

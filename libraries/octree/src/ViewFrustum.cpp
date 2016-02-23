@@ -130,33 +130,7 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const {
-    // only check against frustum
-    for(int i = 0; i < 6; ++i) {
-        float distance = _planes[i].distance(point);
-        if (distance < 0.0f) {
-            return OUTSIDE;
-        }
-    }
-    return INSIDE;
-}
-
-ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, float radius) const {
-    // only check against frustum
-    ViewFrustum::location result = INSIDE;
-    for(int i=0; i < 6; i++) {
-        float distance = _planes[i].distance(center);
-        if (distance < -radius) {
-            // This is outside the regular frustum, so just return the value from checking the keyhole
-            return OUTSIDE;
-        } else if (distance < radius) {
-            result = INTERSECT;
-        }
-    }
-    return result;
-}
-
-ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
+ViewFrustum::location ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
     // only check against frustum
     ViewFrustum::location result = INSIDE;
     for(int i=0; i < 6; i++) {
@@ -168,25 +142,6 @@ ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
             // check distance to nearest cube point
             if (_planes[i].distance(cube.getNearestVertex(normal)) < 0.0f) {
                 // cube straddles the plane
-                result = INTERSECT;
-            }
-        }
-    }
-    return result;
-}
-
-ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
-    // only check against frustum
-    ViewFrustum::location result = INSIDE;
-    for(int i=0; i < 6; i++) {
-        const glm::vec3& normal = _planes[i].getNormal();
-        // check distance to farthest box point
-        if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
-            return OUTSIDE;
-        } else {
-            // check distance to nearest box point
-            if (_planes[i].distance(box.getNearestVertex(normal)) < 0.0f) {
-                // box straddles the plane
                 result = INTERSECT;
             }
         }
@@ -216,9 +171,45 @@ ViewFrustum::location ViewFrustum::calculateCubeKeyholeIntersection(const AACube
     }
 
     // check against frustum
-    ViewFrustum::location frustumResult = cubeInFrustum(cube);
+    ViewFrustum::location frustumResult = calculateCubeFrustumIntersection(cube);
 
     return (frustumResult == OUTSIDE) ? sphereResult : frustumResult;
+}
+
+bool ViewFrustum::pointIntersectsFrustum(const glm::vec3& point) const {
+    // only check against frustum
+    for(int i = 0; i < 6; ++i) {
+        float distance = _planes[i].distance(point);
+        if (distance < 0.0f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ViewFrustum::sphereIntersectsFrustum(const glm::vec3& center, float radius) const {
+    // only check against frustum
+    for(int i=0; i < 6; i++) {
+        float distance = _planes[i].distance(center);
+        if (distance < -radius) {
+            // This is outside the regular frustum, so just return the value from checking the keyhole
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ViewFrustum::boxIntersectsFrustum(const AABox& box) const {
+    // only check against frustum
+    ViewFrustum::location result = INSIDE;
+    for(int i=0; i < 6; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        // check distance to farthest box point
+        if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool ViewFrustum::sphereIntersectsKeyhole(const glm::vec3& center, float radius) const {

@@ -19,14 +19,14 @@ class ViewFrustumTests : public QObject {
 
 private slots:
     void testInit();
-    void testPointInFrustum();
-    void testSphereInFrustum();
-    void testCubeInFrustum();
-    void testBoxInFrustum();
-    void testCubeInKeyhole();
-    void testSphereTouchesKeyhole();
-    void testCubeTouchesKeyhole();
-    void testBoxTouchesKeyhole();
+    void testCubeFrustumIntersection();
+    void testCubeKeyholeIntersection();
+    void testPointIntersectsFrustum();
+    void testSphereIntersectsFrustum();
+    void testBoxIntersectsFrustum();
+    void testSphereIntersectsKeyhole();
+    void testCubeIntersectsKeyhole();
+    void testBoxIntersectsKeyhole();
 };
 
 #endif // hifi_ViewFruxtumTests_h

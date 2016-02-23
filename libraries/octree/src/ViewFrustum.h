@@ -94,15 +94,15 @@ public:
 
     typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } location;
 
-    ViewFrustum::location pointInFrustum(const glm::vec3& point) const;
-    ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInFrustum(const AACube& cube) const;
-    ViewFrustum::location boxInFrustum(const AABox& box) const;
-
     /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
+    ViewFrustum::location calculateCubeFrustumIntersection(const AACube& cube) const;
     ViewFrustum::location calculateCubeKeyholeIntersection(const AACube& cube) const;
 
-    // more efficient methods when only need boolean result
+    bool pointIntersectsFrustum(const glm::vec3& point) const;
+    bool sphereIntersectsFrustum(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsFrustum(const AACube& box) const;
+    bool boxIntersectsFrustum(const AABox& box) const;
+
     bool sphereIntersectsKeyhole(const glm::vec3& center, float radius) const;
     bool cubeIntersectsKeyhole(const AACube& cube) const;
     bool boxIntersectsKeyhole(const AABox& box) const;
