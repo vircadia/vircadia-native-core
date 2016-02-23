@@ -37,14 +37,6 @@ Frame {
             radius: hifi.dimensions.borderRadius
             color: hifi.colors.faintGray
         }
-        Rectangle {
-            id: background
-            anchors.fill: parent
-            anchors.margins: -4096
-            visible: window.visible
-            color: "#7f7f7f7f";
-            radius: 3;
-        }
 
         Text {
             y: -implicitHeight - iconSize / 2
