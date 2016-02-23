@@ -175,6 +175,7 @@ private:
         doneCurrent();
 
         getContextObject()->moveToThread(QCoreApplication::instance()->thread());
+        _thread.quit();
         _cond.wakeOne();
     }
 
@@ -228,7 +229,7 @@ private:
 
         _quickWindow->setRenderTarget(GetName(*_fbo), QSize(_size.x, _size.y));
 
-        {
+        try {
             PROFILE_RANGE("qml_render")
             TexturePtr texture = _textures.getNextTexture();
             _fbo->Bind(Framebuffer::Target::Draw);
@@ -245,8 +246,10 @@ private:
             DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
             _quickWindow->resetOpenGLState();
             _escrow.submit(GetName(*texture));
+            _lastRenderTime = usecTimestampNow();
+        } catch (std::runtime_error& error) {
+            qWarning() << "Failed to render QML " << error.what();
         }
-        _lastRenderTime = usecTimestampNow();
     }
 
     void aboutToQuit() {
@@ -312,6 +315,8 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 }
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
+    QObject::disconnect(&_updateTimer);
+    QObject::disconnect(qApp);
     _renderer->stop();
     delete _rootItem;
     delete _renderer;
@@ -319,9 +324,13 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     delete _qmlEngine;
 }
 
+void OffscreenQmlSurface::onAboutToQuit() {
+    QObject::disconnect(&_updateTimer);
+}
+
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _renderer = new OffscreenQmlRenderer(this, shareContext);
-
+    _renderer->_renderControl->_renderWindow = _proxyWindow;
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
     if (!_qmlEngine->incubationController()) {
@@ -331,12 +340,9 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     _updateTimer.setInterval(MIN_TIMER_MS);
-    connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [this]{
-        disconnect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    });
+    QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
     _updateTimer.start();
-
     _qmlComponent = new QQmlComponent(_qmlEngine);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 }
@@ -610,7 +616,10 @@ bool OffscreenQmlSurface::isPaused() const {
 }
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
-    _renderer->_renderControl->_renderWindow = window;
+    _proxyWindow = window;
+    if (_renderer && _renderer->_renderControl) {
+        _renderer->_renderControl->_renderWindow = window;
+    }
 }
 
 QObject* OffscreenQmlSurface::getEventHandler() {

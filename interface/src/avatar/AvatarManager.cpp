@@ -162,7 +162,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
 void AvatarManager::simulateAvatarFades(float deltaTime) {
     QVector<AvatarSharedPointer>::iterator fadingIterator = _avatarFades.begin();
 
-    const float SHRINK_RATE = 0.9f;
+    const float SHRINK_RATE = 0.15f;
     const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
 
     render::ScenePointer scene = qApp->getMain3DScene();

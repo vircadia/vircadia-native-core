@@ -90,46 +90,6 @@ namespace controller {
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
-        Q_INVOKABLE bool getReticleVisible() { return _reticleVisible; }
-        Q_INVOKABLE void setReticleVisible(bool visible) { _reticleVisible = visible; }
-
-        Q_INVOKABLE float getReticleDepth() { return _reticleDepth; }
-        Q_INVOKABLE void setReticleDepth(float depth) { _reticleDepth = depth; }
-
-        Q_INVOKABLE glm::vec2 getReticlePosition() { 
-            return toGlm(QCursor::pos()); 
-        }
-        Q_INVOKABLE void setReticlePosition(glm::vec2 position) { 
-            // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
-            // remove it after we're done
-            const float REASONABLE_CHANGE = 50.0f;
-            glm::vec2 oldPos = toGlm(QCursor::pos());
-            auto distance = glm::distance(oldPos, position);
-            if (distance > REASONABLE_CHANGE) {
-                qDebug() << "Contrller::ScriptingInterface ---- UNREASONABLE CHANGE! distance:" << distance << " oldPos:" << oldPos << " newPos:" << position;
-            }
-
-            QCursor::setPos(position.x, position.y);
-        }
-
-        //Q_INVOKABLE bool isPrimaryButtonPressed() const;
-        //Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
-
-        //Q_INVOKABLE int getNumberOfButtons() const;
-        //Q_INVOKABLE bool isButtonPressed(int buttonIndex) const;
-
-        //Q_INVOKABLE int getNumberOfTriggers() const;
-        //Q_INVOKABLE float getTriggerValue(int triggerIndex) const;
-
-        //Q_INVOKABLE int getNumberOfJoysticks() const;
-        //Q_INVOKABLE glm::vec2 getJoystickPosition(int joystickIndex) const;
-
-        //Q_INVOKABLE int getNumberOfSpatialControls() const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlPosition(int controlIndex) const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlVelocity(int controlIndex) const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlNormal(int controlIndex) const;
-        //Q_INVOKABLE glm::quat getSpatialControlRawRotation(int controlIndex) const;
-
         Q_INVOKABLE const QVariantMap& getHardware() { return _hardware; }
         Q_INVOKABLE const QVariantMap& getActions() { return _actions; }
         Q_INVOKABLE const QVariantMap& getStandard() { return _standard; }
@@ -170,9 +130,6 @@ namespace controller {
         bool _touchCaptured{ false };
         bool _wheelCaptured{ false };
         bool _actionsCaptured{ false };
-
-        bool _reticleVisible{ true };
-        float _reticleDepth { 1.0f };
     };
 
 
