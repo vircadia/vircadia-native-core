@@ -1055,6 +1055,15 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
 
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
+
+        auto& accountManager = AccountManager::getInstance();
+        if (!accountManager.getAccountInfo().hasPrivateKey()) {
+            qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
+            qWarning() << "Please re-launch your domain-server to generate a new keypair.";
+            
+            return;
+        }
+
         // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
         // QDataStream and the possibility of IPv6 address for the sockets.
         static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
@@ -1073,7 +1082,9 @@ void DomainServer::sendHeartbeatToIceServer() {
             HifiSockAddr publicSocket, localSocket;
             heartbeatStream >> senderUUID >> publicSocket >> localSocket;
 
-            if (publicSocket != limitedNodeList->getPublicSockAddr() || localSocket != limitedNodeList->getLocalSockAddr()) {
+            if (senderUUID != limitedNodeList->getSessionUUID()
+                || publicSocket != limitedNodeList->getPublicSockAddr()
+                || localSocket != limitedNodeList->getLocalSockAddr()) {
                 shouldRecreatePacket = true;
             }
         } else {
@@ -1095,7 +1106,6 @@ void DomainServer::sendHeartbeatToIceServer() {
             auto plaintext = QByteArray::fromRawData(heartbeatPacket->getPayload(), heartbeatPacket->getPayloadSize());
 
             // generate a signature for the plaintext data in the packet
-            auto& accountManager = AccountManager::getInstance();
             auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
 
             // pack the signature with the data

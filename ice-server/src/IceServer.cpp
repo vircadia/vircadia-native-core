@@ -237,8 +237,7 @@ void IceServer::publicKeyReplyFinished(QNetworkReply* reply) {
         if (responseObject[STATUS_KEY].toString() == SUCCESS_VALUE) {
             auto dataObject = responseObject[DATA_KEY].toObject();
             if (dataObject.contains(PUBLIC_KEY_KEY)) {
-                _domainPublicKeys.emplace(domainID,
-                                          QByteArray::fromBase64(dataObject[PUBLIC_KEY_KEY].toString().toUtf8()));
+                _domainPublicKeys[domainID] = QByteArray::fromBase64(dataObject[PUBLIC_KEY_KEY].toString().toUtf8());
             } else {
                 qWarning() << "There was no public key present in response for domain with ID" << domainID;
             }

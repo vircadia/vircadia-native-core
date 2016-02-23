@@ -589,6 +589,10 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         return;
     }
 
+    // clear the current private key
+    qDebug() << "Clearing current private key in DataServerAccountInfo";
+    _accountInfo.setPrivateKey(QByteArray());
+
     // setup a new QThread to generate the keypair on, in case it takes a while
     QThread* generateThread = new QThread(this);
     generateThread->setObjectName("Account Manager Generator Thread");
