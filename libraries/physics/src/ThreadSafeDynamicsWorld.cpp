@@ -96,19 +96,26 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
         ///@todo: add 'dirty' flag
         //if (body->getActivationState() != ISLAND_SLEEPING)
         {
+            btTransform bodyTransform;
+            btVector3 bodyLinearVelocity, bodyAngularVelocity;
             if (body->isKinematicObject()) {
                 ObjectMotionState* objectMotionState = static_cast<ObjectMotionState*>(body->getMotionState());
                 if (objectMotionState->hasInternalKinematicChanges()) {
                     objectMotionState->clearInternalKinematicChanges();
-                    body->getMotionState()->setWorldTransform(body->getWorldTransform());
                 }
-                return;
+                bodyTransform = body->getWorldTransform();
+                bodyLinearVelocity = body->getLinearVelocity();
+                bodyAngularVelocity = body->getAngularVelocity();
+            } else {
+                bodyTransform = body->getInterpolationWorldTransform();
+                bodyLinearVelocity = body->getInterpolationLinearVelocity();
+                bodyAngularVelocity = body->getInterpolationAngularVelocity();
             }
+
+            // integrate the object foward to cover the time in-between fixed time steps.
+            btScalar dt = (m_latencyMotionStateInterpolation && m_fixedTimeStep) ? m_localTime - m_fixedTimeStep : m_localTime * body->getHitFraction();
             btTransform interpolatedTransform;
-            btTransformUtil::integrateTransform(body->getInterpolationWorldTransform(),
-                body->getInterpolationLinearVelocity(),body->getInterpolationAngularVelocity(),
-                (m_latencyMotionStateInterpolation && m_fixedTimeStep) ? m_localTime - m_fixedTimeStep : m_localTime*body->getHitFraction(),
-                interpolatedTransform);
+            btTransformUtil::integrateTransform(bodyTransform, bodyLinearVelocity, bodyAngularVelocity, dt, interpolatedTransform);
             body->getMotionState()->setWorldTransform(interpolatedTransform);
         }
     }
