@@ -23,7 +23,7 @@
 
         _this.ERASER_TRIGGER_THRESHOLD = 0.1;
         _this.STROKE_NAME = "hifi-marker-stroke";
-        _this.ERASER_TO_STROKE_SEARCH_RADIUS = 0.2;
+        _this.ERASER_TO_STROKE_SEARCH_RADIUS = 0.4;
     };
 
     Eraser.prototype = {
@@ -67,7 +67,6 @@
             })
 
         },
-
 
         preload: function(entityID) {
             this.entityID = entityID;

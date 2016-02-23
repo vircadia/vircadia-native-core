@@ -5,6 +5,7 @@
 //  Created by Eric Levin on 2/17/15.
 //  Copyright 2016 High Fidelity, Inc.
 //
+//  This script provides the logic for an object to draw marker strokes on its associated whiteboard
 
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -39,17 +40,13 @@
             _this.equipped = true;
             _this.hand = params[0] == "left" ? 0 : 1;
         },
-        continueEquip: function() {
-            _this.continueHolding();
-
-        },
 
         releaseEquip: function() {
             _this.resetStroke();
         },
 
 
-        continueHolding: function() {
+        continueEquip: function() {
             // cast a ray from marker and see if it hits anything
             var markerProps = Entities.getEntityProperties(_this.entityID, ["position", "rotation"]);
 
@@ -58,8 +55,11 @@
                 direction: Quat.getFront(markerProps.rotation)
             }
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
-
             if (intersection.intersects) {
+                Overlays.editOverlay(_this.laserPointer, {
+                    visible: true,
+                    position: intersection.intersection
+                })
                 _this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
                 if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                     _this.paint(intersection.intersection)
@@ -68,6 +68,9 @@
                 }
             } else {
                 _this.resetStroke();
+                Overlays.editOverlay(_this.laserPointer, {
+                    visible: true
+                })
             }
 
         },
@@ -160,6 +163,7 @@
                     blue: 10
                 },
                 solid: true,
+                size: 0.01,
                 rotation: whiteboardProps.rotation
             });
             _this.markerColor = data.markerColor;

@@ -5,7 +5,8 @@
 //  Created by Eric Levina on 2/17/16
 //  Copyright 2016 High Fidelity, Inc.
 //
-//  Run this script to spawn a whiteboard and associated acoutrements that one can paint on usignmarkers
+//  Run this script to spawn a whiteboard, markers, and an eraser.
+//  To draw on the whiteboard, equip a marker and hold down trigger with marker tip pointed at whiteboard 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -45,7 +46,6 @@ var whiteboard = Entities.addEntity({
         y: 2.7034,
         z: 1.8653
     },
-    // visible: false
 });
 
 var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
@@ -69,14 +69,14 @@ var whiteboardDrawingSurface = Entities.addEntity({
     position: whiteboardSurfacePosition,
     rotation: orientation,
     visible: false,
-    // parentID: whiteboard
+    parentID: whiteboard
 });
 
 
 var WHITEBOARD_RACK_DEPTH = 1.9;
 
 var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser.fbx";
-var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js?v1" + Math.random());
+var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js");
 var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
 eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getFront(whiteboardRotation)));
 
@@ -141,7 +141,7 @@ function createMarkers() {
 
 
 function createMarker(modelURL, markerPosition, markerColor) {
-    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
+    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
     var marker = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
