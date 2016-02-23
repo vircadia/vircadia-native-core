@@ -251,6 +251,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }

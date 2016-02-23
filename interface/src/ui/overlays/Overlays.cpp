@@ -94,7 +94,7 @@ void Overlays::cleanupOverlaysToDelete() {
                 Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
                 auto itemID = overlay->getRenderItemID();
-                if (itemID != render::Item::INVALID_ITEM_ID) {
+                if (render::Item::isValidID(itemID)) {
                     overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
             } while (!_overlaysToDelete.isEmpty());
