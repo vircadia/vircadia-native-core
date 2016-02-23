@@ -191,7 +191,7 @@ void EntityMotionState::getWorldTransform(btTransform& worldTrans) const {
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation step...
-// iff the corresponding RigidBody is active.
+// iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
     if (!_entity) {
         return;
