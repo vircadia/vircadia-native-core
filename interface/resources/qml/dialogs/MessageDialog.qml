@@ -43,12 +43,35 @@ ModalWindow {
     property alias detailedText: detailedText.text
     property alias text: mainTextContainer.text
     property alias informativeText: informativeTextContainer.text
-    onIconChanged: iconHolder.updateIcon();
+    onIconChanged: updateIcon();
     property int buttons: OriginalDialogs.StandardButton.Ok
     property int icon: OriginalDialogs.StandardIcon.NoIcon
+    property string iconText: ""
     property int defaultButton: OriginalDialogs.StandardButton.NoButton;
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
     focus: defaultButton === OriginalDialogs.StandardButton.NoButton
+
+    function updateIcon() {
+        if (!root) {
+            return;
+        }
+        switch (root.icon) {
+            case OriginalDialogs.StandardIcon.Information:
+                iconText = "\uF05A";
+                break;
+            case OriginalDialogs.StandardIcon.Question:
+                iconText = "\uF059"
+                break;
+            case OriginalDialogs.StandardIcon.Warning:
+                iconText = "\uF071"
+                break;
+            case OriginalDialogs.StandardIcon.Critical:
+                iconText = "\uF057"
+                break;
+            default:
+                iconText = ""
+        }
+    }
 
     Item {
         id: messageBox
@@ -66,51 +89,10 @@ ModalWindow {
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = iconHolder.width + mainTextContainer.width + d.spacing * 6
+                var targetWidth = mainTextContainer.width
                 var targetHeight = mainTextContainer.implicitHeight + informativeTextContainer.implicitHeight + d.spacing * 8 + buttons.height + details.height
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
-            }
-        }
-
-        FontAwesome {
-            id: iconHolder
-            size: 30
-            anchors {
-                left: parent.left
-                top: parent.top
-                margins: d.spacing * 2
-            }
-            color: hifi.colors.lightGrayText
-
-            verticalAlignment: Text.AlignVCenter
-            horizontalAlignment: Text.AlignHCenter
-            Component.onCompleted: updateIcon();
-            function updateIcon() {
-                if (!root) {
-                    return;
-                }
-                switch (root.icon) {
-                    case OriginalDialogs.StandardIcon.Information:
-                        text = "\uF05A";
-                        break;
-
-                    case OriginalDialogs.StandardIcon.Question:
-                        text = "\uF059"
-                        break;
-
-                    case OriginalDialogs.StandardIcon.Warning:
-                        text = "\uF071"
-                        break;
-
-                    case OriginalDialogs.StandardIcon.Critical:
-                        text = "\uF057"
-                        break;
-
-                    default:
-                        text = ""
-                }
-                visible = (text != "");
             }
         }
 
@@ -120,7 +102,12 @@ ModalWindow {
             wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
-            anchors { left: iconHolder.right; top: parent.top; margins: d.spacing * 2 }
+            anchors {
+                left: parent.left;
+                top: parent.top;
+                margins: 0
+                topMargin: hifi.dimensions.contentSpacing.y
+            }
             lineHeight: 2
             lineHeightMode: Text.ProportionalHeight
         }
@@ -130,7 +117,7 @@ ModalWindow {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             wrapMode: Text.WordWrap
             font.pointSize: 11
-            anchors { top: mainTextContainer.bottom; right: parent.right; left: iconHolder.right; margins: d.spacing * 2 }
+            anchors { top: mainTextContainer.bottom; right: parent.right; left: parent.left; margins: d.spacing * 2 }
         }
 
         Flow {
@@ -199,6 +186,7 @@ ModalWindow {
             }
         ]
 
+        Component.onCompleted: updateIcon();
         onStateChanged: d.resize()
     }
 

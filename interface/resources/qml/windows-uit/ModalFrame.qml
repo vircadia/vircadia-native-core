@@ -39,19 +39,31 @@ Frame {
             color: hifi.colors.faintGray
         }
 
-        RalewayRegular {
-            text: window.title
-            elide: Text.ElideRight
-            color: hifi.colors.baseGrayHighlight
-            size: hifi.fontSizes.overlayTitle
-            y: -hifi.dimensions.modalDialogTitleHeight
-            anchors {
-                left: parent.left
-                right: parent.right
-            }
-            horizontalAlignment: Text.AlignHCenter
+        Item {
             visible: modalFrame.hasTitle
+            width: title.width + (window.iconText !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
+            x: (parent.width - width) / 2
+
+            FontAwesome {
+                id: icon
+                text: window.iconText
+                size: 30
+                color: hifi.colors.lightGrayText
+                visible: text != ""
+                y: -hifi.dimensions.modalDialogTitleHeight
+                anchors.left: parent.left
+            }
+            RalewayRegular {
+                id: title
+                text: window.title
+                elide: Text.ElideRight
+                color: hifi.colors.baseGrayHighlight
+                size: hifi.fontSizes.overlayTitle
+                y: -hifi.dimensions.modalDialogTitleHeight
+                anchors.right: parent.right
+            }
         }
+
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
