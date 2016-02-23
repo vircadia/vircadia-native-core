@@ -52,7 +52,6 @@ IceServer::IceServer(int argc, char* argv[]) :
     QTimer* inactivePeerTimer = new QTimer(this);
     connect(inactivePeerTimer, &QTimer::timeout, this, &IceServer::clearInactivePeers);
     inactivePeerTimer->start(CLEAR_INACTIVE_PEERS_INTERVAL_MSECS);
-
 }
 
 bool IceServer::packetVersionMatch(const udt::Packet& packet) {
@@ -80,6 +79,10 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             if (peer) {
                 // so that we can send packets to the heartbeating peer when we need, we need to activate a socket now
                 peer->activateMatchingOrNewSymmetricSocket(nlPacket->getSenderSockAddr());
+            } else {
+                // we couldn't verify this peer - respond back to them so they know they may need to perform keypair re-generation
+                static auto deniedPacket = NLPacket::create(PacketType::ICEServerHeartbeatDenied);
+                _serverSocket.writePacket(*deniedPacket, packet->getSenderSockAddr());
             }
         } else if (nlPacket->getType() == PacketType::ICEServerQuery) {
             QDataStream heartbeatStream(nlPacket.get());
