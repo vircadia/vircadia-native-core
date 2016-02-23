@@ -60,7 +60,7 @@ var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
   z: 0
 }), Vec3.multiply(1.5, Quat.getFront(Camera.getOrientation())));
 
-var CLEANUP = true;
+var CLEANUP = false;
 
 var BALL_FORWARD_OFFSET = -0.2 * SCALE;
 var BALL_RIGHT_OFFSET = -0.4 * SCALE;
