@@ -1,10 +1,21 @@
+//
+//  Desktop.qml
+//
+//  Created by Bradley Austin Davis on 25 Apr 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
-import QtQuick.Controls 1.2
+import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import "../controls"
-import "../styles"
-import "../windows"
+import "../controls-uit"
+import "../styles-uit"
+import "../windows-uit"
+
 import "messageDialog"
 
 // FIXME respect default button functionality
@@ -39,17 +50,16 @@ ModalWindow {
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
     focus: defaultButton === OriginalDialogs.StandardButton.NoButton
 
-    Rectangle {
+    Item {
         id: messageBox
         clip: true
-        anchors.fill: parent
-        radius: 4
-        color: "white"
+        width: pane.width
+        height: pane.height
 
         QtObject {
             id: d
-            readonly property real spacing: hifi.layout.spacing
-            readonly property real outerSpacing: hifi.layout.spacing * 2
+            readonly property real spacing: hifi.dimensions.contentSpacing.x
+            readonly property real outerSpacing: hifi.dimensions.contentSpacing.y
             readonly property int minWidth: 480
             readonly property int maxWdith: 1280
             readonly property int minHeight: 160
@@ -65,16 +75,16 @@ ModalWindow {
 
         FontAwesome {
             id: iconHolder
-            size: 48
+            size: 30
             anchors {
                 left: parent.left
                 top: parent.top
                 margins: d.spacing * 2
             }
+            color: hifi.colors.lightGrayText
 
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
-            style: Text.Outline; styleColor: "black"
             Component.onCompleted: updateIcon();
             function updateIcon() {
                 if (!root) {
@@ -83,22 +93,18 @@ ModalWindow {
                 switch (root.icon) {
                     case OriginalDialogs.StandardIcon.Information:
                         text = "\uF05A";
-                        color = "blue";
                         break;
 
                     case OriginalDialogs.StandardIcon.Question:
                         text = "\uF059"
-                        color = "blue";
                         break;
 
                     case OriginalDialogs.StandardIcon.Warning:
                         text = "\uF071"
-                        color = "yellow";
                         break;
 
                     case OriginalDialogs.StandardIcon.Critical:
                         text = "\uF057"
-                        color = "red"
                         break;
 
                     default:
@@ -108,12 +114,15 @@ ModalWindow {
             }
         }
 
-        Text {
+        RalewaySemibold {
             id: mainTextContainer
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             wrapMode: Text.WordWrap
-            font { pointSize: 14; weight: Font.Bold }
+            size: hifi.fontSizes.menuItem
+            color: hifi.colors.baseGrayHighlight
             anchors { left: iconHolder.right; top: parent.top; margins: d.spacing * 2 }
+            lineHeight: 2
+            lineHeightMode: Text.ProportionalHeight
         }
 
         Text {
