@@ -372,6 +372,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
@@ -2004,5 +2005,22 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
         }, [&limitedNodeList](const SharedNodePointer& otherNode){
             limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
         });
+    }
+}
+
+void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
+    static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+    static int numHeartbeatDenials = 0;
+    if (++numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
+        qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
+            << "- re-generating keypair now";
+
+        // we've hit our threshold of heartbeat denials, trigger a keypair re-generation
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        AccountManager::getInstance().generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+
+        // reset our number of heartbeat denials
+        numHeartbeatDenials = 0;
     }
 }

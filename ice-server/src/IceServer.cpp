@@ -82,7 +82,7 @@ void IceServer::processPacket(std::unique_ptr<udt::Packet> packet) {
             } else {
                 // we couldn't verify this peer - respond back to them so they know they may need to perform keypair re-generation
                 static auto deniedPacket = NLPacket::create(PacketType::ICEServerHeartbeatDenied);
-                _serverSocket.writePacket(*deniedPacket, packet->getSenderSockAddr());
+                _serverSocket.writePacket(*deniedPacket, nlPacket->getSenderSockAddr());
             }
         } else if (nlPacket->getType() == PacketType::ICEServerQuery) {
             QDataStream heartbeatStream(nlPacket.get());
