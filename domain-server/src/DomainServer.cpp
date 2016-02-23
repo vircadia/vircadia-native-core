@@ -1063,6 +1063,9 @@ void DomainServer::sendHeartbeatToIceServer() {
             qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
             qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
 
+            // hookup this slot to the signal from account manager that tells us when keypair is available
+            connect(&accountManager, &AccountManager::newKeypair, this, &DomainServer::sendHeartbeatToIceServer);
+
             if (!limitedNodeList->getSessionUUID().isNull()) {
                 accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
             } else {
@@ -1076,7 +1079,7 @@ void DomainServer::sendHeartbeatToIceServer() {
         // QDataStream and the possibility of IPv6 address for the sockets.
         static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
 
-        bool shouldRecreatePacket = false
+        bool shouldRecreatePacket = false;
 
         if (heartbeatPacket->getPayloadSize() > 0) {
             // if either of our sockets have changed we need to re-sign the heartbeat
