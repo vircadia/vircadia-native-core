@@ -564,7 +564,7 @@ function MyController(hand) {
             "additiveBlending": 0,
             "textures": "https://hifi-content.s3.amazonaws.com/alan/dev/textures/grabsprite-3.png"
         }
-       
+
         this.particleBeamObject = Entities.addEntity(particleBeamPropertiesObject);
     };
 
@@ -1588,7 +1588,9 @@ function MyController(hand) {
 
         ids.forEach(function(id) {
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
-            if (props.name === 'pointer') {
+            if (!props ||
+                !props.boundingBox ||
+                props.name === 'pointer') {
                 return;
             }
             var entityMinPoint = props.boundingBox.brn;

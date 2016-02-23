@@ -144,7 +144,12 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 ScriptEngine::~ScriptEngine() {
     qCDebug(scriptengine) << "Script Engine shutting down (destructor) for script:" << getFilename();
 
-    DependencyManager::get<ScriptEngines>()->removeScriptEngine(this);
+    auto scriptEngines = DependencyManager::get<ScriptEngines>();
+    if (scriptEngines) {
+        scriptEngines->removeScriptEngine(this);
+    } else {
+        qCWarning(scriptengine) << "Script destroyed after ScriptEngines!";
+    }
 }
 
 void ScriptEngine::disconnectNonEssentialSignals() {
