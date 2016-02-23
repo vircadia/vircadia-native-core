@@ -58,6 +58,8 @@ Fadable {
     // The content to place inside the window, determined by the client
     default property var content
 
+    function setDefaultFocus() {}  // Default function; can be overridden by dialogs.
+
     property var rectifier: Timer {
         property bool executing: false;
         interval: 100
