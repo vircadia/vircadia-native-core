@@ -16,7 +16,7 @@ Text {
     id: root
     FontLoader { id: hiFiGlyphs; source: "../../fonts/hifi-glyphs.ttf"; }
     property int size: 32
-    font.pixelSize: size  // Size this font in pixels because it's UI widgets.
+    font.pixelSize: size
     width: size
     height: size
     verticalAlignment: Text.AlignVCenter

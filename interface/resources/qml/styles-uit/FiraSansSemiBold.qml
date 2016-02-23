@@ -16,7 +16,7 @@ Text {
     id: root
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     property real size: 32
-    font.pointSize: size
+    font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
     font.family: firaSansSemiBold.name
