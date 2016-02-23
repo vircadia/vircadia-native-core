@@ -16,13 +16,9 @@
 
 <@include model/Material.slh@>
 
-// the albedo texture
-uniform sampler2D albedoMap;
-uniform sampler2D roughnessMap;
-
-// the emissive map texture and parameters
-uniform sampler2D emissiveMap;
-uniform vec2 emissiveParams;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS)$>
+<$declareMaterialLightmap()$>
 
 in vec4 _position;
 in vec2 _texCoord0;
@@ -31,10 +27,9 @@ in vec3 _normal;
 in vec3 _color;
 
 void main(void) {
-    // Fetch maps
-    vec4 albedo = texture(albedoMap, _texCoord0);
-    float roughness = texture(roughnessMap, _texCoord0);
-    vec4 emissive = texture(emissiveMap, _texCoord1);
+
+    <$fetchMaterialTextures(_texCoord0, albedo, roughness)$>
+    <$fetchMaterialLightmap(_texCoord1, emissive)$>
 
     Material mat = getMaterial();
 

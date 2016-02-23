@@ -15,8 +15,8 @@
 
 <@include model/Material.slh@>
 
-uniform sampler2D albedoMap;
-uniform sampler2D roughnessMap;
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS)$>
 
 in vec4 _position;
 in vec3 _normal;
@@ -25,10 +25,8 @@ in vec2 _texCoord0;
 
 
 void main(void) {
-    // Fetch maps
-    vec4 albedo = texture(albedoMap, _texCoord0);
-    float roughness = texture(roughnessMap, _texCoord0);
-
+    <$fetchMaterialTextures(_texCoord0, albedo, roughness)$>
+    
     Material mat = getMaterial();
 
     packDeferredFragment(

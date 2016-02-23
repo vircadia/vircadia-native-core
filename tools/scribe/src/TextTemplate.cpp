@@ -18,6 +18,8 @@ typedef TextTemplate::Block::Pointer BlockPointer;
 typedef TextTemplate::Config::Pointer ConfigPointer;
 typedef TextTemplate::Pointer TextTemplatePointer;
 
+const std::string TextTemplate::Tag::NULL_VAR = "_SCRIBE_NULL";
+
 //-----------------------------------------------------------------------------
 TextTemplate::Config::Config() :
     _includes(),
@@ -370,7 +372,11 @@ bool TextTemplate::convertExpressionToFuncArguments(String& src, std::vector< St
             token += c;
         } else if (c == ',') {
             if (!token.empty()) {
-                arguments.push_back(token);
+                if (token == Tag::NULL_VAR) {
+                    arguments.push_back(Tag::NULL_VAR);
+                } else {
+                    arguments.push_back(token);
+                }
                 nbTokens++;
             }
             token.clear();
@@ -750,7 +756,9 @@ int TextTemplate::evalBlockGeneration(std::ostream& dst, const BlockPointer& blo
                             paramCache.push_back((*it).second);
                             (*it).second = val;
                         } else {
-                            vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
+                            if (val != Tag::NULL_VAR) {
+                                vars.insert(Vars::value_type(funcBlock->command.arguments[i], val));
+                            }
                             paramCache.push_back("");
                         }
                     }

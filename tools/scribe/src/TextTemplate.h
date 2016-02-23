@@ -42,6 +42,8 @@ public:
         static const char VAR = '$';
         static const char COM = '@';
         static const char REM = '!';
+        
+        static const std::string NULL_VAR;
     };
 
     class Command {
