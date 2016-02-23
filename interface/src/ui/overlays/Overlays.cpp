@@ -241,7 +241,7 @@ bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
             render::ItemKey itemKey = render::payloadGetKey(thisOverlay);
             if (itemKey != oldItemKey) {
                 auto itemID = thisOverlay->getRenderItemID();
-                if (itemID != render::Item::INVALID_ITEM_ID) {
+                if (render::Item::isValidID(itemID)) {
                     render::ScenePointer scene = qApp->getMain3DScene();
                     render::PendingChanges pendingChanges;
                     pendingChanges.resortItem(itemID, oldItemKey, itemKey);
