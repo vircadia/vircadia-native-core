@@ -30,6 +30,7 @@
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
         _this.PAINTING_TRIGGER_THRESHOLD = 0.2;
+        this.STROKE_NAME = "hifi-marker-stroke";
     };
 
     MarkerTip.prototype = {
@@ -72,7 +73,7 @@
             _this.strokeBasePosition = position;
             _this.currentStroke = Entities.addEntity({
                 type: "PolyLine",
-                name: "marker stroke",
+                name: _this.STROKE_NAME,
                 dimensions: {
                     x: 10,
                     y: 10,
