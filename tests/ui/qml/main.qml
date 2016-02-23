@@ -87,11 +87,13 @@ ApplicationWindow {
                     var messageBox = desktop.messageBox({
                                            title: "Set Avatar",
                                            text: "Would you like to use 'Albert' for your avatar?",
-                                           icon: OriginalDialogs.StandardIcon.Question,
+                                           icon: OriginalDialogs.StandardIcon.Question,         // Test question icon
                                            //icon: OriginalDialogs.StandardIcon.Information,    // Test informaton icon
                                            //icon: OriginalDialogs.StandardIcon.Warning,        // Test warning icon
                                            //icon: OriginalDialogs.StandardIcon.Critical,       // Test critical icon
-                                           buttons: OriginalDialogs.StandardButton.Ok + OriginalDialogs.StandardButton.Cancel
+                                           //icon: OriginalDialogs.StandardIcon.NoIcon,         // Test no icon
+                                           buttons: OriginalDialogs.StandardButton.Ok + OriginalDialogs.StandardButton.Cancel,
+                                           defaultButton: OriginalDialogs.StandardButton.Ok
                                        });
                     messageBox.selected.connect(function(button) {
                         console.log("You clicked " + button)
