@@ -252,7 +252,9 @@ public:
         float _metallic{ 0.0f }; // Not Metallic
 
 
-        glm::vec4 _spare0{ 0.0f };
+        glm::vec3 _spare0{ 0.0f };
+
+        uint32_t _key{ 0 }; // a copy of the materialKey
 
         // for alignment beauty, Material size == Mat4x4
 

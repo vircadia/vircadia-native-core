@@ -14,6 +14,7 @@
 #include "Resource.h"
 
 #include <algorithm> //min max and more
+#include <bitset>
 
 #include <QUrl>
 
@@ -138,6 +139,53 @@ protected:
 
 class Texture : public Resource {
 public:
+
+    class Usage {
+    public:
+        enum FlagBit {
+            COLOR = 0,   // Texture is a color map
+            NORMAL,      // Texture is a normal map
+            ALPHA,      // Texture has an alpha channel
+            ALPHA_MASK,       // Texture alpha channel is a Mask 0/1
+
+            NUM_FLAGS,  
+        };
+        typedef std::bitset<NUM_FLAGS> Flags;
+
+        // The key is the Flags
+        Flags _flags;
+
+        Usage() : _flags(0) {}
+        Usage(const Flags& flags) : _flags(flags) {}
+
+        bool operator== (const Usage& rhs) const { return _flags == rhs._flags; }
+        bool operator!= (const Usage& rhs) const { return _flags != rhs._flags; }
+
+        class Builder {
+            friend class Usage;
+            Flags _flags{ 0 };
+        public:
+            Builder() {}
+
+            Usage build() const { return Usage(_flags); }
+
+            Builder& withColor() { _flags.set(COLOR); return (*this); }
+            Builder& withNormal() { _flags.set(NORMAL); return (*this); }
+            Builder& withAlpha() { _flags.set(ALPHA); return (*this); }
+            Builder& withAlphaMask() { _flags.set(ALPHA_MASK); return (*this); }
+        };
+        Usage(const Builder& builder) : Usage(builder._flags) {}
+
+        bool isColor() const { return _flags[COLOR]; }
+        bool isNormal() const { return _flags[NORMAL]; }
+
+        bool isAlpha() const { return _flags[ALPHA]; }
+        bool isAlphaMask() const { return _flags[ALPHA_MASK]; }
+
+
+        bool operator==(const Usage& usage) { return (_flags == usage._flags); }
+        bool operator!=(const Usage& usage) { return (_flags != usage._flags); }
+    };
 
     class Pixels {
     public:
@@ -343,6 +391,10 @@ public:
  
     bool isDefined() const { return _defined; }
 
+    // Usage is a a set of flags providing Semantic about the usage of the Texture.
+    void setUsage(const Usage& usage) { _usage = usage; }
+    Usage getUsage() const { return _usage; }
+
     // For Cube Texture, it's possible to generate the irradiance spherical harmonics and make them availalbe with the texture
     bool generateIrradiance();
     const SHPointer& getIrradiance(uint16 slice = 0) const { return _irradiance; }
@@ -379,6 +431,8 @@ protected:
     uint16 _maxMip = 0;
  
     Type _type = TEX_1D;
+
+    Usage _usage;
 
     SHPointer _irradiance;
     bool _autoGenerateMips = false;

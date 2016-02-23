@@ -105,6 +105,9 @@ signals:
     // Fired when something went wrong.
     void onFailure(NetworkGeometry& networkGeometry, Error error);
 
+public slots:
+    void textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture);
+
 protected slots:
     void mappingRequestDone(const QByteArray& data);
     void mappingRequestError(QNetworkReply::NetworkError error);
@@ -114,6 +117,7 @@ protected slots:
 
     void modelParseSuccess(FBXGeometry* geometry);
     void modelParseError(int error, QString str);
+
 
 protected:
     void attemptRequestInternal();
@@ -133,6 +137,7 @@ protected:
     QUrl _modelUrl;
     QVariantHash _mapping;
     QUrl _textureBaseUrl;
+    int numTextureLoaded = 0;
 
     Resource* _resource = nullptr;
     std::unique_ptr<FBXGeometry> _geometry; // This should go away evenutally once we can put everything we need in the model::AssetPointer
@@ -173,6 +178,7 @@ public:
 
 class NetworkMaterial {
 public:
+
     model::MaterialPointer _material;
     QString albedoTextureName;
     QSharedPointer<NetworkTexture> albedoTexture;
@@ -186,6 +192,7 @@ public:
     QSharedPointer<NetworkTexture> emissiveTexture;
     QString lightmapTextureName;
     QSharedPointer<NetworkTexture> lightmapTexture;
+
 };
 
 

@@ -18,6 +18,7 @@
 
 // the albedo texture
 uniform sampler2D albedoMap;
+uniform sampler2D roughnessMap;
 
 // the emissive map texture and parameters
 uniform sampler2D emissiveMap;
@@ -37,18 +38,19 @@ in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {
+    // Fetch maps
+    vec4 albedo = texture(albedoMap, _texCoord0);
+    float roughness = texture(roughnessMap, _texCoord0);
+    vec3 specular = texture(specularMap, _texCoord0).rgb;
+    vec4 emissive = texture(emissiveMap, _texCoord1);
+    vec3 localNormal = vec3(texture(normalMap, _texCoord0)) - vec3(0.5, 0.5, 0.5);
+
     // compute the view normal from the various bits
     vec3 normalizedNormal = normalize(_normal);
     vec3 normalizedTangent = normalize(_tangent);
     vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
-    vec3 localNormal = vec3(texture(normalMap, _texCoord0)) - vec3(0.5, 0.5, 0.5);
     vec4 viewNormal = vec4(normalizedTangent * localNormal.x +
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
-    
-    // set the albedo, normal, specular data
-    vec4 albedo = texture(albedoMap, _texCoord0);
-    vec3 specular = texture(specularMap, _texCoord0).rgb;
-    vec4 emissive = texture(emissiveMap, _texCoord1);
 
     Material mat = getMaterial();
 
@@ -56,7 +58,7 @@ void main(void) {
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialRoughness(mat),
+        getMaterialRoughness(mat) * roughness,
         getMaterialMetallic(mat),
         specular, // no use of getMaterialFresnel(mat)
         (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb));

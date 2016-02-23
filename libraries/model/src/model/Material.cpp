@@ -46,11 +46,13 @@ Material::~Material() {
 
 void Material::setEmissive(const Color&  emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._key = (uint32) _key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
 }
 
 void Material::setOpacity(float opacity) {
     _key.setTransparent((opacity < 1.0f));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
 
@@ -62,6 +64,7 @@ void Material::setAlbedo(const Color& albedo, bool isSRGB) {
 void Material::setRoughness(float roughness) {
     roughness = std::min(1.0f, std::max(roughness, 0.0f));
     _key.setGlossy((roughness < 1.0f));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._roughness = roughness;
 }
 
@@ -72,6 +75,7 @@ void Material::setFresnel(const Color& fresnel, bool isSRGB) {
 
 void Material::setMetallic(float metallic) {
     _key.setMetallic(metallic > 0.0f);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._metallic = metallic;
 }
 
@@ -79,9 +83,11 @@ void Material::setMetallic(float metallic) {
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
+        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
         _textureMaps[channel] = textureMap;
     } else {
         _key.setMapChannel(channel, (false));
+        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
         _textureMaps.erase(channel);
     }
 }

@@ -15,9 +15,11 @@
 <@include DeferredBufferWrite.slh@>
 
 <@include model/Material.slh@>
+<@include model/MaterialTextures.slh@>
 
 // the albedo texture
 uniform sampler2D albedoMap;
+uniform sampler2D roughnessMap;
 
 // the normal map texture
 uniform sampler2D normalMap;
@@ -38,6 +40,7 @@ void main(void) {
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
 
     vec4 albedo = texture(albedoMap, _texCoord0.st);
+    float roughness = texture(roughnessMap, _texCoord0);
 
     Material mat = getMaterial();
 
@@ -45,7 +48,7 @@ void main(void) {
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialRoughness(mat),
+        getMaterialRoughness(mat) * roughness,
         getMaterialMetallic(mat),
         getMaterialFresnel(mat));
 }

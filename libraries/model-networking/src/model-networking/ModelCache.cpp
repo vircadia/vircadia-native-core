@@ -316,7 +316,7 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     return networkMesh;
 }
 
-static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) {
+static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FBXMaterial& material, const QUrl& textureBaseUrl) {
     auto textureCache = DependencyManager::get<TextureCache>();
     NetworkMaterial* networkMaterial = new NetworkMaterial();
 
@@ -324,6 +324,9 @@ static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const 
 
     if (!material.albedoTexture.filename.isEmpty()) {
         networkMaterial->albedoTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.albedoTexture.filename)), DEFAULT_TEXTURE, material.albedoTexture.content);
+        QObject::connect(networkMaterial->albedoTexture.data(), &NetworkTexture::networkTextureCreated,
+            geometry, &NetworkGeometry::textureLoaded);
+
         networkMaterial->albedoTextureName = material.albedoTexture.name;
 
         auto albedoMap = model::TextureMapPointer(new model::TextureMap());
@@ -407,7 +410,7 @@ void NetworkGeometry::modelParseSuccess(FBXGeometry* geometry) {
     QHash<QString, size_t> fbxMatIDToMatID;
     foreach(const FBXMaterial& material, _geometry->materials) {
         fbxMatIDToMatID[material.materialID] = _materials.size();
-        _materials.emplace_back(buildNetworkMaterial(material, _textureBaseUrl));
+        _materials.emplace_back(buildNetworkMaterial(this, material, _textureBaseUrl));
     }
 
 
@@ -453,3 +456,6 @@ const NetworkMaterial* NetworkGeometry::getShapeMaterial(int shapeID) {
     }
 }
 
+void NetworkGeometry::textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture) {
+    numTextureLoaded++;
+}

@@ -37,4 +37,5 @@ float getMaterialMetallic(Material m) { return m._fresnelMetallic.a; }
 
 float getMaterialShininess(Material m) { return 1.0 - getMaterialRoughness(m); }
 
+
 <@endif@>

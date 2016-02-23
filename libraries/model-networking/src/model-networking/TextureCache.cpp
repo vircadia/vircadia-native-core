@@ -339,10 +339,6 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, int origin
     
     finishedLoading(true);
 
-    imageLoaded(image);
-}
-
-void NetworkTexture::imageLoaded(const QImage& image) {
-    // nothing by default
+    emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
 }
 
