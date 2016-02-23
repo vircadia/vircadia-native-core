@@ -47,16 +47,59 @@ var whiteboard = Entities.addEntity({
     }
 });
 
-var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {x: 0.0, y: 0.45, z: 0.0})
+var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
+    x: 0.0,
+    y: 0.45,
+    z: 0.0
+})
 var whiteboardDrawingSurface = Entities.addEntity({
     type: "Box",
     name: "whiteboardDrawingSurface",
-    dimensions: {x: 1.85, y: 1.8, z: 0.03},
-    color: {red: 200, green: 10, blue: 200},
+    dimensions: {
+        x: 1.85,
+        y: 1.8,
+        z: 0.03
+    },
+    color: {
+        red: 200,
+        green: 10,
+        blue: 200
+    },
     position: whiteboardSurfacePosition,
     rotation: orientation,
     visible: false,
     parentID: whiteboard
+});
+
+
+var WHITEBOARD_RACK_DEPTH = 1.9;
+
+var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser.fbx";
+var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
+eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getFront(whiteboardRotation)));
+
+var eraser = Entities.addEntity({
+    type: "Model",
+    modelURL: ERASER_MODEL_URL,
+    position: eraserPosition,
+    shapeType: "box",
+    dimensions: {
+        x: 0.0858,
+        y: 0.0393,
+        z: 0.2083
+    },
+    rotation: whiteboardRotation,
+    dynamic: true,
+    gravity: {
+        x: 0,
+        y: -1,
+        z: 0
+    },
+    velocity: {
+        x: 0,
+        y: -0.1,
+        z: 0
+    }
 });
 
 createMarkers();
@@ -68,7 +111,7 @@ function createMarkers() {
         "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/marker-black.fbx",
     ];
 
-    var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(1.9, Quat.getFront(orientation)));
+    var markerPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
 
     createMarker(modelURLS[0], markerPosition, {
         red: 10,
@@ -168,6 +211,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
 function cleanup() {
     Entities.deleteEntity(whiteboard);
     Entities.deleteEntity(whiteboardDrawingSurface);
+    Entities.deleteEntity(eraser);
     markers.forEach(function(marker) {
         Entities.deleteEntity(marker);
     });
