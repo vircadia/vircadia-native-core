@@ -99,19 +99,22 @@ signals:
     void loginFailed();
     void logoutComplete();
     void balanceChanged(qint64 newBalance);
+    void newKeypair();
 
 private slots:
     void processReply();
     void handleKeypairGenerationError();
     void processGeneratedKeypair();
+    void publicKeyUploadSuceeded();
+    void publicKeyUploadFailed();
 
 private:
     AccountManager();
     AccountManager(AccountManager const& other) = delete;
     void operator=(AccountManager const& other) = delete;
 
-    void persistAccountToSettings();
-    void removeAccountFromSettings();
+    void persistAccountToFile();
+    void removeAccountFromFile();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
@@ -123,6 +126,9 @@ private:
 
     DataServerAccountInfo _accountInfo;
     bool _isAgent { false };
+
+    bool _isWaitingForKeypairResponse { false };
+    QByteArray _pendingPrivateKey;
 };
 
 #endif // hifi_AccountManager_h
