@@ -70,7 +70,8 @@ var _this;
                 },
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
-                color: _this.markerColor
+                color: _this.markerColor,
+                lifetime: 1000
             });
 
             _this.linePoints = [];
