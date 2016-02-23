@@ -11,7 +11,8 @@
 import QtQuick 2.5
 
 import "."
-import "../controls"
+import "../controls-uit"
+import "../styles-uit"
 
 Frame {
     Item {
@@ -38,14 +39,25 @@ Frame {
             color: hifi.colors.faintGray
         }
 
-        Text {
-            y: -implicitHeight - iconSize / 2
+        RalewayRegular {
             text: window.title
             elide: Text.ElideRight
-            font.bold: true
-            color: window.focus ? "white" : "gray"
-            style: Text.Outline;
-            styleColor: "black"
+            color: hifi.colors.baseGrayHighlight
+            size: hifi.fontSizes.overlayTitle
+            y: -hifi.dimensions.modalDialogTitleHeight
+            anchors {
+                left: parent.left
+                right: parent.right
+            }
+            horizontalAlignment: Text.AlignHCenter
+            visible: modalFrame.hasTitle
+        }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: hifi.colors.lightGray
+            visible: modalFrame.hasTitle
         }
     }
 }
