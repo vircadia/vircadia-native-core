@@ -129,6 +129,15 @@ void AudioInjectorManager::run() {
 
 static const int MAX_INJECTORS_PER_THREAD = 40; // calculated based on AudioInjector time to send frame, with sufficient padding
 
+bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a lock.
+    if (_injectors.size() >= MAX_INJECTORS_PER_THREAD) {
+        qDebug() << "AudioInjectorManager::threadInjector could not thread AudioInjector - at max of"
+            << MAX_INJECTORS_PER_THREAD << "current audio injectors.";
+        return true;
+    }
+    return false;
+}
+
 bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     if (_shouldStop) {
         qDebug() << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
@@ -138,8 +147,9 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
     // guard the injectors vector with a mutex
     Lock lock(_injectorsMutex);
     
-    // check if we'll be able to thread this injector (do we have < max concurrent injectors)
-    if (_injectors.size() < MAX_INJECTORS_PER_THREAD) {
+    if (wouldExceedLimits()) {
+        return false;
+    } else {
         if (!_thread) {
             createThread();
         }
@@ -156,23 +166,22 @@ bool AudioInjectorManager::threadInjector(AudioInjector* injector) {
         _injectorReady.notify_one();
         
         return true;
-    } else {
-        // unable to thread this injector, at the max
-        qDebug() << "AudioInjectorManager::threadInjector could not thread AudioInjector - at max of"
-            << MAX_INJECTORS_PER_THREAD << "current audio injectors.";
-        return false;
     }
 }
 
-void AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
+bool AudioInjectorManager::restartFinishedInjector(AudioInjector* injector) {
     if (!_shouldStop) {
         // guard the injectors vector with a mutex
         Lock lock(_injectorsMutex);
         
+        if (wouldExceedLimits()) {
+            return false;
+        }
         // add the injector to the queue with a send timestamp of now
         _injectors.emplace(usecTimestampNow(), InjectorQPointer { injector });
         
         // notify our wait condition so we can inject two frames for this injector immediately
         _injectorReady.notify_one();
     }
+    return true;
 }
