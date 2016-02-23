@@ -27,11 +27,14 @@
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
 
-const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
+const float DEFAULT_CENTER_SPHERE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = (float)HALF_TREE_SCALE;
+
+// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
+// a central sphere for stuff that is nearby (for physics simulation).
 
 class ViewFrustum {
 public:
@@ -83,9 +86,9 @@ public:
     const glm::vec3& getNearBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_NEAR]; }
     const glm::vec3& getNearBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_NEAR]; }
 
-    // get/set for keyhole attribute
-    void  setKeyholeRadius(float keyholdRadius) { _keyholeRadius = keyholdRadius; }
-    float getKeyholeRadius() const { return _keyholeRadius; }
+    // get/set for central spherek attribute
+    void  setCenterRadius(float radius) { _centerSphereRadius = radius; }
+    float getCenterRadius() const { return _centerSphereRadius; }
 
     void calculate();
 
@@ -96,6 +99,7 @@ public:
     ViewFrustum::location cubeInFrustum(const AACube& cube) const;
     ViewFrustum::location boxInFrustum(const AABox& box) const;
 
+    /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
     ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
 
     // more efficient methods when only need boolean result
@@ -151,9 +155,7 @@ private:
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 
-    // keyhole attributes
-    float _keyholeRadius = DEFAULT_KEYHOLE_RADIUS;
-    AACube _keyholeBoundingCube;
+    float _centerSphereRadius = DEFAULT_CENTER_SPHERE_RADIUS;
 
     // Calculated values
     glm::mat4 _inverseProjection;

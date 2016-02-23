@@ -115,10 +115,6 @@ void ViewFrustum::calculate() {
 
     // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
     _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
-
-    // Set up our keyhole bounding box...
-    glm::vec3 corner = _position - _keyholeRadius;
-    _keyholeBoundingCube = AACube(corner,(_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -207,14 +203,14 @@ ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
     float distance = glm::length(cubeOffset);
     if (distance > EPSILON) {
         glm::vec3 vertex = cube.getFarthestVertex(cubeOffset) - _position;
-        if (glm::dot(vertex, cubeOffset) < _keyholeRadius * distance) {
+        if (glm::dot(vertex, cubeOffset) < _centerSphereRadius * distance) {
             // the most outward cube vertex is inside central sphere
             return INSIDE;
         }
-        if (!cube.touchesSphere(_position, _keyholeRadius)) {
+        if (!cube.touchesSphere(_position, _centerSphereRadius)) {
             sphereResult = OUTSIDE;
         }
-    } else if (_keyholeRadius > HALF_SQRT_THREE * cube.getScale()) {
+    } else if (_centerSphereRadius > HALF_SQRT_THREE * cube.getScale()) {
         // the cube is in center of sphere and its bounding radius is inside
         return INSIDE;
     }
@@ -227,7 +223,7 @@ ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
 
 bool ViewFrustum::sphereTouchesKeyhole(const glm::vec3& center, float radius) const {
     // check positive touch against central sphere
-    if (glm::length(center - _position) <= (radius + _keyholeRadius)) {
+    if (glm::length(center - _position) <= (radius + _centerSphereRadius)) {
         return true;
     }
     // check negative touches against frustum planes
@@ -241,7 +237,7 @@ bool ViewFrustum::sphereTouchesKeyhole(const glm::vec3& center, float radius) co
 
 bool ViewFrustum::cubeTouchesKeyhole(const AACube& cube) const {
     // check positive touch against central sphere
-    if (cube.touchesSphere(_position, _keyholeRadius)) {
+    if (cube.touchesSphere(_position, _centerSphereRadius)) {
         return true;
     }
     // check negative touches against frustum planes
@@ -256,7 +252,7 @@ bool ViewFrustum::cubeTouchesKeyhole(const AACube& cube) const {
 
 bool ViewFrustum::boxTouchesKeyhole(const AABox& box) const {
     // check positive touch against central sphere
-    if (box.touchesSphere(_position, _keyholeRadius)) {
+    if (box.touchesSphere(_position, _centerSphereRadius)) {
         return true;
     }
     // check negative touches against frustum planes
@@ -448,7 +444,7 @@ void ViewFrustum::printDebugDetails() const {
     qCDebug(octree, "_right=%f,%f,%f", (double)_right.x, (double)_right.y, (double)_right.z );
     qCDebug(octree, "_fieldOfView=%f", (double)_fieldOfView);
     qCDebug(octree, "_aspectRatio=%f", (double)_aspectRatio);
-    qCDebug(octree, "_keyHoleRadius=%f", (double)_keyholeRadius);
+    qCDebug(octree, "_centerSphereRadius=%f", (double)_centerSphereRadius);
     qCDebug(octree, "_nearClip=%f", (double)_nearClip);
     qCDebug(octree, "_farClip=%f", (double)_farClip);
     qCDebug(octree, "_focalLength=%f", (double)_focalLength);

@@ -50,7 +50,7 @@ void ViewFrustumTests::testInit() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     // check frustum dimensions
@@ -96,7 +96,7 @@ void ViewFrustumTests::testPointInFrustum() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -190,7 +190,7 @@ void ViewFrustumTests::testSphereInFrustum() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -319,7 +319,7 @@ void ViewFrustumTests::testCubeInFrustum() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -465,7 +465,7 @@ void ViewFrustumTests::testBoxInFrustum() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -610,7 +610,7 @@ void ViewFrustumTests::testCubeInKeyhole() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -808,7 +808,7 @@ void ViewFrustumTests::testSphereTouchesKeyhole() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -976,7 +976,7 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
@@ -1170,7 +1170,7 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     view.setProjection(glm::perspective(fovX, aspect, nearClip, farClip));
     view.setPosition(center);
     view.setOrientation(rotation);
-    view.setKeyholeRadius(holeRadius);
+    view.setCenterRadius(holeRadius);
     view.calculate();
 
     float delta = 0.1f;
