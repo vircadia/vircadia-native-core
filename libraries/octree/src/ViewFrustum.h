@@ -100,12 +100,12 @@ public:
     ViewFrustum::location boxInFrustum(const AABox& box) const;
 
     /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
-    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
+    ViewFrustum::location calculateCubeKeyholeIntersection(const AACube& cube) const;
 
     // more efficient methods when only need boolean result
-    bool sphereTouchesKeyhole(const glm::vec3& center, float radius) const;
-    bool cubeTouchesKeyhole(const AACube& cube) const;
-    bool boxTouchesKeyhole(const AABox& box) const;
+    bool sphereIntersectsKeyhole(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsKeyhole(const AACube& cube) const;
+    bool boxIntersectsKeyhole(const AABox& box) const;
 
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;

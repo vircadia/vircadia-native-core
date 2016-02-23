@@ -3423,7 +3423,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    if (_viewFrustum.cubeTouchesKeyhole(serverBounds)) {
+                    if (_viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
                         inViewServers++;
                     }
                 }
@@ -3489,7 +3489,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    inView = _viewFrustum.cubeTouchesKeyhole(serverBounds);
+                    inView = _viewFrustum.cubeIntersectsKeyhole(serverBounds);
                 } else {
                     if (wantExtraDebugging) {
                         qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";

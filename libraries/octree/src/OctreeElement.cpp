@@ -459,7 +459,7 @@ float OctreeElement::getEnclosingRadius() const {
 }
 
 ViewFrustum::location OctreeElement::computeViewLocation(const ViewFrustum& viewFrustum) const {
-    return viewFrustum.cubeInKeyhole(_cube);
+    return viewFrustum.calculateCubeKeyholeIntersection(_cube);
 }
 
 // There are two types of nodes for which we want to "render"

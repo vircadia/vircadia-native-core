@@ -629,28 +629,28 @@ void ViewFrustumTests::testCubeInKeyhole() {
     localOffset = (cubeDistance - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     localOffset = cubeDistance * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     localOffset = (cubeDistance + cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // nearPlane
     localOffset = (nearClip + 2.0f * cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     localOffset = (nearClip + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     // topPlane
     angle = 0.5f * fovY;
@@ -658,19 +658,19 @@ void ViewFrustumTests::testCubeInKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // bottom plane
     angle = -0.5f * fovY;
@@ -678,19 +678,19 @@ void ViewFrustumTests::testCubeInKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // right plane
     angle = 0.5f * fovX;
@@ -698,19 +698,19 @@ void ViewFrustumTests::testCubeInKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // left plane
     angle = -0.5f * fovX;
@@ -718,79 +718,79 @@ void ViewFrustumTests::testCubeInKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // central sphere right
     localOffset = (holeRadius - cubeBoundingRadius - delta) * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     localOffset = holeRadius * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // central sphere up
     localOffset = (holeRadius - cubeBoundingRadius - delta) * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     localOffset = holeRadius * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // central sphere back
     localOffset = (-holeRadius + cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE);
 
     localOffset = - holeRadius * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT);
 
     localOffset = (-holeRadius - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::OUTSIDE);
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::OUTSIDE);
 
     // central sphere center
     float bigCubeScale = 2.0f * holeRadius / sqrtf(3.0f) - delta;
     cube.setBox(center - glm::vec3(0.5f * bigCubeScale), bigCubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INSIDE); // smaller than sphere
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INSIDE); // smaller than sphere
 
     bigCubeScale = 2.0f * holeRadius / sqrtf(3.0f) + delta;
     cube.setBox(center - glm::vec3(0.5f * bigCubeScale), bigCubeScale);
-    QCOMPARE(view.cubeInKeyhole(cube), ViewFrustum::INTERSECT); // larger than sphere
+    QCOMPARE(view.calculateCubeKeyholeIntersection(cube), ViewFrustum::INTERSECT); // larger than sphere
 }
 
-void ViewFrustumTests::testSphereTouchesKeyhole() {
+void ViewFrustumTests::testSphereIntersectsKeyhole() {
     float aspect = 1.0f;
     float fovX = PI / 2.0f;
     float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
@@ -823,142 +823,142 @@ void ViewFrustumTests::testSphereTouchesKeyhole() {
     // farPlane
     localOffset = (sphereDistance - sphereRadius - delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     localOffset = sphereDistance * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     localOffset = (sphereDistance + sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside
 
     // nearPlane
     localOffset = (nearClip + 2.0f * sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     localOffset = (nearClip - sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     localOffset = (nearClip - sphereRadius - delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // touches central sphere
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // touches central sphere
 
     // topPlane
     angle = 0.5f * fovY - sphereAngle;
     elevation = glm::angleAxis(angle - deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     angle = 0.5f * fovY + sphereAngle;
     elevation = glm::angleAxis(angle - deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     elevation = glm::angleAxis(angle + deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside
 
     // bottom plane
     angle = -0.5f * fovY + sphereAngle;
     elevation = glm::angleAxis(angle + deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     angle = -0.5f * fovY - sphereAngle;
     elevation = glm::angleAxis(angle + deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     elevation = glm::angleAxis(angle - deltaAngle, localRight);
     localOffset = elevation * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside
 
     // right plane
     angle = 0.5f * fovX - sphereAngle;
     swing = glm::angleAxis(angle - deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     angle = 0.5f * fovX + sphereAngle;
     swing = glm::angleAxis(angle - deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     swing = glm::angleAxis(angle + deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside
 
     // left plane
     angle = -0.5f * fovX + sphereAngle;
     swing = glm::angleAxis(angle + deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside
 
     angle = -0.5f * fovX - sphereAngle;
     swing = glm::angleAxis(angle + deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect
 
     swing = glm::angleAxis(angle - sphereAngle - deltaAngle, localUp);
     localOffset = swing * (sphereDistance * localForward);
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside
 
     // central sphere right
     localOffset = (holeRadius - sphereRadius - delta) * localRight;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside right
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside right
 
     localOffset = holeRadius * localRight;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect right
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect right
 
     localOffset = (holeRadius + sphereRadius + delta) * localRight;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside right
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside right
 
     // central sphere up
     localOffset = (holeRadius - sphereRadius - delta) * localUp;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside up
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside up
 
     localOffset = holeRadius * localUp;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect up
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect up
 
     localOffset = (holeRadius + sphereRadius + delta) * localUp;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside up
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside up
 
     // central sphere back
     localOffset = (-holeRadius + sphereRadius + delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // inside back
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // inside back
 
     localOffset = - holeRadius * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), true); // intersect back
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), true); // intersect back
 
     localOffset = (-holeRadius - sphereRadius - delta) * localForward;
     sphereCenter = center + rotation * localOffset;
-    QCOMPARE(view.sphereTouchesKeyhole(sphereCenter, sphereRadius), false); // outside back
+    QCOMPARE(view.sphereIntersectsKeyhole(sphereCenter, sphereRadius), false); // outside back
 }
 
-void ViewFrustumTests::testCubeTouchesKeyhole() {
+void ViewFrustumTests::testCubeIntersectsKeyhole() {
     float aspect = 1.0f;
     float fovX = PI / 2.0f;
     float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
@@ -995,33 +995,33 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     localOffset = (cubeDistance - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true);
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true);
 
     localOffset = cubeDistance * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true);
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true);
 
     localOffset = (cubeDistance + cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false);
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false);
 
     // nearPlane
     localOffset = (nearClip + 2.0f * cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside
 
     localOffset = (nearClip + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
 
     localOffset = (nearClip - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // touches centeral sphere
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // touches centeral sphere
 
     // topPlane
     angle = 0.5f * fovY;
@@ -1029,19 +1029,19 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
 
     elevation = glm::angleAxis(angle + cubeAngle + deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside
 
     // bottom plane
     angle = -0.5f * fovY;
@@ -1049,19 +1049,19 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
 
     elevation = glm::angleAxis(angle - cubeAngle - deltaAngle, localRight);
     localOffset = elevation * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside
 
     // right plane
     angle = 0.5f * fovX;
@@ -1069,19 +1069,19 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
 
     swing = glm::angleAxis(angle + cubeAngle + deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside
 
     // left plane
     angle = -0.5f * fovX;
@@ -1089,70 +1089,70 @@ void ViewFrustumTests::testCubeTouchesKeyhole() {
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect
 
     swing = glm::angleAxis(angle - cubeAngle - deltaAngle, localUp);
     localOffset = swing * (cubeDistance * localForward);
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside
 
     // central sphere right
     localOffset = (holeRadius - cubeBoundingRadius - delta) * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside right
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside right
 
     localOffset = holeRadius * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect right
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect right
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localRight;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside right
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside right
 
     // central sphere up
     localOffset = (holeRadius - cubeBoundingRadius - delta) * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside up
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside up
 
     localOffset = holeRadius * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect up
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect up
 
     localOffset = (holeRadius + cubeBoundingRadius + delta) * localUp;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside up
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside up
 
     // central sphere back
     localOffset = (-holeRadius + cubeBoundingRadius + delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // inside back
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // inside back
 
     localOffset = - holeRadius * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), true); // intersect back
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), true); // intersect back
 
     localOffset = (-holeRadius - cubeBoundingRadius - delta) * localForward;
     cubeCenter = center + rotation * localOffset;
     cube.setBox(cubeCenter - halfScaleOffset, cubeScale);
-    QCOMPARE(view.cubeTouchesKeyhole(cube), false); // outside back
+    QCOMPARE(view.cubeIntersectsKeyhole(cube), false); // outside back
 }
 
-void ViewFrustumTests::testBoxTouchesKeyhole() {
+void ViewFrustumTests::testBoxIntersectsKeyhole() {
     float aspect = 1.0f;
     float fovX = PI / 2.0f;
     float fovY = 2.0f * asinf(sinf(0.5f * fovX) / aspect);
@@ -1189,33 +1189,33 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     localOffset = (boxDistance - boxBoundingRadius - delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true);
+    QCOMPARE(view.boxIntersectsKeyhole(box), true);
 
     localOffset = boxDistance * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true);
+    QCOMPARE(view.boxIntersectsKeyhole(box), true);
 
     localOffset = (boxDistance + boxBoundingRadius + delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false);
+    QCOMPARE(view.boxIntersectsKeyhole(box), false);
 
     // nearPlane
     localOffset = (nearClip + 2.0f * boxBoundingRadius + delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside
 
     localOffset = (nearClip + delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
 
     localOffset = (nearClip - boxBoundingRadius - delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // touches centeral sphere
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // touches centeral sphere
 
     // topPlane
     angle = 0.5f * fovY;
@@ -1223,19 +1223,19 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
 
     elevation = glm::angleAxis(angle + boxAngle + deltaAngle, localRight);
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside
 
     // bottom plane
     angle = -0.5f * fovY;
@@ -1243,19 +1243,19 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside
 
     elevation = glm::angleAxis(angle, localRight);
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
 
     elevation = glm::angleAxis(angle - boxAngle - deltaAngle, localRight);
     localOffset = elevation * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside
 
     // right plane
     angle = 0.5f * fovX;
@@ -1263,19 +1263,19 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
 
     swing = glm::angleAxis(angle + boxAngle + deltaAngle, localUp);
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside
 
     // left plane
     angle = -0.5f * fovX;
@@ -1283,65 +1283,65 @@ void ViewFrustumTests::testBoxTouchesKeyhole() {
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside
 
     swing = glm::angleAxis(angle, localUp);
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect
 
     swing = glm::angleAxis(angle - boxAngle - deltaAngle, localUp);
     localOffset = swing * (boxDistance * localForward);
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside
 
     // central sphere right
     localOffset = (holeRadius - boxBoundingRadius - delta) * localRight;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside right
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside right
 
     localOffset = holeRadius * localRight;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect right
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect right
 
     localOffset = (holeRadius + boxBoundingRadius + delta) * localRight;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside right
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside right
 
     // central sphere up
     localOffset = (holeRadius - boxBoundingRadius - delta) * localUp;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside up
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside up
 
     localOffset = holeRadius * localUp;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect up
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect up
 
     localOffset = (holeRadius + boxBoundingRadius + delta) * localUp;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside up
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside up
 
     // central sphere back
     localOffset = (-holeRadius + boxBoundingRadius + delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // inside back
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // inside back
 
     localOffset = - holeRadius * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), true); // intersect back
+    QCOMPARE(view.boxIntersectsKeyhole(box), true); // intersect back
 
     localOffset = (-holeRadius - boxBoundingRadius - delta) * localForward;
     boxCenter = center + rotation * localOffset;
     box.setBox(boxCenter - halfScaleOffset, boxScale);
-    QCOMPARE(view.boxTouchesKeyhole(box), false); // outside back
+    QCOMPARE(view.boxIntersectsKeyhole(box), false); // outside back
 }

@@ -196,7 +196,7 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
 
 const float HALF_SQRT_THREE = 0.8660254f;
 
-ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
+ViewFrustum::location ViewFrustum::calculateCubeKeyholeIntersection(const AACube& cube) const {
     // check against centeral sphere
     ViewFrustum::location sphereResult = INTERSECT;
     glm::vec3 cubeOffset = cube.calcCenter() - _position;
@@ -221,7 +221,7 @@ ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
     return (frustumResult == OUTSIDE) ? sphereResult : frustumResult;
 }
 
-bool ViewFrustum::sphereTouchesKeyhole(const glm::vec3& center, float radius) const {
+bool ViewFrustum::sphereIntersectsKeyhole(const glm::vec3& center, float radius) const {
     // check positive touch against central sphere
     if (glm::length(center - _position) <= (radius + _centerSphereRadius)) {
         return true;
@@ -235,7 +235,7 @@ bool ViewFrustum::sphereTouchesKeyhole(const glm::vec3& center, float radius) co
     return true;
 }
 
-bool ViewFrustum::cubeTouchesKeyhole(const AACube& cube) const {
+bool ViewFrustum::cubeIntersectsKeyhole(const AACube& cube) const {
     // check positive touch against central sphere
     if (cube.touchesSphere(_position, _centerSphereRadius)) {
         return true;
@@ -250,7 +250,7 @@ bool ViewFrustum::cubeTouchesKeyhole(const AACube& cube) const {
     return true;
 }
 
-bool ViewFrustum::boxTouchesKeyhole(const AABox& box) const {
+bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
     // check positive touch against central sphere
     if (box.touchesSphere(_position, _centerSphereRadius)) {
         return true;
