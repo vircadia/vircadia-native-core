@@ -75,7 +75,7 @@
         function createEmitNumberPropertyUpdateFunction(propertyName) {
             return function() {
                 EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":' + Number(this.value.toFixed(4)) + '}}'
+                    '{ "type":"update", "properties":{"' + propertyName + '":' + parseFloat(this.value).toFixed(4) + '}}'
                 );
             };
         }

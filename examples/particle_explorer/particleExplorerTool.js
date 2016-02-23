@@ -32,11 +32,9 @@ ParticleExplorerTool = function() {
 
     that.destroyWebView = function() {
         if (!that.webView) {
-            print("EBL CAN'ZT CLOSE WEB VIEW- IT DOESNT EXISTS!")
             return;
         }
 
-        print("EBL CLOSING WEB VIEW")
         that.webView.close();
         that.webView = null;
         that.activeParticleEntity = 0;
