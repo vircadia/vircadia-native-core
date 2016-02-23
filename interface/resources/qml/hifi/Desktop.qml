@@ -15,13 +15,7 @@ Desktop {
         scrollGestureEnabled: false // we don't need/want these
         onEntered: ApplicationCompositor.reticleOverDesktop = true
         onExited: ApplicationCompositor.reticleOverDesktop = false
-        onClicked: mouse.accepted = false
-        onCanceled: mouse.accepted = false
-        onDoubleClicked: mouse.accepted = false
-        onPressed: mouse.accepted = false
-        onReleased: mouse.accepted = false
-        onWheel: mouse.accepted = false
-        onPositionChanged: mouse.accepted = false
+        acceptedButtons: Qt.NoButton
     }
 
     Component.onCompleted: {
