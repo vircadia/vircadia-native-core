@@ -54,6 +54,18 @@ TreeView {
         backgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightEven : hifi.colors.tableRowDarkEven
         alternateBackgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
 
+        branchDelegate: HiFiGlyphs {
+            text: styleData.isExpanded ? "Z" : "B"
+            size: hifi.fontSizes.tableText * 2.5  // tableText is in points; proportionately scale to pixels
+            color: colorScheme == hifi.colorSchemes.light
+                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+            anchors {
+                left: parent.left
+                leftMargin: hifi.dimensions.tablePadding / 2
+            }
+        }
+
         handle: Item {
             id: scrollbarHandle
             implicitWidth: 6
