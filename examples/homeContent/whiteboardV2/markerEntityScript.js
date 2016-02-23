@@ -40,12 +40,8 @@
             _this.hand = params[0] == "left" ? 0 : 1;
         },
         continueEquip: function() {
-            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
-            if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD) {
-                _this.continueHolding();
-            } else {
-               _this.resetStroke();
-            }
+            _this.continueHolding();
+
         },
 
         releaseEquip: function() {
@@ -62,12 +58,21 @@
                 direction: Quat.getFront(markerProps.rotation)
             }
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
-            if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
-                this.paint(intersection.intersection)
+
+            if (intersection.intersects) {
+                _this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
+                if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
+                    _this.paint(intersection.intersection)
+                } else {
+                    _this.resetStroke();
+                }
             } else {
-               _this.resetStroke();
+                _this.resetStroke();
             }
+
         },
+
+
 
         newStroke: function(position) {
             _this.strokeBasePosition = position;
@@ -103,7 +108,7 @@
 
             var localPoint = Vec3.subtract(basePosition, this.strokeBasePosition);
             localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
-            // _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
+            _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
             if (_this.linePoints.length > 0) {
                 var distance = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length - 1]);
@@ -138,12 +143,25 @@
 
         },
 
+        unload: function() {
+            Overlays.deleteOverlay(_this.laserPointer);
+        },
+
         setProperties: function(myId, data) {
             var data = JSON.parse(data);
 
             _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
             _this.whiteboardNormal = Quat.getFront(whiteboardProps.rotation);
+            _this.laserPointer = Overlays.addOverlay("circle3d", {
+                color: {
+                    red: 200,
+                    green: 10,
+                    blue: 10
+                },
+                solid: true,
+                rotation: whiteboardProps.rotation
+            });
             _this.markerColor = data.markerColor;
         }
     };
