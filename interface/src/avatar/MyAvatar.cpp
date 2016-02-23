@@ -1873,7 +1873,7 @@ bool MyAvatar::FollowHelper::shouldActivate(const MyAvatar& myAvatar, const glm:
     const float CYLINDER_RADIUS = 0.15f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    glm::vec3 radialOffset(offset.x, 0.0f, offset.y);
+    glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
     float radialDistance = glm::length(radialOffset);
 
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (radialDistance > CYLINDER_RADIUS);
