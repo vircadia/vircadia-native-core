@@ -280,6 +280,7 @@ public slots:
     void runTests();
 
 private slots:
+    void showDesktop();
     void clearDomainOctreeDetails();
     void idle(uint64_t now);
     void aboutToQuit();

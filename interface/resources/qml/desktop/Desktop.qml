@@ -10,11 +10,18 @@ import "../js/Utils.js" as Utils
 // windows will be childed.
 FocusScope {
     id: desktop
-    anchors.fill: parent;
     objectName: "desktop"
+
+    // Allow the scale of the desktop to be changed without screwing up the size relative to the parent.
+    height: parent.height / scale
+    width: parent.width / scale
 
     onHeightChanged: d.repositionAll();
     onWidthChanged: d.repositionAll();
+
+    // Controls and windows can trigger this signal to ensure the desktop becomes visible
+    // when they're opened.
+    signal showDesktop();
 
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
@@ -217,6 +224,8 @@ FocusScope {
         }
 
         reposition(targetWindow);
+
+        showDesktop();
     }
 
     function reposition(item) {
@@ -314,7 +323,7 @@ FocusScope {
         enabled: DebugQML
         onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
-
+    
 }
 
 

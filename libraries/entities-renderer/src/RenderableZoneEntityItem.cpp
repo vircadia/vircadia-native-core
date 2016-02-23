@@ -230,6 +230,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
@@ -237,7 +238,7 @@ void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shar
 
 
 void RenderableZoneEntityItem::notifyBoundChanged() {
-    if (_myMetaItem == render::Item::INVALID_ITEM_ID) {
+    if (!render::Item::isValidID(_myMetaItem)) {
         return;
     }
     render::PendingChanges pendingChanges;

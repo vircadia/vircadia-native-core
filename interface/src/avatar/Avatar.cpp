@@ -315,6 +315,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemID);
+    render::Item::clearID(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
     getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
     for (auto& attachmentModel : _attachmentModels) {
@@ -323,7 +324,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
-    if (_renderItemID != render::Item::INVALID_ITEM_ID) {
+    if (render::Item::isValidID(_renderItemID)) {
         pendingChanges.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
     }
 }
