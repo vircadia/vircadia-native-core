@@ -91,7 +91,6 @@ var SCALE= 0.5
             var finalOffset = Vec3.sum(vertical, Vec3.multiply(right, BALL_RIGHT_OFFSET));
             finalOffset = Vec3.sum(finalOffset, Vec3.multiply(front, BALL_FORWARD_OFFSET));
             var location = Vec3.sum(mazeProps.position, finalOffset);
-            // print('BALL START LOCATION:: ' + JSON.stringify(location))
             return location;
         },
         createBall: function() {
