@@ -1057,9 +1057,17 @@ void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
 
         auto& accountManager = AccountManager::getInstance();
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
         if (!accountManager.getAccountInfo().hasPrivateKey()) {
             qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
-            qWarning() << "Please re-launch your domain-server to generate a new keypair.";
+            qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
+
+            if (!limitedNodeList->getSessionUUID().isNull()) {
+                accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+            } else {
+                qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
+            }
             
             return;
         }
@@ -1068,9 +1076,7 @@ void DomainServer::sendHeartbeatToIceServer() {
         // QDataStream and the possibility of IPv6 address for the sockets.
         static auto heartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
 
-        bool shouldRecreatePacket = false;
-
-        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        bool shouldRecreatePacket = false
 
         if (heartbeatPacket->getPayloadSize() > 0) {
             // if either of our sockets have changed we need to re-sign the heartbeat

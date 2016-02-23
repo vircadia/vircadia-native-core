@@ -359,6 +359,8 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
             qCDebug(networking) << "Received JSON response from metaverse API that has no matching callback.";
             qCDebug(networking) << QJsonDocument::fromJson(requestReply->readAll());
         }
+
+        requestReply->deleteLater();
     }
 }
 
@@ -378,6 +380,8 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
             qCDebug(networking) << "Error" << requestReply->error() << "-" << requestReply->errorString();
             qCDebug(networking) << requestReply->readAll();
         }
+
+        requestReply->deleteLater();
     }
 }
 
@@ -607,7 +611,6 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
         if (!isUserKeypair) {
             keypairGenerator->setDomainID(domainID);
             _accountInfo.setDomainID(domainID);
-            qDebug() << "The account info domain ID is now" << _accountInfo.getDomainID();
         }
 
         // start keypair generation when the thread starts
@@ -630,7 +633,7 @@ void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainI
 
 void AccountManager::processGeneratedKeypair() {
     
-    qCDebug(networking) << "Generated 2048-bit RSA keypair. Storing private key and uploading public key.";
+    qCDebug(networking) << "Generated 2048-bit RSA keypair. Uploading public key now.";
 
     RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
 
@@ -677,7 +680,9 @@ void AccountManager::processGeneratedKeypair() {
     }
 }
 
-void AccountManager::publicKeyUploadSuceeded() {
+void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
+    qDebug() << "Uploaded public key to Metaverse API. RSA keypair generation is completed.";
+
     // public key upload complete - store the matching private key and persist the account to settings
     _accountInfo.setPrivateKey(_pendingPrivateKey);
     _pendingPrivateKey.clear();
@@ -687,16 +692,23 @@ void AccountManager::publicKeyUploadSuceeded() {
     _isWaitingForKeypairResponse = false;
 
     emit newKeypair();
+
+    // delete the reply object now that we are done with it
+    reply.deleteLater();
 }
 
-void AccountManager::publicKeyUploadFailed() {
+void AccountManager::publicKeyUploadFailed(QNetworkReply& reply) {
     // the public key upload has failed
+    qWarning() << "Public key upload failed from AccountManager" << reply.errorString();
 
     // we aren't waiting for a response any longer
     _isWaitingForKeypairResponse = false;
 
     // clear our pending private key
     _pendingPrivateKey.clear();
+
+    // delete the reply object now that we are done with it
+    reply.deleteLater();
 }
 
 void AccountManager::handleKeypairGenerationError() {

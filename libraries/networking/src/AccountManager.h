@@ -105,8 +105,8 @@ private slots:
     void processReply();
     void handleKeypairGenerationError();
     void processGeneratedKeypair();
-    void publicKeyUploadSuceeded();
-    void publicKeyUploadFailed();
+    void publicKeyUploadSucceeded(QNetworkReply& reply);
+    void publicKeyUploadFailed(QNetworkReply& reply);
 
 private:
     AccountManager();
