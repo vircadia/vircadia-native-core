@@ -315,11 +315,17 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 }
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
+    QObject::disconnect(&_updateTimer);
+    QObject::disconnect(qApp);
     _renderer->stop();
     delete _rootItem;
     delete _renderer;
     delete _qmlComponent;
     delete _qmlEngine;
+}
+
+void OffscreenQmlSurface::onAboutToQuit() {
+    QObject::disconnect(&_updateTimer);
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
@@ -334,12 +340,9 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     _updateTimer.setInterval(MIN_TIMER_MS);
-    connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [this]{
-        disconnect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    });
+    QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
     _updateTimer.start();
-
     _qmlComponent = new QQmlComponent(_qmlEngine);
     _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 }

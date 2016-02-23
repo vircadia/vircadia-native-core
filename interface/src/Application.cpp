@@ -3906,16 +3906,8 @@ void Application::resetSensors(bool andReload) {
     DependencyManager::get<Faceshift>()->reset();
     DependencyManager::get<DdeFaceTracker>()->reset();
     DependencyManager::get<EyeTracker>()->reset();
-
     getActiveDisplayPlugin()->resetSensors();
-
-    QScreen* currentScreen = _window->windowHandle()->screen();
-    QWindow* mainWindow = _window->windowHandle();
-    QPoint windowCenter = mainWindow->geometry().center();
-    _glWidget->cursor().setPos(currentScreen, windowCenter);
-
     getMyAvatar()->reset(andReload);
-
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "reset", Qt::QueuedConnection);
 }
 

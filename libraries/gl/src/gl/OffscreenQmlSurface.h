@@ -74,6 +74,7 @@ signals:
 public slots:
     void requestUpdate();
     void requestRender();
+    void onAboutToQuit();
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);

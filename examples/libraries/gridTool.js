@@ -12,24 +12,26 @@ Grid = function(opts) {
     ];
     var colorIndex = 0;
     var gridAlpha = 0.6;
-    var origin = { x: 0, y: 0, z: 0 };
+    var origin = { x: 0, y: +MyAvatar.getJointPosition('LeftToeBase').y.toFixed(1) + 0.1, z: 0 };
+    var scale = 500;
+    var minorGridEvery = 1.0;
     var majorGridEvery = 5;
-    var minorGridWidth = 0.2;
     var halfSize = 40;
-    var yOffset = 0.001;
 
     var worldSize = 16384;
 
     var snapToGrid = false;
 
     var gridOverlay = Overlays.addOverlay("grid", {
-        position: { x: 0 , y: 0, z: 0 },
-        visible: true,
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        dimensions: { x: scale, y: scale, z: scale },
+        position: origin,
+        visible: false,
+        drawInFront: false,
         color: colors[0],
         alpha: gridAlpha,
-        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-        minorGridWidth: 0.1,
-        majorGridEvery: 2,
+        minorGridEvery: minorGridEvery,
+        majorGridEvery: majorGridEvery,
     });
 
     that.visible = false;
@@ -39,17 +41,13 @@ Grid = function(opts) {
         return origin;
     }
 
-    that.getMinorIncrement = function() { return minorGridWidth; };
-    that.getMajorIncrement = function() { return minorGridWidth * majorGridEvery; };
-
-    that.getMinorGridWidth = function() { return minorGridWidth; };
-    that.setMinorGridWidth = function(value) {
-        minorGridWidth = value;
+    that.getMinorIncrement = function() { return minorGridEvery; };
+    that.setMinorIncrement = function(value) {
+        minorGridEvery = value;
         updateGrid();
-    };
-
-    that.getMajorGridEvery = function() { return majorGridEvery; };
-    that.setMajorGridEvery = function(value) {
+    }
+    that.getMajorIncrement = function() { return majorGridEvery; };
+    that.setMajorIncrement = function(value) {
         majorGridEvery = value;
         updateGrid();
     };
@@ -106,7 +104,7 @@ Grid = function(opts) {
             dimensions = { x: 0, y: 0, z: 0 };
         }
 
-        var spacing = majorOnly ? (minorGridWidth * majorGridEvery) : minorGridWidth;
+        var spacing = majorOnly ? majorGridEvery : minorGridEvery;
 
         position = Vec3.subtract(position, origin);
 
@@ -122,7 +120,7 @@ Grid = function(opts) {
             return delta;
         }
 
-        var spacing = majorOnly ? (minorGridWidth * majorGridEvery) : minorGridWidth;
+        var spacing = majorOnly ? majorGridEvery : minorGridEvery;
 
         var snappedDelta = {
             x: Math.round(delta.x / spacing) * spacing,
@@ -135,9 +133,7 @@ Grid = function(opts) {
 
 
     that.setPosition = function(newPosition, noUpdate) {
-        origin = Vec3.subtract(newPosition, { x: 0, y: yOffset, z: 0 });
-        origin.x = 0;
-        origin.z = 0;
+        origin = { x: 0, y: newPosition.y, z: 0 };
         updateGrid();
 
         if (!noUpdate) {
@@ -149,7 +145,7 @@ Grid = function(opts) {
         if (that.onUpdate) {
             that.onUpdate({
                 origin: origin,
-                minorGridWidth: minorGridWidth,
+                minorGridEvery: minorGridEvery,
                 majorGridEvery: majorGridEvery,
                 gridSize: halfSize,
                 visible: that.visible,
@@ -171,8 +167,8 @@ Grid = function(opts) {
             that.setPosition(pos, true);
         }
 
-        if (data.minorGridWidth) {
-            minorGridWidth = data.minorGridWidth;
+        if (data.minorGridEvery) {
+            minorGridEvery = data.minorGridEvery;
         }
 
         if (data.majorGridEvery) {
@@ -191,20 +187,22 @@ Grid = function(opts) {
             that.setVisible(data.visible, true);
         }
 
-        updateGrid();
+        updateGrid(true);
     }
 
-    function updateGrid() {
+    function updateGrid(noUpdate) {
         Overlays.editOverlay(gridOverlay, {
-            position: { x: origin.y, y: origin.y, z: -origin.y },
+            position: { x: 0, y: origin.y, z: 0 },
             visible: that.visible && that.enabled,
-            minorGridWidth: minorGridWidth,
+            minorGridEvery: minorGridEvery,
             majorGridEvery: majorGridEvery,
             color: colors[colorIndex],
             alpha: gridAlpha,
         });
 
-        that.emitUpdate();
+        if (!noUpdate) {
+            that.emitUpdate();
+        }
     }
 
     function cleanup() {
@@ -247,7 +245,7 @@ GridTool = function(opts) {
         } else if (data.type == "update") {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {
-                listeners[i](data);
+                listeners[i] && listeners[i](data);
             }
         } else if (data.type == "action") {
             var action = data.action;
