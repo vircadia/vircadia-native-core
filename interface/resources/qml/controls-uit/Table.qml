@@ -132,7 +132,7 @@ TableView {
             // FIXME: Put reload item in tableModel passed in from RunningScripts.
             HiFiGlyphs {
                 id: reloadButton
-                text: "a"
+                text: hifi.glyphs.reloadSmall
                 color: parent.color
                 anchors {
                     top: parent.top
@@ -148,7 +148,7 @@ TableView {
             // FIXME: Put stop item in tableModel passed in from RunningScripts.
             HiFiGlyphs {
                 id: stopButton
-                text: "C"
+                text: hifi.glyphs.closeSmall
                 color: parent.color
                 anchors {
                     top: parent.top

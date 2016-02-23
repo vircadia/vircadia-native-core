@@ -55,7 +55,7 @@ TreeView {
         alternateBackgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
 
         branchDelegate: HiFiGlyphs {
-            text: styleData.isExpanded ? "Z" : "B"
+            text: styleData.isExpanded ? hifi.glyphs.disclosureCollapse : hifi.glyphs.disclosureExpand
             size: hifi.fontSizes.tableText * 2.5  // tableText is in points; proportionately scale to pixels
             color: colorScheme == hifi.colorSchemes.light
                        ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)

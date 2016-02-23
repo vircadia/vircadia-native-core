@@ -16,6 +16,7 @@ Item {
     readonly property alias colorSchemes: colorSchemes
     readonly property alias dimensions: dimensions
     readonly property alias fontSizes: fontSizes
+    readonly property alias glyphs: glyphs
     readonly property alias buttons: buttons
     readonly property alias effects: effects
 
@@ -96,6 +97,19 @@ Item {
         readonly property real rootMenu: dimensions.largeScreen? 15 : 11
         readonly property real menuItem: dimensions.largeScreen? 15 : 11
         readonly property real shortcutText: dimensions.largeScreen? 13 : 9
+    }
+
+    Item {
+        id: glyphs
+        readonly property string close: "w"
+        readonly property string closeInverted: "x"
+        readonly property string closeSmall: "C"
+        readonly property string disclosureCollapse: "Z"
+        readonly property string disclosureExpand: "B"
+        readonly property string pin: "y"
+        readonly property string pinInverted: "z"
+        readonly property string reloadSmall: "a"
+        readonly property string resizeHandle: "A"
     }
 
     Item {
