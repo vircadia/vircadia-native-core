@@ -1588,11 +1588,10 @@ function MyController(hand) {
 
         ids.forEach(function(id) {
             var props = Entities.getEntityProperties(id, ["boundingBox", "name"]);
-            if (props.name === 'pointer') {
-                continue;
-            }
-            if (!props || !props.boundingBox) {
-                continue;
+            if (!props ||
+                !props.boundingBox ||
+                props.name === 'pointer') {
+                return;
             }
             var entityMinPoint = props.boundingBox.brn;
             var entityMaxPoint = props.boundingBox.tfl;
