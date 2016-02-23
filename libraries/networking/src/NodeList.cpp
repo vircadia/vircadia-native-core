@@ -80,11 +80,16 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // send a ping punch immediately
     connect(&_domainHandler, &DomainHandler::icePeerSocketsReceived, this, &NodeList::pingPunchForDomainServer);
 
+    auto &accountManager = AccountManager::getInstance();
+    
+    // assume that we may need to send a new DS check in anytime a new keypair is generated 
+    connect(&accountManager, &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
+
     // clear out NodeList when login is finished
-    connect(&AccountManager::getInstance(), &AccountManager::loginComplete , this, &NodeList::reset);
+    connect(&accountManager, &AccountManager::loginComplete , this, &NodeList::reset);
 
     // clear our NodeList when logout is requested
-    connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
+    connect(&accountManager, &AccountManager::logoutComplete , this, &NodeList::reset);
 
     // anytime we get a new node we will want to attempt to punch to it
     connect(this, &LimitedNodeList::nodeAdded, this, &NodeList::startNodeHolePunch);
@@ -280,8 +285,6 @@ void NodeList::sendDomainServerCheckIn() {
             qWarning() << "A keypair is required to present a username signature to the domain-server"
                 << "but no keypair is present. Waiting for keypair generation to complete.";
             accountManager.generateNewUserKeypair();
-
-            connect(&accountManager, &AccountManager::newKeypair, this, &NodeList::sendDomainServerCheckIn);
 
             // don't send the check in packet - wait for the keypair first
             return;

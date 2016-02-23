@@ -83,20 +83,6 @@ AccountManager::AccountManager() :
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
 }
 
-void AccountManager::setIsAgent(bool isAgent) {
-    if (_isAgent != isAgent) {
-        _isAgent = isAgent;
-
-        if (_isAgent) {
-            // any profile changes in account manager should generate a new keypair
-            connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
-        } else {
-            // disconnect the generation of a new keypair during profile changes
-            disconnect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewUserKeypair);
-        }
-    }
-}
-
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
 
 void AccountManager::logout() {
@@ -203,13 +189,9 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
             }
         }
 
-        if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty()) {
-            // profile info isn't guaranteed to be saved too
-            if (_accountInfo.hasProfile()) {
-                emit profileChanged();
-            } else {
-                requestProfile();
-            }
+        if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
+            // we are missing profile information, request it now
+            requestProfile();
         }
 
         // tell listeners that the auth endpoint has changed

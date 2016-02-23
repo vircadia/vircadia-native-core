@@ -62,7 +62,7 @@ public:
                                  QHttpMultiPart* dataMultiPart = NULL,
                                  const QVariantMap& propertyMap = QVariantMap());
 
-    void setIsAgent(bool isAgent);
+    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
 
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
@@ -121,6 +121,7 @@ private:
     void passErrorToCallback(QNetworkReply* reply);
 
     QUrl _authURL;
+    
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
