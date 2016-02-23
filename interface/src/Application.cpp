@@ -5037,6 +5037,8 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         glm::vec3 position = pose.getTranslation();
         glm::quat rotation = pose.getRotation();
 
+        // AJT: REMOVE
+        /*
         //  Compute current velocity from position change
         glm::vec3 rawVelocity;
         if (deltaTime > 0.0f) {
@@ -5057,6 +5059,13 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         } else {
             palm.setRawAngularVelocity(glm::vec3(0.0f));
         }
+        */
+
+        glm::vec3 rawVelocity = pose.getVelocity();
+        glm::vec3 angularVelocity = pose.getAngularVelocity();
+
+        palm.setRawVelocity(rawVelocity);
+        palm.setRawAngularVelocity(angularVelocity);
 
         if (controller::InputDevice::getLowVelocityFilter()) {
             //  Use a velocity sensitive filter to damp small motions and preserve large ones with

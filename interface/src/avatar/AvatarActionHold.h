@@ -36,7 +36,8 @@ public:
     virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
 
     bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
-    std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
+    std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position,
+                                      glm::vec3& linearVelocity, glm::vec3& angularVelocity);
 
     virtual void prepareForPhysicsSimulation() override;
 
@@ -49,6 +50,9 @@ private:
     glm::quat _relativeRotation { Quaternions::IDENTITY };
     QString _hand { "right" };
     QUuid _holderID;
+
+    glm::vec3 _linearVelocityTarget;
+    glm::vec3 _angularVelocityTarget;
 
     bool _kinematic { false };
     bool _kinematicSetVelocity { false };
