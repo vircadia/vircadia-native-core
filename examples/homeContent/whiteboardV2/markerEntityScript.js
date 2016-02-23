@@ -23,7 +23,7 @@
     MarkerTip = function() {
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
-        this.strokeForwardOffset = 0.0005;
+        this.strokeForwardOffset = 0.0001;
         this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
         this.STROKE_WIDTH = 0.003
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
@@ -43,6 +43,9 @@
 
         releaseEquip: function() {
             _this.resetStroke();
+            Overlays.editOverlay(_this.laserPointer, {
+                visible: false
+            });
         },
 
 
@@ -69,13 +72,11 @@
             } else {
                 _this.resetStroke();
                 Overlays.editOverlay(_this.laserPointer, {
-                    visible: true
-                })
+                    visible: false
+                });
             }
 
         },
-
-
 
         newStroke: function(position) {
             _this.strokeBasePosition = position;
@@ -158,9 +159,9 @@
             _this.whiteboardNormal = Quat.getFront(whiteboardProps.rotation);
             _this.laserPointer = Overlays.addOverlay("circle3d", {
                 color: {
-                    red: 200,
-                    green: 10,
-                    blue: 10
+                    red: 220,
+                    green: 35,
+                    blue: 53
                 },
                 solid: true,
                 size: 0.01,

@@ -13,7 +13,7 @@
 
 Script.include("../../libraries/utils.js")
 
-var orientation = Camera.getOrientation();
+var orientation = MyAvatar.orientation;
 orientation = Quat.safeEulerAngles(orientation);
 var markerRotation = Quat.fromVec3Degrees({
     x: orientation.x + 10,
@@ -52,12 +52,13 @@ var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
     x: 0.0,
     y: 0.45,
     z: 0.0
-})
+});
+whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(orientation)));
 var whiteboardDrawingSurface = Entities.addEntity({
     type: "Box",
     name: "whiteboardDrawingSurface",
     dimensions: {
-        x: 1.85,
+        x: 1.82,
         y: 1.8,
         z: 0.04
     },
@@ -75,7 +76,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
 
 var WHITEBOARD_RACK_DEPTH = 1.9;
 
-var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser.fbx";
+var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
 var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js");
 var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
 eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getFront(whiteboardRotation)));
@@ -102,7 +103,7 @@ var eraser = Entities.addEntity({
         x: 0,
         y: -0.1,
         z: 0
-    }
+    },
 });
 
 createMarkers();
