@@ -72,10 +72,14 @@
             };
         }
 
-        function createEmitNumberPropertyUpdateFunction(propertyName) {
+        function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
+            decimals = decimals == undefined ? 4 : decimals;
             return function() {
+                var value = +this.value;
+                value = +value.toFixed(decimals);
+
                 EventBridge.emitWebEvent(
-                    '{ "type":"update", "properties":{"' + propertyName + '":' + Number(this.value.toFixed(4)) + '}}'
+                    '{ "type":"update", "properties":{"' + propertyName + '":' + value + '}}'
                 );
             };
         }
@@ -605,10 +609,10 @@
                                     elLightColorGreen.value = properties.color.green;
                                     elLightColorBlue.value = properties.color.blue;
     
-                                    elLightIntensity.value = properties.intensity;
-                                    elLightSurfaceRadius.value = properties.surfaceRadius;
-                                    elLightExponent.value = properties.exponent;
-                                    elLightCutoff.value = properties.cutoff;
+                                    elLightIntensity.value = properties.intensity.toFixed(1);
+                                    elLightSurfaceRadius.value = properties.surfaceRadius.toFixed(1);
+                                    elLightExponent.value = properties.exponent.toFixed(2);
+                                    elLightCutoff.value = properties.cutoff.toFixed(2);
                                 } else if (properties.type == "Zone") {
                                     for (var i = 0; i < elZoneSections.length; i++) {
                                         elZoneSections[i].style.display = 'block';
@@ -797,10 +801,10 @@
                     }
                 })
     
-                elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity'));
-                elLightSurfaceRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('surfaceRadius'));
-                elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent'));
-                elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff'));
+                elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity', 1));
+                elLightSurfaceRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('surfaceRadius', 1));
+                elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
+                elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
                 elWebSourceURL.addEventListener('change', createEmitTextPropertyUpdateFunction('sourceUrl'));
     
@@ -1606,13 +1610,13 @@
         <div class="light-section property">
             <div class="label">Intensity</div>
             <div class="value">
-                <input class="coord" type="number" id="property-light-intensity">
+                <input class="coord" type="number" id="property-light-intensity" min="0" step="0.1">
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Apparent Surface Radius (falloff factor)</div>
             <div class="value">
-                <input class="coord" type="number" id="property-light-surface-radius">
+                <input class="coord" type="number" id="property-light-surface-radius" min="0" step="0.1">
             </div>
         </div>
         <div class="light-section property">
@@ -1624,13 +1628,13 @@
         <div class="light-section property">
             <div class="label">Spot Light Exponent</div>
             <div class="value">
-                <input class="coord" type="number" id="property-light-exponent">
+                <input class="coord" type="number" id="property-light-exponent" step="0.01">
             </div>
         </div>
         <div class="light-section property">
             <div class="label">Spot Light Cutoff (degrees)</div>
             <div class="value">
-                <input class="coord" type="number" id="property-light-cutoff">
+                <input class="coord" type="number" id="property-light-cutoff" step="0.01">
             </div>
         </div>
     </div>
