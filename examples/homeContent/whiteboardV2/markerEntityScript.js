@@ -29,6 +29,7 @@
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
+        _this.PAINTING_TRIGGER_THRESHOLD = 0.2;
     };
 
     MarkerTip.prototype = {
@@ -39,12 +40,15 @@
         },
         continueEquip: function() {
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
-            if (_this.triggerValue > 0.2) {
-                print("EBL PAINZT");
+            if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD) {
                 _this.continueHolding();
             } else {
-                _this.currentStroke = null;
+               _this.resetStroke();
             }
+        },
+
+        releaseEquip: function() {
+            _this.resetStroke();
         },
 
 
@@ -60,8 +64,7 @@
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 this.paint(intersection.intersection)
             } else {
-                _this.currentStroke = null;
-                _this.oldPosition = null;
+               _this.resetStroke();
             }
         },
 
@@ -119,9 +122,13 @@
             });
 
             if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
-                _this.currentStroke = null;
-                _this.oldPosition = position;
+                _this.resetStroke();
             }
+        },
+
+        resetStroke: function() {
+            _this.currentStroke = null;
+            _this.oldPosition = position;
         },
 
         preload: function(entityID) {
@@ -134,7 +141,7 @@
 
             _this.whiteboard = data.whiteboard;
             var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            _this.whiteboardNormal = Quat.getRight(whiteboardProps.rotation);
+            _this.whiteboardNormal = Quat.getFront(whiteboardProps.rotation);
             _this.markerColor = data.markerColor;
         }
     };

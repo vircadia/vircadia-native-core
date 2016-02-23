@@ -47,6 +47,18 @@ var whiteboard = Entities.addEntity({
     }
 });
 
+var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {x: 0.0, y: 0.45, z: 0.0})
+var whiteboardDrawingSurface = Entities.addEntity({
+    type: "Box",
+    name: "whiteboardDrawingSurface",
+    dimensions: {x: 1.85, y: 1.8, z: 0.03},
+    color: {red: 200, green: 10, blue: 200},
+    position: whiteboardSurfacePosition,
+    rotation: orientation,
+    visible: false,
+    parentID: whiteboard
+});
+
 createMarkers();
 
 function createMarkers() {
@@ -140,7 +152,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
 
     Script.setTimeout(function() {
         var data = {
-            whiteboard: whiteboard,
+            whiteboard: whiteboardDrawingSurface,
             markerColor: markerColor
         }
         var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
@@ -155,6 +167,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
+    Entities.deleteEntity(whiteboardDrawingSurface);
     markers.forEach(function(marker) {
         Entities.deleteEntity(marker);
     });
