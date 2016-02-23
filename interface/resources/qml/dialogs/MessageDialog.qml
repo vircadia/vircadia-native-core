@@ -18,7 +18,6 @@ import "../windows-uit"
 
 import "messageDialog"
 
-// FIXME respect default button functionality
 ModalWindow {
     id: root
     HifiConstants { id: hifi }
@@ -85,12 +84,15 @@ ModalWindow {
             readonly property real outerSpacing: hifi.dimensions.contentSpacing.y
             readonly property int minWidth: 480
             readonly property int maxWdith: 1280
-            readonly property int minHeight: 160
+            readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
             function resize() {
                 var targetWidth = mainTextContainer.width
-                var targetHeight = mainTextContainer.implicitHeight + informativeTextContainer.implicitHeight + d.spacing * 8 + buttons.height + details.height
+                var targetHeight = mainTextContainer.height + 4 * hifi.dimensions.contentSpacing.y
+                        + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + hifi.dimensions.contentSpacing.y : 0)
+                        + buttons.height
+                        + (content.state === "expanded" ? details.implicitHeight + hifi.dimensions.contentSpacing.y : 0)
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
             }
@@ -103,8 +105,8 @@ ModalWindow {
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {
-                left: parent.left;
                 top: parent.top;
+                left: parent.left;
                 margins: 0
                 topMargin: hifi.dimensions.contentSpacing.y
             }
@@ -112,12 +114,19 @@ ModalWindow {
             lineHeightMode: Text.ProportionalHeight
         }
 
-        Text {
+        RalewaySemibold {
             id: informativeTextContainer
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             wrapMode: Text.WordWrap
-            font.pointSize: 11
-            anchors { top: mainTextContainer.bottom; right: parent.right; left: parent.left; margins: d.spacing * 2 }
+            size: hifi.fontSizes.menuItem
+            color: hifi.colors.baseGrayHighlight
+            anchors {
+                top: mainTextContainer.bottom;
+                left: parent.left;
+                right: parent.right;
+                margins: 0
+                topMargin: text != "" ? hifi.dimensions.contentSpacing.y : 0
+            }
         }
 
         Flow {
@@ -147,8 +156,8 @@ ModalWindow {
             Button {
                 id: moreButton
                 text: qsTr("Show Details...")
-                onClicked: { content.state = (content.state === "" ? "expanded" : "")
-                }
+                width: 160
+                onClicked: { content.state = (content.state === "" ? "expanded" : "") }
                 visible: detailedText && detailedText.length > 0
             }
             MessageDialogButton { dialog: root; text: qsTr("Help"); button: OriginalDialogs.StandardButton.Help; }
@@ -157,10 +166,16 @@ ModalWindow {
         Item {
             id: details
             width: parent.width
-            implicitHeight: detailedText.implicitHeight + root.spacing
+            implicitHeight: detailedText.implicitHeight
             height: 0
             clip: true
-            anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: d.spacing * 2 }
+            anchors {
+                top: buttons.bottom
+                left: parent.left;
+                right: parent.right;
+                margins: 0
+                topMargin: hifi.dimensions.contentSpacing.y
+            }
             Flickable {
                 id: flickable
                 contentHeight: detailedText.height
@@ -169,10 +184,13 @@ ModalWindow {
                 anchors.bottomMargin: root.outerSpacing
                 TextEdit {
                     id: detailedText
+                    size: hifi.fontSizes.menuItem
+                    color: hifi.colors.baseGrayHighlight
                     width: details.width
                     wrapMode: Text.WordWrap
                     readOnly: true
                     selectByMouse: true
+                    anchors.margins: 0
                 }
             }
         }

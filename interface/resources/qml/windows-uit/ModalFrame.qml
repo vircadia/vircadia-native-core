@@ -50,7 +50,7 @@ Frame {
                 size: 30
                 color: hifi.colors.lightGrayText
                 visible: text != ""
-                y: -hifi.dimensions.modalDialogTitleHeight
+                y: -hifi.dimensions.modalDialogTitleHeight - 3
                 anchors.left: parent.left
             }
             RalewayRegular {
