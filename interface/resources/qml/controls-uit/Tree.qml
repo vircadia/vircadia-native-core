@@ -61,7 +61,7 @@ TreeView {
                        ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
                        : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
             anchors {
-                left: parent.left
+                left: parent ? parent.left : undefined
                 leftMargin: hifi.dimensions.tablePadding / 2
             }
         }
