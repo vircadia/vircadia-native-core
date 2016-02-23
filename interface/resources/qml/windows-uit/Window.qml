@@ -133,12 +133,13 @@ Fadable {
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 11 : 0
             color: hifi.colors.baseGray
+            visible: modality != Qt.ApplicationModal
         }
 
         LinearGradient {
             // FIXME: Alpha gradients display as fuschia under QtQuick 2.5 on OSX.
             // Check again when have a later version of QtQuick.
-            visible: Qt.platform.os != "osx"
+            visible: modality != Qt.ApplicationModal && Qt.platform.os != "osx"
             anchors.top: contentBackground.bottom
             anchors.left: contentBackground.left
             width: contentBackground.width - 1
@@ -201,7 +202,6 @@ Fadable {
             }
         }
     }
-
     children: [ swallower, frame, pane, activator ]
 
     Component.onCompleted: { raise(); setDefaultFocus(); }

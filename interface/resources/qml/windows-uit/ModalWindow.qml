@@ -13,7 +13,7 @@ import QtQuick 2.5
 import "."
 
 Window {
-    id: root
+    id: window
     anchors.centerIn: parent
     modality: Qt.ApplicationModal
     destroyOnCloseButton: true

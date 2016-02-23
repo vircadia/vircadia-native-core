@@ -77,6 +77,8 @@ Item {
         readonly property real textPadding: 8
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
+        readonly property real modalDialogMargin: 50
+        readonly property real modalDialogTitleHeight: 40  // DJRTODO: Use
     }
 
     Item {

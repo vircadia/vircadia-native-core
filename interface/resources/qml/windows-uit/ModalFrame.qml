@@ -14,11 +14,29 @@ import "."
 import "../controls"
 
 Frame {
-    id: frame
-
     Item {
-        anchors.fill: parent
+        id: modalFrame
 
+        anchors.fill: parent
+        anchors.margins: 0
+
+        readonly property bool hasTitle: window.title != ""
+
+        Rectangle {
+            anchors {
+                topMargin: -hifi.dimensions.modalDialogMargin - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight : 0)
+                leftMargin: -hifi.dimensions.modalDialogMargin
+                rightMargin: -hifi.dimensions.modalDialogMargin
+                bottomMargin: -hifi.dimensions.modalDialogMargin
+                fill: parent
+            }
+            border {
+                width: hifi.dimensions.borderWidth
+                color: hifi.colors.lightGrayText80
+            }
+            radius: hifi.dimensions.borderRadius
+            color: hifi.colors.faintGray
+        }
         Rectangle {
             id: background
             anchors.fill: parent
