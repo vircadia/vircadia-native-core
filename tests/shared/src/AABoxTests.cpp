@@ -1,5 +1,5 @@
 //
-//  AACubeTests.cpp
+//  AABoxTests.cpp
 //  tests/shared/src
 //
 //  Created by Andrew Meadows on 2016.02.19
@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-#include "AACubeTests.h"
+#include "AABoxTests.h"
 
 #include <GLMHelpers.h>
 #include <NumericalConstants.h>
@@ -21,70 +21,69 @@
 #include <../QTestExtensions.h>
 
 
-QTEST_MAIN(AACubeTests)
+QTEST_MAIN(AABoxTests)
 
-void AACubeTests::ctorsAndSetters() {
+void AABoxTests::testCtorsAndSetters() {
     const glm::vec3 corner(1.23f, 4.56f, 7.89f);
-    const float scale = 2.34f;
+    const glm::vec3 scale(2.34f, 7.53f, 9.14f);
 
     // test ctor
-    AACube cube(corner, scale);
-    QCOMPARE_WITH_ABS_ERROR(cube.getCorner(), corner, EPSILON);
-    QCOMPARE_WITH_ABS_ERROR(cube.getScale(), scale, EPSILON);
+    AABox box(corner, scale);
+    QCOMPARE_WITH_ABS_ERROR(box.getCorner(), corner, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(box.getScale(), scale, EPSILON);
 
     // test copy ctor
-    AACube copyCube(cube);
-    QCOMPARE_WITH_ABS_ERROR(copyCube.getCorner(), corner, EPSILON);
-    QCOMPARE_WITH_ABS_ERROR(copyCube.getScale(), scale, EPSILON);
+    AABox copyBox(box);
+    QCOMPARE_WITH_ABS_ERROR(copyBox.getCorner(), corner, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(copyBox.getScale(), scale, EPSILON);
 
     // test setBox()
     const glm::vec3 newCorner(9.87f, 6.54f, 3.21f);
-    const float newScale = 4.32f;
-    cube.setBox(newCorner, newScale);
-    QCOMPARE_WITH_ABS_ERROR(cube.getCorner(), newCorner, EPSILON);
-    QCOMPARE_WITH_ABS_ERROR(cube.getScale(), newScale, EPSILON);
+    const glm::vec3 newScale = glm::vec3(4.32f, 8.95f, 10.31f);
+    box.setBox(newCorner, newScale);
+    QCOMPARE_WITH_ABS_ERROR(box.getCorner(), newCorner, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(box.getScale(), newScale, EPSILON);
 
     // test misc
-    QCOMPARE_WITH_ABS_ERROR(cube.getMinimumPoint(), newCorner, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(newCorner, box.getMinimumPoint(), EPSILON);
 
     glm::vec3 expectedMaxCorner = newCorner + glm::vec3(newScale);
-    QCOMPARE_WITH_ABS_ERROR(cube.getMaximumPoint(), expectedMaxCorner, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(expectedMaxCorner, box.getMaximumPoint(), EPSILON);
 
     glm::vec3 expectedCenter = newCorner + glm::vec3(0.5f * newScale);
-    QCOMPARE_WITH_ABS_ERROR(cube.calcCenter(), expectedCenter, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(expectedCenter, box.calcCenter(), EPSILON);
 }
 
-void AACubeTests::containsPoint() {
+void AABoxTests::testContainsPoint() {
     const glm::vec3 corner(4.56f, 7.89f, -1.35f);
-    const float scale = 1.23f;
-    AACube cube(corner, scale);
+    const glm::vec3 scale(2.34f, 7.53f, 9.14f);
+    AABox box(corner, scale);
 
-    const float delta = scale / 1000.0f;
-    const glm::vec3 center = cube.calcCenter();
-    QCOMPARE(cube.contains(center), true);
+    float delta = 0.00001f;
+    glm::vec3 center = box.calcCenter();
+    QCOMPARE(box.contains(center), true);
 
     for (int i = 0; i < 3; ++i) {
-        glm::vec3 scaleOffset = Vectors::ZERO;
-        scaleOffset[i] = 0.5f * scale;
-
+        glm::vec3 halfScale = Vectors::ZERO;
+        halfScale[i] = 0.5f * scale[i];
         glm::vec3 deltaOffset = Vectors::ZERO;
         deltaOffset[i] = delta;
 
-        QCOMPARE(cube.contains(center + scaleOffset + deltaOffset), false); // outside +face
-        QCOMPARE(cube.contains(center + scaleOffset - deltaOffset), true); // inside +face
-        QCOMPARE(cube.contains(center - scaleOffset + deltaOffset), true); // inside -face
-        QCOMPARE(cube.contains(center - scaleOffset - deltaOffset), false); // outside -face
+        QCOMPARE(box.contains(center + halfScale + deltaOffset), false); // outside +face
+        QCOMPARE(box.contains(center + halfScale - deltaOffset), true); // inside +face
+        QCOMPARE(box.contains(center - halfScale + deltaOffset), true); // inside -face
+        QCOMPARE(box.contains(center - halfScale - deltaOffset), false); // outside -face
     }
 }
 
-void AACubeTests::touchesSphere() {
-    const glm::vec3 corner(-4.56f, 7.89f, -1.35f);
-    const float scale = 1.23f;
-    AACube cube(corner, scale);
+void AABoxTests::testTouchesSphere() {
+    glm::vec3 corner(-4.56f, 7.89f, -1.35f);
+    float scale = 1.23f;
+    AABox box(corner, scale);
 
-    const float delta = scale / 1000.0f;
-    const glm::vec3 cubeCenter = cube.calcCenter();
-    const float sphereRadius = 0.468f;
+    float delta = 0.00001f;
+    glm::vec3 cubeCenter = box.calcCenter();
+    float sphereRadius = 0.468f;
 
     for (int i = 0; i < 3; ++i) {
         int j = (i + 1) % 3;
@@ -99,19 +98,19 @@ void AACubeTests::touchesSphere() {
 
             // outside +face
             glm::vec3 sphereCenter = cubeCenter + scaleOffset + deltaOffset;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
 
             // inside +face
             sphereCenter = cubeCenter + scaleOffset - deltaOffset;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
 
             // inside -face
             sphereCenter = cubeCenter - scaleOffset + deltaOffset;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
 
             // outside -face
             sphereCenter = cubeCenter - scaleOffset - deltaOffset;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
         }
 
         { // edges
@@ -123,15 +122,15 @@ void AACubeTests::touchesSphere() {
 
             // inside ij
             sphereCenter = cubeCenter + edgeOffset + (sphereRadius - delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
             sphereCenter = cubeCenter - edgeOffset - (sphereRadius - delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
 
             // outside ij
             sphereCenter = cubeCenter + edgeOffset + (sphereRadius + delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
             sphereCenter = cubeCenter - edgeOffset - (sphereRadius + delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
 
             edgeOffset[j] = 0.0f;
             edgeOffset[k] = 0.5f * scale;
@@ -139,15 +138,15 @@ void AACubeTests::touchesSphere() {
 
             // inside ik
             sphereCenter = cubeCenter + edgeOffset + (sphereRadius - delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
             sphereCenter = cubeCenter - edgeOffset - (sphereRadius - delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), true);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), true);
 
             // outside ik
             sphereCenter = cubeCenter + edgeOffset + (sphereRadius + delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
             sphereCenter = cubeCenter - edgeOffset - (sphereRadius + delta) * edgeDirection;
-            QCOMPARE(cube.touchesSphere(sphereCenter, sphereRadius), false);
+            QCOMPARE(box.touchesSphere(sphereCenter, sphereRadius), false);
         }
     }
 }
