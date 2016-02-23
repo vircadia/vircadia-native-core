@@ -186,42 +186,29 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tItems Rendered Opaque: " + root.opaqueRendered +
-                            " / Translucent: " + root.translucentRendered +
-                            " / Shadow: " + root.shadowRendered +
-                            " / Other: " + root.otherRendered;
+                        text: "Items rendered / considered: " +
+                            root.itemRendered + " / " + root.itemConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tOpaque considered: " + root.opaqueConsidered +
-                            " / Out of view: " + root.opaqueOutOfView + 
-                            " / Too small: " + root.opaqueTooSmall;
+                        text: " out of view: " + root.itemOutOfView +
+                            " too small: " + root.itemTooSmall;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tShadow considered: " + root.shadowConsidered +
-                            " / Out of view: " + root.shadowOutOfView +
-                            " / Too small: " + root.shadowTooSmall;
+                        text: "Shadows rendered / considered: " +
+                            root.shadowRendered + " / " + root.shadowConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tTranslucent considered: " + root.translucentConsidered +
-                            " / Out of view: " + root.translucentOutOfView + 
-                            " / Too small: " + root.translucentTooSmall;
-                    }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
-                        visible: root.expanded;
-                        text: "\tOther considered: " + root.otherConsidered +
-                            " / Out of view: " + root.otherOutOfView + 
-                            " / Too small: " + root.otherTooSmall;
+                        text: " out of view: " + root.shadowOutOfView +
+                            " too small: " + root.shadowTooSmall;
                     }
                     Text {
                         color: root.fontColor;
