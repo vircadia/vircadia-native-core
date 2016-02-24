@@ -123,8 +123,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
     }
 
     // connect to AddressManager signal for location jumps
-    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
-            this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired, 
+        [=](const glm::vec3& newPosition, bool hasOrientation, const glm::quat& newOrientation, bool shouldFaceLocation){
+        goToLocation(newPosition, hasOrientation, newOrientation, shouldFaceLocation);
+    });
+
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
@@ -1664,6 +1667,41 @@ void MyAvatar::decreaseSize() {
 void MyAvatar::resetSize() {
     _targetScale = 1.0f;
     qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
+}
+
+
+void MyAvatar::goToLocation(const QVariant& propertiesVar) {
+    qCDebug(interfaceapp, "MyAvatar QML goToLocation");
+    auto properties = propertiesVar.toMap();
+    if (!properties.contains("position")) {
+        qCWarning(interfaceapp, "goToLocation called without a position variable");
+        return;
+    }
+
+    bool validPosition;
+    glm::vec3 v = vec3FromVariant(properties["position"], validPosition);
+    if (!validPosition) {
+        qCWarning(interfaceapp, "goToLocation called with invalid position variable");
+        return;
+    }
+    bool validOrientation;
+    glm::quat q;
+    if (properties.contains("orientation")) {
+        q = quatFromVariant(properties["orientation"], validOrientation);
+        if (!validOrientation) {
+            glm::vec3 eulerOrientation = vec3FromVariant(properties["orientation"], validOrientation);
+            q = glm::quat(eulerOrientation);
+            if (!validOrientation) {
+                qCWarning(interfaceapp, "goToLocation called with invalid orientation variable");
+            }
+        }
+    }
+
+    if (validOrientation) {
+        goToLocation(v, true, q);
+    } else {
+        goToLocation(v);
+    }
 }
 
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
