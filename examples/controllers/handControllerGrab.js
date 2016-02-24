@@ -1731,7 +1731,8 @@ function MyController(hand) {
                 };
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data["refCount"] > 1) {
-                if (now - data["heartBeat"] > HEART_BEAT_TIMEOUT) {
+                if (data["heartBeat"] === undefined ||
+                    now - data["heartBeat"] > HEART_BEAT_TIMEOUT) {
                     // this entity has userData suggesting it is grabbed, but nobody is updating the hearbeat.
                     // deactivate it before grabbing.
                     this.resetAbandonedGrab(entityID);
