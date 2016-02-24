@@ -93,7 +93,7 @@ void AvatarActionHold::prepareForPhysicsSimulation() {
     activateBody(true);
 }
 
-std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position,
+std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
                                                     glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
@@ -106,8 +106,6 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
         bool isRightHand = (_hand == "right");
         glm::vec3 palmPosition;
         glm::quat palmRotation;
-        glm::vec3 palmLinearVelocity;
-        glm::vec3 palmAngularVelocity;
 
         PalmData palmData = holdingAvatar->getHand()->getCopyOfPalmData(isRightHand ? HandData::RightHand : HandData::LeftHand);
 
@@ -155,6 +153,25 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
                 palmPosition = holdingAvatar->getLeftPalmPosition();
                 palmRotation = holdingAvatar->getLeftPalmRotation();
             }
+
+            // In this case we are simulating the grab of another avatar.
+            // Because the hand controller velocity for their palms is not transmitted over the
+            // network, we have to synthesize our own.
+
+            if (_previousSet) {
+                // smooth linear velocity over two frames
+                glm::vec3 positionalDelta = palmPosition - _previousPositionalTarget;
+                linearVelocity = (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
+                glm::quat deltaRotation = palmRotation * glm::inverse(_previousRotationalTarget);
+                float rotationAngle = glm::angle(deltaRotation);
+                if (rotationAngle > EPSILON) {
+                    angularVelocity = glm::normalize(glm::axis(deltaRotation));
+                    angularVelocity *= (rotationAngle / deltaTimeStep);
+                }
+
+                _previousPositionalDelta = positionalDelta;
+                _previousDeltaTimeStep = deltaTimeStep;
+            }
         }
 
         rotation = palmRotation * _relativeRotation;
@@ -185,7 +202,7 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         glm::quat rotationForAction;
         glm::vec3 positionForAction;
         glm::vec3 linearVelocityForAction, angularVelocityForAction;
-        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(rotationForAction, positionForAction, linearVelocityForAction, angularVelocityForAction);
+        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(deltaTimeStep, rotationForAction, positionForAction,  linearVelocityForAction, angularVelocityForAction);
         if (holdingAvatar) {
             holdCount ++;
             if (holdAction.get() == this) {
@@ -256,6 +273,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
+        _previousDeltaTimeStep = deltaTimeStep;
         _previousSet = true;
     });
 
