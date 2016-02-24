@@ -15,8 +15,9 @@
     function startUpdate() {
         print('START UPDATE!!')
         iOwn = true;
-        Script.update.connect(_this.update);
         connected = true;
+        Script.update.connect(_this.update);
+    
     }
 
     function stopUpdateAndReclaim() {
@@ -89,9 +90,9 @@
             if (baton) {
                 baton.release(function() {});
             }
-            if (connected === true) {
+     
                 Script.update.disconnect(_this.update);
-            }
+       
 
         },
 
