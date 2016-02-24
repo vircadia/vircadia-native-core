@@ -43,6 +43,7 @@ Item {
         readonly property color baseGrayShadow60: "#99252525"
         readonly property color baseGrayHighlight40: "#66575757"
         readonly property color baseGrayHighlight15: "#26575757"
+        readonly property color lightGrayText80: "#ccafafaf"
         readonly property color faintGray50: "#80e3e3e3"
 
         // Other colors
@@ -78,6 +79,8 @@ Item {
         readonly property real textPadding: 8
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
+        readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
+        readonly property real modalDialogTitleHeight: 40
     }
 
     Item {

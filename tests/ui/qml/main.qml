@@ -81,17 +81,27 @@ ApplicationWindow {
             }
             */
             Button {
-                text: "Show Long Error"
+                // Replicates message box that pops up after selecting new avatar. Includes title.
+                text: "Confirm Avatar"
                 onClicked: {
-                    desktop.messageBox({
-                                           informativeText: "Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds ",
-                                           text: "Baloney",
-                                           icon: OriginalDialogs.StandardIcon.Warning,
-                                           detailedText: "sakjd;laskj dksa;dl jka;lsd j;lkjas ;dlkaj s;dlakjd ;alkjda; slkjda; lkjda;lksjd ;alksjd; alksjd ;alksjd; alksjd; alksdjas;ldkjas;lkdja ;kj ;lkasjd; lkj as;dlka jsd;lka jsd;laksjd a"
+                    var messageBox = desktop.messageBox({
+                                           title: "Set Avatar",
+                                           text: "Would you like to use 'Albert' for your avatar?",
+                                           icon: OriginalDialogs.StandardIcon.Question,         // Test question icon
+                                           //icon: OriginalDialogs.StandardIcon.Information,    // Test informaton icon
+                                           //icon: OriginalDialogs.StandardIcon.Warning,        // Test warning icon
+                                           //icon: OriginalDialogs.StandardIcon.Critical,       // Test critical icon
+                                           //icon: OriginalDialogs.StandardIcon.NoIcon,         // Test no icon
+                                           buttons: OriginalDialogs.StandardButton.Ok + OriginalDialogs.StandardButton.Cancel,
+                                           defaultButton: OriginalDialogs.StandardButton.Ok
                                        });
+                    messageBox.selected.connect(function(button) {
+                        console.log("You clicked " + button)
+                    })
                 }
             }
             Button {
+                // Message without title.
                 text: "Show Error"
                 onClicked: {
                     var messageBox = desktop.messageBox({
@@ -103,6 +113,20 @@ ApplicationWindow {
                     })
                 }
             }
+            Button {
+                // detailedText is not currently used anywhere in Interface but it is easier to leave in and style good enough.
+                text: "Show Long Error"
+                onClicked: {
+                    desktop.messageBox({
+                                           informativeText: "Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds ",
+                                           text: "Baloney",
+                                           icon: OriginalDialogs.StandardIcon.Warning,
+                                           detailedText: "sakjd;laskj dksa;dl jka;lsd j;lkjas ;dlkaj s;dlakjd ;alkjda; slkjda; lkjda;lksjd ;alksjd; alksjd ;alksjd; alksjd; alksdjas;ldkjas;lkdja ;kj ;lkasjd; lkj as;dlka jsd;lka jsd;laksjd a"
+                                       });
+                }
+            }
+            /*
+            // There is no such desktop.queryBox() function; may need to update test to cover QueryDialog.qml?
             Button {
                 text: "Show Query"
                 onClicked: {
@@ -120,6 +144,7 @@ ApplicationWindow {
                     })
                 }
             }
+            */
             Button {
                 text: "Open Directory"
                 property var builder: Component {

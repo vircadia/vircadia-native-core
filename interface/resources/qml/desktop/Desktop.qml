@@ -1,13 +1,21 @@
+//
+//  Desktop.qml
+//
+//  Created by Bradley Austin Davis on 15 Apr 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs;
 
 import "../dialogs"
 import "../menus"
 import "../js/Utils.js" as Utils
 
-// This is our primary 'desktop' object to which all VR dialogs and
-// windows will be childed.
+// This is our primary 'desktop' object to which all VR dialogs and windows are childed.
 FocusScope {
     id: desktop
     objectName: "desktop"
@@ -323,6 +331,3 @@ FocusScope {
     }
     
 }
-
-
-

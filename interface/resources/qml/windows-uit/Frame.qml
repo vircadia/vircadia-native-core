@@ -18,7 +18,6 @@ Item {
     id: frame
     HifiConstants { id: hifi }
 
-    property alias window: frame.parent  // Convenience accessor for the window
     default property var decoration
 
     readonly property int iconSize: 22
