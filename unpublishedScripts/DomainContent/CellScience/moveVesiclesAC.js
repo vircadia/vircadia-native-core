@@ -1,3 +1,10 @@
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var basePosition = {
     x: 3000,
     y: 13500,
@@ -17,7 +24,7 @@ var THROTTLE_RATE = 5000;
 
 var sinceLastUpdate = 0;
 
-print('vesicle script')
+//print('vesicle script')
 
 function findVesicles() {
     var results = Entities.findEntities(basePosition, 60000);
@@ -31,7 +38,7 @@ function findVesicles() {
         var name = Entities.getEntityProperties(v, 'name').name;
         print('name is:: ' + name)
         if (name === 'vesicle') {
-            print('found a vesicle!!' + v)
+            //    print('found a vesicle!!' + v)
             Script.setTimeout(function() {
                 moveVesicle(v);
             }, Math.random() * THROTTLE_RATE)
@@ -45,7 +52,7 @@ var minAngularVelocity = 0.01;
 var maxAngularVelocity = 0.03;
 
 function moveVesicle(entityId) {
-    print('moving a vesicle! ' + entityId)
+    // print('moving a vesicle! ' + entityId)
     var magnitudeV = maxVelocity;
     var directionV = {
         x: Math.random() - 0.5,
@@ -53,7 +60,7 @@ function moveVesicle(entityId) {
         z: Math.random() - 0.5
     };
 
-    print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
+    // print("POS magnitude is " + magnitudeV + " and direction is " + directionV.x);
 
     var magnitudeAV = maxAngularVelocity;
 
@@ -62,7 +69,7 @@ function moveVesicle(entityId) {
         y: Math.random() - 0.5,
         z: Math.random() - 0.5
     };
-    print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
+    // print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
     Entities.editEntity(entityId, {
         velocity: Vec3.multiply(magnitudeV, Vec3.normalize(directionV)),
         angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
@@ -71,7 +78,6 @@ function moveVesicle(entityId) {
 }
 
 function update(deltaTime) {
-
     // print('deltaTime',deltaTime)
     if (!initialized) {
         print("checking for servers...");
@@ -87,7 +93,7 @@ function update(deltaTime) {
     if (THROTTLE === true) {
         sinceLastUpdate = sinceLastUpdate + deltaTime * 1000;
         if (sinceLastUpdate > THROTTLE_RATE) {
-            print('SHOULD FIND VESICLES!!!')
+            //      print('SHOULD FIND VESICLES!!!')
             sinceLastUpdate = 0;
             findVesicles();
         } else {
