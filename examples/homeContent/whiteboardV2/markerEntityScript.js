@@ -58,13 +58,14 @@
                 direction: Quat.getFront(markerProps.rotation)
             }
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
-            if (intersection.intersects) {
+
+            if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
                     position: intersection.intersection
                 })
                 _this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
-                if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
+                if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD) {
                     _this.paint(intersection.intersection)
                 } else {
                     _this.resetStroke();
@@ -91,7 +92,7 @@
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
-                lifetime: 1000
+                lifetime: 200
             });
 
             _this.linePoints = [];
@@ -149,6 +150,9 @@
 
         unload: function() {
             Overlays.deleteOverlay(_this.laserPointer);
+            _this.strokes.forEach( function(stroke) {
+                Entities.deleteEntity(stroke);
+            });
         },
 
         setProperties: function(myId, data) {
