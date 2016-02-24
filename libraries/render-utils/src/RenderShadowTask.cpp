@@ -108,7 +108,7 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_sha
     const auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
 
     // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    const auto culledItems = addJob<CullItems<RenderDetails::SHADOW_ITEM>>("CullShadowMap", fetchedItems, cullFunctor);
+    const auto culledItems = addJob<CullItems<RenderDetails::SHADOW>>("CullShadowMap", fetchedItems, cullFunctor);
 
     // CPU: Sort by pipeline
     const auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);

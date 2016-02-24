@@ -28,7 +28,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     RenderArgs* args = renderContext->args;
     ViewFrustum* frustum = args->_viewFrustum;
 
-    details._considered += inItems.size();
+    details._considered += (int)inItems.size();
     
     // Culling / LOD
     for (auto item : inItems) {
@@ -59,7 +59,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
             details._outOfView++;
         }
     }
-    details._rendered += outItems.size();
+    details._rendered += (int)outItems.size();
 }
 
 struct ItemBoundSort {
@@ -202,7 +202,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
     auto& scene = sceneContext->_scene;
 
     auto& details = args->_details.edit(_detailType);
-    details._considered += inSelection.numItems();
+    details._considered += (int)inSelection.numItems();
 
     // Eventually use a frozen frustum
     auto argFrustum = args->_viewFrustum;
@@ -325,7 +325,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
     }
 
-    details._rendered += outItems.size();
+    details._rendered += (int)outItems.size();
 
 
     // Restore frustum if using the frozen one:
