@@ -61,7 +61,6 @@ private:
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 
-    float _previousDeltaTimeStep = 0.0f;
     glm::vec3 _previousPositionalDelta;
 
     glm::vec3 _palmOffsetFromRigidBody;
