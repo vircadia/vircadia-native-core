@@ -1650,7 +1650,7 @@ function MyController(hand) {
                     // this next line allowed both:
                     // (1) far-grab, pull to self, near grab, then throw
                     // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
-                    (!this.isInitialGrab && grabData.refCount > 1)) {
+                    grabData.refCount > 1) {
                     noVelocity = true;
                 }
             }
