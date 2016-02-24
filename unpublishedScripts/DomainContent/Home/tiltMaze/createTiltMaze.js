@@ -12,8 +12,8 @@
 
 var ball, ballSpawningAnchor, ballDetector, tiltMaze, lightAtTheEnd;
 
-var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/newmaze_tex-2.fbx";
-var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/alan/dev/newmaze_tex-2.obj";
+var MAZE_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-3.fbx";
+var MAZE_COLLISION_HULL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/tiltMaze/newmaze_tex-3.obj";
 var MAZE_SCRIPT = Script.resolvePath('maze.js?' + Math.random());
 
 var SCALE = 0.5;
