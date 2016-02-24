@@ -630,7 +630,7 @@ void AccountManager::processGeneratedKeypair() {
     RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
 
     if (keypairGenerator) {
-        // set the private key on our metaverse API account info
+        // hold the private key to later set our metaverse API account info if upload succeeds
         _pendingPrivateKey = keypairGenerator->getPrivateKey();
 
         // upload the public key so data-web has an up-to-date key

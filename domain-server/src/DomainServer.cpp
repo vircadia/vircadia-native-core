@@ -42,7 +42,7 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
-const QString ICE_SERVER_DEFAULT_HOSTNAME = "localhost";
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
@@ -349,8 +349,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     // nodes will currently use this to add resources to data-web that relate to our domain
     const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
     if (idValueVariant) {
-        QUuid domainID { idValueVariant->toString() };
-        nodeList->setSessionUUID(domainID);
+        nodeList->setSessionUUID(idValueVariant->toString());
     }
 
     connect(nodeList.data(), &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
@@ -396,7 +395,10 @@ bool DomainServer::resetAccountManagerAccessToken() {
                 qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present.";
                 qDebug() << "Set an access token via the web interface, in your user or master config"
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+
+                // clear any existing access token from AccountManager
                 AccountManager::getInstance().setAccessTokenForCurrentAuthURL(QString());
+
                 return false;
             }
         } else {
@@ -1075,7 +1077,7 @@ void DomainServer::sendHeartbeatToIceServer() {
             } else {
                 qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
             }
-            
+
             return;
         }
 
@@ -1107,7 +1109,8 @@ void DomainServer::sendHeartbeatToIceServer() {
         }
 
         if (shouldRecreatePacket) {
-            // either we don't have a heartbeat packet yet or sockets have changed and we need to make a new one
+            // either we don't have a heartbeat packet yet or some combination of sockets, ID and keypair have changed
+            // and we need to make a new one
 
             // reset the position in the packet before writing
             _iceServerHeartbeatPacket->reset();
