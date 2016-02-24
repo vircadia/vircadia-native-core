@@ -29,7 +29,7 @@
     }
 
     FishTank.prototype = {
-        fish:null,
+        fish: null,
         findFishInTank: function() {
 
             //     print('looking for a fish.  in the tank')
@@ -56,7 +56,7 @@
                 }, 1000)
 
             } else {
-                
+
                 print('JBP userdata before parse attempt' + properties.userData)
                 _this.userData = null;
                 try {
@@ -121,8 +121,14 @@
 
     var LIFETIME = 300; //  Fish live for 5 minutes 
     var NUM_FISH = 20;
-    var TANK_WIDTH = 3.0;
-    var TANK_HEIGHT = 1.0;
+    var TANK_DIMENSIONS = {
+        x: 1.3393,
+        y: 1.3515,
+        z: 3.5914
+    };
+
+    var TANK_WIDTH = TANK_DIMENSIONS.z;
+    var TANK_HEIGHT = TANK_DIMENSIONS.y;
     var FISH_WIDTH = 0.03;
     var FISH_LENGTH = 0.15;
     var MAX_SIGHT_DISTANCE = 0.8;
@@ -133,14 +139,18 @@
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 1.5;
 
+    var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-1.fbx";
+
+    var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-2.fbx";
+
     var fishLoaded = false;
-    var fish = [];
 
     var lowerCorner = {
         x: 0,
         y: 0,
         z: 0
     };
+
     var upperCorner = {
         x: 0,
         y: 0,
@@ -160,9 +170,13 @@
         if (!Entities.serversExist() || !Entities.canRez()) {
             return;
         }
-        print('has fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+
+        print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+
+
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
-            print('NO FISH NO FISH NO FISH')
+            //no fish in the user data
+
             loadFish(NUM_FISH);
             setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, {
                 fishLoaded: true
@@ -170,38 +184,51 @@
             _this.userData['hifi-home-fishtank'].fishLoaded = true;
             _this.fish = _this.findFishInTank();
             return;
-        }
-        else{
-            if(this.fish===null){
+        } else {
+
+            //fish in userdata already
+            if (_this.fish === null) {
+
                 _this.fish = _this.findFishInTank();
-            } 
+            }
 
         }
-        // if (!fishLoaded) {
-        //     fishLoaded = true;
-        //     loadFish(NUM_FISH);
-        //     setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, {
-        //         fishLoaded: true
-        //     });
-        //     _this.userData['hifi-home-fishtank'].fishLoaded=true;
-        // _this.fish = _this.findFishInTank();
-        //     return;
-        // }
 
 
         var fish = _this.fish;
+        print('how many fish do i find?'+fish.length)
+
+        if (fish.length === 0) {
+            print('no fish...')
+            return
+        };
+
         var averageVelocity = {
             x: 0,
             y: 0,
             z: 0
         };
+
         var averagePosition = {
             x: 0,
             y: 0,
             z: 0
         };
+
         var birdPositionsCounted = 0;
         var birdVelocitiesCounted = 0;
+        var center = _this.currentProperties.position;
+
+        lowerCorner = {
+            x: center.x - (TANK_WIDTH / 2),
+            y: center.y,
+            z: center.z - (TANK_WIDTH / 2)
+        };
+        upperCorner = {
+            x: center.x + (TANK_WIDTH / 2),
+            y: center.y + TANK_HEIGHT,
+            z: center.z + (TANK_WIDTH / 2)
+        };
 
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
@@ -323,8 +350,6 @@
 
     function loadFish(howMany) {
         print('LOADING FISH: ' + howMany)
-            // var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2 * TANK_WIDTH));
-
 
         var center = _this.currentProperties.position;
 
@@ -352,7 +377,8 @@
             fish.push(
                 Entities.addEntity({
                     name: 'hifi-fishtank-fish' + _this.entityID,
-                    type: "Box",
+                    type: "Model",
+                    modelURL: fish.length % 2 === 0 ? FISH_MODEL_URL : FISH_MODEL_TWO_URL,
                     position: position,
                     rotation: {
                         x: 0,

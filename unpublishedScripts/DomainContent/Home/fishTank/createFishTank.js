@@ -1,13 +1,13 @@
 var fishtank;
 
 var TANK_DIMENSIONS = {
-    x: 1,
-    y: 1,
-    z: 2
+    x: 1.3393,
+    y: 1.3515,
+    z: 3.5914
 };
 
-var TANK_WIDTH = 3.0;
-var TANK_HEIGHT = 1.0;
+var TANK_WIDTH = TANK_DIMENSIONS.z;
+var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
 var DEBUG_COLOR = {
     red: 255,
@@ -21,10 +21,13 @@ var TANK_POSITION = center;
 
 var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
+var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
+
 function createFishTank() {
     var tankProperties = {
         name: 'hifi-home-fishtank',
-        type: 'Box',
+        type: 'Model',
+        modelURL:TANK_MODEL_URL,
         dimensions: TANK_DIMENSIONS,
         position: TANK_POSITION,
         color: DEBUG_COLOR,
@@ -38,7 +41,7 @@ function createFishTank() {
                 grabbable: false
             }
         }),
-        visible:false
+        visible:true
     }
 
     fishTank = Entities.addEntity(tankProperties);
