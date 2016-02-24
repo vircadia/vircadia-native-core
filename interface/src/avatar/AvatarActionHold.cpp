@@ -111,11 +111,13 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
 
         PalmData palmData = holdingAvatar->getHand()->getCopyOfPalmData(isRightHand ? HandData::RightHand : HandData::LeftHand);
 
-        // TODO: adjust according to _relativePosition and _relativeRotation?
-        linearVelocity = palmData.getVelocity();
-        angularVelocity = palmData.getAngularVelocity();
+        if (palmData.isValid()) {
+            // TODO: adjust according to _relativePosition and _relativeRotation?
+            linearVelocity = palmData.getVelocity();
+            angularVelocity = palmData.getAngularVelocity();
+        }
 
-        if (_ignoreIK && holdingAvatar->isMyAvatar()) {
+        if (_ignoreIK && holdingAvatar->isMyAvatar() && palmData.isValid()) {
             // We cannot ignore other avatars IK and this is not the point of this option
             // This is meant to make the grabbing behavior more reactive.
             palmPosition = palmData.getPosition();
