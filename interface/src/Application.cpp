@@ -5039,27 +5039,11 @@ void Application::setPalmData(Hand* hand, const controller::Pose& pose, float de
         // controller pose is in Avatar frame.
         glm::vec3 position = pose.getTranslation();
         glm::quat rotation = pose.getRotation();
+        glm::vec3 rawVelocity = pose.getVelocity();
+        glm::vec3 angularVelocity = pose.getAngularVelocity();
 
-        //  Compute current velocity from position change
-        glm::vec3 rawVelocity;
-        if (deltaTime > 0.0f) {
-            rawVelocity = (position - palm.getRawPosition()) / deltaTime;
-        } else {
-            rawVelocity = glm::vec3(0.0f);
-        }
-        palm.setRawVelocity(rawVelocity);   //  meters/sec
-
-        //  Angular Velocity of Palm
-        glm::quat deltaRotation = rotation * glm::inverse(palm.getRawRotation());
-        glm::vec3 angularVelocity(0.0f);
-        float rotationAngle = glm::angle(deltaRotation);
-        if ((rotationAngle > EPSILON) && (deltaTime > 0.0f)) {
-            angularVelocity = glm::normalize(glm::axis(deltaRotation));
-            angularVelocity *= (rotationAngle / deltaTime);
-            palm.setRawAngularVelocity(angularVelocity);
-        } else {
-            palm.setRawAngularVelocity(glm::vec3(0.0f));
-        }
+        palm.setRawVelocity(rawVelocity);
+        palm.setRawAngularVelocity(angularVelocity);
 
         if (controller::InputDevice::getLowVelocityFilter()) {
             //  Use a velocity sensitive filter to damp small motions and preserve large ones with
