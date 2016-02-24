@@ -110,7 +110,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         // preload some user public keys so they can connect on first request
         _gatekeeper.preloadAllowedUserPublicKeys();
-
+        
         optionallyGetTemporaryName(args);
     }
 }
@@ -393,9 +393,10 @@ bool DomainServer::resetAccountManagerAccessToken() {
             if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant->toString();
             } else {
-                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
-                    << "Set an access token via the web interface, in your user or master config"
+                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present.";
+                qDebug() << "Set an access token via the web interface, in your user or master config"
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+                AccountManager::getInstance().setAccessTokenForCurrentAuthURL(QString());
                 return false;
             }
         } else {
@@ -432,8 +433,8 @@ void DomainServer::setupAutomaticNetworking() {
     }
 
     if (!resetAccountManagerAccessToken()) {
-        qDebug() << "Cannot send heartbeat to data server without an access token.";
-        qDebug() << "Add an access token to your config file or via the web interface.";
+        qDebug() << "Will not send heartbeat to Metaverse API without an access token.";
+        qDebug() << "If this is not a temporary domain add an access token to your config file or via the web interface.";
 
         return;
     }
@@ -494,6 +495,8 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
     auto& accountManager = AccountManager::getInstance();
     auto domainID = accountManager.getAccountInfo().getDomainID();
 
+    // if we have an access token and we don't have a private key or the current domain ID has changed
+    // we should generate a new keypair
     if (!accountManager.getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
         accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
     }

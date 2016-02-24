@@ -450,8 +450,12 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
     // replace the account info access token with a new OAuthAccessToken
     OAuthAccessToken newOAuthToken;
     newOAuthToken.token = accessToken;
-    
-    qCDebug(networking) << "Setting new account manager access token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
+
+    if (!accessToken.isEmpty()) {
+        qCDebug(networking) << "Setting new AccountManager OAuth token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
+    } else if (!_accountInfo.getAccessToken().token.isEmpty()) {
+        qCDebug(networking) << "Clearing AccountManager OAuth token.";
+    }
     
     _accountInfo.setAccessToken(newOAuthToken);
 
@@ -658,7 +662,7 @@ void AccountManager::processGeneratedKeypair() {
         callbackParameters.errorCallbackReceiver = this;
         callbackParameters.errorCallbackMethod = "publicKeyUploadFailed";
 
-        sendRequest(uploadPath, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
+        sendRequest(uploadPath, AccountManagerAuth::Optional, QNetworkAccessManager::PutOperation,
                     callbackParameters, QByteArray(), requestMultiPart);
         
         keypairGenerator->deleteLater();
