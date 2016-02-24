@@ -562,32 +562,13 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 }
 
-void DeferredLightingEffect::setAmbientLightMode(int preset) {
-    if ((preset >= 0) && (preset < gpu::SphericalHarmonics::NUM_PRESET)) {
-        _ambientLightMode = preset;
-        auto light = _allocatedLights.front();
-        light->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(preset % gpu::SphericalHarmonics::NUM_PRESET));
-    } else {
-        // force to preset 0
-        setAmbientLightMode(0);
-    }
-}
-
-void DeferredLightingEffect::setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity) {
-    auto light = _allocatedLights.front();
-    light->setDirection(direction);
-    light->setColor(diffuse);
-    light->setIntensity(intensity);
-    light->setAmbientIntensity(ambientIntensity);
-}
-
-void DeferredLightingEffect::setGlobalSkybox(const model::SkyboxPointer& skybox) {
-    _skybox = skybox;
-    auto light = _allocatedLights.front();
-
-    if (_skybox && _skybox->getCubemap() && _skybox->getCubemap()->isDefined() && _skybox->getCubemap()->getIrradiance()) {
-        light->setAmbientSphere( (*_skybox->getCubemap()->getIrradiance()) );
-    }
+void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
+    auto globalLight = _allocatedLights.front();
+    globalLight->setDirection(light->getDirection());
+    globalLight->setColor(light->getColor());
+    globalLight->setIntensity(light->getIntensity());
+    globalLight->setAmbientIntensity(light->getAmbientIntensity());
+    globalLight->setAmbientSphere(light->getAmbientSphere());
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

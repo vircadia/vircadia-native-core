@@ -49,9 +49,7 @@ public:
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
-    void setAmbientLightMode(int preset);
-    void setGlobalLight(const glm::vec3& direction, const glm::vec3& diffuse, float intensity, float ambientIntensity);
-    void setGlobalSkybox(const model::SkyboxPointer& skybox);
+    void setGlobalLight(const model::LightPointer& light);
 
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };

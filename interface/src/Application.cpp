@@ -3816,18 +3816,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         });
     }
 
-    // Setup the current Zone Entity lighting and skybox
+    // Setup the current Zone Entity lighting
     {
-        // FIXME: Use a zone setting to determine the ambient light mode
-        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(-1);
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-
-        auto skybox = model::SkyboxPointer();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            skybox = skyStage->getSkybox();
-        }
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
+        auto sun = DependencyManager::get<SceneScriptingInterface>()->getSkyStage()->getSunLight();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(sun);
     }
 
     {
