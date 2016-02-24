@@ -17,20 +17,24 @@
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
-    
+
     }
 
     function stopUpdateAndReclaim() {
         print('i released the object ' + _entityID)
         iOwn = false;
-        baton.claim(startUpdate, stopUpdateAndReclaim);
         if (connected === true) {
+            connected = false;
             Script.update.disconnect(_this.update);
         }
+        baton.claim(startUpdate, stopUpdateAndReclaim);
+
     }
 
     FishTank.prototype = {
         fish: null,
+        tankLocked: false,
+
         findFishInTank: function() {
 
             //     print('looking for a fish.  in the tank')
@@ -39,7 +43,7 @@
 
             res.forEach(function(f) {
                 var props = Entities.getEntityProperties(f, 'name');
-                if (props.name.indexOf('hifi-fishtank-fish') > -1) {
+                if (props.name.indexOf('hifi-fishtank-fish' + _this.entityID) > -1) {
                     fish.push(f);
                 }
             })
@@ -47,8 +51,9 @@
             print('fish? ' + fish.length)
             return fish;
         },
+
         initialize: function(entityID) {
-            print('JBP nav button should initialize' + entityID)
+            print('JBP fishtank initialize' + entityID)
             var properties = Entities.getEntityProperties(entityID);
             if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
                 _this.initTimeout = Script.setTimeout(function() {
@@ -77,6 +82,7 @@
 
             }
         },
+
         preload: function(entityID) {
             print("preload");
             this.entityID = entityID;
@@ -87,17 +93,17 @@
         },
 
         unload: function() {
+            print(' UNLOAD')
+            Script.update.disconnect(_this.update);
             if (baton) {
+                print('BATON RELEASE ')
                 baton.release(function() {});
             }
-     
-                Script.update.disconnect(_this.update);
-       
 
         },
 
         update: function() {
-            print('AM I THE OWNER??'+iOwn);
+            print('AM I THE OWNER??' + iOwn);
             if (iOwn === false) {
                 return
             }
@@ -168,7 +174,9 @@
     }
 
     function updateFish(deltaTime) {
-
+        if (_this.tankLocked === true) {
+            return;
+        }
         if (!Entities.serversExist() || !Entities.canRez()) {
             return;
         }
@@ -178,7 +186,7 @@
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
-
+            _this.tankLocked = true;
             loadFish(NUM_FISH);
             setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, {
                 fishLoaded: true
@@ -197,7 +205,7 @@
 
 
         var fish = _this.fish;
-        print('how many fish do i find?'+fish.length)
+        print('how many fish do i find?' + fish.length)
 
         if (fish.length === 0) {
             print('no fish...')
@@ -411,6 +419,7 @@
 
         }
         print('initial fish::' + fish.length)
+        _this.tankLocked = false;
     }
 
 
