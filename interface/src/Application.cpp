@@ -4312,7 +4312,7 @@ bool Application::askToSetAvatarUrl(const QString& url) {
         case FSTReader::HEAD_AND_BODY_MODEL:
              ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
 							   "Would you like to use '" + modelName + "' for your avatar?",
-							   QMessageBox::Ok | QMessageBox::Cancel);
+							   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
         break;
 
         default:
