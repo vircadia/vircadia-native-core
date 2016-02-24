@@ -32,7 +32,7 @@ var userData = {
         url: "http://hifi-content.s3.amazonaws.com/DomainContent/Junkyard/Sounds/ClothSail/cloth_sail3.L.wav",
         volume: 0.3,
         loop: false,
-        playbackGap: 2000, // In ms - time to wait in between clip plays
+        playbackGap: 7000, // In ms - time to wait in between clip plays
         playbackGapRange: 500 // In ms - the range to wait in between clip plays
     }
 };
