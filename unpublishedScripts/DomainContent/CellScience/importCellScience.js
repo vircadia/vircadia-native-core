@@ -120,7 +120,7 @@ var scenes = [{
             location: locations.cellLayout[1],
             baseURL: baseLocation
         }),
-        script: "zoomAndMoveRandomly.js?" + version,
+        script: "zoom.js?" + version,
         visible: true
     }],
     boundary: {
@@ -194,7 +194,6 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly2.js?" + version,
             visible: true
         }, { //golgi vesicles
             model: "vesicle",
@@ -238,7 +237,6 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly2.js?" + version,
             visible: true
         }, {
             model: "vesicle",
@@ -304,7 +302,6 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly2.js?" + version,
             visible: true
         }, { //outer vesicles
             model: "vesicle",
@@ -326,32 +323,8 @@ var scenes = [{
                     grabbable: false
                 }
             }),
-            script: "moveRandomly2.js?" + version,
             visible: true
-        },
-        //          {//wigglies
-        //              model:"wiggly",
-        //              dimensions:{x:320,y:40,z:160},
-        //              randomSize: 10,
-        //              offset:{x:0,y:0,z:0},
-        //              radius:1800,
-        //              number:50,
-        //              userData:"",
-        //              script:"moveRandomly",
-        //              visible:true
-        //          },
-        ////            {//wigglies
-        //              model:"wiggly",
-        //              dimensions:{x:640,y:80,z:320},
-        //              randomSize: 10,
-        //              offset:{x:0,y:0,z:0},
-        //              radius:2100,
-        //              number:50,
-        //              userData:"",
-        //              script:"moveRandomly",
-        //              visible:true
-        //          },
-        {
+        }, {
             model: "hexokinase",
             dimensions: {
                 x: 3,
@@ -813,7 +786,7 @@ function CreateInstances(scene) {
                     x: 0,
                     y: 0,
                     z: 0
-                }, idBounds, 150);
+                }, idBounds, 150, scene.instances[i]);
 
             }
             //print('SCRIPT AT CREATE ENTITY: ' + script)
@@ -824,8 +797,11 @@ function CreateInstances(scene) {
 
 
 
-function CreateIdentification(name, position, rotation, dimensions, showDistance) {
+function CreateIdentification(name, position, rotation, dimensions, showDistance, parentID) {
     //print ("creating ID for " + name);
+    if (parentID === undefined) {
+        parentID = "{00000000-0000-0000-0000-000000000000}";
+    }
     Entities.addEntity({
         type: "Sphere",
         name: "ID for " + name,
@@ -834,6 +810,7 @@ function CreateIdentification(name, position, rotation, dimensions, showDistance
             green: 0,
             blue: 0
         },
+        parentID: parentID,
         dimensions: dimensions,
         position: position,
         rotation: rotation,
@@ -9042,7 +9019,7 @@ Script.scriptEnding.connect(function() {
     Entities.addingEntity.disconnect(makeUngrabbable);
 });
 
-Script.setTimeout(function(){
+Script.setTimeout(function() {
     print('JBP stopping cell science import');
     Script.stop();
-},30000)
+}, 30000)
