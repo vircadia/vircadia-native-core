@@ -1695,7 +1695,6 @@ function MyController(hand) {
     };
 
     this.activateEntity = function(entityID, grabbedProperties, wasLoaded) {
-        print("activating: " + entityID + " " + (this.hand === RIGHT_HAND ? "right" : "left"));
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
         var now = Date.now();
