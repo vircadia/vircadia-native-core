@@ -88,7 +88,7 @@ Fadable {
     property var activator: MouseArea {
         width: frame.decoration.width
         height: frame.decoration.height
-        x: frame.decoration.anchors.margins
+        x: frame.decoration.anchors.leftMargin
         y: frame.decoration.anchors.topMargin
         propagateComposedEvents: true
         acceptedButtons: Qt.AllButtons
@@ -106,7 +106,7 @@ Fadable {
     property var swallower: MouseArea {
         width: frame.decoration.width
         height: frame.decoration.height
-        x: frame.decoration.anchors.margins
+        x: frame.decoration.anchors.leftMargin
         y: frame.decoration.anchors.topMargin
         hoverEnabled: true
         acceptedButtons: Qt.AllButtons
