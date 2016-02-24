@@ -126,7 +126,8 @@ private:
     LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
-    std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    using PacketResendPair = std::pair<uint8_t, std::unique_ptr<Packet>>; // Number of resend + packet ptr
+    std::unordered_map<SequenceNumber, PacketResendPair> _sentPackets; // Packets waiting for ACK.
     
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
     std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client

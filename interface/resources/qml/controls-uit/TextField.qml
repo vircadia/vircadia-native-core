@@ -22,7 +22,7 @@ TextField {
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
-    font.pointSize: hifi.fontSizes.textFieldInput
+    font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
     placeholderText: textField.label  // Instead of separate label (see below).
 

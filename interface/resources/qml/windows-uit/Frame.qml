@@ -125,7 +125,7 @@ Item {
             visible: sizeDrag.enabled
             x: -11  // Move a little to visually align
             y: -4   // ""
-            text: "A"
+            text: hifi.glyphs.resizeHandle
             size: iconSize + 10
             color: sizeDrag.containsMouse || sizeDrag.pressed ? hifi.colors.white : hifi.colors.white50
         }

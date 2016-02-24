@@ -16,7 +16,7 @@ Text {
     id: root
     FontLoader { id: anonymousProRegular; source: "../../fonts/AnonymousPro-Regular.ttf"; }
     property real size: 32
-    font.pointSize: size
+    font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
     font.family: anonymousProRegular.name

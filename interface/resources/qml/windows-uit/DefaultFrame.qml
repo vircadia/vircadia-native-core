@@ -53,7 +53,7 @@ Frame {
             HiFiGlyphs {
                 // "Pin" button
                 visible: false
-                text: (frame.pinned && !pinClickArea.containsMouse) || (!frame.pinned && pinClickArea.containsMouse) ? "z" : "y"
+                text: (frame.pinned && !pinClickArea.containsMouse) || (!frame.pinned && pinClickArea.containsMouse) ? hifi.glyphs.pinInverted : hifi.glyphs.pin
                 color: pinClickArea.containsMouse && !pinClickArea.pressed ? hifi.colors.redHighlight : hifi.colors.white
                 size: iconSize
                 MouseArea {
@@ -68,7 +68,7 @@ Frame {
             HiFiGlyphs {
                 // "Close" button
                 visible: window ? window.closable : false
-                text: closeClickArea.containsPress ? "x" : "w"
+                text: closeClickArea.containsPress ? hifi.glyphs.closeInverted : hifi.glyphs.close
                 color: closeClickArea.containsMouse ? hifi.colors.redHighlight : hifi.colors.white
                 size: iconSize
                 MouseArea {
