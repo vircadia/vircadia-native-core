@@ -96,6 +96,7 @@
         },
 
         update: function() {
+            print('AM I THE OWNER??'+iOwn);
             if (iOwn === false) {
                 return
             }
@@ -171,7 +172,7 @@
             return;
         }
 
-        print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+        // print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
 
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
