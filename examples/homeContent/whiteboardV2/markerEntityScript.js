@@ -57,7 +57,7 @@
                 origin: markerProps.position,
                 direction: Quat.getFront(markerProps.rotation)
             }
-            var intersection = Entities.findRayIntersection(pickRay, true, [_this.whiteboard]);
+            var intersection = Entities.findRayIntersectionBlocking(pickRay, true, [_this.whiteboard]);
 
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 Overlays.editOverlay(_this.laserPointer, {
@@ -71,7 +71,8 @@
                     _this.resetStroke();
                 }
             } else {
-                _this.resetStroke();
+                  _this.resetStroke();
+                    
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: false
                 });
@@ -92,7 +93,7 @@
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
-                lifetime: 10
+                lifetime: 500
             });
 
             _this.linePoints = [];
