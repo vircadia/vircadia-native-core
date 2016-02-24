@@ -142,12 +142,13 @@ function createMarkers() {
 
 
 function createMarker(modelURL, markerPosition, markerColor) {
-    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
+    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
     var marker = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
         rotation: markerRotation,
         shapeType: "box",
+        name: "marker",
         dynamic: true,
         gravity: {
             x: 0,

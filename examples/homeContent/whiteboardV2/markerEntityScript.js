@@ -92,7 +92,7 @@
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
-                lifetime: 200
+                lifetime: 10
             });
 
             _this.linePoints = [];
@@ -111,9 +111,9 @@
                 _this.newStroke(basePosition);
             }
 
-            var localPoint = Vec3.subtract(basePosition, this.strokeBasePosition);
+            var localPoint = Vec3.subtract(basePosition, _this.strokeBasePosition);
             localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
-            _this.strokeForwardOffset += _this.STROKE_FORWARD_OFFSET_INCRERMENT;
+            _this.strokeForwardOffset -= _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
             if (_this.linePoints.length > 0) {
                 var distance = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length - 1]);
@@ -121,7 +121,6 @@
                     return;
                 }
             }
-
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
             this.strokeWidths.push(_this.STROKE_WIDTH);
