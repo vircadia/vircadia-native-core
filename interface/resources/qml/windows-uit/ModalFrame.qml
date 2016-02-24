@@ -25,10 +25,10 @@ Frame {
 
         Rectangle {
             anchors {
-                topMargin: -hifi.dimensions.modalDialogMargin - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight : 0)
-                leftMargin: -hifi.dimensions.modalDialogMargin
-                rightMargin: -hifi.dimensions.modalDialogMargin
-                bottomMargin: -hifi.dimensions.modalDialogMargin
+                topMargin: -hifi.dimensions.modalDialogMargin.y - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
+                leftMargin: -hifi.dimensions.modalDialogMargin.x
+                rightMargin: -hifi.dimensions.modalDialogMargin.x
+                bottomMargin: -hifi.dimensions.modalDialogMargin.y
                 fill: parent
             }
             border {
@@ -50,7 +50,7 @@ Frame {
                 size: 30
                 color: hifi.colors.lightGrayText
                 visible: text != ""
-                y: -hifi.dimensions.modalDialogTitleHeight - 3
+                y: -hifi.dimensions.modalDialogTitleHeight - 5
                 anchors.left: parent.left
             }
             RalewayRegular {

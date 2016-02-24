@@ -89,8 +89,8 @@ ModalWindow {
 
             function resize() {
                 var targetWidth = mainTextContainer.width
-                var targetHeight = mainTextContainer.height + 4 * hifi.dimensions.contentSpacing.y
-                        + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + hifi.dimensions.contentSpacing.y : 0)
+                var targetHeight = mainTextContainer.height + 3 * hifi.dimensions.contentSpacing.y
+                        + (informativeTextContainer.text != "" ? informativeTextContainer.contentHeight + 3 * hifi.dimensions.contentSpacing.y : 0)
                         + buttons.height
                         + (content.state === "expanded" ? details.implicitHeight + hifi.dimensions.contentSpacing.y : 0)
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
@@ -121,9 +121,9 @@ ModalWindow {
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {
-                top: mainTextContainer.bottom;
-                left: parent.left;
-                right: parent.right;
+                top: mainTextContainer.bottom
+                left: parent.left
+                right: parent.right
                 margins: 0
                 topMargin: text != "" ? hifi.dimensions.contentSpacing.y : 0
             }
@@ -136,10 +136,10 @@ ModalWindow {
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
             anchors {
-                top: informativeTextContainer.bottom
+                top: informativeTextContainer.text == "" ? mainTextContainer.bottom : informativeTextContainer.bottom
                 horizontalCenter: parent.horizontalCenter
                 margins: 0
-                topMargin: hifi.dimensions.contentSpacing.y
+                topMargin: 2 * hifi.dimensions.contentSpacing.y
             }
             MessageDialogButton { dialog: root; text: qsTr("Close"); button: OriginalDialogs.StandardButton.Close; }
             MessageDialogButton { dialog: root; text: qsTr("Abort"); button: OriginalDialogs.StandardButton.Abort; }
