@@ -4,7 +4,8 @@ import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
 import "../../../interface/resources/qml"
-import "../../../interface/resources/qml/windows"
+//import "../../../interface/resources/qml/windows"
+import "../../../interface/resources/qml/windows-uit"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
 import "../../../interface/resources/qml/hifi/dialogs"
@@ -13,14 +14,14 @@ ApplicationWindow {
     id: appWindow
     visible: true
     width: 1280
-    height: 720
+    height: 800
     title: qsTr("Scratch App")
 
     Desktop {
         id: desktop
         anchors.fill: parent
         rootMenu: StubMenu { id: rootMenu }
-        Component.onCompleted: offscreenWindow = appWindow
+        //Component.onCompleted: offscreenWindow = appWindow
 
         MouseArea {
             anchors.fill: parent
@@ -36,6 +37,27 @@ ApplicationWindow {
 
             property var tabs: [];
             property var urls: [];
+
+            Button {
+                text: "Running Scripts"
+                property var builder: Component {
+                    RunningScripts { }
+                }
+                onClicked: {
+                    var runningScripts = builder.createObject(desktop);
+                }
+            }
+
+            Button {
+                text: "Attachments"
+                property var builder: Component {
+                    AttachmentsDialog { }
+                }
+                onClicked: {
+                    var attachmentsDialog = builder.createObject(desktop);
+                }
+            }
+
             /*
             Button {
                 text: "restore all"
@@ -150,6 +172,7 @@ ApplicationWindow {
             }
         }
 
+        /*
         Window {
             id: blue
             closable: true
@@ -174,6 +197,7 @@ ApplicationWindow {
                 Component.onDestruction: console.log("Blue destroyed")
             }
         }
+        */
         /*
         Window {
             id: green
