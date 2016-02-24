@@ -20,14 +20,12 @@ vec4 fetchAlbedoMap(vec2 uv) {
 }
 <@endif@>
 
-<!
 <@if withRoughness@>
 uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
     return texture(roughnessMap, uv).r;
 }
 <@endif@>
-!>
 
 <@if withNormal@>
 uniform sampler2D normalMap;
@@ -38,8 +36,8 @@ vec3 fetchNormalMap(vec2 uv) {
 
 <@if withMetallic@>
 uniform sampler2D specularMap;
-vec3 fetchMetallicMap(vec2 uv) {
-    return texture(specularMap, uv).rgb;
+float fetchMetallicMap(vec2 uv) {
+    return texture(specularMap, uv).r;
 }
 <@endif@>
 
@@ -51,13 +49,13 @@ vec3 fetchMetallicMap(vec2 uv) {
     vec4 <$albedo$> = fetchAlbedoMap(<$texcoord0$>);
 <@endif@>
 <@if roughness@>
-float <$roughness$> = 1.0; //fetchRoughnessMap(<$texcoord0$>);
+    float <$roughness$> = fetchRoughnessMap(<$texcoord0$>);
 <@endif@>
 <@if normal@>
     vec3 <$normal$> = fetchNormalMap(<$texcoord0$>);
 <@endif@>
 <@if metallic@>
-    vec3 <$metallic$> = fetchMetallicMap(<$texcoord0$>);
+    float <$metallic$> = fetchMetallicMap(<$texcoord0$>);
 <@endif@>
 <@endfunc@>
 
@@ -84,5 +82,19 @@ vec3 fetchLightmapMap(vec2 uv) {
     <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z);
 }
 <@endfunc@>
+
+
+<@func evalMaterialRoughness(fetchedRoughness, materialRoughness, matKey, roughness)@>
+{
+    <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
+}
+<@endfunc@>
+
+<@func evalMaterialMetallic(fetchedMetallic, materialMetallic, matKey, metallic)@>
+{
+    <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? <$fetchedMetallic$> : <$materialMetallic$>);
+}
+<@endfunc@>
+
 
 <@endif@>

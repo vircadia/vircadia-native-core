@@ -38,6 +38,6 @@ void main(void) {
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,
         getMaterialMetallic(mat),
-        specular, // no use of getMaterialFresnel(mat)
+        /*specular, // no use of */getMaterialFresnel(mat),
         lightmapVal);
 }

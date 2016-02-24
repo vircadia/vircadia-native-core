@@ -27,19 +27,28 @@ in vec3 _color;
 
 void main(void) {
     
-    <$fetchMaterialTextures(_texCoord0, albedo, roughness, normalTexel, specular)$>
+    <$fetchMaterialTextures(_texCoord0, albedo, roughnessTex, normalTexel, metallicTex)$>
     
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
 
     vec3 viewNormal;
     <$tangentToViewSpace(normalTexel, _normal, _tangent, viewNormal)$>
- 
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
+
+
     packDeferredFragment(
         normalize(viewNormal.xyz), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat),
-        vec3(specular) //getMaterialFresnel(mat)
+        roughness,
+        metallic,
+        /*vec3(specular) //*/getMaterialFresnel(mat)
         );
 }

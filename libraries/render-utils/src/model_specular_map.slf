@@ -27,16 +27,20 @@ in vec3 _color;
 
 void main(void) {
  
-    <$fetchMaterialTextures(_texCoord0, albedo, roughness, _SCRIBE_NULL, specular)$>
+    <$fetchMaterialTextures(_texCoord0, albedo, roughness, _SCRIBE_NULL, metallicTex)$>
  
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+
+    float metallic = getMaterialMetallic(mat);
+    <$evalMaterialMetallic(metallicTex, metallic, matKey, metallic)$>;
 
     packDeferredFragment(
         normalize(_normal), 
         evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
         getMaterialAlbedo(mat) * albedo.rgb * _color,
         getMaterialRoughness(mat) * roughness,
-        getMaterialMetallic(mat),
-        vec3(specular) //getMaterialFresnel(mat)
+        metallic,
+        /*vec3(specular) //*/ getMaterialFresnel(mat)
         );
 }

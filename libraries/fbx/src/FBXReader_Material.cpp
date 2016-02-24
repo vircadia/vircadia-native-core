@@ -152,6 +152,7 @@ void FBXReader::consolidateFBXMaterials() {
         glm::vec2 lightmapParams(0.f, 1.f);
         lightmapParams.x = _lightmapOffset;
         lightmapParams.y = _lightmapLevel;
+
         FBXTexture ambientTexture;
         QString ambientTextureID = ambientTextures.value(material.materialID);
         if (_loadLightmaps && !ambientTextureID.isNull()) {
@@ -179,7 +180,6 @@ void FBXReader::consolidateFBXMaterials() {
             // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
             // metallic *= material.specularFactor;
             material._material->setMetallic(metallic);
-
         }
 
         if (material.opacity <= 0.0f) {

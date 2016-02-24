@@ -199,6 +199,8 @@ public:
         static const int NORMAL_MAP = 1;
         static const int SPECULAR_MAP = 2;
         static const int LIGHTMAP_MAP = 3;
+        static const int ROUGHNESS_MAP = 4;
+
         static const int LIGHT_BUFFER = 4;
         static const int NORMAL_FITTING_MAP = 10;
     };
@@ -208,6 +210,7 @@ public:
         int texcoordMatrices;
         int albedoTextureUnit;
         int normalTextureUnit;
+        int roughnessTextureUnit;
         int specularTextureUnit;
         int emissiveTextureUnit;
         int emissiveParams;

@@ -120,7 +120,9 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
    // }
 
     frag.metallic = frag.diffuseVal.a;
-    if (frag.metallic > 0.5) {
+    frag.diffuse = frag.diffuseVal.xyz;
+    frag.specular = vec3(frag.metallic);
+  /*  if (frag.metallic > 0.5) {
         frag.diffuse = vec3(0);
         //frag.metallic = length(frag.specularVal);
         frag.specular = frag.diffuseVal.xyz;
@@ -130,6 +132,7 @@ DeferredFragment unpackDeferredFragmentNoPosition(vec2 texcoord) {
         //frag.metallic = length(frag.specularVal);
         frag.specular = vec3(0.03);
     }
+    */
     // frag.diffuse = frag.diffuseVal.xyz;
     //frag.metallic = length(frag.specularVal);
     //frag.specular = frag.specularVal.xyz;

@@ -29,8 +29,6 @@ float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
 vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
     // Diffuse Lighting
-    //float diffuseDot = dot(fragNormal, fragLightDir);
-    //float facingLight = step(0.0, diffuseDot);
     float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
     
     // Specular Lighting
