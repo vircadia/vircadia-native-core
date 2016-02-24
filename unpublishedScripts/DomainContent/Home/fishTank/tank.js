@@ -188,7 +188,6 @@
 
             //fish in userdata already
             if (_this.fish === null) {
-
                 _this.fish = _this.findFishInTank();
             }
 
@@ -386,11 +385,11 @@
                         z: 0,
                         w: 1
                     },
-                    dimensions: {
-                        x: FISH_WIDTH,
-                        y: FISH_WIDTH,
-                        z: FISH_LENGTH
-                    },
+                    // dimensions: {
+                    //     x: FISH_WIDTH,
+                    //     y: FISH_WIDTH,
+                    //     z: FISH_LENGTH
+                    // },
                     // velocity: {
                     //     x: SWIMMING_SPEED,
                     //     y: SWIMMING_SPEED,
