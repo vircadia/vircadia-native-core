@@ -14,63 +14,41 @@ var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
+var bowlPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
 
-var pot, hose;
-initializePlant();
 
-function initializePlant() {
-  var POT_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/pot.fbx";
-  var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js");
 
-  pot = Entities.addEntity({
-    type: "Model",
-    name: "plant pot",
-    modelURL: POT_MODEL_URL,
-    position: center
-  });
 
-  var HOSE_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/hose.fbx";
-  var HOSE_SCRIPT_URL = Script.resolvePath("waterHoseEntityScript.js");
-  hose = Entities.addEntity({
-    type: "Model",
-    modelURL: HOSE_MODEL_URL,
-    position: Vec3.sum(center, {
-      x: 0.0,
-      y: 1,
-      z: 0
-    }),
-    color: {
-      red: 200,
-      green: 10,
-      blue: 200
-    },
-    userData: JSON.stringify({
-      grabbableKey: {
-        wantsTrigger: true
-      }
-    })
-  });
 
-  Script.setTimeout(function() {
-    var potNaturalDimensions = Entities.getEntityProperties(pot, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(pot, {
-      dimensions: potNaturalDimensions,
-      script: PLANT_SCRIPT_URL
-    });
+var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
+var bowlDimensions = {x: 0.518, y: 0.1938, z: 0.5518};
+var bowl= Entities.addEntity({
+  type: "Model",
+  modelURL: BOWL_MODEL_URL,
+  dimensions: bowlDimensions,
+  name: "plant bowl",
+  position: bowlPosition
+});
 
-    var hoseNaturalDimensions = Entities.getEntityProperties(hose, "naturalDimensions").naturalDimensions;
-    Entities.editEntity(hose, {
-      dimensions: hoseNaturalDimensions,
-      script: HOSE_SCRIPT_URL
-    });
-  }, 2000);
 
-}
+var PLANT_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Moss-Rock.fbx";
+var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js");
+var plantDimensions =  {x: 0.52, y: 0.2600, z: 0.52};
+var plantPosition = Vec3.sum(bowlPosition, {x: 0, y: plantDimensions.y/2, z: 0});
+var plant = Entities.addEntity({
+  type: "Model",
+  modelURL: PLANT_MODEL_URL,
+  name: "plant",
+  dimensions: plantDimensions,
+  position: plantPosition,
+  parentID: bowl
+});
+
+
 
 function cleanup() {
-  Entities.deleteEntity(pot);
-  Entities.deleteEntity(hose);
+  Entities.deleteEntity(plant);
+  Entities.deleteEntity(bowl);
 }
 
 
