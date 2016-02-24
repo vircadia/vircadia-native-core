@@ -11,10 +11,7 @@ import "../js/Utils.js" as Utils
 FocusScope {
     id: desktop
     objectName: "desktop"
-
-    // Allow the scale of the desktop to be changed without screwing up the size relative to the parent.
-    height: parent.height / scale
-    width: parent.width / scale
+    anchors.fill: parent
 
     onHeightChanged: d.repositionAll();
     onWidthChanged: d.repositionAll();
