@@ -5,6 +5,8 @@ import QtQuick.Controls 1.2
 Item {
     anchors.fill: parent
     anchors.leftMargin: 300
+    objectName: "StatsItem"
+
     Hifi.Stats {
         id: root
         objectName: "Stats"
@@ -27,6 +29,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
 
                 Column {
@@ -83,6 +86,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: pingCol
@@ -123,6 +127,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: geoCol
@@ -172,6 +177,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: octreeCol

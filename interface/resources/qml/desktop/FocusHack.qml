@@ -2,6 +2,7 @@ import QtQuick 2.5
 
 FocusScope {
     id: root
+    objectName: "FocusHack"
 
     TextInput {
         id: textInput;
