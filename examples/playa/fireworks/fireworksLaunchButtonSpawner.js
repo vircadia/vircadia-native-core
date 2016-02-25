@@ -21,6 +21,7 @@
   var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Launch-Button.fbx";
   var launchButton = Entities.addEntity({
     type: "Model",
+    name: "launch pad",
     modelURL: MODEL_URL,
     position: center,
     dimensions: {
