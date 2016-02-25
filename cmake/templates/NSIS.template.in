@@ -74,6 +74,9 @@
 
     ;Set compression
     SetCompressor @CPACK_NSIS_COMPRESSOR@
+
+    ; change the button text so close says "Finish"
+    MiscButtonText "Back" "Next" "Cancel" "Finish"
   !endif
 
 @CPACK_NSIS_DEFINES@
@@ -927,9 +930,6 @@ Function .onInit
     ; just bail out quickly when running the "inner" installer
     Quit
   !endif
-
-  ; change the button text so close says "Finish"
-  MiscButtonText "Back" "Next" "Cancel" "Finish"
 
   ; make sure none of the installed applications are still running
   !insertmacro CheckForRunningApplications "installed" "Installer"
