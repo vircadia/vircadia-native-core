@@ -18,7 +18,6 @@
 #include <NumericalConstants.h>
 
 #include "model/Light.h"
-#include "model/Stage.h"
 #include "model/Geometry.h"
 
 #include "render/Context.h"
@@ -49,9 +48,7 @@ public:
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
-    void setAmbientLightMode(int preset);
-    void setGlobalLight(const glm::vec3& direction, const glm::vec3& color, float intensity, float ambientIntensity);
-    void setGlobalSkybox(const model::SkyboxPointer& skybox);
+    void setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture);
 
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
@@ -99,7 +96,7 @@ private:
     std::vector<int> _spotLights;
 
     int _ambientLightMode = 0;
-    model::SkyboxPointer _skybox;
+    gpu::TexturePointer _skyboxTexture;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
     class DeferredTransform {

@@ -558,7 +558,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      glm::vec3(0.0f),
-                                                     glm::vec2(0.0f, 1.0f),
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];

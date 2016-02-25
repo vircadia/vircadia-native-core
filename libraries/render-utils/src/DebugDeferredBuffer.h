@@ -52,7 +52,6 @@ protected:
         NormalMode,
         RoughnessMode,
         MetallicMode,
-        FresnelMode,
         EmissiveMode,
         OcclusionMode,
         LightmapMode,

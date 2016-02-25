@@ -264,27 +264,38 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcIma
 
     image = image.convertToFormat(QImage::Format_Grayscale8);
 
- /*   gpu::Texture* theTexture = nullptr;
+    gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
 
-    // Actual alpha channel?
-    for (int y = 0; y < image.height(); ++y) {
-        QRgb* data = reinterpret_cast<QRgb*>(image.scanLine(y));
-        for (int x = 0; x < image.width(); ++x) {
-            data[x]auto alpha = q(data[x]);
-            if (alpha != 255) {
-                validAlpha = true;
-                break;
-            }
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
+
+        // FIXME queue for transfer to GPU and block on completion
+    }
+
+    return theTexture;
+}
+
+gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
         }
     }
-    */
 
+    image = image.convertToFormat(QImage::Format_Grayscale8);
 
     gpu::Texture* theTexture = nullptr;
     if ((image.width() > 0) && (image.height() > 0)) {
-        // bool isLinearRGB = true; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
-        bool isLinearRGB = false; //(_type == NORMAL_TEXTURE) || (_type == EMISSIVE_TEXTURE);
 
         gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
         gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);

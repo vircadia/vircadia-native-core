@@ -185,8 +185,6 @@ void FBXReader::consolidateFBXMaterials() {
         } else {
             material._material->setRoughness(model::Material::shininessToRoughness(material.shininess));
             float metallic = std::max(material.specularColor.x, std::max(material.specularColor.y, material.specularColor.z));
-            // FIXME: Do not use the Specular Factor yet as some FBX models have it set to 0
-            // metallic *= material.specularFactor;
             material._material->setMetallic(metallic);
         }
 

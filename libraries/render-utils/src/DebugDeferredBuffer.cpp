@@ -60,29 +60,23 @@ static const std::string DEFAULT_ALBEDO_SHADER {
     " }"
 };
 
-static const std::string DEFAULT_FRESNEL_SHADER{
-    "vec4 getFragmentColor() {"
-    "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(pow(frag.specular, vec3(1.0 / 2.2)), 1.0);"
-    " }"
-};
-
 static const std::string DEFAULT_METALLIC_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(vec3(frag.metallic), 1.0);"
+    "    return vec4(vec3(pow(frag.metallic, 1.0 / 2.2)), 1.0);"
     " }"
 };
+
 static const std::string DEFAULT_ROUGHNESS_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(vec3(frag.roughness), 1.0);"
+    "    return vec4(vec3(pow(frag.roughness, 1.0 / 2.2)), 1.0);"
     " }"
 };
 static const std::string DEFAULT_NORMAL_SHADER {
     "vec4 getFragmentColor() {"
     "    DeferredFragment frag = unpackDeferredFragmentNoPosition(uv);"
-    "    return vec4(normalize(frag.normal), 1.0);"
+    "    return vec4(vec3(0.5) + (frag.normal * 0.5), 1.0);"
     " }"
 };
 
@@ -180,8 +174,6 @@ std::string DebugDeferredBuffer::getShaderSourceCode(Mode mode, std::string cust
     switch (mode) {
         case AlbedoMode:
             return DEFAULT_ALBEDO_SHADER;
-        case FresnelMode:
-            return DEFAULT_FRESNEL_SHADER;
         case MetallicMode:
             return DEFAULT_METALLIC_SHADER;
         case RoughnessMode:

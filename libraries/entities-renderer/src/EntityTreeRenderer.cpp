@@ -140,7 +140,8 @@ void EntityTreeRenderer::update() {
         // even if we haven't changed positions, if we previously attempted to set the skybox, but
         // have a pending download of the skybox texture, then we should attempt to reapply to 
         // get the correct texture.
-        if (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) {
+        if ((_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
+            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded())) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -253,6 +254,7 @@ void EntityTreeRenderer::forceRecheckEntities() {
 
 
 void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
+    auto textureCache = DependencyManager::get<TextureCache>();
     auto scene = DependencyManager::get<SceneScriptingInterface>();
     auto sceneStage = scene->getStage();
     auto skyStage = scene->getSkyStage();
@@ -264,7 +266,11 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingSkyboxTexture = false;
         _skyboxTexture.clear();
 
+        _pendingAmbientTexture = false;
+        _ambientTexture.clear();
+
         if (_hasPreviousZone) {
+            sceneKeyLight->resetAmbientSphere();
             sceneKeyLight->setColor(_previousKeyLightColor);
             sceneKeyLight->setIntensity(_previousKeyLightIntensity);
             sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
@@ -274,6 +280,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                                     _previousStageAltitude);
             sceneTime->setHour(_previousStageHour);
             sceneTime->setDay(_previousStageDay);
+
             _hasPreviousZone = false;
         }
 
@@ -306,6 +313,23 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     sceneTime->setHour(zone->getStageProperties().calculateHour());
     sceneTime->setDay(zone->getStageProperties().calculateDay());
 
+    bool isAmbientTextureSet = false;
+    if (zone->getKeyLightProperties().getAmbientURL().isEmpty()) {
+        _pendingAmbientTexture = false;
+        _ambientTexture.clear();
+    } else {
+        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
+        if (_ambientTexture->getGPUTexture()) {
+            _pendingAmbientTexture = false;
+            if (_ambientTexture->getGPUTexture()->getIrradiance()) {
+                sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
+                isAmbientTextureSet = true;
+            }
+        } else {
+            _pendingAmbientTexture = true;
+        }
+    }
+
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_SKYBOX: {
             auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
@@ -326,12 +350,16 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
-                auto textureCache = DependencyManager::get<TextureCache>();
                 _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
 
                 if (_skyboxTexture->getGPUTexture()) {
-                    skybox->setCubemap(_skyboxTexture->getGPUTexture());
+                    auto texture = _skyboxTexture->getGPUTexture();
+                    skybox->setCubemap(texture);
                     _pendingSkyboxTexture = false;
+                    if (!isAmbientTextureSet && texture->getIrradiance()) {
+                        sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                        isAmbientTextureSet = true;
+                    }
                 } else {
                     _pendingSkyboxTexture = true;
                 }
@@ -347,6 +375,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();
             break;
+    }
+
+    if (!isAmbientTextureSet) {
+        sceneKeyLight->resetAmbientSphere();
     }
 }
 

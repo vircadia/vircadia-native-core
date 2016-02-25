@@ -363,7 +363,7 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
         material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
     }
     if (!material.roughnessTexture.filename.isEmpty()) {
-        material.roughnessTexture.isGlossmap;
+        // FIXME: COnvert from gloss to roughness if material.roughnessTexture.isGlossmap;
         networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
         networkMaterial->roughnessTextureName = material.roughnessTexture.name;
 

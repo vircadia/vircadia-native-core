@@ -216,12 +216,15 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
             return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromImage);
             break;
         }
+        case SPECULAR_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createMetallicTextureFromImage);
+            break;
+        }
         case CUSTOM_TEXTURE: {
             return _textureLoader;
             break;
         }
         case DEFAULT_TEXTURE:
-        case SPECULAR_TEXTURE:
         case EMISSIVE_TEXTURE:
         default: {
             return TextureLoaderFunc(model::TextureUsage::create2DTextureFromImage);
