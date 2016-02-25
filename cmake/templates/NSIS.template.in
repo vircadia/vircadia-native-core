@@ -271,7 +271,7 @@ FunctionEnd
 
   @CPACK_NSIS_PAGE_COMPONENTS@
 
-  Page custom PostInstallOptionsPage HandlePostInstallOptions
+  Page custom PostInstallOptionsPage
 
   !insertmacro MUI_PAGE_INSTFILES
 
@@ -342,138 +342,11 @@ FunctionEnd
   ;Only for solid compression (by default, solid compression is enabled for BZIP2 and LZMA)
 
   ReserveFile "@POST_INSTALL_OPTIONS_PATH@"
+  ; Make sure nsDialogs is included before we use it
+  !include "nsdialogs.nsh"
 
 ;--------------------------------
-;Installer Sections
-
-Section "-Core installation"
-  ;The following delete blocks are temporary and can be removed once users who had the initial installer have updated
-
-  ;Delete any server-console files installed before it was placed in sub-folder
-  Delete "$INSTDIR\server-console.exe"
-  RMDir /r "$INSTDIR\locales"
-  RMDir /r "$INSTDIR\resources\app"
-  Delete "$INSTDIR\resources\atom.asar"
-  Delete "$INSTDIR\build-info.json"
-  Delete "$INSTDIR\content_resources_200_percent.pak"
-  Delete "$INSTDIR\content_shell.pak"
-  Delete "$INSTDIR\LICENSE"
-  Delete "$INSTDIR\LICENSES.chromium.html"
-  Delete "$INSTDIR\natives_blob.bin"
-  Delete "$INSTDIR\node.dll"
-  Delete "$INSTDIR\pdf.dll"
-  Delete "$INSTDIR\snapshot_blob.bin"
-  Delete "$INSTDIR\ui_resources_200_percent.pak"
-  Delete "$INSTDIR\vccorlib120.dll"
-  Delete "$INSTDIR\version"
-  Delete "$INSTDIR\xinput1_3.dll"
-
-  ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
-  RMDir /r "$INSTDIR\Interface"
-  Delete "$INSTDIR\vcredist_x64.exe"
-
-  ;Use the entire tree produced by the INSTALL target.  Keep the
-  ;list of directories here in sync with the RMDir commands below.
-  SetOutPath "$INSTDIR"
-  @CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS@
-  @CPACK_NSIS_FULL_INSTALL@
-
-  ;Store installation folder
-  WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
-
-  ;Package the signed uninstaller produced by the inner loop
-  !ifndef INNER
-    ; this packages the signed uninstaller
-    File $%TEMP%\@UNINSTALLER_NAME@
-  !endif
-
-  Push "DisplayName"
-  Push "@CPACK_NSIS_DISPLAY_NAME@"
-  Call ConditionalAddToRegisty
-  Push "DisplayVersion"
-  Push "@CPACK_PACKAGE_VERSION@"
-  Call ConditionalAddToRegisty
-  Push "Publisher"
-  Push "@CPACK_PACKAGE_VENDOR@"
-  Call ConditionalAddToRegisty
-  Push "UninstallString"
-  Push "$INSTDIR\@UNINSTALLER_NAME@"
-  Call ConditionalAddToRegisty
-  Push "NoRepair"
-  Push "1"
-  Call ConditionalAddToRegisty
-
-  !ifdef CPACK_NSIS_ADD_REMOVE
-  ;Create add/remove functionality
-  Push "ModifyPath"
-  Push "$INSTDIR\AddRemove.exe"
-  Call ConditionalAddToRegisty
-  !else
-  Push "NoModify"
-  Push "1"
-  Call ConditionalAddToRegisty
-  !endif
-
-  ; Package the add/remove icon file
-  File "@ADD_REMOVE_ICON_PATH@"
-
-  ; Optional registration
-  Push "DisplayIcon"
-  Push "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"
-  Call ConditionalAddToRegisty
-  Push "HelpLink"
-  Push "@CPACK_NSIS_HELP_LINK@"
-  Call ConditionalAddToRegisty
-  Push "URLInfoAbout"
-  Push "@CPACK_NSIS_URL_INFO_ABOUT@"
-  Call ConditionalAddToRegisty
-  Push "Contact"
-  Push "@CPACK_NSIS_CONTACT@"
-  Call ConditionalAddToRegisty
-  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-
-  ;Create shortcuts
-
-  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
-@CPACK_NSIS_CREATE_ICONS@
-@CPACK_NSIS_CREATE_ICONS_EXTRA@
-
-  ; Conditional handling for Interface specific options
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
-      "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
-
-    ${If} "@PRODUCTION_BUILD@" == "1"
-      ; hifi:// protocol handler registry entries
-      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' '' 'URL:High Fidelity Protocol'
-      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' 'URL Protocol' ''
-      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\DefaultIcon' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@,1'
-      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\shell\open\command' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@ --url "%1"'
-    ${EndIf}
-
-  ${EndIf}
-
-  ; Conditional handling for server console shortcut
-  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
-      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
-  ${EndIf}
-
-  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
-
-  ; Write special uninstall registry entries
-  Push "StartMenu"
-  Push "$STARTMENU_FOLDER"
-  Call ConditionalAddToRegisty
-
-  !insertmacro MUI_STARTMENU_WRITE_END
-
-@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
-
-SectionEnd
-
-; Make sure nsDialogs is included before we use it
-!include "nsdialogs.nsh"
+; Post Install Options
 
 Var PostInstallDialog
 Var DesktopClientCheckbox
@@ -679,6 +552,138 @@ Function HandlePostInstallOptions
   ${EndIf}
 
 FunctionEnd
+
+;--------------------------------
+;Installer Sections
+
+Section "-Core installation"
+  ;The following delete blocks are temporary and can be removed once users who had the initial installer have updated
+
+  ;Delete any server-console files installed before it was placed in sub-folder
+  Delete "$INSTDIR\server-console.exe"
+  RMDir /r "$INSTDIR\locales"
+  RMDir /r "$INSTDIR\resources\app"
+  Delete "$INSTDIR\resources\atom.asar"
+  Delete "$INSTDIR\build-info.json"
+  Delete "$INSTDIR\content_resources_200_percent.pak"
+  Delete "$INSTDIR\content_shell.pak"
+  Delete "$INSTDIR\LICENSE"
+  Delete "$INSTDIR\LICENSES.chromium.html"
+  Delete "$INSTDIR\natives_blob.bin"
+  Delete "$INSTDIR\node.dll"
+  Delete "$INSTDIR\pdf.dll"
+  Delete "$INSTDIR\snapshot_blob.bin"
+  Delete "$INSTDIR\ui_resources_200_percent.pak"
+  Delete "$INSTDIR\vccorlib120.dll"
+  Delete "$INSTDIR\version"
+  Delete "$INSTDIR\xinput1_3.dll"
+
+  ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
+  RMDir /r "$INSTDIR\Interface"
+  Delete "$INSTDIR\vcredist_x64.exe"
+
+  ;Use the entire tree produced by the INSTALL target.  Keep the
+  ;list of directories here in sync with the RMDir commands below.
+  SetOutPath "$INSTDIR"
+  @CPACK_NSIS_EXTRA_PREINSTALL_COMMANDS@
+  @CPACK_NSIS_FULL_INSTALL@
+
+  ;Store installation folder
+  WriteRegStr HKLM "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@" "" $INSTDIR
+
+  ;Package the signed uninstaller produced by the inner loop
+  !ifndef INNER
+    ; this packages the signed uninstaller
+    File $%TEMP%\@UNINSTALLER_NAME@
+  !endif
+
+  Push "DisplayName"
+  Push "@CPACK_NSIS_DISPLAY_NAME@"
+  Call ConditionalAddToRegisty
+  Push "DisplayVersion"
+  Push "@CPACK_PACKAGE_VERSION@"
+  Call ConditionalAddToRegisty
+  Push "Publisher"
+  Push "@CPACK_PACKAGE_VENDOR@"
+  Call ConditionalAddToRegisty
+  Push "UninstallString"
+  Push "$INSTDIR\@UNINSTALLER_NAME@"
+  Call ConditionalAddToRegisty
+  Push "NoRepair"
+  Push "1"
+  Call ConditionalAddToRegisty
+
+  !ifdef CPACK_NSIS_ADD_REMOVE
+  ;Create add/remove functionality
+  Push "ModifyPath"
+  Push "$INSTDIR\AddRemove.exe"
+  Call ConditionalAddToRegisty
+  !else
+  Push "NoModify"
+  Push "1"
+  Call ConditionalAddToRegisty
+  !endif
+
+  ; Package the add/remove icon file
+  File "@ADD_REMOVE_ICON_PATH@"
+
+  ; Optional registration
+  Push "DisplayIcon"
+  Push "$INSTDIR\@CPACK_NSIS_INSTALLED_ICON_NAME@"
+  Call ConditionalAddToRegisty
+  Push "HelpLink"
+  Push "@CPACK_NSIS_HELP_LINK@"
+  Call ConditionalAddToRegisty
+  Push "URLInfoAbout"
+  Push "@CPACK_NSIS_URL_INFO_ABOUT@"
+  Call ConditionalAddToRegisty
+  Push "Contact"
+  Push "@CPACK_NSIS_CONTACT@"
+  Call ConditionalAddToRegisty
+  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
+
+  ;Create shortcuts
+
+  CreateDirectory "$SMPROGRAMS\$STARTMENU_FOLDER"
+@CPACK_NSIS_CREATE_ICONS@
+@CPACK_NSIS_CREATE_ICONS_EXTRA@
+
+  ; Conditional handling for Interface specific options
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@INTERFACE_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
+
+    ${If} "@PRODUCTION_BUILD@" == "1"
+      ; hifi:// protocol handler registry entries
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' '' 'URL:High Fidelity Protocol'
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@' 'URL Protocol' ''
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\DefaultIcon' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@,1'
+      WriteRegStr HKCR '@HIGH_FIDELITY_PROTOCOL@\shell\open\command' '' '$INSTDIR\@INTERFACE_WIN_EXEC_NAME@ --url "%1"'
+    ${EndIf}
+
+  ${EndIf}
+
+  ; Conditional handling for server console shortcut
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\@CONSOLE_SHORTCUT_NAME@.lnk" \
+      "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
+  ${EndIf}
+
+  CreateShortCut "$SMPROGRAMS\$STARTMENU_FOLDER\Uninstall.lnk" "$INSTDIR\@UNINSTALLER_NAME@"
+
+  ; Write special uninstall registry entries
+  Push "StartMenu"
+  Push "$STARTMENU_FOLDER"
+  Call ConditionalAddToRegisty
+
+  !insertmacro MUI_STARTMENU_WRITE_END
+
+@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+
+  ; Handle whichever post install options were set
+  Call HandlePostInstallOptions
+
+SectionEnd
 
 !include nsProcess.nsh
 
@@ -924,7 +929,7 @@ Function .onInit
   !endif
 
   ; change the button text so close says "Finish"
-  MiscButtonText "Back" "Next" "Cancel" "Finish" 
+  MiscButtonText "Back" "Next" "Cancel" "Finish"
 
   ; make sure none of the installed applications are still running
   !insertmacro CheckForRunningApplications "installed" "Installer"
