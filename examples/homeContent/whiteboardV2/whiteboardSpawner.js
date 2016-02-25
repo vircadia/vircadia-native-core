@@ -206,7 +206,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
         var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
 
         Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
-    }, 2000)
+    }, 3000)
 
 
 }
