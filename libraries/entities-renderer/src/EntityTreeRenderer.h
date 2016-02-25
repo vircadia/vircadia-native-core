@@ -136,11 +136,11 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    void checkEnterLeaveEntities();
+    bool checkEnterLeaveEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
-    glm::vec3 _lastAvatarPosition;
+    glm::vec3 _lastAvatarPosition { 0.0f };
     QVector<EntityItemID> _currentEntitiesInside;
 
     bool _pendingSkyboxTexture { false };

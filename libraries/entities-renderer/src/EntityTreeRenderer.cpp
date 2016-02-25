@@ -134,14 +134,14 @@ void EntityTreeRenderer::update() {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update();
 
-        // check to see if the avatar has moved and if we need to handle enter/leave entity logic
-        checkEnterLeaveEntities();
+        // Handle enter/leave entity logic
+        bool updated = checkEnterLeaveEntities();
 
-        // even if we haven't changed positions, if we previously attempted to set the skybox, but
-        // have a pending download of the skybox texture, then we should attempt to reapply to 
-        // get the correct texture.
-        if ((_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
-            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded())) {
+        // If we haven't already updated and previously attempted to load a texture,
+        // check if the texture loaded and apply it
+        if (!updated && (
+            (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
+            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -157,7 +157,7 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
-void EntityTreeRenderer::checkEnterLeaveEntities() {
+bool EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
@@ -172,7 +172,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
                 // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-                _bestZone = NULL; // NOTE: Is this what we want?
+                _bestZone = nullptr; // NOTE: Is this what we want?
                 _bestZoneVolume = std::numeric_limits<float>::max();
 
                 // create a list of entities that actually contain the avatar's position
@@ -205,7 +205,6 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 }
 
                 applyZonePropertiesToScene(_bestZone);
-
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -229,8 +228,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
+
+            return true;
         }
     }
+    return false;
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
