@@ -17,7 +17,10 @@
       _this = this;
       _this.launchSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/missle+launch.wav");
       _this.explosionSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/fireworksExplosion.wav");
-      _this.timeToExplosionRange = {min: 1000, max: 2000}; 
+      _this.timeToExplosionRange = {
+        min: 2000,
+        max: 3000
+      };
     };
 
     Fireworks.prototype = {
@@ -32,90 +35,137 @@
       },
 
       shootFirework: function() {
-        var rocketPosition = Vec3.sum(_this.position, {x: 0, y: 0.1, z: 0});
-        Audio.playSound(_this.launchSound, {position: rocketPosition});
-
-        var MODEL_URL = "file:///C:/Users/Eric/Desktop/Rocket-2.fbx"
-        _this.missle = Entities.addEntity({
-          type: "Model",
-          modelURL: MODEL_URL,
-          position: rocketPosition,
-          color: {red: 200, green : 10, blue: 200},
-          dimensions: {x: 0.2, y: 0.4, z: 0.2},
-          damping: 0,
-          dynamic: true,
-          velocity: {x: 0.0, y: 0.1, z: 0},
-          acceleration: {x: 0, y: 1, z: 0}
+        var rocketPosition = Vec3.sum(_this.position, {
+          x: 0,
+          y: 0.1,
+          z: 0
+        });
+        Audio.playSound(_this.launchSound, {
+          position: rocketPosition
         });
 
-        var smokeTrailPosition = Vec3.sum(rocketPosition, {x: 0, y: -0.15, z: 0});
-        var smokeSettings =  {
-                type: "ParticleEffect",
-                position: smokeTrailPosition,
-                lifespan: 2,
-                lifetime: 20,
-                name: "Smoke Trail",
-                maxParticles: 3000,
-                emitRate: 50,
-                emitSpeed: 0,
-                speedSpread: 0,
-                dimensions: {x: 1000, y: 1000, z: 1000},
-                polarStart: 0,
-                polarFinish: 0,
-                azimuthStart: -3.14,
-                azimuthFinish: 3.14,
-                emitAcceleration: {
-                    x: 0,
-                    y: 0.1,
-                    z: 0
-                },
-                accelerationSpread: {
-                    x: 0.1,
-                    y: 0,
-                    z: 0.1
-                },
-                radiusSpread: 0.001,
-                particleRadius: 0.06,
-                radiusStart: 0.06,
-                radiusFinish: 0.2,
-                alpha: 0.1,
-                alphaSpread: 0,
-                alphaStart: 0,
-                alphaFinish: 0,
-                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-                emitterShouldTrail: true,
-                parentID: _this.missle
+        var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Rocket-2.fbx";
+        var missleDimensions = {
+              x: 0.24,
+              y: 0.7,
+              z: 0.24
             };
+          _this.missle = Entities.addEntity({
+            type: "Model",
+            modelURL: MODEL_URL,
+            position: rocketPosition,
+            dimensions: missleDimensions,
+            damping: 0,
+            dynamic: true,
+            velocity: {
+              x: 0.0,
+              y: 0.1,
+              z: 0
+            },
+            acceleration: {
+              x: 0,
+              y: 1,
+              z: 0
+            }
+          });
 
-            _this.smoke = Entities.addEntity(smokeSettings);
+        var smokeTrailPosition = Vec3.sum(rocketPosition, {
+          x: 0,
+          y: -missleDimensions.y/2 + 0.08,
+          z: 0
+        });
+        var smokeSettings = {
+          type: "ParticleEffect",
+          position: smokeTrailPosition,
+          lifespan: 1.6,
+          lifetime: 20,
+          name: "Smoke Trail",
+          maxParticles: 3000,
+          emitRate: 50,
+          emitSpeed: 0,
+          speedSpread: 0,
+          dimensions: {
+            x: 1000,
+            y: 1000,
+            z: 1000
+          },
+          polarStart: 0,
+          polarFinish: 0,
+          azimuthStart: -3.14,
+          azimuthFinish: 3.14,
+          emitAcceleration: {
+            x: 0,
+            y: 0.1,
+            z: 0
+          },
+          accelerationSpread: {
+            x: 0.1,
+            y: 0,
+            z: 0.1
+          },
+          radiusSpread: 0.001,
+          particleRadius: 0.06,
+          radiusStart: 0.06,
+          radiusFinish: 0.2,
+          alpha: 0.1,
+          alphaSpread: 0,
+          alphaStart: 0,
+          alphaFinish: 0,
+          textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+          emitterShouldTrail: true,
+          parentID: _this.missle
+        };
 
-            smokeSettings.colorStart = {red: 75, green: 193, blue: 254};
-            smokeSettings.color = {red: 202, green: 132, blue: 151};
-            smokeSettings.colorFinish = {red: 250, green: 132, blue: 21};
-            smokeSettings.lifespan = 0.7;
-            smokeSettings.emitAcceleration.y= -1;;
-            smokeSettings.alphaStart = 0.7; 
-            smokeSettings.alphaFinish = 0.1; 
-            smokeSettings.radiusFinish =  0.06;
-            smokeSettings.particleRadius =  0.06;
-            smokeSettings.emitRate =  200;
-            smokeSettings.emitterShouldTrail = false;
-            _this.fire = Entities.addEntity(smokeSettings);
+        _this.smoke = Entities.addEntity(smokeSettings);
 
-            Script.setTimeout(function() {
-              var explodePosition = Entities.getEntityProperties(_this.missle, "position").position;
-              _this.explodeFirework(explodePosition);
-            }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
+        smokeSettings.colorStart = {
+          red: 75,
+          green: 193,
+          blue: 254
+        };
+        smokeSettings.color = {
+          red: 202,
+          green: 132,
+          blue: 151
+        };
+        smokeSettings.colorFinish = {
+          red: 250,
+          green: 132,
+          blue: 21
+        };
+        smokeSettings.lifespan = 0.7;
+        smokeSettings.emitAcceleration.y = -1;;
+        smokeSettings.alphaStart = 0.7;
+        smokeSettings.alphaFinish = 0.1;
+        smokeSettings.radiusFinish = 0.06;
+        smokeSettings.particleRadius = 0.06;
+        smokeSettings.emitRate = 200;
+        smokeSettings.emitterShouldTrail = false;
+        smokeSettings.name = "fire emitter";
+        _this.fire = Entities.addEntity(smokeSettings);
+
+        Script.setTimeout(function() {
+          var explodePosition = Entities.getEntityProperties(_this.missle, "position").position;
+          _this.explodeFirework(explodePosition);
+        }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
 
 
       },
 
       explodeFirework: function(explodePosition) {
         // We just exploded firework, so stop emitting its fire and smoke
-        Entities.editEntity(_this.smoke, {parentID: null, isEmitting: false});
-        Entities.editEntity(_this.fire, {parentID: null, isEmitting: false});
+        Entities.editEntity(_this.smoke, {
+          parentID: null,
+          isEmitting: false
+        });
+        Entities.editEntity(_this.fire, {
+          parentID: null,
+          isEmitting: false
+        });
         Entities.deleteEntity(_this.missle);
-        Audio.playSound(_this.explosionSound, {position: explodePosition});
+        Audio.playSound(_this.explosionSound, {
+          position: explodePosition
+        });
         var fireworkSettings = {
           name: "fireworks emitter",
           position: explodePosition,
@@ -180,7 +230,9 @@
         _this.firework = Entities.addEntity(fireworkSettings);
 
         Script.setTimeout(function() {
-          Entities.editEntity(_this.firework, {isEmitting: false});
+          Entities.editEntity(_this.firework, {
+            isEmitting: false
+          });
         }, 1000)
 
       },

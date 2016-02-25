@@ -18,19 +18,15 @@
 
   // Math.random ensures no caching of script
   var SCRIPT_URL = Script.resolvePath("fireworksLaunchButtonEntityScript.js?v1" + Math.random())
-
-  var myEntity = Entities.addEntity({
-    type: "Box",
-    color: {
-      red: 200,
-      green: 10,
-      blue: 10
-    },
+  var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Launch-Button.fbx";
+  var launchButton = Entities.addEntity({
+    type: "Model",
+    modelURL: MODEL_URL,
     position: center,
     dimensions: {
-      x: 0.1,
-      y: 0.1,
-      z: 0.1
+      x: 0.98,
+      y: 1.16,
+      z: 0.98
     },
     script: SCRIPT_URL,
     userData: JSON.stringify({
@@ -42,7 +38,7 @@
 
 
   function cleanup() {
-    Entities.deleteEntity(myEntity);
+    Entities.deleteEntity(launchButton);
   }
 
   Script.scriptEnding.connect(cleanup);
