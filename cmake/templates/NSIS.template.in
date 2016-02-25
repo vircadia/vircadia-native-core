@@ -74,9 +74,6 @@
 
     ;Set compression
     SetCompressor @CPACK_NSIS_COMPRESSOR@
-
-    ; change the button text so close says "Finish"
-    MiscButtonText "Back" "Next" "Cancel" "Finish"
   !endif
 
 @CPACK_NSIS_DEFINES@
@@ -274,7 +271,7 @@ FunctionEnd
 
   @CPACK_NSIS_PAGE_COMPONENTS@
 
-  Page custom PostInstallOptionsPage
+  Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !insertmacro MUI_PAGE_INSTFILES
 
@@ -461,11 +458,32 @@ Var ServerStartupState
 Var LaunchNowState
 Var CopyFromProductionState
 
-Function HandlePostInstallOptions
+Function ReadPostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to High Fidelity
     ${NSD_GetState} $DesktopClientCheckbox $DesktopClientState
+  ${EndIf}
 
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to Server Console
+    ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
+
+    ; check if the user asked to have Server Console launched every startup
+    ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
+  ${EndIf}
+
+  ${If} @PR_BUILD@ == 1
+    ; check if we need to copy settings/content from production for this PR build
+    ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
+  ${EndIf}
+
+  ; check if we need to launch an application post-install
+  ${NSD_GetState} $LaunchNowCheckbox $LaunchNowState
+FunctionEnd
+
+Function HandlePostInstallOptions
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; check if the user asked for a desktop shortcut to High Fidelity
     ${If} $DesktopClientState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@INTERFACE_SHORTCUT_NAME@.lnk" "$INSTDIR\@INTERFACE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption "@CLIENT_DESKTOP_SHORTCUT_REG_KEY@" YES
@@ -477,8 +495,6 @@ Function HandlePostInstallOptions
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ; check if the user asked for a desktop shortcut to Server Console
-    ${NSD_GetState} $DesktopServerCheckbox $DesktopServerState
-
     ${If} $DesktopServerState == ${BST_CHECKED}
       CreateShortCut "$DESKTOP\@CONSOLE_SHORTCUT_NAME@.lnk" "$INSTDIR\@CONSOLE_INSTALL_SUBDIR@\@CONSOLE_WIN_EXEC_NAME@"
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ YES
@@ -487,8 +503,6 @@ Function HandlePostInstallOptions
     ${EndIf}
 
     ; check if the user asked to have Server Console launched every startup
-    ${NSD_GetState} $ServerStartupCheckbox $ServerStartupState
-
     ${If} $ServerStartupState == ${BST_CHECKED}
       ; in case we added a shortcut in the global context, pull that now
       SetShellVarContext all
@@ -510,8 +524,6 @@ Function HandlePostInstallOptions
   ${If} @PR_BUILD@ == 1
 
     ; check if we need to copy settings/content from production for this PR build
-    ${NSD_GetState} $CopyFromProductionCheckbox $CopyFromProductionState
-
     ${If} $CopyFromProductionState == ${BST_CHECKED}
       SetShellVarContext current
 
@@ -537,9 +549,6 @@ Function HandlePostInstallOptions
     ${EndIf}
   ${EndIf}
 
-  ; check if we need to launch an application post-install
-  ${NSD_GetState} $LaunchNowCheckbox $LaunchNowState
-
   ${If} $LaunchNowState == ${BST_CHECKED}
     !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ YES
 
@@ -553,7 +562,6 @@ Function HandlePostInstallOptions
   ${Else}
     !insertmacro WritePostInstallOption @LAUNCH_NOW_REG_KEY@ NO
   ${EndIf}
-
 FunctionEnd
 
 ;--------------------------------
