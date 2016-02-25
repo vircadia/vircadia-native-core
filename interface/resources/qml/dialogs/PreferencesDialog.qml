@@ -1,10 +1,21 @@
+//
+//  PreferencesDialog.qml
+//
+//  Created by Bradley Austin Davis on 24 Jan 2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
 import "../controls" as HifiControls
-import "../windows"
+import "../styles-uit"
+import "../windows-uit"
 import "preferences"
 
 Window {
@@ -16,6 +27,8 @@ Window {
     height: 577
     property var sections: []
     property var showCategories: []
+
+    HifiConstants { id: hifi }
 
     function saveAll() {
         for (var i = 0; i < sections.length; ++i) {
@@ -33,10 +46,8 @@ Window {
         destroy();
     }
 
-    Rectangle {
-        anchors.fill: parent
-        clip: true
-        color: "white"
+    Column {
+        width: pane.contentWidth
 
         Component {
             id: sectionBuilder
@@ -71,37 +82,27 @@ Window {
             }
         }
 
-        Flickable  {
-            id: flickable
-            clip: true
-            interactive: true
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: dialogButtons.top
-            anchors.bottomMargin: 8
-            contentHeight: prefControls.height
-            contentWidth: parent.width
-
-            Column {
-                id: prefControls
-                anchors.left: parent.left
-                anchors.right: parent.right
-            }
+        Column {
+            id: prefControls
+            width: pane.contentWidth
         }
-        Row {
-            id: dialogButtons
-            anchors { bottom: parent.bottom; right: parent.right; margins: 8 }
+    }
 
-            Button {
-                text: "Cancel";
-                onClicked: root.restoreAll();
-            }
+    footer: Row {
+        anchors {
+            right: parent.right;
+            rightMargin: hifi.dimensions.contentMargin.x
+            verticalCenter: parent.verticalCenter
+        }
 
-            Button {
-                text: "Save all changes"
-                onClicked: root.saveAll();
-            }
+        Button {
+            text: "Cancel";
+            onClicked: root.restoreAll();
+        }
+
+        Button {
+            text: "Save all changes"
+            onClicked: root.saveAll();
         }
     }
 }
