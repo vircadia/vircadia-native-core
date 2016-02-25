@@ -50,7 +50,7 @@
               y: 0.7,
               z: 0.24
             };
-          _this.missle = Entities.addEntity({
+          var missle = Entities.addEntity({
             type: "Model",
             modelURL: MODEL_URL,
             position: rocketPosition,
@@ -71,7 +71,7 @@
 
         var smokeTrailPosition = Vec3.sum(rocketPosition, {
           x: 0,
-          y: -missleDimensions.y/2 + 0.08,
+          y: -missleDimensions.y/2 + 0.1,
           z: 0
         });
         var smokeSettings = {
@@ -116,7 +116,7 @@
           parentID: _this.missle
         };
 
-        _this.smoke = Entities.addEntity(smokeSettings);
+        var smoke = Entities.addEntity(smokeSettings);
 
         smokeSettings.colorStart = {
           red: 75,
@@ -142,31 +142,31 @@
         smokeSettings.emitRate = 200;
         smokeSettings.emitterShouldTrail = false;
         smokeSettings.name = "fire emitter";
-        _this.fire = Entities.addEntity(smokeSettings);
+        var fire = Entities.addEntity(smokeSettings);
 
         Script.setTimeout(function() {
-          var explodePosition = Entities.getEntityProperties(_this.missle, "position").position;
-          _this.explodeFirework(explodePosition);
+          var explodePosition = Entities.getEntityProperties(missle, "position").position;
+          _this.explodeFirework(smoke, fire, missle, explodePosition);
         }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
 
 
       },
 
-      explodeFirework: function(explodePosition) {
+      explodeFirework: function(smoke, fire, missle, explodePosition) {
         // We just exploded firework, so stop emitting its fire and smoke
-        Entities.editEntity(_this.smoke, {
+        Entities.editEntity(smoke, {
           parentID: null,
           isEmitting: false
         });
-        Entities.editEntity(_this.fire, {
+        Entities.editEntity(fire, {
           parentID: null,
           isEmitting: false
         });
-        Entities.deleteEntity(_this.missle);
+        Entities.deleteEntity(missle);
         Audio.playSound(_this.explosionSound, {
           position: explodePosition
         });
-        var fireworkSettings = {
+        var firework = Entities.addEntity({
           name: "fireworks emitter",
           position: explodePosition,
           type: "ParticleEffect",
@@ -203,12 +203,11 @@
           alphaStart: Math.random(),
           alphaFinish: Math.random(),
           textures: "http://ericrius1.github.io/PlatosCave/assets/star.png",
-        };
+        });
 
-        _this.firework = Entities.addEntity(fireworkSettings);
 
         Script.setTimeout(function() {
-          Entities.editEntity(_this.firework, {
+          Entities.editEntity(firework, {
             isEmitting: false
           });
         }, _this.explodeTime);
