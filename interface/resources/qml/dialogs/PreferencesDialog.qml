@@ -13,7 +13,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 import Qt.labs.settings 1.0
 
-import "../controls" as HifiControls
+import "../controls-uit" as HifiControls
 import "../styles-uit"
 import "../windows-uit"
 import "preferences"
@@ -94,15 +94,18 @@ Window {
             rightMargin: hifi.dimensions.contentMargin.x
             verticalCenter: parent.verticalCenter
         }
+        spacing: hifi.dimensions.contentSpacing.x
 
-        Button {
-            text: "Cancel";
-            onClicked: root.restoreAll();
+        HifiControls.Button {
+            text: "Save changes"
+            color: hifi.buttons.blue
+            onClicked: root.saveAll()
         }
 
-        Button {
-            text: "Save all changes"
-            onClicked: root.saveAll();
+        HifiControls.Button {
+            text: "Cancel"
+            color: hifi.buttons.white
+            onClicked: root.restoreAll()
         }
     }
 }
