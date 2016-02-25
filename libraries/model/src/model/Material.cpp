@@ -58,6 +58,7 @@ void Material::setOpacity(float opacity) {
 
 void Material::setAlbedo(const Color& albedo, bool isSRGB) {
     _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::toLinearVec3(albedo) : albedo);
 }
 

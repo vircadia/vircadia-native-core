@@ -363,6 +363,7 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
         material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
     }
     if (!material.roughnessTexture.filename.isEmpty()) {
+        material.roughnessTexture.isGlossmap;
         networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
         networkMaterial->roughnessTextureName = material.roughnessTexture.name;
 
@@ -392,7 +393,15 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
     }
+    if (!material.occlusionTexture.filename.isEmpty()) {
+        networkMaterial->occlusionTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.occlusionTexture.filename)), OCCLUSION_TEXTURE, material.occlusionTexture.content);
+        networkMaterial->occlusionTextureName = material.occlusionTexture.name;
 
+        auto occlusionMap = model::TextureMapPointer(new model::TextureMap());
+        occlusionMap->setTextureSource(networkMaterial->occlusionTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::OCCLUSION_MAP, occlusionMap);
+    }
     return networkMaterial;
 }
 

@@ -28,11 +28,10 @@ in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {
-
-    <$fetchMaterialTextures(_texCoord0, albedo, roughness, normalTexel)$>
-    <$fetchMaterialLightmap(_texCoord1, lightmapVal)$>
-
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTextures(matKey, _texCoord0, albedo, roughness, normalTexel)$>
+    <$fetchMaterialLightmap(_texCoord1, lightmapVal)$>
 
     vec3 viewNormal;
     <$tangentToViewSpace(normalTexel, _normal, _tangent, viewNormal)$>

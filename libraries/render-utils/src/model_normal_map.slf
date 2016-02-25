@@ -17,7 +17,7 @@
 <@include model/Material.slh@>
 
 <@include MaterialTextures.slh@>
-<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL)$>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
 
 in vec4 _position;
 in vec2 _texCoord0;
@@ -26,18 +26,29 @@ in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {
-    <$fetchMaterialTextures(_texCoord0, albedo, roughness, normalTexel)$>
-    
     Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTextures(matKey, _texCoord0, albedoTex, roughnessTex, normalTex, _SCRIBE_NULL, emissiveTex, occlusionTex)$>
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
 
     vec3 viewNormal;
-    <$tangentToViewSpace(normalTexel, _normal, _tangent, viewNormal)$>
+    <$tangentToViewSpace(normalTex, _normal, _tangent, viewNormal)$>
 
     packDeferredFragment(
         viewNormal, 
-        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
-        getMaterialAlbedo(mat) * albedo.rgb * _color,
-        getMaterialRoughness(mat) * roughness,
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedoTex.a),
+        albedo,
+        roughness,
         getMaterialMetallic(mat),
-        getMaterialFresnel(mat));
+        emissive,
+        occlusionTex);
 }

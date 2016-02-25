@@ -193,22 +193,36 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     if (materialKey.isMetallicMap()) {
         auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, specularMap->getTextureView());
 
             // texcoord are assumed to be the same has albedo
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, nullptr);
     }
 
-    // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+    // Occlusion map
+    if (materialKey.isOcclusionMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::OCCLUSION_MAP];
+        if (specularMap && specularMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, specularMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, nullptr);
+    }
+
+    // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -217,10 +231,18 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
+        }
+    } else if (materialKey.isEmissiveMap()) {
+        auto emissiveMap = textureMaps[model::MaterialKey::EMISSIVE_MAP];
+
+        if (emissiveMap && emissiveMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, emissiveMap->getTextureView());
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?

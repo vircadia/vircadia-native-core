@@ -38,7 +38,7 @@ void main(void) {
     vec3 fragNormal = normalize(_normal);
     vec3 fragAlbedo = getMaterialAlbedo(mat) * albedo.rgb * _color;
     float fragMetallic = getMaterialMetallic(mat);
-    vec3 fragFresnel = getMaterialFresnel(mat);
+    vec3 fragEmissive = getMaterialEmissive(mat);
     float fragRoughness = getMaterialRoughness(mat);
     float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
@@ -52,7 +52,7 @@ void main(void) {
         fragNormal,
         fragAlbedo,
         fragMetallic,
-        fragFresnel,
+        fragEmissive,
         fragRoughness),
         fragOpacity);
 }

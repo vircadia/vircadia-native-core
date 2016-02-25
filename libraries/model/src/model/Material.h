@@ -39,6 +39,7 @@ public:
         ROUGHNESS_MAP_BIT,
         TRANSPARENT_MAP_BIT,
         NORMAL_MAP_BIT,
+        OCCLUSION_MAP_BIT,
         LIGHTMAP_MAP_BIT,
 
         NUM_FLAGS,
@@ -52,6 +53,7 @@ public:
         ROUGHNESS_MAP,
         TRANSPARENT_MAP,
         NORMAL_MAP,
+        OCCLUSION_MAP,
         LIGHTMAP_MAP,
 
         NUM_MAP_CHANNELS,
@@ -83,6 +85,7 @@ public:
         Builder& withTransparentMap() { _flags.set(TRANSPARENT_MAP_BIT); return (*this); }
 
         Builder& withNormalMap() { _flags.set(NORMAL_MAP_BIT); return (*this); }
+        Builder& withOcclusionMap() { _flags.set(OCCLUSION_MAP_BIT); return (*this); }
         Builder& withLightmapMap() { _flags.set(LIGHTMAP_MAP_BIT); return (*this); }
 
         // Convenient standard keys that we will keep on using all over the place
@@ -123,6 +126,9 @@ public:
 
     void setNormalMap(bool value) { _flags.set(NORMAL_MAP_BIT, value); }
     bool isNormalMap() const { return _flags[NORMAL_MAP_BIT]; }
+
+    void setOcclusionMap(bool value) { _flags.set(OCCLUSION_MAP_BIT, value); }
+    bool isOcclusionMap() const { return _flags[OCCLUSION_MAP_BIT]; }
 
     void setLightmapMap(bool value) { _flags.set(LIGHTMAP_MAP_BIT, value); }
     bool isLightmapMap() const { return _flags[LIGHTMAP_MAP_BIT]; }
@@ -181,6 +187,9 @@ public:
 
         Builder& withoutNormalMap()       { _value.reset(MaterialKey::NORMAL_MAP_BIT); _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
         Builder& withNormalMap()        { _value.set(MaterialKey::NORMAL_MAP_BIT);  _mask.set(MaterialKey::NORMAL_MAP_BIT); return (*this); }
+
+        Builder& withoutOcclusionMap()       { _value.reset(MaterialKey::OCCLUSION_MAP_BIT); _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
+        Builder& withOcclusionMap()        { _value.set(MaterialKey::OCCLUSION_MAP_BIT);  _mask.set(MaterialKey::OCCLUSION_MAP_BIT); return (*this); }
 
         Builder& withoutLightmapMap()       { _value.reset(MaterialKey::LIGHTMAP_MAP_BIT); _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }
         Builder& withLightmapMap()        { _value.set(MaterialKey::LIGHTMAP_MAP_BIT);  _mask.set(MaterialKey::LIGHTMAP_MAP_BIT); return (*this); }

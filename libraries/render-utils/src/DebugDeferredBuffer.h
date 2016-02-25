@@ -54,6 +54,7 @@ protected:
         MetallicMode,
         FresnelMode,
         EmissiveMode,
+        OcclusionMode,
         LightmapMode,
         LightingMode,
         ShadowMode,

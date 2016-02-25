@@ -149,6 +149,14 @@ void FBXReader::consolidateFBXMaterials() {
             material.emissiveTexture = emissiveTexture;
         }
 
+        FBXTexture occlusionTexture;
+        QString occlusionTextureID = occlusionTextures.value(material.materialID);
+        if (!occlusionTextureID.isNull()) {
+            occlusionTexture = getTexture(occlusionTextureID);
+            detectDifferentUVs |= (occlusionTexture.texcoordSet != 0) || (!emissiveTexture.transform.isIdentity());
+            material.occlusionTexture = occlusionTexture;
+        }
+
         glm::vec2 lightmapParams(0.f, 1.f);
         lightmapParams.x = _lightmapOffset;
         lightmapParams.y = _lightmapLevel;

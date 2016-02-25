@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  simple_textured.slf
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.
@@ -33,5 +33,6 @@ void main(void) {
         _color.rgb * texel.rgb,
         DEFAULT_ROUGHNESS,
         DEFAULT_METALLIC,
-        DEFAULT_SPECULAR);
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION);
 }

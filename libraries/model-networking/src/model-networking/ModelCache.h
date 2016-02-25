@@ -190,6 +190,8 @@ public:
     QSharedPointer<NetworkTexture> roughnessTexture;
     QString emissiveTextureName;
     QSharedPointer<NetworkTexture> emissiveTexture;
+    QString occlusionTextureName;
+    QSharedPointer<NetworkTexture> occlusionTexture;
     QString lightmapTextureName;
     QSharedPointer<NetworkTexture> lightmapTexture;
 

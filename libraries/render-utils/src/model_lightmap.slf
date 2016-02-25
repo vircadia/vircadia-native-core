@@ -27,11 +27,11 @@ in vec3 _normal;
 in vec3 _color;
 
 void main(void) {
-
-    <$fetchMaterialTextures(_texCoord0, albedo, roughness)$>
+    Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTextures(matKey, _texCoord0, albedo, roughness)$>
     <$fetchMaterialLightmap(_texCoord1, emissive)$>
 
-    Material mat = getMaterial();
 
     packDeferredFragmentLightmap(
         normalize(_normal), 
