@@ -34,20 +34,18 @@
       },
 
       shootFireworks: function() {
+        // Get launch position
+        var launchPosition = getEntityUserData(_this.entityID).launchPosition || _this.position;
+
         var numMissles = randInt(1, 5);
         for(var i = 0; i < numMissles; i++) {
-        _this.shootMissle();
+        _this.shootMissle(launchPosition);
         }
       },
 
-      shootMissle: function() {
-        var rocketPosition = Vec3.sum(_this.position, {
-          x: 0,
-          y: 0.1,
-          z: 0
-        });
+      shootMissle: function(launchPosition) {
         Audio.playSound(_this.launchSound, {
-          position: rocketPosition,
+          position: launchPosition,
           volume: 0.5
         });
 
@@ -63,7 +61,7 @@
         var missle = Entities.addEntity({
           type: "Model",
           modelURL: MODEL_URL,
-          position: rocketPosition,
+          position: launchPosition,
           rotation: missleRotation,
           dimensions: missleDimensions,
           damping: 0,
@@ -80,7 +78,7 @@
           visible: false
         });
 
-        var smokeTrailPosition = Vec3.sum(rocketPosition, Vec3.multiply(-missleDimensions.y / 2 + 0.1, Quat.getUp(missleRotation)));
+        var smokeTrailPosition = Vec3.sum(launchPosition, Vec3.multiply(-missleDimensions.y / 2 + 0.1, Quat.getUp(missleRotation)));
         var smokeSettings = {
           type: "ParticleEffect",
           position: smokeTrailPosition,

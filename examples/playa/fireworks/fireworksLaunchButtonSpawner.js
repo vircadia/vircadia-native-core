@@ -30,6 +30,7 @@
     },
     script: SCRIPT_URL,
     userData: JSON.stringify({
+      launchPosition: {x: 1, y: 1.8, z: -20.9},
       grabbableKey: {
         wantsTrigger: true
       }
