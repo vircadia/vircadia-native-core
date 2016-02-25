@@ -853,3 +853,19 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
         }
     }
 }
+
+void EntityTreeRenderer::updateZone(const EntityItemID& id) {
+    if (!_bestZone) {
+        // Get in the zone!
+        auto zone = getTree()->findEntityByEntityItemID(id);
+        if (zone && zone->contains(_lastAvatarPosition)) {
+            _currentEntitiesInside << id;
+            emit enterEntity(id);
+            _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
+            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+        }
+    }
+    if (_bestZone && _bestZone->getID() == id) {
+        applyZonePropertiesToScene(_bestZone);
+    }
+}

@@ -109,6 +109,7 @@ public slots:
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
+    void updateZone(const EntityItemID& id);
 
     // optional slots that can be wired to menu items
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
