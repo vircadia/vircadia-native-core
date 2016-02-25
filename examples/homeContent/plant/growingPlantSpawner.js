@@ -14,12 +14,9 @@ var orientation = Camera.getOrientation();
 orientation = Quat.safeEulerAngles(orientation);
 orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
+
+
 var bowlPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
-
-
-
-
-
 var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
 var bowlDimensions = {x: 0.518, y: 0.1938, z: 0.5518};
 var bowl= Entities.addEntity({
@@ -44,11 +41,20 @@ var plant = Entities.addEntity({
   parentID: bowl
 });
 
-
+var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
+var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
+var waterCan = Entities.addEntity({
+  type: "Model",
+  shapeType: 'box',
+  modelURL: WATER_CAN_MODEL_URL,
+  position: waterCanPosition,
+  dynamic: true
+});
 
 function cleanup() {
   Entities.deleteEntity(plant);
   Entities.deleteEntity(bowl);
+  Entities.deleteEntity(waterCan);
 }
 
 
