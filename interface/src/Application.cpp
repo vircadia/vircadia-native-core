@@ -3818,8 +3818,8 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // Setup the current Zone Entity lighting
     {
-        auto sun = DependencyManager::get<SceneScriptingInterface>()->getSkyStage()->getSunLight();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(sun);
+        auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight(), stage->getSkybox()->getCubemap());
     }
 
     {

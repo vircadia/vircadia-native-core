@@ -312,15 +312,13 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
             // First Global directional light and ambient pass
             {
-                bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
-
                 auto& program = _shadowMapEnabled ? _directionalLightShadow : _directionalLight;
                 LightLocationsPtr locations = _shadowMapEnabled ? _directionalLightShadowLocations : _directionalLightLocations;
 
                 // Setup the global directional pass pipeline
                 {
                     if (_shadowMapEnabled) {
-                        if (useSkyboxCubemap) {
+                        if (_skyboxTexture) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
                         } else if (_ambientLightMode > -1) {
@@ -328,7 +326,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
                     } else {
-                        if (useSkyboxCubemap) {
+                        if (_skyboxTexture) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
                         } else if (_ambientLightMode > -1) {
@@ -356,7 +354,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                    geometryCache->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 }
 
-                if (useSkyboxCubemap) {
+                if (_skyboxTexture) {
                     batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
                 }
             }
@@ -501,9 +499,8 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
     }
 
-    bool useSkyboxCubemap = (_skybox) && (_skybox->getCubemap());
-    if (useSkyboxCubemap && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, _skybox->getCubemap());
+    if (_skyboxTexture && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, _skyboxTexture);
     }
 }
 
@@ -562,13 +559,15 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 }
 
-void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
+void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture) {
     auto globalLight = _allocatedLights.front();
     globalLight->setDirection(light->getDirection());
     globalLight->setColor(light->getColor());
     globalLight->setIntensity(light->getIntensity());
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
+
+    _skyboxTexture = skyboxTexture;
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
