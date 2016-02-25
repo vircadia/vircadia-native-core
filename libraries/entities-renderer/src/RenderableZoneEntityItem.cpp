@@ -18,6 +18,7 @@
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
+#include "EntityTreeRenderer.h"
 #include "RenderableEntityItem.h"
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1
@@ -60,6 +61,10 @@ bool RenderableZoneEntityItem::setProperties(const EntityItemProperties& propert
         somethingChanged = this->ZoneEntityItem::setProperties(properties);
     });
     return somethingChanged;
+}
+
+void RenderableZoneEntityItem::somethingChangedNotification() {
+    DependencyManager::get<EntityTreeRenderer>()->updateZone(_id);
 }
 
 int RenderableZoneEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,

@@ -26,9 +26,7 @@ LogHandler& LogHandler::getInstance() {
     return staticInstance;
 }
 
-LogHandler::LogHandler() :
-    _shouldOutputProcessID(false),
-    _shouldOutputThreadID(false)
+LogHandler::LogHandler()
 {
     // setup our timer to flush the verbose logs every 5 seconds
     QTimer* logFlushTimer = new QTimer(this);
@@ -61,6 +59,9 @@ const char* stringForLogType(LogMsgType msgType) {
 
 // the following will produce 11/18 13:55:36
 const QString DATE_STRING_FORMAT = "MM/dd hh:mm:ss";
+
+// the following will produce 11/18 13:55:36.999
+const QString DATE_STRING_FORMAT_WITH_MILLISECONDS = "MM/dd hh:mm:ss.zzz";
 
 void LogHandler::flushRepeatedMessages() {
     QMutexLocker locker(&_repeatedMessageLock);
@@ -132,7 +133,12 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     // log prefix is in the following format
     // [TIMESTAMP] [DEBUG] [PID] [TID] [TARGET] logged string
 
-    QString prefixString = QString("[%1]").arg(QDateTime::currentDateTime().toString(DATE_STRING_FORMAT));
+    const QString* dateFormatPtr = &DATE_STRING_FORMAT;
+    if (_shouldDisplayMilliseconds) {
+        dateFormatPtr = &DATE_STRING_FORMAT_WITH_MILLISECONDS;
+    }
+
+    QString prefixString = QString("[%1]").arg(QDateTime::currentDateTime().toString(*dateFormatPtr));
 
     prefixString.append(QString(" [%1]").arg(stringForLogType(type)));
 
