@@ -110,6 +110,8 @@ void OverlayConductor::setEnabled(bool enabled) {
         return;
     }
 
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
+
     if (_enabled) {
         // alpha fadeOut the overlay mesh.
         qApp->getApplicationCompositor().fadeOut();
