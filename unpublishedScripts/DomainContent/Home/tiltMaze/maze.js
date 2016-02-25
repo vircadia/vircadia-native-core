@@ -1,17 +1,16 @@
 //
 //  maze.js
 //
-//  Script Type: Entity
 //
 //  Created by James B. Pollack @imgntn on 2/15/2016
 //  Copyright 2016 High Fidelity, Inc.
-//
 //
 //  This script resets a ball to its original position when the ball enters it.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 (function() {
 
     Script.include('../../../../libraries/utils.js');
@@ -41,13 +40,13 @@
         x: 0.05,
         y: 0.05,
         z: 0.05
-    })
+    });
 
     var BALL_COLOR = {
         red: 255,
         green: 0,
         blue: 0
-    }
+    };
 
     var _this;
 
@@ -97,7 +96,7 @@
             if (this.ballLocked === true) {
                 return;
             }
-            // print('making ball')
+
             var properties = {
                 name: 'Hifi Tilt Maze Ball',
                 type: 'Sphere',
@@ -112,18 +111,17 @@
                 density: BALL_DENSITY,
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS
-
             };
 
             this.ball = Entities.addEntity(properties);
         },
         destroyBall: function() {
-            var res = Entities.findEntities(MyAvatar.position, 10);
-            res.forEach(function(r) {
-                var props = Entities.getEntityProperties(r, ['name']);
+            var results = Entities.findEntities(MyAvatar.position, 10);
+            results.forEach(function(result) {
+                var props = Entities.getEntityProperties(result, ['name']);
                 var isAMazeBall = props.name.indexOf('Maze Ball');
-                if (isAMazeBall > -1 && r === _this.ball) {
-                    Entities.deleteEntity(r);
+                if (isAMazeBall > -1 && result === _this.ball) {
+                    Entities.deleteEntity(result);
                 }
             })
         },
@@ -131,20 +129,18 @@
             if (this.ballLocked === true) {
                 return;
             }
-            // print('test ball distance')
+
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
             var data = null;
             try {
-                data = JSON.parse(userData)
+                data = JSON.parse(userData);
             } catch (e) {
-                print('error parsing json in maze userdata')
+                // print('error parsing json in maze userdata')
             }
             if (data === null) {
-                print('data is null in userData')
+                // print('data is null in userData')
                 return;
             }
-
-            // print('DATA IS:'+JSON.stringify(data))
 
             var ballPosition;
             if (this.ball === null) {
@@ -152,19 +148,15 @@
                 ballPosition = Entities.getEntityProperties(data.tiltMaze.firstBall, 'position').position;
 
             } else {
-                ballPosition = Entities.getEntityProperties(this.ball, 'position').position
+                ballPosition = Entities.getEntityProperties(this.ball, 'position').position;
             }
 
             var ballSpawnerPosition = Entities.getEntityProperties(data.tiltMaze.ballSpawner, 'position').position;
 
             var separation = Vec3.distance(ballPosition, ballSpawnerPosition);
-            // print('separation from ball:' + separation)
             if (separation > BALL_DISTANCE_THRESHOLD) {
-                // print('BALL TOO FAR MAKE A NEW ONE')
                 this.destroyBall();
                 this.createBall();
-            } else {
-
             }
         },
         testWinDistance: function() {
@@ -175,12 +167,12 @@
             var userData = Entities.getEntityProperties(this.entityID, 'userData').userData;
             var data = null;
             try {
-                data = JSON.parse(userData)
+                data = JSON.parse(userData);
             } catch (e) {
-                print('error parsing json in maze userdata')
+                // print('error parsing json in maze userdata')
             }
             if (data === null) {
-                print('data is null in userData')
+                // print('data is null in userData')
                 return;
             }
 
@@ -189,25 +181,20 @@
                 this.ball = data.tiltMaze.firstBall;
                 ballPosition = Entities.getEntityProperties(data.tiltMaze.firstBall, 'position').position;
             } else {
-                ballPosition = Entities.getEntityProperties(this.ball, 'position').position
+                ballPosition = Entities.getEntityProperties(this.ball, 'position').position;
             }
 
             var ballDetectorPosition = Entities.getEntityProperties(data.tiltMaze.detector, 'position').position;
             var separation = Vec3.distance(ballPosition, ballDetectorPosition);
-            // print('separation from win:' + separation)
             if (separation < BALL_DETECTOR_THRESHOLD) {
-                // print('BALL IS IN DETECTOR, MAKE A NEW ONE')
                 this.ballLocked = true;
                 this.destroyBall();
                 this.playVictorySound();
                 Script.setTimeout(function() {
                     _this.ballLocked = false;
-                    _this.createBall()
+                    _this.createBall();
                 }, 1500)
-            } else {
-
-            }
-
+            } 
         },
         playVictorySound: function() {
             var position = Entities.getEntityProperties(this.entityID, "position").position;

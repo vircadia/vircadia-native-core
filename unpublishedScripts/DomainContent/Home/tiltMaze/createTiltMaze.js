@@ -5,6 +5,7 @@
 //  Created by James B. Pollack @imgntn on 2/15/2016
 //  Copyright 2016 High Fidelity, Inc.
 //
+//  This script creates a maze with a ball that you can tilt to try to get to the end!
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -28,31 +29,31 @@ var BALL_DIMENSIONS = Vec3.multiply(SCALE, {
   x: 0.035,
   y: 0.035,
   z: 0.035
-})
+});
 
 var BALL_SPAWNER_DIMENSIONS = Vec3.multiply(SCALE, {
   x: 0.05,
   y: 0.05,
   z: 0.05
-})
+});
 
 var BALL_DETECTOR_DIMENSIONS = Vec3.multiply(SCALE, {
   x: 0.1,
   y: 0.1,
   z: 0.1
-})
+});
 
 var BALL_COLOR = {
   red: 255,
   green: 0,
   blue: 0
-}
+};
 
 var DEBUG_COLOR = {
   red: 0,
   green: 255,
   blue: 0
-}
+};
 
 var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
   x: 0,
@@ -116,7 +117,7 @@ var getBallStartLocation = function() {
   finalOffset = Vec3.sum(finalOffset, Vec3.multiply(front, BALL_FORWARD_OFFSET));
   var location = Vec3.sum(mazeProps.position, finalOffset);
   return location;
-}
+};
 
 var getBallFinishLocation = function() {
   var mazeProps = Entities.getEntityProperties(tiltMaze);
@@ -129,12 +130,10 @@ var getBallFinishLocation = function() {
   position = Vec3.sum(position, Vec3.multiply(forward, DETECTOR_FORWARD_OFFSET));
 
   return position;
-}
+};
 
 
 var createBall = function(position) {
-
-  print('making ball')
   var properties = {
     name: 'Hifi Tilt Maze Ball',
     type: 'Sphere',
@@ -174,7 +173,7 @@ var createBallSpawningAnchor = function() {
   };
 
   ballSpawningAnchor = Entities.addEntity(properties);
-}
+};
 
 
 var createBallDetector = function() {
@@ -212,9 +211,9 @@ var createTiltMaze = function(position) {
     script: MAZE_SCRIPT
   }
 
-  tiltMaze = Entities.addEntity(properties)
+  tiltMaze = Entities.addEntity(properties);
 
-}
+};
 
 var createLightAtTheEnd = function() {
 
@@ -223,7 +222,7 @@ var createLightAtTheEnd = function() {
   var up = Quat.getUp(mazeProps.rotation);
   var down = Vec3.multiply(-1, up);
 
-  var emitOrientation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, down)
+  var emitOrientation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, down);
 
   var position = getBallFinishLocation();
   var lightProperties = {
@@ -242,7 +241,7 @@ var createLightAtTheEnd = function() {
   };
 
   lightAtTheEnd = Entities.addEntity(lightProperties);
-}
+};
 
 var createAll = function() {
   createTiltMaze(center);
@@ -260,7 +259,7 @@ var createAll = function() {
       }
     })
   })
-}
+};
 
 createAll();
 
