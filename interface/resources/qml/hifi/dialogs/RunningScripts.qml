@@ -89,6 +89,7 @@ Window {
 
         HifiControls.StaticSection {
             name: "Currently Running"
+            isFirst: true
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
@@ -117,7 +118,6 @@ Window {
 
         HifiControls.StaticSection {
             name: "Load Scripts"
-            hasSeparator: true
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x

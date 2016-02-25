@@ -85,8 +85,8 @@ Window {
                         sections[i].expanded = true;
                     }
                 }
-                sections[0].hasSeparator = false;
-                sections[sections.length - 1].hasSpacer = true;
+                sections[0].isFirst = true;
+                sections[sections.length - 1].isLast = true;
             }
         }
 

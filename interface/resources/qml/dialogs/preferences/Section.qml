@@ -20,8 +20,8 @@ Preference {
     id: root
     property bool collapsable: true
     property bool expanded: false
-    property bool hasSeparator: true
-    property bool hasSpacer: false
+    property bool isFirst: false
+    property bool isLast: false
     property string name: "Header"
     property real spacing: 8
     default property alias preferences: contentContainer.children
@@ -44,7 +44,7 @@ Preference {
 
     children: [ contentContainer ]
 
-    height: contentContainer.height + (root.hasSpacer ? 2 * hifi.dimensions.contentSpacing.y : 0)
+    height: contentContainer.height + (root.isLast ? 2 * hifi.dimensions.contentSpacing.y : 0)
 
     Component.onCompleted: d.buildPreferences();
 
@@ -52,7 +52,7 @@ Preference {
         id: contentContainer
         name: root.name
 
-        hasSeparator: root.hasSeparator
+        isFirst: root.isFirst
 
         anchors {
             left: parent.left

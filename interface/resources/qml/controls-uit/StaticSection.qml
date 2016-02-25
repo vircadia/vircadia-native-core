@@ -14,7 +14,7 @@ import "../styles-uit"
 
 Column {
     property string name: "Static Section"
-    property bool hasSeparator: false
+    property bool isFirst: false
 
     spacing: hifi.dimensions.contentSpacing.y
 
@@ -28,7 +28,7 @@ Column {
     VerticalSpacer { }
 
     Item {
-        visible: hasSeparator
+        visible: !isFirst
         anchors.top: sectionName.top
 
         Rectangle {
@@ -57,7 +57,7 @@ Column {
         color: hifi.colors.lightGrayText
         verticalAlignment: Text.AlignBottom
         height: {
-            if (hasSeparator) {
+            if (!isFirst) {
                 hifi.dimensions.contentMargin.y
             }
         }
