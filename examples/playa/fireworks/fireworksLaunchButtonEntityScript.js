@@ -86,7 +86,7 @@
         var smokeSettings = {
           type: "ParticleEffect",
           position: smokeTrailPosition,
-          lifespan: 4,
+          lifespan: 10,
           lifetime: 20,
           name: "Smoke Trail",
           maxParticles: 3000,
@@ -104,21 +104,21 @@
           azimuthFinish: 3.14,
           emitAcceleration: {
             x: 0,
-            y: 0.1,
+            y: 0.01,
             z: 0
           },
           accelerationSpread: {
-            x: 0.1,
+            x: 0.01,
             y: 0,
-            z: 0.1
+            z: 0.01
           },
-          radiusSpread: 0.001,
-          particleRadius: 0.06,
+          radiusSpread: 0.03,
+          particleRadius: 0.3,
           radiusStart: 0.06,
-          radiusFinish: 0.6,
-          alpha: 0.5,
+          radiusFinish: 0.9,
+          alpha: 0.4,
           alphaSpread: 0,
-          alphaStart: 0,
+          alphaStart: 0.7,
           alphaFinish: 0,
           textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
           emitterShouldTrail: true,
@@ -127,36 +127,12 @@
 
         var smoke = Entities.addEntity(smokeSettings);
 
-        smokeSettings.colorStart = {
-          red: 75,
-          green: 193,
-          blue: 254
-        };
-        smokeSettings.color = {
-          red: 202,
-          green: 132,
-          blue: 151
-        };
-        smokeSettings.colorFinish = {
-          red: 250,
-          green: 132,
-          blue: 21
-        };
-        smokeSettings.alphaStart = 0.6;
-        smokeSettings.alphaFinish = 0.1;
-
-        smokeSettings.name = "fire emitter";
-        var fire = Entities.addEntity(smokeSettings);
-
         Script.setTimeout(function() {
           Entities.editEntity(smoke, {
             parentID: null,
             isEmitting: false
           });
-          Entities.editEntity(fire, {
-            parentID: null,
-            isEmitting: false
-          });
+  
 
           var explodeBasePosition = Entities.getEntityProperties(missle, "position").position;
           
