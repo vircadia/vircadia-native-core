@@ -34,8 +34,9 @@ uniform sampler2D lightingMap;
 struct DeferredTransform { 
     mat4 projection;
     mat4 viewInverse;
-
-    vec4 stereoSide_spareABC;
+    float stereoSide;
+    float skyboxMipmapLevels;
+    vec2 _spareAB;
 };
 
 layout(std140) uniform deferredTransformBuffer {
@@ -46,10 +47,10 @@ DeferredTransform getDeferredTransform() {
 }
 
 bool getStereoMode(DeferredTransform deferredTransform) {
-    return (deferredTransform.stereoSide_spareABC.x != 0.0);
+    return (deferredTransform.stereoSide != 0.0);
 }
 float getStereoSide(DeferredTransform deferredTransform) {
-    return  (deferredTransform.stereoSide_spareABC.x);
+    return  (deferredTransform.stereoSide);
 }
 
 vec4 evalEyePositionFromZ(DeferredTransform deferredTransform, float depthVal, vec2 texcoord) {
