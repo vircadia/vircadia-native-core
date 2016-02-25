@@ -105,8 +105,8 @@ ModalWindow {
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
             anchors {
-                top: parent.top;
-                left: parent.left;
+                top: parent.top
+                horizontalCenter: parent.horizontalCenter
                 margins: 0
                 topMargin: hifi.dimensions.contentSpacing.y
             }

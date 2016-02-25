@@ -15,61 +15,67 @@ import "../controls-uit"
 import "../styles-uit"
 
 Frame {
-    Item {
-        id: modalFrame
+    HifiConstants { id: hifi }
 
-        anchors.fill: parent
-        anchors.margins: 0
+    Rectangle {
+        id: modalFrame
 
         readonly property bool hasTitle: window.title != ""
 
-        Rectangle {
-            anchors {
-                topMargin: -hifi.dimensions.modalDialogMargin.y - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
-                leftMargin: -hifi.dimensions.modalDialogMargin.x
-                rightMargin: -hifi.dimensions.modalDialogMargin.x
-                bottomMargin: -hifi.dimensions.modalDialogMargin.y
-                fill: parent
-            }
-            border {
-                width: hifi.dimensions.borderWidth
-                color: hifi.colors.lightGrayText80
-            }
-            radius: hifi.dimensions.borderRadius
-            color: hifi.colors.faintGray
+        anchors {
+            fill: parent
+            topMargin: -hifi.dimensions.modalDialogMargin.y - (modalFrame.hasTitle ? hifi.dimensions.modalDialogTitleHeight + 10 : 0)
+            leftMargin: -hifi.dimensions.modalDialogMargin.x
+            rightMargin: -hifi.dimensions.modalDialogMargin.x
+            bottomMargin: -hifi.dimensions.modalDialogMargin.y
         }
+
+        border {
+            width: hifi.dimensions.borderWidth
+            color: hifi.colors.lightGrayText80
+        }
+        radius: hifi.dimensions.borderRadius
+        color: hifi.colors.faintGray
 
         Item {
             visible: modalFrame.hasTitle
-            width: title.width + (window.iconText !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
-            x: (parent.width - width) / 2
+            anchors.fill: parent
+            anchors {
+                topMargin: -parent.anchors.topMargin
+                leftMargin: -parent.anchors.leftMargin
+                rightMargin: -parent.anchors.rightMargin
+            }
 
-            FontAwesome {
-                id: icon
-                text: window.iconText
-                size: 30
-                color: hifi.colors.lightGrayText
-                visible: text != ""
-                y: -hifi.dimensions.modalDialogTitleHeight - 5
+            Item {
+                width: title.width + (window.iconText !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
+                x: (parent.width - width) / 2
+
+                FontAwesome {
+                    id: icon
+                    text: window.iconText
+                    size: 30
+                    color: hifi.colors.lightGrayText
+                    visible: text != ""
+                    y: -hifi.dimensions.modalDialogTitleHeight - 5
+                    anchors.left: parent.left
+                }
+                RalewayRegular {
+                    id: title
+                    text: window.title
+                    elide: Text.ElideRight
+                    color: hifi.colors.baseGrayHighlight
+                    size: hifi.fontSizes.overlayTitle
+                    y: -hifi.dimensions.modalDialogTitleHeight
+                    anchors.right: parent.right
+                }
+            }
+
+            Rectangle {
                 anchors.left: parent.left
-            }
-            RalewayRegular {
-                id: title
-                text: window.title
-                elide: Text.ElideRight
-                color: hifi.colors.baseGrayHighlight
-                size: hifi.fontSizes.overlayTitle
-                y: -hifi.dimensions.modalDialogTitleHeight
                 anchors.right: parent.right
+                height: 1
+                color: hifi.colors.lightGray
             }
-        }
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
-            color: hifi.colors.lightGray
-            visible: modalFrame.hasTitle
         }
     }
 }
