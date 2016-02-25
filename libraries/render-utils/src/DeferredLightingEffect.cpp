@@ -94,7 +94,7 @@ void DeferredLightingEffect::init() {
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
-    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset(_ambientLightMode % gpu::SphericalHarmonics::NUM_PRESET));
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
@@ -321,7 +321,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         if (_skyboxTexture) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLightShadow;
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
@@ -329,7 +329,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                         if (_skyboxTexture) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLight;
                             locations = _directionalAmbientSphereLightLocations;
                         }
@@ -562,6 +562,14 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture) {
     _allocatedLights.front() = light;
     _skyboxTexture = skyboxTexture;
+
+    // Update the available mipmap levels
+    if (_skyboxTexture) {
+        float dim = glm::max(_skyboxTexture->getHeight(), _skyboxTexture->getWidth(), _skyboxTexture->getDepth());
+        auto skyboxMipmapLevels = 1 + glm::floor(glm::log2(dim));
+       _deferredTransformBuffer[0].edit<DeferredTransform>().skyboxMipmapLevels = skyboxMipmapLevels;
+        _deferredTransformBuffer[1].edit<DeferredTransform>().skyboxMipmapLevels = skyboxMipmapLevels;
+    }
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

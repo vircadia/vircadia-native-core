@@ -96,7 +96,6 @@ private:
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
 
-    int _ambientLightMode = 0;
     gpu::TexturePointer _skyboxTexture;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
@@ -104,8 +103,9 @@ private:
     public:
         glm::mat4 projection;
         glm::mat4 viewInverse;
-        float stereoSide{ 0.f };
-        float spareA, spareB, spareC;
+        float stereoSide { 0.f };
+        float skyboxMipmapLevels { 1.0f };
+        float spareA, spareB;
 
         DeferredTransform() {}
     };
