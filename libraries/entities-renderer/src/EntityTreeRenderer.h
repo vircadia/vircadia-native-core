@@ -146,6 +146,9 @@ private:
     bool _pendingSkyboxTexture { false };
     NetworkTexturePointer _skyboxTexture;
 
+    bool _pendingAmbientTexture { false };
+    NetworkTexturePointer _ambientTexture;
+
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
 
