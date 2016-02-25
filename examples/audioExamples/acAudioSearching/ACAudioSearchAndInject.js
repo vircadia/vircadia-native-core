@@ -21,19 +21,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+var MSEC_PER_SEC = 1000;
 var SOUND_DATA_KEY = "io.highfidelity.soundKey"; // Sound data is specified in userData under this key.
 var old_sound_data_key = "soundKey"; // For backwards compatibility.
 var QUERY_RADIUS = 50; // meters
 var UPDATE_TIME = 100; // ms. We'll update just one thing on this period.
-var EXPIRATION_TIME = 5 * 1000; // ms. Remove sounds that have been out of range for this time.
-var RECHECK_TIME = 10 * 1000; // ms. Check for new userData properties this often when not currently playing.
+var EXPIRATION_TIME = 5 * MSEC_PER_SEC; // ms. Remove sounds that have been out of range for this time.
+var RECHECK_TIME = 10 * MSEC_PER_SEC; // ms. Check for new userData properties this often when not currently playing.
 // (By not checking most of the time when not playing, we can efficiently go through all entities without getEntityProperties.)
-var UPDATES_PER_STATS_LOG = 50;
+var UPDATES_PER_STATS_LOG = RECHECK_TIME / UPDATE_TIME; // (It's nice to smooth out the results by straddling a recheck.)
 
 var DEFAULT_SOUND_DATA = {
     volume: 0.5, // userData cannot specify zero volume with our current method of defaulting.
     loop: false, // Default must be false with our current method of defaulting, else there's no way to get a false value.
-    playbackGap: 1000, // in ms
+    playbackGap: MSEC_PER_SEC, // in ms
     playbackGapRange: 0 // in ms
 };
 
@@ -49,6 +50,7 @@ EntityViewer.setKeyholeRadius(QUERY_RADIUS);
 // ENTITY DATA CACHE
 // 
 var entityCache = {}; // A dictionary of unexpired EntityData objects.
+var examinationCount = 0;
 function EntityDatum(entityIdentifier) { // Just the data of an entity that we need to know about.
     // This data is only use for our sound injection. There is no need to store such info in the replicated entity on everyone's computer.
     var that = this;
@@ -87,6 +89,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
                 return;
             }
             properties = Entities.getEntityProperties(entityIdentifier, ['userData', 'position']);
+            examinationCount++; // Collect statistics on how many getEntityProperties we do.
             debug("updating", that, properties);
             try {
                 var userData = properties.userData && JSON.parse(properties.userData);
@@ -114,7 +117,7 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
         if (that.playAfter > now) {                                          // DOWNLOADING | WAITING => WAITING
             return;
         }
-        ensureSoundData(); // We'll play and will need position, so we might as well get soundData, too.
+        ensureSoundData(); // We'll try to play/setOptions and will need position, so we might as well get soundData, too.
         if (soundData.url !== that.url) {                                    // WAITING => NO DATA (update next time around)
             return that.stop();
         }
@@ -123,27 +126,31 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
             loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
             volume: soundData.volume || DEFAULT_SOUND_DATA.volume
         };
+        function repeat() { return !options.loop && (soundData.playbackGap >= 0); }
+        function randomizedNextPlay() { // time of next play or recheck, randomized to distribute the work
+            var range = soundData.playbackGapRange || DEFAULT_SOUND_DATA.playbackGapRange,
+                base = repeat() ? ((that.sound.duration * MSEC_PER_SEC) + (soundData.playbackGap || DEFAULT_SOUND_DATA.playbackGap)) : RECHECK_TIME;
+            return now + base + randFloat(-Math.min(base, range), range);
+        }
         if (!that.injector) {                                                // WAITING => PLAYING | WAITING
             debug("starting", that, options);
             that.injector = Audio.playSound(that.sound, options); // Might be null if at at injector limit. Will try again later.
             if (that.injector) {
                 print("started", entityIdentifier, that.url);
             } else { // Don't hammer ensureSoundData or injector manager.
-                that.playAfter = now + (soundData.playbackGap || RECHECK_TIME);
+                that.playAfter = randomizedNextPlay();
             }
             return;
         }
         that.injector.setOptions(options);                                   // PLAYING => UPDATE POSITION ETC
         if (!that.injector.isPlaying) { // Subtle: a looping sound will not check playbackGap.
-            var gap = soundData.playbackGap || DEFAULT_SOUND_DATA;
-            if (gap) {                                                       // WAITING => PLAYING
-                gap = gap + randFloat(-Math.max(gap, soundData.playbackGapRange), soundData.playbackGapRange); // gapRange is bad name. Meant as +/- value.
+            if (repeat()) {                                                  // WAITING => PLAYING
                 // Setup next play just once, now. Changes won't be looked at while we wait.
-                that.playAfter = now + (that.sound.duration * 1000) + gap;
+                that.playAfter = randomizedNextPlay();
                 // Subtle: if the restart fails b/c we're at injector limit, we won't try again until next playAfter.
                 that.injector.restart();
-            } else {                                                         // PLAYING => NO DATA
-                that.playAfter = Infinity;
+            } else {                                                        // PLAYING => NO DATA
+                that.playAfter = Infinity; // was one-shot and we're finished
             }
         }
     };
@@ -165,16 +172,34 @@ function updateAllEntityData() { // A fast update of all entities we know about.
         entityCache[entityIdentifier].update(expirationCutoff, userDataRecheckCutoff, now);
     });
     if (nUpdates-- <= 0) { // Report statistics.
-        // My figures using acAudioSearchCompatibleEntitySpawner.js with ONE user, N_SOUNDS = 2000, N_SILENT_ENTITIES_PER_SOUND = 5:
-        // audio-mixer: 23% of cpu (on Mac Activity Monitor)
-        // this script's assignment client: 106% of cpu. (overloaded)
-        // entities:12003
-        // sounds:2000
-        // playing:40 (correct)
-        // millisecondsPerUpdate:135 (100 requested, so behind by 35%. It would be nice to dig into why...)
-        var stats = {entities: 0, sounds: 0, playing: 0, millisecondsPerUpdate: (now - lastStats) / UPDATES_PER_STATS_LOG};
+        // For example, with:
+        //  injector-limit = 40 (in C++ code)
+        //  N_SOUNDS = 1000    (from userData in, e.g., acAudioSearchCompatibleEntitySpawner.js)
+        //  replay-period = 3 + 20 = 23 (seconds, ditto)
+        //  stats-period = UPDATES_PER_STATS_LOG * UPDATE_TIME / MSEC_PER_SEC = 10 seconds
+        // The log should show between each stats report:
+        //  "start" lines ~= injector-limit * P(finish) = injector-limit * stats-period/replay-period = 17 ?
+        //  total attempts at starting ("start" lines + "could not thread" lines) ~= N_SOUNDS = 1000 ?
+        //  entities > N_SOUNDS * (1+ N_SILENT_ENTITIES_PER_SOUND) = 11000 + whatever was in the scene before running spawner
+        //  sounds = N_SOUNDS = 1000
+        //  getEntityPropertiesPerUpdate ~= playing + failed-starts/UPDATES_PER_STATS_LOG + other-rechecks-each-update
+        //     = injector-limit + (total attempts - "start" lines)/UPDATES_PER_STATS__LOG
+        //       + (entities - playing - failed-starts/UPDATES_PER_STATS_LOG) * P(recheck-in-update)
+        //                     where failed-starts/UPDATES_PER_STATS_LOG = (1000-17)/100 = 10
+        //     = 40 + 10 + (11000 - 40 - 10)*UPDATE_TIME/RECHECK_TIME
+        //     = 40 + 10 + 10950*0.01 = 159   (mostly proportional to enties/RECHECK_TIME)
+        //  millisecondsPerUpdate ~= UPDATE_TIME = 100 (+ some timer machinery time)
+        //  this assignment client activity monitor < 100% cpu
+        var stats = {
+            entities: 0,
+            sounds: 0,
+            playing: 0,
+            getEntityPropertiesPerUpdate: examinationCount / UPDATES_PER_STATS_LOG,
+            millisecondsPerUpdate: (now - lastStats) / UPDATES_PER_STATS_LOG
+        };
         nUpdates = UPDATES_PER_STATS_LOG;
         lastStats = now;
+        examinationCount = 0;
         Object.keys(entityCache).forEach(function (entityIdentifier) {
             var datum = entityCache[entityIdentifier];
             stats.entities++;

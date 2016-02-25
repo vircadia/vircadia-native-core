@@ -15,8 +15,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var N_SOUNDS = 2000;
-var N_SILENT_ENTITIES_PER_SOUND = 5;
+var N_SOUNDS = 1000;
+var N_SILENT_ENTITIES_PER_SOUND = 10;
 var ADD_PERIOD = 50; // ms between adding 1 sound + N_SILENT_ENTITIES_PER_SOUND, to not overrun entity server.
 var SPATIAL_DISTRIBUTION = 10; // meters spread over how far to randomly distribute enties.
 Script.include("../../libraries/utils.js");
@@ -32,8 +32,8 @@ var userData = {
         url: "http://hifi-content.s3.amazonaws.com/DomainContent/Junkyard/Sounds/ClothSail/cloth_sail3.L.wav",
         volume: 0.3,
         loop: false,
-        playbackGap: 7000, // In ms - time to wait in between clip plays
-        playbackGapRange: 500 // In ms - the range to wait in between clip plays
+        playbackGap: 20000, // In ms - time to wait in between clip plays
+        playbackGapRange: 5000 // In ms - the range to wait in between clip plays
     }
 };
 
