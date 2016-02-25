@@ -2,7 +2,7 @@
 //  PreferencesDialog.qml
 //
 //  Created by Bradley Austin Davis on 24 Jan 2016
-//  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -10,8 +10,6 @@
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs
-import Qt.labs.settings 1.0
 
 import "../controls-uit" as HifiControls
 import "../styles-uit"
@@ -75,10 +73,20 @@ Window {
             }
 
             if (sections.length) {
-                sections[0].expanded = true;
-                if (sections.length === 1) {
-                    sections[0].collapsable = false
+                // Default sections to expanded/collapsed as appropriate for dialog.
+                if (title === "Avatar Preferences") {
+                    sections[0].expanded = true;
+                    if (sections.length === 1) {
+                        sections[0].collapsable = false
+                    }
+                } else {
+                    for (i = 0; i < sections.length; i++) {
+                        sections[i].collapsable = false;
+                        sections[i].expanded = true;
+                    }
                 }
+                sections[0].hasSeparator = false;
+                sections[sections.length - 1].hasSpacer = true;
             }
         }
 
@@ -109,4 +117,3 @@ Window {
         }
     }
 }
-
