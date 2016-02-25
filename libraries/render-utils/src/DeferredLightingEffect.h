@@ -56,6 +56,7 @@ public:
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
+    bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
 
 private:
     DeferredLightingEffect() = default;

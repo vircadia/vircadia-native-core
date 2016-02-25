@@ -20,6 +20,7 @@
 
 #include "GeometryCache.h"
 #include "FramebufferCache.h"
+#include "TextureCache.h"
 #include "DeferredLightingEffect.h"
 
 #include "debug_deferred_buffer_vert.h"
@@ -138,7 +139,7 @@ static const std::string DEFAULT_PYRAMID_DEPTH_SHADER {
 
 static const std::string DEFAULT_AMBIENT_OCCLUSION_SHADER{
     "vec4 getFragmentColor() {"
-    "    return vec4(vec3(texture(occlusionMap, uv).x), 1.0);"
+    "    return vec4(vec3(texture(obscuranceMap, uv).x), 1.0);"
     // When drawing color "    return vec4(vec3(texture(occlusionMap, uv).xyz), 1.0);"
     // when drawing normal "    return vec4(normalize(texture(occlusionMap, uv).xyz * 2.0 - vec3(1.0)), 1.0);"
     " }"
@@ -251,10 +252,10 @@ const gpu::PipelinePointer& DebugDeferredBuffer::getPipeline(Mode mode, std::str
         slotBindings.insert(gpu::Shader::Binding("normalMap", Normal));
         slotBindings.insert(gpu::Shader::Binding("specularMap", Specular));
         slotBindings.insert(gpu::Shader::Binding("depthMap", Depth));
+        slotBindings.insert(gpu::Shader::Binding("obscuranceMap", AmbientOcclusion));
         slotBindings.insert(gpu::Shader::Binding("lightingMap", Lighting));
         slotBindings.insert(gpu::Shader::Binding("shadowMap", Shadow));
         slotBindings.insert(gpu::Shader::Binding("pyramidMap", Pyramid));
-        slotBindings.insert(gpu::Shader::Binding("occlusionMap", AmbientOcclusion));
         slotBindings.insert(gpu::Shader::Binding("occlusionBlurredMap", AmbientOcclusionBlurred));
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -288,6 +289,7 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
         const auto framebufferCache = DependencyManager::get<FramebufferCache>();
+        const auto textureCache = DependencyManager::get<TextureCache>();
         const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
         
         glm::mat4 projMat;
@@ -310,7 +312,12 @@ void DebugDeferredBuffer::run(const SceneContextPointer& sceneContext, const Ren
         batch.setResourceTexture(Lighting, framebufferCache->getLightingTexture());
         batch.setResourceTexture(Shadow, lightStage.lights[0]->shadow.framebuffer->getDepthStencilBuffer());
         batch.setResourceTexture(Pyramid, framebufferCache->getDepthPyramidTexture());
-        batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
+        if (DependencyManager::get<DeferredLightingEffect>()->isAmbientOcclusionEnabled()) {
+            batch.setResourceTexture(AmbientOcclusion, framebufferCache->getOcclusionTexture());
+        } else {
+            // need to assign the white texture if ao is off
+            batch.setResourceTexture(AmbientOcclusion, textureCache->getWhiteTexture());
+        }
         batch.setResourceTexture(AmbientOcclusionBlurred, framebufferCache->getOcclusionBlurredTexture());
 
         const glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
