@@ -142,7 +142,7 @@ function createMarkers() {
 
 
 function createMarker(modelURL, markerPosition, markerColor) {
-    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
+    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
     var marker = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
