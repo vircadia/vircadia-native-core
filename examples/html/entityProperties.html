@@ -75,8 +75,7 @@
         function createEmitNumberPropertyUpdateFunction(propertyName, decimals) {
             decimals = decimals == undefined ? 4 : decimals;
             return function() {
-                var value = +this.value;
-                value = +value.toFixed(decimals);
+                var value = parseFloat(this.value).toFixed(decimals);
 
                 EventBridge.emitWebEvent(
                     '{ "type":"update", "properties":{"' + propertyName + '":' + value + '}}'

@@ -9,10 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QColor>
-#include <QUrl>
-#include <QUuid>
-#include <QRect>
+#include <QtCore/QUrl>
+#include <QtCore/QUuid>
+#include <QtCore/QRect>
+#include <QtCore/QVariant>
+#include <QtGui/QColor>
+#include <QtGui/QVector3D>
+#include <QtGui/QQuaternion>
 #include <glm/gtc/quaternion.hpp>
 
 #include "RegisteredMetaTypes.h"
@@ -91,6 +94,51 @@ QScriptValue qVectorVec3ToScriptValue(QScriptEngine* engine, const QVector<glm::
     return array;
 }
 
+glm::vec3 vec3FromVariant(const QVariant &object, bool& valid) {
+    glm::vec3 v;
+    valid = false;
+    if (!object.isValid() || object.isNull()) {
+        return v;
+    } else if (object.canConvert<float>()) {
+        v = glm::vec3(object.toFloat());
+        valid = true;
+    } else if (object.canConvert<QVector3D>()) {
+        auto qvec3 = qvariant_cast<QVector3D>(object);
+        v.x = qvec3.x();
+        v.y = qvec3.y();
+        v.z = qvec3.z();
+        valid = true;
+    } else {
+        auto map = object.toMap();
+        auto x = map["x"];
+        auto y = map["y"];
+        auto z = map["z"];
+        if (!x.isValid()) {
+            x = map["width"];
+        }
+        if (!y.isValid()) {
+            y = map["height"];
+        }
+        if (!y.isValid()) {
+            z = map["depth"];
+        }
+
+        if (x.canConvert<float>() && y.canConvert<float>() && z.canConvert<float>()) {
+            v.x = x.toFloat();
+            v.y = y.toFloat();
+            v.z = z.toFloat();
+            valid = true;
+        }
+    }
+    return v;
+}
+
+glm::vec3 vec3FromVariant(const QVariant &object) {
+    bool valid = false;
+    return vec3FromVariant(object, valid);
+}
+
+
 QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat &quat) {
     QScriptValue obj = engine->newObject();
     if (quat.x != quat.x || quat.y != quat.y || quat.z != quat.z || quat.w != quat.w) {
@@ -109,6 +157,42 @@ void quatFromScriptValue(const QScriptValue &object, glm::quat &quat) {
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
     quat.w = object.property("w").toVariant().toFloat();
+}
+
+glm::quat quatFromVariant(const QVariant &object, bool& isValid) {
+    glm::quat q;
+    if (object.canConvert<QQuaternion>()) {
+        auto qvec3 = qvariant_cast<QQuaternion>(object);
+        q.x = qvec3.x();
+        q.y = qvec3.y();
+        q.z = qvec3.z();
+        q.w = qvec3.scalar();
+        isValid = true;
+    } else {
+        auto map = object.toMap();
+        q.x = map["x"].toFloat(&isValid);
+        if (!isValid) {
+            return glm::quat();
+        }
+        q.y = map["y"].toFloat(&isValid);
+        if (!isValid) {
+            return glm::quat();
+        }
+        q.z = map["z"].toFloat(&isValid);
+        if (!isValid) {
+            return glm::quat();
+        }
+        q.w = map["w"].toFloat(&isValid);
+        if (!isValid) {
+            return glm::quat();
+        }
+    }
+    return q;
+}
+
+glm::quat quatFromVariant(const QVariant &object) {
+    bool valid = false;
+    return quatFromVariant(object, valid);
 }
 
 QScriptValue qVectorQuatToScriptValue(QScriptEngine* engine, const QVector<glm::quat>& vector) {

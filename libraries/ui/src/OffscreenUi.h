@@ -63,7 +63,7 @@ public:
     }
     /// Same design as QMessageBox::question(), will block, returns result
     static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return question(title, text, buttons, defaultButton);
     }
@@ -105,6 +105,9 @@ public:
     static QString getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
     // Compatibility with QInputDialog::getItem
     static QString getItem(void *ignored, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
+
+signals:
+    void showDesktop();
 
 private:
     QString fileDialog(const QVariantMap& properties);

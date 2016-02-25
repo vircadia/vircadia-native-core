@@ -8,6 +8,16 @@ import ".."
 Desktop {
     id: desktop
 
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        propagateComposedEvents: true
+        scrollGestureEnabled: false // we don't need/want these
+        onEntered: ApplicationCompositor.reticleOverDesktop = true
+        onExited: ApplicationCompositor.reticleOverDesktop = false
+        acceptedButtons: Qt.NoButton
+    }
+
     Component.onCompleted: {
         WebEngine.settings.javascriptCanOpenWindows = true;
         WebEngine.settings.javascriptCanAccessClipboard = false;

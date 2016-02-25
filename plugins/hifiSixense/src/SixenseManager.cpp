@@ -113,7 +113,6 @@ void SixenseManager::deactivate() {
     _container->removeMenu(MENU_PATH);
 
     _inputDevice->_poseStateMap.clear();
-    _inputDevice->_collectedSamples.clear();
 
     if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -158,7 +157,6 @@ void SixenseManager::InputDevice::update(float deltaTime, const controller::Inpu
             _axisStateMap.clear();
             _buttonPressedMap.clear();
             _poseStateMap.clear();
-            _collectedSamples.clear();
         }
         return;
     }
@@ -209,13 +207,10 @@ void SixenseManager::InputDevice::update(float deltaTime, const controller::Inpu
                 rawPoses[i] = controller::Pose(position, rotation, Vectors::ZERO, Vectors::ZERO);
             } else {
                 _poseStateMap.clear();
-                _collectedSamples.clear();
             }
         } else {
             auto hand = left ? controller::StandardPoseChannel::LEFT_HAND : controller::StandardPoseChannel::RIGHT_HAND;
             _poseStateMap[hand] = controller::Pose();
-            _collectedSamples[hand].first.clear();
-            _collectedSamples[hand].second.clear();
         }
     }
 
@@ -481,29 +476,24 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, const control
     glm::vec3 velocity(0.0f);
     glm::vec3 angularVelocity(0.0f);
 
-    if (prevPose.isValid() && deltaTime > std::numeric_limits<float>::epsilon()) {
-        auto& samples = _collectedSamples[hand];
-
-        velocity = (pos - prevPose.getTranslation()) / deltaTime;
-        samples.first.addSample(velocity);
-        velocity = samples.first.average;
-
-        auto deltaRot = glm::normalize(rot * glm::conjugate(prevPose.getRotation()));
-        auto axis = glm::axis(deltaRot);
-        auto speed = glm::angle(deltaRot) / deltaTime;
-        assert(!glm::isnan(speed));
-        angularVelocity = speed * axis;
-        samples.second.addSample(angularVelocity);
-        angularVelocity = samples.second.average;
-    } else if (!prevPose.isValid()) {
-        _collectedSamples[hand].first.clear();
-        _collectedSamples[hand].second.clear();
-    }
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
 
     // transform pose into avatar frame.
-    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    auto avatarPose = controller::Pose(pos, rot, velocity, angularVelocity).transform(controllerToAvatar);
-    _poseStateMap[hand] = avatarPose;
+    auto nextPose = controller::Pose(pos, rot, velocity, angularVelocity).transform(controllerToAvatar);
+
+    if (prevPose.isValid() && (deltaTime > std::numeric_limits<float>::epsilon())) {
+        nextPose.velocity = (nextPose.getTranslation() - prevPose.getTranslation()) / deltaTime;
+
+        glm::quat deltaRotation = nextPose.getRotation() * glm::inverse(prevPose.getRotation());
+        float rotationAngle = glm::angle(deltaRotation);
+        if (rotationAngle > EPSILON) {
+            nextPose.angularVelocity = glm::normalize(glm::axis(deltaRotation));
+            nextPose.angularVelocity *= (rotationAngle / deltaTime);
+        }
+
+    }
+    _poseStateMap[hand] = nextPose;
+
 #endif // HAVE_SIXENSE
 }
 

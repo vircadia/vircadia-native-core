@@ -283,16 +283,43 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
         //Mouse Pointer
         if (getReticleVisible()) {
-            glm::mat4 overlayXfm;
-            _modelTransform.getMatrix(overlayXfm);
+            if (getReticleDepth() != 1.0f) {
+                // calculate the "apparent location" based on the depth and the current ray
+                glm::vec3 origin, direction;
+                auto reticlePosition = getReticlePosition();
+                computeHmdPickRay(reticlePosition, origin, direction);
+                auto apparentPosition = origin + (direction * getReticleDepth());
 
-            auto reticlePosition = getReticlePosition();
-            glm::vec2 projection = overlayToSpherical(reticlePosition);
-            float cursorDepth = getReticleDepth();
-            mat4 pointerXfm = glm::scale(mat4(), vec3(cursorDepth)) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-            mat4 reticleXfm = overlayXfm * pointerXfm;
-            reticleXfm = glm::scale(reticleXfm, reticleScale);
-            batch.setModelTransform(reticleXfm);
+                // same code as used to render for apparent location
+                auto myCamera = qApp->getCamera();
+                mat4 cameraMat = myCamera->getTransform();
+                auto UITransform = cameraMat * glm::inverse(headPose);
+                auto relativePosition4 = glm::inverse(UITransform) * vec4(apparentPosition, 1);
+                auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
+                auto relativeDistance = glm::length(relativePosition);
+
+                // look at borrowed from overlays
+                float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
+                float azimuth = atan2f(relativePosition.x, relativePosition.z);
+                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, 0, -1)); // this extra *quat(vec3(0,0,-1)) was required to get the quad to flip this seems like we could optimize
+
+                Transform transform;
+                transform.setTranslation(relativePosition);
+                transform.setScale(reticleScale);
+                transform.postScale(relativeDistance); // scale not quite working, distant things too large
+                transform.setRotation(faceCamera);
+                batch.setModelTransform(transform);
+            } else {
+                glm::mat4 overlayXfm;
+                _modelTransform.getMatrix(overlayXfm);
+
+                auto reticlePosition = getReticlePosition();
+                glm::vec2 projection = overlayToSpherical(reticlePosition);
+                mat4 pointerXfm = glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+                mat4 reticleXfm = overlayXfm * pointerXfm;
+                reticleXfm = glm::scale(reticleXfm, reticleScale);
+                batch.setModelTransform(reticleXfm);
+            }
             geometryCache->renderUnitQuad(batch, glm::vec4(1), _reticleQuad);
         }
     });
@@ -300,7 +327,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
 
 QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
     if (qApp->isHMDMode()) {
-        QMutexLocker locker(&_reticlePositionInHMDLock);
+        QMutexLocker locker(&_reticleLock);
         return QPointF(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
     }
     return event->localPos();
@@ -354,7 +381,7 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
 
     // If we're in HMD mode
     if (shouldCaptureMouse()) {
-        QMutexLocker locker(&_reticlePositionInHMDLock);
+        QMutexLocker locker(&_reticleLock);
         auto newPosition = QCursor::pos();
         auto changeInRealMouse = newPosition - _lastKnownRealMouse;
         auto newReticlePosition = _reticlePositionInHMD + toGlm(changeInRealMouse);
@@ -368,9 +395,9 @@ bool ApplicationCompositor::handleRealMouseMoveEvent(bool sendFakeEvent) {
     return false; // let the caller know to process the event
 }
 
-glm::vec2 ApplicationCompositor::getReticlePosition() {
+glm::vec2 ApplicationCompositor::getReticlePosition() const {
     if (qApp->isHMDMode()) {
-        QMutexLocker locker(&_reticlePositionInHMDLock);
+        QMutexLocker locker(&_reticleLock);
         return _reticlePositionInHMD;
     }
     return toGlm(QCursor::pos());
@@ -378,7 +405,7 @@ glm::vec2 ApplicationCompositor::getReticlePosition() {
 
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
-        QMutexLocker locker(&_reticlePositionInHMDLock);
+        QMutexLocker locker(&_reticleLock);
         const float MOUSE_EXTENTS_VERT_ANGULAR_SIZE = 170.0f; // 5deg from poles
         const float MOUSE_EXTENTS_VERT_PIXELS = VIRTUAL_SCREEN_SIZE_Y * (MOUSE_EXTENTS_VERT_ANGULAR_SIZE / DEFAULT_HMD_UI_VERT_ANGULAR_SIZE);
         const float MOUSE_EXTENTS_HORZ_ANGULAR_SIZE = 360.0f; // full sphere

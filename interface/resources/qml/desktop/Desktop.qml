@@ -1,20 +1,32 @@
+//
+//  Desktop.qml
+//
+//  Created by Bradley Austin Davis on 15 Apr 2015
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.2 as OriginalDialogs;
 
 import "../dialogs"
 import "../menus"
 import "../js/Utils.js" as Utils
 
-// This is our primary 'desktop' object to which all VR dialogs and
-// windows will be childed.
+// This is our primary 'desktop' object to which all VR dialogs and windows are childed.
 FocusScope {
     id: desktop
-    anchors.fill: parent;
     objectName: "desktop"
+    anchors.fill: parent
 
     onHeightChanged: d.repositionAll();
     onWidthChanged: d.repositionAll();
+
+    // Controls and windows can trigger this signal to ensure the desktop becomes visible
+    // when they're opened.
+    signal showDesktop();
 
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
@@ -148,12 +160,12 @@ FocusScope {
         }
 
         Component.onCompleted: {
-            offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
+            //offscreenWindow.activeFocusItemChanged.connect(onWindowFocusChanged);
             focusHack.start();
         }
 
         function onWindowFocusChanged() {
-            console.log("Focus item is " + offscreenWindow.activeFocusItem);
+            //console.log("Focus item is " + offscreenWindow.activeFocusItem);
 
             // FIXME this needs more testing before it can go into production
             // and I already cant produce any way to have a modal dialog lose focus
@@ -217,6 +229,8 @@ FocusScope {
         }
 
         reposition(targetWindow);
+
+        showDesktop();
     }
 
     function reposition(item) {
@@ -304,6 +318,7 @@ FocusScope {
 
     Rectangle {
         id: focusDebugger;
+        objectName: "focusDebugger"
         z: 9999; visible: false; color: "red"
         ColorAnimation on color { from: "#7fffff00"; to: "#7f0000ff"; duration: 1000; loops: 9999 }
     }
@@ -314,8 +329,5 @@ FocusScope {
         enabled: DebugQML
         onTriggered: focusDebugger.visible = !focusDebugger.visible
     }
-
+    
 }
-
-
-
