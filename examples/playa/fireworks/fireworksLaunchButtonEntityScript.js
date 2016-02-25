@@ -53,6 +53,7 @@
                 type: "ParticleEffect",
                 position: smokeTrailPosition,
                 lifespan: 2,
+                lifetime: 20,
                 name: "Smoke Trail",
                 maxParticles: 3000,
                 emitRate: 50,
@@ -94,24 +95,26 @@
             smokeSettings.lifespan = 0.7;
             smokeSettings.emitAcceleration.y= -1;;
             smokeSettings.alphaStart = 0.7; 
-            smokeSettings.alphaFinish = 0.2; 
+            smokeSettings.alphaFinish = 0.1; 
             smokeSettings.radiusFinish =  0.06;
             smokeSettings.particleRadius =  0.06;
             smokeSettings.emitRate =  200;
             smokeSettings.emitterShouldTrail = false;
             _this.fire = Entities.addEntity(smokeSettings);
 
-            // Script.setTimeout(function() {
-              // var explodePosition = Entities.getEntityProperties(_this.missle, "position").position;
-              // Entities.deleteEntity(_this.missle);
-              // Entities.deleteEntity(_this.smoke);
-              // _this.explodeFirework(explodePosition);
-            // }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
+            Script.setTimeout(function() {
+              var explodePosition = Entities.getEntityProperties(_this.missle, "position").position;
+              _this.explodeFirework(explodePosition);
+            }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
 
 
       },
 
       explodeFirework: function(explodePosition) {
+        // We just exploded firework, so stop emitting its fire and smoke
+        Entities.editEntity(_this.smoke, {parentID: null, isEmitting: false});
+        Entities.editEntity(_this.fire, {parentID: null, isEmitting: false});
+        Entities.deleteEntity(_this.missle);
         Audio.playSound(_this.explosionSound, {position: explodePosition});
         var fireworkSettings = {
           name: "fireworks emitter",
