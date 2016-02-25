@@ -1,7 +1,6 @@
 //
 //  createTiltMaze.js
 //
-//
 //  Created by James B. Pollack @imgntn on 2/15/2016
 //  Copyright 2016 High Fidelity, Inc.
 //
