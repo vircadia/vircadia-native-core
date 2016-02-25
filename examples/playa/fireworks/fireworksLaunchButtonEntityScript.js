@@ -116,7 +116,7 @@
           particleRadius: 0.3,
           radiusStart: 0.06,
           radiusFinish: 0.9,
-          alpha: 0.4,
+          alpha: 0.1,
           alphaSpread: 0,
           alphaStart: 0.7,
           alphaFinish: 0,
