@@ -110,9 +110,12 @@ void OverlayConductor::setEnabled(bool enabled) {
         return;
     }
 
+    qDebug() << "OverlayConductor::setEnabled() enabled:" << enabled;
     Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
 
-    if (_enabled) {
+    _enabled = enabled; // set the new value
+
+    if (!_enabled) {
         // alpha fadeOut the overlay mesh.
         qApp->getApplicationCompositor().fadeOut();
 
@@ -122,8 +125,6 @@ void OverlayConductor::setEnabled(bool enabled) {
         // disable QML events
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->getRootItem()->setEnabled(false);
-
-        _enabled = false;
     } else {
         // alpha fadeIn the overlay mesh.
         qApp->getApplicationCompositor().fadeIn();
@@ -144,8 +145,6 @@ void OverlayConductor::setEnabled(bool enabled) {
             t.setRotation(glm::quat_cast(camMat));
             qApp->getApplicationCompositor().setModelTransform(t);
         }
-
-        _enabled = true;
     }
 }
 

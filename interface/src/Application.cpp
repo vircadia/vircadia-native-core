@@ -1200,7 +1200,6 @@ void Application::initializeUi() {
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-    connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -2435,6 +2434,17 @@ void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
+
+    Stats::getInstance()->updateStats();
+    AvatarInputs::getInstance()->update();
+
+    static bool firstIdle = true;
+    if (firstIdle) {
+        firstIdle = false;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+    }
+
     
     auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
@@ -2996,6 +3006,10 @@ void Application::updateThreads(float deltaTime) {
 void Application::toggleOverlays() {
     auto overlaysVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
     _overlayConductor.setEnabled(overlaysVisible);
+}
+
+void Application::setOverlaysVisible(bool visible) {
+    _overlayConductor.setEnabled(visible);
 }
 
 void Application::cycleCamera() {
