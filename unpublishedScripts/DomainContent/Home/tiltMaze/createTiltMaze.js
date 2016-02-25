@@ -258,7 +258,7 @@ var createAll = function() {
         lightAtTheEnd: lightAtTheEnd
       }
     })
-  })
+  });
 };
 
 createAll();
@@ -269,5 +269,5 @@ if (CLEANUP === true) {
     Entities.deleteEntity(ball);
     Entities.deleteEntity(ballSpawningAnchor);
     Entities.deleteEntity(lightAtTheEnd);
-  })
+  });
 };
