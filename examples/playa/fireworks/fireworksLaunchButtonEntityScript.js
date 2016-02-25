@@ -37,7 +37,7 @@
         // Get launch position
         var launchPosition = getEntityUserData(_this.entityID).launchPosition || _this.position;
 
-        var numMissles = randInt(1, 5);
+        var numMissles = randInt(1, 3);
         for(var i = 0; i < numMissles; i++) {
         _this.shootMissle(launchPosition);
         }
@@ -159,7 +159,7 @@
           Entities.deleteEntity(missle);
           // Explode 1 firework immediately
             _this.explodeFirework(explodeBasePosition);
-          var numAdditionalFireworks = randInt(4, 10);
+          var numAdditionalFireworks = randInt(1, 5);
           for (var i = 0; i < numAdditionalFireworks; i++) {
             Script.setTimeout(function() {
               var explodePosition = Vec3.sum(explodeBasePosition, {x: randFloat(-3, 3), y: randFloat(-3, 3), z: randFloat(-3, 3)});
