@@ -29,6 +29,10 @@
         _this.shootFireworks();
       },
 
+      startFarTrigger: function() {
+        _this.shootFireworks();
+      },
+
       clickReleaseOnEntity: function() {
         _this.shootFireworks();
       },
