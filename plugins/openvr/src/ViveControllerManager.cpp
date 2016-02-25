@@ -29,6 +29,8 @@
 
 extern vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 extern mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+extern vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
+extern vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
 
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
@@ -249,10 +251,11 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         numTrackedControllers++;
         bool left = numTrackedControllers == 2;
 
-        const mat4& mat = _trackedDevicePoseMat4[device];
-
         if (!jointsCaptured) {
-            handlePoseEvent(inputCalibrationData, mat, numTrackedControllers - 1);
+            const mat4& mat = _trackedDevicePoseMat4[device];
+            const vec3 linearVelocity = _trackedDeviceLinearVelocities[device];
+            const vec3 angularVelocity = _trackedDeviceAngularVelocities[device];
+            handlePoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity, numTrackedControllers - 1);
         }
 
         // handle inputs
@@ -314,7 +317,9 @@ void ViveControllerManager::InputDevice::handleButtonEvent(uint32_t button, bool
     }
 }
 
-void ViveControllerManager::InputDevice::handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, bool left) {
+void ViveControllerManager::InputDevice::handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData,
+                                                         const mat4& mat, const vec3& linearVelocity,
+                                                         const vec3& angularVelocity, bool left) {
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
     //
     //                       user
@@ -379,16 +384,22 @@ void ViveControllerManager::InputDevice::handlePoseEvent(const controller::Input
     static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
     static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
 
-    glm::vec3 position = extractTranslation(mat);
-    glm::quat rotation = glm::quat_cast(mat);
+    auto translationOffset = (left ? leftTranslationOffset : rightTranslationOffset);
+    auto rotationOffset = (left ? leftRotationOffset : rightRotationOffset);
 
-    position += rotation * (left ? leftTranslationOffset : rightTranslationOffset);
-    rotation = rotation * (left ? leftRotationOffset : rightRotationOffset);
+    glm::vec3 position = extractTranslation(mat);
+    glm::quat rotation = glm::normalize(glm::quat_cast(mat));
+
+    position += rotation * translationOffset;
+    rotation = rotation * rotationOffset;
 
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    auto avatarPose = controller::Pose(position, rotation).transform(controllerToAvatar);
-    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose;
+    auto avatarPose = controller::Pose(position, rotation);
+    // handle change in velocity due to translationOffset
+    avatarPose.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
+    avatarPose.angularVelocity = angularVelocity;
+    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {

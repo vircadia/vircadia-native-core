@@ -20,8 +20,10 @@ Windows.Window {
     property string newTabSource
     property alias tabView: tabView
     onParentChanged: {
-        x = 120;
-        y = 120;
+        if (parent) {
+            x = 120;
+            y = 120;
+        }
     }
 
     Settings {

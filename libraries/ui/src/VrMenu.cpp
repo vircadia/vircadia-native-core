@@ -124,8 +124,11 @@ void VrMenu::addMenu(QMenu* menu) {
     new MenuUserData(menu, result);
     auto menuAction = menu->menuAction();
     updateQmlItemFromAction(result, menuAction);
-    QObject::connect(menuAction, &QAction::changed, [=] {
+    auto connection = QObject::connect(menuAction, &QAction::changed, [=] {
         updateQmlItemFromAction(result, menuAction);
+    });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
     });
 
 }
@@ -133,9 +136,13 @@ void VrMenu::addMenu(QMenu* menu) {
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     new MenuUserData(action, qmlAction);
     updateQmlItemFromAction(qmlAction, action);
-    QObject::connect(action, &QAction::changed, [=] {
+    auto connection = QObject::connect(action, &QAction::changed, [=] {
         updateQmlItemFromAction(qmlAction, action);
     });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
+    });
+
     QObject::connect(action, &QAction::toggled, [=](bool checked) {
         qmlAction->setProperty("checked", checked);
     });
