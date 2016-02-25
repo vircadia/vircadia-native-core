@@ -21,158 +21,126 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
+#include <GLMHelpers.h>
 
 #include "OpenVrHelpers.h"
 
 Q_DECLARE_LOGGING_CATEGORY(displayplugins)
-Q_LOGGING_CATEGORY(displayplugins, "hifi.displayplugins")
 
 const QString OpenVrDisplayPlugin::NAME("OpenVR (Vive)");
-
 const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probably shouldn't be hardcoded here
 
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
+vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
-static uvec2 _windowSize;
-static uvec2 _renderTargetSize;
-
-struct PerEyeData {
-    //uvec2 _viewportOrigin;
-    //uvec2 _viewportSize;
-    mat4 _projectionMatrix;
-    mat4 _eyeOffset;
-    mat4 _pose;
-};
-
-static PerEyeData _eyesData[2];
-
-
-template<typename F>
-void openvr_for_each_eye(F f) {
-    f(vr::Hmd_Eye::Eye_Left);
-    f(vr::Hmd_Eye::Eye_Right);
-}
-
-mat4 toGlm(const vr::HmdMatrix44_t& m) {
-    return glm::transpose(glm::make_mat4(&m.m[0][0]));
-}
-
-mat4 toGlm(const vr::HmdMatrix34_t& m) {
-    mat4 result = mat4(
-        m.m[0][0], m.m[1][0], m.m[2][0], 0.0,
-        m.m[0][1], m.m[1][1], m.m[2][1], 0.0,
-        m.m[0][2], m.m[1][2], m.m[2][2], 0.0,
-        m.m[0][3], m.m[1][3], m.m[2][3], 1.0f);
-    return result;
-}
+static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
 bool OpenVrDisplayPlugin::isSupported() const {
-    auto hmd = acquireOpenVrSystem();
-    bool success = nullptr != hmd;
-    releaseOpenVrSystem();
-    return success;
+    return vr::VR_IsHmdPresent();
 }
 
 void OpenVrDisplayPlugin::activate() {
     _container->setIsOptionChecked(StandingHMDSensorMode, true);
 
-    if (!_hmd) {
-        _hmd = acquireOpenVrSystem();
+    if (!_system) {
+        _system = acquireOpenVrSystem();
     }
-    Q_ASSERT(_hmd);
+    Q_ASSERT(_system);
 
-    _hmd->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
+    _system->GetRecommendedRenderTargetSize(&_renderTargetSize.x, &_renderTargetSize.y);
     // Recommended render target size is per-eye, so double the X size for 
     // left + right eyes
     _renderTargetSize.x *= 2;
-    openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-        PerEyeData& eyeData = _eyesData[eye];
-        eyeData._projectionMatrix = toGlm(_hmd->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
-        eyeData._eyeOffset = toGlm(_hmd->GetEyeToHeadTransform(eye));
-    });
+
+    {
+        Lock lock(_poseMutex);
+        openvr_for_each_eye([&](vr::Hmd_Eye eye) {
+            _eyeOffsets[eye] = toGlm(_system->GetEyeToHeadTransform(eye));
+            _eyeProjections[eye] = toGlm(_system->GetProjectionMatrix(eye, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, vr::API_OpenGL));
+        });
+        // FIXME Calculate the proper combined projection by using GetProjectionRaw values from both eyes
+        _cullingProjection = _eyeProjections[0];
+
+    }
+
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
-    WindowOpenGLDisplayPlugin::activate();
+    HmdDisplayPlugin::activate();
 }
 
 void OpenVrDisplayPlugin::deactivate() {
     _container->setIsOptionChecked(StandingHMDSensorMode, false);
-    if (_hmd) {
+    if (_system) {
         releaseOpenVrSystem();
-        _hmd = nullptr;
+        _system = nullptr;
     }
     _compositor = nullptr;
-    WindowOpenGLDisplayPlugin::deactivate();
+    HmdDisplayPlugin::deactivate();
 }
 
 void OpenVrDisplayPlugin::customizeContext() {
+    // Display plugins in DLLs must initialize glew locally
     static std::once_flag once;
     std::call_once(once, []{
         glewExperimental = true;
         GLenum err = glewInit();
         glGetError();
     });
-    WindowOpenGLDisplayPlugin::customizeContext();
-}
-
-uvec2 OpenVrDisplayPlugin::getRecommendedRenderSize() const {
-    return _renderTargetSize;
-}
-
-mat4 OpenVrDisplayPlugin::getProjection(Eye eye, const mat4& baseProjection) const {
-    // FIXME hack to ensure that we don't crash trying to get the combined matrix
-    if (eye == Mono) {
-        eye = Left;
-    }
-    return _eyesData[eye]._projectionMatrix;
+    HmdDisplayPlugin::customizeContext();
 }
 
 void OpenVrDisplayPlugin::resetSensors() {
-    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(_trackedDevicePoseMat4[0]));
-}
-
-glm::mat4 OpenVrDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
-    return _eyesData[eye]._eyeOffset;
+    Lock lock(_poseMutex);
+    glm::mat4 m = toGlm(_trackedDevicePose[0].mDeviceToAbsoluteTracking);
+    _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
 glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
-    glm::mat4 result;
-    {
-        Lock lock(_mutex);
-        result = _trackedDevicePoseMat4[0];
 
+    float displayFrequency = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_DisplayFrequency_Float);
+    float frameDuration = 1.f / displayFrequency;
+    float vsyncToPhotons = _system->GetFloatTrackedDeviceProperty(vr::k_unTrackedDeviceIndex_Hmd, vr::Prop_SecondsFromVsyncToPhotons_Float);
+
+#if THREADED_PRESENT
+    // TODO: this seems awfuly long, 44ms total, but it produced the best results.
+    const float NUM_PREDICTION_FRAMES = 3.0f;
+    float predictedSecondsFromNow = NUM_PREDICTION_FRAMES * frameDuration + vsyncToPhotons;
+#else
+    uint64_t frameCounter;
+    float timeSinceLastVsync;
+    _system->GetTimeSinceLastVsync(&timeSinceLastVsync, &frameCounter);
+    float predictedSecondsFromNow = 3.0f * frameDuration - timeSinceLastVsync + vsyncToPhotons;
+#endif
+
+    vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, predictedSecondsFromNow, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+
+    // copy and process predictedTrackedDevicePoses
+    for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
+        _trackedDevicePose[i] = predictedTrackedDevicePose[i];
+        _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+        _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
+        _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
-    return result;
-}
-
-
-void OpenVrDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
-    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture, sceneSize);
+    return _trackedDevicePoseMat4[0];
 }
 
 void OpenVrDisplayPlugin::internalPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
-    {
-        Lock lock(_mutex);
-        _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
-        _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
-    }
-    glFinish();
-    {
-        Lock lock(_mutex);
-        _compositor->WaitGetPoses(_trackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
-        for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
-            _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
-        }
-        openvr_for_each_eye([&](vr::Hmd_Eye eye) {
-            _eyesData[eye]._pose = _trackedDevicePoseMat4[0];
-        });
-    }
 
-    //WindowOpenGLDisplayPlugin::internalPresent();
+    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
+
+    _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
+    _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
+
+    vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
+    _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+
+    // Handle the mirroring in the base class
+    HmdDisplayPlugin::internalPresent();
 }

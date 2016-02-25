@@ -19,7 +19,6 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
@@ -91,24 +90,6 @@ void DialogsManager::cachesSizeDialog() {
     _cachesSizeDialog->raise();
 }
 
-void DialogsManager::editPreferences() {
-    if (!_preferencesDialog) {
-        maybeCreateDialog(_preferencesDialog);
-        _preferencesDialog->show();
-    } else {
-        _preferencesDialog->close();
-    }
-}
-
-void DialogsManager::editAttachments() {
-    if (!_attachmentsDialog) {
-        maybeCreateDialog(_attachmentsDialog);
-        _attachmentsDialog->show();
-    } else {
-        _attachmentsDialog->close();
-    }
-}
-
 void DialogsManager::audioStatsDetails() {
     if (! _audioStatsDialog) {
         _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
@@ -145,11 +126,6 @@ void DialogsManager::lodTools() {
         _lodToolsDialog->show();
     }
     _lodToolsDialog->raise();
-}
-
-void DialogsManager::toggleToolWindow() {
-    QMainWindow* toolWindow = qApp->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
 }
 
 void DialogsManager::hmdTools(bool showTools) {

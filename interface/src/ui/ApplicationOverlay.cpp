@@ -12,7 +12,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
@@ -70,7 +69,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         renderArgs->_batch = &batch;
 
         int width = _overlayFramebuffer->getWidth();
@@ -88,8 +87,8 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
         renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderRearView(renderArgs); // renders the mirror view selfie
-        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 
@@ -252,12 +251,9 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
-    QSize desiredSize = qApp->getDeviceSize();
-    int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-    int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-    QSize frameBufferCurrentSize(currentWidth, currentHeight);
-    
-    if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
+    auto uiSize = qApp->getUiSize();
+
+    if (_overlayFramebuffer && uiSize == _overlayFramebuffer->getSize()) {
         // Already built
         return;
     }
@@ -271,8 +267,8 @@ void ApplicationOverlay::buildFramebufferObject() {
     _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
 
    auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-   auto width = desiredSize.width();
-   auto height = desiredSize.height();
+   auto width = uiSize.x;
+   auto height = uiSize.y;
 
    auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
    _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));

@@ -175,6 +175,7 @@ private:
         doneCurrent();
 
         getContextObject()->moveToThread(QCoreApplication::instance()->thread());
+        _thread.quit();
         _cond.wakeOne();
     }
 
@@ -228,7 +229,7 @@ private:
 
         _quickWindow->setRenderTarget(GetName(*_fbo), QSize(_size.x, _size.y));
 
-        {
+        try {
             PROFILE_RANGE("qml_render")
             TexturePtr texture = _textures.getNextTexture();
             _fbo->Bind(Framebuffer::Target::Draw);
@@ -245,8 +246,10 @@ private:
             DefaultFramebuffer().Bind(Framebuffer::Target::Draw);
             _quickWindow->resetOpenGLState();
             _escrow.submit(GetName(*texture));
+            _lastRenderTime = usecTimestampNow();
+        } catch (std::runtime_error& error) {
+            qWarning() << "Failed to render QML " << error.what();
         }
-        _lastRenderTime = usecTimestampNow();
     }
 
     void aboutToQuit() {
@@ -312,16 +315,22 @@ OffscreenQmlSurface::OffscreenQmlSurface() {
 }
 
 OffscreenQmlSurface::~OffscreenQmlSurface() {
+    QObject::disconnect(&_updateTimer);
+    QObject::disconnect(qApp);
     _renderer->stop();
-
+    delete _rootItem;
     delete _renderer;
     delete _qmlComponent;
     delete _qmlEngine;
 }
 
+void OffscreenQmlSurface::onAboutToQuit() {
+    QObject::disconnect(&_updateTimer);
+}
+
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _renderer = new OffscreenQmlRenderer(this, shareContext);
-
+    _renderer->_renderControl->_renderWindow = _proxyWindow;
     // Create a QML engine.
     _qmlEngine = new QQmlEngine;
     if (!_qmlEngine->incubationController()) {
@@ -331,20 +340,31 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     // When Quick says there is a need to render, we will not render immediately. Instead,
     // a timer with a small interval is used to get better performance.
     _updateTimer.setInterval(MIN_TIMER_MS);
-    connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [this]{
-        disconnect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
-    });
+    QObject::connect(&_updateTimer, &QTimer::timeout, this, &OffscreenQmlSurface::updateQuick);
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, &OffscreenQmlSurface::onAboutToQuit);
     _updateTimer.start();
-
     _qmlComponent = new QQmlComponent(_qmlEngine);
+    _qmlEngine->rootContext()->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
 }
 
-void OffscreenQmlSurface::resize(const QSize& newSize) {
+void OffscreenQmlSurface::resize(const QSize& newSize_) {
 
     if (!_renderer || !_renderer->_quickWindow) {
         return;
     }
+
+    const float MAX_OFFSCREEN_DIMENSION = 4096;
+    QSize newSize = newSize_;
+
+    if (newSize.width() > MAX_OFFSCREEN_DIMENSION || newSize.height() > MAX_OFFSCREEN_DIMENSION) {
+        float scale = std::min(
+                ((float)newSize.width() / MAX_OFFSCREEN_DIMENSION),
+                ((float)newSize.height() / MAX_OFFSCREEN_DIMENSION));
+        newSize = QSize(
+                std::max(static_cast<int>(scale * newSize.width()), 10),
+                std::max(static_cast<int>(scale * newSize.height()), 10));
+    }
+
 
 
     QSize currentSize = _renderer->_quickWindow->geometry().size();
@@ -596,7 +616,10 @@ bool OffscreenQmlSurface::isPaused() const {
 }
 
 void OffscreenQmlSurface::setProxyWindow(QWindow* window) {
-    _renderer->_renderControl->_renderWindow = window;
+    _proxyWindow = window;
+    if (_renderer && _renderer->_renderControl) {
+        _renderer->_renderControl->_renderWindow = window;
+    }
 }
 
 QObject* OffscreenQmlSurface::getEventHandler() {
@@ -615,3 +638,30 @@ QQmlContext* OffscreenQmlSurface::getRootContext() {
     return _qmlEngine->rootContext();
 }
 
+Q_DECLARE_METATYPE(std::function<void()>);
+static auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
+Q_DECLARE_METATYPE(std::function<QVariant()>);
+static auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
+
+
+void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
+            Q_ARG(std::function<void()>, function));
+        return;
+    }
+
+    function();
+}
+
+QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
+    if (QThread::currentThread() != thread()) {
+        QVariant result;
+        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(QVariant, result),
+            Q_ARG(std::function<QVariant()>, function));
+        return result;
+    }
+
+    return function();
+}

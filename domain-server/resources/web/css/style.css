@@ -92,6 +92,12 @@ tr.new-row {
   background-color: #dff0d8;
 }
 
+.graphable-stat {
+  text-align: center;
+  color: #5286BC;
+  cursor: pointer;
+}
+
 .highchart-modal .modal-dialog {
   width: 650px;
 }

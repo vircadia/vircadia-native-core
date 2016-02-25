@@ -5,52 +5,54 @@ import QtWebChannel 1.0
 import QtWebSockets 1.0
 import "qrc:///qtwebchannel/qwebchannel.js" as WebChannel
 
-import "Global.js" as Global
-
+import "windows" as Windows
 import "controls"
 import "styles"
 
-VrDialog {
+Windows.Window {
     id: root
     HifiConstants { id: hifi }
     title: "QmlWindow"
     resizable: true
-    enabled: false
     visible: false
     focus: true
     property var channel;
-    
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
-    contentImplicitWidth: clientArea.implicitWidth
-    contentImplicitHeight: clientArea.implicitHeight
-    property alias source: pageLoader.source 
-    
-    function raiseWindow() {
-        Global.raiseWindow(root)
+    property var source;
+    property var component;
+    property var dynamicContent;
+    onSourceChanged: {
+        if (dynamicContent) {
+            dynamicContent.destroy();
+            dynamicContent = null; 
+        }
+        component = Qt.createComponent(source);
+        console.log("Created component " + component + " from source " + source);
     }
 
-    Item {
-        id: clientArea
-        implicitHeight: 600
-        implicitWidth: 800
-        x: root.clientX
-        y: root.clientY
-        width: root.clientWidth
-        height: root.clientHeight
-        focus: true
-        clip: true
-
-        Loader { 
-            id: pageLoader
-            objectName: "Loader"
-            anchors.fill: parent
-            focus: true
-            property var dialog: root
-            
-            Keys.onPressed: {
-                console.log("QmlWindow pageLoader keypress")
+    onComponentChanged: {
+        console.log("Component changed to " + component)
+        populate();
+    }
+        
+    function populate() {
+        console.log("Populate called: dynamicContent " + dynamicContent + " component " + component);
+        if (!dynamicContent && component) {
+            if (component.status == Component.Error) {
+                console.log("Error loading component:", component.errorString());
+            } else if (component.status == Component.Ready) {
+                console.log("Building dynamic content");
+                dynamicContent = component.createObject(contentHolder);
+            } else {
+                console.log("Component not yet ready, connecting to status change");
+                component.statusChanged.connect(populate);
             }
         }
-    } // item
-} // dialog
+    }
+    
+    Item {
+        id: contentHolder
+        anchors.fill: parent
+    }
+}

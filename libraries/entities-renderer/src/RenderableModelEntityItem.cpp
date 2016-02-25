@@ -16,7 +16,6 @@
 #include <glm/gtx/transform.hpp>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -101,6 +100,22 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
     return bytesRead;
 }
 
+QVariantMap RenderableModelEntityItem::parseTexturesToMap(QString textures) {
+    // If textures are unset, revert to original textures
+    if (textures == "") {
+        return _originalTexturesMap;
+    }
+
+    QString jsonTextures = "{\"" + textures.replace(":\"", "\":\"").replace(",\n", ",\"") + "}";
+    QJsonParseError error;
+    QJsonDocument texturesAsJson = QJsonDocument::fromJson(jsonTextures.toUtf8(), &error);
+    if (error.error != QJsonParseError::NoError) {
+        qCWarning(entitiesrenderer) << "Could not evaluate textures property value:" << _textures;
+    }
+    QJsonObject texturesAsJsonObject = texturesAsJson.object();
+    return texturesAsJsonObject.toVariantMap();
+}
+
 void RenderableModelEntityItem::remapTextures() {
     if (!_model) {
         return; // nothing to do if we don't have a model
@@ -114,6 +129,7 @@ void RenderableModelEntityItem::remapTextures() {
         const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
         if (networkGeometry) {
             _originalTextures = networkGeometry->getTextureNames();
+            _originalTexturesMap = parseTexturesToMap(_originalTextures.join(",\n"));
             _originalTexturesRead = true;
         }
     }
@@ -125,13 +141,8 @@ void RenderableModelEntityItem::remapTextures() {
     // since we're changing here, we need to run through our current texture map
     // and any textures in the recently mapped texture, that is not in our desired
     // textures, we need to "unset"
-    QJsonDocument currentTexturesAsJson = QJsonDocument::fromJson(_currentTextures.toUtf8());
-    QJsonObject currentTexturesAsJsonObject = currentTexturesAsJson.object();
-    QVariantMap currentTextureMap = currentTexturesAsJsonObject.toVariantMap();
-
-    QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8());
-    QJsonObject texturesAsJsonObject = texturesAsJson.object();
-    QVariantMap textureMap = texturesAsJsonObject.toVariantMap();
+    QVariantMap currentTextureMap = parseTexturesToMap(_currentTextures);
+    QVariantMap textureMap = parseTexturesToMap(_textures);
 
     foreach(const QString& key, currentTextureMap.keys()) {
         // if the desired texture map (what we're setting the textures to) doesn't
@@ -240,6 +251,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, std::shared_p
 void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
@@ -403,7 +415,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     }
                 });
 
-                bool movingOrAnimating = isMoving() || isAnimatingSomething();
+                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
                 if ((movingOrAnimating ||
                      _needsInitialSimulation ||
                      _model->getTranslation() != getPosition() ||
@@ -431,8 +443,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         bool success;
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
-            batch.setModelTransform(Transform()); // we want to include the scale as well
-            DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(batch, shapeTransform, greenColor);
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
         }
     }
 }
@@ -471,12 +483,17 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         } else { // we already have the model we want...
             result = _model;
         }
-    } else { // if our desired URL is empty, we may need to delete our existing model
-        if (_model) {
-            _myRenderer->releaseModel(_model);
-            result = _model = NULL;
-            _needsInitialSimulation = true;
-        }
+    } else if (_model) {
+        // remove from scene
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        _model->removeFromScene(scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
+
+        // release interest
+        _myRenderer->releaseModel(_model);
+        result = _model = NULL;
+        _needsInitialSimulation = true;
     }
 
     return result;
@@ -753,4 +770,24 @@ void RenderableModelEntityItem::locationChanged() {
         _model->setRotation(getRotation());
         _model->setTranslation(getPosition());
     }
+}
+
+int RenderableModelEntityItem::getJointIndex(const QString& name) const {
+    if (_model && _model->isActive()) {
+        RigPointer rig = _model->getRig();
+        return rig->indexOfJoint(name);
+    }
+    return -1;
+}
+
+QStringList RenderableModelEntityItem::getJointNames() const {
+    QStringList result;
+    if (_model && _model->isActive()) {
+        RigPointer rig = _model->getRig();
+        int jointCount = rig->getJointStateCount();
+        for (int jointIndex = 0; jointIndex < jointCount; jointIndex++) {
+            result << rig->nameOfJoint(jointIndex);
+        }
+    }
+    return result;
 }

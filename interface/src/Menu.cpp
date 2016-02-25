@@ -32,6 +32,7 @@
 #include "devices/Faceshift.h"
 #include "input-plugins/SpacemouseManager.h"
 #include "MainWindow.h"
+#include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
@@ -70,8 +71,8 @@ Menu::Menu() {
     }
 
     // File > Update -- FIXME: needs implementation
-    auto updateAction = addActionToQMenuAndActionHash(fileMenu, "Update");
-    updateAction->setDisabled(true);
+    auto action = addActionToQMenuAndActionHash(fileMenu, "Update");
+    action->setDisabled(true);
 
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
@@ -156,9 +157,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false, 
         audioIO.data(), SLOT(toggleMute()));
 
-    // Audio > Level Meter  [advanced] -- FIXME: needs implementation
-    auto levelMeterAction = addCheckableActionToQMenuAndActionHash(audioMenu, "Level Meter", 0, false, NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-    levelMeterAction->setDisabled(true);
+    // Audio > Show Level Meter
+    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, true);
 
 
     // Avatar menu ----------------------------------
@@ -167,8 +167,11 @@ Menu::Menu() {
     QObject* avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments, 0,
-        dialogsManager.data(), SLOT(editAttachments()));
+    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
+    });
+
 
     // Avatar > Size
     MenuWrapper* avatarSizeMenu = avatarMenu->addMenu("Size");
@@ -247,6 +250,11 @@ Menu::Menu() {
     // View > Mini Mirror
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MiniMirror, 0, false);
 
+    // View > Center Player In View
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
+        0, true, qApp, SLOT(rotationModeChanged()),
+        UNSPECIFIED_POSITION, "Advanced");
+
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
@@ -286,20 +294,29 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(settingsMenu, "Developer Menus", 0, false, this, SLOT(toggleDeveloperMenus()));
 
     // Settings > General...
-    addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma,
-        dialogsManager.data(), SLOT(editPreferences()), QAction::PreferencesRole);
+    action = addActionToQMenuAndActionHash(settingsMenu, MenuOption::Preferences, Qt::CTRL | Qt::Key_Comma, nullptr, nullptr, QAction::PreferencesRole);
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
+    });
+
 
     // Settings > Avatar...-- FIXME: needs implementation
-    auto avatarAction = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
-    avatarAction->setDisabled(true);
+    action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
+    });
 
     // Settings > Audio...-- FIXME: needs implementation
-    auto audioAction = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
-    audioAction->setDisabled(true);
+    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
+    });
 
     // Settings > LOD...-- FIXME: needs implementation
-    auto lodAction = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
-    lodAction->setDisabled(true);
+    action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/LodPreferencesDialog.qml"), "LodPreferencesDialog");
+    });
 
     // Settings > Control with Speech [advanced]
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -322,27 +339,16 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
+    // Developer > Graphics...
+    action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"), "GraphicsPreferencesDialog");
+    });
+
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::DebugAmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Antialiasing);
-
-    // Developer > Render > Ambient Light
-    MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
-    QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
-    ambientLightGroup->setExclusive(true);
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLightGlobal, 0, true));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight0, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight1, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight2, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight3, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight4, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight5, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight6, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight7, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 0, true);
 
     // Developer > Render > Throttle FPS If Not Focus
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true);
@@ -357,15 +363,8 @@ Menu::Menu() {
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
 
-    // Developer > Render > Stars
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars,
-        0, // QML Qt::Key_Asterisk,
-        true);
-
     // Developer > Render > LOD Tools
-    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools,
-        0, // QML Qt::SHIFT | Qt::Key_L,
-        dialogsManager.data(), SLOT(lodTools()));
+    addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0, dialogsManager.data(), SLOT(lodTools()));
 
     // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
@@ -475,7 +474,10 @@ Menu::Menu() {
         avatar, SLOT(setEnableMeshVisible(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::DisableEyelidAdjustment, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ComfortMode, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::UseAnimPreAndPostRotations, 0, false,
+        avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
+        avatar, SLOT(setEnableInverseKinematics(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),
@@ -498,6 +500,12 @@ Menu::Menu() {
     MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
     addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
+    // Developer > Entities >>>
+    MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");
+    addActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::OctreeStats, 0,
+        dialogsManager.data(), SLOT(octreeStatsDetails()));
+    addCheckableActionToQMenuAndActionHash(entitiesOptionsMenu, MenuOption::ShowRealtimeEntityStats);
+
     // Developer > Network >>>
     MenuWrapper* networkMenu = developerMenu->addMenu("Network");
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()));
@@ -514,12 +522,14 @@ Menu::Menu() {
         dialogsManager.data(), SLOT(cachesSizeDialog()));
     addActionToQMenuAndActionHash(networkMenu, MenuOption::DiskCacheEditor, 0,
         dialogsManager.data(), SLOT(toggleDiskCacheEditor()));
-
     addActionToQMenuAndActionHash(networkMenu, MenuOption::ShowDSConnectTable, 0,
         dialogsManager.data(), SLOT(showDomainConnectionDialog()));
+    addActionToQMenuAndActionHash(networkMenu, MenuOption::BandwidthDetails, 0,
+        dialogsManager.data(), SLOT(bandwidthDetails()));
 
-    // Developer > Timing and Stats >>>
-    MenuWrapper* timingMenu = developerMenu->addMenu("Timing and Stats");
+
+    // Developer > Timing >>>
+    MenuWrapper* timingMenu = developerMenu->addMenu("Timing");
     MenuWrapper* perfTimerMenu = timingMenu->addMenu("Performance Timer");
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::DisplayDebugTimingDetails, 0, false);
     addCheckableActionToQMenuAndActionHash(perfTimerMenu, MenuOption::OnlyDisplayTopTen, 0, true);
@@ -534,7 +544,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::PipelineWarnings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::LogExtraTimings);
     addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::SuppressShortTimings);
-    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::ShowRealtimeEntityStats);
 
     // Developer > Audio >>>
     MenuWrapper* audioDebugMenu = developerMenu->addMenu("Audio");
@@ -571,9 +580,17 @@ Menu::Menu() {
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
+    // Developer > Audio > Audio Network Stats...
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioNetworkStats, 0,
+        dialogsManager.data(), SLOT(audioStatsDetails()));
+
     // Developer > Physics >>>
     MenuWrapper* physicsOptionsMenu = developerMenu->addMenu("Physics");
-    addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned);
+    {
+        auto drawStatusConfig = qApp->getRenderEngine()->getConfiguration()->getConfig<render::DrawStatus>();
+        addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowOwned,
+            0, false, drawStatusConfig, SLOT(setShowNetwork(bool)));
+    }
     addCheckableActionToQMenuAndActionHash(physicsOptionsMenu, MenuOption::PhysicsShowHulls);
 
     // Developer > Display Crash Options
@@ -587,22 +604,6 @@ Menu::Menu() {
 
     // Developer > Stats
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stats);
-
-    // Developer > Audio Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::AudioNetworkStats, 0,
-        dialogsManager.data(), SLOT(audioStatsDetails()));
-
-    // Developer > Bandwidth Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::BandwidthDetails, 0,
-        dialogsManager.data(), SLOT(bandwidthDetails()));
-
-    // Developer > Entity Stats...
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::OctreeStats, 0,
-        dialogsManager.data(), SLOT(octreeStatsDetails()));
-
-    // Developer > World Axes
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::WorldAxes);
-
 
 
 #if 0 ///  -------------- REMOVED FOR NOW --------------
@@ -629,11 +630,6 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true, 
                 NULL, NULL, UNSPECIFIED_POSITION, "Advanced");
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::CenterPlayerInView,
-                                           0, false, qApp, SLOT(rotationModeChanged()),
-                                           UNSPECIFIED_POSITION, "Advanced");
-
 #endif
 }
 
@@ -956,6 +952,7 @@ int Menu::positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPositi
     return requestedPosition;
 }
 
+bool Menu::_isSomeSubmenuShown = false;
 
 MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     QStringList menuTree = menuName.split(">");
@@ -982,6 +979,12 @@ MenuWrapper* Menu::addMenu(const QString& menuName, const QString& grouping) {
     }
 
     QMenuBar::repaint();
+
+    // hook our show/hide for popup menus, so we can keep track of whether or not one
+    // of our submenus is currently showing.
+    connect(menu->_realMenu, &QMenu::aboutToShow, []() { _isSomeSubmenuShown = true; });
+    connect(menu->_realMenu, &QMenu::aboutToHide, []() { _isSomeSubmenuShown = false; });
+
     return menu;
 }
 

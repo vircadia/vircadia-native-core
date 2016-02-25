@@ -22,8 +22,8 @@ public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableBoxEntityItem(const EntityItemID& entityItemID) : BoxEntityItem(entityItemID) { }
 
-    virtual void render(RenderArgs* args);
-    virtual void setUserData(const QString& value);
+    virtual void render(RenderArgs* args) override;
+    virtual void setUserData(const QString& value) override;
 
     SIMPLE_RENDERABLE()
 private:

@@ -307,9 +307,46 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     if (!success || params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                         includeThisEntity = false; // out of view, don't include it
                     }
+
+                    // Now check the size of the entity, it's possible that a "too small to see" entity is included in a
+                    // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+                    // before we consider including it.
+                    if (includeThisEntity) {
+                        success = true;
+                        // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
+                        // avoid sending details about a child but not the parent.  the parent's queryAACube should have
+                        // been adjusted to encompass the queryAACube of the child.
+                        AABox entityBounds = entity->hasChildren() ? AABox(entityCube) : entity->getAABox(success);
+                        if (!success) {
+                            // if this entity is a child of an avatar, the entity-server wont be able to determine its
+                            // AABox.  If this happens, fall back to the queryAACube.
+                            entityBounds = AABox(entityCube);
+                        }
+                        auto renderAccuracy = params.viewFrustum->calculateRenderAccuracy(entityBounds,
+                                                                                          params.octreeElementSizeScale,
+                                                                                          params.boundaryLevelAdjust);
+                        if (renderAccuracy <= 0.0f) {
+                            includeThisEntity = false; // too small, don't include it
+
+                            #ifdef WANT_LOD_DEBUGGING
+                            qDebug() << "skipping entity - TOO SMALL - \n"
+                                     << "......id:" << entity->getID() << "\n"
+                                     << "....name:" << entity->getName() << "\n"
+                                     << "..bounds:" << entityBounds << "\n"
+                                     << "....cell:" << getAACube();
+                            #endif
+                        }
+                    }
                 }
 
                 if (includeThisEntity) {
+                    #ifdef WANT_LOD_DEBUGGING
+                    qDebug() << "including entity - \n"
+                        << "......id:" << entity->getID() << "\n"
+                        << "....name:" << entity->getName() << "\n"
+                        << "....cell:" << getAACube();
+                    #endif
                     indexesOfEntitiesToInclude << i;
                     numberOfEntities++;
                 }
@@ -426,6 +463,7 @@ bool EntityTreeElement::bestFitEntityBounds(EntityItemPointer entity) const {
     bool success;
     auto queryCube = entity->getQueryAACube(success);
     if (!success) {
+        qDebug() << "EntityTreeElement::bestFitEntityBounds couldn't get queryCube for" << entity->getName() << entity->getID();
         return false;
     }
     return bestFitBounds(queryCube);
@@ -887,6 +925,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     QString entityScriptAfter = entityItem->getScript();
                     quint64 entityScriptTimestampAfter = entityItem->getScriptTimestamp();
                     bool reload = entityScriptTimestampBefore != entityScriptTimestampAfter;
+
+                    // If the script value has changed on us, or it's timestamp has changed to force
+                    // a reload then we want to send out a script changing signal...
                     if (entityScriptBefore != entityScriptAfter || reload) {
                         _myTree->emitEntityScriptChanging(entityItemID, reload); // the entity script has changed
                     }

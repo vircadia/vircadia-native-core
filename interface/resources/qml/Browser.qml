@@ -12,23 +12,25 @@ Window {
     title: "Browser"
     resizable: true
     destroyOnInvisible: true
-
+    width: 800
+    height: 600
+    property alias webView: webview
+    
     Component.onCompleted: {
-        enabled = true
+        visible = true
         addressBar.text = webview.url
     }
 
     onParentChanged: {
-        if (visible && enabled) {
+        if (visible) {
             addressBar.forceActiveFocus();
             addressBar.selectAll()
         }
     }
 
     Item {
-        width: 800
-        height: 600
-        
+        id:item
+        anchors.fill: parent
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
@@ -78,6 +80,7 @@ Window {
                     source: webview.icon;
                     x: (parent.height - height) / 2
                     y: (parent.width - width) / 2
+                    sourceSize: Qt.size(width, height);
                     verticalAlignment: Image.AlignVCenter;
                     horizontalAlignment: Image.AlignHCenter
                     onSourceChanged: console.log("Icon url: " + source)
@@ -107,7 +110,7 @@ Window {
             }
         }
 
-        WebEngineView {
+        WebView {
             id: webview
             url: "http://highfidelity.com"
             anchors.top: buttons.bottom
@@ -123,7 +126,11 @@ Window {
             onIconChanged: {
                 console.log("New icon: " + icon)
             }
+            
+            profile: desktop.browserProfile
+    
         }
+
     } // item
     
     Keys.onPressed: {

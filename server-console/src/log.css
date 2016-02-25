@@ -1,0 +1,93 @@
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-Regular.ttf');
+    font-weight: normal;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-ExtraLight.ttf');
+    font-weight: 200;
+    font-style: normal;
+}
+@font-face {
+    font-family: 'Raleway';
+    src: url('vendor/Raleway/Raleway-SemiBold.ttf');
+    font-weight: bold;
+    font-style: normal;
+}
+
+body {
+    font-family: "Raleway", "Open Sans", Arial, Helvetica, sans-serif;
+    font-size: 13.5pt;
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    font-variant-numeric: lining-nums;
+    -moz-font-feature-settings: "lnum";
+    -webkit-font-feature-settings: "lnum";
+    font-feature-settings: "lnum";
+}
+
+ul.tabs {
+    margin: 0;
+    padding: 0px;
+    list-style: none;
+}
+
+ul.tabs li {
+    font-weight: bold;
+    color: #535353;
+    background: none;
+    display: inline-block;
+    padding: 10px 15px;
+    cursor: pointer;
+}
+
+ul.tabs li.current {
+    background-color: #ededed;
+}
+
+.tab-pane {
+    display: none;
+    background-color: #ededed;
+    color: #141616;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    margin: 0;
+    padding: 0;
+    left: 0;
+}
+
+.tab-pane.current {
+    display: inherit;
+}
+
+.tab-content {
+    overflow: hidden;
+    padding: 10px;
+    background-color: #ededed;
+}
+
+.top {
+    height: 45px;
+}
+
+.bottom {
+    position: absolute;
+    left: 0;
+    top: 45px;
+    bottom: 0;
+    right: 0;
+}
+
+.search {
+    float: right;
+    margin: 10px;
+}
+
+.log-line {
+    font-family: "Consolas", monospace;
+    font-size: 9.5pt;
+}

@@ -31,29 +31,15 @@ const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Legacy)");
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
 }
 
-uvec2 OculusLegacyDisplayPlugin::getRecommendedRenderSize() const {
-    return _desiredFramebufferSize;
-}
-
-glm::mat4 OculusLegacyDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
-    return _eyeProjections[eye];
-}
-
 void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
-
-glm::mat4 OculusLegacyDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
-    return toGlm(_eyePoses[eye]);
-}
-
 
 glm::mat4 OculusLegacyDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     static uint32_t lastFrameSeen = 0;
     if (frameIndex > lastFrameSeen) {
         Lock lock(_mutex);
         _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
-        ovrHmd_GetEyePoses(_hmd, frameIndex, _eyeOffsets, _eyePoses, &_trackingState);
         lastFrameSeen = frameIndex;
     }
     return toGlm(_trackingState.HeadPose.ThePose);
@@ -87,7 +73,7 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
 }
 
 void OculusLegacyDisplayPlugin::activate() {
-    WindowOpenGLDisplayPlugin::activate();
+    HmdDisplayPlugin::activate();
     
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
@@ -100,30 +86,26 @@ void OculusLegacyDisplayPlugin::activate() {
         qFatal("Failed to acquire HMD");
     }
     
+    _ipd = ovrHmd_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
+
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
         _eyeFovs[eye] = _hmd->MaxEyeFov[eye];
         ovrEyeRenderDesc erd = _eyeRenderDescs[eye] = ovrHmd_GetRenderDesc(_hmd, eye, _eyeFovs[eye]);
         ovrMatrix4f ovrPerspectiveProjection =
-        ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
+            ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-        
-        ovrPerspectiveProjection =
-        ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
-        _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-        
-        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeViewOffset));
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
-    ovrFovPort combined = _eyeFovs[Left];
-    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
-    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
-    ovrMatrix4f ovrPerspectiveProjection =
-    ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
-    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
     
-    _desiredFramebufferSize = uvec2(eyeSizes[0].x + eyeSizes[1].x,
-                                    std::max(eyeSizes[0].y, eyeSizes[1].y));
+    auto combinedFov = _eyeFovs[0];
+    combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
+    _cullingProjection = toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
+
+    _renderTargetSize = uvec2(
+        eyeSizes[0].x + eyeSizes[1].x,
+        std::max(eyeSizes[0].y, eyeSizes[1].y));
     
     if (!ovrHmd_ConfigureTracking(_hmd,
                                   ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
@@ -132,12 +114,11 @@ void OculusLegacyDisplayPlugin::activate() {
 }
 
 void OculusLegacyDisplayPlugin::deactivate() {
-    WindowOpenGLDisplayPlugin::deactivate();
+    HmdDisplayPlugin::deactivate();
     ovrHmd_Destroy(_hmd);
     _hmd = nullptr;
     ovr_Shutdown();
 }
-
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
 void OculusLegacyDisplayPlugin::customizeContext() {
@@ -147,7 +128,7 @@ void OculusLegacyDisplayPlugin::customizeContext() {
         glewInit();
         glGetError();
     });
-    WindowOpenGLDisplayPlugin::customizeContext();
+    HmdDisplayPlugin::customizeContext();
 #if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;
@@ -179,7 +160,7 @@ void OculusLegacyDisplayPlugin::customizeContext() {
 
 #if 0
 void OculusLegacyDisplayPlugin::uncustomizeContext() {
-    WindowOpenGLDisplayPlugin::uncustomizeContext();
+    HmdDisplayPlugin::uncustomizeContext();
 }
 
 void OculusLegacyDisplayPlugin::internalPresent() {
@@ -199,4 +180,5 @@ int OculusLegacyDisplayPlugin::getHmdScreen() const {
 float OculusLegacyDisplayPlugin::getTargetFrameRate() {
     return TARGET_RATE_OculusLegacy;
 }
+
 

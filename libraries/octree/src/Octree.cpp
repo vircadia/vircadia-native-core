@@ -50,10 +50,6 @@
 
 QVector<QString> PERSIST_EXTENSIONS = {"svo", "json", "json.gz"};
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2, renderLevel);
-}
-
 Octree::Octree(bool shouldReaverage) :
     _rootElement(NULL),
     _isDirty(true),
@@ -1923,7 +1919,7 @@ void Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element,
     entityDescription["Version"] = (int) expectedVersion;
 
     // store the entity data
-    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true);
+    bool entityDescriptionSuccess = writeToMap(entityDescription, top, true, true);
     if (!entityDescriptionSuccess) {
         qCritical("Failed to convert Entities to QVariantMap while saving to json.");
         return;

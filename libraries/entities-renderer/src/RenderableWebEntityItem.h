@@ -18,6 +18,7 @@
 class OffscreenQmlSurface;
 class QWindow;
 class QObject;
+class EntityTreeRenderer;
 
 class RenderableWebEntityItem : public WebEntityItem  {
 public:
@@ -25,21 +26,28 @@ public:
     RenderableWebEntityItem(const EntityItemID& entityItemID);
     ~RenderableWebEntityItem();
 
-    virtual void render(RenderArgs* args);
-    virtual void setSourceUrl(const QString& value);
+    virtual void render(RenderArgs* args) override;
+    virtual void setSourceUrl(const QString& value) override;
     
     void setProxyWindow(QWindow* proxyWindow);
     QObject* getEventHandler();
 
+    void update(const quint64& now) override;
+    bool needsToCallUpdate() const { return _webSurface != nullptr; }
+
     SIMPLE_RENDERABLE();
 
 private:
+    bool buildWebSurface(EntityTreeRenderer* renderer);
+    void destroyWebSurface();
+
     OffscreenQmlSurface* _webSurface{ nullptr };
     QMetaObject::Connection _connection;
     uint32_t _texture{ 0 };
     ivec2  _lastPress{ INT_MIN };
     bool _pressed{ false };
     ivec2 _lastMove{ INT_MIN };
+    uint64_t _lastRenderTime{ 0 };
 
     QMetaObject::Connection _mousePressConnection;
     QMetaObject::Connection _mouseReleaseConnection;

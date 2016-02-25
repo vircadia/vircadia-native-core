@@ -27,7 +27,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
@@ -573,6 +572,7 @@ void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
                                                   render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myItem);
+    render::Item::clearID(_myItem);
 }
 
 namespace render {

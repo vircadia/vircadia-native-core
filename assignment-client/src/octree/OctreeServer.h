@@ -21,7 +21,6 @@
 #include <HTTPManager.h>
 
 #include <ThreadedAssignment.h>
-#include <EnvironmentData.h>
 
 #include "OctreePersistThread.h"
 #include "OctreeSendThread.h"
@@ -170,7 +169,7 @@ protected:
     int _statusPort;
     QString _statusHost;
 
-    char _persistFilename[MAX_FILENAME_LENGTH];
+    QString _persistFilePath;
     QString _persistAsFileType;
     int _packetsPerClientPerInterval;
     int _packetsTotalPerInterval;

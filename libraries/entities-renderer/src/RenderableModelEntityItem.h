@@ -79,7 +79,11 @@ public:
 
     virtual void resizeJointArrays(int newSize = -1) override;
 
+    virtual int getJointIndex(const QString& name) const override;
+    virtual QStringList getJointNames() const override;
+
 private:
+    QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
 
     Model* _model = nullptr;
@@ -88,11 +92,12 @@ private:
     EntityTreeRenderer* _myRenderer = nullptr;
     QString _currentTextures;
     QStringList _originalTextures;
+    QVariantMap _originalTexturesMap;
     bool _originalTexturesRead = false;
     QVector<QVector<glm::vec3>> _points;
     bool _dimensionsInitialized = true;
 
-    render::ItemID _myMetaItem;
+    render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };
 
     bool _showCollisionHull = false;
 

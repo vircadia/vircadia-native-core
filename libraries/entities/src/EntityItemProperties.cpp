@@ -25,7 +25,6 @@
 #include "PolyLineEntityItem.h"
 
 AnimationPropertyGroup EntityItemProperties::_staticAnimation;
-AtmospherePropertyGroup EntityItemProperties::_staticAtmosphere;
 SkyboxPropertyGroup EntityItemProperties::_staticSkybox;
 StagePropertyGroup EntityItemProperties::_staticStage;
 KeyLightPropertyGroup EntityItemProperties::_staticKeyLight;
@@ -79,7 +78,6 @@ void EntityItemProperties::debugDump() const {
     qCDebug(entities) << "   _compoundShapeURL=" << _compoundShapeURL;
 
     getAnimation().debugDump();
-    getAtmosphere().debugDump();
     getSkybox().debugDump();
     getKeyLight().debugDump();
 
@@ -116,6 +114,59 @@ void buildStringToShapeTypeLookup() {
     addShapeType(SHAPE_TYPE_CYLINDER_Z);
 }
 
+QString getCollisionGroupAsString(uint8_t group) {
+    switch (group) {
+        case USER_COLLISION_GROUP_DYNAMIC:
+            return "dynamic";
+        case USER_COLLISION_GROUP_STATIC:
+            return "static";
+        case USER_COLLISION_GROUP_KINEMATIC:
+            return "kinematic";
+        case USER_COLLISION_GROUP_MY_AVATAR:
+            return "myAvatar";
+        case USER_COLLISION_GROUP_OTHER_AVATAR:
+            return "otherAvatar";
+    };
+    return "";
+}
+
+uint8_t getCollisionGroupAsBitMask(const QStringRef& name) {
+    if (0 == name.compare("dynamic")) {
+        return USER_COLLISION_GROUP_DYNAMIC;
+    } else if (0 == name.compare("static")) {
+        return USER_COLLISION_GROUP_STATIC;
+    } else if (0 == name.compare("kinematic")) {
+        return USER_COLLISION_GROUP_KINEMATIC;
+    } else if (0 == name.compare("myAvatar")) {
+        return USER_COLLISION_GROUP_MY_AVATAR;
+    } else if (0 == name.compare("otherAvatar")) {
+        return USER_COLLISION_GROUP_OTHER_AVATAR;
+    }
+    return 0;
+}
+
+QString EntityItemProperties::getCollisionMaskAsString() const {
+    QString maskString("");
+    for (int i = 0; i < NUM_USER_COLLISION_GROUPS; ++i) {
+        uint8_t group = 0x01 << i;
+        if (group & _collisionMask) {
+            maskString.append(getCollisionGroupAsString(group));
+            maskString.append(',');
+        }
+    }
+    return maskString;
+}
+
+void EntityItemProperties::setCollisionMaskFromString(const QString& maskString) {
+    QVector<QStringRef> groups = maskString.splitRef(',');
+    uint8_t mask = 0x00;
+    for (auto groupName : groups) {
+        mask |= getCollisionGroupAsBitMask(groupName);
+    }
+    _collisionMask = mask;
+    _collisionMaskChanged = true;
+}
+
 QString EntityItemProperties::getShapeTypeAsString() const {
     if (_shapeType < sizeof(shapeTypeNames) / sizeof(char *))
         return QString(shapeTypeNames[_shapeType]);
@@ -133,39 +184,26 @@ void EntityItemProperties::setShapeTypeFromString(const QString& shapeName) {
     }
 }
 
-const char* backgroundModeNames[] = {"inherit", "atmosphere", "skybox" };
-
-QHash<QString, BackgroundMode> stringToBackgroundModeLookup;
-
-void addBackgroundMode(BackgroundMode type) {
-    stringToBackgroundModeLookup[backgroundModeNames[type]] = type;
-}
-
-void buildStringToBackgroundModeLookup() {
-    addBackgroundMode(BACKGROUND_MODE_INHERIT);
-    addBackgroundMode(BACKGROUND_MODE_ATMOSPHERE);
-    addBackgroundMode(BACKGROUND_MODE_SKYBOX);
-}
+using BackgroundPair = std::pair<const BackgroundMode, const QString>;
+const std::array<BackgroundPair, BACKGROUND_MODE_ITEM_COUNT> BACKGROUND_MODES = { {
+    BackgroundPair { BACKGROUND_MODE_INHERIT, { "inherit" } },
+    BackgroundPair { BACKGROUND_MODE_SKYBOX, { "skybox" } }
+} };
 
 QString EntityItemProperties::getBackgroundModeAsString() const {
-    if (_backgroundMode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[_backgroundMode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[_backgroundMode].second;
 }
 
 QString EntityItemProperties::getBackgroundModeString(BackgroundMode mode) {
-    if (mode < sizeof(backgroundModeNames) / sizeof(char *))
-        return QString(backgroundModeNames[mode]);
-    return QString(backgroundModeNames[BACKGROUND_MODE_INHERIT]);
+    return BACKGROUND_MODES[mode].second;
 }
 
 void EntityItemProperties::setBackgroundModeFromString(const QString& backgroundMode) {
-    if (stringToBackgroundModeLookup.empty()) {
-        buildStringToBackgroundModeLookup();
-    }
-    auto backgroundModeItr = stringToBackgroundModeLookup.find(backgroundMode.toLower());
-    if (backgroundModeItr != stringToBackgroundModeLookup.end()) {
-        _backgroundMode = backgroundModeItr.value();
+    auto result = std::find_if(BACKGROUND_MODES.begin(), BACKGROUND_MODES.end(), [&](const BackgroundPair& pair) {
+        return (pair.second == backgroundMode);
+    });
+    if (result != BACKGROUND_MODES.end()) {
+        _backgroundMode = result->first;
         _backgroundModeChanged = true;
     }
 }
@@ -202,8 +240,9 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
-    CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
-    CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISIONLESS, collisionless);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISION_MASK, collisionMask);
+    CHECK_PROPERTY_CHANGE(PROP_DYNAMIC, dynamic);
     CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
     CHECK_PROPERTY_CHANGE(PROP_INTENSITY, intensity);
     CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
@@ -267,10 +306,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS_SET, jointTranslationsSet);
     CHECK_PROPERTY_CHANGE(PROP_JOINT_TRANSLATIONS, jointTranslations);
     CHECK_PROPERTY_CHANGE(PROP_QUERY_AA_CUBE, queryAACube);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_POSITION, localPosition);
+    CHECK_PROPERTY_CHANGE(PROP_LOCAL_ROTATION, localRotation);
 
     changedProperties += _animation.getChangedProperties();
     changedProperties += _keyLight.getChangedProperties();
-    changedProperties += _atmosphere.getChangedProperties();
     changedProperties += _skybox.getChangedProperties();
     changedProperties += _stage.getChangedProperties();
 
@@ -280,6 +320,11 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
 QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool skipDefaults) const {
     QScriptValue properties = engine->newObject();
     EntityItemProperties defaultEntityProperties;
+
+    if (_created == UNKNOWN_CREATED_TIME) {
+        // No entity properties can have been set so return without setting any default, zero property values.
+        return properties;
+    }
 
     if (_idSet) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER_ALWAYS(id, _id.toString());
@@ -316,8 +361,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_VELOCITY, angularVelocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ANGULAR_DAMPING, angularDamping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_VISIBLE, visible);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISIONLESS, collisionless);
+    COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISIONLESS, collisionless, ignoreForCollisions, getCollisionless()); // legacy support
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_COLLISION_MASK, collisionMask);
+    COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_COLLISION_MASK, collisionMask, collidesWith, getCollisionMaskAsString());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DYNAMIC, dynamic);
+    COPY_PROXY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_DYNAMIC, dynamic, collisionsWillMove, getDynamic()); // legacy support
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_HREF, href);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_DESCRIPTION, description);
     COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_FACE_CAMERA, faceCamera);
@@ -360,8 +409,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_START, alphaStart);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_ALPHA_FINISH, alphaFinish);
         COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_EMITTER_SHOULD_TRAIL, emitterShouldTrail);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_POSITION, localPosition);
-        COPY_PROPERTY_TO_QSCRIPTVALUE(PROP_LOCAL_ROTATION, localRotation);
     }
 
     // Models only
@@ -376,6 +423,12 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
 
     if (_type == EntityTypes::Model || _type == EntityTypes::Zone || _type == EntityTypes::ParticleEffect) {
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, getShapeTypeAsString());
+    }
+    if (_type == EntityTypes::Box) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Box"));
+    }
+    if (_type == EntityTypes::Sphere) {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_SHAPE_TYPE, shapeType, QString("Sphere"));
     }
 
     // FIXME - it seems like ParticleEffect should also support this
@@ -411,7 +464,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine, bool
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(PROP_BACKGROUND_MODE, backgroundMode, getBackgroundModeAsString());
 
         _stage.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
-        _atmosphere.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
         _skybox.copyToScriptValue(_desiredProperties, properties, engine, skipDefaults, defaultEntityProperties);
     }
 
@@ -537,8 +589,12 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
     COPY_PROPERTY_FROM_QSCRIPTVALUE(compoundShapeURL, QString, setCompoundShapeURL);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(glowLevel, float, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(localRenderAlpha, float, setLocalRenderAlpha);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(ignoreForCollisions, bool, setIgnoreForCollisions);
-    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionsWillMove, bool, setCollisionsWillMove);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionless, bool, setCollisionless);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(ignoreForCollisions, bool, setCollisionless, getCollisionless); // legacy support
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(collisionMask, uint8_t, setCollisionMask);
+    COPY_PROPERTY_FROM_QSCRITPTVALUE_ENUM(collidesWith, CollisionMask);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_GETTER(collisionsWillMove, bool, setDynamic, getDynamic); // legacy support
+    COPY_PROPERTY_FROM_QSCRIPTVALUE(dynamic, bool, setDynamic);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(isSpotlight, bool, setIsSpotlight);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(intensity, float, setIntensity);
     COPY_PROPERTY_FROM_QSCRIPTVALUE(exponent, float, setExponent);
@@ -600,7 +656,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object, bool 
 
     _animation.copyFromScriptValue(object, _defaultSettings);
     _keyLight.copyFromScriptValue(object, _defaultSettings);
-    _atmosphere.copyFromScriptValue(object, _defaultSettings);
     _skybox.copyFromScriptValue(object, _defaultSettings);
     _stage.copyFromScriptValue(object, _defaultSettings);
 
@@ -699,8 +754,12 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
         ADD_PROPERTY_TO_MAP(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
-        ADD_PROPERTY_TO_MAP(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
-        ADD_PROPERTY_TO_MAP(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISIONLESS, Collisionless, collisionless, bool);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, ignoreForCollisions, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collisionMask, unused);
+        ADD_PROPERTY_TO_MAP(PROP_COLLISION_MASK, unused, collidesWith, unused);
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, collisionsWillMove, unused); // legacy support
+        ADD_PROPERTY_TO_MAP(PROP_DYNAMIC, unused, dynamic, unused);
         ADD_PROPERTY_TO_MAP(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
         ADD_PROPERTY_TO_MAP(PROP_INTENSITY, Intensity, intensity, float);
         ADD_PROPERTY_TO_MAP(PROP_EXPONENT, Exponent, exponent, float);
@@ -765,6 +824,9 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_PROPERTY_TO_MAP(PROP_PARENT_ID, ParentID, parentID, QUuid);
         ADD_PROPERTY_TO_MAP(PROP_PARENT_JOINT_INDEX, ParentJointIndex, parentJointIndex, uint16_t);
 
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_POSITION, LocalPosition, localPosition, glm::vec3);
+        ADD_PROPERTY_TO_MAP(PROP_LOCAL_ROTATION, LocalRotation, localRotation, glm::quat);
+
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS_SET, JointRotationsSet, jointRotationsSet, QVector<bool>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_ROTATIONS, JointRotations, jointRotations, QVector<glm::quat>);
         ADD_PROPERTY_TO_MAP(PROP_JOINT_TRANSLATIONS_SET, JointTranslationsSet, jointTranslationsSet, QVector<bool>);
@@ -778,14 +840,6 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_FIRST_FRAME, Animation, animation, FirstFrame, firstFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_LAST_FRAME, Animation, animation, LastFrame, lastFrame);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_ANIMATION_HOLD, Animation, animation, Hold, hold);
-
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_CENTER, Atmosphere, atmosphere, Center, center);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_INNER_RADIUS, Atmosphere, atmosphere, InnerRadius, innerRadius);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_OUTER_RADIUS, Atmosphere, atmosphere, OuterRadius, outerRadius);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_MIE_SCATTERING, Atmosphere, atmosphere, MieScattering, mieScattering);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_RAYLEIGH_SCATTERING, Atmosphere, atmosphere, RayleighScattering, rayleighScattering);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_SCATTERING_WAVELENGTHS, Atmosphere, atmosphere, ScatteringWavelengths, scatteringWavelengths);
-        ADD_GROUP_PROPERTY_TO_MAP(PROP_ATMOSPHERE_HAS_STARS, Atmosphere, atmosphere, HasStars, hasStars);
 
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_COLOR, Skybox, skybox, Color, color);
         ADD_GROUP_PROPERTY_TO_MAP(PROP_SKYBOX_URL, Skybox, skybox, URL, url);
@@ -804,6 +858,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
     });
 
     if (object.isString()) {
+        // TODO: figure out how to do this without a double lookup in the map
         if (_propertyStringsToEnums.contains(object.toString())) {
             flags << _propertyStringsToEnums[object.toString()];
         }
@@ -811,6 +866,7 @@ void EntityItemProperties::entityPropertyFlagsFromScriptValue(const QScriptValue
         quint32 length = object.property("length").toInt32();
         for (quint32 i = 0; i < length; i++) {
             QString propertyName = object.property(i).toString();
+            // TODO: figure out how to do this without a double lookup in the map
             if (_propertyStringsToEnums.contains(propertyName)) {
                 flags << _propertyStringsToEnums[propertyName];
             }
@@ -854,7 +910,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
     success = packetData->startSubTree(octcode);
     delete[] octcode;
 
-    // assuming we have rome to fit our octalCode, proceed...
+    // assuming we have room to fit our octalCode, proceed...
     if (success) {
 
         // Now add our edit content details...
@@ -945,8 +1001,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, properties.getVisible());
-            APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, properties.getIgnoreForCollisions());
-            APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, properties.getCollisionsWillMove());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, properties.getCollisionless());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, properties.getCollisionMask());
+            APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, properties.getDynamic());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, properties.getUserData());
             APPEND_ENTITY_PROPERTY(PROP_HREF, properties.getHref());
@@ -1031,9 +1088,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
                 APPEND_ENTITY_PROPERTY(PROP_COMPOUND_SHAPE_URL, properties.getCompoundShapeURL());
 
                 APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_MODE, (uint32_t)properties.getBackgroundMode());
-
-                _staticAtmosphere.setProperties(properties);
-                _staticAtmosphere.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
                 _staticSkybox.setProperties(properties);
                 _staticSkybox.appendToEditPacket(packetData, requestedProperties, propertyFlags, propertiesDidntFit, propertyCount, appendState);
@@ -1237,8 +1291,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONLESS, bool, setCollisionless);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISION_MASK, uint8_t, setCollisionMask);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DYNAMIC, bool, setDynamic);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_USER_DATA, QString, setUserData);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_HREF, QString, setHref);
@@ -1318,7 +1373,6 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_SHAPE_TYPE, ShapeType, setShapeType);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COMPOUND_SHAPE_URL, QString, setCompoundShapeURL);
         READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_BACKGROUND_MODE, BackgroundMode, setBackgroundMode);
-        properties.getAtmosphere().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
         properties.getSkybox().decodeFromEditPacket(propertyFlags, dataAt , processedBytes);
     }
 
@@ -1418,8 +1472,9 @@ void EntityItemProperties::markAllChanged() {
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
-    _ignoreForCollisionsChanged = true;
-    _collisionsWillMoveChanged = true;
+    _collisionlessChanged = true;
+    _collisionMaskChanged = true;
+    _dynamicChanged = true;
 
     _intensityChanged = true;
     _exponentChanged = true;
@@ -1469,7 +1524,6 @@ void EntityItemProperties::markAllChanged() {
     _backgroundModeChanged = true;
 
     _animation.markAllChanged();
-    _atmosphere.markAllChanged();
     _skybox.markAllChanged();
     _stage.markAllChanged();
 
@@ -1537,7 +1591,7 @@ bool EntityItemProperties::hasTerseUpdateChanges() const {
 bool EntityItemProperties::hasMiscPhysicsChanges() const {
     return _gravityChanged || _dimensionsChanged || _densityChanged || _frictionChanged
         || _restitutionChanged || _dampingChanged || _angularDampingChanged || _registrationPointChanged ||
-        _compoundShapeURLChanged || _collisionsWillMoveChanged || _ignoreForCollisionsChanged;
+        _compoundShapeURLChanged || _dynamicChanged || _collisionlessChanged || _collisionMaskChanged;
 }
 
 void EntityItemProperties::clearSimulationOwner() {
@@ -1650,11 +1704,14 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     if (angularDampingChanged()) {
         out += "angularDamping";
     }
-    if (ignoreForCollisionsChanged()) {
-        out += "ignoreForCollisions";
+    if (collisionlessChanged()) {
+        out += "collisionless";
     }
-    if (collisionsWillMoveChanged()) {
-        out += "collisionsWillMove";
+    if (collisionMaskChanged()) {
+        out += "collisionMask";
+    }
+    if (dynamicChanged()) {
+        out += "dynamic";
     }
     if (isSpotlightChanged()) {
         out += "isSpotlight";
@@ -1827,7 +1884,6 @@ QList<QString> EntityItemProperties::listChangedProperties() {
 
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
-    getAtmosphere().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
     getStage().listChangedProperties(out);
 

@@ -20,8 +20,8 @@
 
 const QString KeyboardMouseDevice::NAME = "Keyboard/Mouse";
 
-void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) { 
-    _inputDevice->update(deltaTime, jointsCaptured); 
+void KeyboardMouseDevice::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) { 
+    _inputDevice->update(deltaTime, inputCalibrationData, jointsCaptured); 
 
     // For touch event, we need to check that the last event is not too long ago
     // Maybe it's a Qt issue, but the touch event sequence (begin, update, end) is not always called properly
@@ -36,7 +36,7 @@ void KeyboardMouseDevice::pluginUpdate(float deltaTime, bool jointsCaptured) {
     }
 }
 
-void KeyboardMouseDevice::InputDevice::update(float deltaTime, bool jointsCaptured) {
+void KeyboardMouseDevice::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _axisStateMap.clear();
 }
 
@@ -57,7 +57,7 @@ void KeyboardMouseDevice::keyReleaseEvent(QKeyEvent* event) {
     _inputDevice->_buttonPressedMap.erase(input.getChannel());
 }
 
-void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event) {
     auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
     auto result = _inputDevice->_buttonPressedMap.insert(input.getChannel());
     if (!result.second) {
@@ -70,7 +70,7 @@ void KeyboardMouseDevice::mousePressEvent(QMouseEvent* event, unsigned int devic
     eraseMouseClicked();
 }
 
-void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mouseReleaseEvent(QMouseEvent* event) {
     auto input = _inputDevice->makeInput((Qt::MouseButton) event->button());
     _inputDevice->_buttonPressedMap.erase(input.getChannel());
 
@@ -89,7 +89,7 @@ void KeyboardMouseDevice::eraseMouseClicked() {
     _inputDevice->_buttonPressedMap.erase(_inputDevice->makeInput(Qt::RightButton, true).getChannel());
 }
 
-void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+void KeyboardMouseDevice::mouseMoveEvent(QMouseEvent* event) {
     QPoint currentPos = event->pos();
     QPoint currentMove = currentPos - _lastCursor;
 

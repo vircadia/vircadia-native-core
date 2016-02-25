@@ -11,55 +11,79 @@
 
 //#include <PerfStat.h>
 
-#include "EntityItem.h"
 #include "SimpleEntitySimulation.h"
+
+#include <DirtyOctreeElementOperator.h>
+
+#include "EntityItem.h"
 #include "EntitiesLogging.h"
 
-const quint64 AUTO_REMOVE_SIMULATION_OWNER_USEC = 2 * USECS_PER_SECOND;
+const quint64 MIN_SIMULATION_OWNERSHIP_UPDATE_PERIOD = 2 * USECS_PER_SECOND;
 
 void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
-    // If an Entity has a simulation owner and we don't get an update for some amount of time,
-    // clear the owner.  This guards against an interface failing to release the Entity when it
-    // has finished simulating it.
-    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    if (_entitiesWithSimulator.size() == 0) {
+        return;
+    }
 
+    if (now < _nextSimulationExpiry) {
+        // nothing has expired yet
+        return;
+    }
+
+    // If an Entity has a simulation owner but there has been no update for a while: clear the owner.
+    // If an Entity goes ownerless for too long: zero velocity and remove from _entitiesWithSimulator.
+    _nextSimulationExpiry = now + MIN_SIMULATION_OWNERSHIP_UPDATE_PERIOD;
+
+    QMutexLocker lock(&_mutex);
     SetOfEntities::iterator itemItr = _entitiesWithSimulator.begin();
     while (itemItr != _entitiesWithSimulator.end()) {
         EntityItemPointer entity = *itemItr;
-        if (entity->getSimulatorID().isNull()) {
-            itemItr = _entitiesWithSimulator.erase(itemItr);
-        } else if (now - entity->getLastChangedOnServer() >= AUTO_REMOVE_SIMULATION_OWNER_USEC) {
-            SharedNodePointer ownerNode = nodeList->nodeWithUUID(entity->getSimulatorID());
-            if (ownerNode.isNull() || !ownerNode->isAlive()) {
-                qCDebug(entities) << "auto-removing simulation owner" << entity->getSimulatorID();
-                entity->clearSimulationOwnership();
-                itemItr = _entitiesWithSimulator.erase(itemItr);
+        quint64 expiry = entity->getLastChangedOnServer() + MIN_SIMULATION_OWNERSHIP_UPDATE_PERIOD;
+        if (expiry < now) {
+            if (entity->getSimulatorID().isNull()) {
+                // no simulators are volunteering
                 // zero the velocity on this entity so that it doesn't drift far away
-                entity->setVelocity(glm::vec3(0.0f));
+                entity->setVelocity(Vectors::ZERO);
+                entity->setAngularVelocity(Vectors::ZERO);
+                entity->setAcceleration(Vectors::ZERO);
+                // remove from list
+                itemItr = _entitiesWithSimulator.erase(itemItr);
+                continue;
             } else {
-                ++itemItr;
+                // the simulator has stopped updating this object
+                // clear ownership and restart timer, giving nearby simulators time to volunteer
+                qCDebug(entities) << "auto-removing simulation owner " << entity->getSimulatorID();
+                entity->clearSimulationOwnership();
             }
-        } else {
-            ++itemItr;
+            entity->markAsChangedOnServer();
+            // dirty all the tree elements that contain the entity
+            DirtyOctreeElementOperator op(entity->getElement());
+            getEntityTree()->recurseTreeWithOperator(&op);
+        } else if (expiry < _nextSimulationExpiry) {
+            _nextSimulationExpiry = expiry;
         }
+        ++itemItr;
     }
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItemPointer entity) {
     EntitySimulation::addEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
+        QMutexLocker lock(&_mutex);
         _entitiesWithSimulator.insert(entity);
     }
 }
 
 void SimpleEntitySimulation::removeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::removeEntityInternal(entity);
+    QMutexLocker lock(&_mutex);
     _entitiesWithSimulator.remove(entity);
 }
 
 void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
     EntitySimulation::changeEntityInternal(entity);
     if (!entity->getSimulatorID().isNull()) {
+        QMutexLocker lock(&_mutex);
         _entitiesWithSimulator.insert(entity);
     }
     entity->clearDirtyFlags();

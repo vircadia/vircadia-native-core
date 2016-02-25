@@ -5,6 +5,8 @@ import QtQuick.Controls 1.2
 Item {
     anchors.fill: parent
     anchors.leftMargin: 300
+    objectName: "StatsItem"
+
     Hifi.Stats {
         id: root
         objectName: "Stats"
@@ -27,6 +29,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
 
                 Column {
@@ -83,6 +86,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: pingCol
@@ -123,6 +127,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: geoCol
@@ -136,7 +141,7 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        text: "Velocity: " + root.velocity.toFixed(1)
+                        text: "Speed: " + root.speed.toFixed(1)
                     }
                     Text {
                         color: root.fontColor;
@@ -172,6 +177,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: { root.expanded = !root.expanded; }
+                    hoverEnabled: true
                 }
                 Column {
                     id: octreeCol
@@ -186,33 +192,29 @@ Item {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tItems Rendered Opaque: " + root.opaqueRendered +
-                            " / Translucent: " + root.translucentRendered +
-                            " / Other: " + root.otherRendered;
+                        text: "Items rendered / considered: " +
+                            root.itemRendered + " / " + root.itemConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tOpaque considered: " + root.opaqueConsidered +
-                            " / Out of view: " + root.opaqueOutOfView + 
-                            " / Too small: " + root.opaqueTooSmall;
+                        text: " out of view: " + root.itemOutOfView +
+                            " too small: " + root.itemTooSmall;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tTranslucent considered: " + root.translucentConsidered +
-                            " / Out of view: " + root.translucentOutOfView + 
-                            " / Too small: " + root.translucentTooSmall;
+                        text: "Shadows rendered / considered: " +
+                            root.shadowRendered + " / " + root.shadowConsidered;
                     }
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "\tOther considered: " + root.otherConsidered +
-                            " / Out of view: " + root.otherOutOfView + 
-                            " / Too small: " + root.otherTooSmall;
+                        text: " out of view: " + root.shadowOutOfView +
+                            " too small: " + root.shadowTooSmall;
                     }
                     Text {
                         color: root.fontColor;
@@ -258,14 +260,8 @@ Item {
                     Text {
                         color: root.fontColor;
                         font.pixelSize: root.fontSize
-                        visible: root.showAcuity
+                        visible: root.expanded
                         text: "LOD: " + root.lodStatus;
-                    }
-                    Text {
-                        color: root.fontColor;
-                        font.pixelSize: root.fontSize
-                        visible: root.expanded && !root.showAcuity
-                        text: root.lodStatsRenderText;
                     }
                 }
             }

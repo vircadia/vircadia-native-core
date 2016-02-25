@@ -34,7 +34,7 @@ public:
     
 protected:
     // Centered local bounding box
-    AABox _localBoundingBox;
+    AABox _localBoundingBox{ vec3(0.0f), 1.0f };
 };
 
  

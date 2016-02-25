@@ -43,7 +43,7 @@ function draw(deltaTime) {
 
         var properties = {
             type: "Sphere",
-            collisionsWillMove: true,
+            dynamic: true,
             position: startPosition, 
             dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
             registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
@@ -84,7 +84,7 @@ function draw(deltaTime) {
         if (numberEntitiesAdded <= MAX_ENTITIES) {
             var properties = {
                 type: "Sphere",
-                collisionsWillMove: true,
+                dynamic: true,
                 position: center, 
                 dimensions: {x: entitySize, y: entitySize, z: entitySize},
                 registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },

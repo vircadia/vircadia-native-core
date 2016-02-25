@@ -304,7 +304,8 @@ public:
     void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
     void writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
     void writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) = 0;
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);
@@ -384,7 +385,5 @@ protected:
     bool _isViewing;
     bool _isServer;
 };
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_Octree_h

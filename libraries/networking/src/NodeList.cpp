@@ -19,7 +19,6 @@
 #include <QtCore/QThread>
 #include <QtNetwork/QHostInfo>
 
-#include <ApplicationVersion.h>
 #include <LogHandler.h>
 #include <UUID.h>
 
@@ -61,7 +60,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
 
     // in case we don't know how to talk to DS when a path change is requested
     // fire off any pending DS path query when we get socket information
-    connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendPendingDSPathQuery);
+    connect(&_domainHandler, &DomainHandler::connectedToDomain, this, &NodeList::sendPendingDSPathQuery);
 
     // send a domain server check in immediately once the DS socket is known
     connect(&_domainHandler, &DomainHandler::completedSocketDiscovery, this, &NodeList::sendDomainServerCheckIn);
@@ -491,6 +490,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     // this is a packet from the domain server, reset the count of un-replied check-ins
     _numNoReplyDomainCheckIns = 0;
 
+    // emit our signal so listeners know we just heard from the DS
+    emit receivedDomainServerList();
+
     DependencyManager::get<NodeList>()->flagTimeForConnectionStep(LimitedNodeList::ConnectionStep::ReceiveDSList);
 
     QDataStream packetStream(message->getMessage());
@@ -510,9 +512,9 @@ void NodeList::processDomainServerList(QSharedPointer<ReceivedMessage> message) 
     packetStream >> newUUID;
     setSessionUUID(newUUID);
 
-    quint8 thisNodeCanAdjustLocks;
-    packetStream >> thisNodeCanAdjustLocks;
-    setThisNodeCanAdjustLocks((bool) thisNodeCanAdjustLocks);
+    quint8 isAllowedEditor;
+    packetStream >> isAllowedEditor;
+    setIsAllowedEditor((bool) isAllowedEditor);
 
     quint8 thisNodeCanRez;
     packetStream >> thisNodeCanRez;
@@ -544,10 +546,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     qint8 nodeType;
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
-    bool canAdjustLocks;
+    bool isAllowedEditor;
     bool canRez;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> canAdjustLocks >> canRez;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> isAllowedEditor >> canRez;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -558,7 +560,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, canAdjustLocks, canRez,
+                                             nodeLocalSocket, isAllowedEditor, canRez,
                                              connectionUUID);
 }
 

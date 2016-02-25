@@ -36,10 +36,10 @@ public:
     SpatiallyNestable(NestableType nestableType, QUuid id);
     virtual ~SpatiallyNestable() { }
 
-    virtual const QUuid& getID() const { return _id; }
-    virtual void setID(const QUuid& id) { _id = id; }
+    virtual const QUuid getID() const;
+    virtual void setID(const QUuid& id);
 
-    virtual QUuid getParentID() const { return _parentID; }
+    virtual const QUuid getParentID() const;
     virtual void setParentID(const QUuid& parentID);
 
     virtual quint16 getParentJointIndex() const { return _parentJointIndex; }
@@ -68,6 +68,18 @@ public:
     virtual void setOrientation(const glm::quat& orientation, bool& success);
     virtual void setOrientation(const glm::quat& orientation);
 
+    virtual glm::vec3 getVelocity(bool& success) const;
+    virtual glm::vec3 getVelocity() const;
+    virtual void setVelocity(const glm::vec3& velocity, bool& success);
+    virtual void setVelocity(const glm::vec3& velocity);
+    virtual glm::vec3 getParentVelocity(bool& success) const;
+
+    virtual glm::vec3 getAngularVelocity(bool& success) const;
+    virtual glm::vec3 getAngularVelocity() const;
+    virtual void setAngularVelocity(const glm::vec3& angularVelocity, bool& success);
+    virtual void setAngularVelocity(const glm::vec3& angularVelocity);
+    virtual glm::vec3 getParentAngularVelocity(bool& success) const;
+
     virtual AACube getMaximumAACube(bool& success) const;
     virtual bool computePuffedQueryAACube();
 
@@ -94,10 +106,18 @@ public:
     virtual glm::quat getLocalOrientation() const;
     virtual void setLocalOrientation(const glm::quat& orientation);
 
+    virtual glm::vec3 getLocalVelocity() const;
+    virtual void setLocalVelocity(const glm::vec3& velocity);
+
+    virtual glm::vec3 getLocalAngularVelocity() const;
+    virtual void setLocalAngularVelocity(const glm::vec3& angularVelocity);
+
     virtual glm::vec3 getLocalScale() const;
     virtual void setLocalScale(const glm::vec3& scale);
 
     QList<SpatiallyNestablePointer> getChildren() const;
+    bool hasChildren() const;
+
     NestableType getNestableType() const { return _nestableType; }
 
     // this object's frame
@@ -118,12 +138,15 @@ public:
     void die() { _isDead = true; }
     bool isDead() const { return _isDead; }
 
+    bool isParentIDValid() const { bool success = false; getParentPointer(success); return success; }
+
 protected:
     const NestableType _nestableType; // EntityItem or an AvatarData
     QUuid _id;
     QUuid _parentID; // what is this thing's transform relative to?
     quint16 _parentJointIndex { 0 }; // which joint of the parent is this relative to?
     SpatiallyNestablePointer getParentPointer(bool& success) const;
+
     mutable SpatiallyNestableWeakPointer _parent;
 
     virtual void beParentOfChild(SpatiallyNestablePointer newChild) const;
@@ -143,7 +166,12 @@ protected:
 
 private:
     mutable ReadWriteLockable _transformLock;
+    mutable ReadWriteLockable _idLock;
+    mutable ReadWriteLockable _velocityLock;
+    mutable ReadWriteLockable _angularVelocityLock;
     Transform _transform; // this is to be combined with parent's world-transform to produce this' world-transform.
+    glm::vec3 _velocity;
+    glm::vec3 _angularVelocity;
     mutable bool _parentKnowsMe { false };
     bool _isDead { false };
 };

@@ -49,7 +49,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _localRenderAlpha(ENTITY_ITEM_DEFAULT_LOCAL_RENDER_ALPHA),
     _density(ENTITY_ITEM_DEFAULT_DENSITY),
     _volumeMultiplier(1.0f),
-    _velocity(ENTITY_ITEM_DEFAULT_VELOCITY),
     _gravity(ENTITY_ITEM_DEFAULT_GRAVITY),
     _acceleration(ENTITY_ITEM_DEFAULT_ACCELERATION),
     _damping(ENTITY_ITEM_DEFAULT_DAMPING),
@@ -60,11 +59,11 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _scriptTimestamp(ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP),
     _collisionSoundURL(ENTITY_ITEM_DEFAULT_COLLISION_SOUND_URL),
     _registrationPoint(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT),
-    _angularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING),
     _visible(ENTITY_ITEM_DEFAULT_VISIBLE),
-    _ignoreForCollisions(ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS),
-    _collisionsWillMove(ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE),
+    _collisionless(ENTITY_ITEM_DEFAULT_COLLISIONLESS),
+    _collisionMask(ENTITY_COLLISION_MASK_DEFAULT),
+    _dynamic(ENTITY_ITEM_DEFAULT_DYNAMIC),
     _locked(ENTITY_ITEM_DEFAULT_LOCKED),
     _userData(ENTITY_ITEM_DEFAULT_USER_DATA),
     _simulationOwner(),
@@ -77,6 +76,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) :
     _physicsInfo(nullptr),
     _simulated(false)
 {
+    setLocalVelocity(ENTITY_ITEM_DEFAULT_VELOCITY);
+    setLocalAngularVelocity(ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     // explicitly set transform parts to set dirty flags used by batch rendering
     setScale(ENTITY_ITEM_DEFAULT_DIMENSIONS);
     quint64 now = usecTimestampNow();
@@ -122,8 +123,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
-    requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
-    requestedProperties += PROP_COLLISIONS_WILL_MOVE;
+    requestedProperties += PROP_COLLISIONLESS;
+    requestedProperties += PROP_COLLISION_MASK;
+    requestedProperties += PROP_DYNAMIC;
     requestedProperties += PROP_LOCKED;
     requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_MARKETPLACE_ID;
@@ -242,8 +244,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_SIMULATION_OWNER, _simulationOwner.toByteArray());
         APPEND_ENTITY_PROPERTY(PROP_POSITION, getLocalPosition());
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, getLocalOrientation());
-        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getVelocity());
-        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_VELOCITY, getLocalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, getLocalAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ACCELERATION, getAcceleration());
 
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, getDimensions()); // NOTE: PROP_RADIUS obsolete
@@ -258,8 +260,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, getVisible());
-        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, getIgnoreForCollisions());
-        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, getCollisionsWillMove());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONLESS, getCollisionless());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISION_MASK, getCollisionMask());
+        APPEND_ENTITY_PROPERTY(PROP_DYNAMIC, getDynamic());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, getLocked());
         APPEND_ENTITY_PROPERTY(PROP_USER_DATA, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_MARKETPLACE_ID, getMarketplaceID());
@@ -467,7 +470,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         Q_ASSERT(parser.offset() == (unsigned int) bytesRead);
     }
 #endif
-    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer - clockSkew;
+    quint64 lastEditedFromBufferAdjusted = lastEditedFromBuffer == 0 ? 0 : lastEditedFromBuffer - clockSkew;
     if (lastEditedFromBufferAdjusted > now) {
         lastEditedFromBufferAdjusted = now;
     }
@@ -649,16 +652,17 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         }
         if (_simulationOwner.set(newSimOwner)) {
             _dirtyFlags |= Simulation::DIRTY_SIMULATOR_ID;
+            somethingChanged = true;
         }
     }
     {   // When we own the simulation we don't accept updates to the entity's transform/velocities
         // but since we're using macros below we have to temporarily modify overwriteLocalData.
         bool oldOverwrite = overwriteLocalData;
         overwriteLocalData = overwriteLocalData && !weOwnSimulation;
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePosition);
-        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotation);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocity);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
+        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, updatePositionFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ROTATION, glm::quat, updateRotationFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, updateVelocityFromNetwork);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocityFromNetwork);
         READ_ENTITY_PROPERTY(PROP_ACCELERATION, glm::vec3, setAcceleration);
         overwriteLocalData = oldOverwrite;
     }
@@ -677,8 +681,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
-    READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
-    READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
+    READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
+    READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
+    READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
     READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
@@ -759,7 +764,7 @@ void EntityItem::adjustEditPacketForClockSkew(QByteArray& buffer, int clockSkew)
     // lastEdited
     quint64 lastEditedInLocalTime;
     memcpy(&lastEditedInLocalTime, dataAt, sizeof(lastEditedInLocalTime));
-    quint64 lastEditedInServerTime = lastEditedInLocalTime + clockSkew;
+    quint64 lastEditedInServerTime = lastEditedInLocalTime > 0 ? lastEditedInLocalTime + clockSkew : 0;
     memcpy(dataAt, &lastEditedInServerTime, sizeof(lastEditedInServerTime));
     #ifdef WANT_DEBUG
         qCDebug(entities, "EntityItem::adjustEditPacketForClockSkew()...");
@@ -806,6 +811,14 @@ void EntityItem::setMass(float mass) {
         _density = newDensity;
         _dirtyFlags |= Simulation::DIRTY_MASS;
     }
+}
+
+void EntityItem::setHref(QString value) {
+    auto href = value.toLower();
+    if (! (value.toLower().startsWith("hifi://")) ) {
+        return;
+    }
+    _href = value;
 }
 
 void EntityItem::simulate(const quint64& now) {
@@ -872,79 +885,93 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
         return;
     }
 
-    if (hasAngularVelocity()) {
+    if (hasLocalAngularVelocity()) {
+        glm::vec3 localAngularVelocity = getLocalAngularVelocity();
+
         // angular damping
         if (_angularDamping > 0.0f) {
-            _angularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
+            localAngularVelocity *= powf(1.0f - _angularDamping, timeElapsed);
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "    angularDamping :" << _angularDamping;
-                qCDebug(entities) << "    newAngularVelocity:" << _angularVelocity;
+                qCDebug(entities) << "    newAngularVelocity:" << localAngularVelocity;
             #endif
         }
 
-        float angularSpeed = glm::length(_angularVelocity);
+        float angularSpeed = glm::length(localAngularVelocity);
 
         const float EPSILON_ANGULAR_VELOCITY_LENGTH = 0.0017453f; // 0.0017453 rad/sec = 0.1f degrees/sec
         if (angularSpeed < EPSILON_ANGULAR_VELOCITY_LENGTH) {
             if (setFlags && angularSpeed > 0.0f) {
                 _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             }
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+            localAngularVelocity = ENTITY_ITEM_ZERO_VEC3;
         } else {
             // for improved agreement with the way Bullet integrates rotations we use an approximation
             // and break the integration into bullet-sized substeps
             glm::quat rotation = getRotation();
             float dt = timeElapsed;
             while (dt > PHYSICS_ENGINE_FIXED_SUBSTEP) {
-                glm::quat  dQ = computeBulletRotationStep(_angularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
+                glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, PHYSICS_ENGINE_FIXED_SUBSTEP);
                 rotation = glm::normalize(dQ * rotation);
                 dt -= PHYSICS_ENGINE_FIXED_SUBSTEP;
             }
             // NOTE: this final partial substep can drift away from a real Bullet simulation however
             // it only becomes significant for rapidly rotating objects
             // (e.g. around PI/4 radians per substep, or 7.5 rotations/sec at 60 substeps/sec).
-            glm::quat  dQ = computeBulletRotationStep(_angularVelocity, dt);
+            glm::quat  dQ = computeBulletRotationStep(localAngularVelocity, dt);
             rotation = glm::normalize(dQ * rotation);
 
             setRotation(rotation);
         }
+
+        setLocalAngularVelocity(localAngularVelocity);
     }
 
-    if (hasVelocity()) {
+    if (hasLocalVelocity()) {
+
+        // acceleration is in the global frame, so transform it into the local frame.
+        // TODO: Move this into SpatiallyNestable.
+        bool success;
+        Transform transform = getParentTransform(success);
+        glm::vec3 localAcceleration(glm::vec3::_null);
+        if (success) {
+            localAcceleration = glm::inverse(transform.getRotation()) * getAcceleration();
+        } else {
+            localAcceleration = getAcceleration();
+        }
+
         // linear damping
-        glm::vec3 velocity = getVelocity();
+        glm::vec3 localVelocity = getLocalVelocity();
         if (_damping > 0.0f) {
-            velocity *= powf(1.0f - _damping, timeElapsed);
+            localVelocity *= powf(1.0f - _damping, timeElapsed);
             #ifdef WANT_DEBUG
                 qCDebug(entities) << "    damping:" << _damping;
-                qCDebug(entities) << "    velocity AFTER dampingResistance:" << velocity;
-                qCDebug(entities) << "    glm::length(velocity):" << glm::length(velocity);
+                qCDebug(entities) << "    velocity AFTER dampingResistance:" << localVelocity;
+                qCDebug(entities) << "    glm::length(velocity):" << glm::length(localVelocity);
             #endif
         }
 
         // integrate position forward
-        glm::vec3 position = getPosition();
-        glm::vec3 newPosition = position + (velocity * timeElapsed);
+        glm::vec3 localPosition = getLocalPosition();
+        glm::vec3 newLocalPosition = localPosition + (localVelocity * timeElapsed) + 0.5f * localAcceleration * timeElapsed * timeElapsed;
 
         #ifdef WANT_DEBUG
             qCDebug(entities) << "  EntityItem::simulate()....";
             qCDebug(entities) << "    timeElapsed:" << timeElapsed;
             qCDebug(entities) << "    old AACube:" << getMaximumAACube();
-            qCDebug(entities) << "    old position:" << position;
-            qCDebug(entities) << "    old velocity:" << velocity;
+            qCDebug(entities) << "    old position:" << localPosition;
+            qCDebug(entities) << "    old velocity:" << localVelocity;
             qCDebug(entities) << "    old getAABox:" << getAABox();
             qCDebug(entities) << "    newPosition:" << newPosition;
-            qCDebug(entities) << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
+            qCDebug(entities) << "    glm::distance(newPosition, position):" << glm::distance(newLocalPosition, localPosition);
         #endif
 
-        position = newPosition;
+        localPosition = newLocalPosition;
 
         // apply effective acceleration, which will be the same as gravity if the Entity isn't at rest.
-        if (hasAcceleration()) {
-            velocity += getAcceleration() * timeElapsed;
-        }
+        localVelocity += localAcceleration * timeElapsed;
 
-        float speed = glm::length(velocity);
+        float speed = glm::length(localVelocity);
         const float EPSILON_LINEAR_VELOCITY_LENGTH = 0.001f; // 1mm/sec
         if (speed < EPSILON_LINEAR_VELOCITY_LENGTH) {
             setVelocity(ENTITY_ITEM_ZERO_VEC3);
@@ -952,8 +979,8 @@ void EntityItem::simulateKinematicMotion(float timeElapsed, bool setFlags) {
                 _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
             }
         } else {
-            setPosition(position);
-            setVelocity(velocity);
+            setLocalPosition(localPosition);
+            setLocalVelocity(localVelocity);
         }
 
         #ifdef WANT_DEBUG
@@ -969,13 +996,17 @@ bool EntityItem::isMoving() const {
     return hasVelocity() || hasAngularVelocity();
 }
 
+bool EntityItem::isMovingRelativeToParent() const {
+    return hasLocalVelocity() || hasLocalAngularVelocity();
+}
+
 EntityTreePointer EntityItem::getTree() const {
     EntityTreeElementPointer containingElement = getElement();
     EntityTreePointer tree = containingElement ? containingElement->getTree() : nullptr;
     return tree;
 }
 
-bool EntityItem::wantTerseEditLogging() {
+bool EntityItem::wantTerseEditLogging() const {
     EntityTreePointer tree = getTree();
     return tree ? tree->wantTerseEditLogging() : false;
 }
@@ -1023,7 +1054,7 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensions); // NOTE: radius is obsolete
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getLocalOrientation);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(density, getDensity);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getLocalVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(acceleration, getAcceleration);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
@@ -1035,13 +1066,14 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(scriptTimestamp, getScriptTimestamp);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionSoundURL, getCollisionSoundURL);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getAngularVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getLocalAngularVelocity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRenderAlpha, getLocalRenderAlpha);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionless, getCollisionless);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionMask, getCollisionMask);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dynamic, getDynamic);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(marketplaceID, getMarketplaceID);
@@ -1052,6 +1084,8 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentID, getParentID);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(parentJointIndex, getParentJointIndex);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(queryAACube, getQueryAACube);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localPosition, getLocalPosition);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(localRotation, getLocalOrientation);
 
     properties._defaultSettings = false;
 
@@ -1061,9 +1095,9 @@ EntityItemProperties EntityItem::getProperties(EntityPropertyFlags desiredProper
 void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) const {
     // a TerseUpdate includes the transform and its derivatives
     properties._position = getLocalPosition();
-    properties._velocity = _velocity;
+    properties._velocity = getLocalVelocity();
     properties._rotation = getLocalOrientation();
-    properties._angularVelocity = _angularVelocity;
+    properties._angularVelocity = getLocalAngularVelocity();
     properties._acceleration = _acceleration;
 
     properties._positionChanged = true;
@@ -1095,8 +1129,9 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, updateAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(restitution, updateRestitution);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(friction, updateFriction);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionless, updateCollisionless);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionMask, updateCollisionMask);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
 
@@ -1171,7 +1206,6 @@ void EntityItem::setDimensions(const glm::vec3& value) {
         return;
     }
     setScale(value);
-    requiresRecalcBoxes();
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1323,9 +1357,6 @@ void EntityItem::computeShapeInfo(ShapeInfo& info) {
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     if (getLocalPosition() != value) {
         setLocalPosition(value);
         _dirtyFlags |= Simulation::DIRTY_POSITION;
@@ -1338,6 +1369,13 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     }
 }
 
+void EntityItem::updatePositionFromNetwork(const glm::vec3& value) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    updatePosition(value);
+}
+
 void EntityItem::updateDimensions(const glm::vec3& value) {
     if (getDimensions() != value) {
         setDimensions(value);
@@ -1346,9 +1384,6 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
 }
 
 void EntityItem::updateRotation(const glm::quat& rotation) {
-    if (shouldSuppressLocationEdits()) {
-        return;
-    }
     if (getLocalOrientation() != rotation) {
         setLocalOrientation(rotation);
         _dirtyFlags |= Simulation::DIRTY_ROTATION;
@@ -1360,6 +1395,13 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
             }
         });
     }
+}
+
+void EntityItem::updateRotationFromNetwork(const glm::quat& rotation) {
+    if (shouldSuppressLocationEdits()) {
+        return;
+    }
+    updateRotation(rotation);
 }
 
 void EntityItem::updateMass(float mass) {
@@ -1386,18 +1428,24 @@ void EntityItem::updateMass(float mass) {
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) {
+    glm::vec3 velocity = getLocalVelocity();
+    if (velocity != value) {
+        const float MIN_LINEAR_SPEED = 0.001f;
+        if (glm::length(value) < MIN_LINEAR_SPEED) {
+            velocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            velocity = value;
+        }
+        setLocalVelocity(velocity);
+        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+    }
+}
+
+void EntityItem::updateVelocityFromNetwork(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (_velocity != value) {
-        const float MIN_LINEAR_SPEED = 0.001f;
-        if (glm::length(value) < MIN_LINEAR_SPEED) {
-            _velocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _velocity = value;
-        }
-        _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
-    }
+    updateVelocity(value);
 }
 
 void EntityItem::updateDamping(float value) {
@@ -1416,18 +1464,24 @@ void EntityItem::updateGravity(const glm::vec3& value) {
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) {
+    glm::vec3 angularVelocity = getLocalAngularVelocity();
+    if (angularVelocity != value) {
+        const float MIN_ANGULAR_SPEED = 0.0002f;
+        if (glm::length(value) < MIN_ANGULAR_SPEED) {
+            angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+        } else {
+            angularVelocity = value;
+        }
+        setLocalAngularVelocity(angularVelocity);
+        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
+    }
+}
+
+void EntityItem::updateAngularVelocityFromNetwork(const glm::vec3& value) {
     if (shouldSuppressLocationEdits()) {
         return;
     }
-    if (_angularVelocity != value) {
-        const float MIN_ANGULAR_SPEED = 0.0002f;
-        if (glm::length(value) < MIN_ANGULAR_SPEED) {
-            _angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-        } else {
-            _angularVelocity = value;
-        }
-        _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
-    }
+    updateAngularVelocity(value);
 }
 
 void EntityItem::updateAngularDamping(float value) {
@@ -1438,16 +1492,23 @@ void EntityItem::updateAngularDamping(float value) {
     }
 }
 
-void EntityItem::updateIgnoreForCollisions(bool value) {
-    if (_ignoreForCollisions != value) {
-        _ignoreForCollisions = value;
+void EntityItem::updateCollisionless(bool value) {
+    if (_collisionless != value) {
+        _collisionless = value;
         _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
     }
 }
 
-void EntityItem::updateCollisionsWillMove(bool value) {
-    if (_collisionsWillMove != value) {
-        _collisionsWillMove = value;
+void EntityItem::updateCollisionMask(uint8_t value) {
+    if ((_collisionMask & ENTITY_COLLISION_MASK_DEFAULT) != (value & ENTITY_COLLISION_MASK_DEFAULT)) {
+        _collisionMask = (value & ENTITY_COLLISION_MASK_DEFAULT);
+        _dirtyFlags |= Simulation::DIRTY_COLLISION_GROUP;
+    }
+}
+
+void EntityItem::updateDynamic(bool value) {
+    if (_dynamic != value) {
+        _dynamic = value;
         _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE;
     }
 }
@@ -1489,6 +1550,33 @@ void EntityItem::updateCreated(uint64_t value) {
     if (_created != value) {
         _created = value;
         _dirtyFlags |= Simulation::DIRTY_LIFETIME;
+    }
+}
+
+void EntityItem::computeCollisionGroupAndFinalMask(int16_t& group, int16_t& mask) const {
+    // TODO: detect attachment status and adopt group of wearer
+    if (_collisionless) {
+        group = BULLET_COLLISION_GROUP_COLLISIONLESS;
+        mask = 0;
+    } else {
+        if (_dynamic) {
+            group = BULLET_COLLISION_GROUP_DYNAMIC;
+        } else if (isMovingRelativeToParent() || hasActions()) {
+            group = BULLET_COLLISION_GROUP_KINEMATIC;
+        } else {
+            group = BULLET_COLLISION_GROUP_STATIC;
+        }
+
+        uint8_t userMask = getCollisionMask();
+        if ((bool)(userMask & USER_COLLISION_GROUP_MY_AVATAR) !=
+                (bool)(userMask & USER_COLLISION_GROUP_OTHER_AVATAR)) {
+            // asymmetric avatar collision mask bits
+            if (!getSimulatorID().isNull() && (!getSimulatorID().isNull()) && getSimulatorID() != Physics::getSessionUUID()) {
+                // someone else owns the simulation, so we toggle the avatar bits (swap interpretation)
+                userMask ^= USER_COLLISION_MASK_AVATARS | ~userMask;
+            }
+        }
+        mask = Physics::getDefaultCollisionMask(group) & (int16_t)(userMask);
     }
 }
 
@@ -1856,4 +1944,9 @@ QList<EntityActionPointer> EntityItem::getActionsOfType(EntityActionType typeToG
 void EntityItem::locationChanged() {
     requiresRecalcBoxes();
     SpatiallyNestable::locationChanged(); // tell all the children, also
+}
+
+void EntityItem::dimensionsChanged() {
+    requiresRecalcBoxes();
+    SpatiallyNestable::dimensionsChanged(); // Do what you have to do
 }

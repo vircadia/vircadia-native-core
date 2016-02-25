@@ -39,9 +39,12 @@ public:
     virtual void render(RenderArgs* args) = 0;
     
     virtual AABox getBounds() const = 0;
+    virtual bool supportsGetProperty() const { return true; }
 
     virtual bool addToScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
     virtual void removeFromScene(Overlay::Pointer overlay, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges);
+
+    virtual const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 
     // getters
     virtual QString getType() const = 0;
@@ -89,7 +92,7 @@ public:
 protected:
     float updatePulse();
 
-    render::ItemID _renderItemID;
+    render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
 
     bool _isLoaded;
     float _alpha;
@@ -118,6 +121,7 @@ namespace render {
    template <> const Item::Bound payloadGetBound(const Overlay::Pointer& overlay);
    template <> int payloadGetLayer(const Overlay::Pointer& overlay);
    template <> void payloadRender(const Overlay::Pointer& overlay, RenderArgs* args);
+   template <> const ShapeKey shapeGetShapeKey(const Overlay::Pointer& overlay);
 }
 
  

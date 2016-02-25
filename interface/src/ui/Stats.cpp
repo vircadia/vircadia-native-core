@@ -162,7 +162,7 @@ void Stats::updateStats(bool force) {
     MyAvatar* myAvatar = avatarManager->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
-    STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
+    STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getVelocity()), 0.1f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -283,9 +283,7 @@ void Stats::updateStats(bool force) {
         STAT_UPDATE(localLeaves, (int)OctreeElement::getLeafNodeCount());
         // LOD Details
         STAT_UPDATE(lodStatus, "You can see " + DependencyManager::get<LODManager>()->getLODFeedbackText());
-        STAT_UPDATE(lodStatsRenderText, DependencyManager::get<LODManager>()->getLODStatsRenderText());
     }
-    STAT_UPDATE(showAcuity, (_expanded || force) && DependencyManager::get<LODManager>()->getUseAcuity());
 
     bool performanceTimerIsActive = PerformanceTimer::isActive();
     bool displayPerf = _expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayDebugTimingDetails);
@@ -344,18 +342,14 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(opaqueConsidered, (int)details._opaque._considered);
-        STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
-        STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
-        STAT_UPDATE(opaqueRendered, (int)details._opaque._rendered);
-        STAT_UPDATE(translucentConsidered, (int)details._translucent._considered);
-        STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
-        STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
-        STAT_UPDATE(translucentRendered, (int)details._translucent._rendered);
-        STAT_UPDATE(otherConsidered, (int)details._other._considered);
-        STAT_UPDATE(otherOutOfView, details._other._outOfView);
-        STAT_UPDATE(otherTooSmall, details._other._tooSmall);
-        STAT_UPDATE(otherRendered, (int)details._other._rendered);
+        STAT_UPDATE(itemConsidered, details._item._considered);
+        STAT_UPDATE(itemOutOfView, details._item._outOfView);
+        STAT_UPDATE(itemTooSmall, details._item._tooSmall);
+        STAT_UPDATE(itemRendered, details._item._rendered);
+        STAT_UPDATE(shadowConsidered, details._shadow._considered);
+        STAT_UPDATE(shadowOutOfView, details._shadow._outOfView);
+        STAT_UPDATE(shadowTooSmall, details._shadow._tooSmall);
+        STAT_UPDATE(shadowRendered, details._shadow._rendered);
     }
 }
 

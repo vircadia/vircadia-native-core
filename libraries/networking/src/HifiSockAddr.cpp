@@ -95,16 +95,16 @@ void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
     if (hostInfo.error() != QHostInfo::NoError) {
         qCDebug(networking) << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
         emit lookupFailed();
-    }
-
-    foreach(const QHostAddress& address, hostInfo.addresses()) {
-        // just take the first IPv4 address
-        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-            _address = address;
-            qCDebug(networking) << "QHostInfo lookup result for"
-                << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
-            emit lookupCompleted();
-            break;
+    } else {
+        foreach(const QHostAddress& address, hostInfo.addresses()) {
+            // just take the first IPv4 address
+            if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+                _address = address;
+                qCDebug(networking) << "QHostInfo lookup result for"
+                    << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
+                emit lookupCompleted();
+                break;
+            }
         }
     }
 }

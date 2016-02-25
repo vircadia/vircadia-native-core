@@ -28,6 +28,11 @@ public:
         init(menu, qmlObject);
     }
 
+    ~MenuUserData() {
+        _widget->setUserData(USER_DATA_ID, nullptr);
+        _qml->setUserData(USER_DATA_ID, nullptr);
+    }
+
     const QUuid uuid{ QUuid::createUuid() };
 
     static MenuUserData* forObject(QObject* object) {
@@ -36,25 +41,21 @@ public:
 
 private:
     MenuUserData(const MenuUserData&);
-
     void init(QObject* widgetObject, QObject* qmlObject) {
+        _widget = widgetObject;
+        _qml = qmlObject;
         widgetObject->setUserData(USER_DATA_ID, this);
         qmlObject->setUserData(USER_DATA_ID, this);
         qmlObject->setObjectName(uuid.toString());
         // Make sure we can find it again in the future
         Q_ASSERT(VrMenu::_instance->findMenuObject(uuid.toString()));
     }
+
+    QObject* _widget { nullptr };
+    QObject* _qml { nullptr };
 };
 
 const int MenuUserData::USER_DATA_ID = QObject::registerUserData();
-
-HIFI_QML_DEF_LAMBDA(VrMenu, [&](QQmlContext* context, QObject* newItem) {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    QObject* rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
-    Q_ASSERT(rootMenu);
-    static_cast<VrMenu*>(newItem)->setRootMenu(rootMenu);
-    context->setContextProperty("rootMenu", rootMenu);
-});
 
 VrMenu* VrMenu::_instance{ nullptr };
 static QQueue<std::function<void(VrMenu*)>> queuedLambdas;
@@ -70,17 +71,16 @@ void VrMenu::executeOrQueue(std::function<void(VrMenu*)> f) {
     }
 }
 
-void VrMenu::executeQueuedLambdas() {
-    Q_ASSERT(_instance);
+
+VrMenu::VrMenu(QObject* parent) : QObject(parent) {
+    _instance = this;
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    _rootMenu = offscreenUi->getRootItem()->findChild<QObject*>("rootMenu");
+    offscreenUi->getRootContext()->setContextProperty("rootMenu", _rootMenu);
     foreach(std::function<void(VrMenu*)> f, queuedLambdas) {
-        f(_instance);
+        f(this);
     }
     queuedLambdas.clear();
-}
-
-VrMenu::VrMenu(QQuickItem* parent) : QQuickItem(parent) {
-    _instance = this;
-    this->setEnabled(false);
 }
 
 QObject* VrMenu::findMenuObject(const QString& menuOption) {
@@ -89,10 +89,6 @@ QObject* VrMenu::findMenuObject(const QString& menuOption) {
     }
     QObject* result = _rootMenu->findChild<QObject*>(menuOption);
     return result;
-}
-
-void VrMenu::setRootMenu(QObject* rootMenu) {
-    _rootMenu = rootMenu;
 }
 
 void updateQmlItemFromAction(QObject* target, QAction* source) {
@@ -116,9 +112,8 @@ void VrMenu::addMenu(QMenu* menu) {
         Q_ASSERT(false);
     }
     QVariant returnedValue;
-    bool invokeResult = QMetaObject::invokeMethod(this, "addMenu", Qt::DirectConnection,
+    bool invokeResult = QMetaObject::invokeMethod(qmlParent, "addMenu", Qt::DirectConnection,
                                                   Q_RETURN_ARG(QVariant, returnedValue),
-                                                  Q_ARG(QVariant, QVariant::fromValue(qmlParent)),
                                                   Q_ARG(QVariant, QVariant::fromValue(menu->title())));
     Q_ASSERT(invokeResult);
     Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
@@ -129,8 +124,11 @@ void VrMenu::addMenu(QMenu* menu) {
     new MenuUserData(menu, result);
     auto menuAction = menu->menuAction();
     updateQmlItemFromAction(result, menuAction);
-    QObject::connect(menuAction, &QAction::changed, [=] {
+    auto connection = QObject::connect(menuAction, &QAction::changed, [=] {
         updateQmlItemFromAction(result, menuAction);
+    });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
     });
 
 }
@@ -138,14 +136,20 @@ void VrMenu::addMenu(QMenu* menu) {
 void bindActionToQmlAction(QObject* qmlAction, QAction* action) {
     new MenuUserData(action, qmlAction);
     updateQmlItemFromAction(qmlAction, action);
-    QObject::connect(action, &QAction::changed, [=] {
+    auto connection = QObject::connect(action, &QAction::changed, [=] {
         updateQmlItemFromAction(qmlAction, action);
     });
+    QObject::connect(qApp, &QCoreApplication::aboutToQuit, [=] {
+        QObject::disconnect(connection);
+    });
+
     QObject::connect(action, &QAction::toggled, [=](bool checked) {
         qmlAction->setProperty("checked", checked);
     });
     QObject::connect(qmlAction, SIGNAL(triggered()), action, SLOT(trigger()));
 }
+
+class QQuickMenuItem;
 
 void VrMenu::addAction(QMenu* menu, QAction* action) {
     Q_ASSERT(!MenuUserData::forObject(action));
@@ -153,15 +157,15 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     MenuUserData* userData = MenuUserData::forObject(menu);
     QObject* menuQml = findMenuObject(userData->uuid.toString());
     Q_ASSERT(menuQml);
-    QVariant returnedValue;
+    QQuickMenuItem* returnedValue { nullptr };
     
-    bool invokeResult = QMetaObject::invokeMethod(this, "addItem", Qt::DirectConnection,
-                                                  Q_RETURN_ARG(QVariant, returnedValue),
-                                                  Q_ARG(QVariant, QVariant::fromValue(menuQml)),
-                                                  Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    bool invokeResult = QMetaObject::invokeMethod(menuQml, "addItem", Qt::DirectConnection,
+        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_ARG(QString, action->text()));
+
     Q_ASSERT(invokeResult);
     Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
-    QObject* result = returnedValue.value<QObject*>();
+    QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
     Q_ASSERT(result);
     // Bind the QML and Widget together
     bindActionToQmlAction(result, action);
@@ -175,18 +179,18 @@ void VrMenu::insertAction(QAction* before, QAction* action) {
         beforeQml = findMenuObject(beforeUserData->uuid.toString());
     }
     QObject* menu = beforeQml->parent();
-    QVariant returnedValue;
-    bool invokeResult = QMetaObject::invokeMethod(this, "insertItem", Qt::DirectConnection,
-                                                  Q_RETURN_ARG(QVariant, returnedValue),
-                                                  Q_ARG(QVariant, QVariant::fromValue(menu)),
-                                                  Q_ARG(QVariant, QVariant::fromValue(beforeQml)),
-                                                  Q_ARG(QVariant, QVariant::fromValue(action->text())));
+    QQuickMenuItem* returnedValue { nullptr };
+    // FIXME this needs to find the index of the beforeQml item and call insertItem(int, object)
+    bool invokeResult = QMetaObject::invokeMethod(menu, "addItem", Qt::DirectConnection,
+        Q_RETURN_ARG(QQuickMenuItem*, returnedValue),
+        Q_ARG(QString, action->text()));
     Q_ASSERT(invokeResult);
-    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
-    QObject* result = returnedValue.value<QObject*>();
+    QObject* result = reinterpret_cast<QObject*>(returnedValue); // returnedValue.value<QObject*>();
     Q_ASSERT(result);
     bindActionToQmlAction(result, action);
 }
+
+class QQuickMenuBase;
 
 void VrMenu::removeAction(QAction* action) {
     if (!action) {
@@ -198,12 +202,12 @@ void VrMenu::removeAction(QAction* action) {
         qWarning("Attempted to remove menu action with no found QML object");
         return;
     }
+    
     QObject* item = findMenuObject(userData->uuid.toString());
     QObject* menu = item->parent();
     // Proxy QuickItem requests through the QML layer
-    bool invokeResult = QMetaObject::invokeMethod(this, "removeItem", Qt::DirectConnection,
-        Q_ARG(QVariant, QVariant::fromValue(menu)),
-        Q_ARG(QVariant, QVariant::fromValue(item)));
+    QQuickMenuBase* qmlItem = reinterpret_cast<QQuickMenuBase*>(item);
+    bool invokeResult = QMetaObject::invokeMethod(menu, "removeItem", Qt::DirectConnection,
+        Q_ARG(QQuickMenuBase*, qmlItem));
     Q_ASSERT(invokeResult);
-    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
 }

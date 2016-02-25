@@ -59,8 +59,14 @@ const AnimPose& AnimSkeleton::getAbsoluteDefaultPose(int jointIndex) const {
     return _absoluteDefaultPoses[jointIndex];
 }
 
-const glm::quat AnimSkeleton::getPreRotation(int jointIndex) const {
-    return _joints[jointIndex].preRotation;
+// get pre multiplied transform which should include FBX pre potations
+const AnimPose& AnimSkeleton::getPreRotationPose(int jointIndex) const {
+    return _relativePreRotationPoses[jointIndex];
+}
+
+// get post multiplied transform which might include FBX offset transformations
+const AnimPose& AnimSkeleton::getPostRotationPose(int jointIndex) const {
+    return _relativePostRotationPoses[jointIndex];
 }
 
 int AnimSkeleton::getParentIndex(int jointIndex) const {
@@ -81,11 +87,36 @@ AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses)
 
 void AnimSkeleton::convertRelativePosesToAbsolute(AnimPoseVec& poses) const {
     // poses start off relative and leave in absolute frame
-    for (int i = 0; i < (int)poses.size() && i < (int)_joints.size(); ++i) {
+    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    for (int i = 0; i < lastIndex; ++i) {
         int parentIndex = _joints[i].parentIndex;
         if (parentIndex != -1) {
             poses[i] = poses[parentIndex] * poses[i];
         }
+    }
+}
+
+void AnimSkeleton::convertAbsolutePosesToRelative(AnimPoseVec& poses) const {
+    // poses start off absolute and leave in relative frame
+    int lastIndex = std::min((int)poses.size(), (int)_joints.size());
+    for (int i = lastIndex - 1; i >= 0; --i) {
+        int parentIndex = _joints[i].parentIndex;
+        if (parentIndex != -1) {
+            poses[i] = poses[parentIndex].inverse() * poses[i];
+        }
+    }
+}
+
+void AnimSkeleton::mirrorRelativePoses(AnimPoseVec& poses) const {
+    convertRelativePosesToAbsolute(poses);
+    mirrorAbsolutePoses(poses);
+    convertAbsolutePosesToRelative(poses);
+}
+
+void AnimSkeleton::mirrorAbsolutePoses(AnimPoseVec& poses) const {
+    AnimPoseVec temp = poses;
+    for (int i = 0; i < (int)poses.size(); i++) {
+        poses[_mirrorMap[i]] = temp[i].mirror();
     }
 }
 
@@ -99,13 +130,20 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
     // build a chache of default poses
     _absoluteDefaultPoses.reserve(joints.size());
     _relativeDefaultPoses.reserve(joints.size());
+    _relativePreRotationPoses.reserve(joints.size());
+    _relativePostRotationPoses.reserve(joints.size());
 
     // iterate over FBXJoints and extract the bind pose information.
     for (int i = 0; i < (int)joints.size(); i++) {
 
+        // build pre and post transforms
+        glm::mat4 preRotationTransform = _joints[i].preTransform * glm::mat4_cast(_joints[i].preRotation);
+        glm::mat4 postRotationTransform = glm::mat4_cast(_joints[i].postRotation) * _joints[i].postTransform;
+        _relativePreRotationPoses.push_back(AnimPose(preRotationTransform));
+        _relativePostRotationPoses.push_back(AnimPose(postRotationTransform));
+
         // build relative and absolute default poses
-        glm::mat4 rotTransform = glm::mat4_cast(_joints[i].preRotation * _joints[i].rotation * _joints[i].postRotation);
-        glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * _joints[i].preTransform * rotTransform * _joints[i].postTransform;
+        glm::mat4 relDefaultMat = glm::translate(_joints[i].translation) * preRotationTransform * glm::mat4_cast(_joints[i].rotation) * postRotationTransform;
         AnimPose relDefaultPose(relDefaultMat);
         _relativeDefaultPoses.push_back(relDefaultPose);
         int parentIndex = getParentIndex(i);
@@ -135,6 +173,24 @@ void AnimSkeleton::buildSkeletonFromJoints(const std::vector<FBXJoint>& joints) 
             } else {
                 _absoluteBindPoses.push_back(relDefaultPose);
             }
+        }
+    }
+
+    // build mirror map.
+    _mirrorMap.reserve(_joints.size());
+    for (int i = 0; i < (int)joints.size(); i++) {
+        int mirrorJointIndex = -1;
+        if (_joints[i].name.startsWith("Left")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 4, "Right");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        } else if (_joints[i].name.startsWith("Right")) {
+            QString mirrorJointName = QString(_joints[i].name).replace(0, 5, "Left");
+            mirrorJointIndex = nameToJointIndex(mirrorJointName);
+        }
+        if (mirrorJointIndex >= 0) {
+            _mirrorMap.push_back(mirrorJointIndex);
+        } else {
+            _mirrorMap.push_back(i);
         }
     }
 }

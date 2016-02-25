@@ -37,7 +37,7 @@ function makeAll() {
             type: "Model",
             modelURL: HIFI_PUBLIC_BUCKET + model,
             collisionSoundURL: sound,
-            collisionsWillMove: true,
+            dynamic: true,
             shapeType: "box",
             restitution: 0.8,
             dimensions: currentDimensions,

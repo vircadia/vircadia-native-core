@@ -18,6 +18,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "../NetworkLogging.h"
@@ -52,11 +53,11 @@ private:
     Mutex2& _mutex2;
 };
 
-std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination) {
+std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destination, SequenceNumber currentSequenceNumber) {
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
-    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
-    
+    auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination, currentSequenceNumber));
+
     // Setup queue private thread
     QThread* thread = new QThread;
     thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
@@ -74,10 +75,12 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     return queue;
 }
     
-SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
+SendQueue::SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber) :
     _socket(socket),
-    _destination(dest)
+    _destination(dest),
+    _currentSequenceNumber(currentSequenceNumber)
 {
+    
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -223,7 +226,9 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     {
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
-        _sentPackets[newPacket->getSequenceNumber()].swap(newPacket);
+        auto& entry = _sentPackets[newPacket->getSequenceNumber()];
+        entry.first = 0; // No resend
+        entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     
@@ -352,14 +357,46 @@ bool SendQueue::maybeResendPacket() {
             auto it = _sentPackets.find(resendNumber);
             
             if (it != _sentPackets.end()) {
+                auto& entry = it->second;
                 // we found the packet - grab it
-                auto& resendPacket = *(it->second);
-                
-                // send it off
-                sendPacket(resendPacket);
-                
-                // unlock the sent packets
-                sentLocker.unlock();
+                auto& resendPacket = *(entry.second);
+                ++entry.first; // Add 1 resend
+
+                Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
+
+                if (level != Packet::NoObfuscation) {
+#ifdef UDT_CONNECTION_DEBUG
+                    QString debugString = "Obfuscating packet %1 with level %2";
+                    debugString = debugString.arg(QString::number((uint32_t)resendPacket.getSequenceNumber()),
+                                                  QString::number(level));
+                    if (resendPacket.isPartOfMessage()) {
+                        debugString += "\n";
+                        debugString += "    Message Number: %1, Part Number: %2.";
+                        debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
+                                                      QString::number(resendPacket.getMessagePartNumber()));
+                    }
+                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .*");
+                    qCritical() << qPrintable(debugString);
+#endif
+
+                    // Create copy of the packet
+                    auto packet = Packet::createCopy(resendPacket);
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+
+                    // Obfuscate packet
+                    packet->obfuscate(level);
+
+                    // send it off
+                    sendPacket(*packet);
+                } else {
+                    // send it off
+                    sendPacket(resendPacket);
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+                }
                 
                 emit packetRetransmitted();
                 
@@ -389,6 +426,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
         static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
         static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
         if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE &&
+            _lastReceiverResponse > 0 &&
             (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
             // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
             // then signal the queue is inactive and return so it can be cleaned up

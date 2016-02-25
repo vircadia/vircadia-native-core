@@ -22,12 +22,12 @@ class AvatarMotionState : public ObjectMotionState {
 public:
     AvatarMotionState(Avatar* avatar, btCollisionShape* shape);
 
-    virtual MotionType getMotionType() const override { return _motionType; }
+    virtual PhysicsMotionType getMotionType() const override { return _motionType; }
 
     virtual uint32_t getIncomingDirtyFlags() override;
     virtual void clearIncomingDirtyFlags() override;
 
-    virtual MotionType computeObjectMotionType() const override;
+    virtual PhysicsMotionType computePhysicsMotionType() const override;
 
     virtual bool isMoving() const override;
 
@@ -53,7 +53,7 @@ public:
     virtual glm::vec3 getObjectAngularVelocity() const override;
     virtual glm::vec3 getObjectGravity() const override;
 
-    virtual const QUuid& getObjectID() const override;
+    virtual const QUuid getObjectID() const override;
 
     virtual QUuid getSimulatorID() const override;
 
@@ -61,7 +61,7 @@ public:
 
     void addDirtyFlags(uint32_t flags) { _dirtyFlags |= flags; }
 
-    virtual int16_t computeCollisionGroup() const override;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     friend class AvatarManager;
     friend class Avatar;
@@ -72,7 +72,7 @@ protected:
     ~AvatarMotionState();
 
     virtual bool isReadyToComputeShape() const override { return true; }
-    virtual btCollisionShape* computeNewShape();
+    virtual btCollisionShape* computeNewShape() override;
 
     // The AvatarMotionState keeps a RAW backpointer to its Avatar because all AvatarMotionState
     // instances are "owned" by their corresponding Avatar instance and are deleted in the Avatar dtor.

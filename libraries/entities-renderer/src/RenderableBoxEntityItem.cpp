@@ -15,7 +15,6 @@
 
 #include <gpu/Batch.h>
 
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <ObjectMotionState.h>
 #include <PerfStat.h>
@@ -62,14 +61,14 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         return;
     }
 
+    batch.setModelTransform(transToCenter); // we want to include the scale as well
     if (_procedural->ready()) {
-        batch.setModelTransform(transToCenter); // we want to include the scale as well
         _procedural->prepare(batch, getPosition(), getDimensions());
         auto color = _procedural->getColor(cubeColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);
         DependencyManager::get<GeometryCache>()->renderCube(batch);
     } else {
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(batch, transToCenter, cubeColor);
+        DependencyManager::get<GeometryCache>()->renderSolidCubeInstance(batch, cubeColor);
     }
     static const auto triCount = DependencyManager::get<GeometryCache>()->getCubeTriangleCount();
     args->_details._trianglesRendered += (int)triCount;

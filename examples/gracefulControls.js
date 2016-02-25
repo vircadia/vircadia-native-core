@@ -54,8 +54,8 @@ var velocity = { x: 0, y: 0, z: 0 };
 var velocityVertical = 0;
 var enabled = false;
 
-var lastX = Window.getCursorPositionX();
-var lastY = Window.getCursorPositionY();
+var lastX = Reticle.getPosition().x;
+var lastY = Reticle.getPosition().y;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 
@@ -109,8 +109,8 @@ function update(dt) {
     }
 
     if (enabled && Window.hasFocus()) {
-        var x = Window.getCursorPositionX();
-        var y = Window.getCursorPositionY();
+        var x = Reticle.getPosition().x;
+        var y = Reticle.getPosition().y;
 
         yawFromMouse += ((x - lastX) * movementParameters.MOUSE_YAW_SCALE * movementParameters.MOUSE_SENSITIVITY);
         pitchFromMouse += ((y - lastY) * movementParameters.MOUSE_PITCH_SCALE * movementParameters.MOUSE_SENSITIVITY);
@@ -173,7 +173,7 @@ function scriptEnding() {
 function resetCursorPosition() {
     var newX = Window.x + Window.innerWidth / 2;
     var newY = Window.y + Window.innerHeight / 2;
-    Window.setCursorPosition(newX, newY);
+    Reticle.setPosition({ x: newX, y: newY});
     lastX = newX;
     lastY = newY;
 }
@@ -194,7 +194,7 @@ function enable() {
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
         }
-        Window.setCursorVisible(false);
+        Reticle.setVisible(false);
         Script.update.connect(update);
     }
 }
@@ -205,7 +205,7 @@ function disable() {
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.releaseKeyEvents({ text: CAPTURED_KEYS[i] });
         }
-        Window.setCursorVisible(true);
+        Reticle.setVisible(true);
         Script.update.disconnect(update);
     }
 }

@@ -20,6 +20,7 @@ GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
     connect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
     connect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    connect(&accountManager, &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 
     _downloading = false;
     QTimer* checkDownloadTimer = new QTimer(this);
@@ -36,6 +37,7 @@ GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
     disconnect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
     disconnect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+    disconnect(&accountManager, &AccountManager::loginComplete, this, &GlobalServicesScriptingInterface::connected);
 }
 
 GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance() {
@@ -142,6 +144,3 @@ void GlobalServicesScriptingInterface::updateDownloadInfo() {
     emit downloadInfoChanged(getDownloadInfo());
 }
 
-void GlobalServicesScriptingInterface::editFriends() {
-    QMetaObject::invokeMethod(qApp, "showFriendsWindow");
-}

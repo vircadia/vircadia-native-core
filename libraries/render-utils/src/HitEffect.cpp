@@ -61,10 +61,11 @@ const gpu::PipelinePointer& HitEffect::getHitEffectPipeline() {
 }
 
 void HitEffect::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
-    assert(renderContext->getArgs());
-    assert(renderContext->getArgs()->_viewFrustum);
-    RenderArgs* args = renderContext->getArgs();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    assert(renderContext->args);
+    assert(renderContext->args->_viewFrustum);
+    RenderArgs* args = renderContext->args;
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
     
         glm::mat4 projMat;
         Transform viewMat;

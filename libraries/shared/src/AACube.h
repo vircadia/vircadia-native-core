@@ -66,6 +66,8 @@ public:
 
     AACube& operator += (const glm::vec3& point);
 
+    bool containsNaN() const;
+
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;

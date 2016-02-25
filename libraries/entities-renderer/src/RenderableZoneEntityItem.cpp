@@ -14,7 +14,6 @@
 #include <gpu/Batch.h>
 
 #include <AbstractViewStateInterface.h>
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
@@ -133,19 +132,20 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 
                 Q_ASSERT(args->_batch);
                 gpu::Batch& batch = *args->_batch;
-                batch.setModelTransform(Transform());
 
                 bool success;
                 auto shapeTransform = getTransformToCenter(success);
                 if (!success) {
                     break;
                 }
-                auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+                auto geometryCache = DependencyManager::get<GeometryCache>();
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
-                    deferredLightingEffect->renderWireSphereInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
                 } else {
-                    deferredLightingEffect->renderWireCubeInstance(batch, shapeTransform, DEFAULT_COLOR);
+                    batch.setModelTransform(shapeTransform);
+                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
                 }
                 break;
             }
@@ -230,7 +230,22 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, std::shared_pt
 void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene,
                                                 render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myMetaItem);
+    render::Item::clearID(_myMetaItem);
     if (_model) {
         _model->removeFromScene(scene, pendingChanges);
     }
+}
+
+
+void RenderableZoneEntityItem::notifyBoundChanged() {
+    if (!render::Item::isValidID(_myMetaItem)) {
+        return;
+    }
+    render::PendingChanges pendingChanges;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    pendingChanges.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [](RenderableZoneEntityItemMeta& data) {
+    });
+
+    scene->enqueuePendingChanges(pendingChanges);
 }

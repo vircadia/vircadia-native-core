@@ -50,7 +50,8 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
+                                             SequenceNumber currentSequenceNumber = SequenceNumber());
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);
@@ -83,7 +84,7 @@ private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest);
+    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
@@ -108,7 +109,7 @@ private:
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     
-    SequenceNumber _currentSequenceNumber; // Last sequence number sent out
+    SequenceNumber _currentSequenceNumber { 0 }; // Last sequence number sent out
     std::atomic<uint32_t> _atomicCurrentSequenceNumber { 0 }; // Atomic for last sequence number sent out
     
     std::atomic<int> _packetSendPeriod { 0 }; // Interval between two packet send event in microseconds, set from CC
@@ -125,7 +126,8 @@ private:
     LossList _naks; // Sequence numbers of packets to resend
     
     mutable QReadWriteLock _sentLock; // Protects the sent packet list
-    std::unordered_map<SequenceNumber, std::unique_ptr<Packet>> _sentPackets; // Packets waiting for ACK.
+    using PacketResendPair = std::pair<uint8_t, std::unique_ptr<Packet>>; // Number of resend + packet ptr
+    std::unordered_map<SequenceNumber, PacketResendPair> _sentPackets; // Packets waiting for ACK.
     
     std::mutex _handshakeMutex; // Protects the handshake ACK condition_variable
     std::atomic<bool> _hasReceivedHandshakeACK { false }; // flag for receipt of handshake ACK from client

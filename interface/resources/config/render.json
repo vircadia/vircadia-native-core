@@ -1,0 +1,14 @@
+{
+    "RenderShadowTask": {
+        "Enabled": {
+            "enabled": true
+        }
+    },
+    "RenderDeferredTask": {
+        "AmbientOcclusion": {
+            "Enabled": {
+                "enabled": true
+            }
+        }
+    }
+}

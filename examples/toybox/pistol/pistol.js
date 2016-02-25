@@ -1,6 +1,5 @@
 //
 //  pistol.js
-//  examples/toybox/entityScripts
 //
 //  Created by Eric Levin on11/11/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -16,7 +15,6 @@
     Script.include("../../libraries/constants.js");
 
     var _this;
-    // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
     var DISABLE_LASER_THRESHOLD = 0.2;
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
@@ -51,10 +49,10 @@
 
         startEquip: function(id, params) {
             this.equipped = true;
-            this.hand = JSON.parse(params[0]);
+            this.hand = params[0] == "left" ? 0 : 1;
         },
 
-        continueNearGrab: function() {
+        continueEquip: function(id, params) {
             if (!this.equipped) {
                 return;
             }
@@ -63,8 +61,6 @@
                 this.updateLaser();
             }
             this.toggleWithTriggerPressure();
-
-
         },
 
         updateProps: function() {
@@ -115,7 +111,7 @@
             });
         },
 
-        unequip: function() {
+        releaseEquip: function(id, params) {
             this.hand = null;
             this.equipped = false;
             Overlays.editOverlay(this.laser, {
@@ -153,8 +149,8 @@
                         });
                     }, randFloat(10, 200));
                 }
-                if (intersection.properties.collisionsWillMove === 1) {
-                    // Any entity with collisions will move can be shot
+                if (intersection.properties.dynamic === 1) {
+                    // Any dynaic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });

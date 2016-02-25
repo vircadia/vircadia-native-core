@@ -25,13 +25,7 @@
 #include <QtMultimedia/QAudioInput>
 
 #include <AbstractAudioInterface.h>
-#include <AudioBuffer.h>
 #include <AudioEffectOptions.h>
-#include <AudioFormat.h>
-#include <AudioGain.h>
-#include <AudioRingBuffer.h>
-#include <AudioSourceTone.h>
-#include <AudioSourceNoise.h>
 #include <AudioStreamStats.h>
 
 #include <DependencyManager.h>
@@ -63,11 +57,7 @@ static const int NUM_AUDIO_CHANNELS = 2;
 static const int DEFAULT_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 3;
 static const int MIN_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 1;
 static const int MAX_AUDIO_OUTPUT_BUFFER_SIZE_FRAMES = 20;
-#if defined(Q_OS_ANDROID) || defined(Q_OS_WIN)
-    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = false;
-#else
-    static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
-#endif
+static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_ENABLED = true;
 static const int DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_THRESHOLD = 3;
 static const quint64 DEFAULT_AUDIO_OUTPUT_STARVE_DETECTION_PERIOD = 10 * 1000; // 10 Seconds
 
@@ -152,10 +142,6 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
 
-    virtual void enableAudioSourceInject(bool enable);
-    virtual void selectAudioSourcePinkNoise();
-    virtual void selectAudioSourceSine440();
-
     virtual void setIsStereoInput(bool stereo);
 
     void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
@@ -166,7 +152,7 @@ public slots:
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
     void sendMuteEnvironmentPacket();
 
-    void setOutputBufferSize(int numFrames);
+    int setOutputBufferSize(int numFrames, bool persist = true);
 
     virtual bool outputLocalInjector(bool isStereo, AudioInjector* injector);
 
@@ -194,6 +180,7 @@ signals:
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
 
+    void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
     void deviceChanged();
 
     void receivedFirstPacket();
@@ -240,6 +227,7 @@ private:
     int _outputStarveDetectionCount;
 
     Setting::Handle<int> _outputBufferSizeFrames;
+    int _sessionOutputBufferSizeFrames;
     Setting::Handle<bool> _outputStarveDetectionEnabled;
     Setting::Handle<int> _outputStarveDetectionPeriodMsec;
      // Maximum number of starves per _outputStarveDetectionPeriod before increasing buffer size
@@ -256,7 +244,6 @@ private:
     bool _shouldEchoLocally;
     bool _shouldEchoToServer;
     bool _isNoiseGateEnabled;
-    bool _audioSourceInjectEnabled;
 
     bool _reverb;
     AudioEffectOptions _scriptReverbOptions;
@@ -283,23 +270,6 @@ private:
     int calculateNumberOfInputCallbackBytes(const QAudioFormat& format) const;
     int calculateNumberOfFrameSamples(int numBytes) const;
     float calculateDeviceToNetworkInputRatio() const;
-
-    // Input framebuffer
-    AudioBufferFloat32 _inputFrameBuffer;
-
-    // Input gain
-    AudioGain _inputGain;
-
-    // Post tone/pink noise generator gain
-    AudioGain _sourceGain;
-
-    // Pink noise source
-    bool _noiseSourceEnabled;
-    AudioSourcePinkNoise _noiseSource;
-
-    // Tone source
-    bool _toneSourceEnabled;
-    AudioSourceTone _toneSource;
 
     quint16 _outgoingAvatarAudioSequenceNumber;
 

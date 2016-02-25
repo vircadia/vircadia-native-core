@@ -11,59 +11,27 @@
 #ifndef hifi_TextOverlay_h
 #define hifi_TextOverlay_h
 
-#include <QString>
+#include "QmlOverlay.h"
 
-#include <SharedUtil.h>
-
-#include "Overlay2D.h"
-
-const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
-const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
-const int DEFAULT_MARGIN = 10;
-const int DEFAULT_FONTSIZE = 12;
-const int DEFAULT_FONT_WEIGHT = 50;
-
-class TextOverlayElement;
-
-class TextOverlay : public Overlay2D {
-    Q_OBJECT
-    
+class TextOverlay : public QmlOverlay {
 public:
     static QString const TYPE;
-    virtual QString getType() const { return TYPE; }
+    QString getType() const override { return TYPE; }
+    static QUrl const URL;
+
 
     TextOverlay();
     TextOverlay(const TextOverlay* textOverlay);
     ~TextOverlay();
-    virtual void render(RenderArgs* args);
 
-    // getters
-    const QString& getText() const { return _text; }
-    int getLeftMargin() const { return _leftMargin; }
-    int getTopMargin() const { return _topMargin; }
-    xColor getBackgroundColor();
-    float getBackgroundAlpha() const { return _backgroundAlpha; }
-
-    // setters
+    void setTopMargin(float margin);
+    void setLeftMargin(float margin);
+    void setFontSize(float size);
     void setText(const QString& text);
-    void setLeftMargin(int margin);
-    void setTopMargin(int margin);
-    void setFontSize(int fontSize);
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual TextOverlay* createClone() const;
-    virtual QScriptValue getProperty(const QString& property);
 
+    TextOverlay* createClone() const override;
     QSizeF textSize(const QString& text) const;  // Pixels
-
-private:
-    TextOverlayElement* _qmlElement{ nullptr };
-    QString _text;
-    xColor _backgroundColor;
-    float _backgroundAlpha;
-    int _leftMargin;
-    int _topMargin;
-    int _fontSize;
 };
 
  

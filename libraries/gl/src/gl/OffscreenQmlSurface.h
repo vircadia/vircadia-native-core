@@ -35,7 +35,7 @@ public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
 
-    using MouseTranslator = std::function<QPointF(const QPointF&)>;
+    using MouseTranslator = std::function<QPoint(const QPointF&)>;
 
     virtual void create(QOpenGLContext* context);
     void resize(const QSize& size);
@@ -44,6 +44,9 @@ public:
     Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
     }
+
+    Q_INVOKABLE void executeOnUiThread(std::function<void()> function, bool blocking = false);
+    Q_INVOKABLE QVariant returnFromUiThread(std::function<QVariant()> function);
 
     void setMaxFps(uint8_t maxFps) { _maxFps = maxFps; }
     // Optional values for event handling
@@ -71,6 +74,7 @@ signals:
 public slots:
     void requestUpdate();
     void requestRender();
+    void onAboutToQuit();
 
 private:
     QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
@@ -91,8 +95,8 @@ private:
     bool _polish{ true };
     bool _paused{ true };
     uint8_t _maxFps{ 60 };
-    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p;  } };
-
+    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
+    QWindow* _proxyWindow { nullptr };
 };
 
 #endif

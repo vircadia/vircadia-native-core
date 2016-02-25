@@ -52,7 +52,7 @@ function makeGrenade() {
                                 dimensions: { x: 0.09,
                                               y: 0.20,
                                               z: 0.09 },
-                                collisionsWillMove: true,
+                                dynamic: true,
                                 modelURL: grenadeURL,
                                 shapeType: "box"
                               });
@@ -160,7 +160,7 @@ function blowShitUp(position, radius) {
     var SPIN_RATE = 20.0;
     for (var i = 0; i < stuff.length; i++) {
         var properties = Entities.getEntityProperties(stuff[i]);
-        if (properties.collisionsWillMove) {
+        if (properties.dynamic) {
             var diff = Vec3.subtract(properties.position, position);
             var distance = Vec3.length(diff);
             var velocity = Vec3.sum(properties.velocity, Vec3.multiply(STRENGTH * 1.0 / distance, Vec3.normalize(diff)));

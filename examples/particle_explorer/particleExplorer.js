@@ -2,215 +2,497 @@
 //  particleExplorer.js
 //
 //  Created by James B. Pollack @imgntn on 9/26/2015
-//  includes setup from @ctrlaltdavid's particlesTest.js
 //  Copyright 2015 High Fidelity, Inc.
-//
-//  Interface side of the App.
-//  Quickly edit the aesthetics of a particle system.  
+//  Web app side of the App - contains GUI.
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  next version: 2 way bindings, integrate with edit.js
-//
-/*global print, WebWindow, MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
+/*global window, alert, EventBridge, dat, listenForSettingsUpdates,createVec3Folder,createQuatFolder,writeVec3ToInterface,writeDataToInterface*/
 
-var box,
-    sphere,
-    sphereDimensions = {
-        x: 0.4,
-        y: 0.8,
-        z: 0.2
-    },
-    pointDimensions = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0
-    },
-    sphereOrientation = Quat.fromPitchYawRollDegrees(-60.0, 30.0, 0.0),
-    verticalOrientation = Quat.fromPitchYawRollDegrees(-90.0, 0.0, 0.0),
-    particles,
-    particleExample = -1,
-    PARTICLE_RADIUS = 0.04,
-    SLOW_EMIT_RATE = 2.0,
-    HALF_EMIT_RATE = 50.0,
-    FAST_EMIT_RATE = 100.0,
-    SLOW_EMIT_SPEED = 0.025,
-    FAST_EMIT_SPEED = 1.0,
-    GRAVITY_EMIT_ACCELERATON = {
-        x: 0.0,
-        y: -0.3,
-        z: 0.0
-    },
-    ZERO_EMIT_ACCELERATON = {
-        x: 0.0,
-        y: 0.0,
-        z: 0.0
-    },
-    PI = 3.141593,
-    DEG_TO_RAD = PI / 180.0,
-    NUM_PARTICLE_EXAMPLES = 18;
-
-var particleProperties;
-
-function setUp() {
-    var boxPoint,
-        spawnPoint;
-
-    boxPoint = Vec3.sum(MyAvatar.position, Vec3.multiply(4.0, Quat.getFront(Camera.getOrientation())));
-    boxPoint = Vec3.sum(boxPoint, {
-        x: 0.0,
-        y: -0.5,
-        z: 0.0
-    });
-    spawnPoint = Vec3.sum(boxPoint, {
-        x: 0.0,
-        y: 1.0,
-        z: 0.0
-    });
-
-    box = Entities.addEntity({
-        type: "Box",
-        name: "ParticlesTest Box",
-        position: boxPoint,
-        rotation: verticalOrientation,
-        dimensions: {
-            x: 0.3,
-            y: 0.3,
-            z: 0.3
-        },
-        color: {
-            red: 128,
-            green: 128,
-            blue: 128
-        },
-        lifetime: 3600, // 1 hour; just in case
-        visible: true
-    });
-
-    // Same size and orientation as emitter when ellipsoid.
-    sphere = Entities.addEntity({
-        type: "Sphere",
-        name: "ParticlesTest Sphere",
-        position: boxPoint,
-        rotation: sphereOrientation,
-        dimensions: sphereDimensions,
-        color: {
-            red: 128,
-            green: 128,
-            blue: 128
-        },
-        lifetime: 3600, // 1 hour; just in case
-        visible: false
-    });
-
-    // 1.0m above the box or ellipsoid.
-    particles = Entities.addEntity({
-        type: "ParticleEffect",
-        name: "ParticlesTest Emitter",
-        position: spawnPoint,
-        emitOrientation: verticalOrientation,
-        particleRadius: PARTICLE_RADIUS,
-        radiusSpread: 0.0,
-        emitRate: SLOW_EMIT_RATE,
-        emitSpeed: FAST_EMIT_SPEED,
-        speedSpread: 0.0,
-        emitAcceleration: GRAVITY_EMIT_ACCELERATON,
-        accelerationSpread: {
-            x: 0.0,
-            y: 0.0,
-            z: 0.0
-        },
-        textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
-        color: {
-            red: 255,
-            green: 255,
-            blue: 255
-        },
-        lifespan: 5.0,
-        locked: false,
-        isEmitting: true,
-        lifetime: 3600 // 1 hour; just in case
-    });
-
-}
-
-SettingsWindow = function() {
-    var _this = this;
-
-    this.webWindow = null;
-
-    this.init = function() {
-        Script.update.connect(waitForObjectAuthorization);
-        _this.webWindow = new WebWindow('Particle Explorer', Script.resolvePath('index.html'), 400, 600, false);
-        _this.webWindow.eventBridge.webEventReceived.connect(_this.onWebEventReceived);
+var Settings = function() {
+    this.exportSettings = function() {
+        //copyExportSettingsToClipboard();
+        showPreselectedPrompt();
     };
-
-    this.sendData = function(data) {
-        _this.webWindow.eventBridge.emitScriptEvent(JSON.stringify(data));
-    };
-
-    this.onWebEventReceived = function(data) {
-        var _data = JSON.parse(data);
-        if (_data.messageType === 'page_loaded') {
-            _this.webWindow.setVisible(true);
-            _this.pageLoaded = true;
-            sendInitialSettings(particleProperties);
-        }
-        if (_data.messageType === 'settings_update') {
-            editEntity(_data.updatedSettings);
-            return;
-        }
-
+    this.importSettings = function() {
+        importSettings();
     };
 };
 
-function waitForObjectAuthorization() {
-    var properties = Entities.getEntityProperties(particles, "isKnownID");
-    var isKnownID = properties.isKnownID;
-    if (isKnownID === false || SettingsWindow.pageLoaded === false) {
-        return;
+//2-way bindings-aren't quite ready yet.  see bottom of file.
+var AUTO_UPDATE = false;
+var UPDATE_ALL_FREQUENCY = 100;
+
+var controllers = [];
+var colorControllers = [];
+var folders = [];
+var gui = null;
+var settings = new Settings();
+var updateInterval;
+
+var currentInputField;
+var storedController;
+//CHANGE TO WHITELIST
+var keysToAllow = [
+    'isEmitting',
+    'maxParticles',
+    'lifespan',
+    'emitRate',
+    'emitSpeed',
+    'speedSpread',
+    'emitOrientation',
+    'emitDimensios',
+    'emitRadiusStart',
+    'polarStart',
+    'polarFinish',
+    'azimuthFinish',
+    'emitAcceleration',
+    'accelerationSpread',
+    'particleRadius',
+    'radiusSpread',
+    'radiusStart',
+    'radiusFinish',
+    'color',
+    'colorSpread',
+    'colorStart',
+    'colorFinish',
+    'alpha',
+    'alphaSpread',
+    'alphaStart',
+    'alphaFinish',
+    'emitterShouldTrail',
+    'textures'
+];
+
+var individualKeys = [];
+var vec3Keys = [];
+var quatKeys = [];
+var colorKeys = [];
+
+window.onload = function() {
+
+    openEventBridge(function() {
+        var stringifiedData = JSON.stringify({
+            messageType: 'page_loaded'
+        });
+
+        EventBridge.emitWebEvent(
+            stringifiedData
+        );
+
+        listenForSettingsUpdates();
+        window.onresize = setGUIWidthToWindowWidth;
+    })
+
+};
+
+function loadGUI() {
+    //whether or not to autoplace
+    gui = new dat.GUI({
+        autoPlace: false
+    });
+
+    //if not autoplacing, put gui in a custom container
+    if (gui.autoPlace === false) {
+        var customContainer = document.getElementById('my-gui-container');
+        customContainer.appendChild(gui.domElement);
     }
-    var currentProperties = Entities.getEntityProperties(particles);
-    particleProperties = currentProperties;
-    Script.update.connect(sendObjectUpdates);
-    Script.update.disconnect(waitForObjectAuthorization);
+
+    // presets for the GUI itself.   a little confusing and import/export is mostly what we want to do at the moment.
+    // gui.remember(settings);
+
+    var keys = _.keys(settings);
+
+    _.each(keys, function(key) {
+        var shouldAllow = _.contains(keysToAllow, key);
+
+        if (shouldAllow) {
+            var subKeys = _.keys(settings[key]);
+            var hasX = _.contains(subKeys, 'x');
+            var hasY = _.contains(subKeys, 'y');
+            var hasZ = _.contains(subKeys, 'z');
+            var hasW = _.contains(subKeys, 'w');
+            var hasRed = _.contains(subKeys, 'red');
+            var hasGreen = _.contains(subKeys, 'green');
+            var hasBlue = _.contains(subKeys, 'blue');
+
+            if ((hasX && hasY && hasZ) && hasW === false) {
+                vec3Keys.push(key);
+            } else if (hasX && hasY && hasZ && hasW) {
+                quatKeys.push(key);
+            } else if (hasRed || hasGreen || hasBlue) {
+                colorKeys.push(key);
+
+            } else {
+                individualKeys.push(key);
+            }
+        }
+    });
+
+    //alphabetize our keys
+    individualKeys.sort();
+    vec3Keys.sort();
+    quatKeys.sort();
+    colorKeys.sort();
+
+    //add to gui in the order they should appear
+    gui.add(settings, 'importSettings');
+    gui.add(settings, 'exportSettings');
+    addIndividualKeys();
+    addFolders();
+
+    //set the gui width to match the web window width
+    gui.width = window.innerWidth;
+
+    //2-way binding stuff
+    // if (AUTO_UPDATE) {
+    //     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
+    //     registerDOMElementsForListenerBlocking();
+    // }
+
 }
 
-function sendObjectUpdates() {
-    var currentProperties = Entities.getEntityProperties(particles);
-    sendUpdatedObject(currentProperties);
+function addIndividualKeys() {
+    _.each(individualKeys, function(key) {
+        //temporary patch for not crashing when this goes below 0
+        var controller;
+
+        if (key.indexOf('emitRate') > -1) {
+            controller = gui.add(settings, key).min(0);
+        } else {
+            controller = gui.add(settings, key);
+        }
+
+        //2-way - need to fix not being able to input exact values if constantly listening
+        //controller.listen();
+
+        //keep track of our controller
+        controllers.push(controller);
+
+        //hook into change events for this gui controller
+        controller.onChange(function(value) {
+            // Fires on every change, drag, keypress, etc.
+            writeDataToInterface(this.property, value);
+        });
+
+    });
 }
 
-function sendInitialSettings(properties) {
-    var settings = {
-        messageType: 'initial_settings',
-        initialSettings: properties
+function addFolders() {
+    _.each(colorKeys, function(key) {
+        createColorPicker(key);
+    });
+    _.each(vec3Keys, function(key) {
+        createVec3Folder(key);
+    });
+    _.each(quatKeys, function(key) {
+        createQuatFolder(key);
+    });
+}
+
+function createColorPicker(key) {
+    var colorObject = settings[key];
+    var colorArray = convertColorObjectToArray(colorObject);
+    settings[key] = colorArray;
+    var controller = gui.addColor(settings, key);
+    controller.onChange(function(value) {
+        var obj = {};
+        obj[key] = convertColorArrayToObject(value);
+        writeVec3ToInterface(obj);
+    });
+
+    return;
+}
+
+function createVec3Folder(category) {
+    var folder = gui.addFolder(category);
+
+    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj);
+    });
+
+    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        obj[category].z = settings[category].z;
+        writeVec3ToInterface(obj);
+    });
+
+    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].y = settings[category].y;
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj);
+    });
+
+    folders.push(folder);
+    folder.open();
+}
+
+function createQuatFolder(category) {
+    var folder = gui.addFolder(category);
+
+    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category][this.property] = value;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+
+    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category][this.property] = value;
+        obj[category].z = settings[category].z;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+
+    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category][this.property] = value;
+        obj[category].w = settings[category].w;
+        writeVec3ToInterface(obj);
+    });
+
+    folder.add(settings[category], 'w').step(0.1).onChange(function(value) {
+        // Fires when a controller loses focus.
+        var obj = {};
+        obj[category] = {};
+        obj[category].x = settings[category].x;
+        obj[category].y = settings[category].y;
+        obj[category].z = settings[category].z;
+        obj[category][this.property] = value;
+        writeVec3ToInterface(obj);
+    });
+
+    folders.push(folder);
+    folder.open();
+}
+
+function convertColorObjectToArray(colorObject) {
+    var colorArray = [];
+
+    _.each(colorObject, function(singleColor) {
+        colorArray.push(singleColor);
+    });
+
+    return colorArray;
+}
+
+function convertColorArrayToObject(colorArray) {
+    var colorObject = {
+        red: colorArray[0],
+        green: colorArray[1],
+        blue: colorArray[2]
     };
 
-    settingsWindow.sendData(settings);
+    return colorObject;
 }
 
-function sendUpdatedObject(properties) {
-    var settings = {
-        messageType: 'object_update',
-        objectSettings: properties
+function writeDataToInterface(property, value) {
+    var data = {};
+    data[property] = value;
+
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: data
     };
-    settingsWindow.sendData(settings);
+
+    var stringifiedData = JSON.stringify(sendData);
+
+    EventBridge.emitWebEvent(stringifiedData);
 }
 
-function editEntity(properties) {
-    Entities.editEntity(particles, properties);
+function writeVec3ToInterface(obj) {
+    var sendData = {
+        messageType: "settings_update",
+        updatedSettings: obj
+    };
+
+    var stringifiedData = JSON.stringify(sendData);
+
+    EventBridge.emitWebEvent(stringifiedData);
 }
 
-function tearDown() {
-    Entities.deleteEntity(particles);
-    Entities.deleteEntity(box);
-    Entities.deleteEntity(sphere);
-    Script.update.disconnect(sendObjectUpdates);
+function listenForSettingsUpdates() {
+    EventBridge.scriptEventReceived.connect(function(data) {
+        data = JSON.parse(data);
+        if (data.messageType === 'particle_settings') {
+            _.each(data.currentProperties, function(value, key) {
+                settings[key] = {};
+                settings[key] = value;
+            });
+
+            loadGUI();
+        }
+
+    });
 }
 
-var settingsWindow = new SettingsWindow();
-settingsWindow.init();
-setUp();
-Script.scriptEnding.connect(tearDown);
+function manuallyUpdateDisplay() {
+    // Iterate over all controllers
+    // this is expensive, write a method for indiviudal controllers and use it when the value is different than a cached value, perhaps.
+    var i;
+    for (i in gui.__controllers) {
+        gui.__controllers[i].updateDisplay();
+    }
+}
+
+function setGUIWidthToWindowWidth() {
+    if (gui !== null) {
+        gui.width = window.innerWidth;
+    }
+}
+
+function handleInputKeyPress(e) {
+    if (e.keyCode === 13) {
+        importSettings();
+    }
+    return false;
+}
+
+function importSettings() {
+    var importInput = document.getElementById('importer-input');
+
+    try {
+        var importedSettings = JSON.parse(importInput.value);
+
+        var keys = _.keys(importedSettings);
+
+        _.each(keys, function(key) {
+            var shouldAllow = _.contains(keysToAllow, key);
+
+            if (!shouldAllow) {
+                return;
+            }
+
+            settings[key] = importedSettings[key];
+        });
+
+        writeVec3ToInterface(settings);
+
+        manuallyUpdateDisplay();
+    } catch (e) {
+        alert('Not properly formatted JSON');
+    }
+}
+
+function prepareSettingsForExport() {
+    var keys = _.keys(settings);
+
+    var exportSettings = {};
+
+    _.each(keys, function(key) {
+        var shouldAllow = _.contains(keysToAllow, key);
+
+        if (!shouldAllow) {
+            return;
+        }
+
+        if (key.indexOf('color') > -1) {
+            var colorObject = convertColorArrayToObject(settings[key]);
+            settings[key] = colorObject;
+        }
+
+        exportSettings[key] = settings[key];
+    });
+
+    return JSON.stringify(exportSettings, null, 4);
+}
+
+function showPreselectedPrompt() {
+    var elem = document.getElementById("exported-props");
+    var exportSettings = prepareSettingsForExport();
+    elem.innerHTML = "";
+    var buttonnode= document.createElement('input');
+    buttonnode.setAttribute('type','button');
+    buttonnode.setAttribute('value','close');
+    elem.appendChild(document.createTextNode("COPY THE BELOW FIELD TO CLIPBOARD:"));
+    elem.appendChild(document.createElement("br"));
+    var textAreaNode = document.createElement("textarea");
+    textAreaNode.value = exportSettings;
+    elem.appendChild(textAreaNode);
+    elem.appendChild(document.createElement("br"));
+    elem.appendChild(buttonnode);
+
+    buttonnode.onclick = function() {
+        console.log("click")
+        elem.innerHTML = "";
+    }
+
+    //window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
+}
+
+function removeContainerDomElement() {
+    var elem = document.getElementById("my-gui-container");
+    elem.parentNode.removeChild(elem);
+}
+
+function removeListenerFromGUI(key) {
+    _.each(gui.__listening, function(controller, index) {
+        if (controller.property === key) {
+            storedController = controller;
+            gui.__listening.splice(index, 1);
+        }
+    });
+}
+
+//the section below is to try to work at achieving two way bindings;
+
+function addListenersBackToGUI() {
+    gui.__listening.push(storedController);
+    storedController = null;
+}
+
+function registerDOMElementsForListenerBlocking() {
+    _.each(gui.__controllers, function(controller) {
+        var input = controller.domElement.childNodes[0];
+        input.addEventListener('focus', function() {
+            console.log('INPUT ELEMENT GOT FOCUS!' + controller.property);
+            removeListenerFromGUI(controller.property);
+        });
+    });
+
+    _.each(gui.__controllers, function(controller) {
+        var input = controller.domElement.childNodes[0];
+        input.addEventListener('blur', function() {
+            console.log('INPUT ELEMENT GOT BLUR!' + controller.property);
+            addListenersBackToGUI();
+        });
+    });
+
+    // also listen to inputs inside of folders
+    _.each(gui.__folders, function(folder) {
+        _.each(folder.__controllers, function(controller) {
+            var input = controller.__input;
+            input.addEventListener('focus', function() {
+                console.log('FOLDER ELEMENT GOT FOCUS!' + controller.property);
+            });
+        });
+    });
+}

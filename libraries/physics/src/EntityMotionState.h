@@ -28,14 +28,14 @@ public:
     EntityMotionState(btCollisionShape* shape, EntityItemPointer item);
     virtual ~EntityMotionState();
 
-    void updateServerPhysicsVariables(const QUuid& sessionID);
-    virtual bool handleEasyChanges(uint32_t& flags, PhysicsEngine* engine);
-    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
+    void updateServerPhysicsVariables();
+    virtual bool handleEasyChanges(uint32_t& flags) override;
+    virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) override;
 
-    /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
-    virtual MotionType computeObjectMotionType() const;
+    /// \return PhysicsMotionType based on params set in EntityItem
+    virtual PhysicsMotionType computePhysicsMotionType() const override;
 
-    virtual bool isMoving() const;
+    virtual bool isMoving() const override;
 
     // this relays incoming position/rotation to the RigidBody
     virtual void getWorldTransform(btTransform& worldTrans) const override;
@@ -48,12 +48,12 @@ public:
     bool shouldSendUpdate(uint32_t simulationStep, const QUuid& sessionID);
     void sendUpdate(OctreeEditPacketSender* packetSender, const QUuid& sessionID, uint32_t step);
 
-    virtual uint32_t getIncomingDirtyFlags();
-    virtual void clearIncomingDirtyFlags();
+    virtual uint32_t getIncomingDirtyFlags() override;
+    virtual void clearIncomingDirtyFlags() override;
 
     void incrementAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount++; }
     void resetAccelerationNearlyGravityCount() { _accelerationNearlyGravityCount = 0; }
-    quint8 getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
+    uint8_t getAccelerationNearlyGravityCount() { return _accelerationNearlyGravityCount; }
 
     virtual float getObjectRestitution() const override { return _entity->getRestitution(); }
     virtual float getObjectFriction() const override { return _entity->getFriction(); }
@@ -67,11 +67,11 @@ public:
     virtual glm::vec3 getObjectGravity() const override { return _entity->getGravity(); }
     virtual glm::vec3 getObjectLinearVelocityChange() const override;
 
-    virtual const QUuid& getObjectID() const override { return _entity->getID(); }
+    virtual const QUuid getObjectID() const override { return _entity->getID(); }
 
-    virtual quint8 getSimulationPriority() const override;
+    virtual uint8_t getSimulationPriority() const override;
     virtual QUuid getSimulatorID() const override;
-    virtual void bump(quint8 priority) override;
+    virtual void bump(uint8_t priority) override;
 
     EntityItemPointer getEntity() const { return _entityPtr.lock(); }
 
@@ -80,10 +80,10 @@ public:
 
     virtual QString getName() const override;
 
-    virtual int16_t computeCollisionGroup() const override;
+    virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
     // eternal logic can suggest a simuator priority bid for the next outgoing update
-    void setOutgoingPriority(quint8 priority);
+    void setOutgoingPriority(uint8_t priority);
 
     friend class PhysicalEntitySimulation;
 
@@ -93,8 +93,8 @@ protected:
     #endif
 
     virtual bool isReadyToComputeShape() const override;
-    virtual btCollisionShape* computeNewShape();
-    virtual void setMotionType(MotionType motionType);
+    virtual btCollisionShape* computeNewShape() override;
+    virtual void setMotionType(PhysicsMotionType motionType);
 
     // In the glorious future (when entities lib depends on physics lib) the EntityMotionState will be
     // properly "owned" by the EntityItem and will be deleted by it in the dtor.  In pursuit of that
@@ -106,10 +106,6 @@ protected:
     // Meanwhile we also keep a raw EntityItem* for internal stuff where the pointer is guaranteed valid.
     EntityItem* _entity;
 
-    bool _sentInactive;   // true if body was inactive when we sent last update
-
-    // these are for the prediction of the remote server's simple extrapolation
-    uint32_t _lastStep; // last step of server extrapolation
     glm::vec3 _serverPosition;    // in simulation-frame (not world-frame)
     glm::quat _serverRotation;
     glm::vec3 _serverVelocity;
@@ -118,15 +114,18 @@ protected:
     glm::vec3 _serverAcceleration;
     QByteArray _serverActionData;
 
-    uint32_t _lastMeasureStep;
     glm::vec3 _lastVelocity;
     glm::vec3 _measuredAcceleration;
-    float _measuredDeltaTime;
+    quint64 _nextOwnershipBid { 0 };
 
-    quint8 _accelerationNearlyGravityCount;
-    quint64 _nextOwnershipBid = NO_PRORITY;
-    uint32_t _loopsWithoutOwner;
-    quint8 _outgoingPriority = NO_PRORITY;
+    float _measuredDeltaTime;
+    uint32_t _lastMeasureStep;
+    uint32_t _lastStep; // last step of server extrapolation
+
+    uint8_t _loopsWithoutOwner;
+    uint8_t _accelerationNearlyGravityCount;
+    uint8_t _numInactiveUpdates { 1 };
+    uint8_t _outgoingPriority { ZERO_SIMULATION_PRIORITY };
 };
 
 #endif // hifi_EntityMotionState_h

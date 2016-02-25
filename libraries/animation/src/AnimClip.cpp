@@ -13,12 +13,15 @@
 #include "AnimationLogging.h"
 #include "AnimUtil.h"
 
-AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag) :
+bool AnimClip::usePreAndPostPoseFromAnim = false;
+
+AnimClip::AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag) :
     AnimNode(AnimNode::Type::Clip, id),
     _startFrame(startFrame),
     _endFrame(endFrame),
     _timeScale(timeScale),
     _loopFlag(loopFlag),
+    _mirrorFlag(mirrorFlag),
     _frame(startFrame)
 {
     loadURL(url);
@@ -35,6 +38,7 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     _endFrame = animVars.lookup(_endFrameVar, _endFrame);
     _timeScale = animVars.lookup(_timeScaleVar, _timeScale);
     _loopFlag = animVars.lookup(_loopFlagVar, _loopFlag);
+    _mirrorFlag = animVars.lookup(_mirrorFlagVar, _mirrorFlag);
     float frame = animVars.lookup(_frameVar, _frame);
 
     _frame = ::accumulateTime(_startFrame, _endFrame, _timeScale, frame, dt, _loopFlag, _id, triggersOut);
@@ -47,6 +51,12 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
     }
 
     if (_anim.size()) {
+
+        // lazy creation of mirrored animation frames.
+        if (_mirrorFlag && _anim.size() != _mirrorAnim.size()) {
+            buildMirrorAnim();
+        }
+
         int prevIndex = (int)glm::floor(_frame);
         int nextIndex;
         if (_loopFlag && _frame >= _endFrame) {
@@ -61,8 +71,8 @@ const AnimPoseVec& AnimClip::evaluate(const AnimVariantMap& animVars, float dt, 
         prevIndex = std::min(std::max(0, prevIndex), frameCount - 1);
         nextIndex = std::min(std::max(0, nextIndex), frameCount - 1);
 
-        const AnimPoseVec& prevFrame = _anim[prevIndex];
-        const AnimPoseVec& nextFrame = _anim[nextIndex];
+        const AnimPoseVec& prevFrame = _mirrorFlag ? _mirrorAnim[prevIndex] : _anim[prevIndex];
+        const AnimPoseVec& nextFrame = _mirrorFlag ? _mirrorAnim[nextIndex] : _anim[nextIndex];
         float alpha = glm::fract(_frame);
 
         ::blend(_poses.size(), &prevFrame[0], &nextFrame[0], alpha, &_poses[0]);
@@ -109,6 +119,8 @@ void AnimClip::copyFromNetworkAnim() {
 
     for (int frame = 0; frame < frameCount; frame++) {
 
+        const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+
         // init all joints in animation to default pose
         // this will give us a resonable result for bones in the model skeleton but not in the animation.
         _anim[frame].reserve(skeletonJointCount);
@@ -119,43 +131,61 @@ void AnimClip::copyFromNetworkAnim() {
         for (int animJoint = 0; animJoint < animJointCount; animJoint++) {
             int skeletonJoint = jointMap[animJoint];
 
+            const glm::vec3& fbxAnimTrans = fbxAnimFrame.translations[animJoint];
+            const glm::quat& fbxAnimRot = fbxAnimFrame.rotations[animJoint];
+
             // skip joints that are in the animation but not in the skeleton.
             if (skeletonJoint >= 0 && skeletonJoint < skeletonJointCount) {
 
-                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
-#ifdef USE_PRE_ROT_FROM_ANIM
-                // TODO: This is the correct way to apply the pre rotations from maya, however
-                // the current animation set has incorrect preRotations for the left wrist and thumb
-                // so it looks wrong if we enable this code.
-                glm::quat preRotation = animSkeleton.getPreRotation(animJoint);
-#else
-                // TODO: This is the legacy approach, this does not work when animations and models do not
-                // have the same set of pre rotations.  For example when mixing maya models with blender animations.
-                glm::quat preRotation = _skeleton->getRelativeBindPose(skeletonJoint).rot;
-#endif
-                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
+                AnimPose preRot, postRot;
+                if (usePreAndPostPoseFromAnim) {
+                    preRot = animSkeleton.getPreRotationPose(animJoint);
+                    postRot = animSkeleton.getPostRotationPose(animJoint);
+                } else {
+                    // In order to support Blender, which does not have preRotation FBX support, we use the models defaultPose as the reference frame for the animations.
+                    preRot = AnimPose(glm::vec3(1.0f), _skeleton->getRelativeBindPose(skeletonJoint).rot, glm::vec3());
+                    postRot = AnimPose::identity;
+                }
 
-                // used to adjust translation offsets, so large translation animatons on the reference skeleton
+                // cancel out scale
+                preRot.scale = glm::vec3(1.0f);
+                postRot.scale = glm::vec3(1.0f);
+
+                AnimPose rot(glm::vec3(1.0f), fbxAnimRot, glm::vec3());
+
+                // adjust translation offsets, so large translation animatons on the reference skeleton
                 // will be adjusted when played on a skeleton with short limbs.
-                float limbLengthScale = fabsf(glm::length(fbxZeroTrans)) <= 0.0001f ? 1.0f : (glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans));
+                const glm::vec3& fbxZeroTrans = geom.animationFrames[0].translations[animJoint];
+                const AnimPose& relDefaultPose = _skeleton->getRelativeDefaultPose(skeletonJoint);
+                float boneLengthScale = 1.0f;
+                const float EPSILON = 0.0001f;
+                if (fabsf(glm::length(fbxZeroTrans)) > EPSILON) {
+                    boneLengthScale = glm::length(relDefaultPose.trans) / glm::length(fbxZeroTrans);
+                }
 
-                AnimPose& pose = _anim[frame][skeletonJoint];
-                const FBXAnimationFrame& fbxAnimFrame = geom.animationFrames[frame];
+                AnimPose trans = AnimPose(glm::vec3(1.0f), glm::quat(), relDefaultPose.trans + boneLengthScale * (fbxAnimTrans - fbxZeroTrans));
 
-                // rotation in fbxAnimationFrame is a delta from its preRotation.
-                pose.rot = preRotation * fbxAnimFrame.rotations[animJoint];
-
-                // translation in fbxAnimationFrame is not a delta.
-                // convert it into a delta by subtracting from the first frame.
-                const glm::vec3& fbxTrans = fbxAnimFrame.translations[animJoint];
-                pose.trans = relDefaultPose.trans + limbLengthScale * (fbxTrans - fbxZeroTrans);
+                _anim[frame][skeletonJoint] = trans * preRot * rot * postRot;
             }
         }
     }
 
+    // mirrorAnim will be re-built on demand, if needed.
+    _mirrorAnim.clear();
+
     _poses.resize(skeletonJointCount);
 }
 
+void AnimClip::buildMirrorAnim() {
+    assert(_skeleton);
+
+    _mirrorAnim.clear();
+    _mirrorAnim.reserve(_anim.size());
+    for (auto& relPoses : _anim) {
+        _mirrorAnim.push_back(relPoses);
+        _skeleton->mirrorRelativePoses(_mirrorAnim.back());
+    }
+}
 
 const AnimPoseVec& AnimClip::getPosesInternal() const {
     return _poses;

@@ -18,6 +18,8 @@
 
 #include "FramebufferCache.h"
 
+const int ToneMappingEffect_ParamsSlot = 0;
+const int ToneMappingEffect_LightingMapSlot = 0;
 
 ToneMappingEffect::ToneMappingEffect() {
     Parameters parameters;
@@ -91,7 +93,8 @@ void ToneMappingEffect::init() {
     auto blitProgram = gpu::ShaderPointer(gpu::Shader::createProgram(blitVS, blitPS));
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), 3));
+    slotBindings.insert(gpu::Shader::Binding(std::string("toneMappingParamsBuffer"), ToneMappingEffect_ParamsSlot));
+    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
     gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
     blitState->setColorWriteMask(true, true, true, true);
@@ -112,7 +115,7 @@ void ToneMappingEffect::render(RenderArgs* args) {
         init();
     }
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         QSize framebufferSize = framebufferCache->getFrameBufferSize();
 
@@ -138,8 +141,23 @@ void ToneMappingEffect::render(RenderArgs* args) {
             batch.setModelTransform(model);
         }
 
-        batch.setUniformBuffer(3, _parametersBuffer);
-        batch.setResourceTexture(0, lightingBuffer);
+        batch.setUniformBuffer(ToneMappingEffect_ParamsSlot, _parametersBuffer);
+        batch.setResourceTexture(ToneMappingEffect_LightingMapSlot, lightingBuffer);
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     });
+}
+
+
+void ToneMappingDeferred::configure(const Config& config) {
+    if (config.exposure >= 0.0f) {
+        _toneMappingEffect.setExposure(config.exposure);
+    }
+
+    if (config.curve >= 0) {
+        _toneMappingEffect.setToneCurve((ToneMappingEffect::ToneCurve)config.curve);
+    }
+}
+
+void ToneMappingDeferred::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext) {
+    _toneMappingEffect.render(renderContext->args);
 }

@@ -89,7 +89,7 @@ public:
     bool isVisible() const { return _isVisible; }
 
     void updateRenderItems();
-    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation);
+    AABox getPartBounds(int meshIndex, int partIndex, glm::vec3 modelPosition, glm::quat modelOrientation) const;
 
     bool maybeStartBlender();
 
@@ -197,7 +197,7 @@ public:
 
     /// enables/disables scale to fit behavior, the model will be automatically scaled to the specified largest dimension
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
-    const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
+    glm::vec3 getScaleToFitDimensions() const; /// the dimensions model is scaled to, including inferred y/z
 
     void setCauterizeBones(bool flag) { _cauterizeBones = flag; }
     bool getCauterizeBones() const { return _cauterizeBones; }

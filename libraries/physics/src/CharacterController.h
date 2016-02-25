@@ -18,6 +18,7 @@
 #include <BulletDynamics/Character/btCharacterControllerInterface.h>
 
 #include <GLMHelpers.h>
+#include "BulletUtil.h"
 
 const uint32_t PENDING_FLAG_ADD_TO_SIMULATION = 1U << 0;
 const uint32_t PENDING_FLAG_REMOVE_FROM_SIMULATION = 1U << 1;
@@ -29,6 +30,8 @@ const float DEFAULT_CHARACTER_GRAVITY = -5.0f;
 class btRigidBody;
 class btCollisionWorld;
 class btDynamicsWorld;
+
+//#define DEBUG_STATE_CHANGE
 
 class CharacterController : public btCharacterControllerInterface {
 public:
@@ -66,13 +69,25 @@ public:
     void getPositionAndOrientation(glm::vec3& position, glm::quat& rotation) const;
 
     void setTargetVelocity(const glm::vec3& velocity);
-    void setFollowVelocity(const glm::vec3& velocity);
+    void setParentVelocity(const glm::vec3& parentVelocity);
+    void setFollowParameters(const glm::mat4& desiredWorldMatrix, float timeRemaining);
     float getFollowTime() const { return _followTime; }
+    glm::vec3 getFollowLinearDisplacement() const;
+    glm::quat getFollowAngularDisplacement() const;
+    glm::vec3 getFollowVelocity() const;
 
     glm::vec3 getLinearVelocity() const;
 
-    bool isHovering() const { return _isHovering; }
-    void setHovering(bool enabled);
+    float getCapsuleRadius() const { return _radius; }
+
+    enum class State {
+        Ground = 0,
+        Takeoff,
+        InAir,
+        Hover
+    };
+
+    State getState() const { return _state; }
 
     void setLocalBoundingBox(const glm::vec3& corner, const glm::vec3& scale);
 
@@ -82,41 +97,54 @@ public:
     bool getRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
 
 protected:
+#ifdef DEBUG_STATE_CHANGE
+    void setState(State state, const char* reason);
+#else
+    void setState(State state);
+#endif
+
     void updateUpAxis(const glm::quat& rotation);
+    bool checkForSupport(btCollisionWorld* collisionWorld) const;
 
 protected:
     btVector3 _currentUp;
-    btVector3 _walkVelocity;
-    btVector3 _followVelocity;
+    btVector3 _targetVelocity;
+    btVector3 _parentVelocity;
+    btTransform _followDesiredBodyTransform;
+    btScalar _followTimeRemaining;
     btTransform _characterBodyTransform;
 
     glm::vec3 _shapeLocalOffset;
 
     glm::vec3 _boxScale; // used to compute capsule shape
 
-    quint64 _jumpToHoverStart;
+    quint64 _rayHitStartTime;
+    quint64 _takeoffToInAirStartTime;
+    quint64 _jumpButtonDownStartTime;
+    quint32 _jumpButtonDownCount;
+    quint32 _takeoffJumpButtonID;
 
     btScalar _halfHeight;
     btScalar _radius;
 
     btScalar _floorDistance;
+    bool _hasSupport;
 
     btScalar _gravity;
 
     btScalar _jumpSpeed;
     btScalar _followTime;
+    btVector3 _followLinearDisplacement;
+    btQuaternion _followAngularDisplacement;
 
     bool _enabled;
-    bool _isOnGround;
-    bool _isJumping;
-    bool _isFalling;
-    bool _isHovering;
+    State _state;
     bool _isPushingUp;
 
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };
     uint32_t _pendingFlags { 0 };
-
+    uint32_t _previousFlags { 0 };
 };
 
 #endif // hifi_CharacterControllerInterface_h

@@ -61,11 +61,23 @@ public:
     float getFarClip() const { return _farClip; }
     float getFocalLength() const { return _focalLength; }
 
+    class Corners {
+    public:
+        Corners(glm::vec3&& topLeft, glm::vec3&& topRight, glm::vec3&& bottomLeft, glm::vec3&& bottomRight)
+            : topLeft{ topLeft }, topRight{ topRight }, bottomLeft{ bottomLeft }, bottomRight{ bottomRight } {}
+        glm::vec3 topLeft;
+        glm::vec3 topRight;
+        glm::vec3 bottomLeft;
+        glm::vec3 bottomRight;
+    // Get the corners depth units from frustum position, along frustum orientation
+    };
+    const Corners getCorners(const float& depth);
+
+    // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
     const glm::vec3& getFarTopRight() const { return _cornersWorld[TOP_RIGHT_FAR]; }
     const glm::vec3& getFarBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_FAR]; }
     const glm::vec3& getFarBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_FAR]; }
-
     const glm::vec3& getNearTopLeft() const { return _cornersWorld[TOP_LEFT_NEAR]; }
     const glm::vec3& getNearTopRight() const { return _cornersWorld[TOP_RIGHT_NEAR]; }
     const glm::vec3& getNearBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_NEAR]; }
@@ -108,6 +120,16 @@ public:
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
 
+    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
+                                  int boundaryLevelAdjust = 0) const;
+
+    float getAccuracyAngle(float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
+
+    enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };
+
+    const ::Plane* getPlanes() const { return _planes; }
 private:
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
@@ -143,7 +165,6 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     glm::vec4 _corners[8];
     glm::vec3 _cornersWorld[8];
-    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
     ::Plane _planes[6]; // How will this be used?
 
     const char* debugPlaneName (int plane) const;
@@ -151,6 +172,8 @@ private:
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
 };
+using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h

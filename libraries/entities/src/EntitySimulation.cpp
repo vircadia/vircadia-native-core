@@ -48,6 +48,7 @@ void EntitySimulation::takeEntitiesToDelete(VectorOfEntities& entitiesToDelete) 
 }
 
 void EntitySimulation::removeEntityInternal(EntityItemPointer entity) {
+    QMutexLocker lock(&_mutex);
     // remove from all internal lists except _entitiesToDelete
     _mortalEntities.remove(entity);
     _entitiesToUpdate.remove(entity);
@@ -61,6 +62,7 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
     assert(entity);
     assert(entity->isDead());
     if (entity->isSimulated()) {
+        QMutexLocker lock(&_mutex);
         entity->clearActions(this);
         removeEntityInternal(entity);
         _entitiesToDelete.insert(entity);
@@ -68,13 +70,15 @@ void EntitySimulation::prepareEntityForDelete(EntityItemPointer entity) {
 }
 
 void EntitySimulation::addEntityInternal(EntityItemPointer entity) {
-    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
+        QMutexLocker lock(&_mutex);
         _simpleKinematicEntities.insert(entity);
     }
 }
 
 void EntitySimulation::changeEntityInternal(EntityItemPointer entity) {
-    if (entity->isMoving() && !entity->getPhysicsInfo()) {
+    QMutexLocker lock(&_mutex);
+    if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
         _simpleKinematicEntities.insert(entity);
     } else {
         _simpleKinematicEntities.remove(entity);
@@ -86,6 +90,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
     if (now > _nextExpiry) {
         // only search for expired entities if we expect to find one
         _nextExpiry = quint64(-1);
+        QMutexLocker lock(&_mutex);
         SetOfEntities::iterator itemItr = _mortalEntities.begin();
         while (itemItr != _mortalEntities.end()) {
             EntityItemPointer entity = *itemItr;
@@ -108,6 +113,7 @@ void EntitySimulation::expireMortalEntities(const quint64& now) {
 // protected
 void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
     PerformanceTimer perfTimer("updatingEntities");
+    QMutexLocker lock(&_mutex);
     SetOfEntities::iterator itemItr = _entitiesToUpdate.begin();
     while (itemItr != _entitiesToUpdate.end()) {
         EntityItemPointer entity = *itemItr;
@@ -124,6 +130,7 @@ void EntitySimulation::callUpdateOnEntitiesThatNeedIt(const quint64& now) {
 
 // protected
 void EntitySimulation::sortEntitiesThatMoved() {
+    QMutexLocker lock(&_mutex);
     // NOTE: this is only for entities that have been moved by THIS EntitySimulation.
     // External changes to entity position/shape are expected to be sorted outside of the EntitySimulation.
     PerformanceTimer perfTimer("sortingEntities");
@@ -247,7 +254,7 @@ void EntitySimulation::moveSimpleKinematics(const quint64& now) {
     SetOfEntities::iterator itemItr = _simpleKinematicEntities.begin();
     while (itemItr != _simpleKinematicEntities.end()) {
         EntityItemPointer entity = *itemItr;
-        if (entity->isMoving() && !entity->getPhysicsInfo()) {
+        if (entity->isMovingRelativeToParent() && !entity->getPhysicsInfo()) {
             entity->simulate(now);
             _entitiesToSort.insert(entity);
             ++itemItr;

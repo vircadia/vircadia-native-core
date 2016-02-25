@@ -47,6 +47,10 @@ public:
     virtual bool isForeground() = 0;
     virtual const DisplayPlugin* getActiveDisplayPlugin() const = 0;
 
+    /// settings interface
+    virtual bool getBoolSetting(const QString& settingName, bool defaultValue) = 0;
+    virtual void setBoolSetting(const QString& settingName, bool value) = 0;
+
     QVector<QPair<QString, QString>>& currentDisplayActions() {
         return _currentDisplayPluginActions;
     }

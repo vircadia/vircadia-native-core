@@ -41,12 +41,12 @@ public:
     virtual void deactivate() override;
 
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
-    virtual void pluginUpdate(float deltaTime, bool jointsCaptured) override;
+    virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
 
     void updateRendering(RenderArgs* args, render::ScenePointer scene, render::PendingChanges pendingChanges);
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
-    
+
 private:
     class InputDevice : public controller::InputDevice {
     public:
@@ -55,12 +55,13 @@ private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
         virtual QString getDefaultMappingConfig() const override;
-        virtual void update(float deltaTime, bool jointsCaptured) override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
         virtual void focusOutEvent() override;
 
         void handleButtonEvent(uint32_t button, bool pressed, bool left);
         void handleAxisEvent(uint32_t axis, float x, float y, bool left);
-        void handlePoseEvent(const mat4& mat, bool left);
+        void handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
+                             const vec3& linearVelocity, const vec3& angularVelocity, bool left);
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _hmd;
@@ -68,8 +69,8 @@ private:
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-    
-    
+
+
 
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };

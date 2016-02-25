@@ -151,6 +151,9 @@ class AvatarData : public QObject, public SpatiallyNestable {
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
     Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
 
+    Q_PROPERTY(glm::vec3 velocity READ getVelocity WRITE setVelocity)
+    Q_PROPERTY(glm::vec3 angularVelocity READ getAngularVelocity WRITE setAngularVelocity)
+
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
 
@@ -177,7 +180,7 @@ public:
 
     virtual bool isMyAvatar() const { return false; }
 
-    const QUuid& getSessionUUID() const { return getID(); }
+    const QUuid getSessionUUID() const { return getID(); }
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -277,6 +280,9 @@ public:
 
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
 
+    Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+    Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
+
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
@@ -331,8 +337,6 @@ public:
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
@@ -403,7 +407,6 @@ protected:
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
 
-    glm::vec3 _velocity;
     glm::vec3 _targetVelocity;
 
     AABox _localAABox;
@@ -448,6 +451,9 @@ public:
 
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json);
+
+    QVariant toVariant() const;
+    void fromVariant(const QVariant& variant);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);

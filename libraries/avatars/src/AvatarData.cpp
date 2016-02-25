@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <QVariantGLM.h>
 #include <Transform.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -63,7 +64,6 @@ AvatarData::AvatarData() :
     _billboard(),
     _errorLogExpiry(0),
     _owningAvatarMixer(),
-    _velocity(0.0f),
     _targetVelocity(0.0f),
     _localAABox(DEFAULT_LOCAL_AABOX_CORNER, DEFAULT_LOCAL_AABOX_SCALE)
 {
@@ -216,15 +216,14 @@ QByteArray AvatarData::toByteArray(bool cullSmallChanges, bool sendAll) {
         setAtBit(bitItems, IS_EYE_TRACKER_CONNECTED);
     }
     // referential state
-    bool success;
-    SpatiallyNestablePointer parent = getParentPointer(success);
-    if (parent && success) {
+    QUuid parentID = getParentID();
+    if (!parentID.isNull()) {
         setAtBit(bitItems, HAS_REFERENTIAL);
     }
     *destinationBuffer++ = bitItems;
 
-    if (parent) {
-        QByteArray referentialAsBytes = parent->getID().toRfc4122();
+    if (!parentID.isNull()) {
+        QByteArray referentialAsBytes = parentID.toRfc4122();
         memcpy(destinationBuffer, referentialAsBytes.data(), referentialAsBytes.size());
         destinationBuffer += referentialAsBytes.size();
         memcpy(destinationBuffer, &_parentJointIndex, sizeof(_parentJointIndex));
@@ -492,10 +491,12 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         // avatar's SkeletonModel might fall into the CPU expensive part of Model::updateClusterMatrices() when otherwise it
         // would not have required it.  However, we know we can update many simultaneously animating avatars, and most
         // avatars will be moving constantly anyway, so I don't think we need to worry.
-        if (getBodyYaw() != yaw || getBodyPitch() != pitch || getBodyRoll() != roll) {
+        glm::quat currentOrientation = getLocalOrientation();
+        glm::vec3 newEulerAngles(pitch, yaw, roll);
+        glm::quat newOrientation = glm::quat(glm::radians(newEulerAngles));
+        if (currentOrientation != newOrientation) {
             _hasNewJointRotations = true;
-            glm::vec3 eulerAngles(pitch, yaw, roll);
-            setLocalOrientation(glm::quat(glm::radians(eulerAngles)));
+            setLocalOrientation(newOrientation);
         }
 
         // scale
@@ -1671,4 +1672,66 @@ glm::quat AvatarData::getAbsoluteJointRotationInObjectFrame(int index) const {
 glm::vec3 AvatarData::getAbsoluteJointTranslationInObjectFrame(int index) const {
     assert(false);
     return glm::vec3();
+}
+
+QVariant AttachmentData::toVariant() const {
+    QVariantMap result;
+    result["modelUrl"] = modelURL;
+    result["jointName"] = jointName;
+    result["translation"] = glmToQMap(translation);
+    result["rotation"] = glmToQMap(glm::degrees(safeEulerAngles(rotation)));
+    result["scale"] = scale;
+    result["soft"] = isSoft;
+    return result;
+}
+
+glm::vec3 variantToVec3(const QVariant& var) {
+    auto map = var.toMap();
+    glm::vec3 result;
+    result.x = map["x"].toFloat();
+    result.y = map["y"].toFloat();
+    result.z = map["z"].toFloat();
+    return result;
+}
+
+void AttachmentData::fromVariant(const QVariant& variant) {
+    auto map = variant.toMap();
+    if (map.contains("modelUrl")) {
+        auto urlString = map["modelUrl"].toString();
+        modelURL = urlString;
+    }
+    if (map.contains("jointName")) {
+        jointName = map["jointName"].toString();
+    }
+    if (map.contains("translation")) {
+        translation = variantToVec3(map["translation"]);
+    }
+    if (map.contains("rotation")) {
+        rotation = glm::quat(glm::radians(variantToVec3(map["rotation"])));
+    }
+    if (map.contains("scale")) {
+        scale = map["scale"].toFloat();
+    }
+    if (map.contains("soft")) {
+        isSoft = map["soft"].toBool();
+    }
+}
+
+QVariantList AvatarData::getAttachmentsVariant() const {
+    QVariantList result;
+    for (const auto& attachment : getAttachmentData()) {
+        result.append(attachment.toVariant());
+    }
+    return result;
+}
+
+void AvatarData::setAttachmentsVariant(const QVariantList& variant) {
+    QVector<AttachmentData> newAttachments;
+    newAttachments.reserve(variant.size());
+    for (const auto& attachmentVar : variant) {
+        AttachmentData attachment;  
+        attachment.fromVariant(attachmentVar);
+        newAttachments.append(attachment);
+    }
+    setAttachmentData(newAttachments);
 }

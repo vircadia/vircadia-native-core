@@ -103,6 +103,7 @@ EntityItemPointer ParticleEffectEntityItem::factory(const EntityItemID& entityID
 // our non-pure virtual subclass for now...
 ParticleEffectEntityItem::ParticleEffectEntityItem(const EntityItemID& entityItemID) :
     EntityItem(entityItemID),
+    _previousPosition(getPosition()),
     _lastSimulated(usecTimestampNow())
 {
     _type = EntityTypes::ParticleEffect;
@@ -623,7 +624,8 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
             }
             
             // emit a new particle at tail index.
-            _particles.push_back(createParticle());
+            _particles.push_back(createParticle(glm::mix(_previousPosition, getPosition(),
+                (deltaTime - timeLeftInFrame) / deltaTime)));
             auto particle = _particles.back();
             particle.lifetime += timeLeftInFrame;
             
@@ -637,15 +639,16 @@ void ParticleEffectEntityItem::stepSimulation(float deltaTime) {
 
         _timeUntilNextEmit -= timeLeftInFrame;
     }
+    _previousPosition = getPosition();
 }
 
-ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle() {
+ParticleEffectEntityItem::Particle ParticleEffectEntityItem::createParticle(const glm::vec3& position) {
     Particle particle;
 
  
     particle.seed = randFloatInRange(-1.0f, 1.0f);
     if (getEmitterShouldTrail()) {
-        particle.position = getPosition();
+        particle.position = position;
     }
     // Position, velocity, and acceleration
     if (_polarStart == 0.0f && _polarFinish == 0.0f && _emitDimensions.z == 0.0f) {

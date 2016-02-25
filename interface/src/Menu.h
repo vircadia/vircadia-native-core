@@ -42,6 +42,7 @@ public:
     QAction* newAction() {
         return new QAction(_realMenu);
     }
+
 private:
     MenuWrapper(QMenu* menu);
 
@@ -117,6 +118,8 @@ public slots:
     void toggleDeveloperMenus();
     void toggleAdvancedMenus();
 
+    static bool isSomeSubmenuShown() { return _isSomeSubmenuShown; }
+
 private:
     typedef void(*settingsAction)(Settings&, QAction&);
     static void loadAction(Settings& settings, QAction& action);
@@ -142,6 +145,8 @@ private:
     bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }
     QHash<QString, bool> _groupingVisible;
     QHash<QString, QSet<QAction*>> _groupingActions;
+
+    static bool _isSomeSubmenuShown;
 };
 
 namespace MenuOption {
@@ -152,10 +157,9 @@ namespace MenuOption {
     const QString AnimDebugDrawAnimPose = "Debug Draw Animation";
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
-    const QString Antialiasing = "Antialiasing";
     const QString AssetMigration = "ATP Asset Migration";
-    const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
+    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
@@ -163,8 +167,8 @@ namespace MenuOption {
     const QString AudioScopeFrames = "Display Frames";
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
-    const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
+    const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString Back = "Back";
@@ -178,7 +182,6 @@ namespace MenuOption {
     const QString CenterPlayerInView = "Center Player In View";
     const QString Chat = "Chat...";
     const QString Collisions = "Collisions";
-    const QString ComfortMode = "Comfort Mode";
     const QString Connexion = "Activate 3D Connexion Devices";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
@@ -186,7 +189,6 @@ namespace MenuOption {
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
     const QString CrashInterface = "Crash Interface";
-    const QString DebugAmbientOcclusion = "Debug Ambient Occlusion";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -207,6 +209,7 @@ namespace MenuOption {
     const QString EchoServerAudio = "Echo Server Audio";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableCharacterController = "Enable avatar collisions";
+    const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -246,8 +249,8 @@ namespace MenuOption {
     const QString OutputMenu = "Display";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
-    const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString PhysicsShowHulls = "Draw Collision Hulls";
+    const QString PhysicsShowOwned = "Highlight Simulation Ownership";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "General...";
     const QString Quit =  "Quit";
@@ -263,18 +266,6 @@ namespace MenuOption {
     const QString RenderResolutionHalf = "1/2";
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
-    const QString RenderAmbientLight = "Ambient Light";
-    const QString RenderAmbientLightGlobal = "Global";
-    const QString RenderAmbientLight0 = "OLD_TOWN_SQUARE";
-    const QString RenderAmbientLight1 = "GRACE_CATHEDRAL";
-    const QString RenderAmbientLight2 = "EUCALYPTUS_GROVE";
-    const QString RenderAmbientLight3 = "ST_PETERS_BASILICA";
-    const QString RenderAmbientLight4 = "UFFIZI_GALLERY";
-    const QString RenderAmbientLight5 = "GALILEOS_TOMB";
-    const QString RenderAmbientLight6 = "VINE_STREET_KITCHEN";
-    const QString RenderAmbientLight7 = "BREEZEWAY";
-    const QString RenderAmbientLight8 = "CAMPUS_SUNSET";
-    const QString RenderAmbientLight9 = "FUNSTON_BEACH_SUNSET";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts...";
@@ -301,6 +292,7 @@ namespace MenuOption {
     const QString UploadAsset = "Upload File to Asset Server";
     const QString UseAudioForMouth = "Use Audio for Mouth";
     const QString UseCamera = "Use Camera";
+    const QString UseAnimPreAndPostRotations = "Use Anim Pre and Post Rotations";
     const QString VelocityFilter = "Velocity Filter";
     const QString VisibleToEveryone = "Everyone";
     const QString VisibleToFriends = "Friends";

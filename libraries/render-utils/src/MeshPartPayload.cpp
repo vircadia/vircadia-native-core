@@ -215,7 +215,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     }
 }
 
-void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void MeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
     batch.setModelTransform(_drawTransform);
 }
 
@@ -224,8 +224,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     PerformanceTimer perfTimer("MeshPartPayload::render");
 
     gpu::Batch& batch = *(args->_batch);
-
-    ShapeKey key = getShapeKey();
 
     auto locations = args->_pipeline->locations;
     assert(locations);
@@ -239,13 +237,6 @@ void MeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
 
-
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }
@@ -442,25 +433,25 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     }
 }
 
-void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations) const {
+void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, bool canCauterize) const {
     // Still relying on the raw data from the model
     const Model::MeshState& state = _model->_meshStates.at(_meshIndex);
 
     Transform transform;
     if (state.clusterBuffer) {
-        if (_model->_cauterizeBones) {
+        if (canCauterize && _model->getCauterizeBones()) {
             batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.cauterizedClusterBuffer);
         } else {
             batch.setUniformBuffer(ShapePipeline::Slot::SKINNING_GPU, state.clusterBuffer);
         }
     } else {
-        if (_model->_cauterizeBones) {
+        if (canCauterize && _model->getCauterizeBones()) {
             transform = Transform(state.cauterizedClusterMatrices[0]);
         } else {
             transform = Transform(state.clusterMatrices[0]);
         }
     }
-  //  transform.preTranslate(_modelPosition);
+
     transform.preTranslate(_transform.getTranslation());
     batch.setModelTransform(transform);
 }
@@ -475,8 +466,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 
     gpu::Batch& batch = *(args->_batch);
 
-    ShapeKey key = getShapeKey();
-    if (!key.isValid()) {
+    if (!getShapeKey().isValid()) {
         return;
     }
 
@@ -499,7 +489,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         transform.setTranslation(partBounds.calcCenter());
         transform.setScale(partBounds.getDimensions());
         batch.setModelTransform(transform);
-        DependencyManager::get<DeferredLightingEffect>()->renderWireCube(batch, 1.0f, cubeColor);
+        DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
 #endif //def DEBUG_BOUNDING_PARTS
     
@@ -507,8 +497,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
+    bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
-    bindTransform(batch, locations);
+    bindTransform(batch, locations, canCauterize);
     
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
@@ -516,13 +507,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     // apply material properties
     bindMaterial(batch, locations);
         
-        
-    // TODO: We should be able to do that just in the renderTransparentJob
-    if (key.isTranslucent() && locations->lightBufferUnit >= 0) {
-        PerformanceTimer perfTimer("DLE->setupTransparent()");
-            
-        DependencyManager::get<DeferredLightingEffect>()->setupTransparent(args, locations->lightBufferUnit);
-    }
     if (args) {
         args->_details._materialSwitches++;
     }

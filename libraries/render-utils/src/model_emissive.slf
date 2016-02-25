@@ -1,0 +1,38 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  model_emissive.frag
+//  fragment shader
+//
+//  Created by Zach Pomerantz on 2/3/2016.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+<@include model/Material.slh@>
+
+uniform sampler2D diffuseMap;
+
+in vec2 _texCoord0;
+in vec3 _normal;
+in vec3 _color;
+in float _alpha;
+
+void main(void) {
+    vec4 texel = texture(diffuseMap, _texCoord0);
+
+    Material mat = getMaterial();
+    vec3 fragColor = getMaterialDiffuse(mat) * texel.rgb * _color;
+
+    packDeferredFragmentLightmap(
+        normalize(_normal), 
+        texel.a,
+        vec3(1.0),
+        getMaterialSpecular(mat),
+        getMaterialShininess(mat),
+        fragColor);
+}

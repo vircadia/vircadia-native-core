@@ -30,7 +30,6 @@
 #include <ShapeInfo.h>
 
 #include "AnimationPropertyGroup.h"
-#include "AtmospherePropertyGroup.h"
 #include "EntityItemID.h"
 #include "EntityItemPropertiesDefaults.h"
 #include "EntityItemPropertiesMacros.h"
@@ -127,8 +126,9 @@ public:
     DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3, ENTITY_ITEM_DEFAULT_REGISTRATION_POINT);
     DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3, ENTITY_ITEM_DEFAULT_ANGULAR_VELOCITY);
     DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float, ENTITY_ITEM_DEFAULT_ANGULAR_DAMPING);
-    DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool, ENTITY_ITEM_DEFAULT_IGNORE_FOR_COLLISIONS);
-    DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool, ENTITY_ITEM_DEFAULT_COLLISIONS_WILL_MOVE);
+    DEFINE_PROPERTY(PROP_COLLISIONLESS, Collisionless, collisionless, bool, ENTITY_ITEM_DEFAULT_COLLISIONLESS);
+    DEFINE_PROPERTY(PROP_COLLISION_MASK, CollisionMask, collisionMask, uint8_t, ENTITY_COLLISION_MASK_DEFAULT);
+    DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, false);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, 1.0f);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, 0.0f);
@@ -170,7 +170,6 @@ public:
     DEFINE_PROPERTY_REF(PROP_NAME, Name, name, QString, ENTITY_ITEM_DEFAULT_NAME);
     DEFINE_PROPERTY_REF_ENUM(PROP_BACKGROUND_MODE, BackgroundMode, backgroundMode, BackgroundMode, BACKGROUND_MODE_INHERIT);
     DEFINE_PROPERTY_GROUP(Stage, stage, StagePropertyGroup);
-    DEFINE_PROPERTY_GROUP(Atmosphere, atmosphere, AtmospherePropertyGroup);
     DEFINE_PROPERTY_GROUP(Skybox, skybox, SkyboxPropertyGroup);
     DEFINE_PROPERTY_GROUP(Animation, animation, AnimationPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_SOURCE_URL, SourceUrl, sourceUrl, QString, "");
@@ -253,6 +252,8 @@ public:
 
     void setLinePointsDirty() {_linePointsChanged = true; }
 
+    void setQueryAACubeDirty() { _queryAACubeChanged = true; }
+
     void setCreated(QDateTime& v);
 
     bool hasTerseUpdateChanges() const;
@@ -272,6 +273,10 @@ public:
 
     void setJointRotationsDirty() { _jointRotationsSetChanged = true; _jointRotationsChanged = true; }
     void setJointTranslationsDirty() { _jointTranslationsSetChanged = true; _jointTranslationsChanged = true; }
+
+protected:
+    QString getCollisionMaskAsString() const;
+    void setCollisionMaskFromString(const QString& maskString);
 
 private:
     QUuid _id;
@@ -350,8 +355,8 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, RegistrationPoint, registrationPoint, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularVelocity, angularVelocity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, AngularDamping, angularDamping, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, IgnoreForCollisions, ignoreForCollisions, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, CollisionsWillMove, collisionsWillMove, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Collisionless, collisionless, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dynamic, dynamic, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
@@ -414,7 +419,6 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, JointTranslations, jointTranslations, "");
 
     properties.getAnimation().debugDump();
-    properties.getAtmosphere().debugDump();
     properties.getSkybox().debugDump();
     properties.getStage().debugDump();
 
