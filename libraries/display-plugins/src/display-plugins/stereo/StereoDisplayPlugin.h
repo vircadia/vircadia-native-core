@@ -8,11 +8,12 @@
 #pragma once
 
 #include "../WindowOpenGLDisplayPlugin.h"
+class QScreen;
 
 class StereoDisplayPlugin : public WindowOpenGLDisplayPlugin {
     Q_OBJECT
+    using Parent = WindowOpenGLDisplayPlugin;
 public:
-    StereoDisplayPlugin();
     virtual bool isStereo() const override final { return true; }
     virtual bool isSupported() const override final;
 
@@ -33,4 +34,5 @@ public:
 protected:
     void updateScreen();
     float _ipd{ 0.064f };
+    QScreen* _screen;
 };
