@@ -176,9 +176,9 @@
           maxParticles: 10000,
           lifetime: 20,
           lifespan: randFloat(1.5, 3),
-          emitRate: randInt(500, 3000),
+          emitRate: randInt(500, 10000),
           emitSpeed: randFloat(0.5, 2),
-          speedSpread: 1.0,
+          speedSpread: 0.2,
           emitOrientation: Quat.fromPitchYawRollDegrees(randInt(0, 360), randInt(0, 360), randInt(0, 360)),
           polarStart: 1,
           polarFinish: randFloat(1.2, 3),
@@ -186,22 +186,22 @@
           azimuthFinish: Math.PI,
           emitAcceleration: {
             x: 0,
-            y: -0.7,
+            y: randFloat(-1, -0.2),
             z: 0
           },
           accelerationSpread: {
-            x: 0,
+            x: Math.random(),
             y: 0,
-            z: 0
+            z: Math.random()
           },
-          particleRadius: 0.04,
-          radiusSpread: 0,
-          radiusStart: 0.06,
-          radiusFinish: 0.05,
-          alpha: 1,
-          alphaSpread: 0,
-          alphaStart: 0,
-          alphaFinish: 0,
+          particleRadius: randFloat(0.001, 0.1),
+          radiusSpread: Math.random() * 0.1,
+          radiusStart: randFloat(0.001, 0.1),
+          radiusFinish: randFloat(0.001, 0.1),
+          alpha: Math.random(),
+          alphaSpread: Math.random(),
+          alphaStart: Math.random(),
+          alphaFinish: Math.random(),
           textures: "http://ericrius1.github.io/PlatosCave/assets/star.png",
         };
 
