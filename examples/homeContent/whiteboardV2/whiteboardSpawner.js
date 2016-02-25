@@ -104,6 +104,32 @@ var eraser = Entities.addEntity({
         y: -0.1,
         z: 0
     },
+    userData: JSON.stringify({
+        wearable: {
+            joints: {
+                RightHand: [{
+                    x: 0.0207,
+                    y: 0.1202,
+                    z: 0.0493
+                }, {
+                    x: 0.1004,
+                    y: 0.6424,
+                    z: 0.717,
+                    w: 0.250
+                }],
+                LeftHand: [{
+                    x: -0.005,
+                    y: 0.1101,
+                    z: 0.053
+                }, {
+                    x: 0.7234,
+                    y: 0.289,
+                    z: 0.142,
+                    w: 0.610
+                }]
+            }
+        }
+    })
 });
 
 createMarkers();
@@ -206,7 +232,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
         var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
 
         Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
-    }, 3000)
+    }, 5000)
 
 
 }
