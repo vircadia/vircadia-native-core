@@ -57,8 +57,8 @@ public:
     void setOffsetScale(const glm::vec3& scale) { _offset.setScale(scale); }
 
 protected:
-    QScriptValue getProperty(QScriptEngine* scriptEngine, const QString& property);
-    void setProperties(const QScriptValue& properties);
+    void setProperties(const QVariantMap& properties);
+    QVariant getProperty(const QString& property);
 
     /// set position, rotation and scale on transform based on offsets, and parent panel offsets
     /// if force is false, only apply transform if it hasn't been applied in the last .1 seconds

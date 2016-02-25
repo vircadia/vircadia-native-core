@@ -11,8 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "Cube3DOverlay.h"
 
-#include <QScriptValue>
-
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 #include <GeometryCache.h>
@@ -110,18 +108,18 @@ Cube3DOverlay* Cube3DOverlay::createClone() const {
     return new Cube3DOverlay(this);
 }
 
-void Cube3DOverlay::setProperties(const QScriptValue& properties) {
+void Cube3DOverlay::setProperties(const QVariantMap& properties) {
     Volume3DOverlay::setProperties(properties);
 
-    QScriptValue borderSize = properties.property("borderSize");
+    auto borderSize = properties["borderSize"];
 
     if (borderSize.isValid()) {
-        float value = borderSize.toVariant().toFloat();
+        float value = borderSize.toFloat();
         setBorderSize(value);
     }
 }
 
-QScriptValue Cube3DOverlay::getProperty(const QString& property) {
+QVariant Cube3DOverlay::getProperty(const QString& property) {
     if (property == "borderSize") {
         return _borderSize;
     }

@@ -26,67 +26,27 @@ AABox Volume3DOverlay::getBounds() const {
     return AABox(extents);
 }
 
-void Volume3DOverlay::setProperties(const QScriptValue& properties) {
+void Volume3DOverlay::setProperties(const QVariantMap& properties) {
     Base3DOverlay::setProperties(properties);
 
-    QScriptValue dimensions = properties.property("dimensions");
+    auto dimensions = properties["dimensions"];
 
     // if "dimensions" property was not there, check to see if they included aliases: scale
     if (!dimensions.isValid()) {
-        dimensions = properties.property("scale");
+        dimensions = properties["scale"];
         if (!dimensions.isValid()) {
-            dimensions = properties.property("size");
+            dimensions = properties["size"];
         }
     }
 
     if (dimensions.isValid()) {
-        bool validDimensions = false;
-        glm::vec3 newDimensions;
-
-        QScriptValue x = dimensions.property("x");
-        QScriptValue y = dimensions.property("y");
-        QScriptValue z = dimensions.property("z");
-
-
-        if (x.isValid() && x.isNumber() &&
-            y.isValid() && y.isNumber() &&
-            z.isValid() && z.isNumber()) {
-            newDimensions.x = x.toNumber();
-            newDimensions.y = y.toNumber();
-            newDimensions.z = z.toNumber();
-            validDimensions = true;
-        } else {
-            QScriptValue width = dimensions.property("width");
-            QScriptValue height = dimensions.property("height");
-            QScriptValue depth = dimensions.property("depth");
-            if (width.isValid() && width.isNumber() &&
-                height.isValid() && height.isNumber() &&
-                depth.isValid() && depth.isNumber()) {
-                newDimensions.x = width.toNumber();
-                newDimensions.y = height.toNumber();
-                newDimensions.z = depth.toNumber();
-                validDimensions = true;
-            }
-        }
-
-        // size, scale, dimensions is special, it might just be a single scalar, check that here
-        if (!validDimensions && dimensions.isNumber()) {
-            float size = dimensions.toNumber();
-            newDimensions.x = size;
-            newDimensions.y = size;
-            newDimensions.z = size;
-            validDimensions = true;
-        }
-
-        if (validDimensions) {
-            setDimensions(newDimensions);
-        }
+        setDimensions(vec3FromVariant(dimensions));
     }
 }
 
-QScriptValue Volume3DOverlay::getProperty(const QString& property) {
+QVariant Volume3DOverlay::getProperty(const QString& property) {
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3toScriptValue(_scriptEngine, getDimensions());
+        return vec3toVariant(getDimensions());
     }
 
     return Base3DOverlay::getProperty(property);
