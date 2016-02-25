@@ -502,13 +502,6 @@ Var CopyFromProductionCheckbox
 !macroend
 
 Function PostInstallOptionsPage
-  ; Set the text on the dialog button to match finish, hide the back and cancel buttons
-  GetDlgItem $R1 $hwndparent 1
-  SendMessage $R1 ${WM_SETTEXT} 0 "STR:&Finish"
-
-  GetDlgItem $R3 $hwndparent 3
-  ShowWindow $R3 0
-
   nsDialogs::Create 1018
   Pop $PostInstallDialog
 
@@ -558,9 +551,9 @@ Function PostInstallOptionsPage
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Server Console Now"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Server Console after install"
   ${Else}
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity Now"
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch High Fidelity after install"
   ${EndIf}
 
   Pop $LaunchNowCheckbox
