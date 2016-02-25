@@ -134,13 +134,14 @@ void EntityTreeRenderer::update() {
         EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
         tree->update();
 
-        // check to see if the avatar has moved and if we need to handle enter/leave entity logic
-        checkEnterLeaveEntities();
+        // Handle enter/leave entity logic
+        bool updated = checkEnterLeaveEntities();
 
-        // even if we haven't changed positions, if we previously attempted to set the skybox, but
-        // have a pending download of the skybox texture, then we should attempt to reapply to 
-        // get the correct texture.
-        if (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) {
+        // If we haven't already updated and previously attempted to load a texture,
+        // check if the texture loaded and apply it
+        if (!updated && (
+            (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
+            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -156,7 +157,7 @@ void EntityTreeRenderer::update() {
     deleteReleasedModels();
 }
 
-void EntityTreeRenderer::checkEnterLeaveEntities() {
+bool EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
@@ -171,7 +172,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
                 // Whenever you're in an intersection between zones, we will always choose the smallest zone.
-                _bestZone = NULL; // NOTE: Is this what we want?
+                _bestZone = nullptr; // NOTE: Is this what we want?
                 _bestZoneVolume = std::numeric_limits<float>::max();
 
                 // create a list of entities that actually contain the avatar's position
@@ -204,7 +205,6 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
                 }
 
                 applyZonePropertiesToScene(_bestZone);
-
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -228,8 +228,11 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
+
+            return true;
         }
     }
+    return false;
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
@@ -253,6 +256,7 @@ void EntityTreeRenderer::forceRecheckEntities() {
 
 
 void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityItem> zone) {
+    auto textureCache = DependencyManager::get<TextureCache>();
     auto scene = DependencyManager::get<SceneScriptingInterface>();
     auto sceneStage = scene->getStage();
     auto skyStage = scene->getSkyStage();
@@ -264,7 +268,11 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _pendingSkyboxTexture = false;
         _skyboxTexture.clear();
 
+        _pendingAmbientTexture = false;
+        _ambientTexture.clear();
+
         if (_hasPreviousZone) {
+            sceneKeyLight->resetAmbientSphere();
             sceneKeyLight->setColor(_previousKeyLightColor);
             sceneKeyLight->setIntensity(_previousKeyLightIntensity);
             sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
@@ -274,6 +282,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                                     _previousStageAltitude);
             sceneTime->setHour(_previousStageHour);
             sceneTime->setDay(_previousStageDay);
+
             _hasPreviousZone = false;
         }
 
@@ -306,6 +315,23 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
     sceneTime->setHour(zone->getStageProperties().calculateHour());
     sceneTime->setDay(zone->getStageProperties().calculateDay());
 
+    bool isAmbientTextureSet = false;
+    if (zone->getKeyLightProperties().getAmbientURL().isEmpty()) {
+        _pendingAmbientTexture = false;
+        _ambientTexture.clear();
+    } else {
+        _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
+        if (_ambientTexture->getGPUTexture()) {
+            _pendingAmbientTexture = false;
+            if (_ambientTexture->getGPUTexture()->getIrradiance()) {
+                sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
+                isAmbientTextureSet = true;
+            }
+        } else {
+            _pendingAmbientTexture = true;
+        }
+    }
+
     switch (zone->getBackgroundMode()) {
         case BACKGROUND_MODE_SKYBOX: {
             auto skybox = std::dynamic_pointer_cast<ProceduralSkybox>(skyStage->getSkybox());
@@ -326,12 +352,16 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
-                auto textureCache = DependencyManager::get<TextureCache>();
                 _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
 
                 if (_skyboxTexture->getGPUTexture()) {
-                    skybox->setCubemap(_skyboxTexture->getGPUTexture());
+                    auto texture = _skyboxTexture->getGPUTexture();
+                    skybox->setCubemap(texture);
                     _pendingSkyboxTexture = false;
+                    if (!isAmbientTextureSet && texture->getIrradiance()) {
+                        sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                        isAmbientTextureSet = true;
+                    }
                 } else {
                     _pendingSkyboxTexture = true;
                 }
@@ -347,6 +377,10 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _pendingSkyboxTexture = false;
             _skyboxTexture.clear();
             break;
+    }
+
+    if (!isAmbientTextureSet) {
+        sceneKeyLight->resetAmbientSphere();
     }
 }
 
@@ -817,5 +851,21 @@ void EntityTreeRenderer::updateEntityRenderStatus(bool shouldRenderEntities) {
             // FIXME - is this really right? do we want to do the deletingEntity() code or just remove from the scene.
             deletingEntity(entityID);
         }
+    }
+}
+
+void EntityTreeRenderer::updateZone(const EntityItemID& id) {
+    if (!_bestZone) {
+        // Get in the zone!
+        auto zone = getTree()->findEntityByEntityItemID(id);
+        if (zone && zone->contains(_lastAvatarPosition)) {
+            _currentEntitiesInside << id;
+            emit enterEntity(id);
+            _entitiesScriptEngine->callEntityScriptMethod(id, "enterEntity");
+            _bestZone = std::dynamic_pointer_cast<ZoneEntityItem>(zone);
+        }
+    }
+    if (_bestZone && _bestZone->getID() == id) {
+        applyZonePropertiesToScene(_bestZone);
     }
 }

@@ -56,7 +56,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     // Fetch and cull the items from the scene
     auto sceneFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
     const auto sceneSelection = addJob<FetchSpatialTree>("FetchSceneSelection", sceneFilter);
-    const auto culledSceneSelection = addJob<CullSpatialSelection>("CullSceneSelection", sceneSelection, cullFunctor, RenderDetails::OPAQUE_ITEM, sceneFilter);
+    const auto culledSceneSelection = addJob<CullSpatialSelection>("CullSceneSelection", sceneSelection, cullFunctor, RenderDetails::ITEM, sceneFilter);
 
     // Multi filter visible items into different buckets
     const int NUM_FILTERS = 3;

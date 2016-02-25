@@ -70,16 +70,8 @@ Menu::Menu() {
                 dialogsManager.data(), &DialogsManager::toggleLoginDialog);
     }
 
-    // File > Update -- FIXME: needs implementation
-    auto action = addActionToQMenuAndActionHash(fileMenu, "Update");
-    action->setDisabled(true);
-
     // File > Help
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Help, 0, qApp, SLOT(showHelp()));
-
-    // File > Crash Reporter...-- FIXME: needs implementation
-    auto crashReporterAction = addActionToQMenuAndActionHash(fileMenu, "Crash Reporter...");
-    crashReporterAction->setDisabled(true);
 
     // File > About
     addActionToQMenuAndActionHash(fileMenu, MenuOption::AboutApp, 0, qApp, SLOT(aboutApp()), QAction::AboutRole);
@@ -167,7 +159,7 @@ Menu::Menu() {
     QObject* avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    auto action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->show(QString("hifi/dialogs/AttachmentsDialog.qml"), "AttachmentsDialog");
     });
@@ -259,15 +251,9 @@ Menu::Menu() {
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
 
-    // Navigate > Home -- FIXME: needs implementation
-    auto homeAction = addActionToQMenuAndActionHash(navigateMenu, "Home");
-    homeAction->setDisabled(true);
-
+    // Navigate > Show Address Bar
     addActionToQMenuAndActionHash(navigateMenu, MenuOption::AddressBar, Qt::CTRL | Qt::Key_L,
         dialogsManager.data(), SLOT(toggleAddressBar()));
-
-    // Navigate > Directory -- FIXME: needs implementation
-    addActionToQMenuAndActionHash(navigateMenu, "Directory");
 
     // Navigate > Bookmark related menus -- Note: the Bookmark class adds its own submenus here.
     qApp->getBookmarks()->setupMenus(this, navigateMenu);
@@ -299,26 +285,19 @@ Menu::Menu() {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GeneralPreferencesDialog.qml"), "GeneralPreferencesDialog");
     });
 
-
-    // Settings > Avatar...-- FIXME: needs implementation
+    // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), "AvatarPreferencesDialog");
     });
 
-    // Settings > Audio...-- FIXME: needs implementation
+    // Settings > Audio...
     action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/AudioPreferencesDialog.qml"), "AudioPreferencesDialog");
     });
 
-    // Settings > Graphics...
-    action = addActionToQMenuAndActionHash(settingsMenu, "Graphics...");
-    connect(action, &QAction::triggered, [] {
-        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"), "GraphicsPreferencesDialog");
-    });
-
-    // Settings > LOD...-- FIXME: needs implementation
+    // Settings > LOD...
     action = addActionToQMenuAndActionHash(settingsMenu, "LOD...");
     connect(action, &QAction::triggered, [] {
         DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/LodPreferencesDialog.qml"), "LodPreferencesDialog");
@@ -345,26 +324,16 @@ Menu::Menu() {
     // Developer menu ----------------------------------
     MenuWrapper* developerMenu = addMenu("Developer", "Developer");
 
+    // Developer > Graphics...
+    action = addActionToQMenuAndActionHash(developerMenu, "Graphics...");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<OffscreenUi>()->toggle(QString("hifi/dialogs/GraphicsPreferencesDialog.qml"), "GraphicsPreferencesDialog");
+    });
+
     // Developer > Render >>>
     MenuWrapper* renderOptionsMenu = developerMenu->addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::WorldAxes);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, 0, true);
-
-    // Developer > Render > Ambient Light
-    MenuWrapper* ambientLightMenu = renderOptionsMenu->addMenu(MenuOption::RenderAmbientLight);
-    QActionGroup* ambientLightGroup = new QActionGroup(ambientLightMenu);
-    ambientLightGroup->setExclusive(true);
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLightGlobal, 0, true));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight0, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight1, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight2, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight3, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight4, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight5, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight6, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight7, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight8, 0, false));
-    ambientLightGroup->addAction(addCheckableActionToQMenuAndActionHash(ambientLightMenu, MenuOption::RenderAmbientLight9, 0, false));
 
     // Developer > Render > Throttle FPS If Not Focus
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ThrottleFPSIfNotFocus, 0, true);

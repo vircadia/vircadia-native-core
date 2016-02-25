@@ -138,7 +138,7 @@ namespace render {
             _cullFunctor{ cullFunctor } {}
 
         CullFunctor _cullFunctor;
-        RenderDetails::Type _detailType{ RenderDetails::OPAQUE_ITEM };
+        RenderDetails::Type _detailType{ RenderDetails::OTHER };
         ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
 
         void configure(const Config& config);

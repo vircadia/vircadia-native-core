@@ -123,8 +123,11 @@ MyAvatar::MyAvatar(RigPointer rig) :
     }
 
     // connect to AddressManager signal for location jumps
-    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired,
-            this, &MyAvatar::goToLocation);
+    connect(DependencyManager::get<AddressManager>().data(), &AddressManager::locationChangeRequired, 
+        [=](const glm::vec3& newPosition, bool hasOrientation, const glm::quat& newOrientation, bool shouldFaceLocation){
+        goToLocation(newPosition, hasOrientation, newOrientation, shouldFaceLocation);
+    });
+
     _characterController.setEnabled(true);
 
     _bodySensorMatrix = deriveBodyFromHMDSensor();
@@ -653,7 +656,7 @@ void MyAvatar::saveData() {
 
     settings.setValue("displayName", _displayName);
     settings.setValue("collisionSoundURL", _collisionSoundURL);
-    settings.setValue("snapTurn", _useSnapTurn);
+    settings.setValue("useSnapTurn", _useSnapTurn);
 
     settings.endGroup();
 }
@@ -747,7 +750,7 @@ void MyAvatar::loadData() {
 
     setDisplayName(settings.value("displayName").toString());
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
-    setSnapTurn(settings.value("snapTurn").toBool());
+    setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
 
     settings.endGroup();
 
@@ -1666,6 +1669,41 @@ void MyAvatar::resetSize() {
     qCDebug(interfaceapp, "Reset scale to %f", (double)_targetScale);
 }
 
+
+void MyAvatar::goToLocation(const QVariant& propertiesVar) {
+    qCDebug(interfaceapp, "MyAvatar QML goToLocation");
+    auto properties = propertiesVar.toMap();
+    if (!properties.contains("position")) {
+        qCWarning(interfaceapp, "goToLocation called without a position variable");
+        return;
+    }
+
+    bool validPosition;
+    glm::vec3 v = vec3FromVariant(properties["position"], validPosition);
+    if (!validPosition) {
+        qCWarning(interfaceapp, "goToLocation called with invalid position variable");
+        return;
+    }
+    bool validOrientation = false;
+    glm::quat q;
+    if (properties.contains("orientation")) {
+        q = quatFromVariant(properties["orientation"], validOrientation);
+        if (!validOrientation) {
+            glm::vec3 eulerOrientation = vec3FromVariant(properties["orientation"], validOrientation);
+            q = glm::quat(eulerOrientation);
+            if (!validOrientation) {
+                qCWarning(interfaceapp, "goToLocation called with invalid orientation variable");
+            }
+        }
+    }
+
+    if (validOrientation) {
+        goToLocation(v, true, q);
+    } else {
+        goToLocation(v);
+    }
+}
+
 void MyAvatar::goToLocation(const glm::vec3& newPosition,
                             bool hasOrientation, const glm::quat& newOrientation,
                             bool shouldFaceLocation) {
@@ -1873,7 +1911,7 @@ bool MyAvatar::FollowHelper::shouldActivate(const MyAvatar& myAvatar, const glm:
     const float CYLINDER_RADIUS = 0.15f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    glm::vec3 radialOffset(offset.x, 0.0f, offset.y);
+    glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
     float radialDistance = glm::length(radialOffset);
 
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (radialDistance > CYLINDER_RADIUS);

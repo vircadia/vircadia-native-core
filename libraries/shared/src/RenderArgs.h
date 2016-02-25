@@ -35,36 +35,31 @@ class ShapePipeline;
 class RenderDetails {
 public:
     enum Type {
-        OPAQUE_ITEM,
-        SHADOW_ITEM,
-        TRANSLUCENT_ITEM,
-        OTHER_ITEM
+        ITEM,
+        SHADOW,
+        OTHER
     };
     
     struct Item {
-        size_t _considered = 0;
-        size_t _rendered = 0;
+        int _considered = 0;
         int _outOfView = 0;
         int _tooSmall = 0;
+        int _rendered = 0;
     };
     
     int _materialSwitches = 0;
     int _trianglesRendered = 0;
     
-    Item _opaque;
+    Item _item;
     Item _shadow;
-    Item _translucent;
     Item _other;
     
     Item& edit(Type type) {
         switch (type) {
-            case OPAQUE_ITEM:
-                return _opaque;
-            case SHADOW_ITEM:
+            case SHADOW:
                 return _shadow;
-            case TRANSLUCENT_ITEM:
-                return _translucent;
-            case OTHER_ITEM:
+            case ITEM:
+                return _item;
             default:
                 return _other;
         }

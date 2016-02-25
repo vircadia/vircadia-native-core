@@ -254,15 +254,15 @@ QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QS
 }
 QMessageBox::StandardButton OffscreenUi::information(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Information, title, text, buttons, defaultButton);
 }
 QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Question, title, text, buttons, defaultButton);
 }
 QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
-    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Critical, title, text, buttons, defaultButton);
+    return DependencyManager::get<OffscreenUi>()->messageBox(QMessageBox::Icon::Warning, title, text, buttons, defaultButton);
 }
 
 
