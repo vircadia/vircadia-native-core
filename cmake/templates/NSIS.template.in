@@ -271,8 +271,9 @@ FunctionEnd
 
   @CPACK_NSIS_PAGE_COMPONENTS@
 
-  !insertmacro MUI_PAGE_INSTFILES
   Page custom PostInstallOptionsPage HandlePostInstallOptions
+
+  !insertmacro MUI_PAGE_INSTFILES
 
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
