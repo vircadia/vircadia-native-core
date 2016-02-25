@@ -157,6 +157,9 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::qu
 
         rotation = palmRotation * _relativeRotation;
         position = palmPosition + rotation * _relativePosition;
+
+        // update linearVelocity based on offset via _relativePosition;
+        linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
     });
 
     return holdingAvatar;
