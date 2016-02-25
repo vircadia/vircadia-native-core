@@ -817,6 +817,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
                 auto oldPos = _compositor.getReticlePosition();
                 _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
+            } else if (action == controller::toInt(controller::Action::TOGGLE_OVERLAY)) {
+                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
             }
         }
     });
@@ -2030,9 +2032,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                  Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
                  cameraMenuChanged();
                  break;
-            case Qt::Key_O:
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-                break;
+
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
@@ -2991,6 +2991,11 @@ void Application::updateThreads(float deltaTime) {
         _octreeProcessor.threadRoutine();
         _entityEditSender.threadRoutine();
     }
+}
+
+void Application::toggleOverlays() {
+    auto overlaysVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
+    _overlayConductor.setEnabled(overlaysVisible);
 }
 
 void Application::cycleCamera() {

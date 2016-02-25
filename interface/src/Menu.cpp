@@ -255,6 +255,9 @@ Menu::Menu() {
         0, true, qApp, SLOT(rotationModeChanged()),
         UNSPECIFIED_POSITION, "Advanced");
 
+    // View > Overlays
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true,
+        qApp, SLOT(toggleOverlays()));
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
