@@ -27,6 +27,8 @@ struct ViewerSendingStats {
     quint64 lastEdited;
 };
 
+class SimpleEntitySimulation;
+
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
@@ -52,8 +54,8 @@ public:
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
     virtual QString serverSubclassStats() override;
 
-    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) override;
-    virtual void trackViewerGone(const QUuid& viewerNode) override;
+    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) override;
+    virtual void trackViewerGone(const QUuid& sessionID) override;
 
 public slots:
     void pruneDeletedEntities();
@@ -65,7 +67,7 @@ private slots:
     void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
-    EntitySimulation* _entitySimulation;
+    SimpleEntitySimulation* _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
 
     QReadWriteLock _viewerSendingStatsLock;
