@@ -27,10 +27,14 @@
     Fireworks.prototype = {
 
       startNearTrigger: function() {
-        _this.shootFirework();
+        _this.shootFireworks();
       },
 
       clickReleaseOnEntity: function() {
+        _this.shootFireworks();
+      },
+
+      shootFireworks: function() {
         _this.shootFirework();
       },
 
@@ -68,7 +72,8 @@
             y: randInt(-5, 5),
             z: 0
           },
-          angularDamping: 0
+          angularDamping: 0,
+          visible: false
         });
 
         var smokeTrailPosition = Vec3.sum(rocketPosition, Vec3.multiply(-missleDimensions.y/2 + 0.1, Quat.getUp(missleRotation)));
@@ -131,14 +136,9 @@
           green: 132,
           blue: 21
         };
-        smokeSettings.lifespan = 1;
-        smokeSettings.emitAcceleration.y = -1;;
-        smokeSettings.alphaStart = 0.7;
+        smokeSettings.alphaStart = 0.1;
         smokeSettings.alphaFinish = 0.1;
-        smokeSettings.radiusFinish = 0.06;
-        smokeSettings.particleRadius = 0.06;
-        smokeSettings.emitRate = 200;
-        smokeSettings.emitterShouldTrail = false;
+
         smokeSettings.name = "fire emitter";
         var fire = Entities.addEntity(smokeSettings);
 
