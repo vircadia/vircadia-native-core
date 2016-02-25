@@ -21,12 +21,12 @@
         min: 2000,
         max: 3000
       };
+      _this.explodeTime = 500;
     };
 
     Fireworks.prototype = {
 
       startNearTrigger: function() {
-        print("EBL NEAR TRIGGER")
         _this.shootFirework();
       },
 
@@ -170,25 +170,18 @@
           name: "fireworks emitter",
           position: explodePosition,
           type: "ParticleEffect",
-          color: {
-            red: 205,
-            green: 84,
-            blue: 84
-          },
-          maxParticles: 1000,
+          colorStart: hslToRgb({h: Math.random(), s: 0.5, l: 0.7}),
+          color: hslToRgb({h: Math.random(), s: 0.5, l: 0.5}),
+          colorFinish: hslToRgb({h: Math.random(), s: 0.5, l: 0.7}),
+          maxParticles: 10000,
           lifetime: 20,
-          lifespan: 4,
-          emitRate: 1000,
-          emitSpeed: 1.5,
+          lifespan: randFloat(1.5, 3),
+          emitRate: randInt(500, 3000),
+          emitSpeed: randFloat(0.5, 2),
           speedSpread: 1.0,
-          emitOrientation: {
-            x: -0.2,
-            y: 0,
-            z: 0,
-            w: 0.7
-          },
+          emitOrientation: Quat.fromPitchYawRollDegrees(randInt(0, 360), randInt(0, 360), randInt(0, 360)),
           polarStart: 1,
-          polarFinish: 1.2,
+          polarFinish: randFloat(1.2, 3),
           azimuthStart: -Math.PI,
           azimuthFinish: Math.PI,
           emitAcceleration: {
@@ -205,21 +198,6 @@
           radiusSpread: 0,
           radiusStart: 0.06,
           radiusFinish: 0.05,
-          colorSpread: {
-            red: 0,
-            green: 0,
-            blue: 0
-          },
-          colorStart: {
-            red: 255,
-            green: 255,
-            blue: 255
-          },
-          colorFinish: {
-            red: 255,
-            green: 255,
-            blue: 255
-          },
           alpha: 1,
           alphaSpread: 0,
           alphaStart: 0,
@@ -233,7 +211,7 @@
           Entities.editEntity(_this.firework, {
             isEmitting: false
           });
-        }, 1000)
+        }, _this.explodeTime);
 
       },
 
