@@ -110,7 +110,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
         // preload some user public keys so they can connect on first request
         _gatekeeper.preloadAllowedUserPublicKeys();
-        
+
         optionallyGetTemporaryName(args);
     }
 }
