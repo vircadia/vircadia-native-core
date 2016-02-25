@@ -71,11 +71,7 @@
           angularDamping: 0
         });
 
-        var smokeTrailPosition = Vec3.sum(rocketPosition, {
-          x: 0,
-          y: -missleDimensions.y / 2 + 0.1,
-          z: 0
-        });
+        var smokeTrailPosition = Vec3.sum(rocketPosition, Vec3.multiply(-missleDimensions.y/2 + 0.1, Quat.getUp(missleRotation)));
         var smokeSettings = {
           type: "ParticleEffect",
           position: smokeTrailPosition,
