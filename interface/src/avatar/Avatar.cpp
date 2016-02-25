@@ -315,6 +315,7 @@ bool Avatar::addToScene(AvatarSharedPointer self, std::shared_ptr<render::Scene>
 
 void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_renderItemID);
+    render::Item::clearID(_renderItemID);
     _skeletonModel.removeFromScene(scene, pendingChanges);
     getHead()->getFaceModel().removeFromScene(scene, pendingChanges);
     for (auto& attachmentModel : _attachmentModels) {
@@ -323,7 +324,7 @@ void Avatar::removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::S
 }
 
 void Avatar::updateRenderItem(render::PendingChanges& pendingChanges) {
-    if (_renderItemID != render::Item::INVALID_ITEM_ID) {
+    if (render::Item::isValidID(_renderItemID)) {
         pendingChanges.updateItem<render::Payload<AvatarData>>(_renderItemID, [](render::Payload<AvatarData>& p) {});
     }
 }
@@ -929,35 +930,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
         }
         _attachmentModels[i]->setURL(attachmentData[i].modelURL);
     }
-
-    // AJT: TODO REMOVE
-    /*
-    // make sure we have as many models as attachments
-    while (_attachmentModels.size() < attachmentData.size()) {
-        Model* model = nullptr;
-        if (_unusedAttachments.size() > 0) {
-            model = _unusedAttachments.takeFirst();
-        } else {
-            model = new Model(std::make_shared<Rig>(), this);
-        }
-        model->init();
-        _attachmentModels.append(model);
-    }
-    while (_attachmentModels.size() > attachmentData.size()) {
-        auto attachmentModel = _attachmentModels.back();
-        _attachmentModels.pop_back();
-        _attachmentsToRemove.push_back(attachmentModel);
-    }
-    */
-
-    /*
-    // update the urls
-    for (int i = 0; i < attachmentData.size(); i++) {
-        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
-        _attachmentModels[i]->setSnapModelToCenter(true);
-        _attachmentModels[i]->setScaleToFit(true, getUniformScale() * _attachmentData.at(i).scale);
-    }
-    */
 }
 
 

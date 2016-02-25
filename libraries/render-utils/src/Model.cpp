@@ -43,7 +43,7 @@ Model::Model(RigPointer rig, QObject* parent) :
     _rotation(),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
-    _scaleToFitDimensions(0.0f),
+    _scaleToFitDimensions(1.0f),
     _scaledToFit(false),
     _snapModelToRegistrationPoint(false),
     _snappedToRegistrationPoint(false),
@@ -907,6 +907,14 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension, bool forceRes
             _scaledToFit = false; // force rescaling
         }
     }
+}
+
+glm::vec3 Model::getScaleToFitDimensions() const {
+    if (_scaleToFitDimensions.y == FAKE_DIMENSION_PLACEHOLDER &&
+        _scaleToFitDimensions.z == FAKE_DIMENSION_PLACEHOLDER) {
+        return glm::vec3(_scaleToFitDimensions.x);
+    }
+    return _scaleToFitDimensions;
 }
 
 void Model::scaleToFit() {

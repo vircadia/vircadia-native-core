@@ -330,15 +330,6 @@ void setupPreferences() {
             preferences->addPreference(preference);
         }
 
-        auto antialiasingConfig = renderConfig->getConfig<Antialiasing>();
-        {
-            auto getter = [antialiasingConfig]()->QString { return antialiasingConfig->getPreset(); };
-            auto setter = [antialiasingConfig](QString preset) { antialiasingConfig->setPreset(preset); };
-            auto preference = new ComboBoxPreference(RENDER, "Antialiasing", getter, setter);
-            preference->setItems(antialiasingConfig->getPresetList());
-            preferences->addPreference(preference);
-        }
-
         auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
         {
             auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };

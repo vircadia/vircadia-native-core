@@ -73,9 +73,7 @@ var PICK_MAX_DISTANCE = 500; // max length of pick-ray
 
 var GRAB_RADIUS = 0.06; // if the ray misses but an object is this close, it will still be selected
 var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
-var NEAR_GRABBING_VELOCITY_SMOOTH_RATIO = 1.0; // adjust time-averaging of held object's velocity.  1.0 to disable.
 var NEAR_PICK_MAX_DISTANCE = 0.3; // max length of pick-ray for close grabbing to be selected
-var RELEASE_VELOCITY_MULTIPLIER = 1.5; // affects throwing things
 var PICK_BACKOFF_DISTANCE = 0.2; // helps when hand is intersecting the grabble object
 var NEAR_GRABBING_KINEMATIC = true; // force objects to be kinematic when near-grabbed
 var SHOW_GRAB_SPHERE = false; // draw a green sphere to show the grab search position and size
@@ -172,6 +170,10 @@ var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 // the possible group names are:  static, dynamic, kinematic, myAvatar, otherAvatar
 var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
 var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
+
+var HEART_BEAT_INTERVAL = 5; // seconds
+var HEART_BEAT_TIMEOUT = 15;
+
 
 function stateToName(state) {
     switch (state) {
@@ -1103,6 +1105,8 @@ function MyController(hand) {
             return;
         }
 
+        this.heartBeat(this.grabbedEntity);
+
         var handPosition = this.getHandPosition();
         var handControllerPosition = (this.hand === RIGHT_HAND) ? MyAvatar.rightHandPosition : MyAvatar.leftHandPosition;
         var controllerHandInput = (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
@@ -1438,6 +1442,8 @@ function MyController(hand) {
             return;
         }
 
+        this.heartBeat(this.grabbedEntity);
+
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position"]);
         if (props.parentID == MyAvatar.sessionUUID &&
             Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
@@ -1644,7 +1650,7 @@ function MyController(hand) {
                     // this next line allowed both:
                     // (1) far-grab, pull to self, near grab, then throw
                     // (2) equip something physical and adjust it with a other-hand grab without the thing drifting
-                    (!this.isInitialGrab && grabData.refCount > 1)) {
+                    grabData.refCount > 1) {
                     noVelocity = true;
                 }
             }
@@ -1670,19 +1676,39 @@ function MyController(hand) {
         Entities.deleteEntity(this.pointLight);
     };
 
+    this.heartBeat = function(entityID) {
+        var now = Date.now();
+        if (now - this.lastHeartBeat > HEART_BEAT_INTERVAL) {
+            var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+            data["heartBeat"] = now;
+            setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+            this.lastHeartBeat = now;
+        }
+    };
+
+    this.resetAbandonedGrab = function(entityID) {
+        print("cleaning up abandoned grab on " + entityID);
+        var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
+        data["refCount"] = 1;
+        setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
+        this.deactivateEntity(entityID, false);
+    };
+
     this.activateEntity = function(entityID, grabbedProperties, wasLoaded) {
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, entityID, DEFAULT_GRABBABLE_DATA);
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
-        data["activated"] = true;
-        data["avatarId"] = MyAvatar.sessionUUID;
+        var now = Date.now();
+
         if (wasLoaded) {
             data["refCount"] = 1;
-            data["avatarId"] = MyAvatar.sessionUUID;
         } else {
             data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
 
             // zero gravity and set ignoreForCollisions in a way that lets us put them back, after all grabs are done
             if (data["refCount"] == 1) {
+                data["heartBeat"] = now;
+                this.lastHeartBeat = now;
+
                 this.isInitialGrab = true;
                 data["gravity"] = grabbedProperties.gravity;
                 data["collidesWith"] = grabbedProperties.collidesWith;
@@ -1698,12 +1724,21 @@ function MyController(hand) {
                         z: 0
                     },
                     // bummer, it isn't easy to do bitwise collisionMask operations like this:
-                    //"collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
+                    // "collisionMask": COLLISION_MASK_WHILE_GRABBED | grabbedProperties.collisionMask
                     // when using string values
                     "collidesWith": COLLIDES_WITH_WHILE_GRABBED
                 };
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data["refCount"] > 1) {
+                if (data["heartBeat"] === undefined ||
+                    now - data["heartBeat"] > HEART_BEAT_TIMEOUT) {
+                    // this entity has userData suggesting it is grabbed, but nobody is updating the hearbeat.
+                    // deactivate it before grabbing.
+                    this.resetAbandonedGrab(entityID);
+                    grabbedProperties = Entities.getEntityProperties(this.grabbedEntity, GRABBABLE_PROPERTIES);
+                    return this.activateEntity(entityID, grabbedProperties, wasLoaded);
+                }
+
                 this.isInitialGrab = false;
                 // if an object is being grabbed by more than one person (or the same person twice, but nevermind), switch
                 // the collision groups so that it wont collide with "other" avatars.  This avoids a situation where two
