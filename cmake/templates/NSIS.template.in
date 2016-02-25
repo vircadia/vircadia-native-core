@@ -476,7 +476,6 @@ SectionEnd
 !include "nsdialogs.nsh"
 
 Var PostInstallDialog
-Var OptionsLabel
 Var DesktopClientCheckbox
 Var DesktopServerCheckbox
 Var ServerStartupCheckbox
@@ -502,6 +501,8 @@ Var CopyFromProductionCheckbox
 !macroend
 
 Function PostInstallOptionsPage
+  !insertmacro MUI_HEADER_TEXT "Setup Options" ""
+
   nsDialogs::Create 1018
   Pop $PostInstallDialog
 
@@ -509,18 +510,7 @@ Function PostInstallOptionsPage
     Abort
   ${EndIf}
 
-  ${NSD_CreateLabel} 0 0 100% 12u "Setup Options"
-  Pop $OptionsLabel
-
-  ; Set label to bold
-  CreateFont $R2 "Arial" 10 700
-  SendMessage $OptionsLabel ${WM_SETFONT} $R2 0
-
-  ; Force label redraw
-  ShowWindow $OptionsLabel ${SW_HIDE}
-  ShowWindow $OptionsLabel ${SW_SHOW}
-
-  StrCpy $CurrentOffset 15
+  StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
 
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
