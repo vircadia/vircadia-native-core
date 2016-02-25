@@ -560,13 +560,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 }
 
 void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture) {
-    auto globalLight = _allocatedLights.front();
-    globalLight->setDirection(light->getDirection());
-    globalLight->setColor(light->getColor());
-    globalLight->setIntensity(light->getIntensity());
-    globalLight->setAmbientIntensity(light->getAmbientIntensity());
-    globalLight->setAmbientSphere(light->getAmbientSphere());
-
+    _allocatedLights.front() = light;
     _skyboxTexture = skyboxTexture;
 }
 
