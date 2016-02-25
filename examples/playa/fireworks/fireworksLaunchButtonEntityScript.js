@@ -2,8 +2,8 @@
   //  fireworksLaunchEntityScript.js
   //  examples/playa/fireworks
   //
-  //  Created by Eric Levina on 2/24/16.
-  //  Copyright 2015 High Fidelity, Inc.
+  //  Created by Eric Levin on 2/24/16.
+  //  Copyright 2016 High Fidelity, Inc.
   //
   //  Run this script to spawn a big fireworks launch button that a user can press
   //
