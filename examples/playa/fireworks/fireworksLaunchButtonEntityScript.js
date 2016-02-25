@@ -221,10 +221,10 @@
           radiusSpread: Math.random() * 0.1,
           radiusStart: randFloat(0.001, 0.1),
           radiusFinish: randFloat(0.001, 0.1),
-          alpha: randFloat(0.5, 1.0),
-          alphaSpread: randFloat(0.5, 1.0),
-          alphaStart: randFloat(0.5, 1.0),
-          alphaFinish: randFloat(0.5, 1.0),
+          alpha: randFloat(0.8, 1.0),
+          alphaSpread: randFloat(0.1, 0.2),
+          alphaStart: randFloat(0.7, 1.0),
+          alphaFinish: randFloat(0.7, 1.0),
           textures: "http://ericrius1.github.io/PlatosCave/assets/star.png",
         });
 
