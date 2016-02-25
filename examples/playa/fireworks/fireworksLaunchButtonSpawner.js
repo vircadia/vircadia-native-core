@@ -17,7 +17,7 @@
   var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
   // Math.random ensures no caching of script
-  var SCRIPT_URL = Script.resolvePath("fireworksLaunchButtonEntityScript.js?v1" + Math.random())
+  var SCRIPT_URL = Script.resolvePath("fireworksLaunchButtonEntityScript.js");
   var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Launch-Button.fbx";
   var launchButton = Entities.addEntity({
     type: "Model",
