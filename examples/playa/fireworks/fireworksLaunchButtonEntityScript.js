@@ -45,35 +45,35 @@
         });
 
         var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Rocket-2.fbx";
-        var missleDimensions = {
-              x: 0.24,
-              y: 0.7,
-              z: 0.24
-            };
-          var missle = Entities.addEntity({
-            type: "Model",
-            modelURL: MODEL_URL,
-            position: rocketPosition,
-            dimensions: missleDimensions,
-            damping: 0,
-            dynamic: true,
-            velocity: {
-              x: 0.0,
-              y: randFloat(0.4, 1.0),
-              z: 0
-            },
-            acceleration: {
-              x: 0,
-              y: randFloat(1.0, 2.0),
-              z: 0
-            },
-            angularVelocity: {x: 0, y: randInt(0, 10), z: 0},
-            angularDamping: 0
-          });
+        var missleDimensions = Vec3.multiply({
+          x: 0.24,
+          y: 0.7,
+          z: 0.24
+        }, randFloat(0.2, 1.5));
+        var missleRotation = Quat.fromPitchYawRollDegrees(randInt(-30, 30), 0, randInt(-30, 30));
+        var missleVelocity = Vec3.multiply(Quat.getUp(missleRotation), randFloat(1, 3));
+        var missleAcceleration = Vec3.multiply(Quat.getUp(missleRotation), randFloat(0.7, 3));
+        var missle = Entities.addEntity({
+          type: "Model",
+          modelURL: MODEL_URL,
+          position: rocketPosition,
+          rotation: missleRotation,
+          dimensions: missleDimensions,
+          damping: 0,
+          dynamic: true,
+          velocity: missleVelocity,
+          acceleration: missleAcceleration,
+          angularVelocity: {
+            x: 0,
+            y: randInt(-5, 5),
+            z: 0
+          },
+          angularDamping: 0
+        });
 
         var smokeTrailPosition = Vec3.sum(rocketPosition, {
           x: 0,
-          y: -missleDimensions.y/2 + 0.1,
+          y: -missleDimensions.y / 2 + 0.1,
           z: 0
         });
         var smokeSettings = {
@@ -172,9 +172,21 @@
           name: "fireworks emitter",
           position: explodePosition,
           type: "ParticleEffect",
-          colorStart: hslToRgb({h: Math.random(), s: 0.5, l: 0.7}),
-          color: hslToRgb({h: Math.random(), s: 0.5, l: 0.5}),
-          colorFinish: hslToRgb({h: Math.random(), s: 0.5, l: 0.7}),
+          colorStart: hslToRgb({
+            h: Math.random(),
+            s: 0.5,
+            l: 0.7
+          }),
+          color: hslToRgb({
+            h: Math.random(),
+            s: 0.5,
+            l: 0.5
+          }),
+          colorFinish: hslToRgb({
+            h: Math.random(),
+            s: 0.5,
+            l: 0.7
+          }),
           maxParticles: 10000,
           lifetime: 20,
           lifespan: randFloat(1.5, 3),
