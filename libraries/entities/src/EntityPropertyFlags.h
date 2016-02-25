@@ -167,7 +167,7 @@ enum EntityPropertyList {
 
     PROP_COLLISION_MASK, // one byte of collision group flags
 
-    PROP_SURFACE_RADIUS, // for Light entity
+    PROP_FALLOFF_RADIUS, // for Light entity
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     // ATTENTION: add new properties to end of list just ABOVE this line

@@ -18,7 +18,7 @@ class LightEntityItem : public EntityItem {
 public:
     static const bool DEFAULT_IS_SPOTLIGHT;
     static const float DEFAULT_INTENSITY;
-    static const float DEFAULT_SURFACE_RADIUS;
+    static const float DEFAULT_FALLOFF_RADIUS;
     static const float DEFAULT_EXPONENT;
     static const float DEFAULT_CUTOFF;
 
@@ -71,8 +71,8 @@ public:
     float getIntensity() const { return _intensity; }
     void setIntensity(float value) { _intensity = value; }
 
-    float getSurfaceRadius() const { return _surfaceRadius; }
-    void setSurfaceRadius(float value);
+    float getFalloffRadius() const { return _falloffRadius; }
+    void setFalloffRadius(float value);
 
     float getExponent() const { return _exponent; }
     void setExponent(float value) { _exponent = value; }
@@ -89,7 +89,7 @@ protected:
     rgbColor _color;
     bool _isSpotlight { DEFAULT_IS_SPOTLIGHT };
     float _intensity { DEFAULT_INTENSITY };
-    float _surfaceRadius { DEFAULT_SURFACE_RADIUS };
+    float _falloffRadius { DEFAULT_FALLOFF_RADIUS };
     float _exponent { DEFAULT_EXPONENT };
     float _cutoff { DEFAULT_CUTOFF };
 

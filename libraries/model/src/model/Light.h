@@ -74,11 +74,11 @@ public:
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
  
-    // Surface radius is the physical radius of the light sphere through which energy shines,
+    // FalloffRradius is the physical radius of the light sphere through which energy shines,
     // expressed in meters. It is used only to calculate the falloff curve of the light.
-    // Actual lights will all have surface radii approaching 0.
-    void setSurfaceRadius(float radius);
-    float getSurfaceRadius() const { return getSchema()._attenuation.x; }
+    // Actual rendered lights will all have surface radii approaching 0.
+    void setFalloffRadius(float radius);
+    float getFalloffRadius() const { return getSchema()._attenuation.x; }
 
     // Maximum radius is the cutoff radius of the light energy, expressed in meters.
     // It is used to bound light entities, and *will not* affect the falloff curve of the light.

@@ -41,7 +41,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
-            return VERSION_LIGHT_HAS_SURFACE_RADIUS;
+            return VERSION_LIGHT_HAS_FALLOFF_RADIUS;
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);

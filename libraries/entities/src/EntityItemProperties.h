@@ -132,7 +132,7 @@ public:
     DEFINE_PROPERTY(PROP_DYNAMIC, Dynamic, dynamic, bool, ENTITY_ITEM_DEFAULT_DYNAMIC);
     DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool, LightEntityItem::DEFAULT_IS_SPOTLIGHT);
     DEFINE_PROPERTY(PROP_INTENSITY, Intensity, intensity, float, LightEntityItem::DEFAULT_INTENSITY);
-    DEFINE_PROPERTY(PROP_SURFACE_RADIUS, SurfaceRadius, surfaceRadius, float, LightEntityItem::DEFAULT_SURFACE_RADIUS);
+    DEFINE_PROPERTY(PROP_FALLOFF_RADIUS, FalloffRadius, falloffRadius, float, LightEntityItem::DEFAULT_FALLOFF_RADIUS);
     DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float, LightEntityItem::DEFAULT_EXPONENT);
     DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float, LightEntityItem::DEFAULT_CUTOFF);
     DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool, ENTITY_ITEM_DEFAULT_LOCKED);
@@ -361,7 +361,7 @@ inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Dynamic, dynamic, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, IsSpotlight, isSpotlight, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Intensity, intensity, "");
-    DEBUG_PROPERTY_IF_CHANGED(debug, properties, SurfaceRadius, surfaceRadius, "");
+    DEBUG_PROPERTY_IF_CHANGED(debug, properties, FalloffRadius, falloffRadius, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Exponent, exponent, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Cutoff, cutoff, "");
     DEBUG_PROPERTY_IF_CHANGED(debug, properties, Locked, locked, "");

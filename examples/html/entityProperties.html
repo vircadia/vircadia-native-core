@@ -326,7 +326,7 @@
                 var elLightColorBlue = document.getElementById("property-light-color-blue");
     
                 var elLightIntensity = document.getElementById("property-light-intensity");
-                var elLightSurfaceRadius = document.getElementById("property-light-surface-radius");
+                var elLightFalloffRadius = document.getElementById("property-light-falloff-radius");
                 var elLightExponent = document.getElementById("property-light-exponent");
                 var elLightCutoff = document.getElementById("property-light-cutoff");
     
@@ -609,7 +609,7 @@
                                     elLightColorBlue.value = properties.color.blue;
     
                                     elLightIntensity.value = properties.intensity.toFixed(1);
-                                    elLightSurfaceRadius.value = properties.surfaceRadius.toFixed(1);
+                                    elLightFalloffRadius.value = properties.falloffRadius.toFixed(1);
                                     elLightExponent.value = properties.exponent.toFixed(2);
                                     elLightCutoff.value = properties.cutoff.toFixed(2);
                                 } else if (properties.type == "Zone") {
@@ -801,7 +801,7 @@
                 })
     
                 elLightIntensity.addEventListener('change', createEmitNumberPropertyUpdateFunction('intensity', 1));
-                elLightSurfaceRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('surfaceRadius', 1));
+                elLightFalloffRadius.addEventListener('change', createEmitNumberPropertyUpdateFunction('falloffRadius', 1));
                 elLightExponent.addEventListener('change', createEmitNumberPropertyUpdateFunction('exponent', 2));
                 elLightCutoff.addEventListener('change', createEmitNumberPropertyUpdateFunction('cutoff', 2));
     
@@ -1613,9 +1613,9 @@
             </div>
         </div>
         <div class="light-section property">
-            <div class="label">Apparent Surface Radius (falloff factor)</div>
+            <div class="label">Falloff Radius</div>
             <div class="value">
-                <input class="coord" type="number" id="property-light-surface-radius" min="0" step="0.1">
+                <input class="coord" type="number" id="property-light-falloff-radius" min="0" step="0.1">
             </div>
         </div>
         <div class="light-section property">
