@@ -5,7 +5,7 @@
 //  Created by James B. Pollack @imgntn on 2/15/2016
 //  Copyright 2016 High Fidelity, Inc.
 //
-//  This script creates a maze with a ball that you can tilt to try to get to the end!
+//  This script creates a maze with a ball that you can tilt to try to get to the end.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
