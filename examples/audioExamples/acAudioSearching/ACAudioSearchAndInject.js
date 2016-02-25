@@ -126,7 +126,9 @@ function EntityDatum(entityIdentifier) { // Just the data of an entity that we n
             loop: soundData.loop || DEFAULT_SOUND_DATA.loop,
             volume: soundData.volume || DEFAULT_SOUND_DATA.volume
         };
-        function repeat() { return !options.loop && (soundData.playbackGap >= 0); }
+        function repeat() {
+            return !options.loop && (soundData.playbackGap >= 0);
+        }
         function randomizedNextPlay() { // time of next play or recheck, randomized to distribute the work
             var range = soundData.playbackGapRange || DEFAULT_SOUND_DATA.playbackGapRange,
                 base = repeat() ? ((that.sound.duration * MSEC_PER_SEC) + (soundData.playbackGap || DEFAULT_SOUND_DATA.playbackGap)) : RECHECK_TIME;
