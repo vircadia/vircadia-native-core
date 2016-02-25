@@ -24,6 +24,7 @@
         _this.ERASER_TRIGGER_THRESHOLD = 0.2;
         _this.STROKE_NAME = "hifi-marker-stroke";
         _this.ERASER_TO_STROKE_SEARCH_RADIUS = 0.7;
+        _this.strokeMap = [];
     };
 
     Eraser.prototype = {
@@ -35,10 +36,10 @@
             var eraserPosition = Entities.getEntityProperties(_this.entityID, "position").position;
             var strokeIDs = Entities.findEntities(eraserPosition, _this.ERASER_TO_STROKE_SEARCH_RADIUS);
             // Create a map of stroke entities and their positions
-            _this.strokeMap = [];
+
             strokeIDs.forEach(function(strokeID) {
                 var strokeProps = Entities.getEntityProperties(strokeID, ["position", "name"]);
-                if (strokeProps.name === _this.STROKE_NAME) {  
+                if (strokeProps.name === _this.STROKE_NAME) {
                     _this.strokeMap.push({
                         strokeID: strokeID,
                         strokePosition: strokeProps.position
@@ -53,7 +54,9 @@
             } else {}
         },
 
-        releaseEquip: function() {},
+        releaseEquip: function() {
+            _this.strokeMap = [];
+        },
 
 
         continueHolding: function() {

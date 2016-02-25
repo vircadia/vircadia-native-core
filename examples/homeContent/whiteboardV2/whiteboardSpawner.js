@@ -149,8 +149,6 @@ function createMarkers() {
         blue: 200
     });
 
-
-
     markerPosition = Vec3.sum(markerPosition, Vec3.multiply(-0.2, Quat.getFront(markerRotation)));
     createMarker(modelURLS[1], markerPosition, {
         red: 200,
