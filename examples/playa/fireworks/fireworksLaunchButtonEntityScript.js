@@ -83,7 +83,7 @@
         });
 
         var smokeTrailPosition = Vec3.sum(launchPosition, Vec3.multiply(-missleDimensions.y / 2 + 0.1, Quat.getUp(missleRotation)));
-        var smokeSettings = {
+        var smoke = Entities.addEntity({
           type: "ParticleEffect",
           position: smokeTrailPosition,
           lifespan: 10,
@@ -122,17 +122,15 @@
           alphaFinish: 0,
           textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
           emitterShouldTrail: true,
-          parentID: missle
-        };
+          parentID: missle,
+        });
 
-        var smoke = Entities.addEntity(smokeSettings);
 
         Script.setTimeout(function() {
           Entities.editEntity(smoke, {
             parentID: null,
             isEmitting: false
           });
-  
 
           var explodeBasePosition = Entities.getEntityProperties(missle, "position").position;
           
