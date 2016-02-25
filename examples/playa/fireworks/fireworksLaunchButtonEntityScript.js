@@ -19,9 +19,9 @@
       _this.explosionSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/fireworksExplosion.wav");
       _this.timeToExplosionRange = {
         min: 2000,
-        max: 3000
+        max: 4000
       };
-      _this.explodeTime = 500;
+      _this.explodeTime = randInt(500, 1000);
     };
 
     Fireworks.prototype = {
@@ -59,14 +59,16 @@
             dynamic: true,
             velocity: {
               x: 0.0,
-              y: 0.1,
+              y: randFloat(0.4, 1.0),
               z: 0
             },
             acceleration: {
               x: 0,
-              y: 1,
+              y: randFloat(1.0, 2.0),
               z: 0
-            }
+            },
+            angularVelocity: {x: 0, y: randInt(0, 10), z: 0},
+            angularDamping: 0
           });
 
         var smokeTrailPosition = Vec3.sum(rocketPosition, {
@@ -113,7 +115,7 @@
           alphaFinish: 0,
           textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
           emitterShouldTrail: true,
-          parentID: _this.missle
+          parentID: missle
         };
 
         var smoke = Entities.addEntity(smokeSettings);
@@ -133,7 +135,7 @@
           green: 132,
           blue: 21
         };
-        smokeSettings.lifespan = 0.7;
+        smokeSettings.lifespan = 1;
         smokeSettings.emitAcceleration.y = -1;;
         smokeSettings.alphaStart = 0.7;
         smokeSettings.alphaFinish = 0.1;
