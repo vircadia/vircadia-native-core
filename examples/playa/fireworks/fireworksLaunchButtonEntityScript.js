@@ -18,8 +18,8 @@
       _this.launchSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/missle+launch.wav");
       _this.explosionSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/fireworksExplosion.wav");
       _this.timeToExplosionRange = {
-        min: 2000,
-        max: 4000
+        min: 2500,
+        max: 4500
       };
     };
 
@@ -60,8 +60,8 @@
           z: 0.24
         }, randFloat(0.2, 1.5));
         var missleRotation = Quat.fromPitchYawRollDegrees(randInt(-60, 60), 0, randInt(-60, 60));
-        var missleVelocity = Vec3.multiply(Quat.getUp(missleRotation), randFloat(1, 3));
-        var missleAcceleration = Vec3.multiply(Quat.getUp(missleRotation), randFloat(0.7, 3));
+        var missleVelocity = Vec3.multiply(Quat.getUp(missleRotation), randFloat(2, 4));
+        var missleAcceleration = Vec3.multiply(Quat.getUp(missleRotation), randFloat(1, 3));
         var missle = Entities.addEntity({
           type: "Model",
           modelURL: MODEL_URL,
