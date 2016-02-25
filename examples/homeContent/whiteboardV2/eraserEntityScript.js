@@ -24,7 +24,6 @@
         _this.ERASER_TRIGGER_THRESHOLD = 0.2;
         _this.STROKE_NAME = "hifi-marker-stroke";
         _this.ERASER_TO_STROKE_SEARCH_RADIUS = 0.7;
-        _this.strokeMap = [];
     };
 
     Eraser.prototype = {
@@ -33,42 +32,27 @@
             _this.equipped = true;
             _this.hand = params[0] == "left" ? 0 : 1;
             // We really only need to grab position of marker strokes once, and then just check to see if eraser comes near enough to those strokes 
+
+        },
+        continueEquip: function() {
+            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
+            if (_this.triggerValue > _this.ERASER_TRIGGER_THRESHOLD) {
+                _this.continueHolding();
+            }
+        },
+
+
+        continueHolding: function() {
             var eraserPosition = Entities.getEntityProperties(_this.entityID, "position").position;
             var strokeIDs = Entities.findEntities(eraserPosition, _this.ERASER_TO_STROKE_SEARCH_RADIUS);
             // Create a map of stroke entities and their positions
 
             strokeIDs.forEach(function(strokeID) {
                 var strokeProps = Entities.getEntityProperties(strokeID, ["position", "name"]);
-                if (strokeProps.name === _this.STROKE_NAME) {
-                    _this.strokeMap.push({
-                        strokeID: strokeID,
-                        strokePosition: strokeProps.position
-                    });
+                if (strokeProps.name === _this.STROKE_NAME && Vec3.distance(eraserPosition, strokeProps.position) < _this.ERASER_TO_STROKE_SEARCH_RADIUS) {
+                    Entities.deleteEntity(strokeID);
                 }
             });
-        },
-        continueEquip: function() {
-            this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
-            if (_this.triggerValue > _this.ERASER_TRIGGER_THRESHOLD) {
-                _this.continueHolding();
-            } else {}
-        },
-
-        releaseEquip: function() {
-            _this.strokeMap = [];
-        },
-
-
-        continueHolding: function() {
-            // search for marker strokes within certain radius of eraser
-            var eraserPosition = Entities.getEntityProperties(_this.entityID, "position").position;
-            _this.strokeMap.forEach(function(strokeData, index) {
-                if (Vec3.distance(eraserPosition, strokeData.strokePosition) < _this.ERASER_TO_STROKE_SEARCH_RADIUS) {
-                    Entities.deleteEntity(strokeData.strokeID);
-                    _this.strokeMap.splice(index, 1);
-                }
-            })
-
         },
 
         preload: function(entityID) {
