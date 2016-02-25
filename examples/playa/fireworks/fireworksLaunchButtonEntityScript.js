@@ -21,7 +21,6 @@
         min: 2000,
         max: 4000
       };
-      _this.explodeTime = randInt(500, 1000);
     };
 
     Fireworks.prototype = {
@@ -35,17 +34,21 @@
       },
 
       shootFireworks: function() {
-        _this.shootFirework();
+        var numMissles = randInt(1, 5);
+        for(var i = 0; i < numMissles; i++) {
+        _this.shootMissle();
+        }
       },
 
-      shootFirework: function() {
+      shootMissle: function() {
         var rocketPosition = Vec3.sum(_this.position, {
           x: 0,
           y: 0.1,
           z: 0
         });
         Audio.playSound(_this.launchSound, {
-          position: rocketPosition
+          position: rocketPosition,
+          volume: 0.5
         });
 
         var MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Rocket-2.fbx";
@@ -54,7 +57,7 @@
           y: 0.7,
           z: 0.24
         }, randFloat(0.2, 1.5));
-        var missleRotation = Quat.fromPitchYawRollDegrees(randInt(-30, 30), 0, randInt(-30, 30));
+        var missleRotation = Quat.fromPitchYawRollDegrees(randInt(-60, 60), 0, randInt(-60, 60));
         var missleVelocity = Vec3.multiply(Quat.getUp(missleRotation), randFloat(1, 3));
         var missleAcceleration = Vec3.multiply(Quat.getUp(missleRotation), randFloat(0.7, 3));
         var missle = Entities.addEntity({
@@ -65,18 +68,19 @@
           dimensions: missleDimensions,
           damping: 0,
           dynamic: true,
+          lifetime: 20, // Just in case
           velocity: missleVelocity,
           acceleration: missleAcceleration,
           angularVelocity: {
             x: 0,
-            y: randInt(-5, 5),
+            y: randInt(-1, 1),
             z: 0
           },
           angularDamping: 0,
           visible: false
         });
 
-        var smokeTrailPosition = Vec3.sum(rocketPosition, Vec3.multiply(-missleDimensions.y/2 + 0.1, Quat.getUp(missleRotation)));
+        var smokeTrailPosition = Vec3.sum(rocketPosition, Vec3.multiply(-missleDimensions.y / 2 + 0.1, Quat.getUp(missleRotation)));
         var smokeSettings = {
           type: "ParticleEffect",
           position: smokeTrailPosition,
@@ -110,7 +114,7 @@
           particleRadius: 0.06,
           radiusStart: 0.06,
           radiusFinish: 0.2,
-          alpha: 0.1,
+          alpha: 0.7,
           alphaSpread: 0,
           alphaStart: 0,
           alphaFinish: 0,
@@ -136,31 +140,42 @@
           green: 132,
           blue: 21
         };
-        smokeSettings.alphaStart = 0.1;
+        smokeSettings.alphaStart = 0.6;
         smokeSettings.alphaFinish = 0.1;
 
         smokeSettings.name = "fire emitter";
         var fire = Entities.addEntity(smokeSettings);
 
         Script.setTimeout(function() {
-          var explodePosition = Entities.getEntityProperties(missle, "position").position;
-          _this.explodeFirework(smoke, fire, missle, explodePosition);
+          Entities.editEntity(smoke, {
+            parentID: null,
+            isEmitting: false
+          });
+          Entities.editEntity(fire, {
+            parentID: null,
+            isEmitting: false
+          });
+
+          var explodeBasePosition = Entities.getEntityProperties(missle, "position").position;
+          
+          Entities.deleteEntity(missle);
+          // Explode 1 firework immediately
+            _this.explodeFirework(explodeBasePosition);
+          var numAdditionalFireworks = randInt(4, 10);
+          for (var i = 0; i < numAdditionalFireworks; i++) {
+            Script.setTimeout(function() {
+              var explodePosition = Vec3.sum(explodeBasePosition, {x: randFloat(-3, 3), y: randFloat(-3, 3), z: randFloat(-3, 3)});
+              _this.explodeFirework(explodePosition);
+            }, randInt(0, 1000))
+          }
         }, randFloat(_this.timeToExplosionRange.min, _this.timeToExplosionRange.max));
 
 
       },
 
-      explodeFirework: function(smoke, fire, missle, explodePosition) {
+      explodeFirework: function(explodePosition) {
         // We just exploded firework, so stop emitting its fire and smoke
-        Entities.editEntity(smoke, {
-          parentID: null,
-          isEmitting: false
-        });
-        Entities.editEntity(fire, {
-          parentID: null,
-          isEmitting: false
-        });
-        Entities.deleteEntity(missle);
+
         Audio.playSound(_this.explosionSound, {
           position: explodePosition
         });
@@ -186,7 +201,7 @@
           maxParticles: 10000,
           lifetime: 20,
           lifespan: randFloat(1.5, 3),
-          emitRate: randInt(500, 10000),
+          emitRate: randInt(500, 5000),
           emitSpeed: randFloat(0.5, 2),
           speedSpread: 0.2,
           emitOrientation: Quat.fromPitchYawRollDegrees(randInt(0, 360), randInt(0, 360), randInt(0, 360)),
@@ -208,10 +223,10 @@
           radiusSpread: Math.random() * 0.1,
           radiusStart: randFloat(0.001, 0.1),
           radiusFinish: randFloat(0.001, 0.1),
-          alpha: Math.random(),
-          alphaSpread: Math.random(),
-          alphaStart: Math.random(),
-          alphaFinish: Math.random(),
+          alpha: randFloat(0.5, 1.0),
+          alphaSpread: randFloat(0.5, 1.0),
+          alphaStart: randFloat(0.5, 1.0),
+          alphaFinish: randFloat(0.5, 1.0),
           textures: "http://ericrius1.github.io/PlatosCave/assets/star.png",
         });
 
@@ -220,7 +235,7 @@
           Entities.editEntity(firework, {
             isEmitting: false
           });
-        }, _this.explodeTime);
+        }, randInt(500, 1000));
 
       },
 
