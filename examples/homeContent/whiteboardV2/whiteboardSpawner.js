@@ -69,7 +69,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
     },
     position: whiteboardSurfacePosition,
     rotation: whiteboardRotation,
-    // visible: false,
+    visible: false,
     parentID: whiteboard
 });
 
@@ -166,7 +166,7 @@ function createMarkers() {
 
 
 function createMarker(modelURL, markerPosition, markerColor) {
-    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
+    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
     var marker = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,

@@ -24,7 +24,7 @@
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         _this.strokeForwardOffset = 0.0001;
-        _this.STROKE_WIDTH = 0.003
+        _this.STROKE_WIDTH = 0.03
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
@@ -73,11 +73,11 @@
             }
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true, _this.whiteboards);
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
-               _this.whiteboardNormal = Quat.getRight(intersection.properties.rotation);
+               _this.whiteboardNormal = Quat.getFront(intersection.properties.rotation);
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
                     position: intersection.intersection,
-                    rotation: intersection.properties.rotation
+                    // rotation: intersection.properties.rotation
                 })
                 _this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
                 if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD) {
