@@ -30,18 +30,17 @@ function findVesicles() {
     var results = Entities.findEntities(basePosition, 60000);
 
     if (results.length === 0) {
-        print('no entities found')
+        // print('no entities found');
         return;
     }
 
     results.forEach(function(v) {
         var name = Entities.getEntityProperties(v, 'name').name;
-        print('name is:: ' + name)
         if (name === 'vesicle') {
-            //    print('found a vesicle!!' + v)
+            //print('found a vesicle!!' + v)
             Script.setTimeout(function() {
                 moveVesicle(v);
-            }, Math.random() * THROTTLE_RATE)
+            }, Math.random() * THROTTLE_RATE);
         }
     });
 }
@@ -78,7 +77,6 @@ function moveVesicle(entityId) {
 }
 
 function update(deltaTime) {
-    // print('deltaTime',deltaTime)
     if (!initialized) {
         print("checking for servers...");
         if (Entities.serversExist() && Entities.canRez()) {
@@ -93,11 +91,9 @@ function update(deltaTime) {
     if (THROTTLE === true) {
         sinceLastUpdate = sinceLastUpdate + deltaTime * 1000;
         if (sinceLastUpdate > THROTTLE_RATE) {
-            //      print('SHOULD FIND VESICLES!!!')
             sinceLastUpdate = 0;
             findVesicles();
         } else {
-            // print('returning in update ' + sinceLastUpdate)
             return;
         }
     }

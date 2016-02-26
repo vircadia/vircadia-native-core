@@ -30,18 +30,18 @@ function findCells() {
     var results = Entities.findEntities(basePosition, 60000);
 
     if (results.length === 0) {
-    //    print('no entities found')
+        //    print('no entities found')
         return;
     }
 
     results.forEach(function(v) {
         var name = Entities.getEntityProperties(v, 'name').name;
-      //  print('name is:: ' + name)
+        //  print('name is:: ' + name)
         if (name === 'Cell') {
-         //   print('found a cell!!' + v)
+            //   print('found a cell!!' + v)
             Script.setTimeout(function() {
                 moveCell(v);
-            }, Math.random() * THROTTLE_RATE)
+            }, Math.random() * THROTTLE_RATE);
         }
     });
 }
@@ -51,7 +51,7 @@ var minAngularVelocity = 0.01;
 var maxAngularVelocity = 0.03;
 
 function moveCell(entityId) {
-  //  print('moving a cell! ' + entityId)
+    //  print('moving a cell! ' + entityId)
 
     var magnitudeAV = maxAngularVelocity;
 
@@ -60,7 +60,7 @@ function moveCell(entityId) {
         y: Math.random() - 0.5,
         z: Math.random() - 0.5
     };
-  //  print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
+    //  print("ROT magnitude is " + magnitudeAV + " and direction is " + directionAV.x);
     Entities.editEntity(entityId, {
         angularVelocity: Vec3.multiply(magnitudeAV, Vec3.normalize(directionAV))
     });
@@ -84,7 +84,7 @@ function update(deltaTime) {
     if (THROTTLE === true) {
         sinceLastUpdate = sinceLastUpdate + deltaTime * 1000;
         if (sinceLastUpdate > THROTTLE_RATE) {
-       //     print('SHOULD FIND CELLS!!!')
+            //     print('SHOULD FIND CELLS!!!')
             sinceLastUpdate = 0;
             findCells();
         } else {
