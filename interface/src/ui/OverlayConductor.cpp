@@ -114,17 +114,8 @@ void OverlayConductor::setEnabled(bool enabled) {
 
     _enabled = enabled; // set the new value
 
-    if (!_enabled) {
-        // alpha fadeOut the overlay mesh.
-        qApp->getApplicationCompositor().fadeOut();
-
-        // disable mouse clicks from script
-        qApp->getOverlays().disable();
-
-        // disable QML events
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->getRootItem()->setEnabled(false);
-    } else {
+    // if the new state is visible/enabled...
+    if (_enabled) {
         // alpha fadeIn the overlay mesh.
         qApp->getApplicationCompositor().fadeIn();
 
@@ -144,6 +135,16 @@ void OverlayConductor::setEnabled(bool enabled) {
             t.setRotation(glm::quat_cast(camMat));
             qApp->getApplicationCompositor().setModelTransform(t);
         }
+    } else { // other wise, if the new state is hidden/not enabled
+        // alpha fadeOut the overlay mesh.
+        qApp->getApplicationCompositor().fadeOut();
+
+        // disable mouse clicks from script
+        qApp->getOverlays().disable();
+
+        // disable QML events
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->getRootItem()->setEnabled(false);
     }
 }
 

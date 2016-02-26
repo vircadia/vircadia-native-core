@@ -818,7 +818,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
                 auto oldPos = _compositor.getReticlePosition();
                 _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
             } else if (action == controller::toInt(controller::Action::TOGGLE_OVERLAY)) {
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
+                toggleOverlays();
             }
         }
     });
@@ -3003,8 +3003,9 @@ void Application::updateThreads(float deltaTime) {
 }
 
 void Application::toggleOverlays() {
-    auto overlaysVisible = Menu::getInstance()->isOptionChecked(MenuOption::Overlays);
-    _overlayConductor.setEnabled(overlaysVisible);
+    auto newOverlaysVisible = !_overlayConductor.getEnabled();
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, newOverlaysVisible);
+    _overlayConductor.setEnabled(newOverlaysVisible);
 }
 
 void Application::setOverlaysVisible(bool visible) {
