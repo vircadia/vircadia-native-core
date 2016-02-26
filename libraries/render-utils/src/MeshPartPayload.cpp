@@ -474,15 +474,12 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 #ifdef DEBUG_BOUNDING_PARTS
     {
         AABox partBounds = getPartBounds(_meshIndex, partIndex);
-        bool inView = args->_viewFrustum->computeBoxViewLocation(partBounds) != ViewFrustum::OUTSIDE;
 
-        glm::vec4 cubeColor;
+        glm::vec4 cubeColor(1.0f, 1.0f, 0.0f, 1.0f);
         if (isSkinned) {
             cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if (inView) {
+        } else if (args->_viewFrustum->boxIntersectsFrustum(partBounds)) {
             cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-        } else {
-            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
         }
 
         Transform transform;

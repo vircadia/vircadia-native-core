@@ -27,11 +27,14 @@
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
 
-const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
+const float DEFAULT_CENTER_SPHERE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = (float)HALF_TREE_SCALE;
+
+// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
+// a central sphere for stuff that is nearby (for physics simulation).
 
 class ViewFrustum {
 public:
@@ -83,19 +86,26 @@ public:
     const glm::vec3& getNearBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_NEAR]; }
     const glm::vec3& getNearBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_NEAR]; }
 
-    // get/set for keyhole attribute
-    void  setKeyholeRadius(float keyholdRadius) { _keyholeRadius = keyholdRadius; }
-    float getKeyholeRadius() const { return _keyholeRadius; }
+    // get/set for central spherek attribute
+    void  setCenterRadius(float radius) { _centerSphereRadius = radius; }
+    float getCenterRadius() const { return _centerSphereRadius; }
 
     void calculate();
 
-    typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
+    typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } intersection;
 
-    ViewFrustum::location computePointFrustumLocation(const glm::vec3& point) const;
+    /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
+    ViewFrustum::intersection calculateCubeFrustumIntersection(const AACube& cube) const;
+    ViewFrustum::intersection calculateCubeKeyholeIntersection(const AACube& cube) const;
 
-    ViewFrustum::location computeSphereViewLocation(const glm::vec3& center, float radius) const;
-    ViewFrustum::location computeCubeViewLocation(const AACube& cube) const;
-    ViewFrustum::location computeBoxViewLocation(const AABox& box) const;
+    bool pointIntersectsFrustum(const glm::vec3& point) const;
+    bool sphereIntersectsFrustum(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsFrustum(const AACube& box) const;
+    bool boxIntersectsFrustum(const AABox& box) const;
+
+    bool sphereIntersectsKeyhole(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsKeyhole(const AACube& cube) const;
+    bool boxIntersectsKeyhole(const AABox& box) const;
 
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
@@ -132,12 +142,6 @@ public:
 
     const ::Plane* getPlanes() const { return _planes; }
 private:
-    // Used for keyhole calculations
-    ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
-    ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
-    ViewFrustum::location boxInKeyhole(const AABox& box) const;
-
     // camera location/orientation attributes
     glm::vec3 _position; // the position in world-frame
     glm::quat _orientation;
@@ -151,9 +155,7 @@ private:
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 
-    // keyhole attributes
-    float _keyholeRadius = DEFAULT_KEYHOLE_RADIUS;
-    AACube _keyholeBoundingCube;
+    float _centerSphereRadius = DEFAULT_CENTER_SPHERE_RADIUS;
 
     // Calculated values
     glm::mat4 _inverseProjection;
@@ -166,7 +168,7 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     glm::vec4 _corners[8];
     glm::vec3 _cornersWorld[8];
-    ::Plane _planes[6]; // How will this be used?
+    ::Plane _planes[6]; // plane normals point inside frustum
 
     const char* debugPlaneName (int plane) const;
 

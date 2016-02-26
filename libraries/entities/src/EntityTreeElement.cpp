@@ -304,15 +304,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // frustum culling on rendering.
                     bool success;
                     AACube entityCube = entity->getQueryAACube(success);
-                    if (!success || params.viewFrustum->computeCubeViewLocation(entityCube) == ViewFrustum::OUTSIDE) {
+                    if (!success || !params.viewFrustum->cubeIntersectsKeyhole(entityCube)) {
                         includeThisEntity = false; // out of view, don't include it
-                    }
-
-                    // Now check the size of the entity, it's possible that a "too small to see" entity is included in a
-                    // larger octree cell because of its position (for example if it crosses the boundary of a cell it
-                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
-                    // before we consider including it.
-                    if (includeThisEntity) {
+                    } else {
+                        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+                        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+                        // before we consider including it.
                         success = true;
                         // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
                         // avoid sending details about a child but not the parent.  the parent's queryAACube should have

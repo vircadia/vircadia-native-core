@@ -115,10 +115,6 @@ void ViewFrustum::calculate() {
 
     // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
     _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
-
-    // Set up our keyhole bounding box...
-    glm::vec3 corner = _position - _keyholeRadius;
-    _keyholeBoundingCube = AACube(corner,(_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -134,219 +130,129 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-ViewFrustum::location ViewFrustum::pointInKeyhole(const glm::vec3& point) const {
-
-    ViewFrustum::location result = INTERSECT;
-
-    float distance = glm::distance(point, _position);
-    if (distance > _keyholeRadius) {
-        result = OUTSIDE;
-    } else if (distance < _keyholeRadius) {
-        result = INSIDE;
-    }
-
-    return result;
-}
-
-// To determine if two spheres intersect, simply calculate the distance between the centers of the two spheres.
-// If the distance is greater than the sum of the two sphere radii, they don’t intersect. Otherwise they intersect.
-// If the distance plus the radius of sphere A is less than the radius of sphere B then, sphere A is inside of sphere B
-ViewFrustum::location ViewFrustum::sphereInKeyhole(const glm::vec3& center, float radius) const {
-    ViewFrustum::location result = INTERSECT;
-
-    float distance = glm::distance(center, _position);
-    if (distance > (radius + _keyholeRadius)) {
-        result = OUTSIDE;
-    } else if ((distance + radius) < _keyholeRadius) {
-        result = INSIDE;
-    }
-
-    return result;
-}
-
-
-// A box is inside a sphere if all of its corners are inside the sphere
-// A box intersects a sphere if any of its edges (as rays) interesect the sphere
-// A box is outside a sphere if none of its edges (as rays) interesect the sphere
-ViewFrustum::location ViewFrustum::cubeInKeyhole(const AACube& cube) const {
-
-    // First check to see if the cube is in the bounding cube for the sphere, if it's not, then we can short circuit
-    // this and not check with sphere penetration which is more expensive
-    if (!_keyholeBoundingCube.contains(cube)) {
-        return OUTSIDE;
-    }
-
-    glm::vec3 penetration;
-    bool intersects = cube.findSpherePenetration(_position, _keyholeRadius, penetration);
-
-    ViewFrustum::location result = OUTSIDE;
-
-    // if the cube intersects the sphere, then it may also be inside... calculate further
-    if (intersects) {
-        result = INTERSECT;
-
-        // test all the corners, if they are all inside the sphere, the entire cube is in the sphere
-        bool allPointsInside = true; // assume the best
-        for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
-            glm::vec3 vertex = cube.getVertex((BoxVertex)v);
-            if (!pointInKeyhole(vertex)) {
-                allPointsInside = false;
-                break;
+ViewFrustum::intersection ViewFrustum::calculateCubeFrustumIntersection(const AACube& cube) const {
+    // only check against frustum
+    ViewFrustum::intersection result = INSIDE;
+    for(int i=0; i < 6; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        // check distance to farthest cube point
+        if ( _planes[i].distance(cube.getFarthestVertex(normal)) < 0.0f) {
+            return OUTSIDE;
+        } else {
+            // check distance to nearest cube point
+            if (_planes[i].distance(cube.getNearestVertex(normal)) < 0.0f) {
+                // cube straddles the plane
+                result = INTERSECT;
             }
         }
-
-        if (allPointsInside) {
-            result = INSIDE;
-        }
     }
-
     return result;
 }
 
-// A box is inside a sphere if all of its corners are inside the sphere
-// A box intersects a sphere if any of its edges (as rays) interesect the sphere
-// A box is outside a sphere if none of its edges (as rays) interesect the sphere
-ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
+const float HALF_SQRT_THREE = 0.8660254f;
 
-    // First check to see if the box is in the bounding box for the sphere, if it's not, then we can short circuit
-    // this and not check with sphere penetration which is more expensive
-    if (!_keyholeBoundingCube.contains(box)) {
-        return OUTSIDE;
+ViewFrustum::intersection ViewFrustum::calculateCubeKeyholeIntersection(const AACube& cube) const {
+    // check against centeral sphere
+    ViewFrustum::intersection sphereResult = INTERSECT;
+    glm::vec3 cubeOffset = cube.calcCenter() - _position;
+    float distance = glm::length(cubeOffset);
+    if (distance > EPSILON) {
+        glm::vec3 vertex = cube.getFarthestVertex(cubeOffset) - _position;
+        if (glm::dot(vertex, cubeOffset) < _centerSphereRadius * distance) {
+            // the most outward cube vertex is inside central sphere
+            return INSIDE;
+        }
+        if (!cube.touchesSphere(_position, _centerSphereRadius)) {
+            sphereResult = OUTSIDE;
+        }
+    } else if (_centerSphereRadius > HALF_SQRT_THREE * cube.getScale()) {
+        // the cube is in center of sphere and its bounding radius is inside
+        return INSIDE;
     }
 
-    glm::vec3 penetration;
-    bool intersects = box.findSpherePenetration(_position, _keyholeRadius, penetration);
+    // check against frustum
+    ViewFrustum::intersection frustumResult = calculateCubeFrustumIntersection(cube);
 
-    ViewFrustum::location result = OUTSIDE;
-
-    // if the box intersects the sphere, then it may also be inside... calculate further
-    if (intersects) {
-        result = INTERSECT;
-
-        // test all the corners, if they are all inside the sphere, the entire box is in the sphere
-        bool allPointsInside = true; // assume the best
-        for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
-            glm::vec3 vertex = box.getVertex((BoxVertex)v);
-            if (!pointInKeyhole(vertex)) {
-                allPointsInside = false;
-                break;
-            }
-        }
-
-        if (allPointsInside) {
-            result = INSIDE;
-        }
-    }
-
-    return result;
+    return (frustumResult == OUTSIDE) ? sphereResult : frustumResult;
 }
 
-ViewFrustum::location ViewFrustum::computePointFrustumLocation(const glm::vec3& point) const {
-    // only checks against frustum, not sphere
+bool ViewFrustum::pointIntersectsFrustum(const glm::vec3& point) const {
+    // only check against frustum
     for(int i = 0; i < 6; ++i) {
         float distance = _planes[i].distance(point);
         if (distance < 0.0f) {
-            return OUTSIDE;
+            return false;
         }
     }
-    return INSIDE;
+    return true;
 }
 
-ViewFrustum::location ViewFrustum::computeSphereViewLocation(const glm::vec3& center, float radius) const {
-    ViewFrustum::location regularResult = INSIDE;
-    ViewFrustum::location keyholeResult = OUTSIDE;
-
-    // If we have a keyholeRadius, check that first, since it's cheaper
-    if (_keyholeRadius >= 0.0f) {
-        keyholeResult = sphereInKeyhole(center, radius);
-    }
-    if (keyholeResult == INSIDE) {
-        return keyholeResult;
-    }
-
-    float distance;
+bool ViewFrustum::sphereIntersectsFrustum(const glm::vec3& center, float radius) const {
+    // only check against frustum
     for(int i=0; i < 6; i++) {
-        distance = _planes[i].distance(center);
+        float distance = _planes[i].distance(center);
         if (distance < -radius) {
             // This is outside the regular frustum, so just return the value from checking the keyhole
-            return keyholeResult;
-        } else if (distance < radius) {
-            regularResult =  INTERSECT;
+            return false;
         }
     }
-
-    return regularResult;
+    return true;
 }
 
-
-ViewFrustum::location ViewFrustum::computeCubeViewLocation(const AACube& cube) const {
-
-    ViewFrustum::location regularResult = INSIDE;
-    ViewFrustum::location keyholeResult = OUTSIDE;
-
-    // If we have a keyholeRadius, check that first, since it's cheaper
-    if (_keyholeRadius >= 0.0f) {
-        keyholeResult = cubeInKeyhole(cube);
-    }
-    if (keyholeResult == INSIDE) {
-        return keyholeResult;
-    }
-
-    // TODO: These calculations are expensive, taking up 80% of our time in this function.
-    // This appears to be expensive because we have to test the distance to each plane.
-    // One suggested optimization is to first check against the approximated cone. We might
-    // also be able to test against the cone to the bounding sphere of the box.
+bool ViewFrustum::boxIntersectsFrustum(const AABox& box) const {
+    // only check against frustum
     for(int i=0; i < 6; i++) {
         const glm::vec3& normal = _planes[i].getNormal();
-        const glm::vec3& boxVertexP = cube.getVertexP(normal);
-        float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
-
-        const glm::vec3& boxVertexN = cube.getVertexN(normal);
-        float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
-
-        if (planeToBoxVertexPDistance < 0) {
-            // This is outside the regular frustum, so just return the value from checking the keyhole
-            return keyholeResult;
-        } else if (planeToBoxVertexNDistance < 0) {
-            regularResult =  INTERSECT;
+        // check distance to farthest box point
+        if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
+            return false;
         }
     }
-    return regularResult;
+    return true;
 }
 
-ViewFrustum::location ViewFrustum::computeBoxViewLocation(const AABox& box) const {
-
-    ViewFrustum::location regularResult = INSIDE;
-    ViewFrustum::location keyholeResult = OUTSIDE;
-
-    // If we have a keyholeRadius, check that first, since it's cheaper
-    if (_keyholeRadius >= 0.0f) {
-        keyholeResult = boxInKeyhole(box);
+bool ViewFrustum::sphereIntersectsKeyhole(const glm::vec3& center, float radius) const {
+    // check positive touch against central sphere
+    if (glm::length(center - _position) <= (radius + _centerSphereRadius)) {
+        return true;
     }
-    if (keyholeResult == INSIDE) {
-        return keyholeResult;
-    }
-
-    // TODO: These calculations are expensive, taking up 80% of our time in this function.
-    // This appears to be expensive because we have to test the distance to each plane.
-    // One suggested optimization is to first check against the approximated cone. We might
-    // also be able to test against the cone to the bounding sphere of the box.
+    // check negative touches against frustum planes
     for(int i=0; i < 6; i++) {
-        const glm::vec3& normal = _planes[i].getNormal();
-        const glm::vec3& boxVertexP = box.getVertexP(normal);
-        float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
-
-        const glm::vec3& boxVertexN = box.getVertexN(normal);
-        float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
-
-        if (planeToBoxVertexPDistance < 0) {
-            // This is outside the regular frustum, so just return the value from checking the keyhole
-            return keyholeResult;
-        } else if (planeToBoxVertexNDistance < 0) {
-            regularResult =  INTERSECT;
+        if ( _planes[i].distance(center) < -radius) {
+            return false;
         }
     }
-    return regularResult;
+    return true;
+}
+
+bool ViewFrustum::cubeIntersectsKeyhole(const AACube& cube) const {
+    // check positive touch against central sphere
+    if (cube.touchesSphere(_position, _centerSphereRadius)) {
+        return true;
+    }
+    // check negative touches against frustum planes
+    for(int i=0; i < 6; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        if ( _planes[i].distance(cube.getFarthestVertex(normal)) < 0.0f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool ViewFrustum::boxIntersectsKeyhole(const AABox& box) const {
+    // check positive touch against central sphere
+    if (box.touchesSphere(_position, _centerSphereRadius)) {
+        return true;
+    }
+    // check negative touches against frustum planes
+    for(int i=0; i < 6; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        if ( _planes[i].distance(box.getFarthestVertex(normal)) < 0.0f) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool testMatches(glm::quat lhs, glm::quat rhs, float epsilon = EPSILON) {
@@ -528,7 +434,7 @@ void ViewFrustum::printDebugDetails() const {
     qCDebug(octree, "_right=%f,%f,%f", (double)_right.x, (double)_right.y, (double)_right.z );
     qCDebug(octree, "_fieldOfView=%f", (double)_fieldOfView);
     qCDebug(octree, "_aspectRatio=%f", (double)_aspectRatio);
-    qCDebug(octree, "_keyHoleRadius=%f", (double)_keyholeRadius);
+    qCDebug(octree, "_centerSphereRadius=%f", (double)_centerSphereRadius);
     qCDebug(octree, "_nearClip=%f", (double)_nearClip);
     qCDebug(octree, "_farClip=%f", (double)_farClip);
     qCDebug(octree, "_focalLength=%f", (double)_focalLength);
