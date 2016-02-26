@@ -315,9 +315,6 @@ bool setupEssentials(int& argc, char** argv) {
 
     Setting::preInit();
 
-    LogHandler::getInstance().setShouldDisplayMilliseconds(true);
-    LogHandler::getInstance().setShouldOutputThreadID(true);
-
     CrashHandler::checkForAndHandleCrash();
     CrashHandler::writeRunningMarkerFiler();
     qAddPostRoutine(CrashHandler::deleteRunningMarkerFile);
