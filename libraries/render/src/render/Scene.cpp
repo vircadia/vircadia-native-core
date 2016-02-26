@@ -104,6 +104,8 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
         if (newKey.isSpatial()) {
             auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
             item.resetCell(newCell, newKey.isSmall());
+        } else {
+            _masterNonspatialSet.insert(resetID);
         }
 
         // next loop
@@ -152,10 +154,13 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         } else {
             if (newKey.isSpatial()) {
                 _masterNonspatialSet.erase(updateID);
+
                 auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
                 item.resetCell(newCell, newKey.isSmall());
             } else {
                 _masterSpatialTree.removeItem(oldCell, oldKey, updateID);
+                item.resetCell();
+
                 _masterNonspatialSet.insert(updateID);
             }
         }

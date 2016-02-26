@@ -315,9 +315,9 @@ public:
 
     // Main scene / item managment interface reset/update/kill
     void resetPayload(const PayloadPointer& payload);
-    void resetCell(ItemCell cell, bool _small) { _cell = cell; _key.setSmaller(_small); }
+    void resetCell(ItemCell cell = INVALID_CELL, bool _small = false) { _cell = cell; _key.setSmaller(_small); }
     void update(const UpdateFunctorPointer& updateFunctor); // communicate update to payload
-    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // forget the payload, key, cell
+    void kill() { _payload.reset(); resetCell(); _key._flags.reset(); } // forget the payload, key, cell
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
