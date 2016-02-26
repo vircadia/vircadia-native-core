@@ -48,9 +48,12 @@
             entities.forEach(function(entity) {
                 var entityName = Entities.getEntityProperties(entity, "name").name;
                 if (entityName === _this.WHITEBOARD_SURFACE_NAME) {
+
                     _this.whiteboards.push(entity);
                 }
             });
+
+            print("intersectable entities " + JSON.stringify(_this.whiteboards))
         },
 
         releaseEquip: function() {
@@ -72,7 +75,6 @@
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true, _this.whiteboards);
             _this.whiteboardNormal = Quat.getFront(intersection.properties.rotation);
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
-                print("EBL HIT")
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
                     position: intersection.intersection,
