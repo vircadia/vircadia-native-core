@@ -1113,6 +1113,8 @@ Application::~Application() {
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
 
+    ResourceManager::cleanup();
+
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
 
     // remove the NodeList from the DependencyManager
@@ -1127,8 +1129,6 @@ Application::~Application() {
 #if 0
     ConnexionClient::getInstance().destroy();
 #endif
-
-    ResourceManager::cleanup();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }

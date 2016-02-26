@@ -64,12 +64,28 @@ void AssetClient::init() {
     }
 }
 
+
+void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    if (auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache())) {
+        QMetaObject::invokeMethod(reciever, slot.toStdString().data(), Qt::QueuedConnection,
+                                  Q_ARG(QString, cache->cacheDirectory()),
+                                  Q_ARG(qint64, cache->cacheSize()),
+                                  Q_ARG(qint64, cache->maximumCacheSize()));
+    } else {
+        qCWarning(asset_client) << "No disk cache to get info from.";
+    }
+}
+
 void AssetClient::clearCache() {
     Q_ASSERT(QThread::currentThread() == thread());
 
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
         cache->clear();
+    } else {
+        qCWarning(asset_client) << "No disk cache to clear.";
     }
 }
 

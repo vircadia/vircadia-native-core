@@ -18,6 +18,7 @@
 class QDialog;
 class QLabel;
 class QWindow;
+class QTimer;
 
 class DiskCacheEditor : public QObject {
     Q_OBJECT
@@ -32,6 +33,7 @@ public slots:
     
 private slots:
     void refresh();
+    void update(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize);
     void clear();
     
 private:
@@ -41,6 +43,7 @@ private:
     QPointer<QLabel> _path;
     QPointer<QLabel> _size;
     QPointer<QLabel> _maxSize;
+    QPointer<QTimer> _refreshTimer;
 };
 
 #endif // hifi_DiskCacheEditor_h

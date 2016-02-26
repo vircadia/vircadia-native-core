@@ -55,6 +55,8 @@ Agent::Agent(ReceivedMessage& message) :
 {
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
+    ResourceManager::init();
+
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
@@ -73,8 +75,6 @@ Agent::Agent(ReceivedMessage& message) :
         { PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
-
-    ResourceManager::init();
 }
 
 void Agent::handleOctreePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -464,9 +464,9 @@ void Agent::aboutToFinish() {
 
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
+
+    ResourceManager::cleanup();
     
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
-
-    ResourceManager::cleanup();
 }

@@ -50,6 +50,8 @@ public:
 
 public slots:
     void init();
+
+    void cacheInfoRequest(QObject* reciever, QString slot);
     void clearCache();
 
 private slots:
