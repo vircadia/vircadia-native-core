@@ -91,7 +91,7 @@ void DiskCacheEditor::makeDialog() {
     _refreshTimer = new QTimer(_dialog);
     _refreshTimer->setInterval(100);
     _refreshTimer->setSingleShot(false);
-    QObject::connect(_refreshTimer, &QTimer::timeout, this, &DiskCacheEditor::refresh);
+    QObject::connect(_refreshTimer.data(), &QTimer::timeout, this, &DiskCacheEditor::refresh);
     _refreshTimer->start();
 
     QPushButton* clearCacheButton = new QPushButton(_dialog);
