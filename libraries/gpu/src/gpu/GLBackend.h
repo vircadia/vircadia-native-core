@@ -173,6 +173,9 @@ public:
     public:
         GLuint _fbo = 0;
         std::vector<GLenum> _colorBuffers;
+        Stamp _depthStamp { 0 };
+        std::vector<Stamp> _colorStamps;
+
 
         GLFramebuffer();
         ~GLFramebuffer();
