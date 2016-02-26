@@ -18,6 +18,7 @@ TextField {
     id: textField
 
     property int colorScheme: hifi.colorSchemes.light
+    readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
     property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
 
@@ -31,11 +32,11 @@ TextField {
     y: textFieldLabel.visible ? textFieldLabel.height : 0
 
     style: TextFieldStyle {
-        textColor: textField.colorScheme == hifi.colorSchemes.light
+        textColor: isLightColorScheme
                    ? (textField.focus ? hifi.colors.black : hifi.colors.lightGray)
                    : (textField.focus ? hifi.colors.white : hifi.colors.lightGrayText)
         background: Rectangle {
-            color: textField.colorScheme == hifi.colorSchemes.light
+            color: isLightColorScheme
                    ? (textField.focus ? hifi.colors.white : hifi.colors.lightGray)
                    : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
@@ -52,7 +53,7 @@ TextField {
         id: textFieldLabel
         text: textField.label
         size: hifi.fontSizes.inputLabel
-        color: hifi.colors.lightGrayText
+        color: isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText
         anchors.left: parent.left
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
