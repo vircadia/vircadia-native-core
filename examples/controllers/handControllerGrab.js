@@ -801,6 +801,8 @@ function MyController(hand) {
         this.isInitialGrab = false;
         this.doubleParentGrab = false;
 
+        this.checkForStrayChildren();
+
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -1750,6 +1752,17 @@ function MyController(hand) {
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
         return data;
     };
+
+    this.checkForStrayChildren = function() {
+        // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
+        // unhook them.
+        var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+        var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+        children.forEach(function(childID) {
+            print("disconnecting stray child of hand: " + childID);
+            Entities.editEntity(childID, {parentID: NULL_UUID});
+        });
+    }
 
     this.deactivateEntity = function(entityID, noVelocity) {
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
