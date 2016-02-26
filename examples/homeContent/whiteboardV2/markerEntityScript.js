@@ -92,7 +92,8 @@
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true, _this.whiteboards);
 
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
-                var whiteboardRotation = Entities.getEntityProperties(intersection.entityID, "rotation").rotation;
+                _this.currentWhiteboard = intersection.entityID;
+                var whiteboardRotation = Entities.getEntityProperties(_this.currentWhiteboard, "rotation").rotation;
                 _this.whiteboardNormal = Quat.getFront(whiteboardRotation);
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
@@ -128,7 +129,8 @@
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
-                lifetime: 500
+                lifetime: 500,
+                // parentID: _this.currentWhiteboard
             });
 
             _this.linePoints = [];
@@ -161,7 +163,6 @@
             for (var i = 0; i < _this.linePoints.length; i++) {
                 // Create a temp array of stroke widths for calligraphy effect - start and end should be less wide
                 var pointsFromCenter = Math.abs(_this.linePoints.length / 2 - i);
-                print("EBL POINTS CENTER " + pointsFromCenter)
                 var pointWidth = map(pointsFromCenter, 0, this.linePoints.length / 2, _this.STROKE_WIDTH_RANGE.max, this.STROKE_WIDTH_RANGE.min);
                 strokeWidths.push(pointWidth);
             }
