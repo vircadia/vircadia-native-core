@@ -92,7 +92,7 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     // set our member variables from randomized initial number
     _currentSequenceNumber = _initialSequenceNumber - 1;
     _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
-    _lastACKSequenceNumber = uint32_t(_initialSequenceNumber);
+    _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {

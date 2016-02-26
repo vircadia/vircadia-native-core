@@ -88,6 +88,7 @@ SendQueue& Connection::getSendQueue() {
 
         // Lasily create send queue
         _sendQueue = SendQueue::create(_parentSocket, _destination);
+        _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
@@ -410,6 +411,12 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         // refuse to process any packets until we've received the handshake
         return false;
     }
+
+    if (!_hasReceivedData) {
+        _initialReceiveSequenceNumber = sequenceNumber;
+        _lastReceivedSequenceNumber = sequenceNumber - 1;
+        _lastSentACK = sequenceNumber - 1;
+     }
     
     _isReceivingData = _hasReceivedData = true;
     
