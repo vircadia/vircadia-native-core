@@ -27,7 +27,7 @@ Preference {
     }
 
     Label {
-        text: root.label
+        text: root.label + ":"
         colorScheme: hifi.colorSchemes.dark
         anchors.verticalCenter: spinner.verticalCenter
     }

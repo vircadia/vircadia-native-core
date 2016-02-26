@@ -65,7 +65,7 @@ void setupPreferences() {
     {
         auto getter = []()->QString { return Snapshot::snapshotsLocation.get(); };
         auto setter = [](const QString& value) { Snapshot::snapshotsLocation.set(value); };
-        auto preference = new BrowsePreference("Snapshots", "Place my Snapshots here:", getter, setter);
+        auto preference = new BrowsePreference("Snapshots", "Put my Snapshots here", getter, setter);
         preferences->addPreference(preference);
     }
 
@@ -73,7 +73,7 @@ void setupPreferences() {
     {
         auto getter = []()->QString { return DependencyManager::get<ScriptEngines>()->getScriptsLocation(); };
         auto setter = [](const QString& value) { DependencyManager::get<ScriptEngines>()->setScriptsLocation(value); };
-        preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory:", getter, setter));
+        preferences->addPreference(new BrowsePreference("Scripts", "Load scripts from this directory", getter, setter));
     }
 
     preferences->addPreference(new ButtonPreference("Scripts", "Load Default Scripts", [] {
@@ -83,7 +83,7 @@ void setupPreferences() {
     {
         auto getter = []()->bool {return !Menu::getInstance()->isOptionChecked(MenuOption::DisableActivityLogger); };
         auto setter = [](bool value) { Menu::getInstance()->setIsOptionChecked(MenuOption::DisableActivityLogger, !value); };
-        preferences->addPreference(new CheckPreference("Privacy", "Send Data", getter, setter));
+        preferences->addPreference(new CheckPreference("Privacy", "Send data", getter, setter));
     }
     
     static const QString LOD_TUNING("Level of Detail Tuning");
@@ -299,7 +299,7 @@ void setupPreferences() {
     {
         auto getter = []()->float { return qApp->getApplicationCompositor().getHmdUIAngularSize(); };
         auto setter = [](float value) { qApp->getApplicationCompositor().setHmdUIAngularSize(value); };
-        auto preference = new SpinnerPreference("HMD", "User Interface Horizontal Angular Size (degrees)", getter, setter);
+        auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
         preference->setMin(30);
         preference->setMax(160);
         preference->setStep(1);
@@ -310,7 +310,7 @@ void setupPreferences() {
     {
         auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
         auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle Movement Speed", getter, setter);
+        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
         preference->setMin(0);
         preference->setMax(100);
         preference->setStep(1);
