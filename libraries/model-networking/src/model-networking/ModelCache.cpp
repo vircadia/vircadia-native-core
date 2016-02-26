@@ -364,7 +364,9 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
     }
     if (!material.roughnessTexture.filename.isEmpty()) {
         // FIXME: COnvert from gloss to roughness if material.roughnessTexture.isGlossmap;
-        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
+        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)),
+            (material.roughnessTexture.isGlossmap ? GLOSS_TEXTURE : ROUGHNESS_TEXTURE),
+            material.roughnessTexture.content);
         networkMaterial->roughnessTextureName = material.roughnessTexture.name;
 
         auto roughnessMap = model::TextureMapPointer(new model::TextureMap());

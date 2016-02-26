@@ -216,6 +216,10 @@ NetworkTexture::TextureLoaderFunc NetworkTexture::getTextureLoader() const {
             return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromImage);
             break;
         }
+        case GLOSS_TEXTURE: {
+            return TextureLoaderFunc(model::TextureUsage::createRoughnessTextureFromGlossImage);
+            break;
+        }
         case SPECULAR_TEXTURE: {
             return TextureLoaderFunc(model::TextureUsage::createMetallicTextureFromImage);
             break;
