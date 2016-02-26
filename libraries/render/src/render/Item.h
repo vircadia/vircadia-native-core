@@ -112,6 +112,7 @@ public:
     bool isPickable() const { return _flags[PICKABLE]; }
 
     bool isLayered() const { return _flags[LAYERED]; }
+    bool isSpatial() const { return !isLayered(); }
 
     // Probably not public, flags used by the scene
     bool isSmall() const { return _flags[SMALLER]; }
@@ -315,8 +316,10 @@ public:
     // Main scene / item managment interface Reset/Update/Kill
     void resetPayload(const PayloadPointer& payload);
     void resetCell(ItemCell cell, bool _small) { _cell = cell; _key.setSmaller(_small); }
-    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); } // Communicate update to the payload
-    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // Kill means forget the payload and key and cell
+    // Communicate the update to the payload
+    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); _key = _payload->getKey(); }
+    // Forget the payload, key, and cell
+    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; }
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
