@@ -460,6 +460,7 @@ void OffscreenUi::unfocusWindows() {
 }
 
 void OffscreenUi::toggleMenu(const QPoint& screenPosition) {
+    emit showDesktop(); // we really only want to do this if you're showing the menu, but for now this works
     auto virtualPos = mapToVirtualScreen(screenPosition, nullptr);
     QMetaObject::invokeMethod(_desktop, "toggleMenu",  Q_ARG(QVariant, virtualPos));
 }
