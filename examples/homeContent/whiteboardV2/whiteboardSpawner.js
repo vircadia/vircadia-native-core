@@ -54,8 +54,9 @@ var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
     z: 0.0
 });
 whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(whiteboardRotation)));
-whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getFront(whiteboardRotation)));
-var whiteboardDrawingSurface = Entities.addEntity({
+var moveForwardDistance = 0.02;
+whiteboardFrontSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-moveForwardDistance, Quat.getFront(whiteboardRotation)));
+var whiteboardSurfaceSettings = {
     type: "Box",
     name: "hifi-whiteboardDrawingSurface",
     dimensions: {
@@ -68,11 +69,18 @@ var whiteboardDrawingSurface = Entities.addEntity({
         green: 10,
         blue: 200
     },
-    position: whiteboardSurfacePosition,
+    position: whiteboardFrontSurfacePosition,
     rotation: whiteboardRotation,
     visible: false,
     parentID: whiteboard
-});
+}
+var whiteboardFrontDrawingSurface = Entities.addEntity(whiteboardSurfaceSettings);
+
+
+whiteboardBackSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(moveForwardDistance, Quat.getFront(whiteboardRotation)));
+whiteboardSurfaceSettings.position = whiteboardBackSurfacePosition;
+
+var whiteboardFrontDrawingSurface = Entities.addEntity(whiteboardSurfaceSettings);
 
 
 var WHITEBOARD_RACK_DEPTH = 1.9;
@@ -230,7 +238,8 @@ function createMarker(modelURL, markerPosition, markerColor) {
 
 function cleanup() {
     Entities.deleteEntity(whiteboard);
-    Entities.deleteEntity(whiteboardDrawingSurface);
+    Entities.deleteEntity(whiteboardFrontDrawingSurface);
+    Entities.deleteEntity(whiteboardBackDrawingSurface);
     Entities.deleteEntity(eraser);
     markers.forEach(function(marker) {
         Entities.deleteEntity(marker);
