@@ -1,5 +1,5 @@
 //
-//  BrowsablePreference.qml
+//  ButtonPreference.qml
 //
 //  Created by Bradley Austin Davis on 18 Jan 2016
 //  Copyright 2016 High Fidelity, Inc.

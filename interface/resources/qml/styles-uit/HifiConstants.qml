@@ -61,6 +61,12 @@ Item {
         readonly property color tableRowDarkEven: "#a6181818"
         readonly property color tableScrollHandle: "#707070"
         readonly property color tableScrollBackground: "#323232"
+        readonly property color checkboxLightStart: "#ffffff"
+        readonly property color checkboxLightFinish: "#afafaf"
+        readonly property color checkboxDarkStart: "#7d7d7d"
+        readonly property color checkboxDarkFinish: "#6b6a6b"
+        readonly property color checkboxChecked: primaryHighlight
+        readonly property color checkboxCheckedBorder: "#36cdff"
     }
 
     Item {
