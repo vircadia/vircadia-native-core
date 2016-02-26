@@ -39,12 +39,12 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
 
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-        bool outOfView;
+        bool inView;
         {
-            PerformanceTimer perfTimer("computeBoxViewLocation");
-            outOfView = frustum->computeBoxViewLocation(item.bound) == ViewFrustum::OUTSIDE;
+            PerformanceTimer perfTimer("boxIntersectsFrustum");
+            inView = frustum->boxIntersectsFrustum(item.bound);
         }
-        if (!outOfView) {
+        if (inView) {
             bool bigEnoughToRender;
             {
                 PerformanceTimer perfTimer("shouldRender");
@@ -237,8 +237,8 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             */
         }
 
-        bool viewTest(const AABox& bound) {
-            if (_args->_viewFrustum->computeBoxViewLocation(bound) == ViewFrustum::OUTSIDE) {
+        bool frustumTest(const AABox& bound) {
+            if (!_args->_viewFrustum->boxIntersectsFrustum(bound)) {
                 _renderDetails._outOfView++;
                 return false;
             }
@@ -302,7 +302,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.viewTest(itemBound.bound)) {
+                if (test.frustumTest(itemBound.bound)) {
                     outItems.emplace_back(itemBound);
                 }
             }
@@ -316,7 +316,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.viewTest(itemBound.bound)) {
+                if (test.frustumTest(itemBound.bound)) {
                     if (test.solidAngleTest(itemBound.bound)) {
                         outItems.emplace_back(itemBound);
                     }

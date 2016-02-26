@@ -107,7 +107,7 @@ public:
     bool shouldCaptureMouse() const;
 
     /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
-    bool getReticleOverDesktop() const { return _isOverDesktop; }
+    bool getReticleOverDesktop() const;
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
 private:

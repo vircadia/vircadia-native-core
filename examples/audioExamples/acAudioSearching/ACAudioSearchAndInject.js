@@ -45,7 +45,7 @@ function debug() { // Display the arguments not just [Object object].
     //print.apply(null, [].map.call(arguments, JSON.stringify));
 }
 
-EntityViewer.setKeyholeRadius(QUERY_RADIUS);
+EntityViewer.setCenterRadius(QUERY_RADIUS);
 
 // ENTITY DATA CACHE
 // 
