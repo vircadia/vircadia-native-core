@@ -352,7 +352,6 @@ private:
     void checkSkeleton();
 
     void initializeAcceptedFiles();
-    int getRenderAmbientLight() const;
 
     void displaySide(RenderArgs* renderArgs, Camera& whichCamera, bool selfAvatarOnly = false);
 
@@ -510,7 +509,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };

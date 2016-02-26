@@ -63,7 +63,7 @@ public:
     }
     /// Same design as QMessageBox::question(), will block, returns result
     static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text,
-        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return question(title, text, buttons, defaultButton);
     }

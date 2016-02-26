@@ -342,22 +342,14 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(opaqueConsidered, (int)details._opaque._considered);
-        STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
-        STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
-        STAT_UPDATE(opaqueRendered, (int)details._opaque._rendered);
-        STAT_UPDATE(shadowConsidered, (int)details._shadow._considered);
+        STAT_UPDATE(itemConsidered, details._item._considered);
+        STAT_UPDATE(itemOutOfView, details._item._outOfView);
+        STAT_UPDATE(itemTooSmall, details._item._tooSmall);
+        STAT_UPDATE(itemRendered, details._item._rendered);
+        STAT_UPDATE(shadowConsidered, details._shadow._considered);
         STAT_UPDATE(shadowOutOfView, details._shadow._outOfView);
         STAT_UPDATE(shadowTooSmall, details._shadow._tooSmall);
-        STAT_UPDATE(shadowRendered, (int)details._shadow._rendered);
-        STAT_UPDATE(translucentConsidered, (int)details._translucent._considered);
-        STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
-        STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
-        STAT_UPDATE(translucentRendered, (int)details._translucent._rendered);
-        STAT_UPDATE(otherConsidered, (int)details._other._considered);
-        STAT_UPDATE(otherOutOfView, details._other._outOfView);
-        STAT_UPDATE(otherTooSmall, details._other._tooSmall);
-        STAT_UPDATE(otherRendered, (int)details._other._rendered);
+        STAT_UPDATE(shadowRendered, details._shadow._rendered);
     }
 }
 

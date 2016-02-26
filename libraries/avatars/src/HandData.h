@@ -93,6 +93,7 @@ public:
     PalmData(HandData* owningHandData = nullptr, HandData::Hand hand = HandData::UnknownHand);
     glm::vec3 getPosition() const { return _owningHandData->localToWorldPosition(_rawPosition); }
     glm::vec3 getVelocity() const { return _owningHandData->localToWorldDirection(_rawVelocity); }
+    glm::vec3 getAngularVelocity() const { return _owningHandData->localToWorldDirection(_rawAngularVelocity); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     bool isActive() const { return _isActive; }

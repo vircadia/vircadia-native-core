@@ -6,9 +6,11 @@ import "."
 Item {
     id: root
     anchors.fill: parent
+    objectName: "MouseMenuHandlerItem"
 
     MouseArea {
         id: menuRoot;
+        objectName: "MouseMenuHandlerMouseArea"
         anchors.fill: parent
         enabled: d.topMenu !== null
         onClicked: {

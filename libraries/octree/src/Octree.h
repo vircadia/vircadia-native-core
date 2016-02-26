@@ -367,7 +367,7 @@ protected:
     int encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                     const ViewFrustum::location& parentLocationThisView) const;
+                                     const ViewFrustum::intersection& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(OctreeElementPointer element, void* extraData);
 

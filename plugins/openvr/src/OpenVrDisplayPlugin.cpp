@@ -21,6 +21,7 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
+#include <GLMHelpers.h>
 
 #include "OpenVrHelpers.h"
 
@@ -32,6 +33,8 @@ const QString StandingHMDSensorMode = "Standing HMD Sensor Mode"; // this probab
 static vr::IVRCompositor* _compositor{ nullptr };
 vr::TrackedDevicePose_t _trackedDevicePose[vr::k_unMaxTrackedDeviceCount];
 mat4 _trackedDevicePoseMat4[vr::k_unMaxTrackedDeviceCount];
+vec3 _trackedDeviceLinearVelocities[vr::k_unMaxTrackedDeviceCount];
+vec3 _trackedDeviceAngularVelocities[vr::k_unMaxTrackedDeviceCount];
 static mat4 _sensorResetMat;
 static std::array<vr::Hmd_Eye, 2> VR_EYES { { vr::Eye_Left, vr::Eye_Right } };
 
@@ -119,6 +122,8 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
         _trackedDevicePose[i] = predictedTrackedDevicePose[i];
         _trackedDevicePoseMat4[i] = _sensorResetMat * toGlm(_trackedDevicePose[i].mDeviceToAbsoluteTracking);
+        _trackedDeviceLinearVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vVelocity));
+        _trackedDeviceAngularVelocities[i] = transformVectorFast(_sensorResetMat, toGlm(_trackedDevicePose[i].vAngularVelocity));
     }
     return _trackedDevicePoseMat4[0];
 }

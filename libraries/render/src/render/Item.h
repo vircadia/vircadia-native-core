@@ -217,6 +217,10 @@ public:
     static const ID INVALID_ITEM_ID = 0;
     static const ItemCell INVALID_CELL = -1;
 
+    // Convenient function to clear an ID or check it s valid
+    static void clearID(ID& id) { id = INVALID_ITEM_ID; }
+    static bool isValidID(const ID id) { return id != INVALID_ITEM_ID; }
+
     // Bound is the AABBox fully containing this item
     typedef AABox Bound;
     

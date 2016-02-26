@@ -109,6 +109,7 @@ public slots:
     void entitySciptChanging(const EntityItemID& entityID, const bool reload);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
     void updateEntityRenderStatus(bool shouldRenderEntities);
+    void updateZone(const EntityItemID& id);
 
     // optional slots that can be wired to menu items
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
@@ -136,15 +137,18 @@ private:
     EntityItemID _currentClickingOnEntityID;
 
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
-    void checkEnterLeaveEntities();
+    bool checkEnterLeaveEntities();
     void leaveAllEntities();
     void forceRecheckEntities();
 
-    glm::vec3 _lastAvatarPosition;
+    glm::vec3 _lastAvatarPosition { 0.0f };
     QVector<EntityItemID> _currentEntitiesInside;
 
     bool _pendingSkyboxTexture { false };
     NetworkTexturePointer _skyboxTexture;
+
+    bool _pendingAmbientTexture { false };
+    NetworkTexturePointer _ambientTexture;
 
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
