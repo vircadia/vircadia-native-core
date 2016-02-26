@@ -98,12 +98,12 @@ void DeferredLightingEffect::init() {
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
-        float intensity) {
-    addSpotLight(position, radius, color, intensity);    
+        float intensity, float falloffRadius) {
+    addSpotLight(position, radius, color, intensity, falloffRadius);
 }
 
 void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
-    float intensity, const glm::quat& orientation, float exponent, float cutoff) {
+    float intensity, float falloffRadius, const glm::quat& orientation, float exponent, float cutoff) {
     
     unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
     if (lightID >= _allocatedLights.size()) {
@@ -115,7 +115,7 @@ void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radiu
     lp->setMaximumRadius(radius);
     lp->setColor(color);
     lp->setIntensity(intensity);
-    //lp->setShowContour(quadraticAttenuation);
+    lp->setFalloffRadius(falloffRadius);
 
     if (exponent == 0.0f && cutoff == PI) {
         lp->setType(model::Light::POINT);

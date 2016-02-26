@@ -430,6 +430,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
+            const float LIGHT_FALLOFF_RADIUS = 0.01f;
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
             float distance = BASE_LIGHT_DISTANCE * getUniformScale();
@@ -438,7 +439,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, light.color, 0.5f, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
+                    distance * 2.0f, light.color, 0.5f, LIGHT_FALLOFF_RADIUS, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
         }
 
