@@ -27,8 +27,15 @@ GLBackend::GLFramebuffer::~GLFramebuffer() {
 GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffer) {
     GLFramebuffer* object = Backend::getGPUObject<GLBackend::GLFramebuffer>(framebuffer);
 
+    bool needsUpate { false };
+    if (!object || 
+        framebuffer.getDepthStamp() != object->_depthStamp ||
+        framebuffer.getColorStamps() != object->_colorStamps) {
+        needsUpate = true;
+    }
+
     // If GPU object already created and in sync
-    if (object) {
+    if (!needsUpate) {
         return object;
     } else if (framebuffer.isEmpty()) {
         // NO framebuffer definition yet so let's avoid thinking
@@ -37,94 +44,112 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
 
     // need to have a gpu object?
     if (!object) {
-        GLint currentFBO;
+        // All is green, assign the gpuobject to the Framebuffer
+        object = new GLFramebuffer();
+        Backend::setGPUObject(framebuffer, object);
+        glGenFramebuffers(1, &object->_fbo);
+        (void)CHECK_GL_ERROR();
+    }
+
+    if (needsUpate) {
+        GLint currentFBO = -1;
         glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &currentFBO);
-        
-        GLuint fbo;
-        glGenFramebuffers(1, &fbo);
-        (void) CHECK_GL_ERROR();
+        glBindFramebuffer(GL_FRAMEBUFFER, object->_fbo);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+        GLTexture* gltexture = nullptr;
+        TexturePointer surface;
+        if (framebuffer.getColorStamps() != object->_colorStamps) {
+            if (framebuffer.hasColor()) {
+                object->_colorBuffers.clear();
+                static const GLenum colorAttachments[] = {
+                    GL_COLOR_ATTACHMENT0,
+                    GL_COLOR_ATTACHMENT1,
+                    GL_COLOR_ATTACHMENT2,
+                    GL_COLOR_ATTACHMENT3,
+                    GL_COLOR_ATTACHMENT4,
+                    GL_COLOR_ATTACHMENT5,
+                    GL_COLOR_ATTACHMENT6,
+                    GL_COLOR_ATTACHMENT7,
+                    GL_COLOR_ATTACHMENT8,
+                    GL_COLOR_ATTACHMENT9,
+                    GL_COLOR_ATTACHMENT10,
+                    GL_COLOR_ATTACHMENT11,
+                    GL_COLOR_ATTACHMENT12,
+                    GL_COLOR_ATTACHMENT13,
+                    GL_COLOR_ATTACHMENT14,
+                    GL_COLOR_ATTACHMENT15 };
 
-        std::vector<GLenum> colorBuffers;
-        if (framebuffer.hasColor()) {
-            static const GLenum colorAttachments[] = {
-                GL_COLOR_ATTACHMENT0,
-                GL_COLOR_ATTACHMENT1,
-                GL_COLOR_ATTACHMENT2,
-                GL_COLOR_ATTACHMENT3,
-                GL_COLOR_ATTACHMENT4,
-                GL_COLOR_ATTACHMENT5,
-                GL_COLOR_ATTACHMENT6,
-                GL_COLOR_ATTACHMENT7,
-                GL_COLOR_ATTACHMENT8,
-                GL_COLOR_ATTACHMENT9,
-                GL_COLOR_ATTACHMENT10,
-                GL_COLOR_ATTACHMENT11,
-                GL_COLOR_ATTACHMENT12,
-                GL_COLOR_ATTACHMENT13,
-                GL_COLOR_ATTACHMENT14,
-                GL_COLOR_ATTACHMENT15 };
+                int unit = 0;
+                for (auto& b : framebuffer.getRenderBuffers()) {
+                    surface = b._texture;
+                    if (surface) {
+                        gltexture = GLBackend::syncGPUObject(*surface);
+                    } else {
+                        gltexture = nullptr;
+                    }
 
-            int unit = 0;
-            for (auto& b : framebuffer.getRenderBuffers()) {
-                auto surface = b._texture;
-                if (surface) {
-                    auto gltexture = GLBackend::syncGPUObject(*surface);
                     if (gltexture) {
                         glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D, gltexture->_texture, 0);
+                        object->_colorBuffers.push_back(colorAttachments[unit]);
+                    } else {
+                        glFramebufferTexture2D(GL_FRAMEBUFFER, colorAttachments[unit], GL_TEXTURE_2D, 0, 0);
                     }
-                    colorBuffers.push_back(colorAttachments[unit]);
                     unit++;
                 }
             }
-        }
-#if (GPU_FEATURE_PROFILE == GPU_LEGACY)
-        // for reasons that i don't understand yet, it seems that on mac gl, a fbo must have a color buffer...
-        else {
-            GLuint renderBuffer = 0;
-            glGenRenderbuffers(1, &renderBuffer);
-            glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
-            glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, framebuffer.getWidth(), framebuffer.getHeight());
-            glBindRenderbuffer(GL_RENDERBUFFER, 0);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
-            (void) CHECK_GL_ERROR();
-        }
-        
-   //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-#endif
-        
-
-        if (framebuffer.hasDepthStencil()) {
-            auto surface = framebuffer.getDepthStencilBuffer();
-            if (surface) {
-                auto gltexture = GLBackend::syncGPUObject(*surface);
-                if (gltexture) {
-                    GLenum attachement = GL_DEPTH_STENCIL_ATTACHMENT;
-                    if (!framebuffer.hasStencil()) {
-                        attachement = GL_DEPTH_ATTACHMENT;
-                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
-                    } else if (!framebuffer.hasDepth()) {
-                        attachement = GL_STENCIL_ATTACHMENT;
-                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
-                    } else {
-                        attachement = GL_DEPTH_STENCIL_ATTACHMENT;
-                        glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
-                    }
-                    (void) CHECK_GL_ERROR();
-                }
+    #if (GPU_FEATURE_PROFILE == GPU_LEGACY)
+            // for reasons that i don't understand yet, it seems that on mac gl, a fbo must have a color buffer...
+            else {
+                GLuint renderBuffer = 0;
+                glGenRenderbuffers(1, &renderBuffer);
+                glBindRenderbuffer(GL_RENDERBUFFER, renderBuffer);
+                glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA, framebuffer.getWidth(), framebuffer.getHeight());
+                glBindRenderbuffer(GL_RENDERBUFFER, 0);
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, renderBuffer);
+                (void) CHECK_GL_ERROR();
             }
+            //     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    #endif
+            object->_colorStamps = framebuffer.getColorStamps();
         }
+
+        GLenum attachement = GL_DEPTH_STENCIL_ATTACHMENT;
+        if (!framebuffer.hasStencil()) {
+            attachement = GL_DEPTH_ATTACHMENT;
+        } else if (!framebuffer.hasDepth()) {
+            attachement = GL_STENCIL_ATTACHMENT;
+        }
+
+        if (framebuffer.getDepthStamp() != object->_depthStamp) {
+            auto surface = framebuffer.getDepthStencilBuffer();
+            if (framebuffer.hasDepthStencil() && surface) {
+                gltexture = GLBackend::syncGPUObject(*surface);
+            }
+    
+            if (gltexture) {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, gltexture->_texture, 0);
+            } else {
+                glFramebufferTexture2D(GL_FRAMEBUFFER, attachement, GL_TEXTURE_2D, 0, 0);
+            }
+            object->_depthStamp = framebuffer.getDepthStamp();
+        }
+
 
         // Last but not least, define where we draw
-        if (!colorBuffers.empty()) {
-            glDrawBuffers((GLsizei)colorBuffers.size(), colorBuffers.data());
+        if (!object->_colorBuffers.empty()) {
+            glDrawBuffers((GLsizei)object->_colorBuffers.size(), object->_colorBuffers.data());
         } else {
             glDrawBuffer( GL_NONE );
         }
 
         // Now check for completness
         GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+        // restore the current framebuffer
+        if (currentFBO != -1) {
+            glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentFBO);
+        }
+
         bool result = false;
         switch (status) {
         case GL_FRAMEBUFFER_COMPLETE :
@@ -147,20 +172,10 @@ GLBackend::GLFramebuffer* GLBackend::syncGPUObject(const Framebuffer& framebuffe
             qCDebug(gpulogging) << "GLFramebuffer::syncGPUObject : Framebuffer not valid, GL_FRAMEBUFFER_UNSUPPORTED.";
             break;
         }
-        if (!result && fbo) {
-            glDeleteFramebuffers( 1, &fbo );
+        if (!result && object->_fbo) {
+            glDeleteFramebuffers(1, &object->_fbo);
             return nullptr;
         }
-
-
-        // All is green, assign the gpuobject to the Framebuffer
-        object = new GLFramebuffer();
-        object->_fbo = fbo;
-        object->_colorBuffers = colorBuffers;
-        Backend::setGPUObject(framebuffer, object);
-        
-        // restore the current framebuffer
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, currentFBO);
     }
 
     return object;

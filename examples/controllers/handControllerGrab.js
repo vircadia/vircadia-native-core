@@ -171,9 +171,8 @@ var STATE_WAITING_FOR_BUMPER_RELEASE = 15;
 var COLLIDES_WITH_WHILE_GRABBED = "dynamic,otherAvatar";
 var COLLIDES_WITH_WHILE_MULTI_GRABBED = "dynamic";
 
-var HEART_BEAT_INTERVAL = 5; // seconds
-var HEART_BEAT_TIMEOUT = 15;
-
+var HEART_BEAT_INTERVAL = 5 * MSECS_PER_SEC;
+var HEART_BEAT_TIMEOUT = 15 * MSECS_PER_SEC;
 
 function stateToName(state) {
     switch (state) {
