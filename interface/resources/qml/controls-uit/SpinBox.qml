@@ -17,7 +17,6 @@ import "../controls-uit" as HifiControls
 
 SpinBox {
     id: spinBox
-    //HifiConstants { id: hifi }  // DJRTODO: Not needed?
 
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light

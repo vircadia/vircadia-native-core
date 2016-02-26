@@ -25,6 +25,7 @@ Window {
     height: 577
     property var sections: []
     property var showCategories: []
+    minSize: Qt.vector2d(400, 500)
 
     HifiConstants { id: hifi }
 
