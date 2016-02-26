@@ -62,11 +62,11 @@ public:
                                  QHttpMultiPart* dataMultiPart = NULL,
                                  const QVariantMap& propertyMap = QVariantMap());
 
+    void setIsAgent(bool isAgent) { _isAgent = isAgent; }
+
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
-
-    void disableSettingsFilePersistence() { _shouldPersistToSettingsFile = false; }
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
@@ -87,7 +87,9 @@ public slots:
     void logout();
     void updateBalance();
     void accountInfoBalanceChanged(qint64 newBalance);
-    void generateNewKeypair();
+    void generateNewUserKeypair() { generateNewKeypair(); }
+    void generateNewDomainKeypair(const QUuid& domainID) { generateNewKeypair(false, domainID); }
+
 signals:
     void authRequired();
     void authEndpointChanged();
@@ -97,25 +99,36 @@ signals:
     void loginFailed();
     void logoutComplete();
     void balanceChanged(qint64 newBalance);
+    void newKeypair();
+
 private slots:
     void processReply();
     void handleKeypairGenerationError();
-    void processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
+    void processGeneratedKeypair();
+    void publicKeyUploadSucceeded(QNetworkReply& reply);
+    void publicKeyUploadFailed(QNetworkReply& reply);
+    void generateNewKeypair(bool isUserKeypair = true, const QUuid& domainID = QUuid());
+
 private:
     AccountManager();
-    AccountManager(AccountManager const& other); // not implemented
-    void operator=(AccountManager const& other); // not implemented
+    AccountManager(AccountManager const& other) = delete;
+    void operator=(AccountManager const& other) = delete;
 
-    void persistAccountToSettings();
+    void persistAccountToFile();
+    void removeAccountFromFile();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
 
     QUrl _authURL;
+    
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
-    bool _shouldPersistToSettingsFile;
+    bool _isAgent { false };
+
+    bool _isWaitingForKeypairResponse { false };
+    QByteArray _pendingPrivateKey;
 };
 
 #endif // hifi_AccountManager_h

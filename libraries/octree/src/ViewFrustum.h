@@ -91,10 +91,11 @@ public:
 
     typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
 
-    ViewFrustum::location pointInFrustum(const glm::vec3& point, bool ignoreKeyhole = false) const;
-    ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInFrustum(const AACube& cube) const;
-    ViewFrustum::location boxInFrustum(const AABox& box) const;
+    ViewFrustum::location computePointFrustumLocation(const glm::vec3& point) const;
+
+    ViewFrustum::location computeSphereViewLocation(const glm::vec3& center, float radius) const;
+    ViewFrustum::location computeCubeViewLocation(const AACube& cube) const;
+    ViewFrustum::location computeBoxViewLocation(const AABox& box) const;
 
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
@@ -114,15 +115,15 @@ public:
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
-    
+
     float distanceToCamera(const glm::vec3& point) const;
-    
+
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
 
     /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
     /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
-    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, 
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
                                   int boundaryLevelAdjust = 0) const;
 
     float getAccuracyAngle(float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;

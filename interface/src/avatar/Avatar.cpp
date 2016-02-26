@@ -136,7 +136,7 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 AABox Avatar::getBounds() const {
     // Our skeleton models are rigged, and this method call safely produces the static bounds of the model.
-    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed, 
+    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed,
     // and we want a centered one. NOTE: There is code that may never try to render, and thus never load and get the
     // real model bounds, if this is unrealistically small.
     if (!_skeletonModel.isRenderable()) {
@@ -188,7 +188,7 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius) !=
+    bool inViewFrustum = qApp->getViewFrustum()->computeSphereViewLocation(getPosition(), boundingRadius) !=
         ViewFrustum::OUTSIDE;
 
     {
@@ -401,7 +401,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         frustum = qApp->getDisplayViewFrustum();
     }
 
-    if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (frustum->computeSphereViewLocation(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
         endRender();
         return;
     }
@@ -430,6 +430,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
+            const float LIGHT_FALLOFF_RADIUS = 0.01f;
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
             float distance = BASE_LIGHT_DISTANCE * getUniformScale();
@@ -438,7 +439,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, light.color, 0.5f, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
+                    distance * 2.0f, light.color, 0.5f, LIGHT_FALLOFF_RADIUS, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
         }
 
@@ -516,7 +517,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         auto& frustum = *renderArgs->_viewFrustum;
         auto textPosition = getDisplayNamePosition();
 
-        if (frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE) {
+        if (frustum.computePointFrustumLocation(textPosition) == ViewFrustum::INSIDE) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
@@ -670,7 +671,7 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
 }
 
 Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
-    Q_ASSERT_X(frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE,
+    Q_ASSERT_X(frustum.computePointFrustumLocation(textPosition) == ViewFrustum::INSIDE,
                "Avatar::calculateDisplayNameTransform", "Text not in viewfrustum.");
     glm::vec3 toFrustum = frustum.getPosition() - textPosition;
 

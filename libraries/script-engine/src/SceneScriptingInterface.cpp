@@ -77,6 +77,10 @@ void SceneScripting::KeyLight::setAmbientIntensity(float intensity) {
     _skyStage->setSunAmbientIntensity(intensity);
 }
 
+void SceneScripting::KeyLight::setAmbientSphere(const gpu::SHPointer& sphere) {
+    _skyStage->setSunAmbientSphere(sphere);
+}
+
 glm::vec3 SceneScripting::KeyLight::getDirection() const {
     return _skyStage->getSunDirection();
 }
