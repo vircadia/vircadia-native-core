@@ -29,7 +29,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     ViewFrustum* frustum = args->_viewFrustum;
 
     details._considered += (int)inItems.size();
-    
+
     // Culling / LOD
     for (auto item : inItems) {
         if (item.bound.isNull()) {
@@ -41,8 +41,8 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
         // when they are outside of the view frustum...
         bool outOfView;
         {
-            PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = frustum->boxInFrustum(item.bound) == ViewFrustum::OUTSIDE;
+            PerformanceTimer perfTimer("computeBoxViewLocation");
+            outOfView = frustum->computeBoxViewLocation(item.bound) == ViewFrustum::OUTSIDE;
         }
         if (!outOfView) {
             bool bigEnoughToRender;
@@ -88,10 +88,10 @@ struct BackToFrontSort {
 void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
-    
+
     auto& scene = sceneContext->_scene;
     RenderArgs* args = renderContext->args;
-    
+
 
     // Allocate and simply copy
     outItems.clear();
@@ -237,8 +237,8 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             */
         }
 
-        bool frustumTest(const AABox& bound) {
-            if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
+        bool viewTest(const AABox& bound) {
+            if (_args->_viewFrustum->computeBoxViewLocation(bound) == ViewFrustum::OUTSIDE) {
                 _renderDetails._outOfView++;
                 return false;
             }
@@ -302,7 +302,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.frustumTest(itemBound.bound)) {
+                if (test.viewTest(itemBound.bound)) {
                     outItems.emplace_back(itemBound);
                 }
             }
@@ -316,7 +316,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
             auto& item = scene->getItem(id);
             if (_filter.test(item.getKey())) {
                 ItemBound itemBound(id, item.getBound());
-                if (test.frustumTest(itemBound.bound)) {
+                if (test.viewTest(itemBound.bound)) {
                     if (test.solidAngleTest(itemBound.bound)) {
                         outItems.emplace_back(itemBound);
                     }
