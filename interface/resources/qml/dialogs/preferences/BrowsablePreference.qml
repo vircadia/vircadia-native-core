@@ -1,16 +1,24 @@
+//
+//  BrowsablePreference.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
 
 import "../../dialogs"
+import "../../controls-uit"
 
 Preference {
     id: root
-    property alias buttonText: button.text
     property alias text: dataTextField.text
     property alias placeholderText: dataTextField.placeholderText
-    property real spacing: 8
-    height: labelText.height + Math.max(dataTextField.height, button.height) + spacing
+    property real spacing: 0
+    height: Math.max(dataTextField.controlHeight, button.height) + spacing
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
@@ -21,24 +29,19 @@ Preference {
         preference.save();
     }
 
-    Text {
-        id: labelText
-        color: enabled ? "black" : "gray"
-        text:  root.label
-    }
-
     TextField {
         id: dataTextField
-        placeholderText: root.placeholderText
-        text: preference.value
-        style:  TextFieldStyle { renderType: Text.QtRendering }
+
         anchors {
-            top: labelText.bottom
             left: parent.left
             right: button.left
-            topMargin: root.spacing
-            rightMargin: root.spacing
+            rightMargin: hifi.dimensions.contentSpacing.x
+            bottomMargin: spacing
         }
+
+        label: root.label
+        placeholderText: root.placeholderText
+        colorScheme: hifi.colorSchemes.dark
     }
 
     Component {
@@ -57,6 +60,5 @@ Preference {
                 dataTextField.text = fileDialogHelper.urlToPath(fileUrl);
             });
         }
-
     }
 }

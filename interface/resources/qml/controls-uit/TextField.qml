@@ -19,12 +19,16 @@ TextField {
 
     property int colorScheme: hifi.colorSchemes.light
     property string label: ""
+    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
+
+    placeholderText: textField.placeholderText
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
-    placeholderText: textField.label  // Instead of separate label (see below).
+
+    y: textFieldLabel.visible ? textFieldLabel.height : 0
 
     style: TextFieldStyle {
         textColor: textField.colorScheme == hifi.colorSchemes.light
@@ -44,9 +48,8 @@ TextField {
         padding.right: hifi.dimensions.textPadding
     }
 
-    /*
-    // Separate label instead of placeholderText.
     RalewaySemibold {
+        id: textFieldLabel
         text: textField.label
         size: hifi.fontSizes.inputLabel
         color: hifi.colors.lightGrayText
@@ -55,5 +58,4 @@ TextField {
         anchors.bottomMargin: 4
         visible: label != ""
     }
-    */
 }

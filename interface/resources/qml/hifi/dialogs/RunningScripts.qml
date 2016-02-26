@@ -167,8 +167,7 @@ Window {
                 anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
-                //placeholderText: "filter"
-                label: "Filter"
+                placeholderText: "filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
