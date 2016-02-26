@@ -202,14 +202,13 @@ void SunSkyStage::setSunModelEnable(bool isEnabled) {
     invalidate();
 }
 
-void SunSkyStage::setSunColor(const Vec3& color) {
-    _sunLight->setColor(color);
-}
-void SunSkyStage::setSunIntensity(float intensity) {
-    _sunLight->setIntensity(intensity);
-}
-void SunSkyStage::setSunAmbientIntensity(float intensity) {
-    _sunLight->setAmbientIntensity(intensity);
+void SunSkyStage::setSunAmbientSphere(const gpu::SHPointer& sphere) {
+    if (sphere) {
+        _sunLight->setAmbientSphere(*sphere);
+    } else {
+        const gpu::SphericalHarmonics::Preset DEFAULT_AMBIENT_SPHERE = gpu::SphericalHarmonics::OLD_TOWN_SQUARE;
+        _sunLight->setAmbientSpherePreset(DEFAULT_AMBIENT_SPHERE);
+    }
 }
 
 void SunSkyStage::setSunDirection(const Vec3& direction) {

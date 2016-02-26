@@ -230,22 +230,40 @@
           },
           "columns": [
             {
-              "name": "x_range",
-              "label": "X range",
+              "name": "x_min",
+              "label": "X start",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "-16384.0"
             },
             {
-              "name": "y_range",
-              "label": "Y range",
+              "name": "x_max",
+              "label": "X end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },            
+            {
+              "name": "y_min",
+              "label": "Y start",
+              "can_set": true,
+              "placeholder": "-16384.0"
             },
             {
-              "name": "z_range",
-              "label": "Z range",
+              "name": "y_max",
+              "label": "Y end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },
+            {
+              "name": "z_min",
+              "label": "Z start",
+              "can_set": true,
+              "placeholder": "-16384.0"
+            },
+            {
+              "name": "z_max",
+              "label": "Z end",
+              "can_set": true,
+              "placeholder": "16384.0"
             }
           ]
         },

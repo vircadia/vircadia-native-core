@@ -670,9 +670,8 @@ void OctreeTests::byteCountCodingTests() {
 }
 
 void OctreeTests::modelItemTests() {
-    bool verbose = true;
-    
 #if 0 // TODO - repair/replace these
+    bool verbose = true;
 
     //verbose = true;
     EntityTreeElementExtraEncodeData modelTreeElementExtraEncodeData;

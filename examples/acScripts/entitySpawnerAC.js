@@ -95,7 +95,7 @@ EntityViewer.setPosition({
     y: 0,
     z: 0
 });
-EntityViewer.setKeyholeRadius(60000);
+EntityViewer.setCenterRadius(60000);
 var octreeQueryInterval = Script.setInterval(function() {
     EntityViewer.queryOctree();
 }, 1000);

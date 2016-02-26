@@ -199,7 +199,7 @@ pointInExtents = function(point, minPoint, maxPoint) {
  * @param   Number  l       The lightness
  * @return  Array           The RGB representation
  */
-hslToRgb = function(hsl, hueOffset) {
+hslToRgb = function(hsl) {
     var r, g, b;
     if (hsl.s == 0) {
         r = g = b = hsl.l; // achromatic

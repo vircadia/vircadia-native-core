@@ -74,8 +74,17 @@ public:
 
     bool isRanged() const { return (getType() == POINT) || (getType() == SPOT ); }
  
+    // FalloffRradius is the physical radius of the light sphere through which energy shines,
+    // expressed in meters. It is used only to calculate the falloff curve of the light.
+    // Actual rendered lights will all have surface radii approaching 0.
+    void setFalloffRadius(float radius);
+    float getFalloffRadius() const { return getSchema()._attenuation.x; }
+
+    // Maximum radius is the cutoff radius of the light energy, expressed in meters.
+    // It is used to bound light entities, and *will not* affect the falloff curve of the light.
+    // Setting it low will result in a noticeable cutoff.
     void setMaximumRadius(float radius);
-    float getMaximumRadius() const { return getSchema()._attenuation.w; }
+    float getMaximumRadius() const { return getSchema()._attenuation.y; }
 
     // Spot properties
     bool isSpot() const { return getType() == SPOT; }
@@ -107,7 +116,7 @@ public:
         float _ambientIntensity{0.0f};
         Color _color{1.0f};
         float _intensity{1.0f};
-        Vec4 _attenuation{1.0f};
+        Vec4 _attenuation{0.1f, 1.0f, 0.0f, 0.0f};
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
@@ -120,7 +129,7 @@ public:
 
 protected:
 
-    Flags _flags;
+    Flags _flags{ 0 };
     UniformBufferView _schemaBuffer;
     Transform _transform;
 

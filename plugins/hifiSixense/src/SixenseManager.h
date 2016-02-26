@@ -52,11 +52,6 @@ private:
     static const glm::vec3 DEFAULT_AVATAR_POSITION;
     static const float CONTROLLER_THRESHOLD;
 
-    template<typename T>
-    using SampleAverage = MovingAverage<T, MAX_NUM_AVERAGING_SAMPLES>;
-    using Samples = std::pair<SampleAverage<glm::vec3>, SampleAverage<glm::vec3>>;
-    using MovingAverageMap = std::map<int, Samples>;
-
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice() : controller::InputDevice("Hydra") {}
@@ -74,8 +69,6 @@ private:
         void updateCalibration(SixenseControllerData* controllers);
 
         friend class SixenseManager;
-
-        MovingAverageMap _collectedSamples;
 
         int _calibrationState { CALIBRATION_STATE_IDLE };
         // these are calibration results
