@@ -465,7 +465,7 @@ var leapHands = (function () {
                 if (h == 0) {
                     leftTriggerValue = triggerValue; 
                 } else {
-                    rightTriggerAngle = triggerValue;
+                    rightTriggerValue = triggerValue;
 
                 }
 
