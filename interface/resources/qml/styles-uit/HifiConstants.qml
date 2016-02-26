@@ -48,6 +48,7 @@ Item {
 
         // Other colors
         readonly property color white: "#ffffff"
+        readonly property color gray: "#808080"
         readonly property color black: "#000000"
         // Semitransparent
         readonly property color white50: "#80ffffff"
@@ -83,6 +84,7 @@ Item {
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
         readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
         readonly property real textPadding: 8
+        readonly property real spinnerSize: 20
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
@@ -110,11 +112,13 @@ Item {
 
     Item {
         id: glyphs
+        readonly property string backward: "E"
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"
         readonly property string disclosureCollapse: "Z"
         readonly property string disclosureExpand: "B"
+        readonly property string forward: "D"
         readonly property string pin: "y"
         readonly property string pinInverted: "z"
         readonly property string reloadSmall: "a"
