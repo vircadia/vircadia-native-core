@@ -1072,10 +1072,8 @@ void Application::cleanupBeforeQuit() {
 }
 
 void Application::emptyLocalCache() {
-    if (auto cache = NetworkAccessManager::getInstance().cache()) {
-        qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
-        cache->clear();
-    }
+    auto assetClient = DependencyManager::get<AssetClient>();
+    QMetaObject::invokeMethod(assetClient.data(), "clearCache", Qt::QueuedConnection);
 }
 
 Application::~Application() {

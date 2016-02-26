@@ -122,6 +122,7 @@ void DiskCacheEditor::refresh() {
         }
         return QString("%0 %1").arg(number).arg(UNITS[i]);
     };
+    return;
     QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
     
     if (_path) {
@@ -135,6 +136,7 @@ void DiskCacheEditor::refresh() {
     }
 }
 
+#include <AssetClient.h>
 void DiskCacheEditor::clear() {
     QMessageBox::StandardButton buttonClicked =
                                     OffscreenUi::question(_dialog, "Clearing disk cache",
@@ -142,10 +144,8 @@ void DiskCacheEditor::clear() {
                                               "are you sure you want to do that?",
                                               QMessageBox::Ok | QMessageBox::Cancel);
     if (buttonClicked == QMessageBox::Ok) {
-        if (auto cache = NetworkAccessManager::getInstance().cache()) {
-            qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
-            cache->clear();
-        }
+        auto assetClient = DependencyManager::get<AssetClient>();
+        QMetaObject::invokeMethod(assetClient.data() , "clearCache", Qt::QueuedConnection);
     }
     refresh();
 }

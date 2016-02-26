@@ -64,6 +64,15 @@ void AssetClient::init() {
     }
 }
 
+void AssetClient::clearCache() {
+    Q_ASSERT(QThread::currentThread() == thread());
+
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
+        cache->clear();
+    }
+}
+
 bool haveAssetServer() {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);

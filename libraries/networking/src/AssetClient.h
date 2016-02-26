@@ -50,6 +50,7 @@ public:
 
 public slots:
     void init();
+    void clearCache();
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
