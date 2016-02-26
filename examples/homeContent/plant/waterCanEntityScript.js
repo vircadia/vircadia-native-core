@@ -37,7 +37,7 @@
             _this.waterEffect = Entities.addEntity({
                 type: "ParticleEffect",
                 name: "water particle effect",
-                isEmitting: true,
+                isEmitting: false,
                 position: _this.position,
                 colorStart: {
                     red: 50,
