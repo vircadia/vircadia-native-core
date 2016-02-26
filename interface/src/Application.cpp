@@ -2455,16 +2455,16 @@ void Application::idle(uint64_t now) {
         _renderedFrameIndex = INVALID_FRAME;
     }
 
-    // Don't saturate the main thread with rendering, no paint calls until the last one is complete
-    // Also no paint calls until the display plugin has increased by at least one frame
-    // (don't render at 90fps if the display plugin only goes at 60)
+    // Don't saturate the main thread with rendering and simulation,
+    // unless display plugin has increased by at least one frame
     if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
         // Record what present frame we're on
         _renderedFrameIndex = presentCount;
 
-        // But when we DO request a paint, get to it as soon as possible: high priority
+        // request a paint, get to it as soon as possible: high priority
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
     } else {
+        // there's no use in simulating or rendering faster then the present rate.
         return;
     }
 
