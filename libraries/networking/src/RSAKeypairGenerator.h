@@ -12,31 +12,17 @@
 #ifndef hifi_RSAKeypairGenerator_h
 #define hifi_RSAKeypairGenerator_h
 
-#include <QtCore/QObject>
-#include <QtCore/QUuid>
+#include <qobject.h>
 
 class RSAKeypairGenerator : public QObject {
     Q_OBJECT
 public:
     RSAKeypairGenerator(QObject* parent = 0);
-
-    void setDomainID(const QUuid& domainID) { _domainID = domainID; }
-    const QUuid& getDomainID() const { return _domainID; }
-
-    const QByteArray& getPublicKey() const { return _publicKey; }
-    const QByteArray& getPrivateKey() const { return _privateKey; }
-    
 public slots:
     void generateKeypair();
-
 signals:
     void errorGeneratingKeypair();
-    void generatedKeypair();
-
-private:
-    QUuid _domainID;
-    QByteArray _publicKey;
-    QByteArray _privateKey;
+    void generatedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
 };
 
 #endif // hifi_RSAKeypairGenerator_h

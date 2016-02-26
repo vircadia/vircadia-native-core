@@ -30,7 +30,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainServerAddedNode << PacketType::DomainServerConnectionToken
     << PacketType::DomainSettingsRequest << PacketType::DomainSettings
     << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
-    << PacketType::ICEPing << PacketType::ICEPingReply << PacketType::ICEServerHeartbeatDenied
+    << PacketType::ICEPing << PacketType::ICEPingReply
     << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode;
 
@@ -45,8 +45,6 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
-        case PacketType::ICEServerHeartbeat:
-            return 18; // ICE Server Heartbeat signing
         default:
             return 17;
     }

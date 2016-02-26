@@ -90,8 +90,7 @@ public:
         DomainServerRemovedNode,
         MessagesData,
         MessagesSubscribe,
-        MessagesUnsubscribe,
-        ICEServerHeartbeatDenied
+        MessagesUnsubscribe
     };
 };
 
