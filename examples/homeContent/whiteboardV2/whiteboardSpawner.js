@@ -202,6 +202,8 @@ function createMarker(modelURL, markerPosition, markerColor) {
         name: "marker",
         script: MARKER_SCRIPT_URL,
         userData: JSON.stringify({
+            originalPosition: markerPosition,
+            originalRotation: markerRotation,
             markerColor: markerColor,
             wearable: {
                 joints: {

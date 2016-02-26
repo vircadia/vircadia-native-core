@@ -24,7 +24,10 @@
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         _this.strokeForwardOffset = 0.0001;
-        _this.STROKE_WIDTH_RANGE = {min: 0.002, max: 0.01};
+        _this.STROKE_WIDTH_RANGE = {
+            min: 0.002,
+            max: 0.01
+        };
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
@@ -32,6 +35,7 @@
         _this.PAINTING_TRIGGER_THRESHOLD = 0.2;
         _this.STROKE_NAME = "hifi-marker-stroke";
         _this.WHITEBOARD_SURFACE_NAME = "hifi-whiteboardDrawingSurface";
+        _this.MARKER_RESET_WAIT_TIME = 3000;
     };
 
     MarkerTip.prototype = {
@@ -60,6 +64,20 @@
             Overlays.editOverlay(_this.laserPointer, {
                 visible: false
             });
+
+            // Once user releases marker, wait a bit then put marker back to its original position and rotation
+            Script.setTimeout(function() {
+                var userData = getEntityUserData(_this.entityID);
+                Entities.editEntity(_this.entityID, {
+                    position: userData.originalPosition,
+                    rotation: userData.originalRotation,
+                    velocity: {
+                        x: 0,
+                        y: -0.01,
+                        z: 0
+                    }
+                });
+            }, _this.MARKER_RESET_WAIT_TIME);
         },
 
 
@@ -75,7 +93,7 @@
 
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
                 var whiteboardRotation = Entities.getEntityProperties(intersection.entityID, "rotation").rotation;
-               _this.whiteboardNormal = Quat.getFront(whiteboardRotation);
+                _this.whiteboardNormal = Quat.getFront(whiteboardRotation);
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
                     position: intersection.intersection,
@@ -142,9 +160,9 @@
             var strokeWidths = [];
             for (var i = 0; i < _this.linePoints.length; i++) {
                 // Create a temp array of stroke widths for calligraphy effect - start and end should be less wide
-                var pointsFromCenter = Math.abs(_this.linePoints.length/2 - i);
+                var pointsFromCenter = Math.abs(_this.linePoints.length / 2 - i);
                 print("EBL POINTS CENTER " + pointsFromCenter)
-                var pointWidth = map(pointsFromCenter, 0, this.linePoints.length/2, _this.STROKE_WIDTH_RANGE.max, this.STROKE_WIDTH_RANGE.min);
+                var pointWidth = map(pointsFromCenter, 0, this.linePoints.length / 2, _this.STROKE_WIDTH_RANGE.max, this.STROKE_WIDTH_RANGE.min);
                 strokeWidths.push(pointWidth);
             }
 
