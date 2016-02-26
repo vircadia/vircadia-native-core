@@ -24,7 +24,6 @@
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         _this.strokeForwardOffset = 0.0001;
-        _this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
         _this.STROKE_WIDTH = 0.003
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
@@ -130,7 +129,6 @@
 
             var localPoint = Vec3.subtract(basePosition, _this.strokeBasePosition);
             localPoint = Vec3.sum(localPoint, Vec3.multiply(_this.whiteboardNormal, _this.strokeForwardOffset));
-            _this.strokeForwardOffset -= _this.STROKE_FORWARD_OFFSET_INCRERMENT;
 
             if (_this.linePoints.length > 0) {
                 var distance = Vec3.distance(localPoint, _this.linePoints[_this.linePoints.length - 1]);
