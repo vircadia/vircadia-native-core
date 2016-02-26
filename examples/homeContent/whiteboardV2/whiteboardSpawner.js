@@ -53,14 +53,15 @@ var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
     y: 0.45,
     z: 0.0
 });
-whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(orientation)));
+whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(whiteboardRotation)));
+whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getFront(whiteboardRotation)));
 var whiteboardDrawingSurface = Entities.addEntity({
     type: "Box",
     name: "hifi-whiteboardDrawingSurface",
     dimensions: {
         x: 1.82,
         y: 1.8,
-        z: 0.04
+        z: 0.01
     },
     color: {
         red: 200,
