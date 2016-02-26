@@ -58,7 +58,7 @@ BasePacket::BasePacket(qint64 size) {
     Q_ASSERT(size >= 0 || size < maxPayload);
     
     _packetSize = size;
-    _packet.reset(new char[_packetSize]);
+    _packet.reset(new char[_packetSize]());
     _payloadCapacity = _packetSize;
     _payloadSize = 0;
     _payloadStart = _packet.get();
