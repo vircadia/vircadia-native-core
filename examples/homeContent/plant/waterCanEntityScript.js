@@ -24,23 +24,25 @@
     WaterCan.prototype = {
 
         continueNearGrab: function() {
-
-        }
-
-        preload: function(entityID) {
-            this.entityID = entityID;
-
+            _this.continueHolding();
         },
+
+        continueHolding: function() {
+            // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
+        },
+
+
 
         createWaterEffect: function() {
             _this.waterEffect = Entities.addEntity({
                 type: "ParticleEffect",
-                isEmitting: false,
+                name: "water particle effect",
+                isEmitting: true,
                 position: _this.position,
                 colorStart: {
-                    red: 0,
-                    green: 10,
-                    blue: 20
+                    red: 50,
+                    green: 50,
+                    blue: 70
                 },
                 color: {
                     red: 30,
@@ -53,7 +55,7 @@
                     blue: 60
                 },
                 maxParticles: 20000,
-                lifespan: 1.5,
+                lifespan: 10,
                 emitRate: 10000,
                 emitSpeed: .1,
                 speedSpread: 0.0,
@@ -67,6 +69,7 @@
                     y: -1.0,
                     z: 0
                 },
+                polarStart: 0,
                 polarFinish: Math.PI,
                 accelerationSpread: {
                     x: 0.1,
@@ -82,6 +85,13 @@
                 alphaFinish: 0.5,
                 textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
             });
+
+        },
+
+        preload: function(entityID) {
+            _this.entityID = entityID;
+            _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
+            _this.createWaterEffect();
 
         },
 

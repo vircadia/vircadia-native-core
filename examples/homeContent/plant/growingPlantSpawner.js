@@ -42,12 +42,17 @@ var plant = Entities.addEntity({
 });
 
 var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random());
 var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
 var waterCan = Entities.addEntity({
   type: "Model",
   shapeType: 'box',
   modelURL: WATER_CAN_MODEL_URL,
+  script: WATER_CAN_SCRIPT_URL,
+  dimensions: {x: 0.1859, y: 0.2762, z: 0.4115},
   position: waterCanPosition,
+  angularDamping: 1,
+  damping: 1,
   dynamic: true
 });
 
