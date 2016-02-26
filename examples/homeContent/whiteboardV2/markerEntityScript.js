@@ -23,22 +23,34 @@
     MarkerTip = function() {
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
-        this.strokeForwardOffset = 0.0001;
-        this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
-        this.STROKE_WIDTH = 0.003
+        _this.strokeForwardOffset = 0.0001;
+        _this.STROKE_FORWARD_OFFSET_INCRERMENT = 0.00001;
+        _this.STROKE_WIDTH = 0.003
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
         _this.strokes = [];
         _this.PAINTING_TRIGGER_THRESHOLD = 0.2;
-        this.STROKE_NAME = "hifi-marker-stroke";
+        _this.STROKE_NAME = "hifi-marker-stroke";
+        _this.WHITEBOARD_SURFACE_NAME = "hifi-whiteboardDrawingSurface";
     };
 
     MarkerTip.prototype = {
 
         startEquip: function(id, params) {
+            _this.whiteboards = [];
             _this.equipped = true;
             _this.hand = params[0] == "left" ? 0 : 1;
+            _this.markerColor = getEntityUserData(_this.entityID).markerColor;
+            // search for whiteboards
+            var markerPosition = Entities.getEntityProperties(_this.entityID, "position").position;
+            var entities = Entities.findEntities(markerPosition, 10);
+            entities.forEach(function(entity) {
+                var entityName = Entities.getEntityProperties(entity, "name").name;
+                if (entityName === _this.WHITEBOARD_SURFACE_NAME) {
+                    _this.whiteboards.push(entity);
+                }
+            });
         },
 
         releaseEquip: function() {
@@ -57,12 +69,14 @@
                 origin: markerProps.position,
                 direction: Quat.getFront(markerProps.rotation)
             }
-            var intersection = Entities.findRayIntersectionBlocking(pickRay, true, [_this.whiteboard]);
-
+            var intersection = Entities.findRayIntersectionBlocking(pickRay, true, _this.whiteboards);
+            _this.whiteboardNormal = Quat.getFront(intersection.properties.rotation);
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
+                print("EBL HIT")
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
-                    position: intersection.intersection
+                    position: intersection.intersection,
+                    rotation: intersection.properties.rotation
                 })
                 _this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[_this.hand]);
                 if (_this.triggerValue > _this.PAINTING_TRIGGER_THRESHOLD) {
@@ -71,8 +85,8 @@
                     _this.resetStroke();
                 }
             } else {
-                  _this.resetStroke();
-                    
+                _this.resetStroke();
+
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: false
                 });
@@ -145,22 +159,6 @@
 
         preload: function(entityID) {
             this.entityID = entityID;
-
-        },
-
-        unload: function() {
-            Overlays.deleteOverlay(_this.laserPointer);
-            _this.strokes.forEach( function(stroke) {
-                Entities.deleteEntity(stroke);
-            });
-        },
-
-        setProperties: function(myId, data) {
-            var data = JSON.parse(data);
-
-            _this.whiteboard = data.whiteboard;
-            var whiteboardProps = Entities.getEntityProperties(_this.whiteboard, ["rotation"]);
-            _this.whiteboardNormal = Quat.getFront(whiteboardProps.rotation);
             _this.laserPointer = Overlays.addOverlay("circle3d", {
                 color: {
                     red: 220,
@@ -169,9 +167,15 @@
                 },
                 solid: true,
                 size: 0.01,
-                rotation: whiteboardProps.rotation
             });
-            _this.markerColor = data.markerColor;
+
+        },
+
+        unload: function() {
+            Overlays.deleteOverlay(_this.laserPointer);
+            _this.strokes.forEach(function(stroke) {
+                Entities.deleteEntity(stroke);
+            });
         }
     };
 

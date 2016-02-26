@@ -56,7 +56,7 @@ var whiteboardSurfacePosition = Vec3.sum(whiteboardPosition, {
 whiteboardSurfacePosition = Vec3.sum(whiteboardSurfacePosition, Vec3.multiply(-0.02, Quat.getRight(orientation)));
 var whiteboardDrawingSurface = Entities.addEntity({
     type: "Box",
-    name: "whiteboardDrawingSurface",
+    name: "hifi-whiteboardDrawingSurface",
     dimensions: {
         x: 1.82,
         y: 1.8,
@@ -166,7 +166,7 @@ function createMarkers() {
 
 
 function createMarker(modelURL, markerPosition, markerColor) {
-    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js");
+    var MARKER_SCRIPT_URL = Script.resolvePath("markerEntityScript.js?v1" + Math.random());
     var marker = Entities.addEntity({
         type: "Model",
         modelURL: modelURL,
@@ -193,6 +193,7 @@ function createMarker(modelURL, markerPosition, markerColor) {
         name: "marker",
         script: MARKER_SCRIPT_URL,
         userData: JSON.stringify({
+            markerColor: markerColor,
             wearable: {
                 joints: {
                     RightHand: [{
@@ -221,17 +222,6 @@ function createMarker(modelURL, markerPosition, markerColor) {
     });
 
     markers.push(marker);
-
-    Script.setTimeout(function() {
-        var data = {
-            whiteboard: whiteboardDrawingSurface,
-            markerColor: markerColor
-        }
-        var modelURL = Entities.getEntityProperties(marker, "modelURL").modelURL;
-
-        Entities.callEntityMethod(marker, "setProperties", [JSON.stringify(data)]);
-    }, 5000)
-
 
 }
 
