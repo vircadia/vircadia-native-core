@@ -93,18 +93,3 @@ void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const Rend
         items.second.shrink_to_fit();
     }
 }
-
-void DepthSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes) {
-    outShapes.clear();
-    outShapes.reserve(inShapes.size());
-
-    for (auto& pipeline : inShapes) {
-        auto& inItems = pipeline.second;
-        auto outItems = outShapes.find(pipeline.first);
-        if (outItems == outShapes.end()) {
-            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemBounds{})).first;
-        }
-
-        depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems->second);
-    }
-}

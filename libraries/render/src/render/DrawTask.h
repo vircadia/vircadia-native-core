@@ -37,16 +37,6 @@ public:
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes);
 };
 
-class DepthSortShapes {
-public:
-    using JobModel = Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
- 
-    bool _frontToBack;
-    DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
-
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes);
-};
-
 }
 
 #endif // hifi_render_DrawTask_h

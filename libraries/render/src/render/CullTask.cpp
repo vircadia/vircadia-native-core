@@ -129,31 +129,20 @@ void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderCo
     depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
 }
 
-
-void FetchItems::configure(const Config& config) {
-}
-
-void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
+void FetchNonspatialItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     auto& scene = sceneContext->_scene;
 
     outItems.clear();
 
-    const auto& bucket = scene->getMasterBucket();
-    const auto& items = bucket.find(_filter);
-    if (items != bucket.end()) {
-        outItems.reserve(items->second.size());
-        for (auto& id : items->second) {
-            auto& item = scene->getItem(id);
-            outItems.emplace_back(ItemBound(id, item.getBound()));
-        }
+    const auto& items = scene->getNonspatialSet();
+    outItems.reserve(items.size());
+    for (auto& id : items) {
+        auto& item = scene->getItem(id);
+        outItems.emplace_back(ItemBound(id, item.getBound()));
     }
-
-    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }
-
-
 
 void FetchSpatialTree::configure(const Config& config) {
     _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);

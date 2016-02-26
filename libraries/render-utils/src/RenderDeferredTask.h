@@ -85,9 +85,9 @@ protected:
 
 class DrawBackgroundDeferred {
 public:
-    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
+    void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext, const render::ItemBounds& inItems);
 
-    using JobModel = render::Job::Model<DrawBackgroundDeferred>;
+    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, render::ItemBounds>;
 };
 
 class DrawOverlay3DConfig : public render::Job::Config {
