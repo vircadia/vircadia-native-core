@@ -60,10 +60,9 @@ Original.CheckBox {
             }
         }
 
-        label: RalewaySemibold {
+        label: Label {
             text: control.text
-            size: hifi.fontSizes.inputLabel
-            color: isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText
+            colorScheme: checkBox.colorScheme
             x: checkBox.boxSize / 2
         }
     }

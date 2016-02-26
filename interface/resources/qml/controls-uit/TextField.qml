@@ -13,6 +13,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
+import "../controls-uit" as HifiControls
 
 TextField {
     id: textField
@@ -49,11 +50,10 @@ TextField {
         padding.right: hifi.dimensions.textPadding
     }
 
-    RalewaySemibold {
+    HifiControls.Label {
         id: textFieldLabel
         text: textField.label
-        size: hifi.fontSizes.inputLabel
-        color: isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText
+        colorScheme: textField.colorScheme
         anchors.left: parent.left
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
