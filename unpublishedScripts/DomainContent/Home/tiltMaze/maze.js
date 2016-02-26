@@ -96,6 +96,9 @@
             if (this.ballLocked === true) {
                 return;
             }
+            if(this.ball!==null){
+                Entities.deleteEntity(this.ball);
+            }
 
             var properties = {
                 name: 'Hifi Tilt Maze Ball',
