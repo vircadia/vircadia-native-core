@@ -107,7 +107,9 @@
                     _this.resetStroke();
                 }
             } else {
-                _this.resetStroke();
+                if (_this.currentStroke) {
+                    _this.resetStroke();
+                }
 
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: false
@@ -130,7 +132,6 @@
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
                 lifetime: 500,
-                // parentID: _this.currentWhiteboard
             });
 
             _this.linePoints = [];
@@ -174,13 +175,20 @@
             });
 
             if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
+                Entities.editEntity(_this.currentStroke, {
+                    parentID: _this.currentWhiteboard
+                });
                 _this.currentStroke = null;
                 _this.oldPosition = position;
             }
         },
-
         resetStroke: function() {
+
+            Entities.editEntity(_this.currentStroke, {
+                parentID: _this.currentWhiteboard
+            });
             _this.currentStroke = null;
+
             _this.oldPosition = null;
         },
 
