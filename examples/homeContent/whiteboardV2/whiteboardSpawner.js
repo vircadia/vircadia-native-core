@@ -23,7 +23,7 @@ var markerRotation = Quat.fromVec3Degrees({
 orientation.x = 0;
 var whiteboardRotation = Quat.fromVec3Degrees({
     x: 0,
-    y: orientation.y - 90,
+    y: orientation.y,
     z: 0
 });
 orientation = Quat.fromVec3Degrees(orientation);
@@ -31,8 +31,8 @@ var markers = [];
 
 
 var whiteboardPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
-var WHITEBOARD_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteboard-3.fbx";
-var WHITEBOARD_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Whiteboard.obj";
+var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-3+(1).fbx";
+var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
 var whiteboard = Entities.addEntity({
     type: "Model",
     name: "whiteboard",
@@ -42,9 +42,9 @@ var whiteboard = Entities.addEntity({
     shapeType: 'compound',
     compoundShapeURL: WHITEBOARD_COLLISION_HULL_URL,
     dimensions: {
-        x: 0.4636,
-        y: 2.7034,
-        z: 1.8653
+        x: 1.86,
+        y: 2.7,
+        z: 0.4636
     },
 });
 
@@ -68,7 +68,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
         blue: 200
     },
     position: whiteboardSurfacePosition,
-    rotation: orientation,
+    rotation: whiteboardRotation,
     visible: false,
     parentID: whiteboard
 });
@@ -108,9 +108,9 @@ var eraser = Entities.addEntity({
         wearable: {
             joints: {
                 RightHand: [{
-                    x: 0.0207,
-                    y: 0.1202,
-                    z: 0.0493
+                    x: 0.020,
+                    y: 0.120,
+                    z: 0.049
                 }, {
                     x: 0.1004,
                     y: 0.6424,
@@ -122,7 +122,7 @@ var eraser = Entities.addEntity({
                     y: 0.1101,
                     z: 0.053
                 }, {
-                    x: 0.7234,
+                    x: 0.723,
                     y: 0.289,
                     z: 0.142,
                     w: 0.610
@@ -186,9 +186,9 @@ function createMarker(modelURL, markerPosition, markerColor) {
         },
         position: markerPosition,
         dimensions: {
-            x: 0.0270,
-            y: 0.0272,
-            z: 0.1641
+            x: 0.027,
+            y: 0.027,
+            z: 0.164
         },
         name: "marker",
         script: MARKER_SCRIPT_URL,
@@ -197,24 +197,24 @@ function createMarker(modelURL, markerPosition, markerColor) {
             wearable: {
                 joints: {
                     RightHand: [{
-                        x: 0.001109793782234192,
-                        y: 0.13991504907608032,
-                        z: 0.05035984516143799
+                        x: 0.001,
+                        y: 0.139,
+                        z: 0.050
                     }, {
-                        x: -0.7360993027687073,
-                        y: -0.04330085217952728,
-                        z: -0.10863728821277618,
-                        w: -0.6666942238807678
+                        x: -0.73,
+                        y: -0.043,
+                        z: -0.108,
+                        w: -0.666
                     }],
                     LeftHand: [{
-                        x: 0.007193896919488907,
-                        y: 0.15147076547145844,
-                        z: 0.06174466013908386
+                        x: 0.007,
+                        y: 0.151,
+                        z: 0.061
                     }, {
-                        x: -0.4174973964691162,
-                        y: 0.631147563457489,
-                        z: -0.3890438377857208,
-                        w: -0.52535080909729
+                        x: -0.417,
+                        y: 0.631,
+                        z: -0.389,
+                        w: -0.525
                     }]
                 }
             }
