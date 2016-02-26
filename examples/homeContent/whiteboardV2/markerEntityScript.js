@@ -73,7 +73,7 @@
             }
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true, _this.whiteboards);
             if (intersection.intersects && Vec3.distance(intersection.intersection, markerProps.position) < _this.MAX_MARKER_TO_BOARD_DISTANCE) {
-               _this.whiteboardNormal = Quat.getFront(intersection.properties.rotation);
+               _this.whiteboardNormal = Quat.getRight(intersection.properties.rotation);
                 Overlays.editOverlay(_this.laserPointer, {
                     visible: true,
                     position: intersection.intersection,

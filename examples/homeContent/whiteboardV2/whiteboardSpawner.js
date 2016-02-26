@@ -31,7 +31,7 @@ var markers = [];
 
 
 var whiteboardPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
-var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-3+(1).fbx";
+var WHITEBOARD_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/Whiteboard-4.fbx";
 var WHITEBOARD_COLLISION_HULL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/whiteboardCollisionHull.obj";
 var whiteboard = Entities.addEntity({
     type: "Model",
@@ -69,7 +69,7 @@ var whiteboardDrawingSurface = Entities.addEntity({
     },
     position: whiteboardSurfacePosition,
     rotation: whiteboardRotation,
-    visible: false,
+    // visible: false,
     parentID: whiteboard
 });
 
@@ -78,8 +78,8 @@ var WHITEBOARD_RACK_DEPTH = 1.9;
 
 var ERASER_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/eraser-2.fbx";
 var ERASER_SCRIPT_URL = Script.resolvePath("eraserEntityScript.js");
-var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(orientation)));
-eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getFront(whiteboardRotation)));
+var eraserPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(WHITEBOARD_RACK_DEPTH, Quat.getFront(whiteboardRotation)));
+eraserPosition = Vec3.sum(eraserPosition, Vec3.multiply(-0.5, Quat.getRight(whiteboardRotation)));
 
 var eraser = Entities.addEntity({
     type: "Model",
@@ -92,7 +92,7 @@ var eraser = Entities.addEntity({
         y: 0.0393,
         z: 0.2083
     },
-    rotation: whiteboardRotation,
+    rotation: markerRotation,
     dynamic: true,
     gravity: {
         x: 0,
