@@ -111,7 +111,6 @@ public:
     QString texcoordSetName;
     
     bool isBumpmap{ false };
-    bool isGlossmap{ true };
 
     bool isNull() const { return name.isEmpty() && filename.isEmpty() && content.isEmpty(); }
 };
@@ -151,21 +150,13 @@ public:
     float roughness{ 1.0f };
     float emissiveIntensity{ 1.0f };
 
-    bool useNormalMap{ false };
-    bool useAlbedoMap{ false };
-    bool useOpacityMap{ false };
-    bool useRoughnessMap{ false };
-    bool useSpecularMap{ false };
-    bool useMetallicMap{ false };
-    bool useEmissiveMap{ false };
-    bool useOcclusionMap{ false };
-
     QString materialID;
     model::MaterialPointer _material;
 
     FBXTexture normalTexture;
     FBXTexture albedoTexture;
     FBXTexture opacityTexture;
+    FBXTexture glossTexture;
     FBXTexture roughnessTexture;
     FBXTexture specularTexture;
     FBXTexture metallicTexture;
@@ -176,6 +167,16 @@ public:
 
 
     bool isPBSMaterial{ false };
+    // THe use XXXMap are not really used to drive which map are going or not, debug only
+    bool useNormalMap{ false };
+    bool useAlbedoMap{ false };
+    bool useOpacityMap{ false };
+    bool useRoughnessMap{ false };
+    bool useSpecularMap{ false };
+    bool useMetallicMap{ false };
+    bool useEmissiveMap{ false };
+    bool useOcclusionMap{ false };
+
     bool needTangentSpace() const;
 };
 

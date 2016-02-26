@@ -199,7 +199,7 @@ public:
                             }
                         case gpu::NUINT8: {
                             if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
-                                texel.internalFormat = GL_SLUMINANCE8;
+                                texel.internalFormat = GL_SLUMINANCE;
                             } else {
                                 texel.internalFormat = GL_R8;
                             }

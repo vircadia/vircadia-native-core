@@ -128,17 +128,18 @@ void FBXReader::consolidateFBXMaterials() {
 
         FBXTexture roughnessTexture;
         QString roughnessTextureID = roughnessTextures.value(material.materialID);
-        QString shininessTextureID = shininessTextures.value(material.materialID);
         if (!roughnessTextureID.isNull()) {
             roughnessTexture = getTexture(roughnessTextureID);
-            roughnessTexture.isGlossmap = false;
             material.roughnessTexture = roughnessTexture;
             detectDifferentUVs |= (roughnessTexture.texcoordSet != 0) || (!roughnessTexture.transform.isIdentity());
-        } else if (!shininessTextureID.isNull()) {
-            roughnessTexture = getTexture(roughnessTextureID);
-            roughnessTexture.isGlossmap = true;
-            material.roughnessTexture = roughnessTexture;
-            detectDifferentUVs |= (roughnessTexture.texcoordSet != 0) || (!roughnessTexture.transform.isIdentity());
+        }
+
+        FBXTexture shininessTexture;
+        QString shininessTextureID = shininessTextures.value(material.materialID);
+        if (!shininessTextureID.isNull()) {
+            shininessTexture = getTexture(shininessTextureID);
+            material.glossTexture = shininessTexture;
+            detectDifferentUVs |= (shininessTexture.texcoordSet != 0) || (!shininessTexture.transform.isIdentity());
         }
 
         FBXTexture emissiveTexture;

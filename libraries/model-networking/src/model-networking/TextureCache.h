@@ -34,6 +34,7 @@ enum TextureType {
     NORMAL_TEXTURE,
     BUMP_TEXTURE,
     SPECULAR_TEXTURE,
+    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
     ROUGHNESS_TEXTURE,
     GLOSS_TEXTURE,
     EMISSIVE_TEXTURE,

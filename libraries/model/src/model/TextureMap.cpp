@@ -291,6 +291,9 @@ gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& s
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
     }
+
+    // Gloss turned into Rough
+    image.invertPixels(QImage::InvertRgba);
     
     image = image.convertToFormat(QImage::Format_Grayscale8);
     

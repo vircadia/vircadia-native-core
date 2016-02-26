@@ -138,7 +138,9 @@ bool NetworkGeometry::isLoadedWithTextures() const {
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
-                (material->specularTexture && !material->specularTexture->isLoaded()) ||
+                (material->roughnessTexture && !material->roughnessTexture->isLoaded()) ||
+                (material->metallicTexture && !material->metallicTexture->isLoaded()) ||
+                (material->occlusionTexture && !material->occlusionTexture->isLoaded()) ||
                 (material->emissiveTexture && !material->emissiveTexture->isLoaded()) ||
                 (material->lightmapTexture && !material->lightmapTexture->isLoaded())) {
                 return false;
@@ -171,22 +173,31 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                 normalMap->setTextureSource(material->normalTexture->_textureSource);
 
                 networkMaterial->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
-            } else if (material->specularTextureName == name) {
-                material->specularTexture = textureCache->getTexture(url);
+            } else if (material->roughnessTextureName == name) {
+                // FIXME: If passing a gloss map instead of a roughmap how to say that ? looking for gloss in the name ?
+                material->roughnessTexture = textureCache->getTexture(url, ROUGHNESS_TEXTURE);
+
+                auto roughnessMap = model::TextureMapPointer(new model::TextureMap());
+                roughnessMap->setTextureSource(material->roughnessTexture->_textureSource);
+
+                networkMaterial->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, roughnessMap);
+            } else if (material->metallicTextureName == name) {
+                // FIXME: If passing a specular map instead of a metallic how to say that ? looking for wtf in the name ?
+                material->metallicTexture = textureCache->getTexture(url, METALLIC_TEXTURE);
 
                 auto glossMap = model::TextureMapPointer(new model::TextureMap());
-                glossMap->setTextureSource(material->specularTexture->_textureSource);
+                glossMap->setTextureSource(material->metallicTexture->_textureSource);
 
-                networkMaterial->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, glossMap);
+                networkMaterial->setTextureMap(model::MaterialKey::METALLIC_MAP, glossMap);
             } else if (material->emissiveTextureName == name) {
-                material->emissiveTexture = textureCache->getTexture(url);
+                material->emissiveTexture = textureCache->getTexture(url, EMISSIVE_TEXTURE);
 
                 auto emissiveMap = model::TextureMapPointer(new model::TextureMap());
                 emissiveMap->setTextureSource(material->emissiveTexture->_textureSource);
 
                 networkMaterial->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
             } else if (material->lightmapTextureName == name) {
-                material->emissiveTexture = textureCache->getTexture(url);
+                material->emissiveTexture = textureCache->getTexture(url, LIGHTMAP_TEXTURE);
 
                 auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
                 lightmapMap->setTextureSource(material->emissiveTexture->_textureSource);
@@ -208,6 +219,11 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
 QStringList NetworkGeometry::getTextureNames() const {
     QStringList result;
     for (auto&& material : _materials) {
+        if (!material->emissiveTextureName.isEmpty() && material->emissiveTexture) {
+            QString textureURL = material->emissiveTexture->getURL().toString();
+            result << material->emissiveTextureName + ":\"" + textureURL + "\"";
+        }
+
         if (!material->albedoTextureName.isEmpty() && material->albedoTexture) {
             QString textureURL = material->albedoTexture->getURL().toString();
             result << material->albedoTextureName + ":\"" + textureURL + "\"";
@@ -218,15 +234,21 @@ QStringList NetworkGeometry::getTextureNames() const {
             result << material->normalTextureName + ":\"" + textureURL + "\"";
         }
 
-        if (!material->specularTextureName.isEmpty() && material->specularTexture) {
-            QString textureURL = material->specularTexture->getURL().toString();
-            result << material->specularTextureName + ":\"" + textureURL + "\"";
+        if (!material->roughnessTextureName.isEmpty() && material->roughnessTexture) {
+            QString textureURL = material->roughnessTexture->getURL().toString();
+            result << material->roughnessTextureName + ":\"" + textureURL + "\"";
         }
 
-        if (!material->emissiveTextureName.isEmpty() && material->emissiveTexture) {
-            QString textureURL = material->emissiveTexture->getURL().toString();
-            result << material->emissiveTextureName + ":\"" + textureURL + "\"";
+        if (!material->metallicTextureName.isEmpty() && material->metallicTexture) {
+            QString textureURL = material->metallicTexture->getURL().toString();
+            result << material->metallicTextureName + ":\"" + textureURL + "\"";
         }
+
+        if (!material->occlusionTextureName.isEmpty() && material->occlusionTexture) {
+            QString textureURL = material->occlusionTexture->getURL().toString();
+            result << material->occlusionTextureName + ":\"" + textureURL + "\"";
+        }
+
         if (!material->lightmapTextureName.isEmpty() && material->lightmapTexture) {
             QString textureURL = material->lightmapTexture->getURL().toString();
             result << material->lightmapTextureName + ":\"" + textureURL + "\"";
@@ -335,6 +357,7 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::ALBEDO_MAP, albedoMap);
     }
+
     if (!material.normalTexture.filename.isEmpty()) {
         networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);
         networkMaterial->normalTextureName = material.normalTexture.name;
@@ -344,29 +367,18 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
     }
-    if (!material.specularTexture.filename.isEmpty()) {
-        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE, material.specularTexture.content);
-        networkMaterial->specularTextureName = material.specularTexture.name;
 
-        auto specularMap = model::TextureMapPointer(new model::TextureMap());
-        specularMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
-
-        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, specularMap);
-    }
-    if (!material.metallicTexture.filename.isEmpty()) {
-        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.metallicTexture.filename)), SPECULAR_TEXTURE, material.metallicTexture.content);
-        networkMaterial->specularTextureName = material.metallicTexture.name;
-
-        auto metallicMap = model::TextureMapPointer(new model::TextureMap());
-        metallicMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
-
-        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
-    }
+    // Roughness first or gloss maybe
     if (!material.roughnessTexture.filename.isEmpty()) {
-        // FIXME: COnvert from gloss to roughness if material.roughnessTexture.isGlossmap;
-        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)),
-            (material.roughnessTexture.isGlossmap ? GLOSS_TEXTURE : ROUGHNESS_TEXTURE),
-            material.roughnessTexture.content);
+        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.roughnessTexture.filename)), ROUGHNESS_TEXTURE, material.roughnessTexture.content);
+        networkMaterial->roughnessTextureName = material.roughnessTexture.name;
+
+        auto roughnessMap = model::TextureMapPointer(new model::TextureMap());
+        roughnessMap->setTextureSource(networkMaterial->roughnessTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, roughnessMap);
+    } else if (!material.glossTexture.filename.isEmpty()) {
+        networkMaterial->roughnessTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.glossTexture.filename)), GLOSS_TEXTURE, material.glossTexture.content);
         networkMaterial->roughnessTextureName = material.roughnessTexture.name;
 
         auto roughnessMap = model::TextureMapPointer(new model::TextureMap());
@@ -374,6 +386,37 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::ROUGHNESS_MAP, roughnessMap);
     }
+
+    // Metallic first or specular maybe
+
+    if (!material.metallicTexture.filename.isEmpty()) {
+        networkMaterial->metallicTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.metallicTexture.filename)), METALLIC_TEXTURE, material.metallicTexture.content);
+        networkMaterial->metallicTextureName = material.metallicTexture.name;
+
+        auto metallicMap = model::TextureMapPointer(new model::TextureMap());
+        metallicMap->setTextureSource(networkMaterial->metallicTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
+    } else if (!material.specularTexture.filename.isEmpty()) {
+        networkMaterial->metallicTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE, material.specularTexture.content);
+        networkMaterial->metallicTextureName = material.specularTexture.name;
+
+        auto metallicMap = model::TextureMapPointer(new model::TextureMap());
+        metallicMap->setTextureSource(networkMaterial->metallicTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::METALLIC_MAP, metallicMap);
+    }
+
+    if (!material.occlusionTexture.filename.isEmpty()) {
+        networkMaterial->occlusionTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.occlusionTexture.filename)), OCCLUSION_TEXTURE, material.occlusionTexture.content);
+        networkMaterial->occlusionTextureName = material.occlusionTexture.name;
+
+        auto occlusionMap = model::TextureMapPointer(new model::TextureMap());
+        occlusionMap->setTextureSource(networkMaterial->occlusionTexture->_textureSource);
+
+        material._material->setTextureMap(model::MaterialKey::OCCLUSION_MAP, occlusionMap);
+    }
+
     if (!material.emissiveTexture.filename.isEmpty()) {
         networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), EMISSIVE_TEXTURE, material.emissiveTexture.content);
         networkMaterial->emissiveTextureName = material.emissiveTexture.name;
@@ -383,6 +426,7 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::EMISSIVE_MAP, emissiveMap);
     }
+
     if (!material.lightmapTexture.filename.isEmpty()) {
         networkMaterial->lightmapTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.lightmapTexture.filename)), LIGHTMAP_TEXTURE, material.lightmapTexture.content);
         networkMaterial->lightmapTextureName = material.lightmapTexture.name;
@@ -395,15 +439,7 @@ static NetworkMaterial* buildNetworkMaterial(NetworkGeometry* geometry, const FB
 
         material._material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
     }
-    if (!material.occlusionTexture.filename.isEmpty()) {
-        networkMaterial->occlusionTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.occlusionTexture.filename)), OCCLUSION_TEXTURE, material.occlusionTexture.content);
-        networkMaterial->occlusionTextureName = material.occlusionTexture.name;
 
-        auto occlusionMap = model::TextureMapPointer(new model::TextureMap());
-        occlusionMap->setTextureSource(networkMaterial->occlusionTexture->_textureSource);
-
-        material._material->setTextureMap(model::MaterialKey::OCCLUSION_MAP, occlusionMap);
-    }
     return networkMaterial;
 }
 
