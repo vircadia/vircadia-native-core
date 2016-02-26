@@ -18,7 +18,7 @@ Original.Button {
     id: button
     property int color: 0
     width: 120
-    height: 30
+    height: 28
 
     style: ButtonStyle {
 
