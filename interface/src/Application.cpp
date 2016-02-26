@@ -2438,11 +2438,14 @@ void Application::idle(uint64_t now) {
     Stats::getInstance()->updateStats();
     AvatarInputs::getInstance()->update();
 
+    // These tasks need to be done on our first idle, because we don't want the showing of
+    // overlay subwindows to do a showDesktop() until after the first time through
     static bool firstIdle = true;
     if (firstIdle) {
         firstIdle = false;
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
     }
 
     
