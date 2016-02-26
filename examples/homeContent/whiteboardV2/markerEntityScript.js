@@ -24,7 +24,7 @@
         _this = this;
         _this.MARKER_TEXTURE_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/textures/markerStroke.png";
         _this.strokeForwardOffset = 0.0001;
-        _this.STROKE_WIDTH = 0.03;
+        _this.STROKE_WIDTH_RANGE = {min: 0.002, max: 0.01};
         _this.MAX_MARKER_TO_BOARD_DISTANCE = 1.4;
         _this.MIN_DISTANCE_BETWEEN_POINTS = 0.002;
         _this.MAX_DISTANCE_BETWEEN_POINTS = 0.1;
@@ -115,8 +115,6 @@
 
             _this.linePoints = [];
             _this.normals = [];
-            _this.strokeWidths = [];
-
             _this.strokes.push(_this.currentStroke);
         },
 
@@ -140,12 +138,20 @@
             }
             _this.linePoints.push(localPoint);
             _this.normals.push(_this.whiteboardNormal);
-            this.strokeWidths.push(_this.STROKE_WIDTH);
+
+            var strokeWidths = [];
+            for (var i = 0; i < _this.linePoints.length; i++) {
+                // Create a temp array of stroke widths for calligraphy effect - start and end should be less wide
+                var pointsFromCenter = Math.abs(_this.linePoints.length/2 - i);
+                print("EBL POINTS CENTER " + pointsFromCenter)
+                var pointWidth = map(pointsFromCenter, 0, this.linePoints.length/2, _this.STROKE_WIDTH_RANGE.max, this.STROKE_WIDTH_RANGE.min);
+                strokeWidths.push(pointWidth);
+            }
 
             Entities.editEntity(_this.currentStroke, {
                 linePoints: _this.linePoints,
                 normals: _this.normals,
-                strokeWidths: _this.strokeWidths
+                strokeWidths: strokeWidths
             });
 
             if (_this.linePoints.length > MAX_POINTS_PER_STROKE) {
