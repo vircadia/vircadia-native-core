@@ -110,7 +110,6 @@ void OverlayConductor::setEnabled(bool enabled) {
         return;
     }
 
-    qDebug() << "OverlayConductor::setEnabled() enabled:" << enabled;
     Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
 
     _enabled = enabled; // set the new value
