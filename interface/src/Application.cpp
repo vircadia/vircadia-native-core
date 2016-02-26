@@ -210,8 +210,6 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
-static const unsigned int CAPPED_SIM_FRAMERATE = 120;
-static const int CAPPED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / CAPPED_SIM_FRAMERATE;
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
@@ -316,6 +314,9 @@ bool setupEssentials(int& argc, char** argv) {
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
     Setting::preInit();
+
+    LogHandler::getInstance().setShouldDisplayMilliseconds(true);
+    LogHandler::getInstance().setShouldOutputThreadID(true);
 
     CrashHandler::checkForAndHandleCrash();
     CrashHandler::writeRunningMarkerFiler();
@@ -967,6 +968,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
+
     _idleTimer = new QTimer(this);
     connect(_idleTimer, &QTimer::timeout, [=] {
         idle(usecTimestampNow());
@@ -975,7 +977,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         disconnect(_idleTimer);
     });
     // Setting the interval to zero forces this to get called whenever there are no messages
-    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch 
+    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
 }
@@ -1296,6 +1298,7 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+
     // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
@@ -1319,10 +1322,6 @@ void Application::paintGL() {
     if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
         _fps = _framesPerSecond.getAverage();
         _lastFramesPerSecondUpdate = now;
-    }
-
-    if (_isGLInitialized) {
-        idle(now);
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -1619,7 +1618,6 @@ void Application::paintGL() {
     }
 
     _lastInstantaneousFps = instantaneousFps;
-    _pendingPaint = false;
 }
 
 void Application::runTests() {
@@ -2432,10 +2430,11 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
+
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
-    
+
     auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
@@ -2456,30 +2455,16 @@ void Application::idle(uint64_t now) {
         _renderedFrameIndex = INVALID_FRAME;
     }
 
-    // Nested ifs are for clarity in the logic.  Don't collapse them into a giant single if.
     // Don't saturate the main thread with rendering, no paint calls until the last one is complete
-    if (!_pendingPaint) {
-        // Also no paint calls until the display plugin has increased by at least one frame 
-        // (don't render at 90fps if the display plugin only goes at 60)
-        if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
-            // Record what present frame we're on
-            _renderedFrameIndex = presentCount;
-            // Don't allow paint requests to stack up in the event queue
-            _pendingPaint = true;
-            // But when we DO request a paint, get to it as soon as possible: high priority
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-        }
-    }  
-    
-    // For the rest of idle, we want to cap at the max sim rate, so we might not call 
-    // the remaining idle work every paint frame, or vice versa
-    // In theory this means we could call idle processing more often than painting,
-    // but in practice, when the paintGL calls aren't keeping up, there's no room left
-    // in the main thread to call idle more often than paint.
-    // This check is mostly to keep idle from burning up CPU cycles by running at 
-    // hundreds of idles per second when the rendering is that fast
-    if ((timeSinceLastUpdateUs / USECS_PER_MSEC) < CAPPED_SIM_FRAME_PERIOD_MS) {
-        // No paint this round, but might be time for a new idle, otherwise return
+    // Also no paint calls until the display plugin has increased by at least one frame 
+    // (don't render at 90fps if the display plugin only goes at 60)
+    if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
+        // Record what present frame we're on
+        _renderedFrameIndex = presentCount;
+
+        // But when we DO request a paint, get to it as soon as possible: high priority
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    } else {
         return;
     }
 
