@@ -107,7 +107,7 @@ public:
     bool shouldCaptureMouse() const;
 
     /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
-    bool getReticleOverDesktop() const { return _isOverDesktop; }
+    bool getReticleOverDesktop() const;
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
 private:
@@ -131,7 +131,7 @@ private:
     float _textureAspectRatio { 1.0f };
     int _hemiVerticesID { GeometryCache::UNKNOWN_ID };
 
-    float _alpha { 1.0f };
+    float _alpha { 0.0f }; // hidden by default
     float _prevAlpha { 1.0f };
     float _fadeInAlpha { true };
     float _oculusUIRadius { 1.0f };

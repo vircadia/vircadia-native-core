@@ -835,41 +835,40 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
         if (audioEnvGroupObject[AUDIO_ZONES].isObject()) {
             const QJsonObject& zones = audioEnvGroupObject[AUDIO_ZONES].toObject();
 
-            const QString X_RANGE = "x_range";
-            const QString Y_RANGE = "y_range";
-            const QString Z_RANGE = "z_range";
+            const QString X_MIN = "x_min";
+            const QString X_MAX = "x_max";
+            const QString Y_MIN = "y_min";
+            const QString Y_MAX = "y_max";
+            const QString Z_MIN = "z_min";
+            const QString Z_MAX = "z_max";
             foreach (const QString& zone, zones.keys()) {
                 QJsonObject zoneObject = zones[zone].toObject();
 
-                if (zoneObject.contains(X_RANGE) && zoneObject.contains(Y_RANGE) && zoneObject.contains(Z_RANGE)) {
-                    QStringList xRange = zoneObject.value(X_RANGE).toString().split("-", QString::SkipEmptyParts);
-                    QStringList yRange = zoneObject.value(Y_RANGE).toString().split("-", QString::SkipEmptyParts);
-                    QStringList zRange = zoneObject.value(Z_RANGE).toString().split("-", QString::SkipEmptyParts);
+                if (zoneObject.contains(X_MIN) && zoneObject.contains(X_MAX) && zoneObject.contains(Y_MIN) &&
+                    zoneObject.contains(Y_MAX) && zoneObject.contains(Z_MIN) && zoneObject.contains(Z_MAX)) {
 
-                    if (xRange.size() == 2 && yRange.size() == 2 && zRange.size() == 2) {
-                        float xMin, xMax, yMin, yMax, zMin, zMax;
-                        bool ok, allOk = true;
-                        xMin = xRange[0].toFloat(&ok);
-                        allOk &= ok;
-                        xMax = xRange[1].toFloat(&ok);
-                        allOk &= ok;
-                        yMin = yRange[0].toFloat(&ok);
-                        allOk &= ok;
-                        yMax = yRange[1].toFloat(&ok);
-                        allOk &= ok;
-                        zMin = zRange[0].toFloat(&ok);
-                        allOk &= ok;
-                        zMax = zRange[1].toFloat(&ok);
-                        allOk &= ok;
+                    float xMin, xMax, yMin, yMax, zMin, zMax;
+                    bool ok, allOk = true;
+                    xMin = zoneObject.value(X_MIN).toString().toFloat(&ok);
+                    allOk &= ok;
+                    xMax = zoneObject.value(X_MAX).toString().toFloat(&ok);
+                    allOk &= ok;
+                    yMin = zoneObject.value(Y_MIN).toString().toFloat(&ok);
+                    allOk &= ok;
+                    yMax = zoneObject.value(Y_MAX).toString().toFloat(&ok);
+                    allOk &= ok;
+                    zMin = zoneObject.value(Z_MIN).toString().toFloat(&ok);
+                    allOk &= ok;
+                    zMax = zoneObject.value(Z_MAX).toString().toFloat(&ok);
+                    allOk &= ok;
 
-                        if (allOk) {
-                            glm::vec3 corner(xMin, yMin, zMin);
-                            glm::vec3 dimensions(xMax - xMin, yMax - yMin, zMax - zMin);
-                            AABox zoneAABox(corner, dimensions);
-                            _audioZones.insert(zone, zoneAABox);
-                            qDebug() << "Added zone:" << zone << "(corner:" << corner
-                                     << ", dimensions:" << dimensions << ")";
-                        }
+                    if (allOk) {
+                        glm::vec3 corner(xMin, yMin, zMin);
+                        glm::vec3 dimensions(xMax - xMin, yMax - yMin, zMax - zMin);
+                        AABox zoneAABox(corner, dimensions);
+                        _audioZones.insert(zone, zoneAABox);
+                        qDebug() << "Added zone:" << zone << "(corner:" << corner
+                                    << ", dimensions:" << dimensions << ")";
                     }
                 }
             }

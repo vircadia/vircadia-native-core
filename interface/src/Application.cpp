@@ -210,8 +210,6 @@ static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-commands.html";
 
 static const unsigned int THROTTLED_SIM_FRAMERATE = 15;
 static const int THROTTLED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / THROTTLED_SIM_FRAMERATE;
-static const unsigned int CAPPED_SIM_FRAMERATE = 120;
-static const int CAPPED_SIM_FRAME_PERIOD_MS = MSECS_PER_SECOND / CAPPED_SIM_FRAMERATE;
 
 static const uint32_t INVALID_FRAME = UINT32_MAX;
 
@@ -425,11 +423,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
     _lastFaceTrackerUpdate(0)
 {
-    // FIXME this may be excessivly conservative.  On the other hand 
+    // FIXME this may be excessivly conservative.  On the other hand
     // maybe I'm used to having an 8-core machine
-    // Perhaps find the ideal thread count  and subtract 2 or 3 
+    // Perhaps find the ideal thread count  and subtract 2 or 3
     // (main thread, present thread, random OS load)
-    // More threads == faster concurrent loads, but also more concurrent 
+    // More threads == faster concurrent loads, but also more concurrent
     // load on the GPU until we can serialize GPU transfers (off the main thread)
     QThreadPool::globalInstance()->setMaxThreadCount(2);
     thread()->setPriority(QThread::HighPriority);
@@ -560,7 +558,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     auto discoverabilityManager = DependencyManager::get<DiscoverabilityManager>();
     connect(&locationUpdateTimer, &QTimer::timeout, discoverabilityManager.data(), &DiscoverabilityManager::updateLocation);
-    connect(&locationUpdateTimer, &QTimer::timeout, 
+    connect(&locationUpdateTimer, &QTimer::timeout,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
     locationUpdateTimer.start(DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS);
 
@@ -604,7 +602,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(addressManager.data(), &AddressManager::hostChanged, this, &Application::updateWindowTitle);
     connect(this, &QCoreApplication::aboutToQuit, addressManager.data(), &AddressManager::storeCurrentAddress);
-    
+
     // Save avatar location immediately after a teleport.
     connect(getMyAvatar(), &MyAvatar::positionGoneTo,
         DependencyManager::get<AddressManager>().data(), &AddressManager::storeCurrentAddress);
@@ -625,7 +623,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         getEntities()->reloadEntityScripts();
     }, Qt::QueuedConnection);
 
-    connect(scriptEngines, &ScriptEngines::scriptLoadError, 
+    connect(scriptEngines, &ScriptEngines::scriptLoadError,
         scriptEngines, [](const QString& filename, const QString& error){
         OffscreenUi::warning(nullptr, "Error Loading Script", filename + " failed to load.");
     }, Qt::QueuedConnection);
@@ -817,6 +815,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
                 auto oldPos = _compositor.getReticlePosition();
                 _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
+            } else if (action == controller::toInt(controller::Action::TOGGLE_OVERLAY)) {
+                toggleOverlays();
             }
         }
     });
@@ -967,6 +967,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
+
     _idleTimer = new QTimer(this);
     connect(_idleTimer, &QTimer::timeout, [=] {
         idle(usecTimestampNow());
@@ -975,7 +976,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         disconnect(_idleTimer);
     });
     // Setting the interval to zero forces this to get called whenever there are no messages
-    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch 
+    // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
 }
@@ -1023,7 +1024,7 @@ void Application::cleanupBeforeQuit() {
     getEntities()->shutdown(); // tell the entities system we're shutting down, so it will stop running scripts
     DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
-    DependencyManager::destroy<ScriptEngines>(); 
+    DependencyManager::destroy<ScriptEngines>();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1198,7 +1199,6 @@ void Application::initializeUi() {
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
     // support the window management and scripting proxies for VR use
     offscreenUi->createDesktop(QString("hifi/Desktop.qml"));
-    connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
 
     // FIXME either expose so that dialogs can set this themselves or
     // do better detection in the offscreen UI of what has focus
@@ -1212,10 +1212,10 @@ void Application::initializeUi() {
 
     setupPreferences();
 
-    // For some reason there is already an "Application" object in the QML context, 
+    // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
     rootContext->setContextProperty("SnapshotUploader", new SnapshotUploader());
-    rootContext->setContextProperty("ApplicationInterface", this); 
+    rootContext->setContextProperty("ApplicationInterface", this);
     rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
     rootContext->setContextProperty("Audio", &AudioScriptingInterface::getInstance());
     rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
@@ -1296,6 +1296,7 @@ void Application::initializeUi() {
 }
 
 void Application::paintGL() {
+
     // paintGL uses a queued connection, so we can get messages from the queue even after we've quit
     // and the plugins have shutdown
     if (_aboutToQuit) {
@@ -1319,10 +1320,6 @@ void Application::paintGL() {
     if (now - _lastFramesPerSecondUpdate > USECS_PER_SECOND) {
         _fps = _framesPerSecond.getAverage();
         _lastFramesPerSecondUpdate = now;
-    }
-
-    if (_isGLInitialized) {
-        idle(now);
     }
 
     PROFILE_RANGE(__FUNCTION__);
@@ -1619,7 +1616,6 @@ void Application::paintGL() {
     }
 
     _lastInstantaneousFps = instantaneousFps;
-    _pendingPaint = false;
 }
 
 void Application::runTests() {
@@ -2030,9 +2026,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                  Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson));
                  cameraMenuChanged();
                  break;
-            case Qt::Key_O:
-                _overlayConductor.setEnabled(!_overlayConductor.getEnabled());
-                break;
+
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
@@ -2432,10 +2426,24 @@ bool Application::acceptSnapshot(const QString& urlString) {
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
 void Application::idle(uint64_t now) {
+
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
-    
+
+    Stats::getInstance()->updateStats();
+    AvatarInputs::getInstance()->update();
+
+    // These tasks need to be done on our first idle, because we don't want the showing of
+    // overlay subwindows to do a showDesktop() until after the first time through
+    static bool firstIdle = true;
+    if (firstIdle) {
+        firstIdle = false;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        connect(offscreenUi.data(), &OffscreenUi::showDesktop, this, &Application::showDesktop);
+        _overlayConductor.setEnabled(Menu::getInstance()->isOptionChecked(MenuOption::Overlays));
+    }
+
     auto displayPlugin = getActiveDisplayPlugin();
     // depending on whether we're throttling or not.
     // Once rendering is off on another thread we should be able to have Application::idle run at start(0) in
@@ -2456,30 +2464,16 @@ void Application::idle(uint64_t now) {
         _renderedFrameIndex = INVALID_FRAME;
     }
 
-    // Nested ifs are for clarity in the logic.  Don't collapse them into a giant single if.
-    // Don't saturate the main thread with rendering, no paint calls until the last one is complete
-    if (!_pendingPaint) {
-        // Also no paint calls until the display plugin has increased by at least one frame 
-        // (don't render at 90fps if the display plugin only goes at 60)
-        if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
-            // Record what present frame we're on
-            _renderedFrameIndex = presentCount;
-            // Don't allow paint requests to stack up in the event queue
-            _pendingPaint = true;
-            // But when we DO request a paint, get to it as soon as possible: high priority
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-        }
-    }  
-    
-    // For the rest of idle, we want to cap at the max sim rate, so we might not call 
-    // the remaining idle work every paint frame, or vice versa
-    // In theory this means we could call idle processing more often than painting,
-    // but in practice, when the paintGL calls aren't keeping up, there's no room left
-    // in the main thread to call idle more often than paint.
-    // This check is mostly to keep idle from burning up CPU cycles by running at 
-    // hundreds of idles per second when the rendering is that fast
-    if ((timeSinceLastUpdateUs / USECS_PER_MSEC) < CAPPED_SIM_FRAME_PERIOD_MS) {
-        // No paint this round, but might be time for a new idle, otherwise return
+    // Don't saturate the main thread with rendering and simulation,
+    // unless display plugin has increased by at least one frame
+    if (_renderedFrameIndex == INVALID_FRAME || presentCount > _renderedFrameIndex) {
+        // Record what present frame we're on
+        _renderedFrameIndex = presentCount;
+
+        // request a paint, get to it as soon as possible: high priority
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    } else {
+        // there's no use in simulating or rendering faster then the present rate.
         return;
     }
 
@@ -2993,6 +2987,16 @@ void Application::updateThreads(float deltaTime) {
     }
 }
 
+void Application::toggleOverlays() {
+    auto newOverlaysVisible = !_overlayConductor.getEnabled();
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, newOverlaysVisible);
+    _overlayConductor.setEnabled(newOverlaysVisible);
+}
+
+void Application::setOverlaysVisible(bool visible) {
+    _overlayConductor.setEnabled(visible);
+}
+
 void Application::cycleCamera() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -3387,7 +3391,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setKeyholeRadius(_viewFrustum.getKeyholeRadius());
+    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -3423,9 +3427,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-
-                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    if (_viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
                         inViewServers++;
                     }
                 }
@@ -3491,12 +3493,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                        inView = true;
-                    } else {
-                        inView = false;
-                    }
+                    inView = _viewFrustum.cubeIntersectsKeyhole(serverBounds);
                 } else {
                     if (wantExtraDebugging) {
                         qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
@@ -3818,18 +3815,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         });
     }
 
-    // Setup the current Zone Entity lighting and skybox
+    // Setup the current Zone Entity lighting
     {
-        // FIXME: Use a zone setting to determine the ambient light mode
-        DependencyManager::get<DeferredLightingEffect>()->setAmbientLightMode(-1);
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(skyStage->getSunLight()->getDirection(), skyStage->getSunLight()->getColor(), skyStage->getSunLight()->getIntensity(), skyStage->getSunLight()->getAmbientIntensity());
-
-        auto skybox = model::SkyboxPointer();
-        if (skyStage->getBackgroundMode() == model::SunSkyStage::SKY_BOX) {
-            skybox = skyStage->getSkybox();
-        }
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalSkybox(skybox);
+        auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight(), stage->getSkybox()->getCubemap());
     }
 
     {
@@ -4760,7 +4749,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
             groupingMenu = "Developer";
             break;
         default:
-            groupingMenu = "Standard"; 
+            groupingMenu = "Standard";
             break;
     }
 

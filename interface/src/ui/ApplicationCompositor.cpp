@@ -403,6 +403,22 @@ glm::vec2 ApplicationCompositor::getReticlePosition() const {
     return toGlm(QCursor::pos());
 }
 
+bool ApplicationCompositor::getReticleOverDesktop() const { 
+    // if the QML/Offscreen UI thinks we're over the desktop, then we are...
+    // but... if we're outside of the overlay area, we also want to call ourselves
+    // as being over the desktop.
+    if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticleLock);
+        glm::vec2 maxOverlayPosition = qApp->getUiSize();
+        if (_reticlePositionInHMD.x < 0 || _reticlePositionInHMD.y < 0 ||
+            _reticlePositionInHMD.x > maxOverlayPosition.x || _reticlePositionInHMD.y > maxOverlayPosition.y) {
+            return true; // we are outside the overlay area, consider ourselves over the desktop
+        }
+    }
+    return _isOverDesktop;
+}
+
+
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {
         QMutexLocker locker(&_reticleLock);

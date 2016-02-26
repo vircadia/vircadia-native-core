@@ -937,7 +937,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
         params.stats->traversed(element);
     }
 
-    ViewFrustum::location parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
+    ViewFrustum::intersection parentLocationThisView = ViewFrustum::INTERSECT; // assume parent is in view, but not fully
 
     int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
                                                          currentEncodeLevel, parentLocationThisView);
@@ -974,7 +974,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
 int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                          OctreePacketData* packetData, OctreeElementBag& bag,
                                          EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                         const ViewFrustum::location& parentLocationThisView) const {
+                                         const ViewFrustum::intersection& parentLocationThisView) const {
 
 
     const bool wantDebug = false;
@@ -1013,7 +1013,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         }
     }
 
-    ViewFrustum::location nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
+    ViewFrustum::intersection nodeLocationThisView = ViewFrustum::INSIDE; // assume we're inside
 
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
@@ -1034,7 +1034,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         // if we are INSIDE, INTERSECT, or OUTSIDE
         if (parentLocationThisView != ViewFrustum::INSIDE) {
             assert(parentLocationThisView != ViewFrustum::OUTSIDE); // we shouldn't be here if our parent was OUTSIDE!
-            nodeLocationThisView = element->inFrustum(*params.viewFrustum);
+            nodeLocationThisView = element->computeViewIntersection(*params.viewFrustum);
         }
 
         // If we're at a element that is out of view, then we can return, because no nodes below us will be in view!
@@ -1053,7 +1053,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
         bool wasInView = false;
 
         if (params.deltaViewFrustum && params.lastViewFrustum) {
-            ViewFrustum::location location = element->inFrustum(*params.lastViewFrustum);
+            ViewFrustum::intersection location = element->computeViewIntersection(*params.lastViewFrustum);
 
             // If we're a leaf, then either intersect or inside is considered "formerly in view"
             if (element->isLeaf()) {
@@ -1237,7 +1237,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
                     bool childWasInView = false;
 
                     if (childElement && params.deltaViewFrustum && params.lastViewFrustum) {
-                        ViewFrustum::location location = childElement->inFrustum(*params.lastViewFrustum);
+                        ViewFrustum::intersection location = childElement->computeViewIntersection(*params.lastViewFrustum);
 
                         // If we're a leaf, then either intersect or inside is considered "formerly in view"
                         if (childElement->isLeaf()) {

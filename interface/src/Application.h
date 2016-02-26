@@ -149,6 +149,7 @@ public:
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     ApplicationCompositor& getApplicationCompositor() { return _compositor; }
     const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
+
     Overlays& getOverlays() { return _overlays; }
 
     bool isForeground() const { return _isForeground; }
@@ -270,6 +271,8 @@ public slots:
 
     void cycleCamera();
     void cameraMenuChanged();
+    void toggleOverlays();
+    void setOverlaysVisible(bool visible);
 
     void reloadResourceCaches();
 
@@ -509,7 +512,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
