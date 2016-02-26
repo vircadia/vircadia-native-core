@@ -32,6 +32,7 @@ public:
     }
 
     void updateItem(ItemID id, const UpdateFunctorPointer& functor);
+    void updateItem(ItemID id) { updateItem(id, nullptr); }
 
     void merge(PendingChanges& changes);
 

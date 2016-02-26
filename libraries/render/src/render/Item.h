@@ -313,13 +313,11 @@ public:
     Item() {}
     ~Item() {}
 
-    // Main scene / item managment interface Reset/Update/Kill
+    // Main scene / item managment interface reset/update/kill
     void resetPayload(const PayloadPointer& payload);
     void resetCell(ItemCell cell, bool _small) { _cell = cell; _key.setSmaller(_small); }
-    // Communicate the update to the payload
-    void update(const UpdateFunctorPointer& updateFunctor)  { _payload->update(updateFunctor); _key = _payload->getKey(); }
-    // Forget the payload, key, and cell
-    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; }
+    void update(const UpdateFunctorPointer& updateFunctor); // communicate update to payload
+    void kill() { _payload.reset(); _key._flags.reset(); _cell = INVALID_CELL; } // forget the payload, key, cell
 
     // Check heuristic key
     const ItemKey& getKey() const { return _key; }
