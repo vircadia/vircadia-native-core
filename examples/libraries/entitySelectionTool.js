@@ -16,6 +16,11 @@ HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 SPACE_LOCAL = "local";
 SPACE_WORLD = "world";
 
+function objectTranslationPlanePoint(position, dimensions) {
+    var newPosition = { x: position.x, y: position.y, z: position.z };
+    newPosition.y -= dimensions.y / 2.0;
+    return newPosition;
+}
 
 SelectionManager = (function() {
     var that = {};
@@ -82,6 +87,11 @@ SelectionManager = (function() {
         y: 0,
         z: 0
     };
+    that.pickPlanePosition = {
+        x: 0,
+        y: 0,
+        z: 0
+    };
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -107,6 +117,13 @@ SelectionManager = (function() {
         }
 
         that._update();
+    };
+
+    that.setPickPlanePosition = function(position) {
+        that.pickPlanePosition.x = position.x;
+        that.pickPlanePosition.y = position.y;
+        that.pickPlanePosition.z = position.z;
+        Vec3.print("that.pickPlanePosition = ", that.pickPlanePosition);
     };
 
     that.addEntity = function(entityID, toggleSelection) {
@@ -2252,15 +2269,17 @@ SelectionDisplay = (function() {
     var constrainMajorOnly = false;
     var startPosition = null;
     var duplicatedEntityIDs = null;
+
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
+        pickPlanePosition: { x: 0, y: 0, z: 0 },
         onBegin: function(event) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
 
             var pickRay = Camera.computePickRay(event.x, event.y);
-            initialXZPick = rayPlaneIntersection(pickRay, startPosition, {
+            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -2300,12 +2319,22 @@ SelectionDisplay = (function() {
         onMove: function(event) {
             pickRay = Camera.computePickRay(event.x, event.y);
 
-            var pick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, {
+            var pick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
             });
+
             var vector = Vec3.subtract(pick, initialXZPick);
+
+            Vec3.print("Pick Plane Position", translateXZTool.pickPlanePosition);
+            
+            /*
+            if (pickRay.origin.y < this.pickPlanePosition.y) {
+                vector.x *= -1.0;
+                vector.z *= -1.0;
+            } */
+            
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
@@ -2644,11 +2673,6 @@ SelectionDisplay = (function() {
             lastPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
-
-            // Overlays.editOverlay(normalLine, {
-            //     start: initialPosition,
-            //     end: Vec3.sum(Vec3.multiply(100000, planeNormal), initialPosition),
-            // });
 
             SelectionManager.saveProperties();
         };
@@ -4093,6 +4117,7 @@ SelectionDisplay = (function() {
                 switch (result.overlayID) {
                     case selectionBox:
                         activeTool = translateXZTool;
+                        translateXZTool.pickPlanePosition = result.intersection;
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
                         somethingClicked = true;

@@ -758,7 +758,8 @@ function findClickedEntity(event) {
     var foundEntity = result.entityID;
     return {
         pickRay: pickRay,
-        entityID: foundEntity
+        entityID: foundEntity,
+        intersection: result.intersection
     };
 }
 
@@ -978,6 +979,8 @@ function mouseClickEvent(event) {
 
                 if (!event.isShifted) {
                     selectionManager.setSelections([foundEntity]);
+                    Vec3.print("found object, intersection = ", result.intersection);
+                    selectionManager.setPickPlanePosition(result.intersection);
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
