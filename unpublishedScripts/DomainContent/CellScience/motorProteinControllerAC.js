@@ -18,8 +18,6 @@ if (USE_LOCAL_HOST === true) {
 
 var USE_LOCAL_HOST = false;
 
-Agent.isAvatar = true;
-
 EntityViewer.setPosition({
     x: 3000,
     y: 13500,
