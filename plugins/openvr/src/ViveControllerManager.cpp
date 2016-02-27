@@ -234,8 +234,8 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     auto rightHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
 
     if (!jointsCaptured) {
-        handleHandController(leftHandDeviceIndex, inputCalibrationData, true);
-        handleHandController(rightHandDeviceIndex, inputCalibrationData, false);
+        handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
+        handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
     }
 
     int numTrackedControllers = 0;
@@ -248,7 +248,7 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     _trackedControllers = numTrackedControllers;
 }
 
-void ViveControllerManager::InputDevice::handleHandController(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
+void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
 
     if (_system->IsTrackedDeviceConnected(deviceIndex) &&
         _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
@@ -258,7 +258,7 @@ void ViveControllerManager::InputDevice::handleHandController(uint32_t deviceInd
         const mat4& mat = _trackedDevicePoseMat4[deviceIndex];
         const vec3 linearVelocity = _trackedDeviceLinearVelocities[deviceIndex];
         const vec3 angularVelocity = _trackedDeviceAngularVelocities[deviceIndex];
-        handlePoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity, isLeftHand);
+        handlePoseEvent(deltaTime, inputCalibrationData, mat, linearVelocity, angularVelocity, isLeftHand);
 
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
         if (_system->GetControllerState(deviceIndex, &controllerState)) {
@@ -267,12 +267,12 @@ void ViveControllerManager::InputDevice::handleHandController(uint32_t deviceInd
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
                 bool pressed = 0 != (controllerState.ulButtonPressed & mask);
-                handleButtonEvent(i, pressed, isLeftHand);
+                handleButtonEvent(deltaTime, i, pressed, isLeftHand);
             }
 
             // process each axis
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-                handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
+                handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
             }
         }
     }
@@ -284,36 +284,44 @@ void ViveControllerManager::InputDevice::focusOutEvent() {
 };
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::InputDevice::handleAxisEvent(uint32_t axis, float x, float y, bool isLeftHand) {
+void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand) {
     //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
     axis += vr::k_EButton_Axis0;
     using namespace controller;
+
     if (axis == vr::k_EButton_SteamVR_Touchpad) {
-        _axisStateMap[isLeftHand ? LX : RX] = x;
-        _axisStateMap[isLeftHand ? LY : RY] = y;
+        glm::vec2 stick(x, y);
+        if (isLeftHand) {
+            stick = _filteredLeftStick.process(deltaTime, stick);
+        } else {
+            stick = _filteredRightStick.process(deltaTime, stick);
+        }
+        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
+        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
     }
 }
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::InputDevice::handleButtonEvent(uint32_t button, bool pressed, bool isLeftHand) {
+void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand) {
     if (!pressed) {
         return;
     }
 
+    using namespace controller;
     if (button == vr::k_EButton_ApplicationMenu) {
-        _buttonPressedMap.insert(isLeftHand ? controller::LEFT_PRIMARY_THUMB : controller::RIGHT_PRIMARY_THUMB);
+        _buttonPressedMap.insert(isLeftHand ? LEFT_PRIMARY_THUMB : RIGHT_PRIMARY_THUMB);
     } else if (button == vr::k_EButton_Grip) {
-        _buttonPressedMap.insert(isLeftHand ? controller::LB : controller::RB);
+        _buttonPressedMap.insert(isLeftHand ? LB : RB);
     } else if (button == vr::k_EButton_SteamVR_Trigger) {
-        _buttonPressedMap.insert(isLeftHand ? controller::LT : controller::RT);
+        _buttonPressedMap.insert(isLeftHand ? LT : RT);
     } else if (button == vr::k_EButton_SteamVR_Touchpad) {
-        _buttonPressedMap.insert(isLeftHand ? controller::LS : controller::RS);
+        _buttonPressedMap.insert(isLeftHand ? LS : RS);
     }
 }
 
-void ViveControllerManager::InputDevice::handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData,
+void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                                                          const mat4& mat, const vec3& linearVelocity,
                                                          const vec3& angularVelocity, bool isLeftHand) {
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
