@@ -181,9 +181,9 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        args->_batch = &batch;
 
         config->setNumDrawn((int)inItems.size());
         emit config->numDrawnChanged();
@@ -233,7 +233,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         // Render the items
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
-            args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
             glm::mat4 projMat;
             Transform viewMat;
@@ -242,14 +243,10 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-            batch.setResourceTexture(0, args->_whiteTexture);
 
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            args->_batch = nullptr;
         });
-        args->_batch = nullptr;
-        args->_whiteTexture.reset();
     }
 }
 
