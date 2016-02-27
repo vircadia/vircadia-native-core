@@ -87,11 +87,6 @@ SelectionManager = (function() {
         y: 0,
         z: 0
     };
-    that.pickPlanePosition = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
 
     that.saveProperties = function() {
         that.savedProperties = {};
@@ -117,13 +112,6 @@ SelectionManager = (function() {
         }
 
         that._update();
-    };
-
-    that.setPickPlanePosition = function(position) {
-        that.pickPlanePosition.x = position.x;
-        that.pickPlanePosition.y = position.y;
-        that.pickPlanePosition.z = position.z;
-        Vec3.print("that.pickPlanePosition = ", that.pickPlanePosition);
     };
 
     that.addEntity = function(entityID, toggleSelection) {
@@ -2326,15 +2314,6 @@ SelectionDisplay = (function() {
             });
 
             var vector = Vec3.subtract(pick, initialXZPick);
-
-            Vec3.print("Pick Plane Position", translateXZTool.pickPlanePosition);
-            
-            /*
-            if (pickRay.origin.y < this.pickPlanePosition.y) {
-                vector.x *= -1.0;
-                vector.z *= -1.0;
-            } */
-            
 
             // If shifted, constrain to one axis
             if (event.isShifted) {

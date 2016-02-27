@@ -979,8 +979,6 @@ function mouseClickEvent(event) {
 
                 if (!event.isShifted) {
                     selectionManager.setSelections([foundEntity]);
-                    Vec3.print("found object, intersection = ", result.intersection);
-                    selectionManager.setPickPlanePosition(result.intersection);
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
