@@ -47,8 +47,7 @@ void main(void) {
                         frag.diffuse,
                         frag.metallic,
                         frag.emissive,
-                        frag.roughness,
-                        deferredTransform.skyboxMipmapLevels);
+                        frag.roughness);
 
         _fragColor = vec4(color, frag.normalVal.a);
     }

@@ -97,7 +97,7 @@ public:
     // For editing purpose, show the light volume contour.
     // Set to non 0 to show it, the value is used as the intensity of the contour color
     void setShowContour(float show);
-    float getShowContour() const { return getSchema()._control.w; }
+    float getShowContour() const { return getSchema()._control.z; }
 
     // If the light has an ambient (Indirect) component, then the Ambientintensity can be used to control its contribution to the lighting
     void setAmbientIntensity(float intensity);
@@ -107,6 +107,9 @@ public:
     void setAmbientSphere(const gpu::SphericalHarmonics& sphere);
     const gpu::SphericalHarmonics& getAmbientSphere() const { return getSchema()._ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
+
+    void setAmbientMapNumMips(int numMips);
+    int getAmbientMapNumMips() const { return getSchema()._ambientMapNumMips; }
 
     // Schema to access the attribute values of the light
     class Schema {
@@ -120,7 +123,8 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
-        Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};
+        int _ambientMapNumMips{ 0 };
+        Vec3 _control{ 0.0f, 0.0f, 0.0f };
 
         gpu::SphericalHarmonics _ambientSphere;
     };

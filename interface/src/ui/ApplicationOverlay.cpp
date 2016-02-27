@@ -58,10 +58,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    // TODO move to Application::idle()?
-    Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
-
     buildFramebufferObject();
     
     if (!_overlayFramebuffer) {

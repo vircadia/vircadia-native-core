@@ -104,8 +104,7 @@ private:
         glm::mat4 projection;
         glm::mat4 viewInverse;
         float stereoSide { 0.f };
-        float skyboxMipmapLevels { 1.0f };
-        float spareA, spareB;
+        float spareA, spareB, spareC;
 
         DeferredTransform() {}
     };

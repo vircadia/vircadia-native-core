@@ -61,6 +61,7 @@ namespace controller {
             makeButtonPair(Action::CONTEXT_MENU, "ContextMenu"),
             makeButtonPair(Action::TOGGLE_MUTE, "ToggleMute"),
             makeButtonPair(Action::CYCLE_CAMERA, "CycleCamera"),
+            makeButtonPair(Action::TOGGLE_OVERLAY, "ToggleOverlay"),
 
             makeAxisPair(Action::RETICLE_CLICK, "ReticleClick"),
             makeAxisPair(Action::RETICLE_X, "ReticleX"),

@@ -142,6 +142,8 @@ SunSkyStage::SunSkyStage() :
     _skybox(std::make_shared<Skybox>())
 {
     _sunLight->setType(Light::SUN);
+    // Default ambient sphere (for lack of skybox)
+    _sunLight->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
  
     setSunIntensity(1.0f);
     setSunAmbientIntensity(0.5f);

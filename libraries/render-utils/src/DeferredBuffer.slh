@@ -35,8 +35,7 @@ struct DeferredTransform {
     mat4 projection;
     mat4 viewInverse;
     float stereoSide;
-    float skyboxMipmapLevels;
-    vec2 _spareAB;
+    vec3 _spareABC;
 };
 
 layout(std140) uniform deferredTransformBuffer {

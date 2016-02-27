@@ -37,7 +37,7 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
     Light light = getLight();
 
     vec4 shading = evalFragShading(fragNormal, -getLightDirection(light), fragEyeDir, metallic, vec3(metallic), roughness);
-    color = vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
+    vec3 color = vec3(albedo * shading.w + shading.rgb) * min(shadowAttenuation, obscurance) * getLightColor(light) * getLightIntensity(light);
     color += emissive;
 <@endfunc@>
 
@@ -63,7 +63,8 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
     <$prepareGlobalLight()$>
 
     vec3 direction = -reflect(fragEyeDir, fragNormal);
-    float lod = min(1.0 + floor((1.0 - gloss) * levels), levels);
+    float levels = getLightAmbientMapNumMips(light);
+    float lod = min(1.0 + floor((roughness) * levels), levels);
     vec4 skyboxLight = evalSkyboxLight(direction, lod);
     color += albedo * skyboxLight.rgb * skyboxLight.a * obscurance * getLightAmbientIntensity(light);
 
@@ -73,7 +74,6 @@ vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscu
 
 <@func declareEvalLightmappedColor()@>
 vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 albedo, vec3 lightmap) {
-vec3 evalLightmappedColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 normal, vec3 diffuse, vec3 lightmap) {
     Light light = getLight();
 
     // Catch normals perpendicular to the projection plane, hence the magic number for the threshold
