@@ -103,12 +103,10 @@ void DiskCacheEditor::makeDialog() {
 }
 
 void DiskCacheEditor::refresh() {
-    auto assetClient = DependencyManager::get<AssetClient>();
-    QMetaObject::invokeMethod(assetClient.data() , "cacheInfoRequest", Qt::QueuedConnection,
-                              Q_ARG(QObject*, this), Q_ARG(QString, "update"));
+    DependencyManager::get<AssetClient>()->cacheInfoRequest(this, "cacheInfoCallback");
 }
 
-void DiskCacheEditor::update(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize) {
+void DiskCacheEditor::cacheInfoCallback(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize) {
     static const auto stringify = [](qint64 number) {
         static const QStringList UNITS = QStringList() << "B" << "KB" << "MB" << "GB";
         static const qint64 CHUNK = 1024;
@@ -141,7 +139,6 @@ void DiskCacheEditor::clear() {
                                                "are you sure you want to do that?",
                                                QMessageBox::Ok | QMessageBox::Cancel);
     if (buttonClicked == QMessageBox::Ok) {
-        auto assetClient = DependencyManager::get<AssetClient>();
-        QMetaObject::invokeMethod(assetClient.data() , "clearCache", Qt::QueuedConnection);
+        DependencyManager::get<AssetClient>()->clearCache();
     }
 }

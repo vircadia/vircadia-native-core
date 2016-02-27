@@ -33,9 +33,9 @@ public slots:
     
 private slots:
     void refresh();
-    void update(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize);
+    void cacheInfoCallback(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize);
     void clear();
-    
+
 private:
     void makeDialog();
     

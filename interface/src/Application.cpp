@@ -1071,11 +1071,6 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<OffscreenUi>();
 }
 
-void Application::emptyLocalCache() {
-    auto assetClient = DependencyManager::get<AssetClient>();
-    QMetaObject::invokeMethod(assetClient.data(), "clearCache", Qt::QueuedConnection);
-}
-
 Application::~Application() {
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(NULL);
@@ -3061,7 +3056,7 @@ void Application::reloadResourceCaches() {
     _viewFrustum.setOrientation(glm::quat());
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
-    emptyLocalCache();
+    DependencyManager::get<AssetClient>()->clearCache();
 
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();

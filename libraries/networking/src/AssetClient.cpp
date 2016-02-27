@@ -66,7 +66,12 @@ void AssetClient::init() {
 
 
 void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
-    Q_ASSERT(QThread::currentThread() == thread());
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,
+                                  Q_ARG(QObject*, reciever), Q_ARG(QString, slot));
+        return;
+    }
+
 
     if (auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache())) {
         QMetaObject::invokeMethod(reciever, slot.toStdString().data(), Qt::QueuedConnection,
@@ -79,7 +84,10 @@ void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
 }
 
 void AssetClient::clearCache() {
-    Q_ASSERT(QThread::currentThread() == thread());
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearCache", Qt::QueuedConnection);
+        return;
+    }
 
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "AssetClient::clearCache(): Clearing disk cache.";

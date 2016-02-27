@@ -330,8 +330,6 @@ private:
 
     void cleanupBeforeQuit();
 
-    void emptyLocalCache();
-
     void update(float deltaTime);
 
     void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
