@@ -10,11 +10,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderDeferredTask.h"
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+
+#include <render/CullTask.h>
+#include <render/SortTask.h>
+#include <render/DrawTask.h>
+#include <render/DrawStatus.h>
+#include <render/DrawSceneOctree.h>
 
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
@@ -22,14 +30,9 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 
-#include "render/DrawTask.h"
-#include "render/DrawStatus.h"
-#include "render/DrawSceneOctree.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
-
-#include "RenderDeferredTask.h"
 
 using namespace render;
 

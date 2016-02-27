@@ -12,9 +12,8 @@
 #ifndef hifi_RenderDeferredTask_h
 #define hifi_RenderDeferredTask_h
 
-#include "gpu/Pipeline.h"
-
-#include "render/DrawTask.h"
+#include <gpu/Pipeline.h>
+#include <render/CullTask.h>
 
 class SetupDeferred {
 public:

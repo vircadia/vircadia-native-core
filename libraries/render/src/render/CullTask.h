@@ -21,7 +21,6 @@ namespace render {
 
     void cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
         const ItemBounds& inItems, ItemBounds& outItems);
-    void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
 
     class FetchNonspatialItems {
     public:
@@ -183,16 +182,6 @@ namespace render {
                 }
             }
         }
-    };
-
-    class DepthSortItems {
-    public:
-        using JobModel = Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
-
-        bool _frontToBack;
-        DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
-
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 }
 

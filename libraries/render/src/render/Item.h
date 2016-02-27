@@ -465,7 +465,7 @@ public:
 using ItemBounds = std::vector<ItemBound>;
 
 // A map of items by ShapeKey to optimize rendering pipeline assignments
-using ShapesIDsBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
+using ShapeBounds = std::unordered_map<ShapeKey, ItemBounds, ShapeKey::Hash, ShapeKey::KeyEqual>;
 
 }
 
