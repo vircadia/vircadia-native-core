@@ -323,7 +323,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                     /*    if (_skyboxTexture) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
-                        } else {*/
+                        } else*/ {
                             program = _directionalAmbientSphereLightShadow;
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
@@ -331,7 +331,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                        /* if (_skyboxTexture) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
-                        } else {*/
+                        } else*/ {
                             program = _directionalAmbientSphereLight;
                             locations = _directionalAmbientSphereLightLocations;
                         }
