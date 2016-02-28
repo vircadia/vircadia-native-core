@@ -212,19 +212,21 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
         //draw the mouse pointer
-        // Get the mouse coordinates and convert to NDC [-1, 1]
-        vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
-        vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
-        // Invert the Y axis
-        mousePosition.y *= -1.0f;
+        if (getReticleVisible()) {
+            // Get the mouse coordinates and convert to NDC [-1, 1]
+            vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
+            vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
+            // Invert the Y axis
+            mousePosition.y *= -1.0f;
 
-        Transform model;
-        model.setTranslation(vec3(mousePosition, 0));
-        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        model.setScale(vec3(mouseSize, 1.0f));
-        batch.setModelTransform(model);
-        bindCursorTexture(batch);
-        geometryCache->renderUnitQuad(batch, vec4(1));
+            Transform model;
+            model.setTranslation(vec3(mousePosition, 0));
+            vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+            model.setScale(vec3(mouseSize, 1.0f));
+            batch.setModelTransform(model);
+            bindCursorTexture(batch);
+            geometryCache->renderUnitQuad(batch, vec4(1));
+        }
     });
 }
 
