@@ -127,6 +127,7 @@ void SimpleEntitySimulation::changeEntityInternal(EntityItemPointer entity) {
 }
 
 void SimpleEntitySimulation::clearEntitiesInternal() {
+    QMutexLocker lock(&_mutex);
     _entitiesWithSimulationOwner.clear();
     _entitiesThatNeedSimulationOwner.clear();
 }
