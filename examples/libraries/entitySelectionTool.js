@@ -2264,7 +2264,6 @@ SelectionDisplay = (function() {
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingAzimuth: 0.0,
-        lastVector: { x: 0, y: 0, z: 0 },
         onBegin: function(event) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
@@ -2337,7 +2336,6 @@ SelectionDisplay = (function() {
             var azimuth = translateXZTool.azimuth(pickRay.origin, pick);
             if ((translateXZTool.startingAzimuth > 0.0 && azimuth < MIN_AZIMUTH) || 
                 (translateXZTool.startingAzimuth < 0.0 && azimuth > MIN_AZIMUTH)) {
-                //vector = translateXZTool.lastVector;
                 if (wantDebug) {
                     print("Azimuth = " + azimuth);
                 }
@@ -2355,8 +2353,6 @@ SelectionDisplay = (function() {
                     return;
                 }
             }
-
-            translateXZTool.lastVector = vector; 
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
@@ -3797,7 +3793,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-         
+        var wantDebug = false; 
         if (!event.isLeftButton) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -3823,7 +3819,7 @@ SelectionDisplay = (function() {
 
         if (result.intersects) {
 
-            var wantDebug = false;
+            
             if (wantDebug) {
                 print("something intersects... ");
                 print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
@@ -3920,7 +3916,10 @@ SelectionDisplay = (function() {
 
         if (!somethingClicked) {
 
-            print("rotate handle case...");
+            if (wantDebug) {
+                print("rotate handle case...");
+            }
+            
 
             // After testing our stretch handles, then check out rotate handles
             Overlays.editOverlay(yawHandle, {
@@ -3988,15 +3987,17 @@ SelectionDisplay = (function() {
                         break;
 
                     default:
-                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        if (wantDebug) {
+                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        }
                         mode = "UNKNOWN";
                         break;
                 }
             }
-
-            print("    somethingClicked:" + somethingClicked);
-            print("                mode:" + mode);
-
+            if (wantDebug) {
+                print("    somethingClicked:" + somethingClicked);
+                print("                mode:" + mode);
+            }
 
             if (somethingClicked) {
 
@@ -4142,17 +4143,22 @@ SelectionDisplay = (function() {
                         translateXZTool.pickPlanePosition = result.intersection;
                         translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), 
                             SelectionManager.worldDimensions.z);
-                        print("longest dimension" + translateXZTool.greatestDimension);
-                        translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
-                        print("starting distance" + translateXZTool.startingDistance);
-                        translateXZTool.startingAzimuth = translateXZTool.azimuth(pickRay.origin, translateXZTool.pickPlanePosition);
-                        print("starting azimuth" + translateXZTool.startingAzimuth);
+                        if (wantDebug) {
+                            print("longest dimension: " + translateXZTool.greatestDimension);
+                            translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
+                            print("starting distance: " + translateXZTool.startingDistance);
+                            translateXZTool.startingAzimuth = translateXZTool.azimuth(pickRay.origin, translateXZTool.pickPlanePosition);
+                            print(" starting azimuth: " + translateXZTool.startingAzimuth);
+                        }
+                        
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
                         somethingClicked = true;
                         break;
                     default:
-                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        if (wantDebug) {
+                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        }
                         mode = "UNKNOWN";
                         break;
                 }

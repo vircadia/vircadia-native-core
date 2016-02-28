@@ -945,6 +945,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
+    var wantDebug = false;
     if (isActive && event.isLeftButton) {
         var result = findClickedEntity(event);
         if (result === null) {
@@ -959,11 +960,15 @@ function mouseClickEvent(event) {
 
         var properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
-            print("Model locked " + properties.id);
+            if (wantDebug) {
+                print("Model locked " + properties.id);
+            }
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            if (wantDebug) {
+                print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            }
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -1000,8 +1005,9 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
-
-                print("Model selected: " + foundEntity);
+                if (wantDebug) {
+                    print("Model selected: " + foundEntity);
+                }
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
