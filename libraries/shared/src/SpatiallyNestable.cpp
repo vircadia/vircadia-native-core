@@ -682,7 +682,7 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     _childrenLock.withReadLock([&] {
         foreach(SpatiallyNestableWeakPointer childWP, _children.values()) {
             SpatiallyNestablePointer child = childWP.lock();
-            if (child) {
+            if (child && child->_parentKnowsMe && child->getParentID() == getID()) {
                 children << child;
             }
         }

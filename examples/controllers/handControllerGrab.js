@@ -1,3 +1,4 @@
+"use strict";
 //  handControllerGrab.js
 //
 //  Created by Eric Levin on  9/2/15
@@ -1766,7 +1767,7 @@ function MyController(hand) {
         var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
         var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
         children.forEach(function(childID) {
-            print("disconnecting stray child of hand: " + childID);
+            print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
             Entities.editEntity(childID, {parentID: NULL_UUID});
         });
     }
