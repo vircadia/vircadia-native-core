@@ -2334,10 +2334,13 @@ SelectionDisplay = (function() {
             // If the mouse is too close to the horizon of the pick plane, stop moving
             var MIN_AZIMUTH = 0.02;   //  Radians 
             var azimuth = translateXZTool.azimuth(pickRay.origin, pick);
+            if (wantDebug) {
+                    print("Start Azimuth: " + translateXZTool.startingAzimuth + ", Azimuth: " + azimuth);
+            }
             if ((translateXZTool.startingAzimuth > 0.0 && azimuth < MIN_AZIMUTH) || 
-                (translateXZTool.startingAzimuth < 0.0 && azimuth > MIN_AZIMUTH)) {
+                (translateXZTool.startingAzimuth < 0.0 && azimuth > -MIN_AZIMUTH)) {
                 if (wantDebug) {
-                    print("Azimuth = " + azimuth);
+                    print("too close to horizon!");
                 }
                 return;
             }

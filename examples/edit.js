@@ -728,9 +728,10 @@ function rayPlaneIntersection2(pickRay, point, normal) {
     //  This version of the test returns false if the ray is directed away from the plane
     //
     var collides = Vec3.dot(pickRay.direction, normal);
-    if (collides > 0.0) return false;
-
     var d = -Vec3.dot(point, normal);
+    if (((collides > 0.0) && (d > 0.0)) || ((collides < 0.0) && (d < 0.0))) {
+        return false;
+    }
     var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
 
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
