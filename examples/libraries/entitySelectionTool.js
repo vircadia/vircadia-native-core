@@ -2261,6 +2261,10 @@ SelectionDisplay = (function() {
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
         pickPlanePosition: { x: 0, y: 0, z: 0 },
+        greatestDimension: 0.0,
+        startingDistance: 0.0,
+        startingAzimuth: 0.0,
+        lastVector: { x: 0, y: 0, z: 0 },
         onBegin: function(event) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
@@ -2304,16 +2308,55 @@ SelectionDisplay = (function() {
                 visible: false
             });
         },
+        azimuth: function(origin, intersection) {
+            return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
+        },
         onMove: function(event) {
+            var wantDebug = false;
             pickRay = Camera.computePickRay(event.x, event.y);
 
-            var pick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
+            var pick = rayPlaneIntersection2(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
             });
 
+            // If the pick ray doesn't hit the pick plane in this direction, do nothing.
+            // this will happen when someone drags across the horizon from the side they started on.
+            if (!pick) {
+                if (wantDebug) {
+                    print("Pick ray does not intersect XZ plane.");
+                }
+                return;
+            }
+
             var vector = Vec3.subtract(pick, initialXZPick);
+
+            // If the mouse is too close to the horizon of the pick plane, stop moving
+            var MIN_AZIMUTH = 0.02;   //  Radians 
+            var azimuth = translateXZTool.azimuth(pickRay.origin, pick);
+            if ((translateXZTool.startingAzimuth > 0.0 && azimuth < MIN_AZIMUTH) || 
+                (translateXZTool.startingAzimuth < 0.0 && azimuth > MIN_AZIMUTH)) {
+                //vector = translateXZTool.lastVector;
+                if (wantDebug) {
+                    print("Azimuth = " + azimuth);
+                }
+                return;
+            }
+
+            //  If the angular size of the object is too small, stop moving
+            var MIN_ANGULAR_SIZE = 0.01;   //  Radians
+            if (translateXZTool.greatestDimension > 0) {
+                var angularSize = Math.atan(translateXZTool.greatestDimension / Vec3.distance(pickRay.origin, pick));
+                if (wantDebug) {
+                    print("Angular size = " + angularSize);
+                }
+                if (angularSize < MIN_ANGULAR_SIZE) {
+                    return;
+                }
+            }
+
+            translateXZTool.lastVector = vector; 
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
@@ -2376,7 +2419,7 @@ SelectionDisplay = (function() {
                 grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
                 cornerPosition);
 
-            var wantDebug = false;
+
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var properties = SelectionManager.savedProperties[SelectionManager.selections[i]];
@@ -3754,7 +3797,7 @@ SelectionDisplay = (function() {
     };
 
     that.mousePressEvent = function(event) {
-
+         
         if (!event.isLeftButton) {
             // if another mouse button than left is pressed ignore it
             return false;
@@ -4097,6 +4140,13 @@ SelectionDisplay = (function() {
                     case selectionBox:
                         activeTool = translateXZTool;
                         translateXZTool.pickPlanePosition = result.intersection;
+                        translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), 
+                            SelectionManager.worldDimensions.z);
+                        print("longest dimension" + translateXZTool.greatestDimension);
+                        translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
+                        print("starting distance" + translateXZTool.startingDistance);
+                        translateXZTool.startingAzimuth = translateXZTool.azimuth(pickRay.origin, translateXZTool.pickPlanePosition);
+                        print("starting azimuth" + translateXZTool.startingAzimuth);
                         mode = translateXZTool.mode;
                         activeTool.onBegin(event);
                         somethingClicked = true;
