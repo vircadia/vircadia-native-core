@@ -1,5 +1,5 @@
 //
-//  waterSpoutEntityScript.js
+//  waterCanEntityScript.js
 //  examples/homeContent/plant
 //
 //  Created by Eric Levin on 2/15/16.
