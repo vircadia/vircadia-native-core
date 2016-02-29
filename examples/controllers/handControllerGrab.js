@@ -1,3 +1,4 @@
+"use strict";
 //  handControllerGrab.js
 //
 //  Created by Eric Levin on  9/2/15
@@ -801,6 +802,8 @@ function MyController(hand) {
         this.isInitialGrab = false;
         this.doubleParentGrab = false;
 
+        this.checkForStrayChildren();
+
         if (this.state == STATE_SEARCHING ? this.triggerSmoothedReleased() : this.bumperReleased()) {
             this.setState(STATE_RELEASE);
             return;
@@ -1444,6 +1447,13 @@ function MyController(hand) {
         this.heartBeat(this.grabbedEntity);
 
         var props = Entities.getEntityProperties(this.grabbedEntity, ["localPosition", "parentID", "position"]);
+        if (!props.position) {
+            // server may have reset, taking our equipped entity with it.  move back to "off" stte
+            this.setState(STATE_RELEASE);
+            this.callEntityMethodOnGrabbed("releaseGrab");
+            return;
+        }
+
         if (props.parentID == MyAvatar.sessionUUID &&
             Vec3.length(props.localPosition) > NEAR_PICK_MAX_DISTANCE * 2.0) {
             // for whatever reason, the held/equipped entity has been pulled away.  ungrab or unequip.
@@ -1750,6 +1760,17 @@ function MyController(hand) {
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
         return data;
     };
+
+    this.checkForStrayChildren = function() {
+        // sometimes things can get parented to a hand and this script is unaware.  Search for such entities and
+        // unhook them.
+        var handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+        var children = Entities.getChildrenIDsOfJoint(MyAvatar.sessionUUID, handJointIndex);
+        children.forEach(function(childID) {
+            print("disconnecting stray child of hand: (" + _this.hand + ") " + childID);
+            Entities.editEntity(childID, {parentID: NULL_UUID});
+        });
+    }
 
     this.deactivateEntity = function(entityID, noVelocity) {
         var data = getEntityCustomData(GRAB_USER_DATA_KEY, entityID, {});
