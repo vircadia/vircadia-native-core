@@ -519,7 +519,13 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, i
         success = false;
         // someone created a loop.  break it...
         qDebug() << "Parenting loop detected.";
-        getThisPointer()->setParentID(QUuid());
+        SpatiallyNestablePointer _this = getThisPointer();
+        _this->setParentID(QUuid());
+        bool setPositionSuccess;
+        AACube aaCube = getQueryAACube(setPositionSuccess);
+        if (setPositionSuccess) {
+            _this->setPosition(aaCube.calcCenter());
+        }
         return jointInWorldFrame;
     }
 
