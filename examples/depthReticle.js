@@ -22,11 +22,18 @@ var NON_LINEAR_DIVISOR = 2;
 var MINIMUM_SEEK_DISTANCE = 0.01;
 
 var lastMouseMove = Date.now();
+var lastMouseX = Reticle.position.x;
+var lastMouseY = Reticle.position.y;
 var HIDE_STATIC_MOUSE_AFTER = 3000; // 3 seconds
 var shouldSeekToLookAt = false;
+var fastMouseMoves = 0;
+var averageMouseVelocity = 0;
+var WEIGHTING = 1/20; // simple moving average over last 20 samples
+var ONE_MINUS_WEIGHTING = 1 - WEIGHTING;
+var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 50;
 
 Controller.mouseMoveEvent.connect(function(mouseEvent) {
-    lastMouseMove = Date.now();
+    var now = Date.now();
 
     // if the reticle is hidden, show it...
     if (!Reticle.visible) {
@@ -34,12 +41,30 @@ Controller.mouseMoveEvent.connect(function(mouseEvent) {
         if (HMD.active) {
             shouldSeekToLookAt = true;
         }
+    } else {
+        // even if the reticle is visible, if we're in HMD mode, and the person is moving their mouse quickly (shaking it)
+        // then they are probably looking for it, and we should move into seekToLookAt mode
+        if (HMD.active && !shouldSeekToLookAt) {
+            var dx = Reticle.position.x - lastMouseX;
+            var dy = Reticle.position.y - lastMouseY;
+            var dt = Math.max(1, (now - lastMouseMove)); // mSecs since last mouse move
+            var mouseMoveDistance = Math.sqrt((dx*dx) + (dy*dy));
+            var mouseVelocity = mouseMoveDistance / dt;
+            averageMouseVelocity = (ONE_MINUS_WEIGHTING * averageMouseVelocity) + (WEIGHTING * mouseVelocity);
+            if (averageMouseVelocity > AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO) {
+                shouldSeekToLookAt = true;
+            }
+        }
     }
+    lastMouseMove = now;
+    lastMouseX = mouseEvent.x;
+    lastMouseY = mouseEvent.y;
 });
 
 function seekToLookAt() {
     // if we're currently seeking the lookAt move the mouse toward the lookat
     if (shouldSeekToLookAt) {
+        averageMouseVelocity = 0; // reset this, these never count for movement...
         var lookAt2D = HMD.getHUDLookAtPosition2D();
         var currentReticlePosition = Reticle.position;
         var distanceBetweenX = lookAt2D.x - Reticle.position.x;
@@ -57,16 +82,17 @@ function seekToLookAt() {
             newPosition.y = lookAt2D.y;
             closeEnoughY = true;
         }
+        Reticle.position = newPosition;
         if (closeEnoughX && closeEnoughY) {
             shouldSeekToLookAt = false;
         }
-        Reticle.position = newPosition;
     }
 }
 
 function autoHideReticle() {
-    // if we haven't moved in a long period of time, hide the reticle
-    if (Reticle.visible) {
+    // if we haven't moved in a long period of time, and we're not pointing at some
+    // system overlay (like a window), then hide the reticle
+    if (Reticle.visible && !Reticle.pointingAtSystemOverlay) {
         var now = Date.now();
         var timeSinceLastMouseMove = now - lastMouseMove;
         if (timeSinceLastMouseMove > HIDE_STATIC_MOUSE_AFTER) {
