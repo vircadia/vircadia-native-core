@@ -38,6 +38,8 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
+        case PacketType::DomainList:
+            return 18;
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
