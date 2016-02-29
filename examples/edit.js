@@ -729,12 +729,12 @@ function rayPlaneIntersection2(pickRay, point, normal) {
     //
     var collides = Vec3.dot(pickRay.direction, normal);
     var d = -Vec3.dot(point, normal);
-    if (((collides > 0.0) && (d > 0.0)) || ((collides < 0.0) && (d < 0.0))) {
-        return false;
-    }
     var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
-
-    return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+    if (t < 0.0) {
+        return false;
+    } else {
+        return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+    }
 }
 
 function findClickedEntity(event) {
