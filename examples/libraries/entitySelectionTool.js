@@ -2332,7 +2332,7 @@ SelectionDisplay = (function() {
             var vector = Vec3.subtract(pick, initialXZPick);
 
             // If the mouse is too close to the horizon of the pick plane, stop moving
-            var MIN_AZIMUTH = 0.02;   //  Radians 
+            var MIN_AZIMUTH = 0.02;   //  largest dimension of object divided by distance to it
             var azimuth = translateXZTool.azimuth(pickRay.origin, pick);
             if (wantDebug) {
                     print("Start Azimuth: " + translateXZTool.startingAzimuth + ", Azimuth: " + azimuth);
