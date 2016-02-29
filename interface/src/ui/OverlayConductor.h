@@ -29,8 +29,8 @@ private:
         STANDING
     };
 
-    Mode _mode = FLAT;
-    bool _enabled = true;
+    Mode _mode { FLAT };
+    bool _enabled { false };
 };
 
 #endif

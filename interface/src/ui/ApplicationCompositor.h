@@ -131,7 +131,7 @@ private:
     float _textureAspectRatio { 1.0f };
     int _hemiVerticesID { GeometryCache::UNKNOWN_ID };
 
-    float _alpha { 1.0f };
+    float _alpha { 0.0f }; // hidden by default
     float _prevAlpha { 1.0f };
     float _fadeInAlpha { true };
     float _oculusUIRadius { 1.0f };

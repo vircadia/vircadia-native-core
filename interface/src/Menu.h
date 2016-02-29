@@ -247,6 +247,7 @@ namespace MenuOption {
     const QString OnePointCalibration = "1 Point Calibration";
     const QString OnlyDisplayTopTen = "Only Display Top Ten";
     const QString OutputMenu = "Display";
+    const QString Overlays = "Overlays";
     const QString PackageModel = "Package Model...";
     const QString Pair = "Pair";
     const QString PhysicsShowHulls = "Draw Collision Hulls";

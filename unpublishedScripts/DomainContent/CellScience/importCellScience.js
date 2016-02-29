@@ -5,7 +5,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1035;
+var version = 1112;
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
@@ -103,9 +103,9 @@ var scenes = [{
     instances: [{
         model: "Cell",
         dimensions: {
-            x: 550,
-            y: 620,
-            z: 550
+            x: 500,
+            y: 570,
+            z: 500
         },
         offset: {
             x: 0,
@@ -151,294 +151,253 @@ var scenes = [{
         skybox: "cosmos_skybox_blurred"
     },
     instances: [{
-            model: "translation",
-            dimensions: {
-                x: 10,
-                y: 16,
-                z: 10
-            },
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 300,
-            number: 7,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                },
-                target: locations.ribosome[1],
-                location: locations.ribosome[0],
-                baseURL: baseLocation
-            }),
-            script: "zoom.js?" + version,
-            visible: true
-        }, {
-            model: "vesicle",
-            dimensions: {
-                x: 60,
-                y: 60,
-                z: 60
-            },
-            randomSize: 10,
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 1000,
-            number: 22,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "moveRandomly.js?" + version,
-            visible: true
-        }, { //golgi vesicles
-            model: "vesicle",
-            dimensions: {
-                x: 10,
-                y: 10,
-                z: 10
-            },
-            randomSize: 10,
-            offset: {
-                x: -319,
-                y: 66,
-                z: 976
-            },
-            radius: 140,
-            number: 10,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "",
-            visible: true
-        }, { //golgi vesicles
-            model: "vesicle",
-            dimensions: {
-                x: 15,
-                y: 15,
-                z: 15
-            },
-            randomSize: 10,
-            offset: {
-                x: -319,
-                y: 66,
-                z: 976
-            },
-            radius: 115,
-            number: 7,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "moveRandomly.js?" + version,
-            visible: true
-        }, {
-            model: "vesicle",
-            dimensions: {
-                x: 50,
-                y: 50,
-                z: 50
-            },
-            randomSize: 10,
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 600,
-            number: 15,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "",
-            visible: true
-        }, { //outer vesicles
-            model: "vesicle",
-            dimensions: {
-                x: 60,
-                y: 60,
-                z: 60
-            },
-            randomSize: 10,
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 1600,
-            number: 22,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "",
-            visible: true
-        }, { //outer vesicles
-            model: "vesicle",
-            dimensions: {
-                x: 40,
-                y: 40,
-                z: 40
-            },
-            randomSize: 10,
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 1400,
-            number: 22,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "moveRandomly.js?" + version,
-            visible: true
-        }, { //outer vesicles
-            model: "vesicle",
-            dimensions: {
-                x: 80,
-                y: 80,
-                z: 80
-            },
-            randomSize: 10,
-            offset: {
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            radius: 1800,
-            number: 22,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                }
-            }),
-            script: "moveRandomly.js?" + version,
-            visible: true
+        model: "translation",
+        dimensions: {
+            x: 10,
+            y: 16,
+            z: 10
         },
-        //          {//wigglies
-        //              model:"wiggly",
-        //              dimensions:{x:320,y:40,z:160},
-        //              randomSize: 10,
-        //              offset:{x:0,y:0,z:0},
-        //              radius:1800,
-        //              number:50,
-        //              userData:"",
-        //              script:"moveRandomly",
-        //              visible:true
-        //          },
-        ////            {//wigglies
-        //              model:"wiggly",
-        //              dimensions:{x:640,y:80,z:320},
-        //              randomSize: 10,
-        //              offset:{x:0,y:0,z:0},
-        //              radius:2100,
-        //              number:50,
-        //              userData:"",
-        //              script:"moveRandomly",
-        //              visible:true
-        //          },
-        {
-            model: "hexokinase",
-            dimensions: {
-                x: 3,
-                y: 4,
-                z: 3
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 300,
+        number: 7,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
             },
-            randomSize: 10,
-            offset: {
-                x: 236,
-                y: 8,
-                z: 771
+            target: locations.ribosome[1],
+            location: locations.ribosome[0],
+            baseURL: baseLocation
+        }),
+        script: "zoom.js?" + version,
+        visible: true
+    }, {
+        model: "vesicle",
+        dimensions: {
+            x: 60,
+            y: 60,
+            z: 60
+        },
+        randomSize: 10,
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1000,
+        number: 22,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        visible: true
+    }, { //golgi vesicles
+        model: "vesicle",
+        dimensions: {
+            x: 10,
+            y: 10,
+            z: 10
+        },
+        randomSize: 10,
+        offset: {
+            x: -319,
+            y: 66,
+            z: 976
+        },
+        radius: 140,
+        number: 10,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        script: "",
+        visible: true
+    }, { //golgi vesicles
+        model: "vesicle",
+        dimensions: {
+            x: 15,
+            y: 15,
+            z: 15
+        },
+        randomSize: 10,
+        offset: {
+            x: -319,
+            y: 66,
+            z: 976
+        },
+        radius: 115,
+        number: 7,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        visible: true
+    }, {
+        model: "vesicle",
+        dimensions: {
+            x: 50,
+            y: 50,
+            z: 50
+        },
+        randomSize: 10,
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 600,
+        number: 15,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        script: "",
+        visible: true
+    }, { //outer vesicles
+        model: "vesicle",
+        dimensions: {
+            x: 60,
+            y: 60,
+            z: 60
+        },
+        randomSize: 10,
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1600,
+        number: 22,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        script: "",
+        visible: true
+    }, { //outer vesicles
+        model: "vesicle",
+        dimensions: {
+            x: 40,
+            y: 40,
+            z: 40
+        },
+        randomSize: 10,
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1400,
+        number: 22,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        visible: true
+    }, { //outer vesicles
+        model: "vesicle",
+        dimensions: {
+            x: 80,
+            y: 80,
+            z: 80
+        },
+        randomSize: 10,
+        offset: {
+            x: 0,
+            y: 0,
+            z: 0
+        },
+        radius: 1800,
+        number: 22,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
+            }
+        }),
+        visible: true
+    }, {
+        model: "hexokinase",
+        dimensions: {
+            x: 3,
+            y: 4,
+            z: 3
+        },
+        randomSize: 10,
+        offset: {
+            x: 236,
+            y: 8,
+            z: 771
+        },
+        radius: 80,
+        number: 7,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
             },
-            radius: 80,
-            number: 7,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                },
-                target: locations.hexokinase[1],
-                location: locations.hexokinase[0],
-                baseURL: baseLocation
-            }),
-            script: "zoom.js?" + version,
-            visible: true
-        }, {
-            model: "pfructo_kinase",
-            dimensions: {
-                x: 3,
-                y: 4,
-                z: 3
+            target: locations.hexokinase[1],
+            location: locations.hexokinase[0],
+            baseURL: baseLocation
+        }),
+        script: "zoom.js?" + version,
+        visible: true
+    }, {
+        model: "pfructo_kinase",
+        dimensions: {
+            x: 3,
+            y: 4,
+            z: 3
+        },
+        randomSize: 10,
+        offset: {
+            x: 236,
+            y: 8,
+            z: 771
+        },
+        radius: 60,
+        number: 7,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
             },
-            randomSize: 10,
-            offset: {
-                x: 236,
-                y: 8,
-                z: 771
+            target: locations.hexokinase[1],
+            location: locations.hexokinase[0],
+        }),
+        script: "zoom.js?" + version,
+        visible: true
+    }, {
+        model: "glucose_isomerase",
+        dimensions: {
+            x: 3,
+            y: 4,
+            z: 3
+        },
+        randomSize: 10,
+        offset: {
+            x: 236,
+            y: 8,
+            z: 771
+        },
+        radius: 70,
+        number: 7,
+        userData: JSON.stringify({
+            grabbableKey: {
+                grabbable: false
             },
-            radius: 60,
-            number: 7,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                },
-                target: locations.hexokinase[1],
-                location: locations.hexokinase[0],
-            }),
-            script: "zoom.js?" + version,
-            visible: true
-        }, {
-            model: "glucose_isomerase",
-            dimensions: {
-                x: 3,
-                y: 4,
-                z: 3
-            },
-            randomSize: 10,
-            offset: {
-                x: 236,
-                y: 8,
-                z: 771
-            },
-            radius: 70,
-            number: 7,
-            userData: JSON.stringify({
-                grabbableKey: {
-                    grabbable: false
-                },
-                target: locations.hexokinase[1],
-                location: locations.hexokinase[0],
-            }),
-            script: "zoom.js?" + version,
-            visible: true
-        }
-        //          {
-        //              model:"NPC",
-        //              dimensions:{x:20,y:20,z:20},
-        //              randomSize: 10,
-        //              offset:{x:208.593693,y:6.113100222,z:153.3202277},
-        //              radius:520,
-        //              number:25,
-        //              userData: "",
-        //              script:"",
-        //              visible:true
-        //          }
-
-
-    ],
+            target: locations.hexokinase[1],
+            location: locations.hexokinase[0],
+        }),
+        script: "zoom.js?" + version,
+        visible: true
+    }],
     boundary: {
         radius: locations.cellLayout[2],
         center: locations.cellLayout[0],
@@ -600,7 +559,7 @@ function ImportScene(scene) {
 
     CreateZone(scene);
     CreateInstances(scene);
-    CreateBoundary(scene);
+    // CreateBoundary(scene);
 
     // print("done " + scene.name);
 
@@ -609,12 +568,10 @@ function ImportScene(scene) {
 clearAllNav();
 
 function clearAllNav() {
-    // print('NAV CLEARING ALL NAV');
     var result = Entities.findEntities(MyAvatar.position, 25000);
     result.forEach(function(r) {
         var properties = Entities.getEntityProperties(r, "name");
         if (properties.name.indexOf('navigation button') > -1) {
-            // print('NAV DELETING NAV BUTTON AT START:: '+r)
             Entities.deleteEntity(r);
         }
     })
@@ -645,9 +602,6 @@ function createLayoutLights() {
 }
 
 function CreateNavigationButton(scene, number) {
-    // print('NAV NAVIGATION CREATING NAV!!' +scene.name + " " + number)
-
-
     Entities.addEntity({
         type: "Box",
         name: scene.name + " navigation button",
@@ -818,7 +772,7 @@ function CreateInstances(scene) {
                     x: 0,
                     y: 0,
                     z: 0
-                }, idBounds, 150);
+                }, idBounds, 150, scene.instances[i]);
 
             }
             //print('SCRIPT AT CREATE ENTITY: ' + script)
@@ -831,6 +785,7 @@ function CreateInstances(scene) {
 
 function CreateIdentification(name, position, rotation, dimensions, showDistance) {
     //print ("creating ID for " + name);
+
     Entities.addEntity({
         type: "Sphere",
         name: "ID for " + name,
@@ -9046,3 +9001,8 @@ createLayoutLights();
 Script.scriptEnding.connect(function() {
     Entities.addingEntity.disconnect(makeUngrabbable);
 });
+
+Script.setTimeout(function() {
+    print('JBP stopping cell science import');
+    Script.stop();
+}, 30000)

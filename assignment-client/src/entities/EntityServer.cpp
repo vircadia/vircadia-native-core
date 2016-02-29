@@ -277,14 +277,17 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
 // set of stats to have, but we'd probably want a different data structure if we keep it very long.
 // Since this version uses a single shared QMap for all senders, there could be some lock contention 
 // on this QWriteLocker
-void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) {
+void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) {
     QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats[viewerNode][dataID] = { usecTimestampNow(), dataLastEdited };
+    _viewerSendingStats[sessionID][dataID] = { usecTimestampNow(), dataLastEdited };
 }
 
-void EntityServer::trackViewerGone(const QUuid& viewerNode) {
+void EntityServer::trackViewerGone(const QUuid& sessionID) {
     QWriteLocker locker(&_viewerSendingStatsLock);
-    _viewerSendingStats.remove(viewerNode);
+    _viewerSendingStats.remove(sessionID);
+    if (_entitySimulation) {
+        _entitySimulation->clearOwnership(sessionID);
+    }
 }
 
 QString EntityServer::serverSubclassStats() {
