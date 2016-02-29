@@ -2,31 +2,36 @@
 
     Script.include('../../../../examples/libraries/virtualBaton.js?' + Math.random());
     Script.include('../../../../examples/libraries/utils.js?' + Math.random());
+
+    //only one person should simulate the tank at a time -- we pass around a virtual baton
     var baton;
     var iOwn = false;
     var _entityID;
     var _this;
     var connected = false;
 
+    var TANK_SEARCH_RADIUS = 5;
+
     function FishTank() {
         _this = this;
     }
 
     function startUpdate() {
-        print('START UPDATE!!')
+        //when the baton is claimed;
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
-
     }
 
     function stopUpdateAndReclaim() {
+        //when the baton is released;
         print('i released the object ' + _entityID)
         iOwn = false;
         if (connected === true) {
             connected = false;
             Script.update.disconnect(_this.update);
         }
+        //hook up callbacks to the baton
         baton.claim(startUpdate, stopUpdateAndReclaim);
 
     }
@@ -35,16 +40,43 @@
         fish: null,
         tankLocked: false,
 
+        combinedEntitySearch: function() {
+            var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
+            var attractorList = [];
+            var fishList = [];
+            results.forEach(function(entity) {
+                var properties = Entities.getEntityProperties(entity, 'name');
+                if (properties.name.indexOf('hifi-fishtank-attractor' + _this.entityID) > -1) {
+                    attractorList.push(entity);
+                }
+                if (properties.name.indexOf('hifi-fishtank-fish' + _this.entityID) > -1) {
+                    fishList.push(entity);
+                }
+            });
+
+        },
+
+        findAttractors: function() {
+            var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
+            var attractorList = [];
+
+            results.forEach(function(attractor) {
+                var properties = Entities.getEntityProperties(attractor, 'name');
+                if (properties.name.indexOf('hifi-fishtank-attractor' + _this.entityID) > -1) {
+                    fishList.push(attractor);
+                }
+            })
+        },
+
         findFishInTank: function() {
+            //  print('looking for a fish in the tank')
+            var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
+            var fishList = [];
 
-            //     print('looking for a fish.  in the tank')
-            var res = Entities.findEntities(_this.currentProperties.position, 8);
-            var fish = [];
-
-            res.forEach(function(f) {
-                var props = Entities.getEntityProperties(f, 'name');
-                if (props.name.indexOf('hifi-fishtank-fish' + _this.entityID) > -1) {
-                    fish.push(f);
+            results.forEach(function(fish) {
+                var properties = Entities.getEntityProperties(fish, 'name');
+                if (properties.name.indexOf('hifi-fishtank-fish' + _this.entityID) > -1) {
+                    fishList.push(fish);
                 }
             })
 
@@ -147,23 +179,15 @@
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 1.5;
 
+    var THROTTLE = false;
+    var THROTTLE_RATE = 100;
+    var sinceLastUpdate = 0;
+
     var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-1.fbx";
 
     var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-2.fbx";
 
     var fishLoaded = false;
-
-    var lowerCorner = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
-
-    var upperCorner = {
-        x: 0,
-        y: 0,
-        z: 0
-    };
 
     function randomVector(scale) {
         return {
@@ -174,12 +198,24 @@
     }
 
     function updateFish(deltaTime) {
+
         if (_this.tankLocked === true) {
             return;
         }
         if (!Entities.serversExist() || !Entities.canRez()) {
             return;
         }
+
+
+        if (THROTTLE === true) {
+            sinceLastUpdate = sinceLastUpdate + deltaTime * 100;
+            if (sinceLastUpdate > THROTTLE_RATE) {
+                sinceLastUpdate = 0;
+            } else {
+                return;
+            }
+        }
+
 
         // print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
 
@@ -305,6 +341,10 @@
                     // Cohesion: Steer towards center of flock
                     var towardCenter = Vec3.subtract(averagePosition, position);
                     velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardCenter), Vec3.length(velocity)), COHESION_FORCE);
+
+                    //attractors
+                    //[position, radius, force]
+
                 }
 
                 //  Try to swim at a constant speed
