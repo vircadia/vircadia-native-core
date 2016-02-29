@@ -12,17 +12,23 @@
 
 var APPARENT_2D_OVERLAY_DEPTH = 1.0;
 var APPARENT_MAXIMUM_DEPTH = 100.0; // this is a depth at which things all seem sufficiently distant
-var lastDepthCheckTime = 0;
+var lastDepthCheckTime = Date.now();
+var desiredDepth = APPARENT_2D_OVERLAY_DEPTH;
+var TIME_BETWEEN_DEPTH_CHECKS = 100;
+var MINIMUM_DEPTH_ADJUST = 0.01;
+var NON_LINEAR_DIVISOR = 2;
 
 Script.update.connect(function(deltaTime) {
-    var TIME_BETWEEN_DEPTH_CHECKS = 100;
-    var timeSinceLastDepthCheck = Date.now() - lastDepthCheckTime;
+    var now = Date.now();
+    var timeSinceLastDepthCheck = now - lastDepthCheckTime;
     if (timeSinceLastDepthCheck > TIME_BETWEEN_DEPTH_CHECKS) {
+        var newDesiredDepth = desiredDepth;
+        lastDepthCheckTime = now;
         var reticlePosition = Reticle.position;
 
         // first check the 2D Overlays
         if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(reticlePosition)) {
-            Reticle.setDepth(APPARENT_2D_OVERLAY_DEPTH);
+            newDesiredDepth = APPARENT_2D_OVERLAY_DEPTH;
         } else {
             var pickRay = Camera.computePickRay(reticlePosition.x, reticlePosition.y);
 
@@ -37,11 +43,30 @@ Script.update.connect(function(deltaTime) {
             // If either the overlays or entities intersect, then set the reticle depth to 
             // the distance of intersection
             if (result.intersects) {
-                Reticle.setDepth(result.distance);
+                newDesiredDepth = result.distance;
             } else {
                 // if nothing intersects... set the depth to some sufficiently large depth
-                Reticle.setDepth(APPARENT_MAXIMUM_DEPTH);
+                newDesiredDepth = APPARENT_MAXIMUM_DEPTH;
             }
         }
+
+        // If the desired depth has changed, reset our fade start time
+        if (desiredDepth != newDesiredDepth) {
+            desiredDepth = newDesiredDepth;
+        }
+    }
+
+    // move the reticle toward the desired depth
+    if (desiredDepth != Reticle.depth) {
+
+        // cut distance between desiredDepth and current depth in half until we're close enough
+        var distanceToAdjustThisCycle = (desiredDepth - Reticle.depth) / NON_LINEAR_DIVISOR;
+        if (Math.abs(distanceToAdjustThisCycle) < MINIMUM_DEPTH_ADJUST) {
+            newDepth = desiredDepth;
+        } else {
+            newDepth = Reticle.depth + distanceToAdjustThisCycle;
+        }
+
+        Reticle.setDepth(newDepth);
     }
 });
