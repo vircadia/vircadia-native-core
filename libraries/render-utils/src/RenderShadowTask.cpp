@@ -146,7 +146,7 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     }
 
     // Cache old render args
-    ViewFrustum* viewFrustum = args->_viewFrustum;
+    const ViewFrustum* viewFrustum = args->_viewFrustum;
     RenderArgs::RenderMode mode = args->_renderMode;
 
     auto nearClip = viewFrustum->getNearClip();

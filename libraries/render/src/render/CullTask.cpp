@@ -26,7 +26,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     assert(renderContext->args->_viewFrustum);
 
     RenderArgs* args = renderContext->args;
-    ViewFrustum* frustum = args->_viewFrustum;
+    const ViewFrustum* frustum = args->_viewFrustum;
 
     details._considered += (int)inItems.size();
 

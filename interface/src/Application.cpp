@@ -1512,6 +1512,7 @@ void Application::paintGL() {
     auto lodManager = DependencyManager::get<LODManager>();
 
 
+    _viewFrustum.calculate();
     RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
@@ -3872,16 +3873,6 @@ MyAvatar* Application::getMyAvatar() const {
 
 glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
-}
-
-ViewFrustum* Application::getViewFrustum() {
-#ifdef DEBUG
-    if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
-    }
-#endif
-    return &_viewFrustum;
 }
 
 const ViewFrustum* Application::getViewFrustum() const {

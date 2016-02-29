@@ -630,7 +630,7 @@ void ViewFrustum::getFurthestPointFromCamera(const AACube& box, glm::vec3& furth
     }
 }
 
-const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) {
+const ViewFrustum::Corners ViewFrustum::getCorners(const float& depth) const {
     glm::vec3 normal = glm::normalize(_direction);
 
     auto getCorner = [&](enum::BoxVertex nearCorner, enum::BoxVertex farCorner) {

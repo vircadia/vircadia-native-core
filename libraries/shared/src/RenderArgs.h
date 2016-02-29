@@ -77,7 +77,7 @@ public:
 
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
                OctreeRenderer* renderer = nullptr,
-               ViewFrustum* viewFrustum = nullptr,
+               const ViewFrustum* viewFrustum = nullptr,
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -99,7 +99,7 @@ public:
     std::shared_ptr<gpu::Framebuffer> _blitFramebuffer = nullptr;
     std::shared_ptr<render::ShapePipeline> _pipeline = nullptr;
     OctreeRenderer* _renderer = nullptr;
-    ViewFrustum* _viewFrustum = nullptr;
+    const ViewFrustum* _viewFrustum = nullptr;
     glm::ivec4 _viewport{ 0.0f, 0.0f, 1.0f, 1.0f };
     glm::vec3 _boomOffset{ 0.0f, 0.0f, 1.0f };
     float _sizeScale = 1.0f;

@@ -20,7 +20,7 @@ LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum
     _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
 }
 
-void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float nearDepth, float farDepth) {
+void LightStage::Shadow::setKeylightFrustum(const ViewFrustum* viewFrustum, float nearDepth, float farDepth) {
     assert(nearDepth < farDepth);
 
     // Orient the keylight frustum
@@ -43,7 +43,6 @@ void LightStage::Shadow::setKeylightFrustum(ViewFrustum* viewFrustum, float near
     const Transform view{ _frustum->getView()};
     const Transform viewInverse{ view.getInverseMatrix() };
 
-    viewFrustum->calculate();
     auto nearCorners = viewFrustum->getCorners(nearDepth);
     auto farCorners = viewFrustum->getCorners(farDepth);
 

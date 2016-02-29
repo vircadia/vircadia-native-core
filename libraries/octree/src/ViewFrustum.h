@@ -74,7 +74,7 @@ public:
         glm::vec3 bottomRight;
     // Get the corners depth units from frustum position, along frustum orientation
     };
-    const Corners getCorners(const float& depth);
+    const Corners getCorners(const float& depth) const;
 
     // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }

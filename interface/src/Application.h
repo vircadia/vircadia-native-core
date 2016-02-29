@@ -128,7 +128,6 @@ public:
     Camera* getCamera() { return &_myCamera; }
     const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
-    ViewFrustum* getViewFrustum();
     const ViewFrustum* getViewFrustum() const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
