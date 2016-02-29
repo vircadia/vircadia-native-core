@@ -153,25 +153,6 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::qu
                 palmPosition = holdingAvatar->getLeftPalmPosition();
                 palmRotation = holdingAvatar->getLeftPalmRotation();
             }
-
-            // In this case we are simulating the grab of another avatar.
-            // Because the hand controller velocity for their palms is not transmitted over the
-            // network, we have to synthesize our own.
-
-            if (_previousSet) {
-                // smooth linear velocity over two frames
-                glm::vec3 positionalDelta = palmPosition - _previousPositionalTarget;
-                linearVelocity = (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
-                glm::quat deltaRotation = palmRotation * glm::inverse(_previousRotationalTarget);
-                float rotationAngle = glm::angle(deltaRotation);
-                if (rotationAngle > EPSILON) {
-                    angularVelocity = glm::normalize(glm::axis(deltaRotation));
-                    angularVelocity *= (rotationAngle / deltaTimeStep);
-                }
-
-                _previousPositionalDelta = positionalDelta;
-                _previousDeltaTimeStep = deltaTimeStep;
-            }
         }
 
         rotation = palmRotation * _relativeRotation;
@@ -278,6 +259,7 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
     });
 
     forceBodyNonStatic();
+    activateBody(true);
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {

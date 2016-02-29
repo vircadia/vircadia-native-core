@@ -36,8 +36,6 @@
                     return;
                 }
 
-
-
                 self.addButton();
                 self.buttonShowing = false;
                 self.showDistance = self.userData.showDistance;
@@ -50,8 +48,6 @@
                     volume: 1
                 };
                 self.sound = SoundCache.getSound(this.soundURL);
-
-
 
             }
 

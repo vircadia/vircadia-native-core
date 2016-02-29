@@ -52,10 +52,10 @@ public:
     static glm::quat localToWorld(const glm::quat& orientation, const QUuid& parentID, int parentJointIndex, bool& success);
 
     // world frame
-    virtual const Transform getTransform(bool& success) const;
+    virtual const Transform getTransform(bool& success, int depth = 0) const;
     virtual void setTransform(const Transform& transform, bool& success);
 
-    virtual Transform getParentTransform(bool& success) const;
+    virtual Transform getParentTransform(bool& success, int depth = 0) const;
 
     virtual glm::vec3 getPosition(bool& success) const;
     virtual glm::vec3 getPosition() const;
@@ -92,7 +92,7 @@ public:
     virtual void setScale(const glm::vec3& scale);
 
     // get world-frame values for a specific joint
-    virtual const Transform getTransform(int jointIndex, bool& success) const;
+    virtual const Transform getTransform(int jointIndex, bool& success, int depth = 0) const;
     virtual glm::vec3 getPosition(int jointIndex, bool& success) const;
     virtual glm::vec3 getScale(int jointIndex) const;
 
