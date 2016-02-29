@@ -202,7 +202,11 @@ void SendQueue::sendHandshake() {
     std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
-        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
+
+        handshakePacket->seek(0);
+
+        handshakePacket->writePrimitive(_initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
         
         // we wait for the ACK or the re-send interval to expire
@@ -211,14 +215,16 @@ void SendQueue::sendHandshake() {
     }
 }
 
-void SendQueue::handshakeACK() {
-    {
-        std::lock_guard<std::mutex> locker { _handshakeMutex };
-        _hasReceivedHandshakeACK = true;
+void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
+    if (initialSequenceNumber == _initialSequenceNumber) {
+        {
+            std::lock_guard<std::mutex> locker { _handshakeMutex };
+            _hasReceivedHandshakeACK = true;
+        }
+
+        // Notify on the handshake ACK condition
+        _handshakeACKCondition.notify_one();
     }
-    
-    // Notify on the handshake ACK condition
-    _handshakeACKCondition.notify_one();
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {

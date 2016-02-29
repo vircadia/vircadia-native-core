@@ -71,7 +71,7 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
-    void handshakeACK();
+    void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
     void packetSent(int dataSize, int payloadSize);
