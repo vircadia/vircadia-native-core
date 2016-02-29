@@ -731,6 +731,12 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
     if (!_hasReceivedHandshake || initialSequenceNumber != _initialReceiveSequenceNumber) {
         // server sent us a handshake - we need to assume this means state should be reset
         // as long as we haven't received a handshake yet or we have and we've received some data
+
+#ifdef UDT_CONNECTION_DEBUG
+        if (initialSequenceNumber != _initialReceiveSequenceNumber) {
+            qCDebug(networking) << "Resetting receive state, received a new initial sequence number in handshake";
+        }
+#endif
         resetReceiveState();
         _initialReceiveSequenceNumber = initialSequenceNumber;
         _lastReceivedSequenceNumber = initialSequenceNumber - 1;
