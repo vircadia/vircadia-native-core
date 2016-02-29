@@ -18,7 +18,7 @@
     WaterSpout = function() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
-        _this.POUR_ANGLE_THRESHOLD = -30;
+        _this.POUR_ANGLE_THRESHOLD = -10;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
 
@@ -38,16 +38,38 @@
                 return;
             }
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
+            _this.updateRayLine();
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
             var pitch = Quat.safeEulerAngles(rotation).x;
-            if (pitch < _this.POUR_ANGLE_THRESHOLD && !_this.waterPouring) {
-                Entities.editEntity(_this.waterEffect, {isEmitting: true});
-                _this.waterPouring = true;
-            } else if ( pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
-                Entities.editEntity(_this.waterEffect, {isEmitting: false});
+            if (pitch < _this.POUR_ANGLE_THRESHOLD) {
+                if (!_this.waterPouring) {
+                    Entities.editEntity(_this.waterEffect, {
+                        isEmitting: true
+                    });
+                    _this.waterPouring = true;
+                }
+                _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                var waterEmitOrientation = Quat.multiply(_this.waterSpoutRotation, Quat.fromPitchYawRollDegrees(0, 180, 0));
+                Entities.editEntity(_this.waterEffect, {
+                    emitOrientation: waterEmitOrientation
+                });
+            } else if (pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
+                Entities.editEntity(_this.waterEffect, {
+                    isEmitting: false
+                });
                 _this.waterPouring = false;
             }
             // print("PITCH " + pitch);
+        },
+
+        updateRayLine: function() { 
+            var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["position, rotation"]);
+            var end = Vec3.sum(spoutProps.position, Vec3.multiply(10, Quat.getFront(spoutProps.rotation)));
+            Overlays.editOverlay(_this.rayCastLine, {
+                start: spoutProps.position,
+                end: end
+            });
+            print("EBL ray line " + JSON.stringify(_this.rayCastLine))
         },
 
 
@@ -96,7 +118,7 @@
                     y: 0.0,
                     z: 0.01
                 },
-                emitOrientation: _this.waterSpoutRotation,
+                emitOrientation: Quat.fromPitchYawRollDegrees(0, 180, 0),
                 particleRadius: 0.04,
                 radiusSpread: 0.01,
                 radiusStart: 0.03,
@@ -113,22 +135,31 @@
         preload: function(entityID) {
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-
+            _this.rayCastLine = Overlays.addOverlay("line3d", {
+                color: {
+                    red: 200,
+                    green: 10,
+                    blue: 200
+                },
+                lineWidth: 1,
+                alpha: 1,
+                visible: true,
+                ignoreRayIntersection: true
+            });
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
-            Script.setTimeout(function() {  
+            Script.setTimeout(function() {
                 var entities = Entities.findEntities(_this.position, 1);
-                entities.forEach (function(entity) {
+                entities.forEach(function(entity) {
                     var name = Entities.getEntityProperties(entity, "name").name;
                     if (name === _this.WATER_SPOUT_NAME) {
                         _this.waterSpout = entity;
-
                     }
                 });
 
                 if (_this.waterSpout) {
                     _this.waterSpoutPosition = Entities.getEntityProperties(_this.waterSpout, "position").position;
                     _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
-                  _this.createWaterEffect();
+                    _this.createWaterEffect();
                 }
 
             }, 3000);
@@ -137,6 +168,7 @@
 
 
         unload: function() {
+            Overlays.deleteOverlay(_this.rayCastLine);
             Entities.deleteEntity(_this.waterEffect);
         }
 
