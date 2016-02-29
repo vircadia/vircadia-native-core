@@ -129,7 +129,6 @@ private:
     p_high_resolution_clock::time_point _lastReceiveTime; // holds the last time we received anything from sender
     
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
-    bool _hasReceivedData { false }; // flag used for reset of connection state on second handshake
     bool _isActive { true }; // flag used for inactivity of connection
 
     SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer SendQueue on creation, identifies connection during re-connect requests

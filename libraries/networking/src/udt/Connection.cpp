@@ -412,7 +412,7 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         return false;
     }
     
-    _isReceivingData = _hasReceivedData = true;
+    _isReceivingData = true;
     
     // mark our last receive time as now (to push the potential expiry farther)
     _lastReceiveTime = p_high_resolution_clock::now();
@@ -810,7 +810,7 @@ void Connection::resetReceiveState() {
     // the _nakInterval need not be reset, that will happen on loss
     
     // clear sync variables
-    _isReceivingData = _hasReceivedData = false;
+    _isReceivingData = false;
     _connectionStart = p_high_resolution_clock::now();
     
     _acksDuringSYN = 1;
