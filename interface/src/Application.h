@@ -149,6 +149,7 @@ public:
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
     ApplicationCompositor& getApplicationCompositor() { return _compositor; }
     const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
+
     Overlays& getOverlays() { return _overlays; }
 
     bool isForeground() const { return _isForeground; }
@@ -224,6 +225,7 @@ signals:
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
+    void domainConnectionRefused(const QString& reason);
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -269,6 +271,8 @@ public slots:
 
     void cycleCamera();
     void cameraMenuChanged();
+    void toggleOverlays();
+    void setOverlaysVisible(bool visible);
 
     void reloadResourceCaches();
 
@@ -290,6 +294,9 @@ private slots:
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
+
+    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
+    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     void notifyPacketVersionMismatch();
 
@@ -469,6 +476,7 @@ private:
     typedef bool (Application::* AcceptURLMethod)(const QString &);
     static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
+    QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
@@ -504,7 +512,6 @@ private:
     int _avatarAttachmentRequest = 0;
 
     bool _settingsLoaded { false };
-    bool _pendingPaint { false };
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };

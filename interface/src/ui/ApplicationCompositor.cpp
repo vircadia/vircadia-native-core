@@ -301,7 +301,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
                 // look at borrowed from overlays
                 float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
                 float azimuth = atan2f(relativePosition.x, relativePosition.z);
-                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, 0, -1)); // this extra *quat(vec3(0,0,-1)) was required to get the quad to flip this seems like we could optimize
+                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, -PI, 0)); // this extra *quat(vec3(0,-PI,0)) was required to get the quad to flip this seems like we could optimize
 
                 Transform transform;
                 transform.setTranslation(relativePosition);
@@ -402,6 +402,22 @@ glm::vec2 ApplicationCompositor::getReticlePosition() const {
     }
     return toGlm(QCursor::pos());
 }
+
+bool ApplicationCompositor::getReticleOverDesktop() const { 
+    // if the QML/Offscreen UI thinks we're over the desktop, then we are...
+    // but... if we're outside of the overlay area, we also want to call ourselves
+    // as being over the desktop.
+    if (qApp->isHMDMode()) {
+        QMutexLocker locker(&_reticleLock);
+        glm::vec2 maxOverlayPosition = qApp->getUiSize();
+        if (_reticlePositionInHMD.x < 0 || _reticlePositionInHMD.y < 0 ||
+            _reticlePositionInHMD.x > maxOverlayPosition.x || _reticlePositionInHMD.y > maxOverlayPosition.y) {
+            return true; // we are outside the overlay area, consider ourselves over the desktop
+        }
+    }
+    return _isOverDesktop;
+}
+
 
 void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFakeEvent) {
     if (qApp->isHMDMode()) {

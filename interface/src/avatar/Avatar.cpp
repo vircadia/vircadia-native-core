@@ -136,7 +136,7 @@ glm::quat Avatar::getWorldAlignedOrientation () const {
 
 AABox Avatar::getBounds() const {
     // Our skeleton models are rigged, and this method call safely produces the static bounds of the model.
-    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed, 
+    // Except, that getPartBounds produces an infinite, uncentered bounding box when the model is not yet parsed,
     // and we want a centered one. NOTE: There is code that may never try to render, and thus never load and get the
     // real model bounds, if this is unrealistically small.
     if (!_skeletonModel.isRenderable()) {
@@ -188,15 +188,14 @@ void Avatar::simulate(float deltaTime) {
 
     // simple frustum check
     float boundingRadius = getBoundingRadius();
-    bool inViewFrustum = qApp->getViewFrustum()->sphereInFrustum(getPosition(), boundingRadius) !=
-        ViewFrustum::OUTSIDE;
+    bool inView = qApp->getViewFrustum()->sphereIntersectsFrustum(getPosition(), boundingRadius);
 
     {
         PerformanceTimer perfTimer("hand");
         getHand()->simulate(deltaTime, false);
     }
 
-    if (_shouldAnimate && !_shouldSkipRender && inViewFrustum) {
+    if (_shouldAnimate && !_shouldSkipRender && inView) {
         {
             PerformanceTimer perfTimer("skeleton");
             _skeletonModel.getRig()->copyJointsFromJointData(_jointData);
@@ -401,7 +400,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         frustum = qApp->getDisplayViewFrustum();
     }
 
-    if (frustum->sphereInFrustum(getPosition(), boundingRadius) == ViewFrustum::OUTSIDE) {
+    if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
         endRender();
         return;
     }
@@ -430,6 +429,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE) {
             // add local lights
             const float BASE_LIGHT_DISTANCE = 2.0f;
+            const float LIGHT_FALLOFF_RADIUS = 0.01f;
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
             float distance = BASE_LIGHT_DISTANCE * getUniformScale();
@@ -438,7 +438,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
             foreach (const AvatarManager::LocalLight& light, DependencyManager::get<AvatarManager>()->getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 DependencyManager::get<DeferredLightingEffect>()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, light.color, 0.5f, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
+                    distance * 2.0f, light.color, 0.5f, LIGHT_FALLOFF_RADIUS, orientation, LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
         }
 
@@ -516,7 +516,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         auto& frustum = *renderArgs->_viewFrustum;
         auto textPosition = getDisplayNamePosition();
 
-        if (frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE) {
+        if (frustum.pointIntersectsFrustum(textPosition)) {
             renderDisplayName(batch, frustum, textPosition);
         }
     }
@@ -669,10 +669,10 @@ glm::vec3 Avatar::getDisplayNamePosition() const {
     return namePosition;
 }
 
-Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const {
-    Q_ASSERT_X(frustum.pointInFrustum(textPosition, true) == ViewFrustum::INSIDE,
+Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const {
+    Q_ASSERT_X(view.pointIntersectsFrustum(textPosition),
                "Avatar::calculateDisplayNameTransform", "Text not in viewfrustum.");
-    glm::vec3 toFrustum = frustum.getPosition() - textPosition;
+    glm::vec3 toFrustum = view.getPosition() - textPosition;
 
     // Compute orientation
     // If x and z are 0, atan(x, z) adais undefined, so default to 0 degrees
@@ -694,7 +694,7 @@ Transform Avatar::calculateDisplayNameTransform(const ViewFrustum& frustum, cons
     return result;
 }
 
-void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const {
+void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const {
     PROFILE_RANGE_BATCH(batch, __FUNCTION__);
 
     bool shouldShowReceiveStats = DependencyManager::get<AvatarManager>()->shouldShowReceiveStats() && !isMyAvatar();
@@ -702,7 +702,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
     // If we have nothing to draw, or it's totally transparent, or it's too close or behind the camera, return
     static const float CLIP_DISTANCE = 0.2f;
     if ((_displayName.isEmpty() && !shouldShowReceiveStats) || _displayNameAlpha == 0.0f
-        || (glm::dot(frustum.getDirection(), getDisplayNamePosition() - frustum.getPosition()) <= CLIP_DISTANCE)) {
+        || (glm::dot(view.getDirection(), getDisplayNamePosition() - view.getPosition()) <= CLIP_DISTANCE)) {
         return;
     }
     auto renderer = textRenderer(DISPLAYNAME);
@@ -743,7 +743,7 @@ void Avatar::renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, co
                                   (_displayNameAlpha / DISPLAYNAME_ALPHA) * DISPLAYNAME_BACKGROUND_ALPHA);
 
         // Compute display name transform
-        auto textTransform = calculateDisplayNameTransform(frustum, textPosition);
+        auto textTransform = calculateDisplayNameTransform(view, textPosition);
         // Test on extent above insures abs(height) > 0.0f
         textTransform.postScale(1.0f / height);
         batch.setModelTransform(textTransform);
