@@ -411,12 +411,6 @@ bool Connection::processReceivedSequenceNumber(SequenceNumber sequenceNumber, in
         // refuse to process any packets until we've received the handshake
         return false;
     }
-
-    if (!_hasReceivedData) {
-        _initialReceiveSequenceNumber = sequenceNumber;
-        _lastReceivedSequenceNumber = sequenceNumber - 1;
-        _lastSentACK = sequenceNumber - 1;
-     }
     
     _isReceivingData = _hasReceivedData = true;
     
@@ -739,6 +733,8 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
         // as long as we haven't received a handshake yet or we have and we've received some data
         resetReceiveState();
         _initialReceiveSequenceNumber = initialSequenceNumber;
+        _lastReceivedSequenceNumber = initialSequenceNumber - 1;
+        _lastSentACK = initialSequenceNumber - 1;
     }
     
     // immediately respond with a handshake ACK
