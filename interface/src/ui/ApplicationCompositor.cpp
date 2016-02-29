@@ -301,7 +301,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
                 // look at borrowed from overlays
                 float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
                 float azimuth = atan2f(relativePosition.x, relativePosition.z);
-                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, 0, -1)); // this extra *quat(vec3(0,0,-1)) was required to get the quad to flip this seems like we could optimize
+                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, -PI, 0)); // this extra *quat(vec3(0,-PI,0)) was required to get the quad to flip this seems like we could optimize
 
                 Transform transform;
                 transform.setTranslation(relativePosition);
