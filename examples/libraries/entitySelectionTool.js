@@ -2263,7 +2263,7 @@ SelectionDisplay = (function() {
         pickPlanePosition: { x: 0, y: 0, z: 0 },
         greatestDimension: 0.0,
         startingDistance: 0.0,
-        startingAzimuth: 0.0,
+        startingElevation: 0.0,
         onBegin: function(event) {
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
@@ -2307,7 +2307,7 @@ SelectionDisplay = (function() {
                 visible: false
             });
         },
-        azimuth: function(origin, intersection) {
+        elevation: function(origin, intersection) {
             return (origin.y - intersection.y) / Vec3.distance(origin, intersection);
         },
         onMove: function(event) {
@@ -2332,13 +2332,13 @@ SelectionDisplay = (function() {
             var vector = Vec3.subtract(pick, initialXZPick);
 
             // If the mouse is too close to the horizon of the pick plane, stop moving
-            var MIN_AZIMUTH = 0.02;   //  largest dimension of object divided by distance to it
-            var azimuth = translateXZTool.azimuth(pickRay.origin, pick);
+            var MIN_ELEVATION = 0.02;   //  largest dimension of object divided by distance to it
+            var elevation = translateXZTool.elevation(pickRay.origin, pick);
             if (wantDebug) {
-                    print("Start Azimuth: " + translateXZTool.startingAzimuth + ", Azimuth: " + azimuth);
+                    print("Start Elevation: " + translateXZTool.startingElevation + ", elevation: " + elevation);
             }
-            if ((translateXZTool.startingAzimuth > 0.0 && azimuth < MIN_AZIMUTH) || 
-                (translateXZTool.startingAzimuth < 0.0 && azimuth > -MIN_AZIMUTH)) {
+            if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) || 
+                (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
                 if (wantDebug) {
                     print("too close to horizon!");
                 }
@@ -4150,8 +4150,8 @@ SelectionDisplay = (function() {
                             print("longest dimension: " + translateXZTool.greatestDimension);
                             translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
                             print("starting distance: " + translateXZTool.startingDistance);
-                            translateXZTool.startingAzimuth = translateXZTool.azimuth(pickRay.origin, translateXZTool.pickPlanePosition);
-                            print(" starting azimuth: " + translateXZTool.startingAzimuth);
+                            translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
+                            print(" starting elevation: " + translateXZTool.startingElevation);
                         }
                         
                         mode = translateXZTool.mode;
