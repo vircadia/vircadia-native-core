@@ -18,6 +18,8 @@
     WaterCan = function() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
+        _this.POUR_ANGLE_THRESHOLD = -30;
+        _this.waterPouring = false;
 
     };
 
@@ -29,6 +31,16 @@
 
         continueHolding: function() {
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
+            var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
+            var pitch = Quat.safeEulerAngles(rotation).x;
+            if (pitch < _this.POUR_ANGLE_THRESHOLD && !_this.waterPouring) {
+                Entities.editEntity(_this.waterEffect, {isEmitting: true});
+                _this.waterPouring = true;
+            } else if ( pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
+                Entities.editEntity(_this.waterEffect, {isEmitting: false});
+                _this.waterPouring = false;
+            }
+            print("PITCH " + pitch);
         },
 
 
