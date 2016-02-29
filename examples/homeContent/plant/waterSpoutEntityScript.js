@@ -1,5 +1,5 @@
 //
-//  waterCanEntityScript.js
+//  waterSpoutEntityScript.js
 //  examples/homeContent/plant
 //
 //  Created by Eric Levin on 2/15/16.
@@ -15,7 +15,7 @@
     Script.include("../../libraries/utils.js");
 
     var _this;
-    WaterCan = function() {
+    WaterSpout = function() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
         _this.POUR_ANGLE_THRESHOLD = -30;
@@ -23,7 +23,10 @@
 
     };
 
-    WaterCan.prototype = {
+    WaterSpout.prototype = {
+        continueEquip: function() {
+            _this.continueHolding();
+        },
 
         continueNearGrab: function() {
             _this.continueHolding();
@@ -115,5 +118,5 @@
     };
 
     // entity scripts always need to return a newly constructed object of our type
-    return new WaterCan();
+    return new WaterSpout();
 });

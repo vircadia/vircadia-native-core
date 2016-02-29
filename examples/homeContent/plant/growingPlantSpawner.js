@@ -44,6 +44,7 @@ var plant = Entities.addEntity({
 var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
 var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random());
 var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
+var waterCanRotation = orientation;
 var waterCan = Entities.addEntity({
   type: "Model",
   shapeType: 'box',
@@ -53,13 +54,26 @@ var waterCan = Entities.addEntity({
   position: waterCanPosition,
   angularDamping: 1,
   damping: 1,
-  dynamic: true
+  dynamic: true,
+  rotation: waterCanRotation
+});
+
+
+var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
+var waterSpout = Entities.addEntity({
+  type: "Box",
+  dimensions: {x: 0.02, y: 0.02, z: 0.07},
+  color: {red: 200, green: 10, blue: 200},
+  position: waterSpoutPosition,
+  rotation: waterCanRotation,
+  parentID: waterCan
 });
 
 function cleanup() {
   Entities.deleteEntity(plant);
   Entities.deleteEntity(bowl);
   Entities.deleteEntity(waterCan);
+  Entities.deleteEntity(waterSpout);
 }
 
 
