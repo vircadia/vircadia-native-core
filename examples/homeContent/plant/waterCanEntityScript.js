@@ -78,8 +78,10 @@
             var intersection = Entities.findRayIntersection(pickRay, true, _this.growableEntities);
 
             if (intersection.intersects) {
+                //We've intersected with a growable object, now 
                 print(intersection.properties.name)
                 print("intersection with growable object");
+                Entities.callEntityMethod(intersection.entityID, 'grow');
             }
 
         },

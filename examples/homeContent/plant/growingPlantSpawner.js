@@ -38,6 +38,7 @@ var plant = Entities.addEntity({
   name: "hifi-growable-plant",
   dimensions: plantDimensions,
   position: plantPosition,
+  script: PLANT_SCRIPT_URL,
   parentID: bowl
 });
 
