@@ -22,6 +22,19 @@ var OVERLAY_DATA = {
     alpha: 1
 };
 
+var OVERLAY_DATA_HMD = {
+    position: { x: 0, y: 0, z: 0},
+    width: OVERLAY_WIDTH,
+    height: OVERLAY_HEIGHT,
+    url: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
+    color: {red: 255, green: 255, blue: 255},
+    alpha: 1,
+    scale: 2,
+    isFacingAvatar: true,
+    drawInFront: true
+};
+
+
 // ANIMATION
 // We currently don't have play/stopAnimation integrated with the animation graph, but we can get the same effect
 // using an animation graph with a state that we turn on and off through the animation var defined with that state.
@@ -66,19 +79,17 @@ function stopAwayAnimation() {
 
 // OVERLAY
 var overlay = Overlays.addOverlay("image", OVERLAY_DATA);
+var overlayHMD = Overlays.addOverlay("image3d", OVERLAY_DATA_HMD);
 function showOverlay() {
-    var properties = {visible: true},
-        // Update for current screen size, keeping overlay proportions constant.
-        screen = Controller.getViewportDimensions(),
-        screenRatio = screen.x / screen.y;
+    var properties = {visible: true};
 
     if (HMD.active) {
-        var lookAt = HMD.getHUDLookAtPosition2D();
-        properties.width = OVERLAY_WIDTH;
-        properties.height = OVERLAY_HEIGHT;
-        properties.x = lookAt.x - OVERLAY_WIDTH / 2;
-        properties.y = lookAt.y - OVERLAY_HEIGHT / 2;
+        Overlays.editOverlay(overlayHMD, { visible: true, position : HMD.getHUDLookAtPosition3D() });
     } else {
+        // Update for current screen size, keeping overlay proportions constant.
+        var screen = Controller.getViewportDimensions(),
+        screenRatio = screen.x / screen.y;
+
         if (screenRatio < OVERLAY_RATIO) {
             properties.width = screen.x;
             properties.height = screen.x / OVERLAY_RATIO;
@@ -90,23 +101,18 @@ function showOverlay() {
             properties.y = 0;
             properties.x = (screen.x - properties.width) / 2;
         }
+        Overlays.editOverlay(overlay, properties);
     }
-    Overlays.editOverlay(overlay, properties);
 }
 function hideOverlay() {
     Overlays.editOverlay(overlay, {visible: false});
+    Overlays.editOverlay(overlayHMD, {visible: false});
 }
 hideOverlay();
 
 function maybeMoveOverlay() {
     if (HMD.active && isAway) {
-        var lookAt = HMD.getHUDLookAtPosition2D();
-        var properties = {visible: true};
-        properties.width = OVERLAY_WIDTH;
-        properties.height = OVERLAY_HEIGHT;
-        properties.x = lookAt.x - OVERLAY_WIDTH / 2;
-        properties.y = lookAt.y - OVERLAY_HEIGHT / 2;
-        Overlays.editOverlay(overlay, properties);
+        Overlays.editOverlay(overlayHMD, { position : HMD.getHUDLookAtPosition3D() });
     }
 }
 
