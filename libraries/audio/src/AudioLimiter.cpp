@@ -83,6 +83,8 @@ static const int32_t EXP2_BIAS = 64;
 // P(x) = log2(1+x) for x=[0,1]
 // scaled by 1, 0.5, 0.25
 //
+// |error| < 347 ulp, smooth
+//
 static const int LOG2_TABBITS = 4;
 static const int32_t log2Table[1 << LOG2_TABBITS][3] = {
     { -0x56dfe26d, 0x5c46daff, 0x00000000 },
@@ -106,8 +108,9 @@ static const int32_t log2Table[1 << LOG2_TABBITS][3] = {
 //
 // P(x) = exp2(x) for x=[0,1]
 // scaled by 2, 1, 0.5
-//
 // Uses exp2(-x) = exp2(1-x)/2
+//
+// |error| < 1387 ulp, smooth
 //
 static const int EXP2_TABBITS = 4;
 static const int32_t exp2Table[1 << EXP2_TABBITS][3] = {
@@ -128,68 +131,6 @@ static const int32_t exp2Table[1 << EXP2_TABBITS][3] = {
     { 0x7341edcb, 0x3dd7a354, 0x44426d7b },
     { 0x785c4499, 0x390ecc3a, 0x456188bd },
 };
-
-//
-// Count Leading Zeros
-// defined to match ARM CLZ and x86 LZCNT
-//
-static inline int CLZ(uint32_t x) {
-    int e = 0;
-
-    if (x == 0) return 32;
-
-    if (x < 0x00010000) {
-        x <<= 16; 
-        e += 16;
-    }
-    if (x < 0x01000000) {
-        x <<= 8; 
-        e += 8;
-    }
-    if (x < 0x10000000) {
-        x <<= 4; 
-        e += 4;
-    }
-    if (x < 0x40000000) {
-        x <<= 2; 
-        e += 2;
-    }
-    if (x < 0x80000000) {
-        e += 1;
-    }
-    return e;
-}
-
-//
-// Compute -log2(x) for x=[0,1] in Q31, result in Q26
-// x = 0 returns -log2(1)
-// x < 0 undefined
-//
-// |error| < 347 ulp, smooth
-//
-static inline int32_t fixlog2(int32_t x) {
-
-    // normalize to [0x80000000, 0xffffffff]
-    int e = CLZ(x);
-    x <<= e;
-    e -= e >> LOG2_INTBITS; // if e==32, e=31
-
-    // x - 1.0
-    x &= 0x7fffffff;
-
-    int k = x >> (31 - LOG2_TABBITS);
-
-    // polynomial for log2(1+x) over x=[0,1]
-    int32_t c0 = log2Table[k][0];
-    int32_t c1 = log2Table[k][1];
-    int32_t c2 = log2Table[k][2];
-
-    c1 += MULHI(c0, x);
-    c2 += MULHI(c1, x);
-
-    // reconstruct result in Q26
-    return (e << LOG2_FRACBITS) - (c2 >> 3);
-}
 
 static const int IEEE754_MANT_BITS = 23;
 static const int IEEE754_EXPN_BIAS = 127;
@@ -214,7 +155,7 @@ static inline int32_t peaklog2(float* input) {
     // saturate
     if (e > 31) return 0x7fffffff;
 
-    int k = x >> (31 - EXP2_TABBITS);
+    int k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -251,7 +192,7 @@ static inline int32_t peaklog2(float* input0, float* input1) {
     // saturate
     if (e > 31) return 0x7fffffff;
 
-    int k = x >> (31 - EXP2_TABBITS);
+    int k = x >> (31 - LOG2_TABBITS);
 
     // polynomial for log2(1+x) over x=[0,1]
     int32_t c0 = log2Table[k][0];
@@ -268,8 +209,6 @@ static inline int32_t peaklog2(float* input0, float* input1) {
 //
 // Compute exp2(-x) for x=[0,32] in Q26, result in Q31
 // x < 0 undefined
-//
-// |error| < 1387 ulp, smooth
 //
 static inline int32_t fixexp2(int32_t x) {
 
