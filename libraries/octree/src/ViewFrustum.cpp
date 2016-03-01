@@ -268,55 +268,6 @@ bool testMatches(float lhs, float rhs, float epsilon = EPSILON) {
     return (fabs(lhs - rhs) <= epsilon);
 }
 
-bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
-    bool result =
-           testMatches(compareTo._position, _position) &&
-           testMatches(compareTo._direction, _direction) &&
-           testMatches(compareTo._up, _up) &&
-           testMatches(compareTo._right, _right) &&
-           testMatches(compareTo._fieldOfView, _fieldOfView) &&
-           testMatches(compareTo._aspectRatio, _aspectRatio) &&
-           testMatches(compareTo._nearClip, _nearClip) &&
-           testMatches(compareTo._farClip, _farClip) &&
-           testMatches(compareTo._focalLength, _focalLength);
-
-    if (!result && debug) {
-        qCDebug(octree, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
-        qCDebug(octree, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
-                (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
-                (double)_position.x, (double)_position.y, (double)_position.z);
-        qCDebug(octree, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
-                (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._direction.x, (double)compareTo._direction.y, (double)compareTo._direction.z,
-                (double)_direction.x, (double)_direction.y, (double)_direction.z );
-        qCDebug(octree, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
-                (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._up.x, (double)compareTo._up.y, (double)compareTo._up.z,
-                (double)_up.x, (double)_up.y, (double)_up.z );
-        qCDebug(octree, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
-                (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._right.x, (double)compareTo._right.y, (double)compareTo._right.z,
-                (double)_right.x, (double)_right.y, (double)_right.z );
-        qCDebug(octree, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
-                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._fieldOfView, (double)_fieldOfView);
-        qCDebug(octree, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
-                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._aspectRatio, (double)_aspectRatio);
-        qCDebug(octree, "%s -- compareTo._nearClip=%f _nearClip=%f",
-                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._nearClip, (double)_nearClip);
-        qCDebug(octree, "%s -- compareTo._farClip=%f _farClip=%f",
-                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._farClip, (double)_farClip);
-        qCDebug(octree, "%s -- compareTo._focalLength=%f _focalLength=%f",
-                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
-                (double)compareTo._focalLength, (double)_focalLength);
-    }
-    return result;
-}
-
 bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
 
     //  Compute distance between the two positions

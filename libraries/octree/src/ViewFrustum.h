@@ -107,10 +107,6 @@ public:
     bool cubeIntersectsKeyhole(const AACube& cube) const;
     bool boxIntersectsKeyhole(const AABox& box) const;
 
-    // some frustum comparisons
-    bool matches(const ViewFrustum& compareTo, bool debug = false) const;
-    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
-
     bool isVerySimilar(const ViewFrustum& compareTo, bool debug = false) const;
     bool isVerySimilar(const ViewFrustum* compareTo, bool debug = false) const { return isVerySimilar(*compareTo, debug); }
 
