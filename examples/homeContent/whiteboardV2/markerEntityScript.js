@@ -131,7 +131,7 @@
                 position: position,
                 textures: _this.MARKER_TEXTURE_URL,
                 color: _this.markerColor,
-                lifetime: 500,
+                lifetime: 5000,
             });
 
             _this.linePoints = [];
