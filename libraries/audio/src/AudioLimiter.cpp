@@ -395,6 +395,7 @@ public:
     float _outGain = 0.0f;
 
     LimiterImpl(int sampleRate);
+    ~LimiterImpl() {}
 
     void setThreshold(float threshold);
     void setRelease(float release);
