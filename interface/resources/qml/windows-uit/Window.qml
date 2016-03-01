@@ -127,7 +127,7 @@ Fadable {
     // Scrollable window content.
     property var pane: Item {
         property bool isScrolling: scrollView.height < scrollView.contentItem.height
-        property int contentWidth: scrollView.width - (isScrolling ? 11 : 0)
+        property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
         property int scrollHeight: scrollView.height
 
         anchors.fill: parent
