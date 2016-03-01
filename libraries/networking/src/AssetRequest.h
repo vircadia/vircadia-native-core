@@ -39,7 +39,7 @@ public:
         UnknownError
     };
 
-    AssetRequest(const QString& hash, const QString& extension);
+    AssetRequest(const QString& url, const QString& extension);
 
     Q_INVOKABLE void start();
 
@@ -52,12 +52,15 @@ signals:
     void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
 
+private slots:
+    void getAssetCallback(bool responseReceived, AssetServerError serverError, const QByteArray& data);
+
 private:
     State _state = NotStarted;
     Error _error = NoError;
     AssetInfo _info;
     uint64_t _totalReceived { 0 };
-    QString _hash;
+    QString _url;
     QString _extension;
     QByteArray _data;
     int _numPendingRequests { 0 };

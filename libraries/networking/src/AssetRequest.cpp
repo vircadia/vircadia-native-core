@@ -20,9 +20,8 @@
 #include "NodeList.h"
 #include "ResourceCache.h"
 
-AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
-    QObject(),
-    _hash(hash),
+AssetRequest::AssetRequest(const QString& url, const QString& extension) :
+    _url(url),
     _extension(extension)
 {
 }

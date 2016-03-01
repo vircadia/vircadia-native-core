@@ -39,6 +39,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     _taskPool.setMaxThreadCount(TASK_POOL_THREAD_COUNT);
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
+    packetReceiver.registerListener(PacketType::AssetGetMapping, this, "handleAssetGetMapping");
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
@@ -159,6 +160,32 @@ void AssetServer::completeSetup() {
     }
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+}
+
+
+void AssetServer::handleAssetGetMapping(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode) {
+    MessageID messageID;
+    message->readPrimitive(&messageID);
+    QString assetPath = message->readAll();
+
+    auto replyPacket = NLPacket::create(PacketType::AssetGetMappingReply);
+
+    replyPacket->writePrimitive(messageID);
+
+    auto it = _fileMapping.find(assetPath.toStdString());
+
+    if (it != _fileMapping.end()) {
+        auto assetHash = QString::fromStdString(it.second);
+        qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
+        replyPacket->writePrimitive(AssetServerError::NoError);
+        replyPacket->write(assetHash.toHex());
+    } else {
+        qDebug() << "Mapping not found for: " << assetPath;
+        replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

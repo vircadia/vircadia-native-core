@@ -90,7 +90,9 @@ public:
         DomainServerRemovedNode,
         MessagesData,
         MessagesSubscribe,
-        MessagesUnsubscribe
+        MessagesUnsubscribe,
+        AssetGetMapping,
+        AssetGetMappingReply
     };
 };
 
