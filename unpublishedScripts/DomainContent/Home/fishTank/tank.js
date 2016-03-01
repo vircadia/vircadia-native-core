@@ -18,12 +18,6 @@
         blue: 255
     }
 
-    var NO_INTERSECT_COLOR = {
-        red: 0,
-        green: 255,
-        blue: 0
-    }
-
     function FishTank() {
         _this = this;
     }
@@ -42,6 +36,7 @@
         if (connected === true) {
             connected = false;
             Script.update.disconnect(_this.update);
+            _this.clearLookAttractor();
         }
         //hook up callbacks to the baton
         baton.claim(startUpdate, stopUpdateAndReclaim);
@@ -51,35 +46,10 @@
     FishTank.prototype = {
         fish: null,
         tankLocked: false,
-
-        combinedEntitySearch: function() {
-            var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
-            var attractorList = [];
-            var fishList = [];
-            results.forEach(function(entity) {
-                var properties = Entities.getEntityProperties(entity, 'name');
-                if (properties.name.indexOf('hifi-fishtank-attractor' + _this.entityID) > -1) {
-                    attractorList.push(entity);
-                }
-                if (properties.name.indexOf('hifi-fishtank-fish' + _this.entityID) > -1) {
-                    fishList.push(entity);
-                }
-            });
-
-        },
-
-        findAttractors: function() {
-            var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
-            var attractorList = [];
-
-            results.forEach(function(attractor) {
-                var properties = Entities.getEntityProperties(attractor, 'name');
-                if (properties.name.indexOf('hifi-fishtank-attractor' + _this.entityID) > -1) {
-                    fishList.push(attractor);
-                }
-            })
-        },
-
+        hasLookAttractor: false,
+        lookAttractor: null,
+        overlayLine: null,
+        overlayLineDistance: 3,
         findFishInTank: function() {
             //  print('looking for a fish in the tank')
             var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
@@ -146,10 +116,9 @@
             }
 
         },
-
         update: function() {
-            //print('AM I THE OWNER??' + iOwn);
             if (iOwn === false) {
+                //exit if we're not supposed to be simulating the fish
                 return
             }
             // print('i am the owner!')
@@ -158,11 +127,8 @@
             _this.seeIfOwnerIsLookingAtTheTank();
         },
 
-        overlayLine: null,
 
         overlayLineOn: function(closePoint, farPoint, color) {
-            print('closePoint:  ' + JSON.stringify(closePoint));
-            print('farPoint:  ' + JSON.stringify(farPoint));
             if (_this.overlayLine === null) {
                 var lineProperties = {
                     lineWidth: 5,
@@ -195,7 +161,7 @@
             _this.overlayLine = null;
         },
 
-        overlayLineDistance: 3,
+
 
         seeIfOwnerIsLookingAtTheTank: function() {
             var cameraPosition = Camera.getPosition();
@@ -211,10 +177,51 @@
 
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
 
-            // print('INTERSCTION::: ' + JSON.stringify(intersection));
+            if (intersection.intersects && intersection.entityID === _this.entityID) {
+                print('intersecting a tank')
+                print('intersection:: ' + JSON.stringify(intersection));
+                if (_this.hasLookAttractor === false) {
+                    _this.createLookAttractor();
+                } else if (_this.hasLookAttractor === true) {
+                    _this.updateLookAttractor();
+                }
+            } else {
+                if (_this.hasLookAttractor === true) {
+                    clearLookAttractor();
+                }
+            }
+        },
+        //look attractors could be private to the tank...
+        createLookAttractor: function(position) {
+            _this.lookAttractor = position;
+        },
+        updateLookAttractor: function(position) {
+            _this.lookAttractor = position;
+        },
+        clearLookAttractor: function() {
+            _this.hasLookAttractor = false;
+            _this.lookAttractor = null;
+        },
+        createLookAttractorEntity: function() {
+
+        },
+        findLookAttractorEntities: function() {
+
+        },
+        seeIfAnyoneIsLookingAtTheTank: function() {
+
+            // get avatars
+            // get their positions
+            // get their gazes
+            // check for intersection
+            // add attractor for closest person (?)
+
+            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
 
             if (intersection.intersects && intersection.entityID === _this.entityID) {
                 print('intersecting a tank')
+
+                print('intersection:: ' + JSON.stringify(intersection));
             }
         }
 
@@ -250,8 +257,10 @@
     var AVOIDANCE_FORCE = 0.3;
     var COHESION_FORCE = 0.025;
     var ALIGNMENT_FORCE = 0.025;
+    var LOOK_ATTRACTOR_FORCE = 0.030;
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 0.5;
+    var FISH_DAMPING = 0.25;
 
     var THROTTLE = false;
     var THROTTLE_RATE = 100;
@@ -293,7 +302,6 @@
 
         // print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
 
-
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
             _this.tankLocked = true;
@@ -334,8 +342,6 @@
             z: 0
         };
 
-        var birdPositionsCounted = 0;
-        var birdVelocitiesCounted = 0;
         var center = _this.currentProperties.position;
 
         lowerCorner = {
@@ -418,6 +424,12 @@
 
                     //attractors
                     //[position, radius, force]
+
+                    if (_this.hasLookAttractor === true) {
+                        var attractorPosition = _this.lookAttractor;
+                        var towardAttractor = Vec3.subtract(attractorPosition, position);
+                        velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardAttractor), Vec3.length(velocity)), LOOK_ATTRACTOR_FORCE);
+                    }
 
                 }
 
@@ -519,7 +531,7 @@
                     //     y: SWIMMING_SPEED,
                     //     z: SWIMMING_SPEED
                     // },
-                    damping: 0.1,
+                    damping: FISH_DAMPING,
                     dynamic: false,
                     lifetime: LIFETIME,
                     color: {

@@ -27,6 +27,12 @@ var BUBBLE_SYSTEM_FORWARD_OFFSET = 0.2;
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.2;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.2;
 
+var BUBBLE_SYSTEM_DIMENSIONS = {
+    x: TANK_DIMENSIONS.x / 8,
+    y: TANK_DIMENSIONS.y,
+    z: TANK_DIMENSIONS.z / 8
+}
+
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
@@ -109,7 +115,7 @@ function createBubbleSystem() {
     };
 
     bubbleProperties.type = "ParticleEffect";
-    bubbleProperties.collisionless = true;
+    bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
 
     var upVector = Quat.getRight(tankProperties.rotation);
     var frontVector = Quat.getRight(tankProperties.rotation);
@@ -126,13 +132,14 @@ function createBubbleSystem() {
     bubbleProperties.position = finalOffset;
 
     bubbleSystem = Entities.addEntity(bubbleProperties);
+    createBubbleSound(finalOffset);
 }
 
-function createBubbleSound() {
-    var bubbleSystemProperties = Entities.getEntityProperties(bubbleSystem);
+function createBubbleSound(position) {
     var audioProperties = {
         volume: 0.2,
-        position: position
+        position: position,
+        loop: true
     };
 
     Audio.playSound(bubbleSound, audioProperties);
@@ -145,24 +152,8 @@ function cleanup() {
 
 createFishTank();
 
-// createBubbleSystem();
+createBubbleSystem();
 
-// createBubbleSound();
-
-// createAttractors();
-
-var attractors = []
-    //@position,radius,strength
-
-
-
-function createAttractor(position, radius, strength) {
-    return {
-        position: position,
-        radius: radius,
-        strength: strength
-    };
-}
-
+createBubbleSound();
 
 Script.scriptEnding.connect(cleanup);
