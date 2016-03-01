@@ -104,6 +104,7 @@ signals:
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
     void completedSocketDiscovery();
 
+    void resetting();
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 

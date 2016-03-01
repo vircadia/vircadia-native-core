@@ -290,7 +290,7 @@ private slots:
     void idle(uint64_t now);
     void aboutToQuit();
 
-    void connectedToDomain(const QString& hostname);
+    void resettingDomain();
 
     void audioMuteToggled();
     void faceTrackerMuteToggled();
