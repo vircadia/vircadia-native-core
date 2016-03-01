@@ -49,7 +49,7 @@ public:
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
-    void setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture);
+    void setGlobalLight(const model::LightPointer& light);
 
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
@@ -95,8 +95,6 @@ private:
     std::vector<int> _globalLights;
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
-
-    gpu::TexturePointer _skyboxTexture;
 
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
     class DeferredTransform {
