@@ -111,8 +111,8 @@ public:
     void setAmbientMap(gpu::TexturePointer ambientMap);
     gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
 
-    void setAmbientMapNumMips(int numMips);
-    int getAmbientMapNumMips() const { return getSchema()._ambientMapNumMips; }
+    void setAmbientMapNumMips(uint16_t numMips);
+    uint16_t getAmbientMapNumMips() const { return (uint16_t) getSchema()._ambientMapNumMips; }
 
     // Schema to access the attribute values of the light
     class Schema {
@@ -126,7 +126,7 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
-        float _ambientMapNumMips{ 0 };
+        float _ambientMapNumMips{ 0.0f };
         Vec3 _control{ 0.0f, 0.0f, 0.0f };
 
         gpu::SphericalHarmonics _ambientSphere;

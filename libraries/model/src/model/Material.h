@@ -252,7 +252,7 @@ public:
     class Schema {
     public:
         glm::vec3 _emissive{ 0.0f }; // No Emissive
-        float _opacity{ 1.f }; // Opacity = 1 => Not Transparent
+        float _opacity{ 1.0f }; // Opacity = 1 => Not Transparent
 
         glm::vec3 _albedo{ 0.5f }; // Grey albedo => isAlbedo
         float _roughness{ 1.0f }; // Roughness = 1 => Not Glossy

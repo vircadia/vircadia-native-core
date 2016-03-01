@@ -414,7 +414,6 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 
     bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
-    //bool hasSpecular = drawMaterialKey.isGlossMap();
     bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
 

@@ -1,5 +1,5 @@
 //
-//  debug.js
+//  ddebugFramBuffer.js
 //  examples/utilities/tools/render
 //
 //  Sam Gateau created on 2/18/2016.
@@ -10,8 +10,8 @@
 //
 
 var DDB = Render.RenderDeferredTask.DebugDeferredBuffer;
-DDB.enabled = true;
 oldConfig = DDB.toJSON();
+DDB.enabled = true;
 
 
 // Set up the qml ui

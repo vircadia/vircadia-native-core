@@ -92,7 +92,7 @@ void DeferredLightingEffect::init() {
     // Add the global light to the light stage (for later shadow rendering)
     _lightStage.addLight(lp);
 
-    lp->setDirection(-glm::vec3(1.0f, 1.0f, 1.0f));
+    lp->setDirection(glm::vec3(-1.0f));
     lp->setColor(glm::vec3(1.0f));
     lp->setIntensity(1.0f);
     lp->setType(model::Light::SUN);
@@ -502,7 +502,6 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
     }
 
-   // if (_skyboxTexture && (skyboxCubemapUnit >= 0)) {
     if (globalLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
         batch.setResourceTexture(skyboxCubemapUnit, globalLight->getAmbientMap());
     }
@@ -571,12 +570,10 @@ void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, co
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
 
-  //  _skyboxTexture = skyboxTexture;
     _skyboxTexture = (light->getAmbientMap() ? light->getAmbientMap() : _skyboxTexture);
 
     // Update the available mipmap levels
-    globalLight->setAmbientMap((light->getAmbientMap() ? light->getAmbientMap() : _skyboxTexture));
-   // globalLight->setAmbientMapNumMips((_skyboxTexture ? _skyboxTexture->evalNumMips() : 0));
+    globalLight->setAmbientMap(_skyboxTexture);
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

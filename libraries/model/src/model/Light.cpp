@@ -150,6 +150,6 @@ void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
     }
 }
 
-void Light::setAmbientMapNumMips(int numMips) {
+void Light::setAmbientMapNumMips(uint16_t numMips) {
     editSchema()._ambientMapNumMips = (float)numMips;
 }
