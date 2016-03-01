@@ -80,8 +80,8 @@
                 }
             })
 
-            print('fish? ' + fish.length)
-            return fish;
+            print('fish? ' + fishList.length)
+            return fishList;
         },
 
         initialize: function(entityID) {
@@ -135,13 +135,56 @@
         },
 
         update: function() {
-            print('AM I THE OWNER??' + iOwn);
+            //print('AM I THE OWNER??' + iOwn);
             if (iOwn === false) {
                 return
             }
-            //print('i am the owner!')
-            //do stuff
+            print('i am the owner!')
+                //do stuff
             updateFish();
+        },
+        debugLookSpot: null,
+        createDebugLookAtCube: function() {
+            var cubePosition = {
+                x: 0,
+                y: 0,
+                z: 0
+            };
+            var cubeSize = 0.03;
+            _this.debugLookAtCube = Overlays.addOverlay("cube", {
+                position: cubePosition,
+                size: cubeSize,
+                color: {
+                    red: 0,
+                    green: 255,
+                    blue: 0
+                },
+                alpha: 1,
+                solid: false
+            });
+        },
+        updateDebugLookAtCube: function() {
+            var lookAt3D = HMD.getHUDLookAtPosition3D();
+            _this.lookAt3D = lookAt3D;
+            Overlays.editOverlay(_this.debugLookAtCube, {
+                position: lookAt3D
+            });
+        },
+        seeIfOwnerIsLookingAtTheTank: function(origin,direction) {
+            // var cameraPosition = Camera.getPosition();
+            // var cameraOrientation = Camera.getOrientation();
+            var pickRay = {
+                origin: origin,
+                direction: direction
+            };
+            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID], [])
+
+            if (intersection.intersects && intersection.entityID = _this.entityID) {
+
+                print('looking at the tank!! ' + JSON.stringify(intersection.intersection));
+
+                var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
+            }
         }
 
     };
@@ -160,24 +203,24 @@
     var FISHTANK_USERDATA_KEY = 'hifi-home-fishtank'
 
     var LIFETIME = 300; //  Fish live for 5 minutes 
-    var NUM_FISH = 20;
+    var NUM_FISH = 8;
     var TANK_DIMENSIONS = {
         x: 1.3393,
         y: 1.3515,
         z: 3.5914
     };
 
-    var TANK_WIDTH = TANK_DIMENSIONS.z;
-    var TANK_HEIGHT = TANK_DIMENSIONS.y;
+    var TANK_WIDTH = TANK_DIMENSIONS.z / 3;
+    var TANK_HEIGHT = TANK_DIMENSIONS.y / 3;
     var FISH_WIDTH = 0.03;
     var FISH_LENGTH = 0.15;
     var MAX_SIGHT_DISTANCE = 0.8;
     var MIN_SEPARATION = 0.15;
-    var AVOIDANCE_FORCE = 0.2;
-    var COHESION_FORCE = 0.05;
-    var ALIGNMENT_FORCE = 0.05;
+    var AVOIDANCE_FORCE = 0.3;
+    var COHESION_FORCE = 0.025;
+    var ALIGNMENT_FORCE = 0.025;
     var SWIMMING_FORCE = 0.05;
-    var SWIMMING_SPEED = 1.5;
+    var SWIMMING_SPEED = 0.5;
 
     var THROTTLE = false;
     var THROTTLE_RATE = 100;
@@ -403,14 +446,14 @@
         var center = _this.currentProperties.position;
 
         lowerCorner = {
-            x: center.x - (TANK_WIDTH / 2),
+            x: center.x - (_this.currentProperties.dimensions.z / 2),
             y: center.y,
-            z: center.z - (TANK_WIDTH / 2)
+            z: center.z - (_this.currentProperties.dimensions.z / 2)
         };
         upperCorner = {
-            x: center.x + (TANK_WIDTH / 2),
-            y: center.y + TANK_HEIGHT,
-            z: center.z + (TANK_WIDTH / 2)
+            x: center.x + (_this.currentProperties.dimensions.z / 2),
+            y: center.y + _this.currentProperties.dimensions.y,
+            z: center.z + (_this.currentProperties.dimensions.z / 2)
         };
 
         var fish = [];
