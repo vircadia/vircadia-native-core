@@ -96,7 +96,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // make sure we hear about newly connected nodes from our gatekeeper
     connect(&_gatekeeper, &DomainGatekeeper::connectedNode, this, &DomainServer::handleConnectedNode);
 
-    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
+    if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
 
@@ -198,7 +198,6 @@ bool DomainServer::optionallySetupOAuth() {
     }
 
     AccountManager& accountManager = AccountManager::getInstance();
-    accountManager.disableSettingsFilePersistence();
     accountManager.setAuthURL(_oauthProviderURL);
 
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
@@ -372,18 +371,10 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     packetReceiver.registerListener(PacketType::ICEPing, &_gatekeeper, "processICEPingPacket");
     packetReceiver.registerListener(PacketType::ICEPingReply, &_gatekeeper, "processICEPingReplyPacket");
     packetReceiver.registerListener(PacketType::ICEServerPeerInformation, &_gatekeeper, "processICEPeerInformationPacket");
+    packetReceiver.registerListener(PacketType::ICEServerHeartbeatDenied, this, "processICEServerHeartbeatDenialPacket");
     
     // add whatever static assignments that have been parsed to the queue
     addStaticAssignmentsToQueue();
-}
-
-bool DomainServer::didSetupAccountManagerWithAccessToken() {
-    if (AccountManager::getInstance().hasValidAccessToken()) {
-        // we already gave the account manager a valid access token
-        return true;
-    }
-
-    return resetAccountManagerAccessToken();
 }
 
 const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
@@ -401,9 +392,13 @@ bool DomainServer::resetAccountManagerAccessToken() {
             if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant->toString();
             } else {
-                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
-                    << "Set an access token via the web interface, in your user or master config"
+                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present.";
+                qDebug() << "Set an access token via the web interface, in your user or master config"
                     << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+
+                // clear any existing access token from AccountManager
+                AccountManager::getInstance().setAccessTokenForCurrentAuthURL(QString());
+
                 return false;
             }
         } else {
@@ -429,34 +424,6 @@ bool DomainServer::resetAccountManagerAccessToken() {
     }
 }
 
-bool DomainServer::optionallySetupAssignmentPayment() {
-    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
-    if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
-        settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
-        didSetupAccountManagerWithAccessToken()) {
-
-        qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
-
-        // assume that the fact we are authing against HF data server means we will pay for assignments
-        // setup a timer to send transactions to pay assigned nodes every 30 seconds
-        QTimer* creditSetupTimer = new QTimer(this);
-        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-
-        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-
-        QTimer* nodePaymentTimer = new QTimer(this);
-        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-
-        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
-    }
-
-    return true;
-}
-
 void DomainServer::setupAutomaticNetworking() {
     auto nodeList = DependencyManager::get<LimitedNodeList>();
 
@@ -467,9 +434,9 @@ void DomainServer::setupAutomaticNetworking() {
         setupICEHeartbeatForFullNetworking();
     }
 
-    if (!didSetupAccountManagerWithAccessToken()) {
-        qDebug() << "Cannot send heartbeat to data server without an access token.";
-        qDebug() << "Add an access token to your config file or via the web interface.";
+    if (!resetAccountManagerAccessToken()) {
+        qDebug() << "Will not send heartbeat to Metaverse API without an access token.";
+        qDebug() << "If this is not a temporary domain add an access token to your config file or via the web interface.";
 
         return;
     }
@@ -525,6 +492,19 @@ void DomainServer::setupICEHeartbeatForFullNetworking() {
 
     // we need this DS to know what our public IP is - start trying to figure that out now
     limitedNodeList->startSTUNPublicSocketUpdate();
+
+    // to send ICE heartbeats we'd better have a private key locally with an uploaded public key
+    auto& accountManager = AccountManager::getInstance();
+    auto domainID = accountManager.getAccountInfo().getDomainID();
+
+    // if we have an access token and we don't have a private key or the current domain ID has changed
+    // we should generate a new keypair
+    if (!accountManager.getAccountInfo().hasPrivateKey() || domainID != limitedNodeList->getSessionUUID()) {
+        accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+    }
+
+    // hookup to the signal from account manager that tells us when keypair is available
+    connect(&accountManager, &AccountManager::newKeypair, this, &DomainServer::handleKeypairChange);
 
     if (!_iceHeartbeatTimer) {
         // setup a timer to heartbeat with the ice-server every so often
@@ -1082,11 +1062,76 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
                                               domainUpdateJSON.toUtf8());
 }
 
-// TODO: have data-web respond with ice-server hostname to use
-
 void DomainServer::sendHeartbeatToIceServer() {
     if (!_iceServerSocket.getAddress().isNull()) {
-        DependencyManager::get<LimitedNodeList>()->sendHeartbeatToIceServer(_iceServerSocket);
+
+        auto& accountManager = AccountManager::getInstance();
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+
+        if (!accountManager.getAccountInfo().hasPrivateKey()) {
+            qWarning() << "Cannot send an ice-server heartbeat without a private key for signature.";
+            qWarning() << "Waiting for keypair generation to complete before sending ICE heartbeat.";
+
+            if (!limitedNodeList->getSessionUUID().isNull()) {
+                accountManager.generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+            } else {
+                qWarning() << "Attempting to send ICE server heartbeat with no domain ID. This is not supported";
+            }
+
+            return;
+        }
+
+        // NOTE: I'd love to specify the correct size for the packet here, but it's a little trickey with
+        // QDataStream and the possibility of IPv6 address for the sockets.
+        if (!_iceServerHeartbeatPacket) {
+            _iceServerHeartbeatPacket = NLPacket::create(PacketType::ICEServerHeartbeat);
+        }
+
+        bool shouldRecreatePacket = false;
+
+        if (_iceServerHeartbeatPacket->getPayloadSize() > 0) {
+            // if either of our sockets have changed we need to re-sign the heartbeat
+            // first read the sockets out from the current packet
+            _iceServerHeartbeatPacket->seek(0);
+            QDataStream heartbeatStream(_iceServerHeartbeatPacket.get());
+
+            QUuid senderUUID;
+            HifiSockAddr publicSocket, localSocket;
+            heartbeatStream >> senderUUID >> publicSocket >> localSocket;
+
+            if (senderUUID != limitedNodeList->getSessionUUID()
+                || publicSocket != limitedNodeList->getPublicSockAddr()
+                || localSocket != limitedNodeList->getLocalSockAddr()) {
+                shouldRecreatePacket = true;
+            }
+        } else {
+            shouldRecreatePacket = true;
+        }
+
+        if (shouldRecreatePacket) {
+            // either we don't have a heartbeat packet yet or some combination of sockets, ID and keypair have changed
+            // and we need to make a new one
+
+            // reset the position in the packet before writing
+            _iceServerHeartbeatPacket->reset();
+
+            // write our plaintext data to the packet
+            QDataStream heartbeatDataStream(_iceServerHeartbeatPacket.get());
+            heartbeatDataStream << limitedNodeList->getSessionUUID()
+                << limitedNodeList->getPublicSockAddr() << limitedNodeList->getLocalSockAddr();
+
+            // setup a QByteArray that points to the plaintext data
+            auto plaintext = QByteArray::fromRawData(_iceServerHeartbeatPacket->getPayload(), _iceServerHeartbeatPacket->getPayloadSize());
+
+            // generate a signature for the plaintext data in the packet
+            auto signature = accountManager.getAccountInfo().signPlaintext(plaintext);
+
+            // pack the signature with the data
+            heartbeatDataStream << signature;
+        }
+
+        // send the heartbeat packet to the ice server now
+        limitedNodeList->sendUnreliablePacket(*_iceServerHeartbeatPacket, _iceServerSocket);
     }
 }
 
@@ -1968,5 +2013,33 @@ void DomainServer::processNodeDisconnectRequestPacket(QSharedPointer<ReceivedMes
         }, [&limitedNodeList](const SharedNodePointer& otherNode){
             limitedNodeList->sendUnreliablePacket(*removedNodePacket, *otherNode);
         });
+    }
+}
+
+void DomainServer::processICEServerHeartbeatDenialPacket(QSharedPointer<ReceivedMessage> message) {
+    static const int NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+    static int numHeartbeatDenials = 0;
+    if (++numHeartbeatDenials > NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN) {
+        qDebug() << "Received" << NUM_HEARTBEAT_DENIALS_FOR_KEYPAIR_REGEN << "heartbeat denials from ice-server"
+            << "- re-generating keypair now";
+
+        // we've hit our threshold of heartbeat denials, trigger a keypair re-generation
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        AccountManager::getInstance().generateNewDomainKeypair(limitedNodeList->getSessionUUID());
+
+        // reset our number of heartbeat denials
+        numHeartbeatDenials = 0;
+    }
+}
+
+void DomainServer::handleKeypairChange() {
+    if (_iceServerHeartbeatPacket) {
+        // reset the payload size of the ice-server heartbeat packet - this causes the packet to be re-generated
+        // the next time we go to send an ice-server heartbeat
+        _iceServerHeartbeatPacket->setPayloadSize(0);
+
+        // send a heartbeat to the ice server immediately
+        sendHeartbeatToIceServer();
     }
 }
