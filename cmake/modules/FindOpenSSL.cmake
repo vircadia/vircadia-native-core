@@ -81,20 +81,20 @@ if (WIN32 AND NOT CYGWIN)
     # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
-    find_library(LIB_EAY_DEBUG NAMES libeay32MDd libeay32d
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(LIB_EAY_DEBUG NAMES libeay32MTd
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(LIB_EAY_RELEASE NAMES libeay32MD libeay32
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(LIB_EAY_RELEASE NAMES libeay32MT
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(SSL_EAY_DEBUG NAMES ssleay32MDd ssleay32d
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(SSL_EAY_DEBUG NAMES ssleay32MTd
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
-    find_library(SSL_EAY_RELEASE NAMES ssleay32MD ssleay32 ssl
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "VC" "lib/VC"
+    find_library(SSL_EAY_RELEASE NAMES ssleay32MT
+      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
 
     set(LIB_EAY_LIBRARY_DEBUG "${LIB_EAY_DEBUG}")
@@ -107,39 +107,6 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
-
-    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
-
-  elseif (MINGW)
-    # same player, for MinGW
-    set(LIB_EAY_NAMES libeay32)
-    set(SSL_EAY_NAMES ssleay32)
-
-    if (CMAKE_CROSSCOMPILING)
-      list(APPEND LIB_EAY_NAMES crypto)
-      list(APPEND SSL_EAY_NAMES ssl)
-    endif ()
-
-    find_library(LIB_EAY NAMES ${LIB_EAY_NAMES}
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
-    )
-
-    find_library(SSL_EAY NAMES ${SSL_EAY_NAMES}
-      ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib" "lib/MinGW"
-    )
-
-    mark_as_advanced(SSL_EAY LIB_EAY)
-    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
-    unset(LIB_EAY_NAMES)
-    unset(SSL_EAY_NAMES)
-  else ()
-    # Not sure what to pick for -say- intel, let's use the toplevel ones and hope someone report issues:
-    find_library(LIB_EAY NAMES libeay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
-
-    find_library(SSL_EAY NAMES ssleay32 HINTS ${_OPENSSL_ROOT_HINTS_AND_PATHS} ${_OPENSSL_LIBDIR} PATH_SUFFIXES lib)
-
-    mark_as_advanced(SSL_EAY LIB_EAY)
-    set(OPENSSL_LIBRARIES ${SSL_EAY} ${LIB_EAY})
   endif()
 else()
 
@@ -231,9 +198,6 @@ endif ()
 include(FindPackageHandleStandardArgs)
 
 set(OPENSSL_REQUIREMENTS OPENSSL_LIBRARIES OPENSSL_INCLUDE_DIR)
-if (WIN32)
-  list(APPEND OPENSSL_REQUIREMENTS OPENSSL_DLL_PATH)
-endif ()
 
 if (OPENSSL_VERSION)
   find_package_handle_standard_args(OpenSSL
@@ -248,10 +212,6 @@ else ()
   find_package_handle_standard_args(OpenSSL "Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR"
     ${OPENSSL_REQUIREMENTS}
   )
-endif ()
-
-if (WIN32)
-  add_paths_to_fixup_libs(${OPENSSL_DLL_PATH})
 endif ()
 
 mark_as_advanced(OPENSSL_INCLUDE_DIR OPENSSL_LIBRARIES OPENSSL_SEARCH_DIRS)

@@ -266,9 +266,5 @@ add_bugsplat()
 if (WIN32)
     set(EXTRA_DEPLOY_OPTIONS "--qmldir  ${PROJECT_SOURCE_DIR}/resources/qml")
 
-    set(TARGET_INSTALL_DIR ${INTERFACE_INSTALL_DIR})
-    set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
-    manually_install_ssl_eay()
-
     package_libraries_for_deployment()
 endif()
