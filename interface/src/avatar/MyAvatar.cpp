@@ -879,8 +879,11 @@ void MyAvatar::updateLookAtTargetAvatar() {
                     glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
                     glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
 
+                    auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
+                    float ipdScale = hmdInterface->getIPDScale();
+
                     // Scale by proportional differences between avatar and human.
-                    float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye);
+                    float humanEyeSeparationInModelSpace = glm::length(humanLeftEye - humanRightEye) * ipdScale;
                     float avatarEyeSeparation = glm::length(avatarLeftEye - avatarRightEye);
                     gazeOffset = gazeOffset * humanEyeSeparationInModelSpace / avatarEyeSeparation;
                 }
