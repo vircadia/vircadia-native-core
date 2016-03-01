@@ -13,7 +13,9 @@
 //
 // Goes into "paused" when the '.' key (and automatically when started in HMD), and normal when pressing any key.
 // See MAIN CONTROL, below, for what "paused" actually does.
-var OVERLAY_RATIO = 1920 / 1080;
+var OVERLAY_WIDTH = 1920;
+var OVERLAY_HEIGHT = 1080;
+var OVERLAY_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT;
 var OVERLAY_DATA = {
     imageURL: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
     color: {red: 255, green: 255, blue: 255},
@@ -69,16 +71,25 @@ function showOverlay() {
         // Update for current screen size, keeping overlay proportions constant.
         screen = Controller.getViewportDimensions(),
         screenRatio = screen.x / screen.y;
-    if (screenRatio < OVERLAY_RATIO) {
-        properties.width = screen.x;
-        properties.height = screen.x / OVERLAY_RATIO;
-        properties.x = 0;
-        properties.y = (screen.y - properties.height) / 2;
+
+    if (HMD.active) {
+        var lookAt = HMD.getHUDLookAtPosition2D();
+        properties.width = OVERLAY_WIDTH;
+        properties.height = OVERLAY_HEIGHT;
+        properties.x = lookAt.x - OVERLAY_WIDTH / 2;
+        properties.y = lookAt.y - OVERLAY_HEIGHT / 2;
     } else {
-        properties.height = screen.y;
-        properties.width = screen.y * OVERLAY_RATIO;
-        properties.y = 0;
-        properties.x = (screen.x - properties.width) / 2;
+        if (screenRatio < OVERLAY_RATIO) {
+            properties.width = screen.x;
+            properties.height = screen.x / OVERLAY_RATIO;
+            properties.x = 0;
+            properties.y = (screen.y - properties.height) / 2;
+        } else {
+            properties.height = screen.y;
+            properties.width = screen.y * OVERLAY_RATIO;
+            properties.y = 0;
+            properties.x = (screen.x - properties.width) / 2;
+        }
     }
     Overlays.editOverlay(overlay, properties);
 }
@@ -87,6 +98,17 @@ function hideOverlay() {
 }
 hideOverlay();
 
+function maybeMoveOverlay() {
+    if (HMD.active && isAway) {
+        var lookAt = HMD.getHUDLookAtPosition2D();
+        var properties = {visible: true};
+        properties.width = OVERLAY_WIDTH;
+        properties.height = OVERLAY_HEIGHT;
+        properties.x = lookAt.x - OVERLAY_WIDTH / 2;
+        properties.y = lookAt.y - OVERLAY_HEIGHT / 2;
+        Overlays.editOverlay(overlay, properties);
+    }
+}
 
 // MAIN CONTROL
 var wasMuted, isAway;
@@ -163,6 +185,8 @@ function maybeGoAway() {
         }
     }
 }
+
+Script.update.connect(maybeMoveOverlay);
 
 Script.update.connect(maybeGoAway);
 Controller.mousePressEvent.connect(goActive);
