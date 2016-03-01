@@ -67,10 +67,7 @@ find_path(OPENSSL_INCLUDE_DIR NAMES openssl/ssl.h HINTS ${_OPENSSL_ROOT_HINTS_AN
 
 if (WIN32 AND NOT CYGWIN)
   if (MSVC)
-    # /MD and /MDd are the standard values - if someone wants to use
-    # others, the libnames have to change here too
-    # use also ssl and ssleay32 in debug as fallback for openssl < 0.9.8b
-    # TODO: handle /MT and static lib
+
     # In Visual C++ naming convention each of these four kinds of Windows libraries has it's standard suffix:
     #   * MD for dynamic-release
     #   * MDd for dynamic-debug
@@ -81,6 +78,9 @@ if (WIN32 AND NOT CYGWIN)
     # We are using the libraries located in the VC subdir instead of the parent directory eventhough :
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
+
+    # The Kitware FindOpenSSL module has been modified here by High Fidelity to look specifically for static libraries
+
     find_library(LIB_EAY_DEBUG NAMES libeay32MTd
       ${_OPENSSL_ROOT_HINTS_AND_PATHS} PATH_SUFFIXES "lib/VC/static"
     )
