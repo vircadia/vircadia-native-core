@@ -392,13 +392,28 @@ private:
     glm::mat4 _sensorToWorldMatrix;
 
     struct FollowHelper {
+        FollowHelper();
+
+        enum FollowType {
+            Rotation = 0,
+            Horizontal,
+            Vertical,
+            NumFollowTypes
+        };
         glm::mat4 _desiredBodyMatrix;
-        float _timeRemaining { 0.0f };
+        float _timeRemaining[NumFollowTypes];
 
         void deactivate();
+        void deactivate(FollowType type);
         void activate();
+        void activate(FollowType type);
         bool isActive() const;
-        bool shouldActivate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool isActive(FollowType followType) const;
+        float getMaxTimeRemaining() const;
+        void decrementTimeRemaining(float dt);
+        bool shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
+        bool shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const;
         void prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& bodySensorMatrix, const glm::mat4& currentBodyMatrix);
         glm::mat4 postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix);
     };

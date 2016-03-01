@@ -1884,58 +1884,122 @@ void MyAvatar::lateUpdatePalms() {
 
 static const float FOLLOW_TIME = 0.5f;
 
-void MyAvatar::FollowHelper::deactivate() {
-    _timeRemaining = 0.0f;
+MyAvatar::FollowHelper::FollowHelper() {
+    deactivate();
 }
 
-void MyAvatar::FollowHelper::activate() {
+void MyAvatar::FollowHelper::deactivate() {
+    for (int i = 0; i < NumFollowTypes; i++) {
+        deactivate((FollowType)i);
+    }
+}
+
+void MyAvatar::FollowHelper::deactivate(FollowType type) {
+    assert(type >= 0 && type < NumFollowTypes);
+    _timeRemaining[(int)type] = 0.0f;
+}
+
+void MyAvatar::FollowHelper::activate(FollowType type) {
+    assert(type >= 0 && type < NumFollowTypes);
     // TODO: Perhaps, the follow time should be proportional to the displacement.
-    _timeRemaining = FOLLOW_TIME;
+    _timeRemaining[(int)type] = FOLLOW_TIME;
+}
+
+bool MyAvatar::FollowHelper::isActive(FollowType type) const {
+    assert(type >= 0 && type < NumFollowTypes);
+    return _timeRemaining[(int)type] > 0.0f;
 }
 
 bool MyAvatar::FollowHelper::isActive() const {
-    return _timeRemaining > 0.0f;
+    for (int i = 0; i < NumFollowTypes; i++) {
+        if (isActive((FollowType)i)) {
+            return true;
+        }
+    }
+    return false;
 }
 
-bool MyAvatar::FollowHelper::shouldActivate(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-
-    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 4.0f);
-
-    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-    if (glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD) {
-        return true;
+float MyAvatar::FollowHelper::getMaxTimeRemaining() const {
+    float max = 0.0f;
+    for (int i = 0; i < NumFollowTypes; i++) {
+        if (_timeRemaining[i] > max) {
+            max = _timeRemaining[i];
+        }
     }
+    return max;
+}
 
-    const float CYLINDER_TOP = 0.1f;
-    const float CYLINDER_BOTTOM = -0.5f;
-    const float CYLINDER_RADIUS = 0.15f;
+void MyAvatar::FollowHelper::decrementTimeRemaining(float dt) {
+    for (int i = 0; i < NumFollowTypes; i++) {
+        _timeRemaining[i] -= dt;
+    }
+}
+
+bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+    const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 4.0f);
+    glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
+    return glm::dot(myAvatar.getHMDSensorFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+}
+
+bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+
+     const float CYLINDER_RADIUS = 0.15f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
     float radialDistance = glm::length(radialOffset);
 
-    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM) || (radialDistance > CYLINDER_RADIUS);
+    return radialDistance > CYLINDER_RADIUS;
+}
+
+bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
+
+    const float CYLINDER_TOP = 0.1f;
+    const float CYLINDER_BOTTOM = -1.0f;
+
+    glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
+    glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
+    float radialDistance = glm::length(radialOffset);
+
+    return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 }
 
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
     _desiredBodyMatrix = desiredBodyMatrix;
-    if (!isActive() && shouldActivate(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
-        activate();
+    if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        activate(Rotation);
+    }
+    if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        activate(Horizontal);
+    }
+    if (!isActive(Vertical) && shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        activate(Vertical);
     }
 
-    if (isActive()) {
-        glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
-        myAvatar.getCharacterController()->setFollowParameters(desiredWorldMatrix, _timeRemaining);
-    } else {
-        glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
-        myAvatar.getCharacterController()->setFollowParameters(currentWorldMatrix, 0.0f);
+    glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * _desiredBodyMatrix;
+    glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
+
+    AnimPose followWorldPose(currentWorldMatrix);
+    if (isActive(Rotation)) {
+        followWorldPose.rot = glmExtractRotation(desiredWorldMatrix);
     }
+    if (isActive(Horizontal)) {
+        glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
+        followWorldPose.trans.x = desiredTranslation.x;
+        followWorldPose.trans.z = desiredTranslation.z;
+    }
+    if (isActive(Vertical)) {
+        glm::vec3 desiredTranslation = extractTranslation(desiredWorldMatrix);
+        followWorldPose.trans.y = desiredTranslation.y;
+    }
+
+    myAvatar.getCharacterController()->setFollowParameters(followWorldPose, getMaxTimeRemaining());
 }
 
 glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, const glm::mat4& currentBodyMatrix) {
     if (isActive()) {
         float dt = myAvatar.getCharacterController()->getFollowTime();
-        _timeRemaining -= dt;
+        decrementTimeRemaining(dt);
 
         // apply follow displacement to the body matrix.
         glm::vec3 worldLinearDisplacement = myAvatar.getCharacterController()->getFollowLinearDisplacement();
