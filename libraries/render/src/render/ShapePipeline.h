@@ -212,7 +212,7 @@ public:
         int albedoTextureUnit;
         int normalTextureUnit;
         int roughnessTextureUnit;
-        int specularTextureUnit;
+        int metallicTextureUnit;
         int emissiveTextureUnit;
         int occlusionTextureUnit;
         int emissiveParams;

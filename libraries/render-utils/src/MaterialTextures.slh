@@ -35,9 +35,9 @@ vec3 fetchNormalMap(vec2 uv) {
 <@endif@>
 
 <@if withMetallic@>
-uniform sampler2D specularMap;
+uniform sampler2D metallicMap;
 float fetchMetallicMap(vec2 uv) {
-    return (texture(specularMap, uv).r);
+    return (texture(metallicMap, uv).r);
 }
 <@endif@>
 

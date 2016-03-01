@@ -45,6 +45,12 @@ vec4 evalSkyboxLight(vec3 direction, float lod) {
     color += emissive;
 <@endfunc@>
 
+<@func declareAmbientFresnel()@>
+vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float gloss) {
+    return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+}
+<@endfunc@>
+
 <@func declareEvalAmbientGlobalColor()@>
 vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness) {
     <$prepareGlobalLight()$>
@@ -54,24 +60,35 @@ vec3 evalAmbientGlobalColor(mat4 invViewMat, float shadowAttenuation, float obsc
 <@endfunc@>
 
 <@func declareEvalAmbientSphereGlobalColor()@>
+<$declareAmbientFresnel()$>
+
 vec3 evalAmbientSphereGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness) {
     <$prepareGlobalLight()$>
-    color += (1 - (metallic * 0.5)) * albedo * evalSphericalLight(getLightAmbientSphere(light), fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
+
+    // Diffuse from ambient
+    color += (1 - metallic) * albedo * evalSphericalLight(getLightAmbientSphere(light), fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
+
+    // Specular highlight from ambient
+    vec3 direction = -reflect(fragEyeDir, fragNormal);
+    vec3 skyboxLight = evalSphericalLight(getLightAmbientSphere(light), direction).xyz;
+    vec3 ambientFresnel = fresnelSchlickAmbient(fresnel, fragEyeDir, fragNormal, 1 - roughness);
+    color += ambientFresnel * skyboxLight.rgb * obscurance * getLightAmbientIntensity(light);
+
     return color;
 }
 <@endfunc@>
 
 <@func declareEvalSkyboxGlobalColor()@>
 <$declareSkyboxMap()$>
-
-vec3 fresnelSchlickAmbient(vec3 fresnelColor, vec3 lightDir, vec3 halfDir, float gloss) {
-    return fresnelColor + (max(vec3(gloss), fresnelColor) - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
-}
+<$declareAmbientFresnel()$>
 
 vec3 evalSkyboxGlobalColor(mat4 invViewMat, float shadowAttenuation, float obscurance, vec3 position, vec3 normal, vec3 albedo, float metallic, vec3 emissive, float roughness) {
     <$prepareGlobalLight()$>
+
+    // Diffuse from ambient
     color += (1 - metallic) * albedo * evalSphericalLight(getLightAmbientSphere(light), fragNormal).xyz * obscurance * getLightAmbientIntensity(light);
-    
+
+    // Specular highlight from ambient
     vec3 direction = -reflect(fragEyeDir, fragNormal);
     float levels = getLightAmbientMapNumMips(light);
     float lod = min(floor((roughness) * levels), levels);

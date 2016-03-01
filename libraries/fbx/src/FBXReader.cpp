@@ -882,7 +882,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             propertyName = "P";
                             index = 4;
                         }
-                        if (properties && !material.isPBSMaterial) {
+                        if (!material.isPBSMaterial && properties) {
                             foreach (const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
@@ -917,7 +917,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
 #endif
                                 }
                             }
-                        } else if (properties && material.isPBSMaterial) {
+                        } else if (material.isPBSMaterial && properties) {
                             std::vector<std::string> unknowns;
                             foreach(const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
@@ -1095,7 +1095,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         } else if (type.contains("emissive")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_emissive_map")) {
-                            roughnessTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                            emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("ambient")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_ao_map")) {

@@ -15,7 +15,7 @@
 <@func declareEvalPBRShading()@>
 
 vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
-    return fresnelColor + (1.0f - fresnelColor) * pow(1.0f - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+    return fresnelColor + (1.0 - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
 }
 
 float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
