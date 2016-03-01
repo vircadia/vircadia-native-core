@@ -16,6 +16,10 @@
 #include <QtCore/QDebug>
 #include <QtCore/QMetaEnum>
 
+
+Q_DECLARE_METATYPE(PacketType);
+static int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
+
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
