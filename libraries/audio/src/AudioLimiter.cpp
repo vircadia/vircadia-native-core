@@ -497,12 +497,12 @@ void LimiterImpl::setThreshold(float threshold) {
     threshold = MIN(threshold, 0.0f);
 
     // limiter threshold in log2 domain
-    _threshold = (int32_t)(-threshold * DB_TO_LOG2 * (1 << LOG2_FRACBITS));
+    _threshold = (int32_t)(-(double)threshold * DB_TO_LOG2 * (1 << LOG2_FRACBITS));
     _threshold += LOG2_BIAS + EXP2_BIAS;
     _threshold += LOG2_HEADROOM << LOG2_FRACBITS;
 
     // makeup gain and conversion to 16-bit
-    _outGain = (float)(dBToGain(OUT_CEILING - threshold) * Q31_TO_Q15);
+    _outGain = (float)(dBToGain(OUT_CEILING - (double)threshold) * Q31_TO_Q15);
 }
 
 //
@@ -519,9 +519,9 @@ void LimiterImpl::setRelease(float release) {
     release = MAX(release, 50.0f);
     release = MIN(release, 5000.0f);
 
-    int32_t maxRelease = msToTc(release, _sampleRate);
+    int32_t maxRelease = msToTc((double)release, _sampleRate);
 
-    _rmsAttack = msToTc(0.1 * release, _sampleRate);
+    _rmsAttack = msToTc(0.1 * (double)release, _sampleRate);
     _rmsRelease = maxRelease;
 
     // Compute ARC tables, working from low peak/rms to high peak/rms.
@@ -547,7 +547,7 @@ void LimiterImpl::setRelease(float release) {
     }
 
     x = release;
-    xstep = release * (1.0-MINREL) / (NARC-NHOLD-1);  // 1.0 to MINREL
+    xstep = x * (1.0-MINREL) / (NARC-NHOLD-1);  // 1.0 to MINREL
 
     for (; i < NARC; i++) {
 
