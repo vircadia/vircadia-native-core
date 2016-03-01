@@ -21,7 +21,7 @@
 class HTTPResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    HTTPResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    HTTPResourceRequest(const QUrl& url) : ResourceRequest(url) { }
     ~HTTPResourceRequest();
 
 protected:
@@ -33,7 +33,10 @@ private slots:
     void onRequestFinished();
 
 private:
-    QTimer _sendTimer;
+    void setupTimer();
+    void cleanupTimer();
+
+    QTimer* _sendTimer { nullptr };
     QNetworkReply* _reply { nullptr };
 };
 
