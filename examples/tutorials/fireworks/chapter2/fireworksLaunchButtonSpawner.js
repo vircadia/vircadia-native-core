@@ -1,5 +1,5 @@
 
-  // Chapter1 : fireworksLaumchButtonSpawner.js
+  // Chapter 2 : fireworksLaumchButtonSpawner.js
 
   var orientation = Camera.getOrientation();
   orientation = Quat.safeEulerAngles(orientation);
