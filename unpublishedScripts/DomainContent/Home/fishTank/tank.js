@@ -109,7 +109,9 @@
         unload: function() {
             print(' UNLOAD')
             Script.update.disconnect(_this.update);
-            _this.overlayLineOff();
+            if (WANT_LOOK_DEBUG === true) {
+                _this.overlayLineOff();
+            }
             if (baton) {
                 print('BATON RELEASE ')
                 baton.release(function() {});
@@ -173,7 +175,10 @@
                 direction: front
             };
 
-            _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
+            if (WANT_LOOK_DEBUG === true) {
+                _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
+
+            };
 
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
 
@@ -261,6 +266,8 @@
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 0.5;
     var FISH_DAMPING = 0.25;
+
+    var WANT_LOOK_DEBUG = false;
 
     var THROTTLE = false;
     var THROTTLE_RATE = 100;
@@ -515,6 +522,7 @@
                     type: "Model",
                     modelURL: fish.length % 2 === 0 ? FISH_MODEL_URL : FISH_MODEL_TWO_URL,
                     position: position,
+                    parentID: _this.entityID,
                     rotation: {
                         x: 0,
                         y: 0,

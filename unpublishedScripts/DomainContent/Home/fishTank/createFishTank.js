@@ -115,6 +115,7 @@ function createBubbleSystem() {
     };
 
     bubbleProperties.type = "ParticleEffect";
+    bubbleProperties.parentID = fishTank;
     bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
 
     var upVector = Quat.getRight(tankProperties.rotation);
