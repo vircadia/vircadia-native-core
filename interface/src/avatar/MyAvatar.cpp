@@ -19,6 +19,7 @@
 
 #include <QtCore/QTimer>
 
+#include <scripting/HMDScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
