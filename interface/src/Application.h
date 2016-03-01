@@ -120,6 +120,8 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
+    void showCursor(const QCursor& cursor);
+
     bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
@@ -328,8 +330,6 @@ private:
 
     void cleanupBeforeQuit();
 
-    void emptyLocalCache();
-
     void update(float deltaTime);
 
     void setPalmData(Hand* hand, const controller::Pose& pose, float deltaTime, HandData::Hand whichHand, float triggerValue);
@@ -515,6 +515,11 @@ private:
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
+
+    void checkChangeCursor();
+    mutable QMutex _changeCursorLock { QMutex::Recursive };
+    QCursor _desiredCursor{ Qt::BlankCursor };
+    bool _cursorNeedsChanging { false };
 };
 
 #endif // hifi_Application_h
