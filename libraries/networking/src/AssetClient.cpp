@@ -60,7 +60,7 @@ void AssetClient::init() {
         cache->setCacheDirectory(cachePath);
         networkAccessManager.setCache(cache);
         qDebug() << "ResourceManager disk cache setup at" << cachePath
-        << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+                 << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }
 
