@@ -35,8 +35,8 @@ var AVERAGE_MOUSE_VELOCITY_FOR_SEEK_TO = 50;
 Controller.mouseMoveEvent.connect(function(mouseEvent) {
     var now = Date.now();
 
-    // if the reticle is hidden, show it...
-    if (!Reticle.visible) {
+    // if the reticle is hidden, and we're not in away mode...
+    if (!Reticle.visible && Reticle.allowMouseCapture) {
         Reticle.visible = true;
         if (HMD.active) {
             shouldSeekToLookAt = true;
@@ -44,7 +44,7 @@ Controller.mouseMoveEvent.connect(function(mouseEvent) {
     } else {
         // even if the reticle is visible, if we're in HMD mode, and the person is moving their mouse quickly (shaking it)
         // then they are probably looking for it, and we should move into seekToLookAt mode
-        if (HMD.active && !shouldSeekToLookAt) {
+        if (HMD.active && !shouldSeekToLookAt && Reticle.allowMouseCapture) {
             var dx = Reticle.position.x - lastMouseX;
             var dy = Reticle.position.y - lastMouseY;
             var dt = Math.max(1, (now - lastMouseMove)); // mSecs since last mouse move
