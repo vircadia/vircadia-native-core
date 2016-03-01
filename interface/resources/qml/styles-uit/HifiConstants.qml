@@ -54,6 +54,7 @@ Item {
         readonly property color white50: "#80ffffff"
         readonly property color white30: "#4dffffff"
         readonly property color white25: "#40ffffff"
+        readonly property color transparent: "#00ffffff"
 
         // Control specific colors
         readonly property color tableRowLightOdd: white50
@@ -68,6 +69,14 @@ Item {
         readonly property color checkboxDarkFinish: "#6b6a6b"
         readonly property color checkboxChecked: primaryHighlight
         readonly property color checkboxCheckedBorder: "#36cdff"
+        readonly property color sliderGutterLight: "#d4d4d4"
+        readonly property color sliderGutterDark: "#252525"
+        readonly property color sliderBorderLight: "#afafaf"
+        readonly property color sliderBorderDark: "#7d7d7d"
+        readonly property color sliderLightStart: "#ffffff"
+        readonly property color sliderLightFinish: "#afafaf"
+        readonly property color sliderDarkStart: "#7d7d7d"
+        readonly property color sliderDarkFinish: "#6b6a6b"
     }
 
     Item {
@@ -84,6 +93,8 @@ Item {
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
         readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
         readonly property real textPadding: 8
+        readonly property real sliderHandleSize: 18
+        readonly property real sliderGrooveHeight: 8
         readonly property real spinnerSize: 20
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23

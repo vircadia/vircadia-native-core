@@ -1,10 +1,22 @@
+//
+//  SpinBoxPreference.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
-import QtQuick.Controls 1.4
+
+import "../../dialogs"
+import "../../controls-uit"
 
 Preference {
     id: root
     property alias slider: slider
-    height: slider.height
+    height: slider.controlHeight
 
     Component.onCompleted: {
         slider.value = preference.value;
@@ -15,9 +27,9 @@ Preference {
         preference.save();
     }
 
-    Text {
-        text: root.label
-        color: enabled ? "black" : "gray"
+    Label {
+        text: root.label + ":"
+        colorScheme: hifi.colorSchemes.dark
         anchors.verticalCenter: slider.verticalCenter
     }
 
@@ -26,5 +38,6 @@ Preference {
         value: preference.value
         width: 130
         anchors { right: parent.right }
+        colorScheme: hifi.colorSchemes.dark
     }
 }
