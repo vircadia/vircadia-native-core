@@ -56,13 +56,22 @@ TreeView {
 
         branchDelegate: HiFiGlyphs {
             text: styleData.isExpanded ? hifi.glyphs.disclosureCollapse : hifi.glyphs.disclosureExpand
-            size: hifi.fontSizes.tableText * 2.5  // tableText is in points; proportionately scale to pixels
+            size: hifi.fontSizes.tableText * 2.5
             color: colorScheme == hifi.colorSchemes.light
-                       ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
-                       : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
+                   ? (styleData.selected
+                      ? hifi.colors.black
+                      : (iconArea.pressed ? hifi.colors.white : hifi.colors.baseGrayHighlight))
+                   : (styleData.selected
+                      ? hifi.colors.black
+                      : (iconArea.pressed ? hifi.colors.white : hifi.colors.lightGrayText))
             anchors {
                 left: parent ? parent.left : undefined
                 leftMargin: hifi.dimensions.tablePadding / 2
+            }
+            MouseArea {
+                id: iconArea
+                anchors.fill: parent
+                propagateComposedEvents: true
             }
         }
 

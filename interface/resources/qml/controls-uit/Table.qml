@@ -133,13 +133,14 @@ TableView {
             HiFiGlyphs {
                 id: reloadButton
                 text: hifi.glyphs.reloadSmall
-                color: parent.color
+                color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
                 anchors {
                     top: parent.top
                     right: stopButton.left
                     verticalCenter: parent.verticalCenter
                 }
                 MouseArea {
+                    id: reloadButtonArea
                     anchors { fill: parent; margins: -2 }
                     onClicked: reloadScript(model.url)
                 }
@@ -149,13 +150,14 @@ TableView {
             HiFiGlyphs {
                 id: stopButton
                 text: hifi.glyphs.closeSmall
-                color: parent.color
+                color: stopButtonArea.pressed ? hifi.colors.white : parent.color
                 anchors {
                     top: parent.top
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
                 MouseArea {
+                    id: stopButtonArea
                     anchors { fill: parent; margins: -2 }
                     onClicked: stopScript(model.url)
                 }
