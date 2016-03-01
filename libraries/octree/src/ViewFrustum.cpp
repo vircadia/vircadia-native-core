@@ -440,27 +440,6 @@ void ViewFrustum::printDebugDetails() const {
     qCDebug(octree, "_focalLength=%f", (double)_focalLength);
 }
 
-glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
-
-    glm::vec4 pointVec4 = glm::vec4(point, 1.0f);
-    glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
-    pointInView = (projectedPointVec4.w > 0.0f); // math! If the w result is negative then the point is behind the viewer
-
-    // what happens with w is 0???
-    float x = projectedPointVec4.x / projectedPointVec4.w;
-    float y = projectedPointVec4.y / projectedPointVec4.w;
-    glm::vec2 projectedPoint(x,y);
-
-    // if the point is out of view we also need to flip the signs of x and y
-    if (!pointInView) {
-        projectedPoint.x = -x;
-        projectedPoint.y = -y;
-    }
-
-    return projectedPoint;
-}
-
-
 const int MAX_POSSIBLE_COMBINATIONS = 43;
 
 const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
@@ -535,70 +514,6 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 //42
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
-
-OctreeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
-    const glm::vec3& bottomNearRight = box.getCorner();
-    glm::vec3 topFarLeft = box.calcTopFarLeft();
-
-    int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
-               + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
-               + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
-               + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
-               + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
-               + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
-
-    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
-
-    OctreeProjectedPolygon projectedPolygon(vertexCount);
-
-    bool pointInView = true;
-    bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
-    bool anyPointsInView = false; // assume the worst!
-    if (vertexCount) {
-        allPointsInView = true; // assume the best!
-        for(int i = 0; i < vertexCount; i++) {
-            int vertexNum = hullVertexLookup[lookUp][i+1];
-            glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
-            glm::vec2 projectedPoint = projectPoint(point, pointInView);
-            allPointsInView = allPointsInView && pointInView;
-            anyPointsInView = anyPointsInView || pointInView;
-            projectedPolygon.setVertex(i, projectedPoint);
-        }
-
-        /***
-        // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
-        // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
-        // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
-        if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
-             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
-             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
-             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
-
-            CoverageRegion::_clippedPolygons++;
-
-            glm::vec2* clippedVertices;
-            int        clippedVertexCount;
-            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
-
-            // Now reset the vertices of our projectedPolygon object
-            projectedPolygon.setVertexCount(clippedVertexCount);
-            for(int i = 0; i < clippedVertexCount; i++) {
-                projectedPolygon.setVertex(i, clippedVertices[i]);
-            }
-            delete[] clippedVertices;
-
-            lookUp += PROJECTION_CLIPPED;
-        }
-        ***/
-    }
-    // set the distance from our camera position, to the closest vertex
-    float distance = glm::distance(getPosition(), box.calcCenter());
-    projectedPolygon.setDistance(distance);
-    projectedPolygon.setAnyInView(anyPointsInView);
-    projectedPolygon.setAllInView(allPointsInView);
-    projectedPolygon.setProjectionType(lookUp); // remember the projection type
-    return projectedPolygon;
-}
 
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for

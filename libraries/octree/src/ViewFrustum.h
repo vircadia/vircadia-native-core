@@ -122,8 +122,6 @@ public:
 
     void printDebugDetails() const;
 
-    glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
-    OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
