@@ -1067,14 +1067,21 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
         glm::mat4 rigToWorld = createMatFromQuatAndPos(modelRotation, modelTranslation);
         glm::mat4 worldToRig = glm::inverse(rigToWorld);
         glm::vec3 zAxis = glm::normalize(_internalPoseSet._absolutePoses[index].trans - transformPoint(worldToRig, lookAtSpot));
-        glm::quat q = rotationBetween(IDENTITY_FRONT, zAxis);
+
+        glm::quat desiredQuat = rotationBetween(IDENTITY_FRONT, zAxis);
+        glm::quat headQuat;
+        int headIndex = _animSkeleton->nameToJointIndex("Head");
+        if (headIndex >= 0) {
+            headQuat = _internalPoseSet._absolutePoses[headIndex].rot;
+        }
+        glm::quat deltaQuat = desiredQuat * glm::inverse(headQuat);
 
         // limit rotation
         const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
-        q = glm::angleAxis(glm::clamp(glm::angle(q), -MAX_ANGLE, MAX_ANGLE), glm::axis(q));
+        deltaQuat = glm::angleAxis(glm::clamp(glm::angle(deltaQuat), -MAX_ANGLE, MAX_ANGLE), glm::axis(deltaQuat));
 
         // directly set absolutePose rotation
-        _internalPoseSet._absolutePoses[index].rot = q;
+        _internalPoseSet._absolutePoses[index].rot = deltaQuat * headQuat;
     }
 }
 
