@@ -77,6 +77,12 @@ Item {
         readonly property color sliderLightFinish: "#afafaf"
         readonly property color sliderDarkStart: "#7d7d7d"
         readonly property color sliderDarkFinish: "#6b6a6b"
+        readonly property color dropDownPressedLight: "#d4d4d4"
+        readonly property color dropDownPressedDark: "#afafaf"
+        readonly property color dropDownLightStart: "#ffffff"
+        readonly property color dropDownLightFinish: "#afafaf"
+        readonly property color dropDownDarkStart: "#7d7d7d"
+        readonly property color dropDownDarkFinish: "#6b6a6b"
     }
 
     Item {

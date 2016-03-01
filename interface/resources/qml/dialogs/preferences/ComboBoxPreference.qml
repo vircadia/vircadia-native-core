@@ -1,37 +1,42 @@
+//
+//  ComboBoxPreference.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
-import QtQuick.Controls 1.4
-import QtQuick.Controls.Styles 1.4
+
+import "../../controls-uit"
 
 Preference {
     id: root
-    property real spacing: 8
-    height: labelText.height + dataComboBox.height + spacing
+    property alias comboBox: comboBox
+    height: comboBox.controlHeight
 
     Component.onCompleted: {
-        dataComboBox.currentIndex = dataComboBox.find(preference.value);
+        comboBox.currentIndex = comboBox.find(preference.value);
     }
 
     function save() {
-        preference.value = dataComboBox.currentText;
+        preference.value = comboBox.currentText;
         preference.save();
     }
 
-    Text {
-        id: labelText
-        color: enabled ? "black" : "gray"
-        text: root.label
+    Label {
+        text: root.label + ":"
+        colorScheme: hifi.colorSchemes.dark
+        anchors.verticalCenter: comboBox.verticalCenter
     }
 
     ComboBox {
-        id: dataComboBox
+        id: comboBox
         model: preference.items
-        style: ComboBoxStyle { renderType: Text.QtRendering }
-        anchors {
-            top: labelText.bottom
-            left: parent.left
-            right: parent.right
-            topMargin: root.spacing
-            rightMargin: root.spacing
-        }
+        width: 150
+        anchors { right: parent.right }
+        colorScheme: hifi.colorSchemes.dark
     }
 }
