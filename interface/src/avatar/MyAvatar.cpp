@@ -1766,25 +1766,6 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
     return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
-#if 0
-// derive avatar body position and orientation from the current HMD Sensor location.
-// results are in sensor space
-glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
-    if (_rig) {
-        // orientation
-        const glm::quat hmdOrientation = getHMDSensorOrientation();
-        const glm::quat yaw = cancelOutRollAndPitch(hmdOrientation);
-        // position
-        // we flip about yAxis when going from "root" to "avatar" frame
-        // and we must also apply "yaw" to get into HMD frame
-        glm::quat rotY180 = glm::angleAxis((float)M_PI, glm::vec3(0.0f, 1.0f, 0.0f));
-        glm::vec3 eyesInAvatarFrame = rotY180 * yaw * _rig->getEyesInRootFrame();
-        glm::vec3 bodyPos = getHMDSensorPosition() - eyesInAvatarFrame;
-        return createMatFromQuatAndPos(yaw, bodyPos);
-    }
-    return glm::mat4();
-}
-#else
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
@@ -1825,7 +1806,6 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     return createMatFromQuatAndPos(hmdOrientationYawOnly, bodyPos);
 }
-#endif
 
 glm::vec3 MyAvatar::getPositionForAudio() {
     switch (_audioListenerMode) {
