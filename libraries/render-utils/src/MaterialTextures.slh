@@ -23,7 +23,7 @@ vec4 fetchAlbedoMap(vec2 uv) {
 <@if withRoughness@>
 uniform sampler2D roughnessMap;
 float fetchRoughnessMap(vec2 uv) {
-    return pow(texture(roughnessMap, uv).r, 2.2);
+    return (texture(roughnessMap, uv).r);
 }
 <@endif@>
 
@@ -37,7 +37,7 @@ vec3 fetchNormalMap(vec2 uv) {
 <@if withMetallic@>
 uniform sampler2D specularMap;
 float fetchMetallicMap(vec2 uv) {
-    return pow(texture(specularMap, uv).r, 2.2);
+    return (texture(specularMap, uv).r);
 }
 <@endif@>
 

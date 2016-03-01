@@ -37,7 +37,7 @@ vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float m
     float power = specularDistribution(roughness, fragNormal, halfDir);
     vec3 specular = power * fresnelColor * diffuse;
 
-    return vec4(specular, diffuse * (1 - fresnelColor.x));
+    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
 }
 <@endfunc@>
 

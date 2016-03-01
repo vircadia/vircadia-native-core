@@ -593,8 +593,8 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
                     theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
                     f++;
                 }
-                
-                // GEnerate irradiance while we are at it
+
+                // Generate irradiance while we are at it
                 theTexture->generateIrradiance();
             }
     }

@@ -277,7 +277,7 @@ public:
     const TextureMaps& getTextureMaps() const { return _textureMaps; }
 
     // conversion from legacy material properties to PBR equivalent
-    static float shininessToRoughness(float shininess) { return 1.0f - shininess / 128.0f; }
+    static float shininessToRoughness(float shininess) { return 1.0f - shininess / 100.0f; }
 
 protected:
 

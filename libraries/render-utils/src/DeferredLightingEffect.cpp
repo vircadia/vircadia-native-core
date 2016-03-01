@@ -320,18 +320,19 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                 // Setup the global directional pass pipeline
                 {
                     if (_shadowMapEnabled) {
-                    /*    if (_skyboxTexture) {
+                        //if (_skyboxTexture) {
+                        if (_skyboxTexture) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
-                        } else*/ {
+                        } else {
                             program = _directionalAmbientSphereLightShadow;
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
                     } else {
-                       /* if (_skyboxTexture) {
+                        if (_skyboxTexture) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
-                        } else*/ {
+                        } else {
                             program = _directionalAmbientSphereLight;
                             locations = _directionalAmbientSphereLightLocations;
                         }
@@ -501,8 +502,9 @@ void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBuff
         batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
     }
 
-    if (_skyboxTexture && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, _skyboxTexture);
+   // if (_skyboxTexture && (skyboxCubemapUnit >= 0)) {
+    if (globalLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, globalLight->getAmbientMap());
     }
 }
 
@@ -569,10 +571,12 @@ void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, co
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
 
-    _skyboxTexture = skyboxTexture;
+  //  _skyboxTexture = skyboxTexture;
+    _skyboxTexture = (light->getAmbientMap() ? light->getAmbientMap() : _skyboxTexture);
 
     // Update the available mipmap levels
-    globalLight->setAmbientMapNumMips((_skyboxTexture ? _skyboxTexture->evalNumMips() : 0));
+    globalLight->setAmbientMap((light->getAmbientMap() ? light->getAmbientMap() : _skyboxTexture));
+   // globalLight->setAmbientMapNumMips((_skyboxTexture ? _skyboxTexture->evalNumMips() : 0));
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

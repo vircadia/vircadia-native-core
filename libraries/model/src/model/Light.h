@@ -108,6 +108,9 @@ public:
     const gpu::SphericalHarmonics& getAmbientSphere() const { return getSchema()._ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
 
+    void setAmbientMap(gpu::TexturePointer ambientMap);
+    gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
+
     void setAmbientMapNumMips(int numMips);
     int getAmbientMapNumMips() const { return getSchema()._ambientMapNumMips; }
 
@@ -123,7 +126,7 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
-        int _ambientMapNumMips{ 0 };
+        float _ambientMapNumMips{ 0 };
         Vec3 _control{ 0.0f, 0.0f, 0.0f };
 
         gpu::SphericalHarmonics _ambientSphere;
@@ -136,6 +139,8 @@ protected:
     Flags _flags{ 0 };
     UniformBufferView _schemaBuffer;
     Transform _transform;
+
+    gpu::TexturePointer _ambientMap;
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }

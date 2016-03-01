@@ -141,6 +141,15 @@ void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
     editSchema()._ambientSphere.assignPreset(preset);
 }
 
+void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
+    _ambientMap = ambientMap;
+    if (ambientMap) {
+        setAmbientMapNumMips(_ambientMap->evalNumMips());
+    } else {
+        setAmbientMapNumMips(0);
+    }
+}
+
 void Light::setAmbientMapNumMips(int numMips) {
-    editSchema()._ambientMapNumMips = numMips;
+    editSchema()._ambientMapNumMips = (float)numMips;
 }

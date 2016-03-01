@@ -325,6 +325,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             _pendingAmbientTexture = false;
             if (_ambientTexture->getGPUTexture()->getIrradiance()) {
                 sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
+                sceneKeyLight->setAmbientMap(_ambientTexture->getGPUTexture());
                 isAmbientTextureSet = true;
             }
         } else {
@@ -360,6 +361,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                     _pendingSkyboxTexture = false;
                     if (!isAmbientTextureSet && texture->getIrradiance()) {
                         sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                        sceneKeyLight->setAmbientMap(texture);
                         isAmbientTextureSet = true;
                     }
                 } else {
