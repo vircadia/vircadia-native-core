@@ -98,6 +98,8 @@ void DomainHandler::softReset() {
 }
 
 void DomainHandler::hardReset() {
+    emit resetting();
+
     softReset();
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
