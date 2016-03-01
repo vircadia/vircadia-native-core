@@ -273,6 +273,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
         if (_hasPreviousZone) {
             sceneKeyLight->resetAmbientSphere();
+            sceneKeyLight->setAmbientMap(nullptr);
             sceneKeyLight->setColor(_previousKeyLightColor);
             sceneKeyLight->setIntensity(_previousKeyLightIntensity);
             sceneKeyLight->setAmbientIntensity(_previousKeyLightAmbientIntensity);
@@ -383,6 +384,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
 
     if (!isAmbientTextureSet) {
         sceneKeyLight->resetAmbientSphere();
+        sceneKeyLight->setAmbientMap(nullptr);
     }
 }
 
