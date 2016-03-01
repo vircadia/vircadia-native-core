@@ -12,10 +12,13 @@
 #include <memory>
 
 #include <QtCore/QDataStream>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
 #include <QtCore/QMap>
 #include <QtCore/QStringList>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
@@ -60,13 +63,12 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
     updateReciever(updateReceiver),
     updateSlot(updateSlot)
 {
+    
 }
 
 AccountManager::AccountManager() :
     _authURL(),
-    _pendingCallbackMap(),
-    _accountInfo(),
-    _shouldPersistToSettingsFile(true)
+    _pendingCallbackMap()
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -80,9 +82,6 @@ AccountManager::AccountManager() :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-    
-    // once we have a profile in account manager make sure we generate a new keypair
-    connect(this, &AccountManager::profileChanged, this, &AccountManager::generateNewKeypair);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -93,16 +92,9 @@ void AccountManager::logout() {
 
     emit balanceChanged(0);
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-    
-    if (_shouldPersistToSettingsFile) {
-        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        Setting::Handle<DataServerAccountInfo>(path).remove();
-        
-        qCDebug(networking) << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
-    } else {
-        qCDebug(networking) << "Cleared data server account info in account manager.";
-    }
+
+    // remove this account from the account settings file
+    removeAccountFromFile();
 
     emit logoutComplete();
     // the username has changed to blank
@@ -124,35 +116,87 @@ void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
     emit balanceChanged(newBalance);
 }
 
+QString accountFileDir() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+}
+
+QString accountFilePath() {
+    return accountFileDir() + "/AccountInfo.bin";
+}
+
+QVariantMap accountMapFromFile(bool& success) {
+    QFile accountFile { accountFilePath() };
+
+    if (accountFile.open(QIODevice::ReadOnly)) {
+        // grab the current QVariantMap from the settings file
+        QDataStream readStream(&accountFile);
+        QVariantMap accountMap;
+
+        readStream >> accountMap;
+
+        // close the file now that we have read the data
+        accountFile.close();
+
+        success = true;
+
+        return accountMap;
+    } else {
+        // failed to open file, return empty QVariantMap
+        // there was only an error if the account file existed when we tried to load it
+        success = !accountFile.exists();
+
+        return QVariantMap();
+    }
+}
+
 void AccountManager::setAuthURL(const QUrl& authURL) {
     if (_authURL != authURL) {
         _authURL = authURL;
 
         qCDebug(networking) << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
         
-        if (_shouldPersistToSettingsFile) {
+        // check if there are existing access tokens to load from settings
+        QFile accountsFile { accountFilePath() };
+        bool loadedMap = false;
+        auto accountsMap = accountMapFromFile(loadedMap);
+
+        if (accountsFile.exists() && loadedMap) {
+            // pull out the stored account info and store it in memory
+            _accountInfo = accountsMap[_authURL.toString()].value<DataServerAccountInfo>();
+
+            qCDebug(networking) << "Found metaverse API account information for" << qPrintable(_authURL.toString());
+        } else {
+            // we didn't have a file - see if we can migrate old settings and store them in the new file
+
             // check if there are existing access tokens to load from settings
             Settings settings;
             settings.beginGroup(ACCOUNTS_GROUP);
-            
+
             foreach(const QString& key, settings.allKeys()) {
                 // take a key copy to perform the double slash replacement
                 QString keyCopy(key);
                 QUrl keyURL(keyCopy.replace(DOUBLE_SLASH_SUBSTITUTE, "//"));
-                
+
                 if (keyURL == _authURL) {
                     // pull out the stored access token and store it in memory
                     _accountInfo = settings.value(key).value<DataServerAccountInfo>();
-                    qCDebug(networking) << "Found a data-server access token for" << qPrintable(keyURL.toString());
-                    
-                    // profile info isn't guaranteed to be saved too
-                    if (_accountInfo.hasProfile()) {
-                        emit profileChanged();
-                    } else {
-                        requestProfile();
-                    }
+
+                    qCDebug(networking) << "Migrated an access token for" << qPrintable(keyURL.toString())
+                        <<  "from previous settings file";
                 }
             }
+
+            if (_accountInfo.getAccessToken().token.isEmpty()) {
+                qCWarning(networking) << "Unable to load account file. No existing account settings will be loaded.";
+            } else {
+                // persist the migrated settings to file
+                persistAccountToFile();
+            }
+        }
+
+        if (_isAgent && !_accountInfo.getAccessToken().token.isEmpty() && !_accountInfo.hasProfile()) {
+            // we are missing profile information, request it now
+            requestProfile();
         }
 
         // tell listeners that the auth endpoint has changed
@@ -299,9 +343,11 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
 
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received JSON response from data-server that has no matching callback.";
+            qCDebug(networking) << "Received JSON response from metaverse API that has no matching callback.";
             qCDebug(networking) << QJsonDocument::fromJson(requestReply->readAll());
         }
+
+        requestReply->deleteLater();
     }
 }
 
@@ -317,20 +363,72 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
         _pendingCallbackMap.remove(requestReply);
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
-            qCDebug(networking) << "Received error response from data-server that has no matching callback.";
+            qCDebug(networking) << "Received error response from metaverse API that has no matching callback.";
             qCDebug(networking) << "Error" << requestReply->error() << "-" << requestReply->errorString();
             qCDebug(networking) << requestReply->readAll();
         }
+
+        requestReply->deleteLater();
     }
 }
 
-void AccountManager::persistAccountToSettings() {
-    if (_shouldPersistToSettingsFile) {
-        // store this access token into the local settings
-        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-        QStringList path = QStringList() << ACCOUNTS_GROUP << keyURLString;
-        Setting::Handle<QVariant>(path).set(QVariant::fromValue(_accountInfo));
+bool writeAccountMapToFile(const QVariantMap& accountMap) {
+    // re-open the file and truncate it
+    QFile accountFile { accountFilePath() };
+
+    // make sure the directory that will hold the account file exists
+    QDir accountFileDirectory { accountFileDir() };
+    accountFileDirectory.mkpath(".");
+
+    if (accountFile.open(QIODevice::WriteOnly)) {
+        QDataStream writeStream(&accountFile);
+
+        // persist the updated account QVariantMap to file
+        writeStream << accountMap;
+
+        // close the file with the newly persisted settings
+        accountFile.close();
+
+        return true;
+    } else {
+        return false;
     }
+}
+
+void AccountManager::persistAccountToFile() {
+
+    qCDebug(networking) << "Persisting AccountManager accounts to" << accountFilePath();
+
+    bool wasLoaded = false;
+    auto accountMap = accountMapFromFile(wasLoaded);
+
+    if (wasLoaded) {
+        // replace the current account information for this auth URL in the account map
+        accountMap[_authURL.toString()] = QVariant::fromValue(_accountInfo);
+
+        // re-open the file and truncate it
+        if (writeAccountMapToFile(accountMap)) {
+            return;
+        }
+    }
+
+    qCWarning(networking) << "Could not load accounts file - unable to persist account information to file.";
+}
+
+void AccountManager::removeAccountFromFile() {
+    bool wasLoaded = false;
+    auto accountMap = accountMapFromFile(wasLoaded);
+
+    if (wasLoaded) {
+        accountMap.remove(_authURL.toString());
+        if (writeAccountMapToFile(accountMap)) {
+            qCDebug(networking) << "Removed account info for" << _authURL << "from settings file.";
+            return;
+        }
+    }
+
+    qCWarning(networking) << "Count not load accounts file - unable to remove account information for" << _authURL
+        << "from settings file.";
 }
 
 bool AccountManager::hasValidAccessToken() {
@@ -359,16 +457,19 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken) {
-    // clear our current DataServerAccountInfo
-    _accountInfo = DataServerAccountInfo();
-    
-    // start the new account info with a new OAuthAccessToken
+    // replace the account info access token with a new OAuthAccessToken
     OAuthAccessToken newOAuthToken;
     newOAuthToken.token = accessToken;
-    
-    qCDebug(networking) << "Setting new account manager access token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
+
+    if (!accessToken.isEmpty()) {
+        qCDebug(networking) << "Setting new AccountManager OAuth token. F2C:" << accessToken.left(2) << "L2C:" << accessToken.right(2);
+    } else if (!_accountInfo.getAccessToken().token.isEmpty()) {
+        qCDebug(networking) << "Clearing AccountManager OAuth token.";
+    }
     
     _accountInfo.setAccessToken(newOAuthToken);
+
+    persistAccountToFile();
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
@@ -423,7 +524,7 @@ void AccountManager::requestAccessTokenFinished() {
 
             emit loginComplete(rootURL);
             
-            persistAccountToSettings();
+            persistAccountToFile();
 
             requestProfile();
         }
@@ -469,7 +570,7 @@ void AccountManager::requestProfileFinished() {
         emit usernameChanged(_accountInfo.getUsername());
 
         // store the whole profile into the local settings
-        persistAccountToSettings();
+        persistAccountToFile();
         
     } else {
         // TODO: error handling
@@ -482,57 +583,141 @@ void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
     qCDebug(networking) << "AccountManager requestProfileError - " << error;
 }
 
-void AccountManager::generateNewKeypair() {
-    // setup a new QThread to generate the keypair on, in case it takes a while
-    QThread* generateThread = new QThread(this);
-    generateThread->setObjectName("Account Manager Generator Thread");
-    
-    // setup a keypair generator
-    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();
-    
-    connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
-    connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
-    connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
-            this, &AccountManager::handleKeypairGenerationError);
-    connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
-    connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
-    
-    keypairGenerator->moveToThread(generateThread);
-    
-    qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA key-pair.";
-    generateThread->start();
+void AccountManager::generateNewKeypair(bool isUserKeypair, const QUuid& domainID) {
+
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "generateNewKeypair", Q_ARG(bool, isUserKeypair), Q_ARG(QUuid, domainID));
+        return;
+    }
+
+    if (!isUserKeypair && domainID.isNull()) {
+        qCWarning(networking) << "AccountManager::generateNewKeypair called for domain keypair with no domain ID. Will not generate keypair.";
+        return;
+    }
+
+    // make sure we don't already have an outbound keypair generation request
+    if (!_isWaitingForKeypairResponse) {
+        _isWaitingForKeypairResponse = true;
+
+        // clear the current private key
+        qDebug() << "Clearing current private key in DataServerAccountInfo";
+        _accountInfo.setPrivateKey(QByteArray());
+
+        // setup a new QThread to generate the keypair on, in case it takes a while
+        QThread* generateThread = new QThread(this);
+        generateThread->setObjectName("Account Manager Generator Thread");
+
+        // setup a keypair generator
+        RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator;
+
+        if (!isUserKeypair) {
+            keypairGenerator->setDomainID(domainID);
+            _accountInfo.setDomainID(domainID);
+        }
+
+        // start keypair generation when the thread starts
+        connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
+
+        // handle success or failure of keypair generation
+        connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
+        connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
+                this, &AccountManager::handleKeypairGenerationError);
+
+        connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
+        connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
+
+        keypairGenerator->moveToThread(generateThread);
+        
+        qCDebug(networking) << "Starting worker thread to generate 2048-bit RSA keypair.";
+        generateThread->start();
+    }
 }
 
-void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey) {
+void AccountManager::processGeneratedKeypair() {
     
-    qCDebug(networking) << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
-    
-    // set the private key on our data-server account info
-    _accountInfo.setPrivateKey(privateKey);
-    persistAccountToSettings();
-    
-    // upload the public key so data-web has an up-to-date key
-    const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
-    
-    // setup a multipart upload to send up the public key
-    QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    
-    QHttpPart keyPart;
-    keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                      QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
-    keyPart.setBody(publicKey);
-    
-    requestMultiPart->append(keyPart);
-    
-    sendRequest(PUBLIC_KEY_UPDATE_PATH, AccountManagerAuth::Required, QNetworkAccessManager::PutOperation,
-                JSONCallbackParameters(), QByteArray(), requestMultiPart);
-    
-    // get rid of the keypair generator now that we don't need it anymore
-    sender()->deleteLater();
+    qCDebug(networking) << "Generated 2048-bit RSA keypair. Uploading public key now.";
+
+    RSAKeypairGenerator* keypairGenerator = qobject_cast<RSAKeypairGenerator*>(sender());
+
+    if (keypairGenerator) {
+        // hold the private key to later set our metaverse API account info if upload succeeds
+        _pendingPrivateKey = keypairGenerator->getPrivateKey();
+
+        // upload the public key so data-web has an up-to-date key
+        const QString USER_PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+        const QString DOMAIN_PUBLIC_KEY_UPDATE_PATH = "api/v1/domains/%1/public_key";
+
+        QString uploadPath;
+        if (keypairGenerator->getDomainID().isNull()) {
+            uploadPath = USER_PUBLIC_KEY_UPDATE_PATH;
+        } else {
+            uploadPath = DOMAIN_PUBLIC_KEY_UPDATE_PATH.arg(uuidStringWithoutCurlyBraces(keypairGenerator->getDomainID()));
+        }
+
+        // setup a multipart upload to send up the public key
+        QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+        QHttpPart keyPart;
+        keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+        keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                          QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+        keyPart.setBody(keypairGenerator->getPublicKey());
+
+        requestMultiPart->append(keyPart);
+
+        // setup callback parameters so we know once the keypair upload has succeeded or failed
+        JSONCallbackParameters callbackParameters;
+        callbackParameters.jsonCallbackReceiver = this;
+        callbackParameters.jsonCallbackMethod = "publicKeyUploadSucceeded";
+        callbackParameters.errorCallbackReceiver = this;
+        callbackParameters.errorCallbackMethod = "publicKeyUploadFailed";
+
+        sendRequest(uploadPath, AccountManagerAuth::Optional, QNetworkAccessManager::PutOperation,
+                    callbackParameters, QByteArray(), requestMultiPart);
+        
+        keypairGenerator->deleteLater();
+    } else {
+        qCWarning(networking) << "Expected processGeneratedKeypair to be called by a live RSAKeypairGenerator"
+            << "but the casted sender is NULL. Will not process generated keypair.";
+    }
+}
+
+void AccountManager::publicKeyUploadSucceeded(QNetworkReply& reply) {
+    qDebug() << "Uploaded public key to Metaverse API. RSA keypair generation is completed.";
+
+    // public key upload complete - store the matching private key and persist the account to settings
+    _accountInfo.setPrivateKey(_pendingPrivateKey);
+    _pendingPrivateKey.clear();
+    persistAccountToFile();
+
+    // clear our waiting state
+    _isWaitingForKeypairResponse = false;
+
+    emit newKeypair();
+
+    // delete the reply object now that we are done with it
+    reply.deleteLater();
+}
+
+void AccountManager::publicKeyUploadFailed(QNetworkReply& reply) {
+    // the public key upload has failed
+    qWarning() << "Public key upload failed from AccountManager" << reply.errorString();
+
+    // we aren't waiting for a response any longer
+    _isWaitingForKeypairResponse = false;
+
+    // clear our pending private key
+    _pendingPrivateKey.clear();
+
+    // delete the reply object now that we are done with it
+    reply.deleteLater();
 }
 
 void AccountManager::handleKeypairGenerationError() {
-    // for now there isn't anything we do with this except get the worker thread to clean up
+    qCritical() << "Error generating keypair - this is likely to cause authentication issues.";
+
+    // reset our waiting state for keypair response
+    _isWaitingForKeypairResponse = false;
+
     sender()->deleteLater();
 }

@@ -778,7 +778,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
 function createTemporaryDomain() {
   swal({
     title: 'Create temporary place name',
-    text: "This will create a temporary place name and domain ID (valid for 30 days)"
+    text: "This will create a temporary place name and domain ID"
       + " so other users can easily connect to your domain.</br></br>"
       + "In order to make your domain reachable, this will also enable full automatic networking.",
     showCancelButton: true,
