@@ -12,6 +12,18 @@
 
     var TANK_SEARCH_RADIUS = 5;
 
+    var INTERSECT_COLOR = {
+        red: 255,
+        green: 0,
+        blue: 255
+    }
+
+    var NO_INTERSECT_COLOR = {
+        red: 0,
+        green: 255,
+        blue: 0
+    }
+
     function FishTank() {
         _this = this;
     }
@@ -127,6 +139,7 @@
         unload: function() {
             print(' UNLOAD')
             Script.update.disconnect(_this.update);
+            _this.overlayLineOff();
             if (baton) {
                 print('BATON RELEASE ')
                 baton.release(function() {});
@@ -139,51 +152,69 @@
             if (iOwn === false) {
                 return
             }
-            print('i am the owner!')
-                //do stuff
+            // print('i am the owner!')
+            //do stuff
             updateFish();
+            _this.seeIfOwnerIsLookingAtTheTank();
         },
-        debugLookSpot: null,
-        createDebugLookAtCube: function() {
-            var cubePosition = {
-                x: 0,
-                y: 0,
-                z: 0
-            };
-            var cubeSize = 0.03;
-            _this.debugLookAtCube = Overlays.addOverlay("cube", {
-                position: cubePosition,
-                size: cubeSize,
-                color: {
-                    red: 0,
-                    green: 255,
-                    blue: 0
-                },
-                alpha: 1,
-                solid: false
-            });
+
+        overlayLine: null,
+
+        overlayLineOn: function(closePoint, farPoint, color) {
+            print('closePoint:  ' + JSON.stringify(closePoint));
+            print('farPoint:  ' + JSON.stringify(farPoint));
+            if (_this.overlayLine === null) {
+                var lineProperties = {
+                    lineWidth: 5,
+                    start: closePoint,
+                    end: farPoint,
+                    color: color,
+                    ignoreRayIntersection: true, // always ignore this
+                    visible: true,
+                    alpha: 1
+                };
+                this.overlayLine = Overlays.addOverlay("line3d", lineProperties);
+
+            } else {
+                var success = Overlays.editOverlay(_this.overlayLine, {
+                    lineWidth: 5,
+                    start: closePoint,
+                    end: farPoint,
+                    color: color,
+                    visible: true,
+                    ignoreRayIntersection: true, // always ignore this
+                    alpha: 1
+                });
+            }
         },
-        updateDebugLookAtCube: function() {
-            var lookAt3D = HMD.getHUDLookAtPosition3D();
-            _this.lookAt3D = lookAt3D;
-            Overlays.editOverlay(_this.debugLookAtCube, {
-                position: lookAt3D
-            });
+
+        overlayLineOff: function() {
+            if (_this.overlayLine !== null) {
+                Overlays.deleteOverlay(this.overlayLine);
+            }
+            _this.overlayLine = null;
         },
-        seeIfOwnerIsLookingAtTheTank: function(origin,direction) {
-            // var cameraPosition = Camera.getPosition();
-            // var cameraOrientation = Camera.getOrientation();
+
+        overlayLineDistance: 3,
+
+        seeIfOwnerIsLookingAtTheTank: function() {
+            var cameraPosition = Camera.getPosition();
+            var cameraOrientation = Camera.getOrientation();
+
+            var front = Quat.getFront(cameraOrientation);
             var pickRay = {
-                origin: origin,
-                direction: direction
+                origin: cameraPosition,
+                direction: front
             };
-            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID], [])
 
-            if (intersection.intersects && intersection.entityID = _this.entityID) {
+            _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
 
-                print('looking at the tank!! ' + JSON.stringify(intersection.intersection));
+            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
 
-                var intersectionDistance = Vec3.distance(pickRay.origin, intersection.intersection);
+            // print('INTERSCTION::: ' + JSON.stringify(intersection));
+
+            if (intersection.intersects && intersection.entityID === _this.entityID) {
+                print('intersecting a tank')
             }
         }
 
@@ -284,7 +315,7 @@
 
 
         var fish = _this.fish;
-        print('how many fish do i find?' + fish.length)
+        // print('how many fish do i find?' + fish.length)
 
         if (fish.length === 0) {
             print('no fish...')
@@ -505,6 +536,9 @@
         _this.tankLocked = false;
     }
 
+    Script.scriptEnding.connect(function() {
+        Script.update.disconnect(_this.update);
+    })
 
     return new FishTank();
 });
