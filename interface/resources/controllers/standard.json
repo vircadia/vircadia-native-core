@@ -33,7 +33,9 @@
         { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
         { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
 
+        { "from": "Standard.LeftPrimaryThumb", "to": "Actions.CycleCamera" }, 
         { "from": "Standard.LeftSecondaryThumb", "to": "Actions.CycleCamera" }, 
+        { "from": "Standard.RightPrimaryThumb", "to": "Actions.ContextMenu" },
         { "from": "Standard.RightSecondaryThumb", "to": "Actions.ContextMenu" },
 
         { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
