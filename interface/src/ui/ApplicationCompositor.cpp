@@ -335,8 +335,20 @@ QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
 
 bool ApplicationCompositor::shouldCaptureMouse() const {
     // if we're in HMD mode, and some window of ours is active, but we're not currently showing a popup menu
-    return qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
+    return _allowMouseCapture && qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
 }
+
+void ApplicationCompositor::setAllowMouseCapture(bool capture) {
+    if (qApp->isHMDMode()) {
+        if (capture) {
+            qApp->showCursor(Qt::BlankCursor);
+        } else {
+            qApp->showCursor(Qt::ArrowCursor);
+        }
+    }
+    _allowMouseCapture = capture;
+}
+
 
 void ApplicationCompositor::handleLeaveEvent() {
 

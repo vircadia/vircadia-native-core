@@ -661,15 +661,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
+
 #ifdef Q_OS_MAC
-    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
-    _window->setCursor(Qt::BlankCursor);
+    auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
 #else
-    // On windows and linux, hiding the top level cursor also means it's invisible
-    // when hovering over the window menu, which is a pain, so only hide it for
-    // the GL surface
-    _glWidget->setCursor(Qt::BlankCursor);
+    // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+    // window menu, which is a pain, so only hide it for the GL surface
+    auto cursorTarget = _glWidget;
 #endif
+    cursorTarget->setCursor(Qt::BlankCursor);
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
@@ -979,6 +979,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
+}
+
+
+void Application::checkChangeCursor() {
+    QMutexLocker locker(&_changeCursorLock);
+    if (_cursorNeedsChanging) {
+#ifdef Q_OS_MAC
+        auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+#else
+        // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+        // window menu, which is a pain, so only hide it for the GL surface
+        auto cursorTarget = _glWidget;
+#endif
+        cursorTarget->setCursor(_desiredCursor);
+
+        _cursorNeedsChanging = false;
+    }
+}
+
+void Application::showCursor(const QCursor& cursor) {
+    QMutexLocker locker(&_changeCursorLock);
+    _desiredCursor = cursor;
+    _cursorNeedsChanging = true;
 }
 
 void Application::aboutToQuit() {
@@ -2430,6 +2453,9 @@ void Application::idle(uint64_t now) {
     if (_aboutToQuit) {
         return; // bail early, nothing to do here.
     }
+
+
+    checkChangeCursor();
 
     Stats::getInstance()->updateStats();
     AvatarInputs::getInstance()->update();

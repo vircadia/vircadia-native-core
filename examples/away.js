@@ -106,6 +106,12 @@ function goAway() {
     MyAvatar.setEnableMeshVisible(false);  // just for our own display, without changing point of view
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
+
+    // tell the Reticle, we want to stop capturing the mouse until we come back
+    Reticle.allowMouseCapture = false;
+    if (HMD.active) {
+        Reticle.visible = false;
+    }
 }
 function goActive() {
     if (!isAway) {
@@ -119,13 +125,20 @@ function goActive() {
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
     hideOverlay();
+
+    // tell the Reticle, we are ready to capture the mouse again and it should be visible
+    Reticle.allowMouseCapture = true;
+    Reticle.visible = true;
+    if (HMD.active) {
+        Reticle.position = HMD.getHUDLookAtPosition2D();
+    }
 }
 
 function maybeGoActive(event) {
     if (event.isAutoRepeat) {  // isAutoRepeat is true when held down (or when Windows feels like it)
         return;
     }
-    if (!isAway && (event.text === '.')) {
+    if (!isAway && (event.text == 'ESC')) {
         goAway();
     } else {
         goActive();
@@ -141,10 +154,8 @@ function maybeGoAway() {
         }
     }
 
-    // If the mouse has gone from captured, to non-captured state,
-    // then it likely means the person is still in the HMD, but has
-    // tabbed away from the application (meaning they don't have mouse 
-    // control) and they likely want to go into an away state
+    // If the mouse has gone from captured, to non-captured state, then it likely means the person is still in the HMD, but
+    // tabbed away from the application (meaning they don't have mouse control) and they likely want to go into an away state
     if (Reticle.mouseCaptured !== wasMouseCaptured) {
         wasMouseCaptured = !wasMouseCaptured;
         if (!wasMouseCaptured) {
