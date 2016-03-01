@@ -38,7 +38,7 @@
                 return;
             }
             // Check rotation of water can along it's z axis. If it's beyond a threshold, then start spraying water
-            _this.updateRayLine();
+            _this.castRay();
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
             var pitch = Quat.safeEulerAngles(rotation).x;
             if (pitch < _this.POUR_ANGLE_THRESHOLD) {
@@ -62,14 +62,26 @@
             // print("PITCH " + pitch);
         },
 
-        updateRayLine: function() { 
+        castRay: function() { 
             var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["position, rotation"]);
-            var end = Vec3.sum(spoutProps.position, Vec3.multiply(10, Quat.getFront(spoutProps.rotation)));
+            var direction =  Quat.getFront(spoutProps.rotation)
+            var end = Vec3.sum(spoutProps.position, Vec3.multiply(10, direction));
             Overlays.editOverlay(_this.rayCastLine, {
                 start: spoutProps.position,
                 end: end
             });
-            print("EBL ray line " + JSON.stringify(_this.rayCastLine))
+
+            var pickRay = {
+                origin: spoutProps.position,
+                direction: direction
+            };
+            var intersection = Entities.findRayIntersection(pickRay, true, _this.growableEntities);
+
+            if (intersection.intersects) {
+                print(intersection.properties.name)
+                print("intersection with growable object");
+            }
+
         },
 
 
@@ -132,6 +144,18 @@
 
         },
 
+        findGrowableEntities: function() {
+            _this.growableEntities = [];
+            var entities = Entities.findEntities(_this.position, 50);
+            entities.forEach( function(entity) {
+                var name = Entities.getEntityProperties(entity, "name").name;
+                if (name.length > 0 && name.indexOf("growable") !== -1) {
+                    _this.growableEntities.push(entity);
+                }
+            });
+
+        },
+
         preload: function(entityID) {
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
@@ -146,6 +170,7 @@
                 visible: true,
                 ignoreRayIntersection: true
             });
+            _this.findGrowableEntities();
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
                 var entities = Entities.findEntities(_this.position, 1);

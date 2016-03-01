@@ -35,7 +35,7 @@ var plantPosition = Vec3.sum(bowlPosition, {x: 0, y: plantDimensions.y/2, z: 0})
 var plant = Entities.addEntity({
   type: "Model",
   modelURL: PLANT_MODEL_URL,
-  name: "plant",
+  name: "hifi-growable-plant",
   dimensions: plantDimensions,
   position: plantPosition,
   parentID: bowl
