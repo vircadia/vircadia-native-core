@@ -304,51 +304,50 @@ static NetworkMesh* buildNetworkMesh(const FBXMesh& mesh, const QUrl& textureBas
     return networkMesh;
 }
 
-static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) {
+static model::TextureMapPointer setupNetworkTextureMap(const QUrl& textureBaseUrl,
+        const FBXTexture& texture, TextureType type,
+        NetworkTexturePointer& networkTexture, QString& networkTextureName) {
     auto textureCache = DependencyManager::get<TextureCache>();
-    NetworkMaterial* networkMaterial = new NetworkMaterial();
 
+    // If content is inline, cache it under the fbx file, not its base url
+    const auto baseUrl = texture.content.isEmpty() ? textureBaseUrl : QUrl(textureBaseUrl.url() + "/");
+    const auto filename = baseUrl.resolved(QUrl(texture.filename));
+
+    networkTexture = textureCache->getTexture(filename, type, texture.content);
+    networkTextureName = texture.name;
+
+    auto map = std::make_shared<model::TextureMap>();
+    map->setTextureSource(networkTexture->_textureSource);
+    return map;
+}
+
+static NetworkMaterial* buildNetworkMaterial(const FBXMaterial& material, const QUrl& textureBaseUrl) {
+    NetworkMaterial* networkMaterial = new NetworkMaterial();
     networkMaterial->_material = material._material;
 
     if (!material.diffuseTexture.filename.isEmpty()) {
-        networkMaterial->diffuseTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.diffuseTexture.filename)), DEFAULT_TEXTURE, material.diffuseTexture.content);
-        networkMaterial->diffuseTextureName = material.diffuseTexture.name;
-
-        auto diffuseMap = model::TextureMapPointer(new model::TextureMap());
-        diffuseMap->setTextureSource(networkMaterial->diffuseTexture->_textureSource);
+        auto diffuseMap = setupNetworkTextureMap(textureBaseUrl, material.diffuseTexture, DEFAULT_TEXTURE,
+            networkMaterial->diffuseTexture, networkMaterial->diffuseTextureName);
         diffuseMap->setTextureTransform(material.diffuseTexture.transform);
-
-        material._material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
+        networkMaterial->_material->setTextureMap(model::MaterialKey::DIFFUSE_MAP, diffuseMap);
     }
     if (!material.normalTexture.filename.isEmpty()) {
-        networkMaterial->normalTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.normalTexture.filename)), (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE), material.normalTexture.content);
-        networkMaterial->normalTextureName = material.normalTexture.name;
-
-        auto normalMap = model::TextureMapPointer(new model::TextureMap());
-        normalMap->setTextureSource(networkMaterial->normalTexture->_textureSource);
-
-        material._material->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
+        auto normalMap = setupNetworkTextureMap(textureBaseUrl, material.normalTexture,
+            (material.normalTexture.isBumpmap ? BUMP_TEXTURE : NORMAL_TEXTURE),
+            networkMaterial->normalTexture, networkMaterial->normalTextureName);
+        networkMaterial->_material->setTextureMap(model::MaterialKey::NORMAL_MAP, normalMap);
     }
     if (!material.specularTexture.filename.isEmpty()) {
-        networkMaterial->specularTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.specularTexture.filename)), SPECULAR_TEXTURE, material.specularTexture.content);
-        networkMaterial->specularTextureName = material.specularTexture.name;
-
-        auto glossMap = model::TextureMapPointer(new model::TextureMap());
-        glossMap->setTextureSource(networkMaterial->specularTexture->_textureSource);
-
-        material._material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
+        auto glossMap = setupNetworkTextureMap(textureBaseUrl, material.specularTexture, SPECULAR_TEXTURE,
+            networkMaterial->specularTexture, networkMaterial->specularTextureName);
+        networkMaterial->_material->setTextureMap(model::MaterialKey::GLOSS_MAP, glossMap);
     }
     if (!material.emissiveTexture.filename.isEmpty()) {
-        networkMaterial->emissiveTexture = textureCache->getTexture(textureBaseUrl.resolved(QUrl(material.emissiveTexture.filename)), LIGHTMAP_TEXTURE, material.emissiveTexture.content);
-        networkMaterial->emissiveTextureName = material.emissiveTexture.name;
-
-
-        auto lightmapMap = model::TextureMapPointer(new model::TextureMap());
-        lightmapMap->setTextureSource(networkMaterial->emissiveTexture->_textureSource);
+        auto lightmapMap = setupNetworkTextureMap(textureBaseUrl, material.emissiveTexture, LIGHTMAP_TEXTURE,
+            networkMaterial->emissiveTexture, networkMaterial->emissiveTextureName);
         lightmapMap->setTextureTransform(material.emissiveTexture.transform);
         lightmapMap->setLightmapOffsetScale(material.emissiveParams.x, material.emissiveParams.y);
-
-        material._material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
+        networkMaterial->_material->setTextureMap(model::MaterialKey::LIGHTMAP_MAP, lightmapMap);
     }
 
     return networkMaterial;
