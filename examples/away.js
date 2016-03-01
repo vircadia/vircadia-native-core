@@ -17,13 +17,16 @@ var OVERLAY_WIDTH = 1920;
 var OVERLAY_HEIGHT = 1080;
 var OVERLAY_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT;
 var OVERLAY_DATA = {
+    width: OVERLAY_WIDTH,
+    height: OVERLAY_HEIGHT,
     imageURL: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
     color: {red: 255, green: 255, blue: 255},
     alpha: 1
 };
 
+var lastOverlayPosition = { x: 0, y: 0, z: 0};
 var OVERLAY_DATA_HMD = {
-    position: { x: 0, y: 0, z: 0},
+    position: lastOverlayPosition,
     width: OVERLAY_WIDTH,
     height: OVERLAY_HEIGHT,
     url: "http://hifi-content.s3.amazonaws.com/alan/production/images/images/Overlay-Viz-blank.png",
@@ -31,9 +34,8 @@ var OVERLAY_DATA_HMD = {
     alpha: 1,
     scale: 2,
     isFacingAvatar: true,
-    drawInFront: true
+    drawInFront: true   
 };
-
 
 // ANIMATION
 // We currently don't have play/stopAnimation integrated with the animation graph, but we can get the same effect
@@ -80,28 +82,39 @@ function stopAwayAnimation() {
 // OVERLAY
 var overlay = Overlays.addOverlay("image", OVERLAY_DATA);
 var overlayHMD = Overlays.addOverlay("image3d", OVERLAY_DATA_HMD);
+
+function moveCloserToCamera(positionAtHUD) {
+    // we don't actually want to render at the slerped look at... instead, we want to render
+    // slightly closer to the camera than that.
+    var MOVE_CLOSER_TO_CAMERA_BY = -0.25;
+    var cameraFront = Quat.getFront(Camera.orientation);
+    var closerToCamera = Vec3.multiply(cameraFront, MOVE_CLOSER_TO_CAMERA_BY); // slightly closer to camera
+    var slightlyCloserPosition = Vec3.sum(positionAtHUD, closerToCamera);
+
+    return slightlyCloserPosition;
+}
+
 function showOverlay() {
     var properties = {visible: true};
 
     if (HMD.active) {
-        Overlays.editOverlay(overlayHMD, { visible: true, position : HMD.getHUDLookAtPosition3D() });
-    } else {
-        // Update for current screen size, keeping overlay proportions constant.
-        var screen = Controller.getViewportDimensions(),
-        screenRatio = screen.x / screen.y;
+        // make sure desktop version is hidden
+        Overlays.editOverlay(overlay, { visible: false });
 
-        if (screenRatio < OVERLAY_RATIO) {
-            properties.width = screen.x;
-            properties.height = screen.x / OVERLAY_RATIO;
-            properties.x = 0;
-            properties.y = (screen.y - properties.height) / 2;
-        } else {
-            properties.height = screen.y;
-            properties.width = screen.y * OVERLAY_RATIO;
-            properties.y = 0;
-            properties.x = (screen.x - properties.width) / 2;
-        }
-        Overlays.editOverlay(overlay, properties);
+        lastOverlayPosition = HMD.getHUDLookAtPosition3D();
+        var actualOverlayPositon = moveCloserToCamera(lastOverlayPosition);
+        Overlays.editOverlay(overlayHMD, { visible: true, position: actualOverlayPositon });
+    } else {
+        // make sure HMD is hidden
+        Overlays.editOverlay(overlayHMD, { visible: false });
+
+        // Update for current screen size, keeping overlay proportions constant.
+        var screen = Controller.getViewportDimensions();
+
+        // keep the overlay it's natural size and always center it...
+        Overlays.editOverlay(overlay, { visible: true, 
+                    x: ((screen.x - OVERLAY_WIDTH) / 2), 
+                    y: ((screen.y - OVERLAY_HEIGHT) / 2) });
     }
 }
 function hideOverlay() {
@@ -111,8 +124,29 @@ function hideOverlay() {
 hideOverlay();
 
 function maybeMoveOverlay() {
-    if (HMD.active && isAway) {
-        Overlays.editOverlay(overlayHMD, { position : HMD.getHUDLookAtPosition3D() });
+    if (isAway) {
+        // if we switched from HMD to Desktop, make sure to hide our HUD overlay and show the
+        // desktop overlay
+        if (!HMD.active) {
+            showOverlay(); // this will also recenter appropriately
+        }
+
+        if (HMD.active) {
+            // Note: instead of moving it directly to the lookAt, we will move it slightly toward the
+            // new look at. This will result in a more subtle slerp toward the look at and reduce jerkiness
+            var EASE_BY_RATIO = 0.1;
+            var lookAt = HMD.getHUDLookAtPosition3D();
+            var lookAtChange = Vec3.subtract(lookAt, lastOverlayPosition);
+            var halfWayBetweenOldAndLookAt = Vec3.multiply(lookAtChange, EASE_BY_RATIO);
+            var newOverlayPosition = Vec3.sum(lastOverlayPosition, halfWayBetweenOldAndLookAt);
+            lastOverlayPosition = newOverlayPosition;
+
+            var actualOverlayPositon = moveCloserToCamera(lastOverlayPosition);
+            Overlays.editOverlay(overlayHMD, { visible: true, position: actualOverlayPositon });
+
+            // make sure desktop version is hidden
+            Overlays.editOverlay(overlay, { visible: false });
+        }
     }
 }
 
