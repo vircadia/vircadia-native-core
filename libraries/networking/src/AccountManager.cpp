@@ -12,6 +12,7 @@
 #include <memory>
 
 #include <QtCore/QDataStream>
+#include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -115,8 +116,12 @@ void AccountManager::accountInfoBalanceChanged(qint64 newBalance) {
     emit balanceChanged(newBalance);
 }
 
+QString accountFileDir() {
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+}
+
 QString accountFilePath() {
-    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/AccountInfo.bin";
+    return accountFileDir() + "/AccountInfo.bin";
 }
 
 QVariantMap accountMapFromFile(bool& success) {
@@ -370,6 +375,11 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
 bool writeAccountMapToFile(const QVariantMap& accountMap) {
     // re-open the file and truncate it
     QFile accountFile { accountFilePath() };
+
+    // make sure the directory that will hold the account file exists
+    QDir accountFileDirectory { accountFileDir() };
+    accountFileDirectory.mkpath(".");
+
     if (accountFile.open(QIODevice::WriteOnly)) {
         QDataStream writeStream(&accountFile);
 
