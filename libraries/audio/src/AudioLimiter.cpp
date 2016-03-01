@@ -133,7 +133,7 @@ static const int32_t exp2Table[1 << EXP2_TABBITS][3] = {
 // Count Leading Zeros
 // defined to match ARM CLZ and x86 LZCNT
 //
-static int CLZ(uint32_t x) {
+static inline int CLZ(uint32_t x) {
     int e = 0;
 
     if (x == 0) return 32;
@@ -167,7 +167,7 @@ static int CLZ(uint32_t x) {
 //
 // |error| < 347 ulp, smooth
 //
-static int32_t fixlog2(int32_t x) {
+static inline int32_t fixlog2(int32_t x) {
 
     // normalize to [0x80000000, 0xffffffff]
     int e = CLZ(x);
@@ -199,7 +199,7 @@ static const int IEEE754_EXPN_BIAS = 127;
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
 // x > 2^LOG2_HEADROOM undefined
 //
-static int32_t peaklog2(float* input) {
+static inline int32_t peaklog2(float* input) {
 
     // float as integer bits
     int32_t u = *(int32_t*)input;
@@ -233,7 +233,7 @@ static int32_t peaklog2(float* input) {
 // x < 2^(31-LOG2_HEADROOM) returns 0x7fffffff
 // x > 2^LOG2_HEADROOM undefined
 //
-static int32_t peaklog2(float* input0, float* input1) {
+static inline int32_t peaklog2(float* input0, float* input1) {
 
     // float as integer bits
     int32_t u0 = *(int32_t*)input0;
@@ -271,7 +271,7 @@ static int32_t peaklog2(float* input0, float* input1) {
 //
 // |error| < 1387 ulp, smooth
 //
-static int32_t fixexp2(int32_t x) {
+static inline int32_t fixexp2(int32_t x) {
 
     // split into e and 1.0 - x
     int32_t e = x >> LOG2_FRACBITS;
@@ -485,12 +485,6 @@ void LimiterImpl::setThreshold(float threshold) {
 
     const double OUT_CEILING = -0.3;
     const double Q31_TO_Q15 = 32768 / 2147483648.0;
-
-    // log2/exp2 self-test
-	assert(fixlog2(0x00000000) == (31 << LOG2_FRACBITS));
-	assert(fixlog2(0x7fffffff) == ( 0 << LOG2_FRACBITS) + 1);
-	assert(fixexp2(0x7fffffff) == 0x00000000);
-	assert(fixexp2(0x00000000) == 0x7fffffff);
 
     // limiter threshold = -48dB to 0dB
     threshold = MAX(threshold, -48.0f);
