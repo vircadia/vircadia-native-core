@@ -21,7 +21,7 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(originalTexture, _texCoord0);
+    vec4 albedo = texture(originalTexture, _texCoord0);
 
-    _fragColor = vec4(diffuse.rgb * _color, diffuse.a * _alpha);
+    _fragColor = vec4(albedo.rgb * _color, albedo.a * _alpha);
 }

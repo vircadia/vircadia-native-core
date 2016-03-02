@@ -370,7 +370,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<AutoUpdater>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceActionFactory>();
-    DependencyManager::set<AssetClient>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
@@ -528,13 +527,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     audioThread->start();
 
-    // Setup AssetClient
-    auto assetClient = DependencyManager::get<AssetClient>();
-    QThread* assetThread = new QThread;
-    assetThread->setObjectName("Asset Thread");
-    assetClient->moveToThread(assetThread);
-    connect(assetThread, &QThread::started, assetClient.data(), &AssetClient::init);
-    assetThread->start();
+    ResourceManager::init();
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::get<MessagesClient>();
@@ -547,11 +540,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
+    connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
-    connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -588,6 +580,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
     UserActivityLogger::getInstance().launch(applicationVersion());
 
@@ -644,13 +637,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&identityPacketTimer, &QTimer::timeout, getMyAvatar(), &MyAvatar::sendIdentityPacket);
     identityPacketTimer.start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);
 
-    QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-    QNetworkDiskCache* cache = new QNetworkDiskCache();
-    cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
-    cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
-    networkAccessManager.setCache(cache);
-
     ResourceCache::setRequestLimit(3);
 
     _glWidget = new GLCanvas();
@@ -661,15 +647,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
+
 #ifdef Q_OS_MAC
-    // OSX doesn't seem to provide for hiding the cursor only on the GL widget
-    _window->setCursor(Qt::BlankCursor);
+    auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
 #else
-    // On windows and linux, hiding the top level cursor also means it's invisible
-    // when hovering over the window menu, which is a pain, so only hide it for
-    // the GL surface
-    _glWidget->setCursor(Qt::BlankCursor);
+    // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+    // window menu, which is a pain, so only hide it for the GL surface
+    auto cursorTarget = _glWidget;
 #endif
+    cursorTarget->setCursor(Qt::BlankCursor);
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
@@ -903,9 +889,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     SpacemouseManager::getInstance().init();
 #endif
 
-    auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
-
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
@@ -979,6 +962,29 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // in the queue, which can be pretty damn frequent.  Hence the idle function has a bunch
     // of logic to abort early if it's being called too often.
     _idleTimer->start(0);
+}
+
+
+void Application::checkChangeCursor() {
+    QMutexLocker locker(&_changeCursorLock);
+    if (_cursorNeedsChanging) {
+#ifdef Q_OS_MAC
+        auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
+#else
+        // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the 
+        // window menu, which is a pain, so only hide it for the GL surface
+        auto cursorTarget = _glWidget;
+#endif
+        cursorTarget->setCursor(_desiredCursor);
+
+        _cursorNeedsChanging = false;
+    }
+}
+
+void Application::showCursor(const QCursor& cursor) {
+    QMutexLocker locker(&_changeCursorLock);
+    _desiredCursor = cursor;
+    _cursorNeedsChanging = true;
 }
 
 void Application::aboutToQuit() {
@@ -1062,13 +1068,6 @@ void Application::cleanupBeforeQuit() {
     DependencyManager::destroy<OffscreenUi>();
 }
 
-void Application::emptyLocalCache() {
-    if (auto cache = NetworkAccessManager::getInstance().cache()) {
-        qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
-        cache->clear();
-    }
-}
-
 Application::~Application() {
     EntityTreePointer tree = getEntities()->getTree();
     tree->setSimulation(NULL);
@@ -1106,11 +1105,7 @@ Application::~Application() {
     DependencyManager::destroy<ScriptCache>();
     DependencyManager::destroy<SoundCache>();
 
-    // cleanup the AssetClient thread
-    QThread* assetThread = DependencyManager::get<AssetClient>()->thread();
-    DependencyManager::destroy<AssetClient>();
-    assetThread->quit();
-    assetThread->wait();
+    ResourceManager::cleanup();
 
     QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
 
@@ -2431,6 +2426,9 @@ void Application::idle(uint64_t now) {
         return; // bail early, nothing to do here.
     }
 
+
+    checkChangeCursor();
+
     Stats::getInstance()->updateStats();
     AvatarInputs::getInstance()->update();
 
@@ -3055,7 +3053,7 @@ void Application::reloadResourceCaches() {
     _viewFrustum.setOrientation(glm::quat());
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
-    emptyLocalCache();
+    DependencyManager::get<AssetClient>()->clearCache();
 
     DependencyManager::get<AnimationCache>()->refreshAll();
     DependencyManager::get<ModelCache>()->refreshAll();
@@ -3818,7 +3816,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // Setup the current Zone Entity lighting
     {
         auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight(), stage->getSkybox()->getCubemap());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
     {
@@ -3954,37 +3952,13 @@ void Application::clearDomainOctreeDetails() {
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
-    _domainConnectionRefusals.clear();
     // disable physics until we have enough information about our new location to not cause craziness.
     _physicsEnabled = false;
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
-    // Read deny reason from packet
-    quint16 reasonSize;
-    message->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
 
-    // output to the log so the user knows they got a denied connection request
-    // and check and signal for an access token so that we can make sure they are logged in
-    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
-    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
-
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
-    }
-
-    AccountManager::getInstance().checkAndSignalForAccessToken();
-}
-
-void Application::connectedToDomain(const QString& hostname) {
-    AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainID = DependencyManager::get<NodeList>()->getDomainHandler().getUUID();
-
-    if (accountManager.isLoggedIn() && !domainID.isNull()) {
-        _notifiedPacketVersionMismatchThisDomain = false;
-    }
+void Application::resettingDomain() {
+    _notifiedPacketVersionMismatchThisDomain = false;
 }
 
 void Application::nodeAdded(SharedNodePointer node) {
@@ -4519,33 +4493,6 @@ void Application::openUrl(const QUrl& url) {
             QDesktopServices::openUrl(url);
         }
     }
-}
-
-void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
-    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
-    const QString VOXEL_SETTINGS_KEY = "voxels";
-    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
-    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
-    const QString VOXEL_WALLET_UUID = "voxel-wallet";
-
-    const QJsonObject& voxelObject = domainSettingsObject[VOXEL_SETTINGS_KEY].toObject();
-
-    qint64 satoshisPerVoxel = 0;
-    qint64 satoshisPerMeterCubed = 0;
-    QUuid voxelWalletUUID;
-
-    if (!domainSettingsObject.isEmpty()) {
-        float perVoxelCredits = (float) voxelObject[PER_VOXEL_COST_KEY].toDouble();
-        float perMeterCubedCredits = (float) voxelObject[PER_METER_CUBED_COST_KEY].toDouble();
-
-        satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
-        satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
-
-        voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
-    }
-
-    qCDebug(interfaceapp) << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
-    qCDebug(interfaceapp) << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 void Application::loadDialog() {

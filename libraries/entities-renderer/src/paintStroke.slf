@@ -15,7 +15,7 @@
 <@include DeferredBufferWrite.slh@>
 
 
-// the diffuse texture
+// the albedo texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal

@@ -43,12 +43,16 @@ class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
     AssetClient();
-    
-    Q_INVOKABLE void init();
 
     Q_INVOKABLE AssetRequest* createRequest(const QString& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
+
+public slots:
+    void init();
+
+    void cacheInfoRequest(QObject* reciever, QString slot);
+    void clearCache();
 
 private slots:
     void handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);

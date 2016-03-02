@@ -25,7 +25,7 @@
 WindowScriptingInterface::WindowScriptingInterface() {
     const DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::connectedToDomain, this, &WindowScriptingInterface::domainChanged);
-    connect(qApp, &Application::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
+    connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &WindowScriptingInterface::domainConnectionRefused);
 
     connect(qApp, &Application::svoImportRequested, [this](const QString& urlString) {
         static const QMetaMethod svoImportRequestedSignal =

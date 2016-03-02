@@ -50,7 +50,7 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& hmd) : controller::InputDevice("Vive"), _hmd(hmd) {}
+        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {}
     private:
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
@@ -58,19 +58,45 @@ private:
         virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
         virtual void focusOutEvent() override;
 
-        void handleButtonEvent(uint32_t button, bool pressed, bool left);
-        void handleAxisEvent(uint32_t axis, float x, float y, bool left);
-        void handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
-                             const vec3& linearVelocity, const vec3& angularVelocity, bool left);
+        void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
+        void handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand);
+        void handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand);
+        void handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, const mat4& mat,
+                             const vec3& linearVelocity, const vec3& angularVelocity, bool isLeftHand);
+
+        class FilteredStick {
+        public:
+            glm::vec2 process(float deltaTime, const glm::vec2& stick) {
+                // Use a timer to prevent the stick going to back to zero.
+                // This to work around the noisy touch pad that will flash back to zero breifly
+                const float ZERO_HYSTERESIS_PERIOD = 0.2f;  // 200 ms
+                if (glm::length(stick) == 0.0f) {
+                    if (_timer <= 0.0f) {
+                        return glm::vec2(0.0f, 0.0f);
+                    } else {
+                        _timer -= deltaTime;
+                        return _stick;
+                    }
+                } else {
+                    _timer = ZERO_HYSTERESIS_PERIOD;
+                    _stick = stick;
+                    return stick;
+                }
+            }
+        protected:
+            float _timer { 0.0f };
+            glm::vec2 _stick { 0.0f, 0.0f };
+        };
+
+        FilteredStick _filteredLeftStick;
+        FilteredStick _filteredRightStick;
 
         int _trackedControllers { 0 };
-        vr::IVRSystem*& _hmd;
+        vr::IVRSystem*& _system;
         friend class ViveControllerManager;
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-
-
 
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
@@ -81,8 +107,8 @@ private:
     int _rightHandRenderID { 0 };
 
     bool _renderControllers { false };
-    vr::IVRSystem* _hmd { nullptr };
-    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_hmd) };
+    vr::IVRSystem* _system { nullptr };
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>(_system) };
 
     static const QString NAME;
 

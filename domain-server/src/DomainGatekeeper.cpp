@@ -331,7 +331,6 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                                                 QCryptographicHash::Sha256);
         
         if (rsaPublicKey) {
-            QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
             int decryptResult = RSA_verify(NID_sha256,
                                            reinterpret_cast<const unsigned char*>(usernameWithToken.constData()),
                                            usernameWithToken.size(),

@@ -20,9 +20,7 @@
 <@include gpu/Transform.slh@>
 <$declareStandardCameraTransform()$>
 
-
-
-uniform sampler2D diffuseMap;
+uniform sampler2D albedoMap;
 
 in vec2 _texCoord0;
 in vec4 _position;
@@ -33,15 +31,16 @@ in float _alpha;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(diffuseMap, _texCoord0);
+    vec4 albedo = texture(albedoMap, _texCoord0);
 
     Material mat = getMaterial();
     vec3 fragPosition = _position.xyz;
     vec3 fragNormal = normalize(_normal);
-    vec3 fragDiffuse = getMaterialDiffuse(mat) * diffuse.rgb * _color;
-    vec3 fragSpecular = getMaterialSpecular(mat);
-    float fragGloss = getMaterialShininess(mat) / 128;
-    float fragOpacity = getMaterialOpacity(mat) * diffuse.a * _alpha;
+    vec3 fragAlbedo = getMaterialAlbedo(mat) * albedo.rgb * _color;
+    float fragMetallic = getMaterialMetallic(mat);
+    vec3 fragEmissive = getMaterialEmissive(mat);
+    float fragRoughness = getMaterialRoughness(mat);
+    float fragOpacity = getMaterialOpacity(mat) * albedo.a * _alpha;
 
     TransformCamera cam = getTransformCamera();
 
@@ -51,8 +50,9 @@ void main(void) {
         1.0,
         fragPosition,
         fragNormal,
-        fragDiffuse,
-        fragSpecular,
-        fragGloss),
+        fragAlbedo,
+        fragMetallic,
+        fragEmissive,
+        fragRoughness),
         fragOpacity);
 }

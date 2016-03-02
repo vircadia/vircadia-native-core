@@ -13,41 +13,55 @@
 
 
 <@func declareEvalPBRShading()@>
+
+vec3 fresnelSchlick(vec3 fresnelColor, vec3 lightDir, vec3 halfDir) {
+    return fresnelColor + (1.0 - fresnelColor) * pow(1.0 - clamp(dot(lightDir, halfDir), 0.0, 1.0), 5);
+}
+
+float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
+    float ndoth = clamp(dot(halfDir, normal), 0.0, 1.0);
+    float gloss2 = pow(0.001 + roughness, 4);
+    float denom = (ndoth * ndoth*(gloss2 - 1) + 1);
+    float power = gloss2 / (3.14159 * denom * denom);
+    return power;
+}
+<! //NOTE: ANother implementation for specularDistribution
+float specularDistribution(float roughness, vec3 normal, vec3 halfDir) {
+    float gloss = exp2(10 * (1.0 - roughness) + 1);
+    float power = pow(clamp(dot(halfDir, normal), 0.0, 1.0), gloss);
+    power *= (gloss * 0.125 + 0.25);
+    return power;
+}
+!>
 // Frag Shading returns the diffuse amount as W and the specular rgb as xyz
-vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
+vec4 evalPBRShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 fresnel, float roughness) {
     // Diffuse Lighting
-    float diffuseDot = dot(fragNormal, fragLightDir);
-    float facingLight = step(0.0, diffuseDot);
-    float diffuse = diffuseDot * facingLight;
- 
-    // Specular Lighting depends on the half vector and the gloss
+    float diffuse = clamp(dot(fragNormal, fragLightDir), 0.0, 1.0);
+    
+    // Specular Lighting
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
+    vec3 fresnelColor = fresnelSchlick(fresnel, fragLightDir,halfDir);
+    float power = specularDistribution(roughness, fragNormal, halfDir);
+    vec3 specular = power * fresnelColor * diffuse;
 
-    float specularPower = pow(max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
-    specularPower *= (gloss * 128.0 * 0.125 + 0.25);
-
-    float shlickPower = (1.0 - dot(fragLightDir,halfDir));
-    float shlickPower2 = shlickPower * shlickPower;
-    float shlickPower5 = shlickPower2 * shlickPower2 * shlickPower;
-    vec3 fresnel = specular * (1.0 - shlickPower5) + vec3(shlickPower5);
-    vec3 reflect = specularPower * fresnel * diffuse;
-
-    return vec4(reflect, diffuse * (1 - fresnel.x));
+    return vec4(specular, (1.0 - metallic) * diffuse * (1 - fresnelColor.x));
 }
 <@endfunc@>
 
 <@func declareEvalBlinnRShading()@>
 
-vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
+vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float roughness) {
     // Diffuse Lighting
     float diffuseDot = dot(fragNormal, fragLightDir);
     float facingLight = step(0.0, diffuseDot);
     float diffuse = diffuseDot * facingLight;
  
-    // Specular Lighting depends on the half vector and the gloss
+    // Specular Lighting depends on the half vector and the roughness
     vec3 halfDir = normalize(fragEyeDir + fragLightDir);
 
-    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss * 128.0);
+    float gloss = (1.0 - roughness) * 128.0;
+    glos *= gloss;
+    float specularPower = pow(facingLight * max(0.0, dot(halfDir, fragNormal)), gloss);
     vec3 reflect = specularPower * specular * diffuse;
 
     return vec4(reflect, diffuse);
@@ -59,8 +73,8 @@ vec4 evalBlinnShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 
 <$declareEvalPBRShading()$>
 
 // Return xyz the specular/reflection component and w the diffuse component
-vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, vec3 specular, float gloss) {
-    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, specular, gloss);
+vec4 evalFragShading(vec3 fragNormal, vec3 fragLightDir, vec3 fragEyeDir, float metallic, vec3 specular, float roughness) {
+    return evalPBRShading(fragNormal, fragLightDir, fragEyeDir, metallic, specular, roughness);
 }
 
 <@endif@>

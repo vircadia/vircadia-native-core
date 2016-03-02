@@ -25,7 +25,7 @@ public:
 private:
     enum Action {
         DELETE_INTERFACE_INI,
-        RETAIN_LOGIN_AND_AVATAR_INFO,
+        RETAIN_AVATAR_INFO,
         DO_NOTHING
     };
 

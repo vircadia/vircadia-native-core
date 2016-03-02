@@ -97,7 +97,7 @@ public:
     // For editing purpose, show the light volume contour.
     // Set to non 0 to show it, the value is used as the intensity of the contour color
     void setShowContour(float show);
-    float getShowContour() const { return getSchema()._control.w; }
+    float getShowContour() const { return getSchema()._control.z; }
 
     // If the light has an ambient (Indirect) component, then the Ambientintensity can be used to control its contribution to the lighting
     void setAmbientIntensity(float intensity);
@@ -107,6 +107,12 @@ public:
     void setAmbientSphere(const gpu::SphericalHarmonics& sphere);
     const gpu::SphericalHarmonics& getAmbientSphere() const { return getSchema()._ambientSphere; }
     void setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset);
+
+    void setAmbientMap(gpu::TexturePointer ambientMap);
+    gpu::TexturePointer getAmbientMap() const { return _ambientMap; }
+
+    void setAmbientMapNumMips(uint16_t numMips);
+    uint16_t getAmbientMapNumMips() const { return (uint16_t) getSchema()._ambientMapNumMips; }
 
     // Schema to access the attribute values of the light
     class Schema {
@@ -120,7 +126,8 @@ public:
         Vec4 _spot{0.0f, 0.0f, 0.0f, 0.0f};
         Vec4 _shadow{0.0f};
 
-        Vec4 _control{0.0f, 0.0f, 0.0f, 0.0f};
+        float _ambientMapNumMips{ 0.0f };
+        Vec3 _control{ 0.0f, 0.0f, 0.0f };
 
         gpu::SphericalHarmonics _ambientSphere;
     };
@@ -132,6 +139,8 @@ protected:
     Flags _flags{ 0 };
     UniformBufferView _schemaBuffer;
     Transform _transform;
+
+    gpu::TexturePointer _ambientMap;
 
     const Schema& getSchema() const { return _schemaBuffer.get<Schema>(); }
     Schema& editSchema() { return _schemaBuffer.edit<Schema>(); }
