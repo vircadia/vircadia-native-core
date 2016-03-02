@@ -225,10 +225,15 @@
             };
 
 
-           // var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
             var userData = JSON.parse(_this.currentProperties.userData);
-            var intersection = Entities.findRayIntersection(pickRay, true, [userData['hifi-home-fishtank'].innerContainer],[_this.entityID]);
-            if (intersection.intersects && intersection.entityID === userData['hifi-home-fishtank'].innerContainer) {
+
+            var brn = userData['hifi-home-fishtank']['corners'].brn;
+            var tfl = userData['hifi-home-fishtank']['corners'].tfl;
+            var innerContainer = userData['hifi-home-fishtank'].innerContainer;
+
+            var intersection = Entities.findRayIntersection(pickRay, true, [innerContainer], [_this.entityID, brn, tfl]);
+
+            if (intersection.intersects && intersection.entityID === innerContainer) {
                 //print('intersecting a tank')
                 if (WANT_LOOK_DEBUG_SPHERE === true) {
                     if (_this.debugSphere === null) {
@@ -422,7 +427,6 @@
             z: 0
         };
 
-        //var center = _this.currentProperties.position;
         var bounds = Entities.getEntityProperties(_this.entityID, "boundingBox").boundingBox;
         lowerCorner = bounds.brn;
         upperCorner = bounds.tfl;

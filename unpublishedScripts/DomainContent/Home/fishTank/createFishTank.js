@@ -9,7 +9,7 @@ var TANK_DIMENSIONS = {
 
 var INNER_TANK_SCALE = 0.7;
 var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
-INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y -0.25;
+INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y -0.4;
 var TANK_WIDTH = TANK_DIMENSIONS.z;
 var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
@@ -238,7 +238,7 @@ var data = {
         innerContainer: innerContainer,
 
     }
-    // print('DATA AT CREATE IS:::' + JSON.stringify(data));
+print('DATA AT CREATE IS:::' + JSON.stringify(data));
 setEntityCustomData(customKey, id, data);
 setEntityCustomData('grabbableKey', id, {
     grabbable: false
@@ -248,6 +248,8 @@ function cleanup() {
     Entities.deleteEntity(fishTank);
     Entities.deleteEntity(bubbleSystem);
     Entities.deleteEntity(innerContainer);
+    Entities.deleteEntity(lowerCorner);
+    Entities.deleteEntity(upperCorner);
     bubbleInjector.stop();
     bubbleInjector = null;
 }
