@@ -1,5 +1,6 @@
-var fishtank, bubbleSystem, bubbleSound;
+var fishtank, bubbleSystem, bubbleSound, bubbleInjector;
 
+var CLEANUP = true;
 var TANK_DIMENSIONS = {
     x: 1.3393,
     y: 1.3515,
@@ -15,7 +16,7 @@ var DEBUG_COLOR = {
     blue: 255
 }
 
-var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 2 * TANK_WIDTH));
+var center = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), 1 * TANK_WIDTH));
 
 var TANK_POSITION = center;
 
@@ -23,9 +24,9 @@ var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
 var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = 0.2;
-var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.2;
-var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.2;
+var BUBBLE_SYSTEM_FORWARD_OFFSET = 0.0;
+var BUBBLE_SYSTEM_LATERAL_OFFSET = TANK_DIMENSIONS.x - 0.25;
+var BUBBLE_SYSTEM_VERTICAL_OFFSET = -1;
 
 var BUBBLE_SYSTEM_DIMENSIONS = {
     x: TANK_DIMENSIONS.x / 8,
@@ -65,7 +66,7 @@ function createFishTank() {
 
 function createBubbleSystem() {
 
-    var tankProperties = Entities.getEntityProperties(fishTank);
+    var tankProperties = Entities.getEntityProperties(fishtank);
     var bubbleProperties = {
         "color": {},
         "isEmitting": 1,
@@ -130,31 +131,100 @@ function createBubbleSystem() {
     finalOffset = Vec3.sum(finalOffset, frontOffset);
     finalOffset = Vec3.sum(finalOffset, rightOffset);
 
+    print('final bubble offset:: ' + JSON.stringify(finalOffset));
     bubbleProperties.position = finalOffset;
 
     bubbleSystem = Entities.addEntity(bubbleProperties);
-    createBubbleSound(finalOffset);
+   // createBubbleSound(finalOffset);
 }
 
 function createBubbleSound(position) {
     var audioProperties = {
-        volume: 0.2,
+        volume: 1,
         position: position,
         loop: true
     };
 
-    Audio.playSound(bubbleSound, audioProperties);
+    bubbleInjector = Audio.playSound(bubbleSound, audioProperties);
 
 }
 
 function cleanup() {
     Entities.deleteEntity(fishTank);
+    Entities.deleteEntity(bubbleSystem);
+    bubbleInjector.stop();
+    bubbleInjector = null;
 }
+
+function createInnerContainer(){
+    var containerProps = {
+        name:"hifi-home-fishtank-inner-container",
+        type:'Box',
+        color:{
+            red:0,
+            green:0,
+            blue:255
+        },
+        dimensions:{
+
+        }
+    };
+}
+
+function createEntitiesAtCorners() {
+
+    var bounds = Entities.getEntityProperties(fishTank, "boundingBox").boundingBox;
+
+    var lowerProps = {
+        name:'hifi-home-fishtank-lower-corner',
+        type: "Box",
+        dimensions: {
+            x: 0.2,
+            y: 0.2,
+            z: 0.2
+        },
+        color: {
+            red: 255,
+            green: 0,
+            blue: 0
+        },
+        collisionless: true,
+        position: bounds.brn
+    }
+
+    var upperProps = {
+        name:'hifi-home-fishtank-upper-corner',
+        type: "Box",
+        dimensions: {
+            x: 0.2,
+            y: 0.2,
+            z: 0.2
+        },
+        color: {
+            red: 0,
+            green: 255,
+            blue: 0
+        },
+        collisionless: true,
+        position:bounds.tfl
+    }
+
+    var lowerCorner = Entities.addEntity(lowerProps);
+    var upperCorner = Entities.addEntity(upperProps);
+    print('CORNERS :::' + JSON.stringify(upperCorner) )
+     print('CORNERS :::' + JSON.stringify(lowerCorner) )
+}
+
 
 createFishTank();
 
 createBubbleSystem();
 
-createBubbleSound();
+createEntitiesAtCorners();
+//createBubbleSound();
 
-Script.scriptEnding.connect(cleanup);
+
+
+if (CLEANUP === true) {
+    Script.scriptEnding.connect(cleanup);
+}

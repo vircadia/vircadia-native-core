@@ -11,6 +11,8 @@
     var connected = false;
 
     var TANK_SEARCH_RADIUS = 5;
+    var WANT_LOOK_DEBUG_LINE = false;
+    var WANT_LOOK_DEBUG_SPHERE = true;
 
     var INTERSECT_COLOR = {
         red: 255,
@@ -50,8 +52,9 @@
         lookAttractor: null,
         overlayLine: null,
         overlayLineDistance: 3,
+        debugSphere: null,
         findFishInTank: function() {
-            //  print('looking for a fish in the tank')
+            print('looking for a fish in the tank')
             var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
             var fishList = [];
 
@@ -109,7 +112,7 @@
         unload: function() {
             print(' UNLOAD')
             Script.update.disconnect(_this.update);
-            if (WANT_LOOK_DEBUG === true) {
+            if (WANT_LOOK_DEBUG_LINE === true) {
                 _this.overlayLineOff();
             }
             if (baton) {
@@ -129,6 +132,43 @@
             _this.seeIfOwnerIsLookingAtTheTank();
         },
 
+        debugSphereOn: function(position) {
+            if (_this.debugSphere !== null) {
+                Entities.editEntity(_this.debugSphere, {
+                    visible: true
+                })
+                return;
+            }
+            var sphereProperties = {
+                type: 'Sphere',
+                parentID: _this.entityID,
+                dimensions: {
+                    x: 0.1,
+                    y: 0.1,
+                    z: 0.1,
+                },
+                color: INTERSECT_COLOR,
+                position: position,
+                collisionless: true
+            }
+            _this.debugSphere = Entities.addEntity(sphereProperties);
+        },
+
+        updateDebugSphere: function(position) {
+            Entities.editEntity(_this.debugSphere, {
+                visible:true,
+                position: position
+            })
+        },
+
+        debugSphereOff: function() {
+            // Entities.deleteEntity(_this.debugSphere);
+            Entities.editEntity(_this.debugSphere, {
+                visible: false
+            })
+            //_this.debugSphere = null;
+
+        },
 
         overlayLineOn: function(closePoint, farPoint, color) {
             if (_this.overlayLine === null) {
@@ -175,33 +215,59 @@
                 direction: front
             };
 
-            if (WANT_LOOK_DEBUG === true) {
+            if (WANT_LOOK_DEBUG_LINE === true) {
                 _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
 
             };
 
+
             var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
 
             if (intersection.intersects && intersection.entityID === _this.entityID) {
-                print('intersecting a tank')
-                print('intersection:: ' + JSON.stringify(intersection));
+                //print('intersecting a tank')
+                if (WANT_LOOK_DEBUG_SPHERE === true) {
+                    if (_this.debugSphere === null) {
+                        _this.debugSphereOn(intersection.intersection);
+                    } else {
+                        _this.updateDebugSphere(intersection.intersection);
+                    }
+                }
+                print('INT DIST: ' + intersection.distance);
+                if (intersection.distance > 1.5) {
+                    print('NOT CLOSE ENOUGH TO THE TANK')
+                if (WANT_LOOK_DEBUG_SPHERE === true) {
+                    _this.debugSphereOff();
+                }  
+                    return
+                }
+                // print('intersection:: ' + JSON.stringify(intersection));
                 if (_this.hasLookAttractor === false) {
-                    _this.createLookAttractor();
+                    _this.createLookAttractor(intersection.intersection, intersection.distance);
                 } else if (_this.hasLookAttractor === true) {
-                    _this.updateLookAttractor();
+                    _this.updateLookAttractor(intersection.intersection, intersection.distance);
                 }
             } else {
                 if (_this.hasLookAttractor === true) {
-                    clearLookAttractor();
+                    _this.clearLookAttractor();
+                }
+                if (WANT_LOOK_DEBUG_SPHERE === true) {
+                    _this.debugSphereOff();
                 }
             }
         },
         //look attractors could be private to the tank...
-        createLookAttractor: function(position) {
-            _this.lookAttractor = position;
+        createLookAttractor: function(position, distance) {
+            _this.lookAttractor = {
+                position: position,
+                distance: distance
+            };
+            _this.hasLookAttractor = true;
         },
-        updateLookAttractor: function(position) {
-            _this.lookAttractor = position;
+        updateLookAttractor: function(position, distance) {
+            _this.lookAttractor = {
+                position: position,
+                distance: distance
+            };
         },
         clearLookAttractor: function() {
             _this.hasLookAttractor = false;
@@ -253,30 +319,29 @@
         z: 3.5914
     };
 
-    var TANK_WIDTH = TANK_DIMENSIONS.z / 3;
-    var TANK_HEIGHT = TANK_DIMENSIONS.y / 3;
+    var TANK_WIDTH = TANK_DIMENSIONS.z / 2;
+    var TANK_HEIGHT = TANK_DIMENSIONS.y / 2;
     var FISH_WIDTH = 0.03;
     var FISH_LENGTH = 0.15;
-    var MAX_SIGHT_DISTANCE = 0.8;
+    var MAX_SIGHT_DISTANCE = 1.5;
     var MIN_SEPARATION = 0.15;
-    var AVOIDANCE_FORCE = 0.3;
+    var AVOIDANCE_FORCE = 0.32;
     var COHESION_FORCE = 0.025;
     var ALIGNMENT_FORCE = 0.025;
-    var LOOK_ATTRACTOR_FORCE = 0.030;
+    var LOOK_ATTRACTOR_FORCE = 0.029;
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 0.5;
     var FISH_DAMPING = 0.25;
-
-    var WANT_LOOK_DEBUG = false;
 
     var THROTTLE = false;
     var THROTTLE_RATE = 100;
     var sinceLastUpdate = 0;
 
-    var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-1.fbx";
+    // var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-1.fbx";
 
-    var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-2.fbx";
-
+    // var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Fish-2.fbx";
+    var FISH_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/goodfish5.fbx";
+    var FISH_MODEL_TWO_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/goodfish5.fbx";
     var fishLoaded = false;
 
     function randomVector(scale) {
@@ -285,6 +350,44 @@
             y: Math.random() * scale - scale / 2.0,
             z: Math.random() * scale - scale / 2.0
         };
+    }
+
+    function createEntitiesAtCorners(lower, upper) {
+        var lowerProps = {
+            type: "box",
+            dimensions: {
+                x: 0.2,
+                y: 0.2,
+                z: 0.2
+            },
+            color: {
+                red: 255,
+                green: 0,
+                blue: 0
+            },
+            collisionless: true,
+            position: lower
+        }
+
+        var upperProps = {
+            type: "box",
+            dimensions: {
+                x: 0.2,
+                y: 0.2,
+                z: 0.2
+            },
+            color: {
+                red: 0,
+                green: 255,
+                blue: 0
+            },
+            collisionless: true,
+            position: upper
+        }
+
+        _this.lowerCorner = Entities.addEntity(lowerProps);
+        _this.upperCorner = Entities.addEntity(upperProps);
+
     }
 
     function updateFish(deltaTime) {
@@ -317,7 +420,9 @@
                 fishLoaded: true
             });
             _this.userData['hifi-home-fishtank'].fishLoaded = true;
-            _this.fish = _this.findFishInTank();
+            Script.setTimeout(function() {
+                _this.fish = _this.findFishInTank();
+            }, 2000)
             return;
         } else {
 
@@ -330,10 +435,10 @@
 
 
         var fish = _this.fish;
-        // print('how many fish do i find?' + fish.length)
+        //   print('how many fish do i find?' + fish.length)
 
         if (fish.length === 0) {
-            print('no fish...')
+            //    print('no fish...')
             return
         };
 
@@ -361,6 +466,8 @@
             y: center.y + TANK_HEIGHT,
             z: center.z + (TANK_WIDTH / 2)
         };
+
+        //createEntitiesAtCorners(lowerCorner,upperCorner);
 
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 
@@ -432,12 +539,15 @@
                     //attractors
                     //[position, radius, force]
 
-                    if (_this.hasLookAttractor === true) {
-                        var attractorPosition = _this.lookAttractor;
-                        var towardAttractor = Vec3.subtract(attractorPosition, position);
-                        velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardAttractor), Vec3.length(velocity)), LOOK_ATTRACTOR_FORCE);
-                    }
 
+
+                }
+
+                if (_this.hasLookAttractor === true) {
+                    //print('has a look attractor, so use it')
+                    var attractorPosition = _this.lookAttractor.position;
+                    var towardAttractor = Vec3.subtract(attractorPosition, position);
+                    velocity = Vec3.mix(velocity, Vec3.multiply(Vec3.normalize(towardAttractor), Vec3.length(velocity)), LOOK_ATTRACTOR_FORCE);
                 }
 
                 //  Try to swim at a constant speed
@@ -469,6 +579,10 @@
                 //  Orient in direction of velocity 
                 var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
                 var VELOCITY_FOLLOW_RATE = 0.30;
+
+                var safeEuler = Quat.safeEulerAngles(rotation);
+
+
 
                 //  Only update properties if they have changed, to save bandwidth
                 var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
@@ -523,12 +637,13 @@
                     modelURL: fish.length % 2 === 0 ? FISH_MODEL_URL : FISH_MODEL_TWO_URL,
                     position: position,
                     parentID: _this.entityID,
-                    rotation: {
-                        x: 0,
-                        y: 0,
-                        z: 0,
-                        w: 1
-                    },
+                    // rotation: {
+                    //     x: 0,
+                    //     y: 0,
+                    //     z: 0,
+                    //     w: 1
+                    // },
+                    // type: "Box",
                     // dimensions: {
                     //     x: FISH_WIDTH,
                     //     y: FISH_WIDTH,
