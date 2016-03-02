@@ -101,7 +101,7 @@ Item {
         readonly property real textPadding: 8
         readonly property real sliderHandleSize: 18
         readonly property real sliderGrooveHeight: 8
-        readonly property real spinnerSize: 20
+        readonly property real spinnerSize: 42
         readonly property real tablePadding: 12
         readonly property real tableRowHeight: largeScreen ? 26 : 23
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
@@ -130,6 +130,9 @@ Item {
     Item {
         id: glyphs
         readonly property string backward: "E"
+        readonly property string caratDn: "5"
+        readonly property string caratR: "3"
+        readonly property string caratUp: "6"
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"

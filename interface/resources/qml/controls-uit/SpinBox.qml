@@ -51,17 +51,17 @@ SpinBox {
 
         incrementControl: HiFiGlyphs {
             id: incrementButton
-            text: hifi.glyphs.forward  // Adapt forward triangle to be upward triangle
-            rotation: -90
+            text: hifi.glyphs.caratUp
+            x: 6
             y: 2
             size: hifi.dimensions.spinnerSize
             color: styleData.upPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }
 
         decrementControl: HiFiGlyphs {
-            text: hifi.glyphs.backward  // Adapt backward triangle to be downward triangle
-            rotation: -90
-            y: -2
+            text: hifi.glyphs.caratDn
+            x: 6
+            y: -3
             size: hifi.dimensions.spinnerSize
             color: styleData.downPressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.gray
         }

@@ -57,15 +57,14 @@ ComboBox {
             }
 
             HiFiGlyphs {
-                text: hifi.glyphs.backward  // Adapt backward triangle to be downward triangle
-                rotation: -90
-                y: -2
+                text: hifi.glyphs.caratDn
                 size: hifi.dimensions.spinnerSize
                 color: pressed ? (isLightColorScheme ? hifi.colors.black : hifi.colors.white) : hifi.colors.baseGray
                 anchors {
+                    top: parent.top
+                    topMargin: -8
                     right: parent.right
-                    rightMargin: 3
-                    verticalCenter: parent.verticalCenter
+                    rightMargin: -6
                 }
             }
 
