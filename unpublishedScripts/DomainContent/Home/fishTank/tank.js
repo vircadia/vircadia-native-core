@@ -156,7 +156,7 @@
 
         updateDebugSphere: function(position) {
             Entities.editEntity(_this.debugSphere, {
-                visible:true,
+                visible: true,
                 position: position
             })
         },
@@ -164,9 +164,9 @@
         debugSphereOff: function() {
             // Entities.deleteEntity(_this.debugSphere);
             Entities.editEntity(_this.debugSphere, {
-                visible: false
-            })
-            //_this.debugSphere = null;
+                    visible: false
+                })
+                //_this.debugSphere = null;
 
         },
 
@@ -232,12 +232,10 @@
                         _this.updateDebugSphere(intersection.intersection);
                     }
                 }
-                print('INT DIST: ' + intersection.distance);
                 if (intersection.distance > 1.5) {
-                    print('NOT CLOSE ENOUGH TO THE TANK')
-                if (WANT_LOOK_DEBUG_SPHERE === true) {
-                    _this.debugSphereOff();
-                }  
+                    if (WANT_LOOK_DEBUG_SPHERE === true) {
+                        _this.debugSphereOff();
+                    }
                     return
                 }
                 // print('intersection:: ' + JSON.stringify(intersection));
@@ -454,18 +452,10 @@
             z: 0
         };
 
-        var center = _this.currentProperties.position;
-
-        lowerCorner = {
-            x: center.x - (TANK_WIDTH / 2),
-            y: center.y,
-            z: center.z - (TANK_WIDTH / 2)
-        };
-        upperCorner = {
-            x: center.x + (TANK_WIDTH / 2),
-            y: center.y + TANK_HEIGHT,
-            z: center.z + (TANK_WIDTH / 2)
-        };
+        //var center = _this.currentProperties.position;
+        var bounds = Entities.getEntityProperties(_this.entityID, "boundingBox").boundingBox;
+        lowerCorner = bounds.brn;
+        upperCorner = bounds.tfl;
 
         //createEntitiesAtCorners(lowerCorner,upperCorner);
 
