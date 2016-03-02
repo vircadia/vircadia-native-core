@@ -259,7 +259,6 @@ class PeakFilterT {
     int32_t _acc2 = 0;  // CIC2 integrator
 
 public:
-
     PeakFilterT() {
 
         // fill history
@@ -376,7 +375,7 @@ public:
 // Limiter (common)
 //
 class LimiterImpl {
-public:
+protected:
 
     static const int NARC = 64;
     int32_t _holdTable[NARC];
@@ -394,8 +393,9 @@ public:
     int _sampleRate;
     float _outGain = 0.0f;
 
+public:
     LimiterImpl(int sampleRate);
-    ~LimiterImpl() {}
+    virtual ~LimiterImpl() {}
 
     void setThreshold(float threshold);
     void setRelease(float release);
@@ -560,7 +560,7 @@ class LimiterMono : public LimiterImpl {
     MonoDelay<N> _delay;
 
 public:
-    LimiterMono(int sampleRate) : LimiterImpl(sampleRate) {};
+    LimiterMono(int sampleRate) : LimiterImpl(sampleRate) {}
 
     void process(float* input, int16_t* output, int numFrames);
 };
@@ -611,7 +611,7 @@ class LimiterStereo : public LimiterImpl {
     StereoDelay<N> _delay;
 
 public:
-    LimiterStereo(int sampleRate) : LimiterImpl(sampleRate) {};
+    LimiterStereo(int sampleRate) : LimiterImpl(sampleRate) {}
 
     // interleaved stereo input/output
     void process(float* input, int16_t* output, int numFrames);
@@ -705,8 +705,8 @@ void AudioLimiter::render(float* input, int16_t* output, int numFrames) {
 
 void AudioLimiter::setThreshold(float threshold) {
     _impl->setThreshold(threshold);
-};
+}
 
 void AudioLimiter::setRelease(float release) {
     _impl->setRelease(release);
-};
+}

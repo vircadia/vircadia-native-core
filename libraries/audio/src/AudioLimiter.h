@@ -15,7 +15,6 @@ class LimiterImpl;
 
 class AudioLimiter {
 public:
-
     AudioLimiter(int sampleRate, int numChannels);
     ~AudioLimiter();
 
@@ -25,7 +24,6 @@ public:
     void setRelease(float release);
 
 private:
-
     LimiterImpl* _impl;
 };
 
