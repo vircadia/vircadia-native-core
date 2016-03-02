@@ -42,6 +42,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOpertation");
 }
 
 void AssetServer::run() {
@@ -161,6 +162,52 @@ void AssetServer::completeSetup() {
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
+void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    MessageID messageID;
+    message->readPrimitive(&messageID);
+
+    AssetMappingOperationType operationType;
+    message->readPrimitive(&operationType);
+
+    auto replyPacket = NLPacket::create(PacketType::AssetMappingOperationReply);
+    replyPacket->writePrimitive(messageID);
+
+    switch (operationType) {
+        case AssetMappingOperationType::Get: {
+            QString assetPath = message->readString();
+
+            auto it = _fileMapping.find(assetPath);
+            if (it != _fileMapping.end()) {
+                auto assetHash = it->second;
+                qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
+                replyPacket->writePrimitive(AssetServerError::NoError);
+                replyPacket->write(assetHash.toLatin1().toHex());
+            }
+            else {
+                qDebug() << "Mapping not found for: " << assetPath;
+                replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+            }
+        }
+        case AssetMappingOperationType::Set: {
+            QString assetPath = message->readString();
+            auto assetHash = message->read(SHA256_HASH_LENGTH);
+            _fileMapping[assetPath] = assetHash;
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+        }
+        case AssetMappingOperationType::Delete: {
+            QString assetPath = message->readString();
+            bool removed = _fileMapping.erase(assetPath) > 0;
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+        }
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+}
+
+>>>>>>> db98e46... Update atp mapping operations to use a single packet
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
@@ -307,4 +354,16 @@ void AssetServer::sendStatsPacket() {
     
     // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
+}
+
+AssetServer::Hash AssetServer::getMapping(Path path) {
+    return _fileMapping[path];
+}
+
+void AssetServer::setMapping(Path path, Hash hash) {
+    _fileMapping[path] = hash;
+}
+
+bool AssetServer::deleteMapping(Path path) {
+    return _fileMapping.erase(path) > 0;
 }

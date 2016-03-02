@@ -63,6 +63,8 @@ public:
     QByteArray read(qint64 size);
     QByteArray readAll();
 
+    QString readString();
+
     QByteArray readHead(qint64 size);
 
     // This will return a QByteArray referencing the underlying data _without_ refcounting that data.

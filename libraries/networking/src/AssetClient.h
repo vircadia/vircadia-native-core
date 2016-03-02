@@ -34,6 +34,7 @@ struct AssetInfo {
 };
 
 using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
+using MappingOperationCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
@@ -62,6 +63,7 @@ private slots:
     void handleNodeKilled(SharedNodePointer node);
 
 private:
+    bool getAssetMapping(const QString& path, MappingOperationCallback callback);
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
     bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
@@ -73,6 +75,7 @@ private:
     };
 
     static MessageID _currentID;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, MappingOperationCallback>> _pendingMappingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;

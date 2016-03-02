@@ -34,11 +34,27 @@ private slots:
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
+    void handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     
     void sendStatsPacket();
     
 private:
+    using Path = QString;
+    using Hash = QString;
+    using Mapping = std::unordered_map<Path, Hash>;
+
+    /// Return the hash mapping for Path `path`
+    Hash getMapping(Path path);
+
+    /// Set the mapping for path to hash
+    void setMapping(Path path, Hash hash);
+
+    /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
+    bool deleteMapping(Path path);
+
     static void writeError(NLPacketList* packetList, AssetServerError error);
+
+    Mapping _fileMapping;
     QDir _resourcesDirectory;
     QThreadPool _taskPool;
 };
