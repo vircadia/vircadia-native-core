@@ -158,6 +158,8 @@ void EntityTreeRenderer::update() {
 }
 
 bool EntityTreeRenderer::checkEnterLeaveEntities() {
+    bool didUpdate = false;
+
     if (_tree && !_shuttingDown) {
         glm::vec3 avatarPosition = _viewState->getAvatarPosition();
 
@@ -172,6 +174,7 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
                 std::static_pointer_cast<EntityTree>(_tree)->findEntities(avatarPosition, radius, foundEntities);
 
                 // Whenever you're in an intersection between zones, we will always choose the smallest zone.
+                auto oldBestZone = _bestZone;
                 _bestZone = nullptr; // NOTE: Is this what we want?
                 _bestZoneVolume = std::numeric_limits<float>::max();
 
@@ -204,7 +207,10 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
                     }
                 }
 
-                applyZonePropertiesToScene(_bestZone);
+                if (_bestZone != oldBestZone) {
+                    applyZonePropertiesToScene(_bestZone);
+                    didUpdate = true;
+                }
             });
             
             // Note: at this point we don't need to worry about the tree being locked, because we only deal with
@@ -228,11 +234,9 @@ bool EntityTreeRenderer::checkEnterLeaveEntities() {
             }
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
-
-            return true;
         }
     }
-    return false;
+    return didUpdate;
 }
 
 void EntityTreeRenderer::leaveAllEntities() {
