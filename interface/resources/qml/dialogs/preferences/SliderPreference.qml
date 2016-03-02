@@ -34,7 +34,7 @@ Preference {
             left: parent.left
             right: slider.left
             rightMargin: hifi.dimensions.contentSpacing.x
-            verticalCenter: spinner.verticalCenter
+            verticalCenter: slider.verticalCenter
         }
         wrapMode: Text.Wrap
     }
