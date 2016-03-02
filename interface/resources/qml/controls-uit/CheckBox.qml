@@ -64,6 +64,7 @@ Original.CheckBox {
             text: control.text
             colorScheme: checkBox.colorScheme
             x: checkBox.boxSize / 2
+            wrapMode: Text.Wrap
         }
     }
 }

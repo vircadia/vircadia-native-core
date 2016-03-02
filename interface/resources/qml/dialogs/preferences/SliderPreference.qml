@@ -30,7 +30,13 @@ Preference {
     Label {
         text: root.label + ":"
         colorScheme: hifi.colorSchemes.dark
-        anchors.verticalCenter: slider.verticalCenter
+        anchors {
+            left: parent.left
+            right: slider.left
+            rightMargin: hifi.dimensions.contentSpacing.x
+            verticalCenter: spinner.verticalCenter
+        }
+        wrapMode: Text.Wrap
     }
 
     Slider {

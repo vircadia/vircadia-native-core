@@ -32,7 +32,13 @@ Preference {
     HiFiControls.Label {
         text: root.label + ":"
         colorScheme: hifi.colorSchemes.dark
-        anchors.verticalCenter: dataComboBox.verticalCenter
+        anchors {
+            left: parent.left
+            right: dataComboBox.left
+            rightMargin: hifi.dimensions.contentSpacing.x
+            verticalCenter: dataComboBox.verticalCenter
+        }
+        wrapMode: Text.Wrap
     }
 
     HiFiControls.ComboBox {

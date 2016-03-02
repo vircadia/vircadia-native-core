@@ -29,7 +29,13 @@ Preference {
     Label {
         text: root.label + ":"
         colorScheme: hifi.colorSchemes.dark
-        anchors.verticalCenter: spinner.verticalCenter
+        anchors {
+            left: parent.left
+            right: spinner.left
+            rightMargin: hifi.dimensions.contentSpacing.x
+            verticalCenter: spinner.verticalCenter
+        }
+        wrapMode: Text.Wrap
     }
 
     SpinBox {
