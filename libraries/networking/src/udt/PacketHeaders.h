@@ -91,8 +91,8 @@ public:
         MessagesData,
         MessagesSubscribe,
         MessagesUnsubscribe,
-        AssetGetMapping,
-        AssetGetMappingReply
+        AssetMappingOperation,
+        AssetMappingOperationReply
     };
 };
 

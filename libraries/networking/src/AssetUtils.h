@@ -32,6 +32,12 @@ enum AssetServerError : uint8_t {
     PermissionDenied
 };
 
+enum AssetMappingOperationType : uint8_t {
+    Get = 0,
+    Set,
+    Delete
+};
+
 QUrl getATPUrl(const QString& hash, const QString& extension = QString());
 
 QByteArray hashData(const QByteArray& data);
