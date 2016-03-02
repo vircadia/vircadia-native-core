@@ -48,7 +48,7 @@ Preference {
 
     Component.onCompleted: d.buildPreferences();
 
-    HiFiControls.StaticSection {
+    HiFiControls.ContentSection {
         id: contentContainer
         name: root.name
         isFirst: root.isFirst

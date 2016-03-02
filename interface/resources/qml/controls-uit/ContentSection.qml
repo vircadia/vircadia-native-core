@@ -1,5 +1,5 @@
 //
-//  StaticSection.qml
+//  ContentSection.qml
 //
 //  Created by David Rowe on 16 Feb 2016
 //  Copyright 2016 High Fidelity, Inc.

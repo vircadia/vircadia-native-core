@@ -87,7 +87,7 @@ Window {
     Column {
         width: pane.contentWidth
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Currently Running"
             isFirst: true
 
@@ -120,7 +120,7 @@ Window {
             }
         }
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Load Scripts"
 
             Row {
