@@ -47,22 +47,53 @@ AssetClient::AssetClient() {
 }
 
 void AssetClient::init() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
-    }
-    
+    Q_ASSERT(QThread::currentThread() == thread());
+
     // Setup disk cache if not already
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
         QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
         cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
-        
+
         QNetworkDiskCache* cache = new QNetworkDiskCache();
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
         cache->setCacheDirectory(cachePath);
         networkAccessManager.setCache(cache);
-        qCDebug(asset_client) << "AssetClient disk cache setup at" << cachePath
-                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+        qDebug() << "ResourceManager disk cache setup at" << cachePath
+                 << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+    }
+}
+
+
+void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,
+                                  Q_ARG(QObject*, reciever), Q_ARG(QString, slot));
+        return;
+    }
+
+
+    if (auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache())) {
+        QMetaObject::invokeMethod(reciever, slot.toStdString().data(), Qt::QueuedConnection,
+                                  Q_ARG(QString, cache->cacheDirectory()),
+                                  Q_ARG(qint64, cache->cacheSize()),
+                                  Q_ARG(qint64, cache->maximumCacheSize()));
+    } else {
+        qCWarning(asset_client) << "No disk cache to get info from.";
+    }
+}
+
+void AssetClient::clearCache() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearCache", Qt::QueuedConnection);
+        return;
+    }
+
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
+        cache->clear();
+    } else {
+        qCWarning(asset_client) << "No disk cache to clear.";
     }
 }
 

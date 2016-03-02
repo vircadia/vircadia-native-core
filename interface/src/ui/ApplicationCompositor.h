@@ -106,6 +106,9 @@ public:
 
     bool shouldCaptureMouse() const;
 
+    bool getAllowMouseCapture() const { return _allowMouseCapture; }
+    void setAllowMouseCapture(bool capture);
+
     /// if the reticle is pointing to a system overlay (a dialog box for example) then the function returns true otherwise false
     bool getReticleOverDesktop() const;
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
@@ -162,6 +165,8 @@ private:
 
     bool _reticleOverQml { false };
 
+    bool _allowMouseCapture { true };
+
     ReticleInterface* _reticleInterface;
 };
 
@@ -173,12 +178,17 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(float depth READ getDepth WRITE setDepth)
     Q_PROPERTY(glm::vec2 maximumPosition READ getMaximumPosition)
     Q_PROPERTY(bool mouseCaptured READ isMouseCaptured)
+    Q_PROPERTY(bool allowMouseCapture READ getAllowMouseCapture WRITE setAllowMouseCapture)
     Q_PROPERTY(bool pointingAtSystemOverlay READ isPointingAtSystemOverlay)
 
 public:
     ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
 
     Q_INVOKABLE bool isMouseCaptured() { return _compositor->shouldCaptureMouse(); }
+
+    Q_INVOKABLE bool getAllowMouseCapture() { return _compositor->getAllowMouseCapture(); }
+    Q_INVOKABLE void setAllowMouseCapture(bool value) { return _compositor->setAllowMouseCapture(value); }
+
     Q_INVOKABLE bool isPointingAtSystemOverlay() { return !_compositor->getReticleOverDesktop(); }
 
     Q_INVOKABLE bool getVisible() { return _compositor->getReticleVisible(); }

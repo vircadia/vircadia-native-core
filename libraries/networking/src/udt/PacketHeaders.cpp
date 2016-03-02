@@ -16,6 +16,10 @@
 #include <QtCore/QDebug>
 #include <QtCore/QMetaEnum>
 
+
+Q_DECLARE_METATYPE(PacketType);
+static int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
+
 const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketType::NodeJsonStats << PacketType::EntityQuery
     << PacketType::OctreeDataNack << PacketType::EntityEditNack
@@ -38,6 +42,8 @@ const QSet<PacketType> RELIABLE_PACKETS = QSet<PacketType>();
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
+        case PacketType::DomainList:
+            return 18;
         case PacketType::EntityAdd:
         case PacketType::EntityEdit:
         case PacketType::EntityData:
