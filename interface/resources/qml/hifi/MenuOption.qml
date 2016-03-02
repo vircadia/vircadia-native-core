@@ -10,6 +10,7 @@ QtObject {
     readonly property string animDebugDrawPosition: "Debug Draw Position";
     readonly property string antialiasing: "Antialiasing";
     readonly property string assetMigration: "ATP Asset Migration";
+    readonly property string assetsManager = "Assets Manager";
     readonly property string atmosphere: "Atmosphere";
     readonly property string attachments: "Attachments...";
     readonly property string audioNetworkStats: "Audio Network Stats";

@@ -99,9 +99,13 @@ Menu::Menu() {
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
-    // Edit > Running Sccripts
+    // Edit > Running Scripts
     addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
         qApp, SLOT(toggleRunningScriptsWidget()));
+
+    // Edit > Assets Manager
+    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetsManager, 0,
+        qApp, SLOT(toggleAssetsManagerWidget()));
 
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
