@@ -79,10 +79,21 @@ FocusScope {
     Item {
         id: dropIcon
         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
-        width: 20
-        height: textField.height
+        height: background.height
+        width: height
+        Rectangle {
+            width: 1
+            height: parent.height
+            anchors.top: parent.top
+            anchors.left: parent.left
+            color: isLightColorScheme ? hifi.colors.faintGray : hifi.colors.baseGray
+        }
         HiFiGlyphs {
-            anchors.centerIn: parent
+            anchors {
+                top: parent.top
+                topMargin: -8
+                horizontalCenter: parent.horizontalCenter
+            }
             size: hifi.dimensions.spinnerSize
             text: hifi.glyphs.caratDn
             color: controlHover.containsMouse || popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText)
