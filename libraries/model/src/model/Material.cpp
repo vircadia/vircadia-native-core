@@ -44,37 +44,51 @@ Material& Material::operator= (const Material& material) {
 Material::~Material() {
 }
 
-void Material::setDiffuse(const Color& diffuse, bool isSRGB) {
-    _key.setDiffuse(glm::any(glm::greaterThan(diffuse, Color(0.0f))));
-    _schemaBuffer.edit<Schema>()._diffuse = (isSRGB ? ColorUtils::toLinearVec3(diffuse) : diffuse);
-}
-
-void Material::setMetallic(float metallic) {
-    _key.setMetallic(metallic > 0.0f);
-    _schemaBuffer.edit<Schema>()._metallic = glm::vec3(metallic);
-}
-
 void Material::setEmissive(const Color&  emissive, bool isSRGB) {
     _key.setEmissive(glm::any(glm::greaterThan(emissive, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._key = (uint32) _key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._emissive = (isSRGB ? ColorUtils::toLinearVec3(emissive) : emissive);
-}
-
-void Material::setGloss(float gloss) {
-    _key.setGloss((gloss > 0.0f));
-    _schemaBuffer.edit<Schema>()._gloss = gloss;
 }
 
 void Material::setOpacity(float opacity) {
     _key.setTransparent((opacity < 1.0f));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
     _schemaBuffer.edit<Schema>()._opacity = opacity;
 }
+
+void Material::setAlbedo(const Color& albedo, bool isSRGB) {
+    _key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+    _schemaBuffer.edit<Schema>()._albedo = (isSRGB ? ColorUtils::toLinearVec3(albedo) : albedo);
+}
+
+void Material::setRoughness(float roughness) {
+    roughness = std::min(1.0f, std::max(roughness, 0.0f));
+    _key.setGlossy((roughness < 1.0f));
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+    _schemaBuffer.edit<Schema>()._roughness = roughness;
+}
+
+void Material::setFresnel(const Color& fresnel, bool isSRGB) {
+    //_key.setAlbedo(glm::any(glm::greaterThan(albedo, Color(0.0f))));
+    _schemaBuffer.edit<Schema>()._fresnel = (isSRGB ? ColorUtils::toLinearVec3(fresnel) : fresnel);
+}
+
+void Material::setMetallic(float metallic) {
+    _key.setMetallic(metallic > 0.0f);
+    _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
+    _schemaBuffer.edit<Schema>()._metallic = metallic;
+}
+
 
 void Material::setTextureMap(MapChannel channel, const TextureMapPointer& textureMap) {
     if (textureMap) {
         _key.setMapChannel(channel, (true));
+        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
         _textureMaps[channel] = textureMap;
     } else {
         _key.setMapChannel(channel, (false));
+        _schemaBuffer.edit<Schema>()._key = (uint32)_key._flags.to_ulong();
         _textureMaps.erase(channel);
     }
 }

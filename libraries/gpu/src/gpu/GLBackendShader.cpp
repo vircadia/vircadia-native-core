@@ -162,8 +162,6 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        qCWarning(gpulogging) << temp;
         
         /*
         filestream.open("debugshader.glsl.info.txt");
@@ -172,6 +170,11 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
             filestream.close();
         }
         */
+
+        qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCWarning(gpulogging) << srcstr;
+        qCWarning(gpulogging) << "GLShader::compileShader - errors:";
+        qCWarning(gpulogging) << temp;
         delete[] temp;
 
         glDeleteShader(glshader);

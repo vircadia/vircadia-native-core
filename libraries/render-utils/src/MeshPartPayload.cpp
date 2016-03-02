@@ -106,7 +106,7 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isGlossMap()) {
+    if (drawMaterialKey.isMetallicMap()) {
         builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
@@ -145,20 +145,34 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto textureMaps = _drawMaterial->getTextureMaps();
     glm::mat4 texcoordTransform[2];
 
-    // Diffuse
-    if (materialKey.isDiffuseMap()) {
-        auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-        if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
+    // Albedo
+    if (materialKey.isAlbedoMap()) {
+        auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
+        if (albedoMap && albedoMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, albedoMap->getTextureView());
 
-            if (!diffuseMap->getTextureTransform().isIdentity()) {
-                diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+            if (!albedoMap->getTextureTransform().isIdentity()) {
+                albedoMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getWhiteTexture());
+    }
+
+    // Roughness map
+    if (materialKey.isRoughnessMap()) {
+        auto roughnessMap = textureMaps[model::MaterialKey::ROUGHNESS_MAP];
+        if (roughnessMap && roughnessMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, roughnessMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -167,7 +181,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         if (normalMap && normalMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
@@ -175,26 +189,40 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
-    // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
-    if (materialKey.isGlossMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+    // Metallic map
+    if (materialKey.isMetallicMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, specularMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, nullptr);
     }
 
-    // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+    // Occlusion map
+    if (materialKey.isOcclusionMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::OCCLUSION_MAP];
+        if (specularMap && specularMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, specularMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, nullptr);
+    }
+
+    // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -203,10 +231,18 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
+        }
+    } else if (materialKey.isEmissiveMap()) {
+        auto emissiveMap = textureMaps[model::MaterialKey::EMISSIVE_MAP];
+
+        if (emissiveMap && emissiveMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, emissiveMap->getTextureView());
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -378,7 +414,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 
     bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
+    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
 
     bool isSkinned = _isSkinned;

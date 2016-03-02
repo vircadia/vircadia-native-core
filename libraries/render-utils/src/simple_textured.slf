@@ -2,7 +2,7 @@
 <$VERSION_HEADER$>
 //  Generated on <$_SCRIBE_DATE$>
 //
-//  simple.frag
+//  simple_textured.slf
 //  fragment shader
 //
 //  Created by Clément Brisset on 5/29/15.
@@ -15,7 +15,7 @@
 <@include DeferredBufferWrite.slh@>
 <@include model/Material.slh@>
 
-// the diffuse texture
+// the albedo texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal
@@ -31,5 +31,8 @@ void main(void) {
         normalize(_normal.xyz), 
         texel.a,
         _color.rgb * texel.rgb,
-        DEFAULT_SPECULAR, DEFAULT_SHININESS);
+        DEFAULT_ROUGHNESS,
+        DEFAULT_METALLIC,
+        DEFAULT_EMISSIVE,
+        DEFAULT_OCCLUSION);
 }

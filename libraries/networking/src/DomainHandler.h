@@ -92,6 +92,7 @@ public slots:
     void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
     void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
     void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
+    void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -104,6 +105,7 @@ signals:
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
     void completedSocketDiscovery();
 
+    void resetting();
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
@@ -112,6 +114,8 @@ signals:
 
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
+
+    void domainConnectionRefused(QString reason);
 
 private:
     void sendDisconnectPacket();
@@ -130,6 +134,10 @@ private:
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+
+    QStringList _domainConnectionRefusals;
+    bool _hasCheckedForAccessToken { false };
+    int _connectionDenialsSinceKeypairRegen { 0 };
 };
 
 #endif // hifi_DomainHandler_h

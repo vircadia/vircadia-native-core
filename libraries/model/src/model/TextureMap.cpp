@@ -54,21 +54,37 @@ void TextureMap::setLightmapOffsetScale(float offset, float scale) {
 gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
     QImage image = srcImage;
     bool validAlpha = false;
+    bool alphaAsMask = true;
+    const uint8 OPAQUE_ALPHA = 255;
+    const uint8 TRANSLUCENT_ALPHA = 0;
     if (image.hasAlphaChannel()) {
+        std::map<uint8, uint32> alphaHistogram;
+
         if (image.format() != QImage::Format_ARGB32) {
             image = image.convertToFormat(QImage::Format_ARGB32);
         }
         
-        // Actual alpha channel?
+        // Actual alpha channel? create the histogram
         for (int y = 0; y < image.height(); ++y) {
             const QRgb* data = reinterpret_cast<const QRgb*>(image.constScanLine(y));
             for (int x = 0; x < image.width(); ++x) {
                 auto alpha = qAlpha(data[x]);
-                if (alpha != 255) {
+                alphaHistogram[alpha] ++;
+                if (alpha != OPAQUE_ALPHA) {
                     validAlpha = true;
                     break;
                 }
             }
+        }
+
+        // If alpha was meaningfull refine
+        if (validAlpha && (alphaHistogram.size() > 1)) {
+            auto totalNumPixels = image.height() * image.width();
+            auto numOpaques = alphaHistogram[OPAQUE_ALPHA];
+            auto numTranslucents = alphaHistogram[TRANSLUCENT_ALPHA];
+            auto numTransparents = totalNumPixels - numOpaques - numTranslucents;
+
+            alphaAsMask = ((numTransparents / (double)totalNumPixels) < 0.05);
         }
     } 
     
@@ -89,10 +105,21 @@ gpu::Texture* TextureUsage::create2DTextureFromImage(const QImage& srcImage, con
         }
 
         theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+
+        auto usage = gpu::Texture::Usage::Builder().withColor();
+        if (validAlpha) {
+            usage.withAlpha();
+            if (alphaAsMask) {
+                usage.withAlphaMask();
+            }
+        }
+        theTexture->setUsage(usage.build());
+
         theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
         theTexture->autoGenerateMips(-1);
         
         // FIXME queue for transfer to GPU and block on completion
+
     }
     
     return theTexture;
@@ -220,6 +247,99 @@ gpu::Texture* TextureUsage::createNormalTextureFromBumpImage(const QImage& srcIm
         theTexture->autoGenerateMips(-1);
     }
     
+    return theTexture;
+}
+
+gpu::Texture* TextureUsage::createRoughnessTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+    }
+
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
+
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
+
+        // FIXME queue for transfer to GPU and block on completion
+    }
+
+    return theTexture;
+}
+
+gpu::Texture* TextureUsage::createRoughnessTextureFromGlossImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+    }
+
+    // Gloss turned into Rough
+    image.invertPixels(QImage::InvertRgba);
+    
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+    
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
+        
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+        
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
+        
+        // FIXME queue for transfer to GPU and block on completion
+    }
+    
+    return theTexture;
+}
+
+gpu::Texture* TextureUsage::createMetallicTextureFromImage(const QImage& srcImage, const std::string& srcImageName) {
+    QImage image = srcImage;
+    if (!image.hasAlphaChannel()) {
+        if (image.format() != QImage::Format_RGB888) {
+            image = image.convertToFormat(QImage::Format_RGB888);
+        }
+    } else {
+        if (image.format() != QImage::Format_ARGB32) {
+            image = image.convertToFormat(QImage::Format_ARGB32);
+        }
+    }
+
+    image = image.convertToFormat(QImage::Format_Grayscale8);
+
+    gpu::Texture* theTexture = nullptr;
+    if ((image.width() > 0) && (image.height() > 0)) {
+
+        gpu::Element formatGPU = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+        gpu::Element formatMip = gpu::Element(gpu::SCALAR, gpu::NUINT8, gpu::RGB);
+
+        theTexture = (gpu::Texture::create2D(formatGPU, image.width(), image.height(), gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_MIP_LINEAR)));
+        theTexture->assignStoredMip(0, formatMip, image.byteCount(), image.constBits());
+        theTexture->autoGenerateMips(-1);
+
+        // FIXME queue for transfer to GPU and block on completion
+    }
+
     return theTexture;
 }
 
@@ -473,8 +593,8 @@ gpu::Texture* TextureUsage::createCubeTextureFromImage(const QImage& srcImage, c
                     theTexture->assignStoredMipFace(0, formatMip, face.byteCount(), face.constBits(), f);
                     f++;
                 }
-                
-                // GEnerate irradiance while we are at it
+
+                // Generate irradiance while we are at it
                 theTexture->generateIrradiance();
             }
     }

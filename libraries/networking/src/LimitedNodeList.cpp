@@ -902,10 +902,6 @@ void LimitedNodeList::updateLocalSockAddr() {
     }
 }
 
-void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr) {
-    sendPacketToIceServer(PacketType::ICEServerHeartbeat, iceServerSockAddr, _sessionUUID);
-}
-
 void LimitedNodeList::sendPeerQueryToIceServer(const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                                const QUuid& peerID) {
     sendPacketToIceServer(PacketType::ICEServerQuery, iceServerSockAddr, clientID, peerID);
