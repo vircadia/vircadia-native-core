@@ -26,6 +26,7 @@
 
     function startUpdate() {
         //when the baton is claimed;
+        print('trying to claim the object' + _entityID)
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
@@ -111,7 +112,9 @@
 
         unload: function() {
             print(' UNLOAD')
-            Script.update.disconnect(_this.update);
+            if (connected === true) {
+                Script.update.disconnect(_this.update);
+            }
             if (WANT_LOOK_DEBUG_LINE === true) {
                 _this.overlayLineOff();
             }
@@ -123,7 +126,8 @@
         },
         update: function() {
             if (iOwn === false) {
-                //exit if we're not supposed to be simulating the fish
+                print('i dont own')
+                    //exit if we're not supposed to be simulating the fish
                 return
             }
             // print('i am the owner!')
@@ -221,9 +225,10 @@
             };
 
 
-            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
-
-            if (intersection.intersects && intersection.entityID === _this.entityID) {
+           // var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
+            var userData = JSON.parse(_this.currentProperties.userData);
+            var intersection = Entities.findRayIntersection(pickRay, true, [userData['hifi-home-fishtank'].innerContainer],[_this.entityID]);
+            if (intersection.intersects && intersection.entityID === userData['hifi-home-fishtank'].innerContainer) {
                 //print('intersecting a tank')
                 if (WANT_LOOK_DEBUG_SPHERE === true) {
                     if (_this.debugSphere === null) {
@@ -232,7 +237,7 @@
                         _this.updateDebugSphere(intersection.intersection);
                     }
                 }
-                if (intersection.distance > 1.5) {
+                if (intersection.distance > LOOK_ATTRACTOR_DISTANCE) {
                     if (WANT_LOOK_DEBUG_SPHERE === true) {
                         _this.debugSphereOff();
                     }
@@ -327,6 +332,7 @@
     var COHESION_FORCE = 0.025;
     var ALIGNMENT_FORCE = 0.025;
     var LOOK_ATTRACTOR_FORCE = 0.029;
+    var LOOK_ATTRACTOR_DISTANCE = 1.75;
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 0.5;
     var FISH_DAMPING = 0.25;
@@ -350,45 +356,8 @@
         };
     }
 
-    function createEntitiesAtCorners(lower, upper) {
-        var lowerProps = {
-            type: "box",
-            dimensions: {
-                x: 0.2,
-                y: 0.2,
-                z: 0.2
-            },
-            color: {
-                red: 255,
-                green: 0,
-                blue: 0
-            },
-            collisionless: true,
-            position: lower
-        }
-
-        var upperProps = {
-            type: "box",
-            dimensions: {
-                x: 0.2,
-                y: 0.2,
-                z: 0.2
-            },
-            color: {
-                red: 0,
-                green: 255,
-                blue: 0
-            },
-            collisionless: true,
-            position: upper
-        }
-
-        _this.lowerCorner = Entities.addEntity(lowerProps);
-        _this.upperCorner = Entities.addEntity(upperProps);
-
-    }
-
     function updateFish(deltaTime) {
+        // print('update loop')
 
         if (_this.tankLocked === true) {
             return;
@@ -408,11 +377,12 @@
         }
 
 
-        // print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
+        //  print('has userdata fish??' + _this.userData['hifi-home-fishtank'].fishLoaded)
 
         if (_this.userData['hifi-home-fishtank'].fishLoaded === false) {
             //no fish in the user data
             _this.tankLocked = true;
+            print('NO FISH YET SO LOAD EM!!!')
             loadFish(NUM_FISH);
             setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, {
                 fishLoaded: true
@@ -456,8 +426,6 @@
         var bounds = Entities.getEntityProperties(_this.entityID, "boundingBox").boundingBox;
         lowerCorner = bounds.brn;
         upperCorner = bounds.tfl;
-
-        //createEntitiesAtCorners(lowerCorner,upperCorner);
 
         // First pre-load an array with properties  on all the other fish so our per-fish loop
         // isn't doing it. 

@@ -1,4 +1,4 @@
-var fishtank, bubbleSystem, bubbleSound, bubbleInjector;
+var fishTank, bubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner;
 
 var CLEANUP = true;
 var TANK_DIMENSIONS = {
@@ -7,8 +7,9 @@ var TANK_DIMENSIONS = {
     z: 3.5914
 };
 
-var INNER_TANK_SCALE = 0.8;
-var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE,TANK_DIMENSIONS);
+var INNER_TANK_SCALE = 0.7;
+var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
+INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y -0.25;
 var TANK_WIDTH = TANK_DIMENSIONS.z;
 var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
@@ -26,9 +27,10 @@ var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
 var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = 0.0;
-var BUBBLE_SYSTEM_LATERAL_OFFSET = TANK_DIMENSIONS.x - 0.25;
-var BUBBLE_SYSTEM_VERTICAL_OFFSET = -1;
+var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.05;
+//depth of tank
+var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.15;
+var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.5;
 
 var BUBBLE_SYSTEM_DIMENSIONS = {
     x: TANK_DIMENSIONS.x / 8,
@@ -38,6 +40,7 @@ var BUBBLE_SYSTEM_DIMENSIONS = {
 
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
+
 
 function createFishTank() {
     var tankProperties = {
@@ -49,17 +52,6 @@ function createFishTank() {
         color: DEBUG_COLOR,
         collisionless: true,
         script: TANK_SCRIPT,
-        userData: JSON.stringify({
-            'hifi-home-fishtank': {
-                fishLoaded: false,
-                bubbleSystem: null,
-                bubbleSound: null,
-                attractors: null,
-            },
-            grabbableKey: {
-                grabbable: false
-            }
-        }),
         visible: true
     }
 
@@ -68,8 +60,9 @@ function createFishTank() {
 
 function createBubbleSystem() {
 
-    var tankProperties = Entities.getEntityProperties(fishtank);
+    var tankProperties = Entities.getEntityProperties(fishTank);
     var bubbleProperties = {
+        "name": 'hifi-home-fishtank-bubbles',
         "color": {},
         "isEmitting": 1,
         "maxParticles": 1880,
@@ -121,15 +114,15 @@ function createBubbleSystem() {
     bubbleProperties.parentID = fishTank;
     bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
 
-    var upVector = Quat.getRight(tankProperties.rotation);
-    var frontVector = Quat.getRight(tankProperties.rotation);
+    var upVector = Quat.getUp(tankProperties.rotation);
+    var frontVector = Quat.getFront(tankProperties.rotation);
     var rightVector = Quat.getRight(tankProperties.rotation);
 
     var upOffset = Vec3.multiply(upVector, BUBBLE_SYSTEM_VERTICAL_OFFSET);
     var frontOffset = Vec3.multiply(frontVector, BUBBLE_SYSTEM_FORWARD_OFFSET);
     var rightOffset = Vec3.multiply(rightVector, BUBBLE_SYSTEM_LATERAL_OFFSET);
 
-    var finalOffset = Vec3.sum(center, upOffset);
+    var finalOffset = Vec3.sum(tankProperties.position, upOffset);
     finalOffset = Vec3.sum(finalOffset, frontOffset);
     finalOffset = Vec3.sum(finalOffset, rightOffset);
 
@@ -137,7 +130,7 @@ function createBubbleSystem() {
     bubbleProperties.position = finalOffset;
 
     bubbleSystem = Entities.addEntity(bubbleProperties);
-   // createBubbleSound(finalOffset);
+    // createBubbleSound(finalOffset);
 }
 
 function createBubbleSound(position) {
@@ -151,35 +144,37 @@ function createBubbleSound(position) {
 
 }
 
-function cleanup() {
-    Entities.deleteEntity(fishTank);
-    Entities.deleteEntity(bubbleSystem);
-    bubbleInjector.stop();
-    bubbleInjector = null;
-}
+function createInnerContainer(position) {
 
-function createInnerContainer(){
+    var tankProperties = Entities.getEntityProperties(fishTank);
+
     var containerProps = {
-        name:"hifi-home-fishtank-inner-container",
-        type:'Box',
-        color:{
-            red:0,
-            green:0,
-            blue:255
+        name: "hifi-home-fishtank-inner-container",
+        type: 'Box',
+        color: {
+            red: 0,
+            green: 0,
+            blue: 255
         },
-        dimensions:{
-
-        }
+        parentID: fishTank,
+        dimensions: INNER_TANK_DIMENSIONS,
+        position: tankProperties.position,
+        visible: false,
+        collisionless: true,
+        dynamic:false
     };
+
+    innerContainer = Entities.addEntity(containerProps);
 }
 
 function createEntitiesAtCorners() {
 
-    var bounds = Entities.getEntityProperties(fishTank, "boundingBox").boundingBox;
+    var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
 
     var lowerProps = {
-        name:'hifi-home-fishtank-lower-corner',
+        name: 'hifi-home-fishtank-lower-corner',
         type: "Box",
+        parentID: fishTank,
         dimensions: {
             x: 0.2,
             y: 0.2,
@@ -195,8 +190,9 @@ function createEntitiesAtCorners() {
     }
 
     var upperProps = {
-        name:'hifi-home-fishtank-upper-corner',
+        name: 'hifi-home-fishtank-upper-corner',
         type: "Box",
+        parentID: fishTank,
         dimensions: {
             x: 0.2,
             y: 0.2,
@@ -208,25 +204,105 @@ function createEntitiesAtCorners() {
             blue: 0
         },
         collisionless: true,
-        position:bounds.tfl
+        position: bounds.tfl
     }
 
-    var lowerCorner = Entities.addEntity(lowerProps);
-    var upperCorner = Entities.addEntity(upperProps);
-    print('CORNERS :::' + JSON.stringify(upperCorner) )
-     print('CORNERS :::' + JSON.stringify(lowerCorner) )
+    lowerCorner = Entities.addEntity(lowerProps);
+    upperCorner = Entities.addEntity(upperProps);
+    print('CORNERS :::' + JSON.stringify(upperCorner))
+    print('CORNERS :::' + JSON.stringify(lowerCorner))
 }
 
 
 createFishTank();
 
+createInnerContainer();
+
 createBubbleSystem();
 
 createEntitiesAtCorners();
-//createBubbleSound();
 
+createBubbleSound();
+
+var customKey = 'hifi-home-fishtank';
+var id = fishTank;
+print('FISH TANK ID AT START:: '+id)
+var data = {
+        fishLoaded: false,
+        bubbleSystem: bubbleSystem,
+        bubbleSound: bubbleSound,
+        corners: {
+            brn: lowerCorner,
+            tfl: upperCorner
+        },
+        innerContainer: innerContainer,
+
+    }
+    // print('DATA AT CREATE IS:::' + JSON.stringify(data));
+setEntityCustomData(customKey, id, data);
+setEntityCustomData('grabbableKey', id, {
+    grabbable: false
+});
+
+function cleanup() {
+    Entities.deleteEntity(fishTank);
+    Entities.deleteEntity(bubbleSystem);
+    Entities.deleteEntity(innerContainer);
+    bubbleInjector.stop();
+    bubbleInjector = null;
+}
 
 
 if (CLEANUP === true) {
     Script.scriptEnding.connect(cleanup);
+}
+
+//  Copyright 2016 High Fidelity, Inc.
+//
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+function setEntityUserData(id, data) {
+    var json = JSON.stringify(data)
+    Entities.editEntity(id, {
+        userData: json
+    });
+}
+
+// FIXME do non-destructive modification of the existing user data
+function getEntityUserData(id) {
+    var results = null;
+    var properties = Entities.getEntityProperties(id, "userData");
+    if (properties.userData) {
+        try {
+            results = JSON.parse(properties.userData);
+        } catch (err) {
+            //   print('error parsing json');
+            //   print('properties are:'+ properties.userData);
+        }
+    }
+    return results ? results : {};
+}
+
+
+// Non-destructively modify the user data of an entity.
+function setEntityCustomData(customKey, id, data) {
+    var userData = getEntityUserData(id);
+    if (data == null) {
+        delete userData[customKey];
+    } else {
+        userData[customKey] = data;
+    }
+    setEntityUserData(id, userData);
+}
+
+function getEntityCustomData(customKey, id, defaultValue) {
+    var userData = getEntityUserData(id);
+    if (undefined != userData[customKey]) {
+        return userData[customKey];
+    } else {
+        return defaultValue;
+    }
 }
