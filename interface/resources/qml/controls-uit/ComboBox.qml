@@ -12,17 +12,25 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
+import "../styles-uit"
+import "../controls-uit" as HifiControls
 import "." as VrControls
 
 FocusScope {
     id: root
+
     property alias model: comboBox.model;
+    property alias comboBox: comboBox
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;
+
+    property int colorScheme: hifi.colorSchemes.light
+    readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
+    property string label: ""
+    property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
+
     implicitHeight: comboBox.height;
     focus: true
-
-    readonly property ComboBox control: comboBox
 
     Rectangle {
         id: background
@@ -61,9 +69,10 @@ FocusScope {
         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
         width: 20
         height: textField.height
-        VrControls.FontAwesome {
-            anchors.centerIn: parent; size: 16;
-            text: "\uf0d7"
+        HiFiGlyphs {
+            anchors.centerIn: parent
+            size: hifi.dimensions.spinnerSize
+            text: hifi.glyphs.caratDn
         }
     }
 
@@ -157,4 +166,13 @@ FocusScope {
         }
     }
 
+    HifiControls.Label {
+        id: comboBoxLabel
+        text: root.label
+        colorScheme: root.colorScheme
+        anchors.left: parent.left
+        anchors.bottom: parent.top
+        anchors.bottomMargin: 4
+        visible: label != ""
+    }
 }

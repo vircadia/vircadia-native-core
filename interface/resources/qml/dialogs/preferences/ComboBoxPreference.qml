@@ -10,30 +10,33 @@
 
 import QtQuick 2.5
 
-import "../../controls-uit"
+import QtQuick.Controls 1.4
+import QtQuick.Controls.Styles 1.4
+import "../../controls-uit" as HiFiControls
+import "../../styles-uit"
 
 Preference {
     id: root
-    property alias comboBox: comboBox
-    height: comboBox.controlHeight
+    height: dataComboBox.controlHeight
 
     Component.onCompleted: {
-        comboBox.currentIndex = comboBox.find(preference.value);
+        dataComboBox.currentIndex = dataComboBox.comboBox.find(preference.value);
     }
 
     function save() {
-        preference.value = comboBox.currentText;
+        preference.value = dataComboBox.currentText;
+        //preference.value = comboBox.currentText;
         preference.save();
     }
 
-    Label {
+    HiFiControls.Label {
         text: root.label + ":"
         colorScheme: hifi.colorSchemes.dark
-        anchors.verticalCenter: comboBox.verticalCenter
+        anchors.verticalCenter: dataComboBox.verticalCenter
     }
 
-    ComboBox {
-        id: comboBox
+    HiFiControls.ComboBox {
+        id: dataComboBox
         model: preference.items
         width: 150
         anchors { right: parent.right }
