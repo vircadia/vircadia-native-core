@@ -27,13 +27,16 @@ typedef glm::vec3 Color;
 class TextureUsage {
 public:
     gpu::Texture::Type _type{ gpu::Texture::TEX_2D };
-    Material::MapFlags _materialUsage{ MaterialKey::DIFFUSE_MAP };
+    Material::MapFlags _materialUsage{ MaterialKey::ALBEDO_MAP };
 
     int _environmentUsage = 0;
 
     static gpu::Texture* create2DTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromNormalImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createNormalTextureFromBumpImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createRoughnessTextureFromImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createRoughnessTextureFromGlossImage(const QImage& image, const std::string& srcImageName);
+    static gpu::Texture* createMetallicTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createCubeTextureFromImage(const QImage& image, const std::string& srcImageName);
     static gpu::Texture* createLightmapTextureFromImage(const QImage& image, const std::string& srcImageName);
 

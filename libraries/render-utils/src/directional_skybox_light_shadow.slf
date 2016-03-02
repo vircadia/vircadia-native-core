@@ -47,8 +47,9 @@ void main(void) {
                         frag.position.xyz,
                         frag.normal,
                         frag.diffuse,
-                        frag.specular,
-                        frag.gloss);
+                        frag.metallic,
+                        frag.emissive,
+                        frag.roughness);
 
         _fragColor = vec4(color, frag.normalVal.a);
     }

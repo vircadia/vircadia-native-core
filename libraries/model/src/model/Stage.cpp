@@ -212,6 +212,9 @@ void SunSkyStage::setSunAmbientSphere(const gpu::SHPointer& sphere) {
         _sunLight->setAmbientSpherePreset(DEFAULT_AMBIENT_SPHERE);
     }
 }
+void SunSkyStage::setSunAmbientMap(const gpu::TexturePointer& map) {
+    _sunLight->setAmbientMap(map);
+}
 
 void SunSkyStage::setSunDirection(const Vec3& direction) {
     if (!isSunModelEnabled()) {
