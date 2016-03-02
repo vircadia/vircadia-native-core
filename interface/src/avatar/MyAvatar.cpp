@@ -1097,7 +1097,8 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setTargetVelocity(getTargetVelocity());
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
     if (qApp->isHMDMode()) {
-        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix);
+        bool hasDriveInput = fabsf(_driveKeys[TRANSLATE_X]) > 0.0f || fabsf(_driveKeys[TRANSLATE_Z]) > 0.0f;
+        _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput);
     } else {
         _follow.deactivate();
     }
@@ -1964,7 +1965,7 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
 }
 
-void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) {
+void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
     _desiredBodyMatrix = desiredBodyMatrix;
     if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
         activate(Rotation);
@@ -1972,7 +1973,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
     if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
         activate(Horizontal);
     }
-    if (!isActive(Vertical) && shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+    if (!isActive(Vertical) && (shouldActivateVertical(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
         activate(Vertical);
     }
 
