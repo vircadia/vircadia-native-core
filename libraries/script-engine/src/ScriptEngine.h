@@ -42,7 +42,14 @@ const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1000) + 0.5f);
 
-typedef QHash<QString, QScriptValueList> RegisteredEventHandlers;
+class CallbackData {
+public:
+    QScriptValue function;
+    EntityItemID definingEntityIdentifier;
+};
+
+typedef QList<CallbackData> CallbackList;
+typedef QHash<QString, CallbackList> RegisteredEventHandlers;
 
 class EntityScriptDetails {
 public:
@@ -169,7 +176,7 @@ protected:
     std::atomic<bool> _isRunning { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
-    QHash<QTimer*, QScriptValue> _timerFunctionMap;
+    QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
@@ -181,6 +188,7 @@ protected:
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
+    void stopAllTimersForEntityScript(const EntityItemID& entityID);
     void refreshFileScript(const EntityItemID& entityID);
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
@@ -202,6 +210,10 @@ protected:
     QHash<EntityItemID, RegisteredEventHandlers> _registeredHandlers;
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
+
+    EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
+    void doWithEnvironment(const EntityItemID& entityID, std::function<void()> operation);
+    void callWithEnvironment(const EntityItemID& entityID, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
 
     friend class ScriptEngines;
     static std::atomic<bool> _stoppingAllScripts;
