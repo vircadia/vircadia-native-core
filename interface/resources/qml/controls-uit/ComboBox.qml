@@ -29,24 +29,28 @@ FocusScope {
     property string label: ""
     property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
 
+    readonly property ComboBox control: comboBox
+
     implicitHeight: comboBox.height;
     focus: true
 
     Rectangle {
         id: background
         gradient: Gradient {
-            GradientStop {color: control.pressed ? "#bababa" : "#fefefe" ; position: 0}
-            GradientStop {color: control.pressed ? "#ccc" : "#e3e3e3" ; position: 1}
+            GradientStop {
+                position: 0.2
+                color: popup.visible
+                       ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
+                       : (isLightColorScheme ? hifi.colors.dropDownLightStart : hifi.colors.dropDownDarkStart)
+            }
+            GradientStop {
+                position: 1.0
+                color: popup.visible
+                       ? (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
+                       : (isLightColorScheme ? hifi.colors.dropDownLightFinish : hifi.colors.dropDownDarkFinish)
+            }
         }
         anchors.fill: parent
-        border.color: control.activeFocus ? "#47b" : "#999"
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            color: control.activeFocus ? "#47b" : "white"
-            opacity: control.hovered || control.activeFocus ? 0.1 : 0
-            Behavior on opacity {NumberAnimation{ duration: 100 }}
-        }
     }
 
     SystemPalette { id: palette }
@@ -55,13 +59,21 @@ FocusScope {
         id: comboBox
         anchors.fill: parent
         visible: false
+        height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
     }
 
-    Text {
+    FiraSansSemiBold {
         id: textField
-        anchors { left: parent.left; leftMargin: 2; right: dropIcon.left; verticalCenter: parent.verticalCenter }
+        anchors {
+            left: parent.left
+            leftMargin: hifi.dimensions.textPadding
+            right: dropIcon.left
+            verticalCenter: parent.verticalCenter
+        }
+        size: hifi.fontSizes.textFieldInput
         text: comboBox.currentText
         elide: Text.ElideRight
+        color: controlHover.containsMouse || popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText )
     }
 
     Item {
@@ -73,10 +85,13 @@ FocusScope {
             anchors.centerIn: parent
             size: hifi.dimensions.spinnerSize
             text: hifi.glyphs.caratDn
+            color: controlHover.containsMouse || popup.visible ? hifi.colors.baseGray : (isLightColorScheme ? hifi.colors.lightGray : hifi.colors.lightGrayText)
         }
     }
 
     MouseArea {
+        id: controlHover
+        hoverEnabled: true
         anchors.fill: parent
         onClicked: toggleList();
     }
@@ -133,26 +148,23 @@ FocusScope {
         ScrollView {
             id: scrollView
             height: 480
-            width: root.width
 
             ListView {
                 id: listView
                 height: textField.height * count * 1.4
                 model: root.model
-                highlight: Rectangle{
-                    width: listView.currentItem ? listView.currentItem.width : 0
-                    height: listView.currentItem ? listView.currentItem.height : 0
-                    color: "red"
-                }
                 delegate: Rectangle {
-                    width: root.width
+                    width: root.width + 4
                     height: popupText.implicitHeight * 1.4
-                    color: ListView.isCurrentItem ? palette.highlight : palette.base
-                    Text {
+                    color: popupHover.containsMouse ? hifi.colors.primaryHighlight : (isLightColorScheme ? hifi.colors.dropDownPressedLight : hifi.colors.dropDownPressedDark)
+                    FiraSansSemiBold {
+                        anchors.left: parent.left
+                        anchors.leftMargin: hifi.dimensions.textPadding
                         anchors.verticalCenter: parent.verticalCenter
                         id: popupText
-                        x: 3
                         text: listView.model[index]
+                        size: hifi.fontSizes.textFieldInput
+                        color: hifi.colors.baseGray
                     }
                     MouseArea {
                         id: popupHover
