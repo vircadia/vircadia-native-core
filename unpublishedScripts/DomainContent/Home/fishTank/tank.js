@@ -426,8 +426,9 @@
             y: 0,
             z: 0
         };
-
-        var bounds = Entities.getEntityProperties(_this.entityID, "boundingBox").boundingBox;
+        var userData = JSON.parse(_this.currentProperties.userData);
+        var innerContainer = userData['hifi-home-fishtank']['innerContainer'];
+        var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
         lowerCorner = bounds.brn;
         upperCorner = bounds.tfl;
 
