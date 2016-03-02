@@ -114,6 +114,10 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
             }
+
+            HifiControls.VerticalSpacer {
+                height: 4
+            }
         }
 
         HifiControls.StaticSection {

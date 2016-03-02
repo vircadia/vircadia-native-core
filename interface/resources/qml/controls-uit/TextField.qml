@@ -21,7 +21,7 @@ TextField {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
-    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
+    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0)
 
     placeholderText: textField.placeholderText
 
@@ -30,7 +30,7 @@ TextField {
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
 
-    y: textFieldLabel.visible ? textFieldLabel.height : 0
+    y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
 
     style: TextFieldStyle {
         textColor: isLightColorScheme

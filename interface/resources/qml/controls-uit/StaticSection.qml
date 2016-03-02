@@ -9,12 +9,15 @@
 //
 
 import QtQuick 2.5
+import QtGraphicalEffects 1.0
 
 import "../styles-uit"
 
 Column {
     property string name: "Static Section"
     property bool isFirst: false
+    property bool isCollapsible: false  // Set at creation.
+    property bool isCollapsed: false
 
     spacing: hifi.dimensions.contentSpacing.y
 
@@ -25,41 +28,94 @@ Column {
         rightMargin: hifi.dimensions.contentMargin.x
     }
 
-    VerticalSpacer { }
-
-    Item {
-        visible: !isFirst
-        anchors.top: sectionName.top
-
-        Rectangle {
-            width: frame.width
-            height: 1
-            color: hifi.colors.baseGrayShadow
-            x: -hifi.dimensions.contentMargin.x
-            anchors.bottom: highlight.top
-        }
-
-        Rectangle {
-            id: highlight
-            width: frame.width
-            height: 1
-            color: hifi.colors.baseGrayHighlight
-            x: -hifi.dimensions.contentMargin.x
-            anchors.bottom: parent.top
+    function toggleCollapsed() {
+        if (isCollapsible) {
+            isCollapsed = !isCollapsed;
+            for (var i = 1; i < children.length; i++) {
+                children[i].visible = !isCollapsed;
+            }
         }
     }
 
-    RalewayRegular {
+    Item {
         id: sectionName
-        text: parent.name
-        size: hifi.fontSizes.sectionName
-        font.capitalization: Font.AllUppercase
-        color: hifi.colors.lightGrayText
-        verticalAlignment: Text.AlignBottom
-        height: {
-            if (!isFirst) {
-                hifi.dimensions.contentMargin.y
+        height: (isCollapsible ? 4 : 3) * hifi.dimensions.contentSpacing.y
+        anchors.left: parent.left
+        anchors.right: parent.right
+
+        Item {
+            visible: !isFirst
+            anchors.top: heading.top
+
+            Rectangle {
+                id: shadow
+                width: frame.width
+                height: 1
+                color: hifi.colors.baseGrayShadow
+                x: -hifi.dimensions.contentMargin.x
             }
+
+            Rectangle {
+                width: frame.width
+                height: 1
+                color: hifi.colors.baseGrayHighlight
+                x: -hifi.dimensions.contentMargin.x
+                anchors.top: shadow.bottom
+            }
+        }
+
+        Item {
+            id: heading
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                topMargin: hifi.dimensions.contentSpacing.y
+            }
+            height: 3 * hifi.dimensions.contentSpacing.y
+
+            RalewayRegular {
+                id: title
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                size: hifi.fontSizes.sectionName
+                font.capitalization: Font.AllUppercase
+                text: name
+                color: hifi.colors.lightGrayText
+            }
+
+            HiFiGlyphs {
+                anchors {
+                    verticalCenter: title.verticalCenter
+                    right: parent.right
+                    rightMargin: -hifi.dimensions.contentMargin.x
+                }
+                y: -2
+                size: hifi.fontSizes.carat
+                text: isCollapsed ? hifi.glyphs.caratR : hifi.glyphs.caratDn
+                color: hifi.colors.lightGrayText
+                visible: isCollapsible
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: toggleCollapsed()
+            }
+        }
+
+        LinearGradient {
+            visible: isCollapsible
+            width: frame.width
+            height: 4
+            x: -hifi.dimensions.contentMargin.x
+            anchors.top: heading.bottom
+            start: Qt.point(0, 0)
+            end: Qt.point(0, 4)
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: hifi.colors.darkGray }
+                GradientStop { position: 1.0; color: hifi.colors.baseGray }  // Equivalent of darkGray0 over baseGray background.
+            }
+            cached: true
         }
     }
 }

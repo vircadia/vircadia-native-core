@@ -56,7 +56,7 @@ TreeView {
 
         branchDelegate: HiFiGlyphs {
             text: styleData.isExpanded ? hifi.glyphs.caratDn : hifi.glyphs.caratR
-            size: hifi.fontSizes.tableText * 2.5
+            size: hifi.fontSizes.carat
             color: colorScheme == hifi.colorSchemes.light
                    ? (styleData.selected
                       ? hifi.colors.black

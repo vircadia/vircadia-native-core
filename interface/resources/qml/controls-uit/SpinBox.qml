@@ -21,14 +21,14 @@ SpinBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
-    property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height : 0)
+    property real controlHeight: height + (spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0)
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
 
-    y: spinBoxLabel.visible ? spinBoxLabel.height : 0
+    y: spinBoxLabel.visible ? spinBoxLabel.height + spinBoxLabel.anchors.bottomMargin : 0
 
     style: SpinBoxStyle {
         background: Rectangle {

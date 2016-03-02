@@ -75,14 +75,12 @@ Window {
 
             if (sections.length) {
                 // Default sections to expanded/collapsed as appropriate for dialog.
-                if (title === "Avatar Preferences") {
-                    sections[0].expanded = true;
-                    if (sections.length === 1) {
-                        sections[0].collapsable = false
-                    }
+                if (sections.length === 1) {
+                    sections[0].collapsable = false
+                    sections[0].expanded = true
                 } else {
                     for (i = 0; i < sections.length; i++) {
-                        sections[i].collapsable = false;
+                        sections[i].collapsable = true;
                         sections[i].expanded = true;
                     }
                 }

@@ -51,8 +51,9 @@ Preference {
     HiFiControls.StaticSection {
         id: contentContainer
         name: root.name
-
         isFirst: root.isFirst
+        isCollapsible: root.collapsable
+        isCollapsed: !root.expanded
 
         anchors {
             left: parent.left

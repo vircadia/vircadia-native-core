@@ -27,11 +27,11 @@ ComboBox {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
-    property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height : 0)
+    property real controlHeight: height + (comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0)
 
     height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
 
-    y: comboBoxLabel.visible ? comboBoxLabel.height : 0
+    y: comboBoxLabel.visible ? comboBoxLabel.height + comboBoxLabel.anchors.bottomMargin : 0
 
     style: ComboBoxStyle {
         FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }

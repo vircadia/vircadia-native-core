@@ -21,10 +21,10 @@ Slider {
     property int colorScheme: hifi.colorSchemes.light
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
-    property real controlHeight: height + (sliderLabel.visible ? sliderLabel.height : 0)
+    property real controlHeight: height + (sliderLabel.visible ? sliderLabel.height + sliderLabel.anchors.bottomMargin : 0)
 
     height: hifi.fontSizes.textFieldInput + 14  // Match height of TextField control.
-    y: sliderLabel.visible ? sliderLabel.height : 0
+    y: sliderLabel.visible ? sliderLabel.height + sliderLabel.anchors.bottomMargin : 0
 
     style: SliderStyle {
 

@@ -110,21 +110,22 @@ Item {
 
     Item {
         id: fontSizes  // In pixels
-        readonly property real overlayTitle: dimensions.largeScreen? 18 : 14
-        readonly property real tabName: dimensions.largeScreen? 12 : 10
-        readonly property real sectionName: dimensions.largeScreen? 12 : 10
-        readonly property real inputLabel: dimensions.largeScreen? 14 : 10
-        readonly property real textFieldInput: dimensions.largeScreen? 15 : 12
-        readonly property real tableText: dimensions.largeScreen? 15 : 12
-        readonly property real buttonLabel: dimensions.largeScreen? 13 : 9
-        readonly property real iconButton: dimensions.largeScreen? 13 : 9
-        readonly property real listItem: dimensions.largeScreen? 15 : 11
-        readonly property real tabularData: dimensions.largeScreen? 15 : 11
-        readonly property real logs: dimensions.largeScreen? 16 : 12
-        readonly property real code: dimensions.largeScreen? 16 : 12
-        readonly property real rootMenu: dimensions.largeScreen? 15 : 11
-        readonly property real menuItem: dimensions.largeScreen? 15 : 11
-        readonly property real shortcutText: dimensions.largeScreen? 13 : 9
+        readonly property real overlayTitle: dimensions.largeScreen ? 18 : 14
+        readonly property real tabName: dimensions.largeScreen ? 12 : 10
+        readonly property real sectionName: dimensions.largeScreen ? 12 : 10
+        readonly property real inputLabel: dimensions.largeScreen ? 14 : 10
+        readonly property real textFieldInput: dimensions.largeScreen ? 15 : 12
+        readonly property real tableText: dimensions.largeScreen ? 15 : 12
+        readonly property real buttonLabel: dimensions.largeScreen ? 13 : 9
+        readonly property real iconButton: dimensions.largeScreen ? 13 : 9
+        readonly property real listItem: dimensions.largeScreen ? 15 : 11
+        readonly property real tabularData: dimensions.largeScreen ? 15 : 11
+        readonly property real logs: dimensions.largeScreen ? 16 : 12
+        readonly property real code: dimensions.largeScreen ? 16 : 12
+        readonly property real rootMenu: dimensions.largeScreen ? 15 : 11
+        readonly property real menuItem: dimensions.largeScreen ? 15 : 11
+        readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
+        readonly property real carat: dimensions.largeScreen ? 38 : 30
     }
 
     Item {
