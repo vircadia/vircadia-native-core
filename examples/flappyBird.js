@@ -189,13 +189,13 @@
 
 		// Game loop setup
 		var timestamp = 0;
-		this.idle = function() {
+		this.idle = function(triggerValue) {
 			var now = Date.now();
 			var deltaTime = (now - timestamp) / 1000.0;
 			if (timestamp === 0) {
 				deltaTime = 0;
 			}
-			inputs();
+			inputs(triggerValue);
 			update(deltaTime);
 			draw();
 			timestamp = now;
@@ -251,8 +251,10 @@
 			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
 		}
 		function inputs(triggerValue) {
-			isJumping = true;
-			startedPlaying = true;
+			if (triggerValue > 0.5) {
+				isJumping = true;
+				startedPlaying = true;
+			}
 		}
 		function update(deltaTime) {
 			//print("update: " + deltaTime);
@@ -426,8 +428,7 @@
                 return;
             }
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
-
-			this.game.idle();
+			this.game.idle(this.triggerValue);
         },
     };
 
