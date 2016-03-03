@@ -19,7 +19,7 @@ Column {
     property bool isCollapsible: false  // Set at creation.
     property bool isCollapsed: false
 
-    spacing: hifi.dimensions.contentSpacing.y
+    spacing: 0  // Defer spacing decisions to individual controls.
 
     anchors {
         left: parent.left

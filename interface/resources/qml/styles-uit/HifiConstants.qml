@@ -107,6 +107,8 @@ Item {
         readonly property real tableRowHeight: largeScreen ? 26 : 23
         readonly property vector2d modalDialogMargin: Qt.vector2d(50, 30)
         readonly property real modalDialogTitleHeight: 40
+        readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor
+        readonly property real controlInterlineHeight: 22  // 75% of controlLineHeight
     }
 
     Item {
