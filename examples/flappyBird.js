@@ -281,7 +281,9 @@
 			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
 		}
 		function inputs(triggerValue) {
-			if (triggerValue > TRIGGER_THRESHOLD && lastTriggerValue < TRIGGER_THRESHOLD) {
+			if (triggerValue > TRIGGER_THRESHOLD &&
+				lastTriggerValue < TRIGGER_THRESHOLD &&
+				 (gameTime - lastLost) > coolDown) {
 				isJumping = true;
 				startedPlaying = true;
 			}
