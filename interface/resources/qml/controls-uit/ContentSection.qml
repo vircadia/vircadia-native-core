@@ -39,13 +39,22 @@ Column {
 
     Item {
         id: sectionName
-        height: (isCollapsible ? 4 : 3) * hifi.dimensions.contentSpacing.y
         anchors.left: parent.left
         anchors.right: parent.right
+        height: leadingSpace.height + topBar.height + heading.height + bottomBar.height
 
         Item {
+            id: leadingSpace
+            width: 1
+            height: isFirst ? hifi.dimensions.contentSpacing.y : hifi.dimensions.controlInterlineHeight
+            anchors.top: parent.top
+        }
+
+        Item {
+            id: topBar
             visible: !isFirst
-            anchors.top: heading.top
+            height: visible ? 2 : 0
+            anchors.top: leadingSpace.bottom
 
             Rectangle {
                 id: shadow
@@ -69,15 +78,17 @@ Column {
             anchors {
                 left: parent.left
                 right: parent.right
-                top: parent.top
-                topMargin: hifi.dimensions.contentSpacing.y
+                top: topBar.bottom
             }
-            height: 3 * hifi.dimensions.contentSpacing.y
+            height: (isCollapsible ? 3 : 2) * hifi.dimensions.contentSpacing.y
 
             RalewayRegular {
                 id: title
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
+                anchors {
+                    left: parent.left
+                    top: parent.top
+                    topMargin: hifi.dimensions.contentSpacing.y
+                }
                 size: hifi.fontSizes.sectionName
                 font.capitalization: Font.AllUppercase
                 text: name
@@ -104,9 +115,10 @@ Column {
         }
 
         LinearGradient {
+            id: bottomBar
             visible: isCollapsible
             width: frame.width
-            height: 4
+            height: visible ? 4 : 0
             x: -hifi.dimensions.contentMargin.x
             anchors.top: heading.bottom
             start: Qt.point(0, 0)
