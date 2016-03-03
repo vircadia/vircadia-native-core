@@ -15,18 +15,17 @@
         Controller.Standard.RT,
     ];
 
-	var OBJECTS_LIFETIME = 1;
 	var G = 4.0;
-
-	var entityManager = new EntityManager();
 
 	Number.prototype.clamp = function(min, max) {
 	  return Math.min(Math.max(this, min), max);
 	};
+	
+	var entityManager = new EntityManager();
 
 	// Class definitions
-	function Bird(DEFAULT_X, DEFAULT_Y, to3DPosition) {
-		var DIMENSION = 0.05;
+	function Bird(DEFAULT_X, DEFAULT_Y, rotation, to3DPosition) {
+		var DIMENSION = 0.15;
 		var JUMP_VELOCITY = 1.0;
 		var xPosition = DEFAULT_X;
 		var color = { red: 0, green: 0, blue: 255 };
@@ -58,6 +57,7 @@
 				hold: true
 			},
 			position: to3DPosition(this.position()),
+			rotation: rotation,
 			dimensions: dimensions,
 			color: color
 		});
@@ -95,7 +95,7 @@
 	}
 
 	function Pipe(xPosition, yPosition, height, gap, to3DPosition) {
-		var velocity = 0.6;
+		var velocity = 0.4;
 		var width = 0.05;
 		var color = { red: 0, green: 255, blue: 0 };
 
@@ -146,7 +146,7 @@
 
 	function Pipes(newPipesPosition, newPipesHeight, to3DPosition) {
 		var lastPipe = 0;
-		var pipesInterval = 1.0;
+		var pipesInterval = 2.0;
 
 		var pipes = new Array();
 
@@ -166,10 +166,10 @@
 			}
 			// Make new pipes
 			if (startedPlaying && gameTime - lastPipe > pipesInterval) {
-				var min = 0.1;
-				var max = 0.4;
+				var min = 0.4;
+				var max = 0.7;
 				var height = Math.random() * (max - min) + min;
-				pipes.push(new Pipe(newPipesPosition, newPipesHeight, height, 0.3, to3DPosition));
+				pipes.push(new Pipe(newPipesPosition, newPipesHeight, height, 0.5, to3DPosition));
 				lastPipe = gameTime;
 			}
 		}
@@ -202,13 +202,11 @@
 			if (!isRunning) {
 				isRunning = true;
 				setup();
-				// Script.update.connect(idle);
 			}
 		}
 		
 		this.stop = function() {
 			if (isRunning) {
-				// Script.update.disconnect(idle);
 				cleanup();
 				isRunning = false;
 			}
@@ -235,7 +233,7 @@
 		// }
 
 		// Constants
-		var spaceDimensions = { x: 1.5, y: 0.8, z: 0.01 };
+		var spaceDimensions = { x: 2.0, y: 1.5, z: 0.01 };
 		var spaceDistance = 1.5;
 		var spaceYOffset = 0.6;
 
@@ -250,6 +248,9 @@
 		var gameTime = 0;
 
 		var isJumping = false;
+		var lastJumpValue = 0.0;
+		var lastTriggerValue = 0.0;
+		var TRIGGER_THRESHOLD = 0.9;
 
 		var space = null
 		var board = null;
@@ -273,15 +274,16 @@
 			// 	color: { red: 100, green: 200, blue: 200 }
 			// });
 
-			bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, to3DPosition);
-
+			var rotation = Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(0, 90, 0)); 
+			bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
 			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
 		}
 		function inputs(triggerValue) {
-			if (triggerValue > 0.5) {
+			if (triggerValue > TRIGGER_THRESHOLD && lastTriggerValue < TRIGGER_THRESHOLD) {
 				isJumping = true;
 				startedPlaying = true;
 			}
+			lastTriggerValue = triggerValue;
 		}
 		function update(deltaTime) {
 			//print("update: " + deltaTime);
@@ -346,13 +348,6 @@
 			return spaceDimensions;
 		}
 
-
-
-		function project(point, plane) {
-			var v = Vec3.subtract(point, plane.origin);
-			var dist = Vec3.dot(v, plane.normal);
-			return Vec3.subtract(point, Vec3.multiply(dist, v));
-		}
 		function to3DPosition(position) {
 			var position2D = {
 				x: position.x - space.dimensions.x / 2.0,
@@ -361,26 +356,10 @@
 			}
 			return Vec3.sum(space.position, Vec3.multiplyQbyV(space.orientation, position2D));
 		}
-		function to2DPosition(position) {
-			var position3D = project(position, {
-				origin: Vec3.subtract(space.position, {
-					x: space.dimensions.x / 2.0,
-					y: space.dimensions.y / 2.0,
-					z: 0.0
-				}),
-				normal: Vec3.multiplyQbyV(space.orientation, Vec3.FRONT)
-			});
-
-			var position2D = {
-				x: position3D.x.clamp(0.0, space.dimensions.x),
-				y: position3D.y.clamp(0.0, space.dimensions.y)
-			}
-			return position2D;
-		}
-
 	}
 
 	function EntityManager() {
+		var OBJECTS_LIFETIME = 1;
 		var entities = new Array();
 		var lifetime = OBJECTS_LIFETIME;
 
@@ -462,20 +441,3 @@
     // entity scripts always need to return a newly constructed object of our type
     return new PartableGame();
 });
-
-
-// // Script logic
-// function scriptStarting() {
-// 	var game = new Game();
-
-// 	Controller.keyPressEvent.connect(function(event) {
-// 		game.keyPressed(event);
-// 	});
-// 	Script.scriptEnding.connect(function() {
-// 		game.stop();
-// 	});
-// 	game.start();
-// }
-
-// scriptStarting();
-
