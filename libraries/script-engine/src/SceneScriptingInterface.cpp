@@ -81,6 +81,11 @@ void SceneScripting::KeyLight::setAmbientSphere(const gpu::SHPointer& sphere) {
     _skyStage->setSunAmbientSphere(sphere);
 }
 
+void SceneScripting::KeyLight::setAmbientMap(const gpu::TexturePointer& map) {
+    _skyStage->setSunAmbientMap(map);
+}
+
+
 glm::vec3 SceneScripting::KeyLight::getDirection() const {
     return _skyStage->getSunDirection();
 }

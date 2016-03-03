@@ -1,0 +1,139 @@
+<!
+//  MaterialTextures.slh
+//  fragment shader
+//
+//  Created by Sam Gateau on 2/22/16
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+!>
+<@if not MODEL_MATERIAL_TEXTURES_SLH@>
+<@def MODEL_MATERIAL_TEXTURES_SLH@>
+
+<@func declareMaterialTextures(withAlbedo, withRoughness, withNormal, withMetallic, withEmissive, withOcclusion)@>
+
+<@if withAlbedo@>
+uniform sampler2D albedoMap;
+vec4 fetchAlbedoMap(vec2 uv) {
+    return texture(albedoMap, uv);
+}
+<@endif@>
+
+<@if withRoughness@>
+uniform sampler2D roughnessMap;
+float fetchRoughnessMap(vec2 uv) {
+    return (texture(roughnessMap, uv).r);
+}
+<@endif@>
+
+<@if withNormal@>
+uniform sampler2D normalMap;
+vec3 fetchNormalMap(vec2 uv) {
+    return texture(normalMap, uv).xyz;
+}
+<@endif@>
+
+<@if withMetallic@>
+uniform sampler2D metallicMap;
+float fetchMetallicMap(vec2 uv) {
+    return (texture(metallicMap, uv).r);
+}
+<@endif@>
+
+<@if withEmissive@>
+uniform sampler2D emissiveMap;
+vec3 fetchEmissiveMap(vec2 uv) {
+    return texture(emissiveMap, uv).rgb;
+}
+<@endif@>
+
+<@if withOcclusion@>
+uniform sampler2D occlusionMap;
+float fetchOcclusionMap(vec2 uv) {
+    return texture(occlusionMap, uv).r;
+}
+<@endif@>
+<@endfunc@>
+
+
+<@func fetchMaterialTextures(matKey, texcoord0, albedo, roughness, normal, metallic, emissive, occlusion)@>
+<@if albedo@>
+    vec4 <$albedo$> = (((<$matKey$> & ALBEDO_MAP_BIT) != 0) ? fetchAlbedoMap(<$texcoord0$>) : vec4(1.0));
+<@endif@>
+<@if roughness@>
+    float <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? fetchRoughnessMap(<$texcoord0$>) : 1.0);
+<@endif@>
+<@if normal@>
+    vec3 <$normal$> = (((<$matKey$> & NORMAL_MAP_BIT) != 0) ? fetchNormalMap(<$texcoord0$>) : vec3(0.0, 1.0, 0.0));
+<@endif@>
+<@if metallic@>
+    float <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? fetchMetallicMap(<$texcoord0$>) : 0.0);
+<@endif@>
+<@if emissive@>
+    vec3 <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? fetchEmissiveMap(<$texcoord0$>) : vec3(0.0));
+<@endif@>
+<@if occlusion@>
+    float <$occlusion$> = (((<$matKey$> & OCCLUSION_MAP_BIT) != 0) ? fetchOcclusionMap(<$texcoord0$>) : 1.0);
+<@endif@>
+<@endfunc@>
+
+
+<@func declareMaterialLightmap()@>
+uniform sampler2D emissiveMap;
+uniform vec2 emissiveParams;
+vec3 fetchLightmapMap(vec2 uv) {
+    return (vec3(emissiveParams.x) + emissiveParams.y * texture(emissiveMap, uv).rgb);
+}
+<@endfunc@>
+
+<@func fetchMaterialLightmap(texcoord1, lightmapVal)@>
+    vec3 <$lightmapVal$> = fetchLightmapMap(<$texcoord1$>);
+<@endfunc@>
+
+
+<@func tangentToViewSpace(fetchedNormal, interpolatedNormal, interpolatedTangent, normal)@>
+{
+    vec3 normalizedNormal = normalize(<$interpolatedNormal$>.xyz);
+    vec3 normalizedTangent = normalize(<$interpolatedTangent$>.xyz);
+    vec3 normalizedBitangent = normalize(cross(normalizedNormal, normalizedTangent));
+    vec3 localNormal = normalize(<$fetchedNormal$> - vec3(0.5, 0.5, 0.5));
+    <$normal$> = vec3(normalizedTangent * localNormal.x + normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z);
+}
+<@endfunc@>
+
+<@func evalMaterialAlbedo(fetchedAlbedo, materialAlbedo, matKey, albedo)@>
+{
+    <$albedo$>.xyz = (((<$matKey$> & ALBEDO_VAL_BIT) != 0) ? <$materialAlbedo$> : vec3(1.0));
+
+    if (((<$matKey$> & ALBEDO_MAP_BIT) != 0)) {
+        <$albedo$>.xyz *= <$fetchedAlbedo$>.xyz;
+    }
+}
+<@endfunc@>
+
+<@func evalMaterialRoughness(fetchedRoughness, materialRoughness, matKey, roughness)@>
+{
+    <$roughness$> = (((<$matKey$> & ROUGHNESS_MAP_BIT) != 0) ? <$fetchedRoughness$> : <$materialRoughness$>);
+}
+<@endfunc@>
+
+<@func evalMaterialMetallic(fetchedMetallic, materialMetallic, matKey, metallic)@>
+{
+    <$metallic$> = (((<$matKey$> & METALLIC_MAP_BIT) != 0) ? <$fetchedMetallic$> : <$materialMetallic$>);
+}
+<@endfunc@>
+
+<@func evalMaterialEmissive(fetchedEmissive, materialEmissive, matKey, emissive)@>
+{
+    <$emissive$> = (((<$matKey$> & EMISSIVE_MAP_BIT) != 0) ? <$fetchedEmissive$> : <$materialEmissive$>);
+}
+<@endfunc@>
+
+<@func evalMaterialOcclusion(fetchedOcclusion, matKey, occlusion)@>
+{
+    <$occlusion$> = <$fetchedOcclusion$>;
+}
+<@endfunc@>
+
+<@endif@>
