@@ -33,9 +33,10 @@ Preference {
         anchors {
             left: parent.left
             right: slider.left
-            rightMargin: hifi.dimensions.contentSpacing.x
+            rightMargin: hifi.dimensions.labelPadding
             verticalCenter: slider.verticalCenter
         }
+        horizontalAlignment: Text.AlignRight
         wrapMode: Text.Wrap
     }
 

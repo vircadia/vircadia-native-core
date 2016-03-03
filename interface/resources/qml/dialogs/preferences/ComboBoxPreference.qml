@@ -35,9 +35,10 @@ Preference {
         anchors {
             left: parent.left
             right: dataComboBox.left
-            rightMargin: hifi.dimensions.contentSpacing.x
+            rightMargin: hifi.dimensions.labelPadding
             verticalCenter: dataComboBox.verticalCenter
         }
+        horizontalAlignment: Text.AlignRight
         wrapMode: Text.Wrap
     }
 

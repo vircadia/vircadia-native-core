@@ -98,6 +98,7 @@ Item {
         readonly property real borderWidth: largeScreen ? 2 : 1
         readonly property vector2d contentMargin: Qt.vector2d(12, 24)
         readonly property vector2d contentSpacing: Qt.vector2d(8, 12)
+        readonly property real labelPadding: 40
         readonly property real textPadding: 8
         readonly property real sliderHandleSize: 18
         readonly property real sliderGrooveHeight: 8
