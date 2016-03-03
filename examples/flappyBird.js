@@ -12,11 +12,60 @@
 var OBJECTS_LIFETIME = 1;
 var G = 4.0;
 
+var entityManager = new EntityManager();
+
 Number.prototype.clamp = function(min, max) {
   return Math.min(Math.max(this, min), max);
 };
 
 // Class definitions
+function Bird(DEFAULT_X, DEFAULT_Y, to3DPosition) {
+	var DIMENSION = 0.05;
+	var JUMP_VELOCITY = 1.0;
+	var xPosition = DEFAULT_X;
+	var dimensions = { x: DIMENSION, y: DIMENSION, z: DIMENSION };
+	var color = { red: 0, green: 0, blue: 255 };
+	
+	var yPosition = DEFAULT_Y;
+	var yVelocity = 0.0;
+	var yAcceleration = -G;
+
+	this.position = function() {
+		return { x: xPosition, y: yPosition };
+	}
+	this.size = function() {
+		return DIMENSION;
+	}
+
+	var id = entityManager.add({
+		type: "Sphere",
+		position: to3DPosition(this.position()),
+		dimensions: dimensions,
+		color: color
+	});
+
+
+	this.jump = function() {
+		yVelocity = JUMP_VELOCITY;
+	}
+	this.update = function(deltaTime) {
+		yPosition += deltaTime * (yVelocity + deltaTime * yAcceleration / 2.0);
+		yVelocity += deltaTime * yAcceleration;
+	}
+	this.draw = function() {
+		Entities.editEntity(id, { position: to3DPosition(this.position()) });
+	}
+	this.reset = function() {
+		yPosition = DEFAULT_Y;
+		yVelocity = 0.0;
+	}
+}
+
+function Pipe() {
+
+}
+
+
 function Game() {
 	// public methods
 	this.start = function() {
@@ -50,7 +99,6 @@ function Game() {
 
 	// Private game state
 	var that = this;
-	var entityManager = new EntityManager();
 	var isRunning = false;
 	var startedPlaying = false;
 
@@ -65,13 +113,6 @@ function Game() {
 	var board = null;
 
 	var bird = null;
-	var birdXPos = spaceDimensions.x / 2.0;
-	var birdDimensions = 0.05;
-
-	// ALong Y axis
-	var birdPos = spaceDimensions.y / 2.0;
-	var birdVel = 0.0;
-	var birdAcc = -G;
 
 	var pipes = new Array();
 	var lastPipe = 0;
@@ -104,12 +145,7 @@ function Game() {
 			color: { red: 100, green: 200, blue: 200 }
 		});
 
-		bird = entityManager.add({
-			type: "Sphere",
-			position: to3DPosition({ x: birdXPos, y: birdPos }),
-			dimensions: { x: birdDimensions, y: birdDimensions, z: birdDimensions },
-			color: { red: 0, green: 0, blue: 255 }
-		});
+		bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, to3DPosition);
 	}
 	function inputs() {
 		//print("inputs");
@@ -126,17 +162,15 @@ function Game() {
 		}
 
 		// Update Bird
-		if (!startedPlaying && birdPos < spaceDimensions.y / 2.0) {
+		if (!startedPlaying && bird.position().y < spaceDimensions.y / 2.0) {
 			isJumping = true;
 		}
 		// Apply jumps
 		if (isJumping) {
-			birdVel = jumpVelocity;
+			bird.jump();
 			isJumping = false;
 		}
-		// Apply gravity
-		birdPos += deltaTime * (birdVel + deltaTime * birdAcc / 2.0);
-		birdVel += deltaTime * birdAcc;
+		bird.update(deltaTime);
 
 
 		// Move pipes forward
@@ -167,13 +201,13 @@ function Game() {
 
 
 		// Check lost
-		var hasLost = birdPos < 0.0 || birdPos > space.dimensions.y;
+		var hasLost = bird.position().y < 0.0 || bird.position().y > space.dimensions.y;
 		if (!hasLost) {
 			pipes.forEach(function(element) {
-				var deltaX = Math.abs(element.position - birdXPos);
-				if (deltaX < (birdDimensions + pipeWidth) / 2.0) {
-					var deltaY = birdPos - pipeLength;
-					if (deltaY < 0 || deltaY < birdDimensions / 2.0) {
+				var deltaX = Math.abs(element.position - bird.position().x);
+				if (deltaX < (bird.size() + pipeWidth) / 2.0) {
+					var deltaY = bird.position().y - pipeLength;
+					if (deltaY < 0 || deltaY < bird.size() / 2.0) {
 						hasLost = true;
 					}
 				}
@@ -182,8 +216,7 @@ function Game() {
 
 		// Cleanup
 		if (hasLost) {
-			birdPos = spaceDimensions.y / 2.0;
-			birdVel = 0.0;
+			bird.reset()
 			startedPlaying = false;
 			lastLost = gameTime;
 
@@ -198,7 +231,7 @@ function Game() {
 	}
 	function draw() {
 		//print("draw");
-		Entities.editEntity(bird, { position: to3DPosition({ x: birdXPos, y: birdPos }) });
+		bird.draw();
 
 		pipes.forEach(function(element) {
 			Entities.editEntity(element.id, { position: to3DPosition({ x: element.position, y: 0.2 }) });
