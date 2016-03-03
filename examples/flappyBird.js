@@ -29,9 +29,10 @@
 		var DIMENSION = 0.05;
 		var JUMP_VELOCITY = 1.0;
 		var xPosition = DEFAULT_X;
-		var dimensions = { x: DIMENSION, y: DIMENSION, z: DIMENSION };
 		var color = { red: 0, green: 0, blue: 255 };
 		
+		var dimensionsSet = false;
+		var dimensions = { x: DIMENSION, y: DIMENSION, z: DIMENSION };
 		var yPosition = DEFAULT_Y;
 		var yVelocity = 0.0;
 		var yAcceleration = -G;
@@ -44,7 +45,18 @@
 		}
 
 		var id = entityManager.add({
-			type: "Sphere",
+			type: "Model",
+			modelURL: MyAvatar.skeletonModelURL,
+			animation: {
+				url: "http://hifi-content.s3.amazonaws.com/ozan/dev/anim/standard_anims_160127/fly.fbx",
+				running: true,
+				fps: 30,
+				firstFrame: 1.0,
+				lastFrame: 80.0,
+				currentFrame: 1.0,
+				loop: true,
+				hold: true
+			},
 			position: to3DPosition(this.position()),
 			dimensions: dimensions,
 			color: color
@@ -55,11 +67,26 @@
 			yVelocity = JUMP_VELOCITY;
 		}
 		this.update = function(deltaTime) {
+			if (!dimensionsSet) {
+				var properties = Entities.getEntityProperties(id, ["naturalDimensions"]);
+				var naturalDimensions = properties.naturalDimensions;
+				if (naturalDimensions.x != 1 || naturalDimensions.y != 1 || naturalDimensions.z != 1) {
+					var max = Math.max(naturalDimensions.x, Math.max(naturalDimensions.y, naturalDimensions.z));
+					dimensions.x = naturalDimensions.x / max * dimensions.x;
+					dimensions.y = naturalDimensions.y / max * dimensions.y;
+					dimensions.z = naturalDimensions.z / max * dimensions.z;
+					dimensionsSet = true;
+				}
+			};
+
 			yPosition += deltaTime * (yVelocity + deltaTime * yAcceleration / 2.0);
 			yVelocity += deltaTime * yAcceleration;
 		}
 		this.draw = function() {
-			Entities.editEntity(id, { position: to3DPosition(this.position()) });
+			Entities.editEntity(id, {
+				position: to3DPosition(this.position()),
+				dimensions: dimensions
+			});
 		}
 		this.reset = function() {
 			yPosition = DEFAULT_Y;
