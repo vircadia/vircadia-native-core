@@ -14,7 +14,7 @@ import "../../controls-uit"
 
 Preference {
     id: root
-    height: checkBox.implicitHeight
+    height: spacer.height + Math.max(hifi.dimensions.controlLineHeight, checkBox.implicitHeight)
 
     Component.onCompleted: {
         checkBox.checked = preference.value;
@@ -26,9 +26,24 @@ Preference {
         preference.save();
     }
 
+    Item {
+        id: spacer
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+        }
+        height: isFirstCheckBox ? hifi.dimensions.controlInterlineHeight : 0
+    }
+
     CheckBox {
         id: checkBox
-        anchors.fill: parent
+        anchors {
+            top: spacer.bottom
+            left: parent.left
+            right: parent.right
+            bottom: parent.bottom
+        }
         text: root.label
         colorScheme: hifi.colorSchemes.dark
     }

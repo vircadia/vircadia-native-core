@@ -16,6 +16,7 @@ Item {
     anchors { left: parent.left; right: parent.right }
     property var preference;
     property string label: preference ? preference.name : "";
+    property bool isFirstCheckBox;
     Component.onCompleted: {
         if (preference) {
             preference.load();

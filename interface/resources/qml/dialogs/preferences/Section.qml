@@ -73,6 +73,7 @@ Preference {
         property var buttonBuilder: Component { ButtonPreference { } }
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var preferences: []
+        property int checkBoxCount: 0
 
         function buildPreferences() {
             var categoryPreferences = Preferences.preferencesByCategory[root.name];
@@ -89,40 +90,49 @@ Preference {
             var builder;
             switch (preference.type) {
                 case Preference.Editable:
+                    checkBoxCount = 0;
                     builder = editableBuilder;
                     break;
 
                 case Preference.Browsable:
+                    checkBoxCount = 0;
                     builder = browsableBuilder;
                     break;
 
                 case Preference.Spinner:
+                    checkBoxCount = 0;
                     builder = spinnerBuilder;
                     break;
 
                 case Preference.Slider:
+                    checkBoxCount = 0;
                     builder = sliderBuilder;
                     break;
 
                 case Preference.Checkbox:
+                    checkBoxCount++;
+                    console.log("####### checkBoxCount = " + checkBoxCount);
                     builder = checkboxBuilder;
                     break;
 
                 case Preference.Avatar:
+                    checkBoxCount = 0;
                     builder = avatarBuilder;
                     break;
 
                 case Preference.Button:
+                    checkBoxCount = 0;
                     builder = buttonBuilder;
                     break;
 
                 case Preference.ComboBox:
+                    checkBoxCount = 0;
                     builder = comboBoxBuilder;
                     break;
             };
 
             if (builder) {
-                preferences.push(builder.createObject(contentContainer, { preference: preference }));
+                preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) }));
             }
         }
     }
