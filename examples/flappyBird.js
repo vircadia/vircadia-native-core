@@ -123,30 +123,29 @@
 
 	function Coin(xPosition, yPosition, to3DPosition) {
 		var velocity = 0.4;
+		var dimensions = { x: 0.0625, y: 0.0625, z: 0.0088 };
 
 		this.position = function() {
-			return xPosition;
+			return { x: xPosition, y: yPosition };
 		}
 
 		var id = entityManager.add({
 			type: "Model",
 			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/coin.fbx",
 			angularVelocity: { x: 0, y: 20, z: 0 },
-			position: to3DPosition({ x: xPosition, y: yPosition }),
-			dimensions: { x: 0.0625, y: 0.0625, z: 0.0088 }
+			position: to3DPosition(this.position()),
+			dimensions:dimensions
 		});
 
 		this.update = function(deltaTime) {
 			xPosition -= deltaTime * velocity;
 		}
 		this.isColliding = function(bird) {
-			var deltaX = Math.abs(this.position() - bird.position().x);
-			if (deltaX < (bird.dimensions().z + width) / 2.0) {
-				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y);
-				var downDistance = (bird.position().y - bird.dimensions().y) - height;
-				if (upDistance <= 0 || downDistance <= 0) {
-					return true;
-				}
+			var deltaX = Math.abs(this.position().x - bird.position().x);
+			var deltaY = Math.abs(this.position().Y - bird.position().Y);
+			if (deltaX < (bird.dimensions().x + dimensions.x) / 2.0 &&
+				deltaX < (bird.dimensions().y + dimensions.y) / 2.0) {
+				return true;
 			}
 			
 			return false;
@@ -209,12 +208,15 @@
 		}
 	}
 
-	function Pipes(newPipesPosition, newPipesHeight, to3DPosition) {
+	function Pipes(newPipesPosition, newPipesHeight, to3DPosition, moveScore) {
 		var lastPipe = 0;
 		var pipesInterval = 2.0;
 
 		var pipes = new Array();
 		var coins = new Array();
+
+	    var coinsSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/Coin.wav");
+	    var injector = null;
 
 		this.update = function(deltaTime, gameTime, startedPlaying) {
 			// Move pipes forward
@@ -254,6 +256,27 @@
 			}
 		}
 		this.isColliding = function(bird) {
+			// Check coin collection
+			var collected = -1;
+			coins.forEach(function(element, index) {
+				if (element.isColliding(bird)) {
+					element.clear();
+					collected = index;
+					moveScore(10);
+
+		            if (coinsSound.downloaded && !injector) {
+		                injector = Audio.playSound(coinsSound, { position: to3DPosition({ x: newPipesPosition, y: newPipesHeight }), volume: 0.1 });
+		            } else if (injector) {
+		            	injector.restart();
+		            }
+				}
+			});
+			if (collected > -1) {
+				coins.splice(collected, 1);
+			}
+
+
+			// Check collisions
 			var isColliding = false;
 
 			pipes.forEach(function(element) {
@@ -311,6 +334,8 @@
 			if (timestamp === 0) {
 				deltaTime = 0;
 			}
+			gameTime += deltaTime;
+
 			inputs(triggerValue);
 			update(deltaTime);
 			draw();
@@ -367,6 +392,13 @@
 			}
 		}
 
+		var isBoardReset = true;
+
+		var score = 0;
+		function moveScore(delta) {
+			score += delta;
+		}
+
 		function setup() {
 			print("setup");
 
@@ -386,11 +418,19 @@
 
 			var rotation = Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(0, 90, 0)); 
 			bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
-			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
+			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition, moveScore);
 
 			Controller.keyPressEvent.connect(keyPress);
 		}
 		function inputs(triggerValue) {
+			if (!startedPlaying && !isBoardReset && (gameTime - lastLost) > coolDown) {
+				score = 0;
+				bird.reset();
+				pipes.clear();
+
+				isBoardReset = true;
+			}
+
 			if (triggerValue > TRIGGER_THRESHOLD &&
 				lastTriggerValue < TRIGGER_THRESHOLD &&
 				 (gameTime - lastLost) > coolDown) {
@@ -403,10 +443,9 @@
 			//print("update: " + deltaTime);
 
 			// Keep entities alive
-			gameTime += deltaTime;
 			entityManager.update(deltaTime);
 
-			if (!startedPlaying && (gameTime - lastLost) < coolDown) {
+			if (!startedPlaying && (gameTime - lastLost) < coolDown && !isBoardReset) {
 				return;
 			}
 
@@ -439,10 +478,7 @@
 	            	injector.restart();
 	            }
 
-
-				bird.reset();
-				pipes.clear();
-
+				isBoardReset = false;
 				startedPlaying = false;
 				lastLost = gameTime;
 			}
