@@ -127,6 +127,7 @@ Item {
         readonly property real menuItem: dimensions.largeScreen ? 15 : 11
         readonly property real shortcutText: dimensions.largeScreen ? 13 : 9
         readonly property real carat: dimensions.largeScreen ? 38 : 30
+        readonly property real disclosureButton: dimensions.largeScreen ? 20 : 15
     }
 
     Item {
@@ -138,6 +139,8 @@ Item {
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"
+        readonly property string disclosureButtonCollapse: "M"
+        readonly property string disclosureButtonExpand: "L"
         readonly property string disclosureCollapse: "Z"
         readonly property string disclosureExpand: "B"
         readonly property string forward: "D"

@@ -88,11 +88,11 @@ Column {
                 anchors {
                     verticalCenter: title.verticalCenter
                     right: parent.right
-                    rightMargin: -hifi.dimensions.contentMargin.x
+                    rightMargin: -4
                 }
                 y: -2
-                size: hifi.fontSizes.carat
-                text: isCollapsed ? hifi.glyphs.caratR : hifi.glyphs.caratDn
+                size: hifi.fontSizes.disclosureButton
+                text: isCollapsed ? hifi.glyphs.disclosureButtonExpand : hifi.glyphs.disclosureButtonCollapse
                 color: hifi.colors.lightGrayText
                 visible: isCollapsible
             }
