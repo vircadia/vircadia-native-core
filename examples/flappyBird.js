@@ -263,7 +263,7 @@
 				if (element.isColliding(bird)) {
 					element.clear();
 					collected = index;
-					moveScore(10);
+					moveScore(1);
 
 		            if (coinsSound.downloaded && !injector) {
 		                injector = Audio.playSound(coinsSound, { position: to3DPosition({ x: newPipesPosition, y: newPipesHeight }), volume: 0.1 });
