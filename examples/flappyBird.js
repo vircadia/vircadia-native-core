@@ -39,8 +39,8 @@
 		this.position = function() {
 			return { x: xPosition, y: yPosition };
 		}
-		this.size = function() {
-			return DIMENSION;
+		this.dimensions = function() {
+			return dimensions;
 		}
 
 		var id = entityManager.add({
@@ -77,7 +77,9 @@
 					dimensions.z = naturalDimensions.z / max * dimensions.z;
 					dimensionsSet = true;
 				}
-			};
+			} else {
+				dimensions = Entities.getEntityProperties(id, ["dimensions"]).dimensions;
+			}
 
 			yPosition += deltaTime * (yVelocity + deltaTime * yAcceleration / 2.0);
 			yVelocity += deltaTime * yAcceleration;
@@ -124,9 +126,9 @@
 		}
 		this.isColliding = function(bird) {
 			var deltaX = Math.abs(this.position() - bird.position().x);
-			if (deltaX < (bird.size() + width) / 2.0) {
-				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.size());
-				var downDistance = (bird.position().y - bird.size()) - height;
+			if (deltaX < (bird.dimensions().z + width) / 2.0) {
+				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y);
+				var downDistance = (bird.position().y - bird.dimensions().y) - height;
 				if (upDistance <= 0 || downDistance <= 0) {
 					return true;
 				}
