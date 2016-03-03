@@ -36,6 +36,9 @@
 		var yVelocity = 0.0;
 		var yAcceleration = -G;
 
+	    var airSwipeSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/Air Swipe 05.wav");
+	    var injector = null;
+
 		this.position = function() {
 			return { x: xPosition, y: yPosition };
 		}
@@ -54,7 +57,7 @@
 				lastFrame: 80.0,
 				currentFrame: 1.0,
 				loop: true,
-				hold: true
+				hold: false
 			},
 			position: to3DPosition(this.position()),
 			rotation: rotation,
@@ -71,10 +74,19 @@
 				dimensions: dimensions,
 				animation: {running: false}
 			});
+
+	    	airSwipeSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/8bit Jump 03.wav");
+	    	injector = null;
 		}
 
 		this.jump = function() {
 			yVelocity = JUMP_VELOCITY;
+
+            if (airSwipeSound.downloaded && !injector) {
+                injector = Audio.playSound(airSwipeSound, { position: to3DPosition(this.position()), volume: 0.05 });
+            } else if (injector) {
+            	injector.restart();
+            }
 		}
 		this.update = function(deltaTime) {
 			if (!dimensionsSet) {
@@ -86,6 +98,10 @@
 					dimensions.y = naturalDimensions.y / max * dimensions.y;
 					dimensions.z = naturalDimensions.z / max * dimensions.z;
 					dimensionsSet = true;
+					
+					Entities.editEntity(id, {
+						dimensions: dimensions
+					});
 				}
 			} else {
 				dimensions = Entities.getEntityProperties(id, ["dimensions"]).dimensions;
@@ -96,8 +112,7 @@
 		}
 		this.draw = function() {
 			Entities.editEntity(id, {
-				position: to3DPosition(this.position()),
-				dimensions: dimensions
+				position: to3DPosition(this.position())
 			});
 		}
 		this.reset = function() {
@@ -106,10 +121,47 @@
 		}
 	}
 
+	function Coin(xPosition, yPosition, to3DPosition) {
+		var velocity = 0.4;
+
+		this.position = function() {
+			return xPosition;
+		}
+
+		var id = entityManager.add({
+			type: "Model",
+			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/coin.fbx",
+			angularVelocity: { x: 0, y: 20, z: 0 },
+			position: to3DPosition({ x: xPosition, y: yPosition }),
+			dimensions: { x: 0.0625, y: 0.0625, z: 0.0088 }
+		});
+
+		this.update = function(deltaTime) {
+			xPosition -= deltaTime * velocity;
+		}
+		this.isColliding = function(bird) {
+			var deltaX = Math.abs(this.position() - bird.position().x);
+			if (deltaX < (bird.dimensions().z + width) / 2.0) {
+				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y);
+				var downDistance = (bird.position().y - bird.dimensions().y) - height;
+				if (upDistance <= 0 || downDistance <= 0) {
+					return true;
+				}
+			}
+			
+			return false;
+		}
+		this.draw = function() {
+			Entities.editEntity(id, { position: to3DPosition({ x: xPosition, y: yPosition }) });
+		}
+		this.clear = function() {
+			entityManager.remove(id);
+		}
+	}
+
 	function Pipe(xPosition, yPosition, height, gap, to3DPosition) {
 		var velocity = 0.4;
 		var width = 0.1;
-		var color = { red: 0, green: 255, blue: 0 };
 
 		this.position = function() {
 			return xPosition;
@@ -123,15 +175,13 @@
 			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/greenPipe.fbx",
 			rotation: Quat.fromPitchYawRollDegrees(180, 0, 0),
 			position: to3DPosition({ x: xPosition, y: upYPosition }),
-			dimensions: { x: width, y: upHeight, z: width },
-			color: color
+			dimensions: { x: width, y: upHeight, z: width }
 		});
 		var idDown = entityManager.add({
 			type: "Model",
 			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/greenPipe.fbx",
 			position: to3DPosition({ x: xPosition, y: height / 2.0 }),
-			dimensions: { x: width, y: height, z: width },
-			color: color
+			dimensions: { x: width, y: height, z: width }
 		});
 
 		this.update = function(deltaTime) {
@@ -164,10 +214,15 @@
 		var pipesInterval = 2.0;
 
 		var pipes = new Array();
+		var coins = new Array();
 
 		this.update = function(deltaTime, gameTime, startedPlaying) {
 			// Move pipes forward
 			pipes.forEach(function(element) {
+				element.update(deltaTime);
+			});
+			// Move coins forward
+			coins.forEach(function(element) {
 				element.update(deltaTime);
 			});
 			// Delete pipes over the end
@@ -179,12 +234,22 @@
 			if (count > 0) {
 				pipes = pipes.splice(count);
 			}
-			// Make new pipes
+			// Delete coins over the end
+			count = 0;
+			while(count < coins.length && coins[count].position() <= 0.0) {
+				coins[count].clear();
+				count++;
+			}
+			if (count > 0) {
+				coins = coins.splice(count);
+			}
+			// Make new pipes and coins
 			if (startedPlaying && gameTime - lastPipe > pipesInterval) {
 				var min = 0.4;
 				var max = 0.7;
 				var height = Math.random() * (max - min) + min;
 				pipes.push(new Pipe(newPipesPosition, newPipesHeight, height, 0.5, to3DPosition));
+				coins.push(new Coin(newPipesPosition, height + 0.5 / 2.0, to3DPosition));
 				lastPipe = gameTime;
 			}
 		}
@@ -198,16 +263,27 @@
 			return isColliding;
 		}
 		this.draw = function() {
-			// Clearing pipes
+			// Drawing pipes
 			pipes.forEach(function(element) {
+				element.draw();
+			});
+			// Drawing coins
+			coins.forEach(function(element) {
 				element.draw();
 			});
 		}
 		this.clear = function() {
+			// Clearing pipes
 			pipes.forEach(function(element) {
 				element.clear();
 			});
 			pipes = new Array();
+
+			// Clearing coins
+			coins.forEach(function(element) {
+				element.clear();
+			});
+			coins = new Array();
 		}
 	}
 
@@ -257,7 +333,7 @@
 		var isRunning = false;
 		var startedPlaying = false;
 
-		var coolDown = 1;
+		var coolDown = 1.5;
 		var lastLost = -coolDown;
 
 		var gameTime = 0;
@@ -271,6 +347,9 @@
 		var board = null;
 		var bird = null;
 		var pipes = null;
+
+	    var gameOverSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/Game Over.wav");
+	    var injector = null;
 
 		var directions = ["UP", "DOWN", "LEFT", "RIGHT"];
 		var sequence = [directions[0], directions[0], directions[1], directions[1], directions[2], directions[3], directions[2], directions[3], "b", "a"];
@@ -353,6 +432,14 @@
 			// Cleanup
 			if (hasLost) {
 				print("Game Over!");
+
+	            if (gameOverSound.downloaded && !injector) {
+	                injector = Audio.playSound(gameOverSound, { position: space.position, volume: 0.4 });
+	            } else if (injector) {
+	            	injector.restart();
+	            }
+
+
 				bird.reset();
 				pipes.clear();
 
