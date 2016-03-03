@@ -61,10 +61,98 @@ function Bird(DEFAULT_X, DEFAULT_Y, to3DPosition) {
 	}
 }
 
-function Pipe() {
+function Pipe(xPosition, height, to3DPosition) {
+	var velocity = 1.0;
+	var width = 0.05;
+	var color = { red: 0, green: 255, blue: 0 };
 
+	this.position = function() {
+		return { x: xPosition, y: height / 2.0 };
+	}
+	this.width = function() {
+		return width;
+	}
+	this.height = function() {
+		return height;
+	}
+
+	var id = entityManager.add({
+		type: "Box",
+		position: to3DPosition(this.position()),
+		dimensions: { x: width, y: height, z: width },
+		color: color
+	});
+
+	this.update = function(deltaTime) {
+		xPosition -= deltaTime * velocity;
+	}
+	this.isColliding = function(bird) {
+		var deltaX = Math.abs(this.position().x - bird.position().x);
+		if (deltaX < (bird.size() + this.width()) / 2.0) {
+			var deltaY = bird.position().y - this.height();
+			if (deltaY < 0 || deltaY < bird.size() / 2.0) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	this.draw = function() {
+		Entities.editEntity(id, { position: to3DPosition(this.position()) });
+	}
+	this.clear = function() {
+		entityManager.remove(id);
+	}
 }
 
+function Pipes(newPipesPosition, to3DPosition) {
+	var lastPipe = 0;
+	var pipesInterval = 0.5;
+
+	var pipes = new Array();
+
+	this.update = function(deltaTime, gameTime, startedPlaying) {
+		// Move pipes forward
+		pipes.forEach(function(element) {
+			element.update(deltaTime);
+		});
+		// Delete pipes over the end
+		var count = 0;
+		while(count < pipes.length && pipes[count].position().x <= 0.0) {
+			pipes[count].clear();
+			count++;
+		}
+		if (count > 0) {
+			pipes = pipes.splice(count);
+		}
+		// Make new pipes
+		if (startedPlaying && gameTime - lastPipe > pipesInterval) {
+			pipes.push(new Pipe(newPipesPosition, 0.4, to3DPosition));
+			lastPipe = gameTime;
+		}
+	}
+	this.isColliding = function(bird) {
+		var isColliding = false;
+
+		pipes.forEach(function(element) {
+			isColliding |= element.isColliding(bird);
+		});
+
+		return isColliding;
+	}
+	this.draw = function() {
+		// Clearing pipes
+		pipes.forEach(function(element) {
+			element.draw();
+		});
+	}
+	this.clear = function() {
+		pipes.forEach(function(element) {
+			element.clear();
+		});
+		pipes = new Array();
+	}
+}
 
 function Game() {
 	// public methods
@@ -95,8 +183,6 @@ function Game() {
 	var spaceDistance = 1.5;
 	var spaceYOffset = 0.6;
 
-	var jumpVelocity = 1.0;
-
 	// Private game state
 	var that = this;
 	var isRunning = false;
@@ -111,15 +197,8 @@ function Game() {
 
 	var space = null
 	var board = null;
-
 	var bird = null;
-
-	var pipes = new Array();
-	var lastPipe = 0;
-	var pipesInterval = 0.5;
-	var pipesVelocity = 1.0;
-	var pipeWidth = 0.05;
-	var pipeLength = 0.4;
+	var pipes = null;
 
 	// Game loop setup
 	function idle(deltaTime) {
@@ -146,6 +225,8 @@ function Game() {
 		});
 
 		bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, to3DPosition);
+
+		pipes = new Pipes(space.dimensions.x, to3DPosition);
 	}
 	function inputs() {
 		//print("inputs");
@@ -172,70 +253,28 @@ function Game() {
 		}
 		bird.update(deltaTime);
 
-
-		// Move pipes forward
-		pipes.forEach(function(element) {
-			element.position -= deltaTime * pipesVelocity;
-		});
-		// Delete pipes over the end
-		var count = 0;
-		while(count < pipes.length && pipes[count].position <= 0.0) {
-			entityManager.remove(pipes[count].id);
-			count++;
-		}
-		if (count > 0) {
-			pipes = pipes.splice(count);
-		}
-		// Move pipes forward
-		if (startedPlaying && gameTime - lastPipe > pipesInterval) {
-			print("New pipe");
-			var newPipe = entityManager.add({
-				type: "Box",
-				position: to3DPosition({ x: space.dimensions.x, y: 0.2 }),
-				dimensions: { x: pipeWidth, y: pipeLength, z: pipeWidth },
-				color: { red: 0, green: 255, blue: 0 }
-			});
-			pipes.push({ id: newPipe, position: space.dimensions.x });
-			lastPipe = gameTime;
-		}
-
+		pipes.update(deltaTime, gameTime, startedPlaying);
 
 		// Check lost
-		var hasLost = bird.position().y < 0.0 || bird.position().y > space.dimensions.y;
-		if (!hasLost) {
-			pipes.forEach(function(element) {
-				var deltaX = Math.abs(element.position - bird.position().x);
-				if (deltaX < (bird.size() + pipeWidth) / 2.0) {
-					var deltaY = bird.position().y - pipeLength;
-					if (deltaY < 0 || deltaY < bird.size() / 2.0) {
-						hasLost = true;
-					}
-				}
-			});
-		}
+		var hasLost = bird.position().y < 0.0 ||
+					  bird.position().y > space.dimensions.y ||
+					  pipes.isColliding(bird);
+
 
 		// Cleanup
 		if (hasLost) {
-			bird.reset()
+			print("Game Over!");
+			bird.reset();
+			pipes.clear();
+
 			startedPlaying = false;
 			lastLost = gameTime;
-
-
-			// Clearing pipes
-			print("Clearing pipes: " + pipes.length);
-			pipes.forEach(function(element) {
-				entityManager.remove(element.id);
-			});
-			pipes = new Array();
 		}
 	}
 	function draw() {
 		//print("draw");
 		bird.draw();
-
-		pipes.forEach(function(element) {
-			Entities.editEntity(element.id, { position: to3DPosition({ x: element.position, y: 0.2 }) });
-		});
+		pipes.draw();
 	}
 	function cleanup() {
 		print("cleanup");
