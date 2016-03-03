@@ -61,24 +61,27 @@ function Bird(DEFAULT_X, DEFAULT_Y, to3DPosition) {
 	}
 }
 
-function Pipe(xPosition, height, to3DPosition) {
-	var velocity = 1.0;
+function Pipe(xPosition, yPosition, height, gap, to3DPosition) {
+	var velocity = 0.6;
 	var width = 0.05;
 	var color = { red: 0, green: 255, blue: 0 };
 
 	this.position = function() {
-		return { x: xPosition, y: height / 2.0 };
-	}
-	this.width = function() {
-		return width;
-	}
-	this.height = function() {
-		return height;
+		return xPosition;
 	}
 
-	var id = entityManager.add({
+	var upHeight = yPosition - (height + gap);
+	var upYPosition = height + gap + upHeight / 2.0;
+
+	var idUp = entityManager.add({
 		type: "Box",
-		position: to3DPosition(this.position()),
+		position: to3DPosition({ x: xPosition, y: upYPosition }),
+		dimensions: { x: width, y: upHeight, z: width },
+		color: color
+	});
+	var idDown = entityManager.add({
+		type: "Box",
+		position: to3DPosition({ x: xPosition, y: height / 2.0 }),
 		dimensions: { x: width, y: height, z: width },
 		color: color
 	});
@@ -87,10 +90,11 @@ function Pipe(xPosition, height, to3DPosition) {
 		xPosition -= deltaTime * velocity;
 	}
 	this.isColliding = function(bird) {
-		var deltaX = Math.abs(this.position().x - bird.position().x);
-		if (deltaX < (bird.size() + this.width()) / 2.0) {
-			var deltaY = bird.position().y - this.height();
-			if (deltaY < 0 || deltaY < bird.size() / 2.0) {
+		var deltaX = Math.abs(this.position() - bird.position().x);
+		if (deltaX < (bird.size() + width) / 2.0) {
+			var upDistance = (yPosition - upHeight) - (bird.position().y + bird.size());
+			var downDistance = (bird.position().y - bird.size()) - height;
+			if (upDistance <= 0 || downDistance <= 0) {
 				return true;
 			}
 		}
@@ -98,16 +102,18 @@ function Pipe(xPosition, height, to3DPosition) {
 		return false;
 	}
 	this.draw = function() {
-		Entities.editEntity(id, { position: to3DPosition(this.position()) });
+		Entities.editEntity(idUp, { position: to3DPosition({ x: xPosition, y: upYPosition }) });
+		Entities.editEntity(idDown, { position: to3DPosition({ x: xPosition, y: height / 2.0 }) });
 	}
 	this.clear = function() {
-		entityManager.remove(id);
+		entityManager.remove(idUp);
+		entityManager.remove(idDown);
 	}
 }
 
-function Pipes(newPipesPosition, to3DPosition) {
+function Pipes(newPipesPosition, newPipesHeight, to3DPosition) {
 	var lastPipe = 0;
-	var pipesInterval = 0.5;
+	var pipesInterval = 1.0;
 
 	var pipes = new Array();
 
@@ -118,7 +124,7 @@ function Pipes(newPipesPosition, to3DPosition) {
 		});
 		// Delete pipes over the end
 		var count = 0;
-		while(count < pipes.length && pipes[count].position().x <= 0.0) {
+		while(count < pipes.length && pipes[count].position() <= 0.0) {
 			pipes[count].clear();
 			count++;
 		}
@@ -127,7 +133,10 @@ function Pipes(newPipesPosition, to3DPosition) {
 		}
 		// Make new pipes
 		if (startedPlaying && gameTime - lastPipe > pipesInterval) {
-			pipes.push(new Pipe(newPipesPosition, 0.4, to3DPosition));
+			var min = 0.1;
+			var max = 0.4;
+			var height = Math.random() * (max - min) + min;
+			pipes.push(new Pipe(newPipesPosition, newPipesHeight, height, 0.3, to3DPosition));
 			lastPipe = gameTime;
 		}
 	}
@@ -226,7 +235,7 @@ function Game() {
 
 		bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, to3DPosition);
 
-		pipes = new Pipes(space.dimensions.x, to3DPosition);
+		pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
 	}
 	function inputs() {
 		//print("inputs");
