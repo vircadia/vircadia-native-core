@@ -189,8 +189,9 @@
 		this.isColliding = function(bird) {
 			var deltaX = Math.abs(this.position() - bird.position().x);
 			if (deltaX < (bird.dimensions().z + width) / 2.0) {
-				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y);
-				var downDistance = (bird.position().y - bird.dimensions().y) - height;
+				var factor = 0.8;
+				var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y * factor);
+				var downDistance = (bird.position().y - bird.dimensions().y * factor) - height;
 				if (upDistance <= 0 || downDistance <= 0) {
 					return true;
 				}
@@ -310,7 +311,109 @@
 		}
 	}
 
-	function Game() {
+
+	function Score(space, bestScore) {
+		var score = 0;
+		var highScore = bestScore;
+
+		var topOffset = Vec3.multiplyQbyV(space.orientation, { x: -0.1, y: 0.2, z: -0.2 });
+		var topLeft = Vec3.sum(space.position, topOffset);
+		var bottomOffset = Vec3.multiplyQbyV(space.orientation, { x: -0.1, y: 0.0, z: -0.2 });
+		var bottomLeft = Vec3.sum(space.position, bottomOffset);
+
+		function numberUrl(number) {
+			return "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/" + number + ".fbx"
+		}
+		function digitPosition(digit) {
+			return Vec3.multiplyQbyV(space.orientation, { x: 0.3778 + digit * 0.0760, y: 0.0, z: 0.0 });
+		}
+		this.score = function() {
+			return score;
+		}
+		this.highScore = function() {
+			return highScore;
+		}
+
+		var bestId = entityManager.add({
+			type: "Model",
+			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/best.fbx",
+			position: topLeft,
+			rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
+			dimensions: { x: 0.2781, y: 0.0063, z: 0.1037 }
+		});
+		var best0 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(topLeft, digitPosition(0)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+		var best1 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(topLeft, digitPosition(1)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+		var best2 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(topLeft, digitPosition(2)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+
+		var scoreId =  entityManager.add({
+			type: "Model",
+			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/score.fbx",
+			position: bottomLeft,
+			rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
+			dimensions: { x: 0.3678, y: 0.0063, z: 0.1037 }
+		});
+		var score0 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(bottomLeft, digitPosition(0)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+		var score1 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(bottomLeft, digitPosition(1)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+		var score2 = entityManager.add({
+			type: "Model",
+			modelURL: numberUrl(0),
+			position: Vec3.sum(bottomLeft, digitPosition(2)),
+			rotation: space.orientation,
+			dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
+		});
+
+		this.moveScore = function(delta) {
+			score += delta;
+			if (score > highScore) {
+				highScore = score;
+			}
+		}
+		this.resetScore = function() {
+			score = 0;
+		}
+
+		this.draw = function() {
+			Entities.editEntity(best0, { modelURL: numberUrl(Math.floor((highScore / 100) % 10)) });
+			Entities.editEntity(best1, { modelURL: numberUrl(Math.floor((highScore / 10) % 10)) });
+			Entities.editEntity(best2, { modelURL: numberUrl(Math.floor((highScore / 1) % 10)) });
+
+			Entities.editEntity(score0, { modelURL: numberUrl(Math.floor((score / 100) % 10)) });
+			Entities.editEntity(score1, { modelURL: numberUrl(Math.floor((score / 10) % 10)) });
+			Entities.editEntity(score2, { modelURL: numberUrl(Math.floor((score / 1) % 10)) });
+		}
+	}
+
+	function Game(bestScore) {
 		// public methods
 		this.start = function() {
 			if (!isRunning) {
@@ -372,6 +475,7 @@
 		var board = null;
 		var bird = null;
 		var pipes = null;
+		var score = null;
 
 	    var gameOverSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/Game Over.wav");
 	    var injector = null;
@@ -394,9 +498,15 @@
 
 		var isBoardReset = true;
 
-		var score = 0;
 		function moveScore(delta) {
-			score += delta;
+			score.moveScore(delta);
+		}
+
+		this.score = function() {
+			return score.score();
+		}
+		this.highScore = function() {
+			return score.highScore();
 		}
 
 		function setup() {
@@ -419,12 +529,13 @@
 			var rotation = Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(0, 90, 0)); 
 			bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
 			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition, moveScore);
+			score = new Score(space, bestScore);
 
 			Controller.keyPressEvent.connect(keyPress);
 		}
 		function inputs(triggerValue) {
 			if (!startedPlaying && !isBoardReset && (gameTime - lastLost) > coolDown) {
-				score = 0;
+				score.resetScore();
 				bird.reset();
 				pipes.clear();
 
@@ -487,6 +598,7 @@
 			//print("draw");
 			bird.draw();
 			pipes.draw();
+			score.draw();
 		}
 		function cleanup() {
 			print("cleanup");
@@ -564,6 +676,7 @@
 	}
 
     PartableGame = function() {
+        this.entityID = null;
         this.equipped = false;
         this.triggerValue = 0.0;
         this.hand = 0;
@@ -580,11 +693,25 @@
             this.equipped = true;
             this.hand = params[0] == "left" ? 0 : 1;
 
-            this.game = new Game();
+
+          	var bestScore = 0;
+            var properties = Entities.getEntityProperties(this.entityID, ["userData"]);
+            var userData = JSON.parse(properties.userData);
+            if (userData.highScore) {
+				bestScore = userData.highScore;
+            }
+
+            this.game = new Game(bestScore);
             this.game.start();
         },
         releaseEquip: function(id, params) {
             this.equipped = false;
+
+            var properties = Entities.getEntityProperties(this.entityID, ["userData"]);
+            var userData = JSON.parse(properties.userData);
+            userData.highScore = this.game.highScore();
+            properties.userData = JSON.stringify(userData);
+            Entities.editEntity(this.entityID, properties);
 
             this.game.stop();
             delete this.game;
