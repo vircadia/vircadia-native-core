@@ -58,10 +58,20 @@
 			},
 			position: to3DPosition(this.position()),
 			rotation: rotation,
-			dimensions: dimensions,
-			color: color
+			dimensions: dimensions
 		});
 
+		this.changeModel = function(modelURL) {
+			dimensionsSet = false;
+			dimensions = { x: 0.10, y: 0.10, z: 0.01 };
+
+			Entities.editEntity(id, {
+				modelURL: modelURL,
+				rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0)),
+				dimensions: dimensions,
+				animation: {running: false}
+			});
+		}
 
 		this.jump = function() {
 			yVelocity = JUMP_VELOCITY;
@@ -98,7 +108,7 @@
 
 	function Pipe(xPosition, yPosition, height, gap, to3DPosition) {
 		var velocity = 0.4;
-		var width = 0.05;
+		var width = 0.1;
 		var color = { red: 0, green: 255, blue: 0 };
 
 		this.position = function() {
@@ -109,13 +119,16 @@
 		var upYPosition = height + gap + upHeight / 2.0;
 
 		var idUp = entityManager.add({
-			type: "Box",
+			type: "Model",
+			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/greenPipe.fbx",
+			rotation: Quat.fromPitchYawRollDegrees(180, 0, 0),
 			position: to3DPosition({ x: xPosition, y: upYPosition }),
 			dimensions: { x: width, y: upHeight, z: width },
 			color: color
 		});
 		var idDown = entityManager.add({
-			type: "Box",
+			type: "Model",
+			modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/greenPipe.fbx",
 			position: to3DPosition({ x: xPosition, y: height / 2.0 }),
 			dimensions: { x: width, y: height, z: width },
 			color: color
@@ -259,6 +272,22 @@
 		var bird = null;
 		var pipes = null;
 
+		var directions = ["UP", "DOWN", "LEFT", "RIGHT"];
+		var sequence = [directions[0], directions[0], directions[1], directions[1], directions[2], directions[3], directions[2], directions[3], "b", "a"];
+		var current = 0;
+		function keyPress(event) {
+			if (event.text === sequence[current]) {
+				++current;
+			} else {
+				current = 0;
+			}
+			if (current === sequence.length) {
+				print("KONAMI CODE!!!");
+				bird.changeModel("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/mario.fbx");
+				current = 0;
+			}
+		}
+
 		function setup() {
 			print("setup");
 
@@ -279,6 +308,8 @@
 			var rotation = Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(0, 90, 0)); 
 			bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
 			pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition);
+
+			Controller.keyPressEvent.connect(keyPress);
 		}
 		function inputs(triggerValue) {
 			if (triggerValue > TRIGGER_THRESHOLD &&
@@ -337,6 +368,8 @@
 		function cleanup() {
 			print("cleanup");
 			entityManager.removeAll();
+
+			Controller.keyPressEvent.disconnect(keyPress);
 		}
 
 		// Private methods
