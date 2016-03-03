@@ -14,7 +14,7 @@ import "../../controls-uit"
 
 Preference {
     id: root
-    height: button.height
+    height: button.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: button.text = preference.name;
 
@@ -24,5 +24,6 @@ Preference {
         id: button
         onClicked: preference.trigger()
         width: 180
+        anchors.bottom: parent.bottom
     }
 }

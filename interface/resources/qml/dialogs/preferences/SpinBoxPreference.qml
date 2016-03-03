@@ -15,7 +15,7 @@ import "../../controls-uit"
 Preference {
     id: root
     property alias spinner: spinner
-    height: spinner.controlHeight
+    height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
         spinner.value = preference.value;
@@ -26,26 +26,40 @@ Preference {
         preference.save();
     }
 
-    Label {
-        text: root.label + ":"
-        colorScheme: hifi.colorSchemes.dark
+    Item {
+        id: control
         anchors {
             left: parent.left
-            right: spinner.left
-            rightMargin: hifi.dimensions.labelPadding
-            verticalCenter: spinner.verticalCenter
+            right: parent.right
+            bottom: parent.bottom
         }
-        horizontalAlignment: Text.AlignRight
-        wrapMode: Text.Wrap
-    }
+        height: Math.max(spinnerLabel.height, spinner.controlHeight)
 
-    SpinBox {
-        id: spinner
-        decimals: preference.decimals
-        minimumValue: preference.min
-        maximumValue: preference.max
-        width: 100
-        anchors { right: parent.right }
-        colorScheme: hifi.colorSchemes.dark
+        Label {
+            id: spinnerLabel
+            text: root.label + ":"
+            colorScheme: hifi.colorSchemes.dark
+            anchors {
+                left: parent.left
+                right: spinner.left
+                rightMargin: hifi.dimensions.labelPadding
+                verticalCenter: parent.verticalCenter
+            }
+            horizontalAlignment: Text.AlignRight
+            wrapMode: Text.Wrap
+        }
+
+        SpinBox {
+            id: spinner
+            decimals: preference.decimals
+            minimumValue: preference.min
+            maximumValue: preference.max
+            width: 100
+            anchors {
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            colorScheme: hifi.colorSchemes.dark
+        }
     }
 }

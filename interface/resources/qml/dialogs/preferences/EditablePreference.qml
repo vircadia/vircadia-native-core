@@ -15,8 +15,7 @@ import "../../controls-uit"
 
 Preference {
     id: root
-    property real spacing: 8
-    height: dataTextField.controlHeight + spacing
+    height: dataTextField.controlHeight + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
@@ -36,7 +35,7 @@ Preference {
         anchors {
             left: parent.left
             right: parent.right
-            bottomMargin: spacing
+            bottom: parent.bottom
         }
     }
 }

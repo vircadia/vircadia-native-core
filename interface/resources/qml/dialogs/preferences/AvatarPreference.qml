@@ -18,9 +18,8 @@ Preference {
     property alias text: dataTextField.text
     property alias buttonText: button.text
     property alias placeholderText: dataTextField.placeholderText
-    property real spacing: 0
     property var browser;
-    height: Math.max(dataTextField.controlHeight, button.height) + spacing
+    height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
         dataTextField.text = preference.value;
@@ -52,34 +51,48 @@ Preference {
         preference.save();
     }
 
-    TextField {
-        id: dataTextField
-        placeholderText: root.placeholderText
-        text: preference.value
-        label: root.label
+    Item {
+        id: control
         anchors {
             left: parent.left
-            right: button.left
-            rightMargin: hifi.dimensions.contentSpacing.x
-            bottomMargin: spacing
+            right: parent.right
+            bottom: parent.bottom
         }
-        colorScheme: hifi.colorSchemes.dark
-    }
+        height: Math.max(dataTextField.controlHeight, button.height)
 
-    Component {
-        id: avatarBrowserBuilder;
-        AvatarBrowser { }
-    }
-
-    Button {
-        id: button
-        anchors { right: parent.right; verticalCenter: dataTextField.verticalCenter }
-        text: "Browse"
-        onClicked: {
-            root.browser = avatarBrowserBuilder.createObject(desktop);
-            root.browser.windowDestroyed.connect(function(){
-                root.browser = null;
-            })
+        TextField {
+            id: dataTextField
+            placeholderText: root.placeholderText
+            text: preference.value
+            label: root.label
+            anchors {
+                left: parent.left
+                right: button.left
+                rightMargin: hifi.dimensions.contentSpacing.x
+                bottom: parent.bottom
+            }
+            colorScheme: hifi.colorSchemes.dark
         }
+
+        Component {
+            id: avatarBrowserBuilder;
+            AvatarBrowser { }
+        }
+
+        Button {
+            id: button
+            text: "Browse"
+            anchors {
+                right: parent.right
+                verticalCenter: dataTextField.verticalCenter
+            }
+            onClicked: {
+                root.browser = avatarBrowserBuilder.createObject(desktop);
+                root.browser.windowDestroyed.connect(function(){
+                    root.browser = null;
+                })
+            }
+        }
+
     }
 }
