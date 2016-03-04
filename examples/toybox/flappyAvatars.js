@@ -1,5 +1,6 @@
 //
-//  flappyBird.js
+//  flappyAvatars.js
+//  examples/toybox
 //
 //  Created by Clement 3/2/16
 //  Copyright 2015 High Fidelity, Inc.
@@ -24,7 +25,7 @@
     var entityManager = new EntityManager();
 
     // Class definitions
-    function Bird(DEFAULT_X, DEFAULT_Y, rotation, to3DPosition) {
+    function Avatar(DEFAULT_X, DEFAULT_Y, rotation, to3DPosition) {
         var DIMENSION = 0.15;
         var JUMP_VELOCITY = 1.0;
         var xPosition = DEFAULT_X;
@@ -140,11 +141,11 @@
         this.update = function(deltaTime) {
             xPosition -= deltaTime * velocity;
         }
-        this.isColliding = function(bird) {
-            var deltaX = Math.abs(this.position().x - bird.position().x);
-            var deltaY = Math.abs(this.position().Y - bird.position().Y);
-            if (deltaX < (bird.dimensions().x + dimensions.x) / 2.0 &&
-                deltaX < (bird.dimensions().y + dimensions.y) / 2.0) {
+        this.isColliding = function(avatar) {
+            var deltaX = Math.abs(this.position().x - avatar.position().x);
+            var deltaY = Math.abs(this.position().Y - avatar.position().Y);
+            if (deltaX < (avatar.dimensions().x + dimensions.x) / 2.0 &&
+                deltaX < (avatar.dimensions().y + dimensions.y) / 2.0) {
                 return true;
             }
             
@@ -186,12 +187,12 @@
         this.update = function(deltaTime) {
             xPosition -= deltaTime * velocity;
         }
-        this.isColliding = function(bird) {
-            var deltaX = Math.abs(this.position() - bird.position().x);
-            if (deltaX < (bird.dimensions().z + width) / 2.0) {
+        this.isColliding = function(avatar) {
+            var deltaX = Math.abs(this.position() - avatar.position().x);
+            if (deltaX < (avatar.dimensions().z + width) / 2.0) {
                 var factor = 0.8;
-                var upDistance = (yPosition - upHeight) - (bird.position().y + bird.dimensions().y * factor);
-                var downDistance = (bird.position().y - bird.dimensions().y * factor) - height;
+                var upDistance = (yPosition - upHeight) - (avatar.position().y + avatar.dimensions().y * factor);
+                var downDistance = (avatar.position().y - avatar.dimensions().y * factor) - height;
                 if (upDistance <= 0 || downDistance <= 0) {
                     return true;
                 }
@@ -256,11 +257,11 @@
                 lastPipe = gameTime;
             }
         }
-        this.isColliding = function(bird) {
+        this.isColliding = function(avatar) {
             // Check coin collection
             var collected = -1;
             coins.forEach(function(element, index) {
-                if (element.isColliding(bird)) {
+                if (element.isColliding(avatar)) {
                     element.clear();
                     collected = index;
                     moveScore(1);
@@ -281,7 +282,7 @@
             var isColliding = false;
 
             pipes.forEach(function(element) {
-                isColliding |= element.isColliding(bird);
+                isColliding |= element.isColliding(avatar);
             });
 
             return isColliding;
@@ -321,11 +322,13 @@
         var bottomOffset = Vec3.multiplyQbyV(space.orientation, { x: -0.1, y: 0.0, z: -0.2 });
         var bottomLeft = Vec3.sum(space.position, bottomOffset);
 
+        var numberDimensions = { x: 0.0660, y: 0.1050, z: 0.0048 };
+
         function numberUrl(number) {
             return "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/" + number + ".fbx"
         }
         function digitPosition(digit) {
-            return Vec3.multiplyQbyV(space.orientation, { x: 0.3778 + digit * 0.0760, y: 0.0, z: 0.0 });
+            return Vec3.multiplyQbyV(space.orientation, { x: 0.3778 + digit * (numberDimensions.x + 0.01), y: 0.0, z: 0.0 });
         }
         this.score = function() {
             return score;
@@ -334,6 +337,8 @@
             return highScore;
         }
 
+        var numDigits = 3;
+
         var bestId = entityManager.add({
             type: "Model",
             modelURL: "https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/best.fbx",
@@ -341,27 +346,16 @@
             rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
             dimensions: { x: 0.2781, y: 0.0063, z: 0.1037 }
         });
-        var best0 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(topLeft, digitPosition(0)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
-        var best1 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(topLeft, digitPosition(1)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
-        var best2 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(topLeft, digitPosition(2)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
+        var bestDigitsId = []
+        for (var i = 0; i < numDigits; i++) {
+            bestDigitsId[i] = entityManager.add({
+                type: "Model",
+                modelURL: numberUrl(0),
+                position: Vec3.sum(topLeft, digitPosition(i)),
+                rotation: space.orientation,
+                dimensions: numberDimensions
+            });
+        }
 
         var scoreId =  entityManager.add({
             type: "Model",
@@ -370,27 +364,16 @@
             rotation: Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
             dimensions: { x: 0.3678, y: 0.0063, z: 0.1037 }
         });
-        var score0 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(bottomLeft, digitPosition(0)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
-        var score1 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(bottomLeft, digitPosition(1)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
-        var score2 = entityManager.add({
-            type: "Model",
-            modelURL: numberUrl(0),
-            position: Vec3.sum(bottomLeft, digitPosition(2)),
-            rotation: space.orientation,
-            dimensions: { x: 0.0660, y: 0.1050, z: 0.0048 }
-        });
+        var scoreDigitsId = []
+        for (var i = 0; i < numDigits; i++) {
+            scoreDigitsId[i] = entityManager.add({
+                type: "Model",
+                modelURL: numberUrl(0),
+                position: Vec3.sum(bottomLeft, digitPosition(i)),
+                rotation: space.orientation,
+                dimensions: numberDimensions
+            });
+        }
 
         this.moveScore = function(delta) {
             score += delta;
@@ -403,13 +386,13 @@
         }
 
         this.draw = function() {
-            Entities.editEntity(best0, { modelURL: numberUrl(Math.floor((highScore / 100) % 10)) });
-            Entities.editEntity(best1, { modelURL: numberUrl(Math.floor((highScore / 10) % 10)) });
-            Entities.editEntity(best2, { modelURL: numberUrl(Math.floor((highScore / 1) % 10)) });
+            for (var i = 0; i < numDigits; i++) {
+                Entities.editEntity(bestDigitsId[i], { modelURL: numberUrl(Math.floor((highScore / Math.pow(10, numDigits- i - 1)) % 10)) });
+            }
 
-            Entities.editEntity(score0, { modelURL: numberUrl(Math.floor((score / 100) % 10)) });
-            Entities.editEntity(score1, { modelURL: numberUrl(Math.floor((score / 10) % 10)) });
-            Entities.editEntity(score2, { modelURL: numberUrl(Math.floor((score / 1) % 10)) });
+            for (var i = 0; i < numDigits; i++) {
+                Entities.editEntity(scoreDigitsId[i], { modelURL: numberUrl(Math.floor(score / Math.pow(10, numDigits - i - 1)) % 10) });
+            }
         }
     }
 
@@ -444,12 +427,6 @@
             draw();
             timestamp = now;
         }
-        // this.keyPressed = function(event) {
-        //     if (event.text === "SPACE" && (gameTime - lastLost) > coolDown) {
-        //         isJumping = true;
-        //         startedPlaying = true;
-        //     }
-        // }
 
         // Constants
         var spaceDimensions = { x: 2.0, y: 1.5, z: 0.01 };
@@ -471,9 +448,8 @@
         var lastTriggerValue = 0.0;
         var TRIGGER_THRESHOLD = 0.9;
 
-        var space = null
-        var board = null;
-        var bird = null;
+        var space = null;
+        var avatar = null;
         var pipes = null;
         var score = null;
 
@@ -490,8 +466,7 @@
                 current = 0;
             }
             if (current === sequence.length) {
-                print("KONAMI CODE!!!");
-                bird.changeModel("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/mario.fbx");
+                avatar.changeModel("https://s3-us-west-1.amazonaws.com/hifi-content/clement/production/mario.fbx");
                 current = 0;
             }
         }
@@ -510,24 +485,14 @@
         }
 
         function setup() {
-            print("setup");
-
             space =    {
                 position: getSpacePosition(),
                 orientation: getSpaceOrientation(),
                 dimensions: getSpaceDimensions()
             }
 
-            // board = entityManager.add({
-            //     type: "Box",
-            //     position: space.position,
-            //     rotation: space.orientation,
-            //     dimensions: space.dimensions,
-            //     color: { red: 100, green: 200, blue: 200 }
-            // });
-
             var rotation = Quat.multiply(space.orientation, Quat.fromPitchYawRollDegrees(0, 90, 0)); 
-            bird = new Bird(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
+            avatar = new Avatar(space.dimensions.x / 2.0, space.dimensions.y / 2.0, rotation, to3DPosition);
             pipes = new Pipes(space.dimensions.x, space.dimensions.y, to3DPosition, moveScore);
             score = new Score(space, bestScore);
 
@@ -536,7 +501,7 @@
         function inputs(triggerValue) {
             if (!startedPlaying && !isBoardReset && (gameTime - lastLost) > coolDown) {
                 score.resetScore();
-                bird.reset();
+                avatar.reset();
                 pipes.clear();
 
                 isBoardReset = true;
@@ -551,8 +516,6 @@
             lastTriggerValue = triggerValue;
         }
         function update(deltaTime) {
-            //print("update: " + deltaTime);
-
             // Keep entities alive
             entityManager.update(deltaTime);
 
@@ -560,29 +523,27 @@
                 return;
             }
 
-            // Update Bird
-            if (!startedPlaying && bird.position().y < spaceDimensions.y / 2.0) {
+            // Update Avatar
+            if (!startedPlaying && avatar.position().y < spaceDimensions.y / 2.0) {
                 isJumping = true;
             }
             // Apply jumps
             if (isJumping) {
-                bird.jump();
+                avatar.jump();
                 isJumping = false;
             }
-            bird.update(deltaTime);
+            avatar.update(deltaTime);
 
             pipes.update(deltaTime, gameTime, startedPlaying);
 
             // Check lost
-            var hasLost = bird.position().y < 0.0 ||
-                          bird.position().y > space.dimensions.y ||
-                          pipes.isColliding(bird);
+            var hasLost = avatar.position().y < 0.0 ||
+                          avatar.position().y > space.dimensions.y ||
+                          pipes.isColliding(avatar);
 
 
             // Cleanup
             if (hasLost) {
-                print("Game Over!");
-
                 if (gameOverSound.downloaded && !injector) {
                     injector = Audio.playSound(gameOverSound, { position: space.position, volume: 0.4 });
                 } else if (injector) {
@@ -595,13 +556,11 @@
             }
         }
         function draw() {
-            //print("draw");
-            bird.draw();
+            avatar.draw();
             pipes.draw();
             score.draw();
         }
         function cleanup() {
-            print("cleanup");
             entityManager.removeAll();
 
             Controller.keyPressEvent.disconnect(keyPress);
