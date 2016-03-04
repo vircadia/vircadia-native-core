@@ -148,6 +148,7 @@ FocusScope {
         function previousItem() { listView.currentIndex = (listView.currentIndex + listView.count - 1) % listView.count; }
         function nextItem() { listView.currentIndex = (listView.currentIndex + listView.count + 1) % listView.count; }
         function selectCurrentItem() { root.currentIndex = listView.currentIndex; hideList(); }
+        function selectSpecificItem(index) { root.currentIndex = index; hideList(); }
 
         Keys.onUpPressed: previousItem();
         Keys.onDownPressed: nextItem();
@@ -182,7 +183,7 @@ FocusScope {
                         anchors.fill: parent;
                         hoverEnabled: true
                         onEntered: listView.currentIndex = index;
-                        onClicked: popup.selectCurrentItem()
+                        onClicked: popup.selectSpecificItem(index)
                     }
                 }
             }
