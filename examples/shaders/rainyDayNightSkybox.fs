@@ -117,7 +117,7 @@ vec4 render( in vec3 ro, in vec3 rd )
 		dis += 3.5;
 	}
 
-    return vec4(clamp(col,0.0,1.0), 1.0 );
+    return vec4(clamp(col, vec3(0.0), vec3(1.0)), 1.0);
 }
 
 vec3 getSkyboxColor() {
