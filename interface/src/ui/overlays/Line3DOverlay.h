@@ -35,8 +35,8 @@ public:
     void setStart(const glm::vec3& start) { _start = start; }
     void setEnd(const glm::vec3& end) { _end = end; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual Line3DOverlay* createClone() const;
 

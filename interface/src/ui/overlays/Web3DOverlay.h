@@ -32,8 +32,8 @@ public:
     // setters
     void setURL(const QString& url);
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal);

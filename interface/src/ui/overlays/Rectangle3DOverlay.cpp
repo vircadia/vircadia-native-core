@@ -96,7 +96,7 @@ const render::ShapeKey Rectangle3DOverlay::getShapeKey() {
     return builder.build();
 }
 
-void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
+void Rectangle3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
 }
 

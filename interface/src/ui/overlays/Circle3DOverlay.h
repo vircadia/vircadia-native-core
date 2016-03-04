@@ -26,8 +26,8 @@ public:
     
     virtual void render(RenderArgs* args);
     virtual const render::ShapeKey getShapeKey() override;
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     float getStartAt() const { return _startAt; }
     float getEndAt() const { return _endAt; }

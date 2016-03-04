@@ -15,9 +15,6 @@
 #include <SharedUtil.h> // for xColor
 #include <render/Scene.h>
 
-class QScriptEngine;
-class QScriptValue;
-
 class Overlay : public QObject {
     Q_OBJECT
     
@@ -34,7 +31,6 @@ public:
     Overlay();
     Overlay(const Overlay* overlay);
     ~Overlay();
-    void init(QScriptEngine* scriptEngine);
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
     
@@ -82,9 +78,9 @@ public:
     void setColorPulse(float value) { _colorPulse = value; }
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
-    virtual void setProperties(const QScriptValue& properties);
+    virtual void setProperties(const QVariantMap& properties);
     virtual Overlay* createClone() const = 0;
-    virtual QScriptValue getProperty(const QString& property);
+    virtual QVariant getProperty(const QString& property);
 
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }
@@ -112,8 +108,6 @@ protected:
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
-
-    QScriptEngine* _scriptEngine;
 };
 
 namespace render {
