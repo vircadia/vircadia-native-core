@@ -31,7 +31,6 @@ MainWindow::MainWindow(QWidget* parent) :
     _windowState("WindowState", 0)
 {
     setAcceptDrops(true);
-    _trayIcon.show();
 }
 
 void MainWindow::restoreGeometry() {
