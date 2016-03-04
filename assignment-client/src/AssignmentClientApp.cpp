@@ -96,9 +96,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
     parser.addOption(logDirectoryOption);
 
-    const QCommandLineOption noLogFileOption(ASSIGNMENT_NO_CHILD_LOG_FILE_OPTION, "disable writing of child assignment-client output to file");
-    parser.addOption(noLogFileOption);
-
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -142,17 +139,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         httpStatusPort = parser.value(httpStatusPortOption).toUShort();
     }
 
-    bool wantsChildFileLogging = false;
-    QDir logDirectory { "." };
+    QString logDirectory;
 
-    if (!parser.isSet(noLogFileOption)) {
-        wantsChildFileLogging = true;
-
-        if (parser.isSet(logDirectoryOption)) {
-            logDirectory = parser.value(logDirectoryOption);
-        } else {
-            logDirectory = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-        }
+    if (parser.isSet(logDirectoryOption)) {
+        logDirectory = parser.value(logDirectoryOption);
     }
 
 
@@ -226,8 +216,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
                                                                         requestAssignmentType, assignmentPool,
                                                                         listenPort, walletUUID, assignmentServerHostname,
-                                                                        assignmentServerPort, httpStatusPort, logDirectory,
-                                                                        wantsChildFileLogging);
+                                                                        assignmentServerPort, httpStatusPort, logDirectory);
         monitor->setParent(this);
         connect(this, &QCoreApplication::aboutToQuit, monitor, &AssignmentClientMonitor::aboutToQuit);
     } else {

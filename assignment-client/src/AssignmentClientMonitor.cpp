@@ -33,9 +33,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
                                                  const unsigned int maxAssignmentClientForks,
                                                  Assignment::Type requestAssignmentType, QString assignmentPool,
                                                  quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                                                 quint16 assignmentServerPort, quint16 httpStatusServerPort, QDir logDirectory,
-                                                 bool wantsChildFileLogging) :
-    _logDirectory(logDirectory),
+                                                 quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory) :
     _httpManager(QHostAddress::LocalHost, httpStatusServerPort, "", this),
     _numAssignmentClientForks(numAssignmentClientForks),
     _minAssignmentClientForks(minAssignmentClientForks),
@@ -44,11 +42,15 @@ AssignmentClientMonitor::AssignmentClientMonitor(const unsigned int numAssignmen
     _assignmentPool(assignmentPool),
     _walletUUID(walletUUID),
     _assignmentServerHostname(assignmentServerHostname),
-    _assignmentServerPort(assignmentServerPort),
-    _wantsChildFileLogging(wantsChildFileLogging)
+    _assignmentServerPort(assignmentServerPort)
 
 {
     qDebug() << "_requestAssignmentType =" << _requestAssignmentType;
+
+    if (!logDirectory.isEmpty()) {
+        _wantsChildFileLogging = true;
+        _logDirectory = QDir(logDirectory);
+    }
 
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
