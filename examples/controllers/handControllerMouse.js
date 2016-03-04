@@ -35,7 +35,7 @@ function moveReticleAbsolute(x, y) {
 
 var MAPPING_NAME = "com.highfidelity.testing.reticleWithHandRotation";
 var mapping = Controller.newMapping(MAPPING_NAME);
-if (Controller.Hardware.hydra !== undefined) {
+if (Controller.Hardware.Hydra !== undefined) {
     mapping.from(Controller.Hardware.Hydra.L3).peek().to(Controller.Actions.ReticleClick);
     mapping.from(Controller.Hardware.Hydra.R4).peek().to(Controller.Actions.ReticleClick);
 }
