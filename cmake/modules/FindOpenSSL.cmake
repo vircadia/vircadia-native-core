@@ -107,6 +107,8 @@ if (WIN32 AND NOT CYGWIN)
     select_library_configurations(SSL_EAY)
 
     set(OPENSSL_LIBRARIES ${SSL_EAY_LIBRARY} ${LIB_EAY_LIBRARY})
+
+    find_path(OPENSSL_DLL_PATH NAMES ssleay32.dll PATH_SUFFIXES "bin" ${_OPENSSL_ROOT_HINTS_AND_PATHS})
   endif()
 else()
 
@@ -198,6 +200,9 @@ endif ()
 include(FindPackageHandleStandardArgs)
 
 set(OPENSSL_REQUIREMENTS OPENSSL_LIBRARIES OPENSSL_INCLUDE_DIR)
+if (WIN32)
+  list(APPEND OPENSSL_REQUIREMENTS OPENSSL_DLL_PATH)
+endif ()
 
 if (OPENSSL_VERSION)
   find_package_handle_standard_args(OpenSSL
