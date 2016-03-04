@@ -49,7 +49,6 @@ function ToggleButtonBuddy(x, y, width, height, urls) {
     });
 }
 ToggleButtonBuddy.prototype.destroy = function () {
-    print("ToggleButtonBuddy.prototype.destroy()  this.up:" + this.up + " this.down:" + this.down);
     Overlays.deleteOverlay(this.up);
     Overlays.deleteOverlay(this.down);
 };
