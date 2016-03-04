@@ -27,6 +27,7 @@ const QString ASSIGNMENT_MAX_FORKS_OPTION = "max";
 const QString ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION = "monitor-port";
 const QString ASSIGNMENT_HTTP_STATUS_PORT = "http-status-port";
 const QString ASSIGNMENT_LOG_DIRECTORY = "log-directory";
+const QString ASSIGNMENT_NO_CHILD_LOG_FILE_OPTION = "no-child-log-files";
 
 class AssignmentClientApp : public QCoreApplication {
     Q_OBJECT
