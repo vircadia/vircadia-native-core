@@ -1,11 +1,11 @@
 //
-//  lighteningEntity.js
+//  lightningEntity.js
 //  examples/entityScripts
 //
 //  Created by Brad Hefta-Gaub on 3/1/16.
 //  Copyright 2016 High Fidelity, Inc.
 //
-//  This is an example of an entity script which will randomly create a flash of lightening and a thunder sound
+//  This is an example of an entity script which will randomly create a flash of lightning and a thunder sound
 //  effect, as well as a background rain sound effect. It can be applied to any entity, although it works best
 //  on a zone entity.
 //
@@ -21,31 +21,31 @@
     //
     // You can change these values to change some of the various effects of the rain storm.
     // These values can also be controlled by setting user properties on the entity that you've attached this script to.
-    // add a "lightening" section to a JSON encoded portion of the user data... for example:
+    // add a "lightning" section to a JSON encoded portion of the user data... for example:
     //    {
-    //      "lightening": {
+    //      "lightning": {
     //        "flashMax": 20,
     //        "flashMin": 0,
     //        "flashMaxRandomness": 10,
     //        "flashIntensityStepRandomeness": 2,
     //        "averageLighteningStrikeGap": 120,
-    //        "extraRandomRangeLighteningStrikeGap": 10,
+    //        "extraRandomRangeLightningStrikeGap": 10,
     //        "thunderURL": "atp:1336efe995398f5e0d46b37585785de8ba872fe9a9b718264db03748cd41c758.wav",
     //        "thunderVolume": 0.1,
     //        "rainURL": "atp:e0cc7438aca776636f6e6f731685781d9999b961c945e4e5760d937be5beecdd.wav",
     //        "rainVolume": 0.05
     //      }
-    //      // NOTE: you can have other user data here as well, so long as it's JSON encoded, it won't impact the lightening script
+    //      // NOTE: you can have other user data here as well, so long as it's JSON encoded, it won't impact the lightning script
     //    }
     //
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    var MAX_FLASH_INTENSITY = 20; // this controls how bright the lightening effect appears
-    var MIN_FLASH_INTENSITY = 0;  // this is probably best at 0, but it could be higher, which will make the lightening not fade completely to darkness before going away.
-    var MAX_FLASH_INTENSITY_RANDOMNESS = 10; // this will add some randomness to the max brightness of the lightening
-    var FLASH_INTENSITY_STEP_RANDOMNESS = 2; // as the lightening goes from min to max back to min, this will make it more random in it's brightness
-    var AVERAGE_LIGHTENING_STRIKE_GAP_IN_SECONDS = 120; // how long on average between lighting
-    var EXTRA_RANDOM_RANGE_LIGHTENING_STRIKE_GAP_IN_SECONDS = 10; // some randomness to the lightening gap
+    var MAX_FLASH_INTENSITY = 20; // this controls how bright the lightning effect appears
+    var MIN_FLASH_INTENSITY = 0;  // this is probably best at 0, but it could be higher, which will make the lightning not fade completely to darkness before going away.
+    var MAX_FLASH_INTENSITY_RANDOMNESS = 10; // this will add some randomness to the max brightness of the lightning
+    var FLASH_INTENSITY_STEP_RANDOMNESS = 2; // as the lightning goes from min to max back to min, this will make it more random in it's brightness
+    var AVERAGE_LIGHTNING_STRIKE_GAP_IN_SECONDS = 120; // how long on average between lighting
+    var EXTRA_RANDOM_RANGE_LIGHTNING_STRIKE_GAP_IN_SECONDS = 10; // some randomness to the lightning gap
     var THUNDER_SOUND_URL = "https://s3.amazonaws.com/hifi-public/brad/rainstorm/thunder-48k.wav"; // thunder sound effect, must be 48k 16bit PCM
     var THUNDER_VOLUME = 1; // adjust the volume of the thunder sound effect
     var RAIN_SOUND_URL = "https://s3.amazonaws.com/hifi-public/brad/rainstorm/rain.wav"; // the background rain, this will loop
@@ -84,7 +84,7 @@
     }
 
     // the "constructor" for our class. pretty simple, it just sets our _this, so we can access it later.
-    function Lightening() {
+    function Lightning() {
         _this = this;
     }
 
@@ -94,7 +94,7 @@
     // This is the class definition/prototype for our class. Funtions declared here will be accessible
     // via the instance of the entity
     //
-    Lightening.prototype = {
+    Lightning.prototype = {
 
         // preload()
         //    This is called by every viewer/interface instance that "sees" the entity you've attached this script to.
@@ -110,8 +110,8 @@
             _this.lastStrike = now;
 
             // some of our other state related items
-            _this.lighteningID = false; // this will be the entityID for any lightening that we create
-            _this.lighteningActive = false; // are we actively managing lightening
+            _this.lightningID = false; // this will be the entityID for any lightning that we create
+            _this.lightningActive = false; // are we actively managing lightning
 
             // Get the entities userData property, to see if someone has overridden any of our default settings
             var userDataText = Entities.getEntityProperties(entityID, ["userData"]).userData;
@@ -119,21 +119,21 @@
             if (userDataText !== "") {
                 userData = JSON.parse(userDataText);
             }
-            var lighteningUserData = valueOrDefault(userData.lightening, {});
-            _this.flashIntensityStepRandomeness = valueOrDefault(lighteningUserData.flashIntensityStepRandomness, FLASH_INTENSITY_STEP_RANDOMNESS);
-            _this.flashMax = valueOrDefault(lighteningUserData.flashMax, MAX_FLASH_INTENSITY);
-            _this.flashMin = valueOrDefault(lighteningUserData.flashMin, MIN_FLASH_INTENSITY);
-            _this.flashMaxRandomness = valueOrDefault(lighteningUserData.flashMaxRandomness, MAX_FLASH_INTENSITY_RANDOMNESS);
-            _this.averageLighteningStrikeGap = valueOrDefault(lighteningUserData.averageLighteningStrikeGap, AVERAGE_LIGHTENING_STRIKE_GAP_IN_SECONDS);
-            _this.extraRandomRangeLighteningStrikeGap = valueOrDefault(lighteningUserData.extraRandomRangeLighteningStrikeGap, EXTRA_RANDOM_RANGE_LIGHTENING_STRIKE_GAP_IN_SECONDS);
+            var lightningUserData = valueOrDefault(userData.lightning, {});
+            _this.flashIntensityStepRandomeness = valueOrDefault(lightningUserData.flashIntensityStepRandomness, FLASH_INTENSITY_STEP_RANDOMNESS);
+            _this.flashMax = valueOrDefault(lightningUserData.flashMax, MAX_FLASH_INTENSITY);
+            _this.flashMin = valueOrDefault(lightningUserData.flashMin, MIN_FLASH_INTENSITY);
+            _this.flashMaxRandomness = valueOrDefault(lightningUserData.flashMaxRandomness, MAX_FLASH_INTENSITY_RANDOMNESS);
+            _this.averageLightningStrikeGap = valueOrDefault(lightningUserData.averageLightningStrikeGap, AVERAGE_LIGHTNING_STRIKE_GAP_IN_SECONDS);
+            _this.extraRandomRangeLightningStrikeGap = valueOrDefault(lightningUserData.extraRandomRangeLightningStrikeGap, EXTRA_RANDOM_RANGE_LIGHTNING_STRIKE_GAP_IN_SECONDS);
 
-            var thunderURL = valueOrDefault(lighteningUserData.thunderURL, THUNDER_SOUND_URL);
+            var thunderURL = valueOrDefault(lightningUserData.thunderURL, THUNDER_SOUND_URL);
             _this.thunderSound = SoundCache.getSound(thunderURL); // start downloading the thunder into the cache in case we need it later
-            _this.thunderVolume = valueOrDefault(lighteningUserData.thunderVolume, THUNDER_VOLUME);
+            _this.thunderVolume = valueOrDefault(lightningUserData.thunderVolume, THUNDER_VOLUME);
 
-            var rainURL = valueOrDefault(lighteningUserData.rainURL, RAIN_SOUND_URL);
+            var rainURL = valueOrDefault(lightningUserData.rainURL, RAIN_SOUND_URL);
             _this.rainSound = SoundCache.getSound(rainURL); // start downloading the rain, we will be using it for sure
-            _this.rainVolume = valueOrDefault(lighteningUserData.rainVolume, RAIN_VOLUME);
+            _this.rainVolume = valueOrDefault(lightningUserData.rainVolume, RAIN_VOLUME);
             _this.rainPlaying = false;
 
             Script.update.connect(_this.onUpdate); // connect our onUpdate to a regular update signal from the interface
@@ -167,17 +167,17 @@
             _this.rainPlaying = true;
         },
 
-        // this handles a single "step" of the lightening flash effect. It assumes a light entity has already been created,
+        // this handles a single "step" of the lightning flash effect. It assumes a light entity has already been created,
         // and all it really does is change the intensity of the light based on the settings that are part of this entity's
         // userData.
-        flashLightening: function (lighteningID) {
-            var lighteningProperties = Entities.getEntityProperties(lighteningID, ["userData", "intensity"]);
-            var lighteningParameters = JSON.parse(lighteningProperties.userData);
-            var currentIntensity = lighteningProperties.intensity;
-            var flashDirection = lighteningParameters.flashDirection;
-            var flashMax = lighteningParameters.flashMax;
-            var flashMin = lighteningParameters.flashMin;
-            var flashIntensityStepRandomeness = lighteningParameters.flashIntensityStepRandomeness;
+        flashLightning: function (lightningID) {
+            var lightningProperties = Entities.getEntityProperties(lightningID, ["userData", "intensity"]);
+            var lightningParameters = JSON.parse(lightningProperties.userData);
+            var currentIntensity = lightningProperties.intensity;
+            var flashDirection = lightningParameters.flashDirection;
+            var flashMax = lightningParameters.flashMax;
+            var flashMin = lightningParameters.flashMin;
+            var flashIntensityStepRandomeness = lightningParameters.flashIntensityStepRandomeness;
             var newIntensity = currentIntensity + flashDirection + randFloat(-flashIntensityStepRandomeness, flashIntensityStepRandomeness);
 
             if (flashDirection > 0) {
@@ -194,14 +194,14 @@
 
             // if we reached 0 intensity, then we're done with this strike...
             if (newIntensity === 0) {
-                _this.lighteningActive = false;
-                Entities.deleteEntity(lighteningID);
+                _this.lightningActive = false;
+                Entities.deleteEntity(lightningID);
             }
 
             // FIXME - we probably don't need to re-edit the userData of the light... we're only
             // changing direction, the rest are the same... we could just store direction in our
             // own local variable state
-            var newLighteningParameters = JSON.stringify({
+            var newLightningParameters = JSON.stringify({
                 flashDirection: flashDirection,
                 flashIntensityStepRandomeness: flashIntensityStepRandomeness,
                 flashMax: flashMax,
@@ -209,31 +209,31 @@
             });
 
             // this is what actually creates the effect, changing the intensity of the light
-            Entities.editEntity(lighteningID, {intensity: newIntensity, userData: newLighteningParameters});
+            Entities.editEntity(lightningID, {intensity: newIntensity, userData: newLightningParameters});
         },
 
-        // findMyLightening() is designed to make the script more robust. Since we're an open editable platform
-        // it's possible that from the time that we started the lightening effect until "now" when we're attempting
+        // findMyLightning() is designed to make the script more robust. Since we're an open editable platform
+        // it's possible that from the time that we started the lightning effect until "now" when we're attempting
         // to change the light, some other client might have deleted our light. Before we proceed in editing
         // the light, we check to see if it exists.
-        findMyLightening: function () {
-            if (_this.lighteningID !== false) {
-                var lighteningName = Entities.getEntityProperties(_this.lighteningID, "name").name;
-                if (lighteningName !== undefined) {
-                    return _this.lighteningID;
+        findMyLightning: function () {
+            if (_this.lightningID !== false) {
+                var lightningName = Entities.getEntityProperties(_this.lightningID, "name").name;
+                if (lightningName !== undefined) {
+                    return _this.lightningID;
                 }
             }
             return false;
         },
 
-        // findOtherLightening() is designed to allow this script to work in a "multi-user" environment, which we
+        // findOtherLightning() is designed to allow this script to work in a "multi-user" environment, which we
         // must assume we are in. Since every user/viewer/client that connect to the domain and "sees" our entity
-        // is going to run this script, any of them could be in charge of flashing the lightening. So before we
-        // start to flash the lightening, we will first check to see if someone else already is.
+        // is going to run this script, any of them could be in charge of flashing the lightning. So before we
+        // start to flash the lightning, we will first check to see if someone else already is.
         //
-        // returns true if some other lightening exists... likely because some other viewer is flashing it
-        // returns false if no other lightening exists...
-        findOtherLightening: function () {
+        // returns true if some other lightning exists... likely because some other viewer is flashing it
+        // returns false if no other lightning exists...
+        findOtherLightning: function () {
             var myPosition = Entities.getEntityProperties(_this.entityID, "position").position;
 
             // find all entities near me...
@@ -245,20 +245,20 @@
                 checkEntityID = entities[entity];
                 checkProperties = Entities.getEntityProperties(checkEntityID, ["name", "type"]);
 
-                // check to see if they are lightening
-                if (checkProperties.type === "Light" && checkProperties.name === "lightening for creator:" + _this.entityID) {
+                // check to see if they are lightning
+                if (checkProperties.type === "Light" && checkProperties.name === "lightning for creator:" + _this.entityID) {
                     return true;
                 }
             }
             return false;
         },
 
-        // createNewLightening() actually creates new lightening and plays the thunder sound
-        createNewLightening: function () {
+        // createNewLightning() actually creates new lightning and plays the thunder sound
+        createNewLightning: function () {
             var myPosition = Entities.getEntityProperties(_this.entityID, "position").position;
-            _this.lighteningID = Entities.addEntity({
+            _this.lightningID = Entities.addEntity({
                 type: "Light",
-                name: "lightening for creator:" + _this.entityID,
+                name: "lightning for creator:" + _this.entityID,
                 userData: JSON.stringify({
                     flashDirection: 1,
                     flashIntensityStepRandomeness: _this.flashIntensityStepRandomeness,
@@ -271,7 +271,7 @@
                 collisionless: true,
                 dimensions: {x: 1000, y: 1000, z: 1000},
                 color: {red: 255, green: 255, blue: 255},
-                lifetime: 10 // lightening only lasts 10 seconds....
+                lifetime: 10 // lightning only lasts 10 seconds....
             });
 
             // play the thunder...
@@ -280,11 +280,11 @@
                 volume: _this.thunderVolume
             });
 
-            return _this.lighteningID;
+            return _this.lightningID;
         },
 
         // onUpdate() this will be called regularly, approximately every frame of the simulation. We will use
-        // it to determine if we need to do a lightening/thunder strike
+        // it to determine if we need to do a lightning/thunder strike
         onUpdate: function () {
             var now = Date.now();
 
@@ -293,40 +293,40 @@
                 _this.playLocalRain();
             }
 
-            // NOTE: _this.lighteningActive will only be TRUE if we are the one who created
-            //       the lightening and we are in charge of flashing it...
-            if (_this.lighteningActive) {
-                var lighteningID = _this.findMyLightening();
-                // if for some reason our lightening is gone... then just return to non-active state
-                if (lighteningID === false) {
-                    _this.lighteningActive = false;
-                    _this.lighteningID = false;
+            // NOTE: _this.lightningActive will only be TRUE if we are the one who created
+            //       the lightning and we are in charge of flashing it...
+            if (_this.lightningActive) {
+                var lightningID = _this.findMyLightning();
+                // if for some reason our lightning is gone... then just return to non-active state
+                if (lightningID === false) {
+                    _this.lightningActive = false;
+                    _this.lightningID = false;
                 } else {
-                    // otherwise, flash our lightening...
-                    _this.flashLightening(lighteningID);
+                    // otherwise, flash our lightning...
+                    _this.flashLightning(lightningID);
                 }
             } else {
                 // whether or not it's time for us to strike, we always keep an eye out for anyone else
                 // striking... and if we see someone else striking, we will reset our lastStrike time
-                if (_this.findOtherLightening()) {
+                if (_this.findOtherLightning()) {
                     _this.lastStrike = now;
                 }
 
                 var sinceLastStrike = now - _this.lastStrike;
-                var nextRandomStrikeTime = _this.averageLighteningStrikeGap
-                        + randFloat(-_this.extraRandomRangeLighteningStrikeGap,
-                        _this.extraRandomRangeLighteningStrikeGap);
+                var nextRandomStrikeTime = _this.averageLightningStrikeGap
+                        + randFloat(-_this.extraRandomRangeLightningStrikeGap,
+                        _this.extraRandomRangeLightningStrikeGap);
 
                 if (sinceLastStrike > nextRandomStrikeTime * MSECS_PER_SECOND) {
 
-                    // so it's time for a strike... let's see if someone else has lightening...
-                    // if no one else is flashing lightening... then we create it...
-                    if (_this.findOtherLightening()) {
-                        _this.lighteningActive = false;
-                        _this.lighteningID = false;
+                    // so it's time for a strike... let's see if someone else has lightning...
+                    // if no one else is flashing lightning... then we create it...
+                    if (_this.findOtherLightning()) {
+                        _this.lightningActive = false;
+                        _this.lightningID = false;
                     } else {
-                        _this.createNewLightening();
-                        _this.lighteningActive = true;
+                        _this.createNewLightning();
+                        _this.lightningActive = true;
                     }
 
                     _this.lastStrike = now;
@@ -335,5 +335,5 @@
         }
     };
 
-    return new Lightening();
+    return new Lightning();
 });

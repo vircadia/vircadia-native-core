@@ -2,7 +2,7 @@
 // Turbulence and Day/Night cycle added by Michael Olson - OMGparticles/2015
 // rain effect adapted from Rainy London by David Hoskins. - https://www.shadertoy.com/view/XdSGDc
 // License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
-#line 5
+#line 6
 const float PI = 3.14159;
 uniform float rotationSpeed = 0.005;
 uniform float gridLevel = 0.0;
@@ -96,11 +96,10 @@ vec4 render( in vec3 ro, in vec3 rd )
     
     // stars
     float fStarContrib = clamp((fSunHeight - fDayHeight) * (-fInverseHL), 0.0, 1.0);
-    
-    vec3 vStarDir = rd;
-                              
-    col = mix(col, stars3(vStarDir), fStarContrib);
-    col += stars3(vStarDir) * fStarContrib;
+    if (fStarContrib > 0.0) {
+        vec3 vStarDir = rd;
+        col = mix(col, stars3(vStarDir), fStarContrib);
+    }
 
     // Ten layers of rain sheets...
     float rainBrightness = 0.15;
@@ -118,7 +117,7 @@ vec4 render( in vec3 ro, in vec3 rd )
 		dis += 3.5;
 	}
 
-    return vec4( col, 1.0 );
+    return vec4(clamp(col,0.0,1.0), 1.0 );
 }
 
 vec3 getSkyboxColor() {
