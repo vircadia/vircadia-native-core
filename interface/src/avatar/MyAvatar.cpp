@@ -1944,7 +1944,7 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
 
-     const float CYLINDER_RADIUS = 0.15f;
+     const float CYLINDER_RADIUS = 0.3f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
