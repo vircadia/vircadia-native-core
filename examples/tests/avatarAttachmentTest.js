@@ -15,7 +15,6 @@
 
 // Toggle button helper
 function ToggleButtonBuddy(x, y, width, height, urls) {
-    print("ToggleButtonBuddy() "+ x+ "," + y + "[" + width + ","+height+"] " + urls);
     this.up = Overlays.addOverlay("image", {
         x: x, y: y, width: width, height: height,
         subImage: { x: 0, y: 0, width: width, height: height},
