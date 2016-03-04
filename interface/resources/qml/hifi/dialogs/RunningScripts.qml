@@ -24,7 +24,7 @@ Window {
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
-    implicitWidth: 384; implicitHeight: 640
+    implicitWidth: 400; implicitHeight: 695
     minSize: Qt.vector2d(200, 300)
 
     HifiConstants { id: hifi }
@@ -87,8 +87,11 @@ Window {
     Column {
         width: pane.contentWidth
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Currently Running"
+            isFirst: true
+
+            HifiControls.VerticalSpacer {}
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
@@ -106,6 +109,8 @@ Window {
                 }
             }
 
+            HifiControls.VerticalSpacer {}
+
             HifiControls.Table {
                 tableModel: runningScriptsModel
                 height: 185
@@ -113,11 +118,16 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
             }
+
+            HifiControls.VerticalSpacer {
+                height: 2  // Table view draws a little taller than it's height.
+            }
         }
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Load Scripts"
-            hasSeparator: true
+
+            HifiControls.VerticalSpacer {}
 
             Row {
                 spacing: hifi.dimensions.contentSpacing.x
@@ -161,17 +171,20 @@ Window {
                 }
             }
 
+            HifiControls.VerticalSpacer {}
+
             HifiControls.TextField {
                 id: filterEdit
                 anchors.left: parent.left
                 anchors.right: parent.right
                 focus: true
                 colorScheme: hifi.colorSchemes.dark
-                //placeholderText: "filter"
-                label: "Filter"
+                placeholderText: "filter"
                 onTextChanged: scriptsModel.filterRegExp =  new RegExp("^.*" + text + ".*$", "i")
                 Component.onCompleted: scriptsModel.filterRegExp = new RegExp("^.*$", "i")
             }
+
+            HifiControls.VerticalSpacer {}
 
             HifiControls.Tree {
                 id: treeView
@@ -181,6 +194,8 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
             }
+
+            HifiControls.VerticalSpacer {}
 
             HifiControls.TextField {
                 id: selectedScript

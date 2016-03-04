@@ -206,8 +206,9 @@ function maybeGoActive(event) {
         goActive();
     }
 }
-var wasHmdActive = false;
-var wasMouseCaptured = false;
+var wasHmdActive = HMD.active;
+var wasMouseCaptured = Reticle.mouseCaptured;
+
 function maybeGoAway() {
     if (HMD.active !== wasHmdActive) {
         wasHmdActive = !wasHmdActive;

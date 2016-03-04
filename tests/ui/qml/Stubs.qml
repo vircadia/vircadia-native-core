@@ -24,6 +24,20 @@ Item {
     }
 
     Item {
+        objectName: "ApplicationCompositor"
+        property bool reticleOverDesktop: true
+    }
+
+    Item {
+        objectName: "Preferences"
+        // List of categories obtained by logging categories as they are added in Interface in Preferences::addPreference().
+        property var categories: [
+            "Avatar Basics", "Snapshots", "Scripts", "Privacy", "Level of Detail Tuning", "Avatar Tuning", "Avatar Camera",
+            "Audio", "Octree", "HMD", "Sixense Controllers", "Graphics"
+        ]
+    }
+
+    Item {
         objectName: "ScriptDiscoveryService"
         //property var scriptsModelFilter: scriptsModel
         signal scriptCountChanged()

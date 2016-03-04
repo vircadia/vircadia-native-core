@@ -506,7 +506,7 @@ GeometryCache::GeometryCache() :
         std::make_shared<render::ShapePipeline>(getSimplePipeline(), nullptr,
             [](const render::ShapePipeline&, gpu::Batch& batch) {
                 // Set the defaults needed for a simple program
-                batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+                batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
                 batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,
                     DependencyManager::get<TextureCache>()->getNormalFittingTexture());
@@ -1734,9 +1734,9 @@ inline bool operator==(const SimpleProgramKey& a, const SimpleProgramKey& b) {
 void GeometryCache::bindSimpleProgram(gpu::Batch& batch, bool textured, bool culled, bool emissive, bool depthBiased) {
     batch.setPipeline(getSimplePipeline(textured, culled, emissive, depthBiased));
 
-    // If not textured, set a default diffuse map
+    // If not textured, set a default albedo map
     if (!textured) {
-        batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+        batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
             DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
     // Set a default normal map

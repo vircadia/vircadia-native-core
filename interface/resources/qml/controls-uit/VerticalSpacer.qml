@@ -14,5 +14,5 @@ import "../styles-uit"
 
 Item {
     width: 1  // Must be non-zero
-    height: hifi.dimensions.contentSpacing.y
+    height: hifi.dimensions.controlInterlineHeight
 }

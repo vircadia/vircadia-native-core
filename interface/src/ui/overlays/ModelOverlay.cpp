@@ -84,7 +84,7 @@ void ModelOverlay::render(RenderArgs* args) {
     }
 }
 
-void ModelOverlay::setProperties(const QScriptValue &properties) {
+void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto position = getPosition();
     auto rotation = getRotation();
     auto scale = getDimensions();
@@ -105,16 +105,16 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
         }
     }
     
-    QScriptValue urlValue = properties.property("url");
-    if (urlValue.isValid() && urlValue.isString()) {
+    auto urlValue = properties["url"];
+    if (urlValue.isValid() && urlValue.canConvert<QString>()) {
         _url = urlValue.toString();
         _updateModel = true;
         _isLoaded = false;
     }
     
-    QScriptValue texturesValue = properties.property("textures");
-    if (texturesValue.isValid() && texturesValue.toVariant().canConvert(QVariant::Map)) {
-        QVariantMap textureMap = texturesValue.toVariant().toMap();
+    auto texturesValue = properties["textures"];
+    if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
+        QVariantMap textureMap = texturesValue.toMap();
         foreach(const QString& key, textureMap.keys()) {
             
             QUrl newTextureURL = textureMap[key].toUrl();
@@ -129,22 +129,22 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
-QScriptValue ModelOverlay::getProperty(const QString& property) {
+QVariant ModelOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url.toString();
     }
     if (property == "dimensions" || property == "scale" || property == "size") {
-        return vec3toScriptValue(_scriptEngine, _model.getScaleToFitDimensions());
+        return vec3toVariant(_model.getScaleToFitDimensions());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
-            QScriptValue textures = _scriptEngine->newObject();
+            QVariantMap textures;
             foreach(const QString& key, _modelTextures.keys()) {
-                textures.setProperty(key, _modelTextures[key].toString());
+                textures[key] = _modelTextures[key].toString();
             }
             return textures;
         } else {
-            return QScriptValue();
+            return QVariant();
         }
     }
 

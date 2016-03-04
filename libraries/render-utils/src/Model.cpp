@@ -1205,9 +1205,9 @@ void Model::segregateMeshGroups() {
             if (showingCollisionHull) {
                 if (!_collisionHullMaterial) {
                     _collisionHullMaterial = std::make_shared<model::Material>();
-                    _collisionHullMaterial->setDiffuse(glm::vec3(1.0f, 0.5f, 0.0f));
+                    _collisionHullMaterial->setAlbedo(glm::vec3(1.0f, 0.5f, 0.0f));
                     _collisionHullMaterial->setMetallic(0.02f);
-                    _collisionHullMaterial->setGloss(1.0f);
+                    _collisionHullMaterial->setRoughness(0.5f);
                 }
                 _renderItemsSet << std::make_shared<MeshPartPayload>(networkMesh._mesh, partIndex, _collisionHullMaterial, transform, offset);
             } else {
