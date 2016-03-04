@@ -1,4 +1,4 @@
-var fishTank, bubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner;
+var fishTank, bubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
 var CLEANUP = true;
 var TANK_DIMENSIONS = {
@@ -9,7 +9,7 @@ var TANK_DIMENSIONS = {
 
 var INNER_TANK_SCALE = 0.7;
 var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
-INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y -0.4;
+INNER_TANK_DIMENSIONS.y = INNER_TANK_DIMENSIONS.y - 0.4;
 var TANK_WIDTH = TANK_DIMENSIONS.z;
 var TANK_HEIGHT = TANK_DIMENSIONS.y;
 
@@ -27,7 +27,7 @@ var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
 var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.05;
+var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x ;
 //depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.15;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.5;
@@ -41,6 +41,31 @@ var BUBBLE_SYSTEM_DIMENSIONS = {
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
+var URCHIN_FORWARD_OFFSET =-TANK_DIMENSIONS.x;
+//depth of tank
+var URCHIN_LATERAL_OFFSET = 0.15;
+var URCHIN_VERTICAL_OFFSET = -0.4;
+
+var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
+
+var URCHIN_DIMENSIONS = {
+    x: 0.35,
+    y: 0.35,
+    z: 0.35
+}
+
+var ROCKS_FORWARD_OFFSET = (TANK_DIMENSIONS.x/2)-0.75;
+//depth of tank
+var ROCKS_LATERAL_OFFSET = 0.05;
+var ROCKS_VERTICAL_OFFSET = -0.45;
+
+var ROCK_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Aquarium-Rocks-2.fbx';
+
+var ROCK_DIMENSIONS = {
+    x: 0.88,
+    y: 0.33,
+    z: 2.9
+}
 
 function createFishTank() {
     var tankProperties = {
@@ -114,23 +139,32 @@ function createBubbleSystem() {
     bubbleProperties.parentID = fishTank;
     bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
 
+    var finalOffset = getOffsetFromTankCenter(BUBBLE_SYSTEM_VERTICAL_OFFSET, BUBBLE_SYSTEM_FORWARD_OFFSET, BUBBLE_SYSTEM_LATERAL_OFFSET);
+
+    bubbleProperties.position = finalOffset;
+
+    bubbleSystem = Entities.addEntity(bubbleProperties);
+     createBubbleSound(finalOffset);
+}
+
+
+function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
+
+    var tankProperties = Entities.getEntityProperties(fishTank);
+
     var upVector = Quat.getUp(tankProperties.rotation);
     var frontVector = Quat.getFront(tankProperties.rotation);
     var rightVector = Quat.getRight(tankProperties.rotation);
 
-    var upOffset = Vec3.multiply(upVector, BUBBLE_SYSTEM_VERTICAL_OFFSET);
-    var frontOffset = Vec3.multiply(frontVector, BUBBLE_SYSTEM_FORWARD_OFFSET);
-    var rightOffset = Vec3.multiply(rightVector, BUBBLE_SYSTEM_LATERAL_OFFSET);
+    var upOffset = Vec3.multiply(upVector, VERTICAL_OFFSET);
+    var frontOffset = Vec3.multiply(frontVector, FORWARD_OFFSET);
+    var rightOffset = Vec3.multiply(rightVector, LATERAL_OFFSET);
 
     var finalOffset = Vec3.sum(tankProperties.position, upOffset);
     finalOffset = Vec3.sum(finalOffset, frontOffset);
     finalOffset = Vec3.sum(finalOffset, rightOffset);
-
-    print('final bubble offset:: ' + JSON.stringify(finalOffset));
-    bubbleProperties.position = finalOffset;
-
-    bubbleSystem = Entities.addEntity(bubbleProperties);
-    // createBubbleSound(finalOffset);
+    print('final offset is: ' + finalOffset)
+    return finalOffset
 }
 
 function createBubbleSound(position) {
@@ -161,7 +195,7 @@ function createInnerContainer(position) {
         position: tankProperties.position,
         visible: false,
         collisionless: true,
-        dynamic:false
+        dynamic: false
     };
 
     innerContainer = Entities.addEntity(containerProps);
@@ -186,7 +220,8 @@ function createEntitiesAtCorners() {
             blue: 0
         },
         collisionless: true,
-        position: bounds.brn
+        position: bounds.brn,
+        visible:false
     }
 
     var upperProps = {
@@ -204,13 +239,46 @@ function createEntitiesAtCorners() {
             blue: 0
         },
         collisionless: true,
-        position: bounds.tfl
+        position: bounds.tfl,
+        visible:false
     }
 
     lowerCorner = Entities.addEntity(lowerProps);
     upperCorner = Entities.addEntity(upperProps);
     print('CORNERS :::' + JSON.stringify(upperCorner))
     print('CORNERS :::' + JSON.stringify(lowerCorner))
+}
+
+function createRocks() {
+    var finalPosition = getOffsetFromTankCenter(ROCKS_VERTICAL_OFFSET, ROCKS_FORWARD_OFFSET, ROCKS_LATERAL_OFFSET);
+
+    var properties = {
+        name: 'hifi-home-fishtank-rock',
+        type: 'Model',
+        parentID: fishTank,
+        modelURL: ROCK_MODEL_URL,
+        position: finalPosition,
+        dimensions: ROCK_DIMENSIONS
+    }
+
+    rocks = Entities.addEntity(properties);
+}
+
+function createUrchin() {
+    var finalPosition = getOffsetFromTankCenter(URCHIN_VERTICAL_OFFSET, URCHIN_FORWARD_OFFSET, URCHIN_LATERAL_OFFSET);
+
+    var properties = {
+        name: 'hifi-home-fishtank-urchin',
+        type: 'Model',
+        parentID: fishTank,
+        modelURL: URCHIN_MODEL_URL,
+        position: finalPosition,
+        shapeType: 'Sphere',
+        dimensions: URCHIN_DIMENSIONS
+    }
+
+    urchin = Entities.addEntity(properties);
+
 }
 
 
@@ -224,20 +292,24 @@ createEntitiesAtCorners();
 
 createBubbleSound();
 
+createUrchin();
+
+createRocks();
+
 var customKey = 'hifi-home-fishtank';
 var id = fishTank;
-print('FISH TANK ID AT START:: '+id)
+print('FISH TANK ID AT START:: ' + id)
 var data = {
-        fishLoaded: false,
-        bubbleSystem: bubbleSystem,
-        bubbleSound: bubbleSound,
-        corners: {
-            brn: lowerCorner,
-            tfl: upperCorner
-        },
-        innerContainer: innerContainer,
+    fishLoaded: false,
+    bubbleSystem: bubbleSystem,
+    bubbleSound: bubbleSound,
+    corners: {
+        brn: lowerCorner,
+        tfl: upperCorner
+    },
+    innerContainer: innerContainer,
 
-    }
+}
 print('DATA AT CREATE IS:::' + JSON.stringify(data));
 setEntityCustomData(customKey, id, data);
 setEntityCustomData('grabbableKey', id, {
@@ -250,6 +322,8 @@ function cleanup() {
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
+    Entities.deleteEntity(urchin);
+    Entities.deleteEntity(rocks);
     bubbleInjector.stop();
     bubbleInjector = null;
 }
