@@ -1956,7 +1956,7 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
 
     const float CYLINDER_TOP = 0.1f;
-    const float CYLINDER_BOTTOM = -1.0f;
+    const float CYLINDER_BOTTOM = -1.5f;
 
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
     return (offset.y > CYLINDER_TOP) || (offset.y < CYLINDER_BOTTOM);
