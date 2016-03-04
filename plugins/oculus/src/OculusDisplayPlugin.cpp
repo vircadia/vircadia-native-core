@@ -70,5 +70,5 @@ void OculusDisplayPlugin::hmdPresent() {
             logWarning("Failed to present");
         }
     }
-    _sceneFbo->Increment();
+    _sceneFbo->Commit();
 }
