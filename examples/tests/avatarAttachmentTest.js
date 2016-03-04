@@ -15,16 +15,17 @@
 
 // Toggle button helper
 function ToggleButtonBuddy(x, y, width, height, urls) {
+    print("ToggleButtonBuddy() "+ x+ "," + y + "[" + width + ","+height+"] " + urls);
     this.up = Overlays.addOverlay("image", {
         x: x, y: y, width: width, height: height,
-        subImage: { x: 0, y: height, width: width, height: height},
+        subImage: { x: 0, y: 0, width: width, height: height},
         imageURL: urls.up,
         visible: true,
         alpha: 1.0
     });
     this.down = Overlays.addOverlay("image", {
         x: x, y: y, width: width, height: height,
-        subImage: { x: 0, y: height, width: width, height: height},
+        subImage: { x: 0, y: 0, width: width, height: height},
         imageURL: urls.down,
         visible: false,
         alpha: 1.0
@@ -48,6 +49,7 @@ function ToggleButtonBuddy(x, y, width, height, urls) {
     });
 }
 ToggleButtonBuddy.prototype.destroy = function () {
+    print("ToggleButtonBuddy.prototype.destroy()  this.up:" + this.up + " this.down:" + this.down);
     Overlays.deleteOverlay(this.up);
     Overlays.deleteOverlay(this.down);
 };
@@ -120,7 +122,6 @@ coatButton.addToggleHandler(function (isDown) {
     }
 });
 
-
 function wearAttachment(attachment) {
     MyAvatar.attach(attachment.modelURL,
                     attachment.jointName,
@@ -144,5 +145,5 @@ function removeAttachment(attachment) {
 
 Script.scriptEnding.connect(function() {
     hatButton.destroy();
-    coatbutton.destroy();
+    coatButton.destroy();
 });
