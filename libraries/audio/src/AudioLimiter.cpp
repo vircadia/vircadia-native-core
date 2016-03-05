@@ -132,6 +132,7 @@ static const int32_t exp2Table[1 << EXP2_TABBITS][3] = {
     { 0x785c4499, 0x390ecc3a, 0x456188bd },
 };
 
+static const int IEEE754_FABS_MASK = 0x7fffffff;
 static const int IEEE754_MANT_BITS = 23;
 static const int IEEE754_EXPN_BIAS = 127;
 
@@ -146,14 +147,16 @@ static inline int32_t peaklog2(float* input) {
     int32_t u = *(int32_t*)input;
 
     // absolute value
-    int32_t peak = u & 0x7fffffff;
+    int32_t peak = u & IEEE754_FABS_MASK;
 
     // split into e and x - 1.0
     int32_t e = IEEE754_EXPN_BIAS - (peak >> IEEE754_MANT_BITS) + LOG2_HEADROOM;
     int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
 
     // saturate
-    if (e > 31) return 0x7fffffff;
+    if (e > 31) {
+        return 0x7fffffff;
+    }
 
     int k = x >> (31 - LOG2_TABBITS);
 
@@ -181,8 +184,8 @@ static inline int32_t peaklog2(float* input0, float* input1) {
     int32_t u1 = *(int32_t*)input1;
 
     // max absolute value
-    u0 &= 0x7fffffff;
-    u1 &= 0x7fffffff;
+    u0 &= IEEE754_FABS_MASK;
+    u1 &= IEEE754_FABS_MASK;
     int32_t peak = MAX(u0, u1);
 
     // split into e and x - 1.0
@@ -190,7 +193,9 @@ static inline int32_t peaklog2(float* input0, float* input1) {
     int32_t x = (peak << (31 - IEEE754_MANT_BITS)) & 0x7fffffff;
 
     // saturate
-    if (e > 31) return 0x7fffffff;
+    if (e > 31) {
+        return 0x7fffffff;
+    }
 
     int k = x >> (31 - LOG2_TABBITS);
 
