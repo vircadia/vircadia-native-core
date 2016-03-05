@@ -27,7 +27,7 @@ var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
 var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x ;
+var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x;
 //depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.15;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.5;
@@ -41,7 +41,7 @@ var BUBBLE_SYSTEM_DIMENSIONS = {
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
-var URCHIN_FORWARD_OFFSET =-TANK_DIMENSIONS.x;
+var URCHIN_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
 //depth of tank
 var URCHIN_LATERAL_OFFSET = -0.15;
 var URCHIN_VERTICAL_OFFSET = -0.37;
@@ -54,10 +54,10 @@ var URCHIN_DIMENSIONS = {
     z: 0.35
 }
 
-var ROCKS_FORWARD_OFFSET = (TANK_DIMENSIONS.x/2)-0.75;
+var ROCKS_FORWARD_OFFSET = (TANK_DIMENSIONS.x / 2) - 0.75;
 //depth of tank
 var ROCKS_LATERAL_OFFSET = 0.0;
-var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y/2)+0.25;
+var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
 
 var ROCK_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Aquarium-Rocks-2.fbx';
 
@@ -103,7 +103,7 @@ function createBubbleSystem() {
         },
         "emitDimensions": {
             "x": -0.2,
-            "y": 1.2000000000000002,
+            "y": 1.6000000000000002,
             "z": 0
         },
         "polarStart": 0,
@@ -144,7 +144,7 @@ function createBubbleSystem() {
     bubbleProperties.position = finalOffset;
 
     bubbleSystem = Entities.addEntity(bubbleProperties);
-    //createBubbleSound(finalOffset);
+    createBubbleSound(finalOffset);
 }
 
 
@@ -169,7 +169,7 @@ function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET
 
 function createBubbleSound(position) {
     var audioProperties = {
-        volume: 0,
+        volume: 1,
         position: position,
         loop: true
     };
@@ -221,7 +221,7 @@ function createEntitiesAtCorners() {
         },
         collisionless: true,
         position: bounds.brn,
-        visible:false
+        visible: false
     }
 
     var upperProps = {
@@ -240,7 +240,7 @@ function createEntitiesAtCorners() {
         },
         collisionless: true,
         position: bounds.tfl,
-        visible:false
+        visible: false
     }
 
     lowerCorner = Entities.addEntity(lowerProps);
@@ -312,16 +312,16 @@ var data = {
 }
 
 //fisthank initialize has a different UUID than the model that i see
-Script.setTimeout(function(){
+Script.setTimeout(function() {
     print('CREATE TIMEOUT!!!')
-    print('TANK AT CREATE IS::: '+ fishTank)
+    print('TANK AT CREATE IS::: ' + fishTank)
     print('DATA AT CREATE IS:::' + JSON.stringify(data));
 
-setEntityCustomData(customKey, fishTank, data);
-// setEntityCustomData('grabbableKey', id, {
-//     grabbable: false
-// });
-},2000)
+    setEntityCustomData(customKey, fishTank, data);
+    // setEntityCustomData('grabbableKey', id, {
+    //     grabbable: false
+    // });
+}, 2000)
 
 
 function cleanup() {

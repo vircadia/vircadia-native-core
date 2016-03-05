@@ -11,7 +11,7 @@
 
     var TANK_SEARCH_RADIUS = 5;
     var WANT_LOOK_DEBUG_LINE = false;
-    var WANT_LOOK_DEBUG_SPHERE = true;
+    var WANT_LOOK_DEBUG_SPHERE = false;
 
     var INTERSECT_COLOR = {
         red: 255,
@@ -540,7 +540,8 @@
                     velocity.x *= -0.15
                 } else if (position.x > upperCorner.x) {
                     position.x = upperCorner.x;
-                    velocity.x *= -0.15                }
+                    velocity.x *= -0.15
+                }
                 if (position.y < lowerCorner.y) {
                     position.y = lowerCorner.y;
                     velocity.y *= -0.15
