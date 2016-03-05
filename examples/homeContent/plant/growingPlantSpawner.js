@@ -29,7 +29,7 @@ var bowl= Entities.addEntity({
 
 
 var PLANT_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Moss-Rock.fbx";
-var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js");
+var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
 var plantDimensions =  {x: 0.52, y: 0.2600, z: 0.52};
 var plantPosition = Vec3.sum(bowlPosition, {x: 0, y: plantDimensions.y/2, z: 0});
 var plant = Entities.addEntity({
@@ -42,8 +42,8 @@ var plant = Entities.addEntity({
   parentID: bowl
 });
 
-var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx";
-var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random());
+var WATER_CAN_MODEL_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/models/waterCan.fbx?v1" + Math.random();
+var WATER_CAN_SCRIPT_URL = Script.resolvePath("waterCanEntityScript.js?v2" + Math.random().toFixed());
 var waterCanPosition = Vec3.sum(plantPosition, Vec3.multiply(0.6, Quat.getRight(orientation)));
 var waterCanRotation = orientation;
 var waterCan = Entities.addEntity({

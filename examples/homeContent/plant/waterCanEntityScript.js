@@ -59,7 +59,6 @@
                 });
                 _this.waterPouring = false;
             }
-            // print("PITCH " + pitch);
         },
 
         castRay: function() { 
@@ -78,10 +77,9 @@
             var intersection = Entities.findRayIntersection(pickRay, true, _this.growableEntities);
 
             if (intersection.intersects) {
-                //We've intersected with a growable object, now 
-                print(intersection.properties.name)
-                print("intersection with growable object");
-                Entities.callEntityMethod(intersection.entityID, 'grow');
+                //We've intersected with a waterable object
+                var data = JSON.stringify({position: intersection.intersection, surfaceNormal: intersection.surfaceNormal});
+                Entities.callEntityMethod(intersection.entityID, 'continueWatering', [data]);
             }
 
         },
