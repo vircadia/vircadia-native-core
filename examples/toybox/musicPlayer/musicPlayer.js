@@ -16,6 +16,7 @@
 
     var MAPPING_NAME = "com.highfidelity.musicPlayerEntity";
 
+    var PLAYLIST_URL = "https://spreadsheets.google.com/feeds/cells/1x-ceGPGHldkHadARABFWfujLPTOWzXJPhrf2bTwg2cQ/od6/public/basic?alt=json";
     var SONG_VOLUME = 0.1;
     var HEADPHONES_ATTACHMENT = {
         modelURL: "https://s3.amazonaws.com/hifi-public/brad/musicplayer/headphones2-v2.fbx",
@@ -92,6 +93,7 @@
             this.headphonesAttachment = valueOrDefault(musicPlayerUserData.headphonesAttachment, HEADPHONES_ATTACHMENT);
 
             this.track = 0; // start at the first track
+            this.playlistURL = valueOrDefault(musicPlayerUserData.playlistURL, PLAYLIST_URL);
             this.songVolume = valueOrDefault(musicPlayerUserData.songVolume, SONG_VOLUME);
             this.songPlaying = false;
 
@@ -121,7 +123,7 @@
         loadPlayList: function() {
             print("loadPlayList");
             var req = new XMLHttpRequest();
-            req.open("GET", "https://spreadsheets.google.com/feeds/cells/1x-ceGPGHldkHadARABFWfujLPTOWzXJPhrf2bTwg2cQ/od6/public/basic?alt=json", false);
+            req.open("GET", _this.playlistURL, false);
             req.send();
 
             var entries = JSON.parse(req.responseText).feed.entry;
