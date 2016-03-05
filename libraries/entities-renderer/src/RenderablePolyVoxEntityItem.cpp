@@ -1224,9 +1224,12 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     }
 
     glm::vec3 collisionModelDimensions = box.getDimensions();
-    QByteArray b64 = _voxelData.toBase64();
+    QString shapeKey = QString(_voxelData.toBase64()) + "," +
+        QString::number(_registrationPoint.x) + "," +
+        QString::number(_registrationPoint.y) + "," +
+        QString::number(_registrationPoint.z);
     _shapeInfoLock.lockForWrite();
-    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, QString(b64));
+    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
     _shapeInfo.setConvexHulls(points);
     adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
