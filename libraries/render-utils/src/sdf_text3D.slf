@@ -15,6 +15,7 @@
 uniform sampler2D Font;
 uniform bool Outline;
 uniform vec4 Color;
+uniform vec4 backgroundColor = vec4(1.0, 0.0, 0.0, 1.0);
 
 // the interpolated normal
 in vec3 _normal;
@@ -29,6 +30,8 @@ const float gamma = 2.2;
 const float smoothing = 256.0;
 const float interiorCutoff = 0.8;
 const float outlineExpansion = 0.2;
+
+
 
 void main() {
     // retrieve signed distance
@@ -60,8 +63,8 @@ void main() {
     */
     packDeferredFragmentLightmap(
          normalize(_normal),
-         Color.a * a,
-         Color.rgb,
+         1.0 // Color.a * a,
+         mix(Color.rgb, backgroundColor, Color.a * a),
          DEFAULT_ROUGHNESS,
          DEFAULT_METALLIC,
          DEFAULT_SPECULAR,
