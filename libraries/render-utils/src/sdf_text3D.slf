@@ -63,10 +63,10 @@ void main() {
     */
     packDeferredFragmentLightmap(
          normalize(_normal),
-         1.0 // Color.a * a,
-         mix(Color.rgb, backgroundColor, Color.a * a),
+         step(alphaThreshold, Color.a * a),
+         mix(Color.rgb, backgroundColor.rgb, Color.a * a),
          DEFAULT_ROUGHNESS,
          DEFAULT_METALLIC,
          DEFAULT_SPECULAR,
-         Color.rgb);
+         mix(Color.rgb, backgroundColor.rgb, Color.a * a));
 }
