@@ -10,7 +10,6 @@
 //
 
 var DEBUGGING = false;
-
 var angularVelocityTrailingAverage = 0.0;  //  Global trailing average used to decide whether to move reticle at all 
 var lastX = 0;
 var lastY = 0; 
@@ -38,6 +37,10 @@ var mapping = Controller.newMapping(MAPPING_NAME);
 if (Controller.Hardware.Hydra !== undefined) {
     mapping.from(Controller.Hardware.Hydra.L3).peek().to(Controller.Actions.ReticleClick);
     mapping.from(Controller.Hardware.Hydra.R4).peek().to(Controller.Actions.ReticleClick);
+}
+if (Controller.Hardware.Vive !== undefined) {
+    mapping.from(Controller.Hardware.Vive.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+    mapping.from(Controller.Hardware.Vive.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
 }
 
 mapping.enable();
