@@ -26,64 +26,12 @@
 
 #include "OffscreenUi.h"
 
-QWebSocketServer* QmlWindowClass::_webChannelServer { nullptr };
-static QWebChannel webChannel;
-static const uint16_t WEB_CHANNEL_PORT = 51016;
-static std::atomic<int> nextWindowId;
 static const char* const SOURCE_PROPERTY = "source";
 static const char* const TITLE_PROPERTY = "title";
 static const char* const WIDTH_PROPERTY = "width";
 static const char* const HEIGHT_PROPERTY = "height";
 static const char* const VISIBILE_PROPERTY = "visible";
 static const char* const TOOLWINDOW_PROPERTY = "toolWindow";
-
-void QmlScriptEventBridge::emitWebEvent(const QString& data) {
-    QMetaObject::invokeMethod(this, "webEventReceived", Qt::QueuedConnection, Q_ARG(QString, data));
-}
-
-void QmlScriptEventBridge::emitScriptEvent(const QString& data) {
-    QMetaObject::invokeMethod(this, "scriptEventReceived", Qt::QueuedConnection, 
-        Q_ARG(int, _webWindow->getWindowId()), Q_ARG(QString, data));
-}
-
-class QmlWebTransport : public QWebChannelAbstractTransport {
-    Q_OBJECT
-public:
-    QmlWebTransport(QWebSocket* webSocket) : _webSocket(webSocket) {
-        // Translate from the websocket layer to the webchannel layer
-        connect(webSocket, &QWebSocket::textMessageReceived, [this](const QString& message) {
-            QJsonParseError error;
-            QJsonDocument document = QJsonDocument::fromJson(message.toUtf8(), &error);
-            if (error.error || !document.isObject()) {
-                qWarning() << "Unable to parse incoming JSON message" << message;
-                return;
-            }
-            emit messageReceived(document.object(), this);
-        });
-    }
-
-    virtual void sendMessage(const QJsonObject &message) override {
-        // Translate from the webchannel layer to the websocket layer
-        _webSocket->sendTextMessage(QJsonDocument(message).toJson(QJsonDocument::Compact));
-    }
-
-private:
-    QWebSocket* const _webSocket;
-};
-
-
-void QmlWindowClass::setupServer() {
-    if (!_webChannelServer) {
-        _webChannelServer = new QWebSocketServer("EventBridge Server", QWebSocketServer::NonSecureMode);
-        if (!_webChannelServer->listen(QHostAddress::LocalHost, WEB_CHANNEL_PORT)) {
-            qFatal("Failed to open web socket server.");
-        }
-
-        QObject::connect(_webChannelServer, &QWebSocketServer::newConnection, [] {
-            webChannel.connectTo(new QmlWebTransport(_webChannelServer->nextPendingConnection()));
-        });
-    }
-}
 
 QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource, 
     QScriptContext* context, QScriptEngine* engine, 
@@ -168,10 +116,8 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         }
 
         offscreenUi->returnFromUiThread([&] {
-            setupServer();
             retVal = builder(newTab);
             retVal->_toolWindow = true;
-            registerObject(url.toLower(), retVal);
             return QVariant();
         });
     } else {
@@ -179,10 +125,8 @@ QScriptValue QmlWindowClass::internalConstructor(const QString& qmlSource,
         QMetaObject::invokeMethod(offscreenUi.data(), "load", Qt::BlockingQueuedConnection,
             Q_ARG(const QString&, qmlSource),
             Q_ARG(std::function<void(QQmlContext*, QObject*)>, [&](QQmlContext* context, QObject* object) {
-            setupServer();
             retVal = builder(object);
             context->engine()->setObjectOwnership(retVal->_qmlWindow, QQmlEngine::CppOwnership);
-            registerObject(url.toLower(), retVal);
             if (!title.isEmpty()) {
                 retVal->setTitle(title);
             }
@@ -209,10 +153,7 @@ QScriptValue QmlWindowClass::constructor(QScriptContext* context, QScriptEngine*
     });
 }
 
-QmlWindowClass::QmlWindowClass(QObject* qmlWindow)
-    : _windowId(++nextWindowId), _qmlWindow(qmlWindow)
-{
-    qDebug() << "Created window with ID " << _windowId;
+QmlWindowClass::QmlWindowClass(QObject* qmlWindow) : _qmlWindow(qmlWindow) {
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow.data()));
     // Forward messages received from QML on to the script
@@ -226,14 +167,6 @@ void QmlWindowClass::sendToQml(const QVariant& message) {
 
 QmlWindowClass::~QmlWindowClass() {
     close();
-}
-
-void QmlWindowClass::registerObject(const QString& name, QObject* object) {
-    webChannel.registerObject(name, object);
-}
-
-void QmlWindowClass::deregisterObject(QObject* object) {
-    webChannel.deregisterObject(object);
 }
 
 QQuickItem* QmlWindowClass::asQuickItem() const {

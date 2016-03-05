@@ -14,6 +14,8 @@
 
 #include <QtQml/QQmlContext>
 
+#include <QtWebChannel/QWebChannel>
+
 #include <QtScript/QScriptContext>
 #include <QtScript/QScriptEngine>
 
@@ -35,8 +37,29 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
+    _uid = QUuid::createUuid().toString();
+    asQuickItem()->setProperty("uid", _uid);
+    auto webchannelVar = qmlWindow->property("webChannel");
+    _webchannel = qvariant_cast<QWebChannel*>(webchannelVar);
+    Q_ASSERT(_webchannel);
+    _webchannel->registerObject(_uid, this);
 }
 
+void QmlWebWindowClass::emitScriptEvent(const QVariant& scriptMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, scriptMessage));
+    } else {
+        emit scriptEventReceived(scriptMessage);
+    }
+}
+
+void QmlWebWindowClass::emitWebEvent(const QVariant& webMessage) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, webMessage));
+    } else {
+        emit webEventReceived(webMessage);
+    }
+}
 
 QString QmlWebWindowClass::getURL() const {
     QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
