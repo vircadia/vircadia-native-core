@@ -232,7 +232,7 @@ protected:
 
     Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
     void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
+    virtual void renderBody(RenderArgs* renderArgs, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 

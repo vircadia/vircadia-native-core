@@ -1513,9 +1513,10 @@ void Application::paintGL() {
 
 
     _viewFrustum.calculate();
-    RenderArgs renderArgs(_gpuContext, getEntities(), getViewFrustum(), lodManager->getOctreeSizeScale(),
+    RenderArgs renderArgs(_gpuContext, getEntities(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
+    renderArgs.setViewFrustum(getViewFrustum());
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1682,7 +1683,7 @@ void Application::paintGL() {
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
             mat4 eyeProjections[2];
-            auto baseProjection = renderArgs._viewFrustum->getProjection();
+            auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
             mat4 headPose = displayPlugin->getHeadPose();
@@ -3862,7 +3863,7 @@ PickRay Application::computePickRay(float x, float y) const {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
         pickPoint /= getCanvasSize();
-        getViewFrustum()->computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
+        getViewFrustum().computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
     return result;
 }
@@ -3875,34 +3876,24 @@ glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 
-const ViewFrustum* Application::getViewFrustum() const {
+const ViewFrustum& Application::getViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() == activeRenderingThread) {
         // FIXME, figure out a better way to do this
         //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
     }
 #endif
-    return &_viewFrustum;
+    return _viewFrustum;
 }
 
-ViewFrustum* Application::getDisplayViewFrustum() {
+const ViewFrustum& Application::getDisplayViewFrustum() const {
 #ifdef DEBUG
     if (QThread::currentThread() != activeRenderingThread) {
         // FIXME, figure out a better way to do this
         // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
     }
 #endif
-    return &_displayViewFrustum;
-}
-
-const ViewFrustum* Application::getDisplayViewFrustum() const {
-#ifdef DEBUG
-    if (QThread::currentThread() != activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
-    }
-#endif
-    return &_displayViewFrustum;
+    return _displayViewFrustum;
 }
 
 // WorldBox Render Data & rendering functions
@@ -3967,7 +3958,7 @@ namespace render {
                 auto skybox = skyStage->getSkybox();
                 if (skybox) {
                     PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, *(args->_viewFrustum));
+                    skybox->render(batch, args->getViewFrustum());
                     break;
                 }
             }
@@ -4079,7 +4070,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        renderArgs->_viewFrustum = getDisplayViewFrustum();
+        renderArgs->setViewFrustum(getDisplayViewFrustum());
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine

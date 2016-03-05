@@ -194,8 +194,8 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
 
     gpu::Batch& batch = *renderArgs->_batch;
     batch.setViewTransform(Transform());
-    batch.setProjectionTransform(renderArgs->_viewFrustum->getProjection());
-    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->_viewFrustum->getOrientation()) *
+    batch.setProjectionTransform(renderArgs->getViewFrustum().getProjection());
+    batch.setModelTransform(Transform().setRotation(glm::inverse(renderArgs->getViewFrustum().getOrientation()) *
         quat(vec3(TILT, 0, 0))));
     batch.setResourceTexture(0, textureCache->getWhiteTexture());
 

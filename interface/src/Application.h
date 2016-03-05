@@ -128,13 +128,12 @@ public:
     Camera* getCamera() { return &_myCamera; }
     const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
-    const ViewFrustum* getViewFrustum() const;
+    const ViewFrustum& getViewFrustum() const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
-    ViewFrustum* getDisplayViewFrustum();
-    const ViewFrustum* getDisplayViewFrustum() const;
-    ViewFrustum* getShadowViewFrustum() override { return &_shadowViewFrustum; }
+    const ViewFrustum& getDisplayViewFrustum() const;
+    const ViewFrustum& getShadowViewFrustum() override { return _shadowViewFrustum; }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -168,7 +167,7 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual ViewFrustum* getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual const ViewFrustum& getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
     virtual QThread* getMainThread() override { return thread(); }
     virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;

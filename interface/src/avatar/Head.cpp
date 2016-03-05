@@ -316,7 +316,7 @@ void Head::relaxLean(float deltaTime) {
     _deltaLeanForward *= relaxationFactor;
 }
 
-void Head::render(RenderArgs* renderArgs, float alpha, ViewFrustum* renderFrustum) {
+void Head::render(RenderArgs* renderArgs, float alpha) {
 }
 
 void Head::renderLookAts(RenderArgs* renderArgs) {

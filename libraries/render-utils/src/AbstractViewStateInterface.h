@@ -29,13 +29,13 @@ class PickRay;
 class AbstractViewStateInterface {
 public:
     /// gets the current view frustum for rendering the view state
-    virtual ViewFrustum* getCurrentViewFrustum() = 0;
+    virtual const ViewFrustum& getCurrentViewFrustum() = 0;
 
     /// gets the shadow view frustum for rendering the view state
-    virtual ViewFrustum* getShadowViewFrustum() = 0;
+    virtual const ViewFrustum& getShadowViewFrustum() = 0;
 
     virtual QThread* getMainThread() = 0;
-    
+
     virtual PickRay computePickRay(float x, float y) const = 0;
 
     virtual glm::vec3 getAvatarPosition() const = 0;

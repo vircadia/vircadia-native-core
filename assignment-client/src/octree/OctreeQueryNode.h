@@ -44,7 +44,7 @@ public:
 
     bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
-    
+
     unsigned int getAvailable() const { return _octreePacket->bytesAvailableForWrite(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; }
     void resetMaxSearchLevel() { _maxSearchLevel = 1; }
@@ -56,8 +56,8 @@ public:
     OctreeElementBag elementBag;
     OctreeElementExtraEncodeData extraEncodeData;
 
-    ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; }
-    ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; }
+    const ViewFrustum& getCurrentViewFrustum() const { return _currentViewFrustum; }
+    const ViewFrustum& getLastKnownViewFrustum() const { return _lastKnownViewFrustum; }
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive

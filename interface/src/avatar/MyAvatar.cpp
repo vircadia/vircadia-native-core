@@ -546,7 +546,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         head->setDeltaYaw(estimatedRotation.y);
         head->setDeltaRoll(estimatedRotation.z);
     } else {
-        float magnifyFieldOfView = qApp->getViewFrustum()->getFieldOfView() / _realWorldFieldOfView.get();
+        float magnifyFieldOfView = qApp->getViewFrustum().getFieldOfView() / _realWorldFieldOfView.get();
         head->setDeltaPitch(estimatedRotation.x * magnifyFieldOfView);
         head->setDeltaYaw(estimatedRotation.y * magnifyFieldOfView);
         head->setDeltaRoll(estimatedRotation.z);
@@ -936,8 +936,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
                     glm::vec3 rightEyeHeadLocal = glm::vec3(rightEye[3]);
                     auto humanSystem = qApp->getViewFrustum();
-                    glm::vec3 humanLeftEye = humanSystem->getPosition() + (humanSystem->getOrientation() * leftEyeHeadLocal);
-                    glm::vec3 humanRightEye = humanSystem->getPosition() + (humanSystem->getOrientation() * rightEyeHeadLocal);
+                    glm::vec3 humanLeftEye = humanSystem.getPosition() + (humanSystem.getOrientation() * leftEyeHeadLocal);
+                    glm::vec3 humanRightEye = humanSystem.getPosition() + (humanSystem.getOrientation() * rightEyeHeadLocal);
 
                     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
                     float ipdScale = hmdInterface->getIPDScale();
@@ -951,7 +951,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 }
 
                 // And now we can finally add that offset to the camera.
-                glm::vec3 corrected = qApp->getViewFrustum()->getPosition() + gazeOffset;
+                glm::vec3 corrected = qApp->getViewFrustum().getPosition() + gazeOffset;
 
                 avatar->getHead()->setCorrectedLookAtPosition(corrected);
 
@@ -1259,7 +1259,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName,
     Avatar::attach(modelURL, jointName, translation, rotation, scale, isSoft, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel) {
+void MyAvatar::renderBody(RenderArgs* renderArgs, float glowLevel) {
 
     if (!_skeletonModel->isRenderable()) {
         return; // wait until all models are loaded
@@ -1269,7 +1269,7 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
 
     //  Render head so long as the camera isn't inside it
     if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f, renderFrustum);
+        getHead()->render(renderArgs, 1.0f);
     }
 
     // This is drawing the lookat vectors from our avatar to wherever we're looking.

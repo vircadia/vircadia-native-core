@@ -23,7 +23,7 @@
 OctreeRenderer::OctreeRenderer() :
     _tree(NULL),
     _managedTree(false),
-    _viewFrustum(NULL)
+    _viewFrustum()
 {
 }
 
@@ -201,9 +201,9 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
 
 bool OctreeRenderer::renderOperation(OctreeElementPointer element, void* extraData) {
     RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    if (element->isInView(*args->_viewFrustum)) {
+    if (element->isInView(args->getViewFrustum())) {
         if (element->hasContent()) {
-            if (element->calculateShouldRender(args->_viewFrustum, args->_sizeScale, args->_boundaryLevelAdjust)) {
+            if (element->calculateShouldRender(args->getViewFrustum(), args->_sizeScale, args->_boundaryLevelAdjust)) {
                 args->_renderer->renderElement(element, args);
             } else {
                 return false; // if we shouldn't render, then we also should stop recursing.

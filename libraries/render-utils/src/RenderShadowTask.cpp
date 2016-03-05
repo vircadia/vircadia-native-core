@@ -34,7 +34,7 @@ using namespace render;
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
                           const render::ShapeBounds& inShapes) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     const auto& lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
     const auto globalLight = lightStage.lights[0];
@@ -146,16 +146,15 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     }
 
     // Cache old render args
-    const ViewFrustum* viewFrustum = args->_viewFrustum;
     RenderArgs::RenderMode mode = args->_renderMode;
 
-    auto nearClip = viewFrustum->getNearClip();
+    auto nearClip = args->getViewFrustum().getNearClip();
     float nearDepth = -args->_boomOffset.z;
     const int SHADOW_FAR_DEPTH = 20;
-    globalLight->shadow.setKeylightFrustum(viewFrustum, nearDepth, nearClip + SHADOW_FAR_DEPTH);
+    globalLight->shadow.setKeylightFrustum(args->getViewFrustum(), nearDepth, nearClip + SHADOW_FAR_DEPTH);
 
     // Set the keylight render args
-    args->_viewFrustum = globalLight->shadow.getFrustum().get();
+    args->pushViewFrustum(*(globalLight->shadow.getFrustum()));
     args->_renderMode = RenderArgs::SHADOW_RENDER_MODE;
 
     // TODO: Allow runtime manipulation of culling ShouldRenderFunctor
@@ -165,6 +164,6 @@ void RenderShadowTask::run(const SceneContextPointer& sceneContext, const render
     }
 
     // Reset the render args
-    args->_viewFrustum = viewFrustum;
+    args->popViewFrustum();
     args->_renderMode = mode;
 };

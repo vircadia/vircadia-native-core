@@ -306,7 +306,7 @@ private:
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPositio) override;
-    virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f) override;
+    virtual void renderBody(RenderArgs* renderArgs, float glowLevel = 0.0f) override;
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const override;
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; setEnableMeshVisible(shouldRender); }
     bool getShouldRenderLocally() const { return _shouldRender; }
