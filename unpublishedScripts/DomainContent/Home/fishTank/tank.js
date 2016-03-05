@@ -1,7 +1,6 @@
 (function() {
 
     Script.include('../../../../examples/libraries/virtualBaton.js?' + Math.random());
-    Script.include('../../../../examples/libraries/utils.js?' + Math.random());
 
     //only one person should simulate the tank at a time -- we pass around a virtual baton
     var baton;
@@ -71,16 +70,22 @@
         },
 
         initialize: function(entityID) {
-            print('JBP fishtank initialize' + entityID)
-            var properties = Entities.getEntityProperties(entityID);
-            if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+            var properties = Entities.getEntityProperties(entityID)
+
+            if (properties.hasOwnProperty('userData') === false || properties.userData.length === 0) {
                 _this.initTimeout = Script.setTimeout(function() {
-                    print('JBP no user data yet, try again in one second')
+                    if (properties.hasOwnProperty('userData')) {
+                        print('JBP has user data property')
+                    }
+                    if (properties.userData.length === 0) {
+                        print('JBP user data length is zero')
+                    }
+
+                    print('JBP try again in one second')
                     _this.initialize(entityID);
                 }, 1000)
 
             } else {
-
                 print('JBP userdata before parse attempt' + properties.userData)
                 _this.userData = null;
                 try {
@@ -106,6 +111,9 @@
             this.entityID = entityID;
             _entityID = entityID;
             this.initialize(entityID);
+            // if(_this.initTimeout!==null){
+            //     Script.clearTimeout(_this.initTimeout)
+            // }
             this.initTimeout = null;
 
         },
@@ -124,7 +132,8 @@
             }
 
         },
-        update: function() {
+        update: function(deltaTime) {
+
             if (iOwn === false) {
                 print('i dont own')
                     //exit if we're not supposed to be simulating the fish
@@ -132,7 +141,7 @@
             }
             // print('i am the owner!')
             //do stuff
-            updateFish();
+            updateFish(deltaTime);
             _this.seeIfOwnerIsLookingAtTheTank();
         },
 
@@ -166,11 +175,9 @@
         },
 
         debugSphereOff: function() {
-            // Entities.deleteEntity(_this.debugSphere);
             Entities.editEntity(_this.debugSphere, {
-                    visible: false
-                })
-                //_this.debugSphere = null;
+                visible: false
+            })
 
         },
 
@@ -224,12 +231,9 @@
 
             };
 
-
-            var userData = JSON.parse(_this.currentProperties.userData);
-
-            var brn = userData['hifi-home-fishtank']['corners'].brn;
-            var tfl = userData['hifi-home-fishtank']['corners'].tfl;
-            var innerContainer = userData['hifi-home-fishtank'].innerContainer;
+            var brn = _this.userData['hifi-home-fishtank']['corners'].brn;
+            var tfl = _this.userData['hifi-home-fishtank']['corners'].tfl;
+            var innerContainer = _this.userData['hifi-home-fishtank'].innerContainer;
 
             var intersection = Entities.findRayIntersection(pickRay, true, [innerContainer], [_this.entityID, brn, tfl]);
 
@@ -329,18 +333,24 @@
 
     var TANK_WIDTH = TANK_DIMENSIONS.z / 2;
     var TANK_HEIGHT = TANK_DIMENSIONS.y / 2;
-    var FISH_WIDTH = 0.03;
-    var FISH_LENGTH = 0.15;
+
+    var FISH_DIMENSIONS = {
+        x: 0.0149,
+        y: 0.02546,
+        z: 0.0823
+    }
+
     var MAX_SIGHT_DISTANCE = 1.5;
     var MIN_SEPARATION = 0.15;
-    var AVOIDANCE_FORCE = 0.32;
+    var AVOIDANCE_FORCE = 0.032;
     var COHESION_FORCE = 0.025;
     var ALIGNMENT_FORCE = 0.025;
     var LOOK_ATTRACTOR_FORCE = 0.029;
     var LOOK_ATTRACTOR_DISTANCE = 1.75;
     var SWIMMING_FORCE = 0.05;
     var SWIMMING_SPEED = 0.5;
-    var FISH_DAMPING = 0.25;
+    var FISH_DAMPING = 0.55;
+    var FISH_ANGULAR_DAMPING = 0.55;
 
     var THROTTLE = false;
     var THROTTLE_RATE = 100;
@@ -389,9 +399,18 @@
             _this.tankLocked = true;
             print('NO FISH YET SO LOAD EM!!!')
             loadFish(NUM_FISH);
-            setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, {
-                fishLoaded: true
-            });
+            var data = {
+                fishLoaded: true,
+                bubbleSystem: _this.userData['hifi-home-fishtank'].bubbleSystem,
+                bubbleSound: _this.userData['hifi-home-fishtank'].bubbleSound,
+                corners: {
+                    brn: _this.userData['hifi-home-fishtank'].lowerCorner,
+                    tfl: _this.userData['hifi-home-fishtank'].upperCorner
+                },
+                innerContainer: _this.userData['hifi-home-fishtank'].innerContainer,
+
+            }
+            setEntityCustomData(FISHTANK_USERDATA_KEY, _this.entityID, data);
             _this.userData['hifi-home-fishtank'].fishLoaded = true;
             Script.setTimeout(function() {
                 _this.fish = _this.findFishInTank();
@@ -426,6 +445,8 @@
             y: 0,
             z: 0
         };
+
+
         var userData = JSON.parse(_this.currentProperties.userData);
         var innerContainer = userData['hifi-home-fishtank']['innerContainer'];
         var bounds = Entities.getEntityProperties(innerContainer, "boundingBox").boundingBox;
@@ -541,18 +562,26 @@
 
                 //  Orient in direction of velocity 
                 var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
+
+                var mixedRotation =Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
                 var VELOCITY_FOLLOW_RATE = 0.30;
 
                 var safeEuler = Quat.safeEulerAngles(rotation);
 
+                safeEuler.z = safeEuler.z *= 0.925;
 
+                var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
+
+                var finalQuat = Quat.multiply(rotation, newQuat);
+
+                
 
                 //  Only update properties if they have changed, to save bandwidth
                 var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
                 if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
                     Entities.editEntity(fish[i], {
                         velocity: velocity,
-                        rotation: Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE)
+                        rotation: mixedRotation
                     });
                 } else {
                     Entities.editEntity(fish[i], {
@@ -607,17 +636,14 @@
                     //     w: 1
                     // },
                     // type: "Box",
-                    // dimensions: {
-                    //     x: FISH_WIDTH,
-                    //     y: FISH_WIDTH,
-                    //     z: FISH_LENGTH
-                    // },
-                    // velocity: {
-                    //     x: SWIMMING_SPEED,
-                    //     y: SWIMMING_SPEED,
-                    //     z: SWIMMING_SPEED
-                    // },
+                    dimensions: FISH_DIMENSIONS,
+                    velocity: {
+                        x: SWIMMING_SPEED,
+                        y: SWIMMING_SPEED,
+                        z: SWIMMING_SPEED
+                    },
                     damping: FISH_DAMPING,
+                    angularDamping: FISH_ANGULAR_DAMPING,
                     dynamic: false,
                     lifetime: LIFETIME,
                     color: {
@@ -637,6 +663,50 @@
     Script.scriptEnding.connect(function() {
         Script.update.disconnect(_this.update);
     })
+
+
+    function setEntityUserData(id, data) {
+        var json = JSON.stringify(data)
+        Entities.editEntity(id, {
+            userData: json
+        });
+    }
+
+    // FIXME do non-destructive modification of the existing user data
+    function getEntityUserData(id) {
+        var results = null;
+        var properties = Entities.getEntityProperties(id, "userData");
+        if (properties.userData) {
+            try {
+                results = JSON.parse(properties.userData);
+            } catch (err) {
+                //   print('error parsing json');
+                //   print('properties are:'+ properties.userData);
+            }
+        }
+        return results ? results : {};
+    }
+
+
+    // Non-destructively modify the user data of an entity.
+    function setEntityCustomData(customKey, id, data) {
+        var userData = getEntityUserData(id);
+        if (data == null) {
+            delete userData[customKey];
+        } else {
+            userData[customKey] = data;
+        }
+        setEntityUserData(id, userData);
+    }
+
+    function getEntityCustomData(customKey, id, defaultValue) {
+        var userData = getEntityUserData(id);
+        if (undefined != userData[customKey]) {
+            return userData[customKey];
+        } else {
+            return defaultValue;
+        }
+    }
 
     return new FishTank();
 });

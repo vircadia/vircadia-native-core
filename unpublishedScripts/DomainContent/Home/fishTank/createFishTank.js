@@ -43,8 +43,8 @@ var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 var URCHIN_FORWARD_OFFSET =-TANK_DIMENSIONS.x;
 //depth of tank
-var URCHIN_LATERAL_OFFSET = 0.15;
-var URCHIN_VERTICAL_OFFSET = -0.4;
+var URCHIN_LATERAL_OFFSET = -0.15;
+var URCHIN_VERTICAL_OFFSET = -0.37;
 
 var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
 
@@ -56,8 +56,8 @@ var URCHIN_DIMENSIONS = {
 
 var ROCKS_FORWARD_OFFSET = (TANK_DIMENSIONS.x/2)-0.75;
 //depth of tank
-var ROCKS_LATERAL_OFFSET = 0.05;
-var ROCKS_VERTICAL_OFFSET = -0.45;
+var ROCKS_LATERAL_OFFSET = 0.0;
+var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y/2)+0.25;
 
 var ROCK_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Aquarium-Rocks-2.fbx';
 
@@ -144,7 +144,7 @@ function createBubbleSystem() {
     bubbleProperties.position = finalOffset;
 
     bubbleSystem = Entities.addEntity(bubbleProperties);
-     createBubbleSound(finalOffset);
+    //createBubbleSound(finalOffset);
 }
 
 
@@ -169,7 +169,7 @@ function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET
 
 function createBubbleSound(position) {
     var audioProperties = {
-        volume: 1,
+        volume: 0,
         position: position,
         loop: true
     };
@@ -297,8 +297,8 @@ createUrchin();
 createRocks();
 
 var customKey = 'hifi-home-fishtank';
-var id = fishTank;
-print('FISH TANK ID AT START:: ' + id)
+
+
 var data = {
     fishLoaded: false,
     bubbleSystem: bubbleSystem,
@@ -310,11 +310,19 @@ var data = {
     innerContainer: innerContainer,
 
 }
-print('DATA AT CREATE IS:::' + JSON.stringify(data));
-setEntityCustomData(customKey, id, data);
-setEntityCustomData('grabbableKey', id, {
-    grabbable: false
-});
+
+//fisthank initialize has a different UUID than the model that i see
+Script.setTimeout(function(){
+    print('CREATE TIMEOUT!!!')
+    print('TANK AT CREATE IS::: '+ fishTank)
+    print('DATA AT CREATE IS:::' + JSON.stringify(data));
+
+setEntityCustomData(customKey, fishTank, data);
+// setEntityCustomData('grabbableKey', id, {
+//     grabbable: false
+// });
+},2000)
+
 
 function cleanup() {
     Entities.deleteEntity(fishTank);
