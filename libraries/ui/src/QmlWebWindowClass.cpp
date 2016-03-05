@@ -31,19 +31,18 @@ static const char* const URL_PROPERTY = "source";
 // Method called by Qt scripts to create a new web window in the overlay
 QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
     return QmlWindowClass::internalConstructor("QmlWebWindow.qml", context, engine,
-        [&](QObject* object) { return new QmlWebWindowClass(object); });
+        [&](QObject* object) {  return new QmlWebWindowClass(object);  });
 }
 
 QmlWebWindowClass::QmlWebWindowClass(QObject* qmlWindow) : QmlWindowClass(qmlWindow) {
 }
 
 
-// FIXME remove.
-void QmlWebWindowClass::handleNavigation(const QString& url) {
-}
-
 QString QmlWebWindowClass::getURL() const {
     QVariant result = DependencyManager::get<OffscreenUi>()->returnFromUiThread([&]()->QVariant {
+        if (_qmlWindow.isNull()) {
+            return QVariant();
+        }
         return _qmlWindow->property(URL_PROPERTY);
     });
     return result.toString();
@@ -54,6 +53,8 @@ extern QString fixupHifiUrl(const QString& urlString);
 
 void QmlWebWindowClass::setURL(const QString& urlString) {
     DependencyManager::get<OffscreenUi>()->executeOnUiThread([=] {
-        _qmlWindow->setProperty(URL_PROPERTY, fixupHifiUrl(urlString));
+        if (!_qmlWindow.isNull()) {
+            _qmlWindow->setProperty(URL_PROPERTY, fixupHifiUrl(urlString));
+        }
     });
 }

@@ -26,9 +26,6 @@ public slots:
 
 signals:
     void urlChanged();
-
-private slots:
-    void handleNavigation(const QString& url);
 };
 
 #endif
