@@ -15,16 +15,10 @@
 uniform sampler2D Font;
 uniform bool Outline;
 uniform vec4 Color;
-uniform vec4 backgroundColor = vec4(1.0, 0.0, 0.0, 1.0);
 
 // the interpolated normal
 in vec3 _normal;
 in vec2 _texCoord0;
-/*
-layout(location = 0) out vec4 _fragColor0;
-layout(location = 1) out vec4 _fragColor1;
-layout(location = 2) out vec4 _fragColor2;
-*/
 
 const float gamma = 2.2;
 const float smoothing = 256.0;
@@ -52,21 +46,17 @@ void main() {
     // gamma correction for linear attenuation
     a = pow(a, 1.0 / gamma);
     
+    // discard if unvisible
     if (a < 0.01) {
         discard;
     }
     
-    // final color
-   /* _fragColor0 = vec4(Color.rgb, Color.a * a);
-    _fragColor1 = vec4(normalize(_normal.xyz), 0.0) * 0.5 + vec4(0.5, 0.5, 0.5, 0.5);
-    _fragColor2 = vec4(Color.rgb, 10 / 128.0);
-    */
     packDeferredFragmentLightmap(
          normalize(_normal),
-         step(alphaThreshold, Color.a * a),
-         mix(Color.rgb, backgroundColor.rgb, Color.a * a),
+         1.0,
+         Color.rgb,
          DEFAULT_ROUGHNESS,
          DEFAULT_METALLIC,
          DEFAULT_SPECULAR,
-         mix(Color.rgb, backgroundColor.rgb, Color.a * a));
+         Color.rgb);
 }
