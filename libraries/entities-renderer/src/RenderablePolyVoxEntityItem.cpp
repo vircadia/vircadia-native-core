@@ -1228,6 +1228,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     _shapeInfoLock.lockForWrite();
     _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, QString(b64));
     _shapeInfo.setConvexHulls(points);
+    adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
 
     _meshLock.lockForWrite();
