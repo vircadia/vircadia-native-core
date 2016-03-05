@@ -64,7 +64,7 @@
         castRay: function() { 
             var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["position, rotation"]);
             var direction =  Quat.getFront(spoutProps.rotation)
-            var end = Vec3.sum(spoutProps.position, Vec3.multiply(10, direction));
+            var end = Vec3.sum(spoutProps.position, Vec3.multiply(5, direction));
             Overlays.editOverlay(_this.rayCastLine, {
                 start: spoutProps.position,
                 end: end
@@ -131,9 +131,10 @@
                     z: 0.01
                 },
                 emitOrientation: Quat.fromPitchYawRollDegrees(0, 180, 0),
-                particleRadius: 0.04,
-                radiusSpread: 0.01,
-                radiusStart: 0.03,
+                particleRadius: 0.01,
+                radiusSpread: 0.001,
+                radiusStart: 0.01,
+                radiusFinish: 0.01,
                 alpha: 0.9,
                 alphaSpread: .1,
                 alphaStart: 0.7,
