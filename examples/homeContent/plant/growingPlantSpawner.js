@@ -49,6 +49,7 @@ var waterCanRotation = orientation;
 var waterCan = Entities.addEntity({
   type: "Model",
   shapeType: 'box',
+  name: "hifi-water-can",
   modelURL: WATER_CAN_MODEL_URL,
   script: WATER_CAN_SCRIPT_URL,
   dimensions: {x: 0.1859, y: 0.2762, z: 0.4115},

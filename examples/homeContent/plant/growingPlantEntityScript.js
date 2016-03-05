@@ -19,7 +19,11 @@
         _this = this;
         _this.flowers = [];
         // _this.STARTING_FLOWER_DIMENSIONS = {x: 0.1, y: 0.001, z: 0.1}
-        _this.STARTING_FLOWER_DIMENSIONS = {x: 0.2, y: 0.01, z: 0.2}
+        _this.STARTING_FLOWER_DIMENSIONS = {
+            x: 0.1,
+            y: 0.01,
+            z: 0.1
+        }
 
     };
 
@@ -30,13 +34,13 @@
             // we're being watered- every now and then spawn a new flower to add to our growing list
             // If we don't have any flowers yet, immediately grow one
             var data = JSON.parse(data[0]);
-            if (_this.flowers.length <  1000) {
+            if (_this.flowers.length < 1000) {
 
                 _this.createFlower(data.position, data.surfaceNormal);
             }
 
-            _this.flowers.forEach( function(flower) {
-                flower.grow();   
+            _this.flowers.forEach(function(flower) {
+                flower.grow();
             });
 
 
@@ -44,23 +48,37 @@
 
         createFlower: function(position, surfaceNormal) {
             var flowerRotation = Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal);
-            print("flower rotation " + flowerRotation.x)
             var flowerEntityID = Entities.addEntity({
                 type: "Sphere",
                 name: "flower",
                 position: position,
+                collisionless: true,
                 rotation: flowerRotation,
                 dimensions: _this.STARTING_FLOWER_DIMENSIONS,
                 userData: JSON.stringify(_this.flowerUserData)
             });
 
-            var flower = {id: flowerEntityID, dimensions: _this.STARTING_FLOWER_DIMENSIONS, startingPosition: position, rotation: flowerRotation};
+            var flower = {
+                id: flowerEntityID,
+                dimensions: {x: _this.STARTING_FLOWER_DIMENSIONS.x, y: _this.STARTING_FLOWER_DIMENSIONS.y, z: _this.STARTING_FLOWER_DIMENSIONS.z},
+                startingPosition: position,
+                rotation: flowerRotation,
+                maxYDimension: randFloat(0.2, 1.5),
+                growthRate: randFloat(0.0001, 0.001)
+            };
+            print(_this.STARTING_FLOWER_DIMENSIONS.y)
             flower.grow = function() {
                 // grow flower a bit
-                flower.dimensions.y += 0.001;
-                flower.position = Vec3.sum(flower.startingPosition, Vec3.multiply(Quat.getUp(flower.rotation), flower.dimensions.y/2));
+                if (flower.dimensions.y > flower.maxYDimension) {
+                    return;
+                }
+                flower.dimensions.y += flower.growthRate;
+                flower.position = Vec3.sum(flower.startingPosition, Vec3.multiply(Quat.getUp(flower.rotation), flower.dimensions.y / 2));
                 //As we grow we must also move ourselves in direction we grow!
-                Entities.editEntity(flower.id, {dimensions: flower.dimensions, position: flower.position});
+                Entities.editEntity(flower.id, {
+                    dimensions: flower.dimensions,
+                    position: flower.position
+                });
             }
             _this.flowers.push(flower);
         },

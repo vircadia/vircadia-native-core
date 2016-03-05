@@ -165,7 +165,7 @@
                     green: 10,
                     blue: 200
                 },
-                lineWidth: 1,
+                lineWidth: 2,
                 alpha: 1,
                 visible: true,
                 ignoreRayIntersection: true
