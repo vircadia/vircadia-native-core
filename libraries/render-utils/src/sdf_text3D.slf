@@ -54,7 +54,7 @@ void main() {
     packDeferredFragmentLightmap(
          normalize(_normal),
          1.0,
-         Color.rgb,
+         vec3(1.0),
          DEFAULT_ROUGHNESS,
          DEFAULT_METALLIC,
          DEFAULT_SPECULAR,
