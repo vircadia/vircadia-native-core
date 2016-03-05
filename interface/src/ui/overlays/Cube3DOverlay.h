@@ -32,8 +32,8 @@ public:
 
     void setBorderSize(float value) { _borderSize = value; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
 private:
     float _borderSize;

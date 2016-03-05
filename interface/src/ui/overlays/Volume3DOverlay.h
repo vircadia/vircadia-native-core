@@ -26,8 +26,8 @@ public:
     void setDimensions(float value) { _localBoundingBox.setBox(glm::vec3(-value / 2.0f), value); }
     void setDimensions(const glm::vec3& value) { _localBoundingBox.setBox(-value / 2.0f, value); }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal);

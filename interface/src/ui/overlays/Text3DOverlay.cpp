@@ -121,57 +121,54 @@ const render::ShapeKey Text3DOverlay::getShapeKey() {
     return builder.build();
 }
 
-void Text3DOverlay::setProperties(const QScriptValue& properties) {
+void Text3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue text = properties.property("text");
+    auto text = properties["text"];
     if (text.isValid()) {
-        setText(text.toVariant().toString());
+        setText(text.toString());
     }
 
-    QScriptValue textAlpha = properties.property("textAlpha");
+    auto textAlpha = properties["textAlpha"];
     if (textAlpha.isValid()) {
-        setTextAlpha(textAlpha.toVariant().toFloat());
+        setTextAlpha(textAlpha.toFloat());
     }
 
-    QScriptValue backgroundColor = properties.property("backgroundColor");
+    bool valid;
+    auto backgroundColor = properties["backgroundColor"];
     if (backgroundColor.isValid()) {
-        QScriptValue red = backgroundColor.property("red");
-        QScriptValue green = backgroundColor.property("green");
-        QScriptValue blue = backgroundColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _backgroundColor.red = red.toVariant().toInt();
-            _backgroundColor.green = green.toVariant().toInt();
-            _backgroundColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(backgroundColor, valid);
+        if (valid) {
+            _backgroundColor = color;
         }
     }
 
-    if (properties.property("backgroundAlpha").isValid()) {
-        setAlpha(properties.property("backgroundAlpha").toVariant().toFloat());
+    if (properties["backgroundAlpha"].isValid()) {
+        setAlpha(properties["backgroundAlpha"].toFloat());
     }
 
-    if (properties.property("lineHeight").isValid()) {
-        setLineHeight(properties.property("lineHeight").toVariant().toFloat());
+    if (properties["lineHeight"].isValid()) {
+        setLineHeight(properties["lineHeight"].toFloat());
     }
 
-    if (properties.property("leftMargin").isValid()) {
-        setLeftMargin(properties.property("leftMargin").toVariant().toFloat());
+    if (properties["leftMargin"].isValid()) {
+        setLeftMargin(properties["leftMargin"].toFloat());
     }
 
-    if (properties.property("topMargin").isValid()) {
-        setTopMargin(properties.property("topMargin").toVariant().toFloat());
+    if (properties["topMargin"].isValid()) {
+        setTopMargin(properties["topMargin"].toFloat());
     }
 
-    if (properties.property("rightMargin").isValid()) {
-        setRightMargin(properties.property("rightMargin").toVariant().toFloat());
+    if (properties["rightMargin"].isValid()) {
+        setRightMargin(properties["rightMargin"].toFloat());
     }
 
-    if (properties.property("bottomMargin").isValid()) {
-        setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
+    if (properties["bottomMargin"].isValid()) {
+        setBottomMargin(properties["bottomMargin"].toFloat());
     }
 }
 
-QScriptValue Text3DOverlay::getProperty(const QString& property) {
+QVariant Text3DOverlay::getProperty(const QString& property) {
     if (property == "text") {
         return _text;
     }
@@ -179,7 +176,7 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
         return _textAlpha;
     }
     if (property == "backgroundColor") {
-        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+        return xColorToVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
         return Billboard3DOverlay::getProperty("alpha");
