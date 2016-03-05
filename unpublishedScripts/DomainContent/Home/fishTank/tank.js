@@ -262,9 +262,6 @@
                 if (_this.hasLookAttractor === true) {
                     _this.clearLookAttractor();
                 }
-                if (WANT_LOOK_DEBUG_SPHERE === true) {
-                    _this.debugSphereOff();
-                }
             }
         },
         //look attractors could be private to the tank...
@@ -345,9 +342,9 @@
     var AVOIDANCE_FORCE = 0.032;
     var COHESION_FORCE = 0.025;
     var ALIGNMENT_FORCE = 0.025;
-    var LOOK_ATTRACTOR_FORCE = 0.029;
+    var LOOK_ATTRACTOR_FORCE = 0.02;
     var LOOK_ATTRACTOR_DISTANCE = 1.75;
-    var SWIMMING_FORCE = 0.05;
+    var SWIMMING_FORCE = 0.025;
     var SWIMMING_SPEED = 0.5;
     var FISH_DAMPING = 0.55;
     var FISH_ANGULAR_DAMPING = 0.55;
@@ -540,54 +537,54 @@
                 //  Keep fish in their 'tank' 
                 if (position.x < lowerCorner.x) {
                     position.x = lowerCorner.x;
-                    velocity.x *= -1.0;
+                    velocity.x *= -0.15
                 } else if (position.x > upperCorner.x) {
                     position.x = upperCorner.x;
-                    velocity.x *= -1.0;
-                }
+                    velocity.x *= -0.15                }
                 if (position.y < lowerCorner.y) {
                     position.y = lowerCorner.y;
-                    velocity.y *= -1.0;
+                    velocity.y *= -0.15
                 } else if (position.y > upperCorner.y) {
                     position.y = upperCorner.y;
-                    velocity.y *= -1.0;
+                    velocity.y *= -0.15
                 }
                 if (position.z < lowerCorner.z) {
                     position.z = lowerCorner.z;
-                    velocity.z *= -1.0;
+                    velocity.z *= -0.15
                 } else if (position.z > upperCorner.z) {
                     position.z = upperCorner.z;
-                    velocity.z *= -1.0;
+                    velocity.z *= -0.15
                 }
 
                 //  Orient in direction of velocity 
                 var rotation = Quat.rotationBetween(Vec3.UNIT_NEG_Z, velocity);
 
-                var mixedRotation =Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
+                var mixedRotation = Quat.mix(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
                 var VELOCITY_FOLLOW_RATE = 0.30;
 
-                var safeEuler = Quat.safeEulerAngles(rotation);
+                var slerpedRotation = Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE);
 
+                var safeEuler = Quat.safeEulerAngles(rotation);
                 safeEuler.z = safeEuler.z *= 0.925;
 
+                //note: a we want the fish to both rotate toward its velocity and not roll over, and also not pitch more than 30 degrees positive or negative (not doing that last bit right quite yet)
                 var newQuat = Quat.fromPitchYawRollDegrees(safeEuler.x, safeEuler.y, safeEuler.z);
 
-                var finalQuat = Quat.multiply(rotation, newQuat);
+                var finalQuat = Quat.slerp(slerpedRotation, newQuat, 0.5);
 
-                
 
                 //  Only update properties if they have changed, to save bandwidth
                 var MIN_POSITION_CHANGE_FOR_UPDATE = 0.001;
                 if (Vec3.distance(properties.position, position) < MIN_POSITION_CHANGE_FOR_UPDATE) {
                     Entities.editEntity(fish[i], {
                         velocity: velocity,
-                        rotation: mixedRotation
+                        rotation: finalQuat
                     });
                 } else {
                     Entities.editEntity(fish[i], {
                         position: position,
                         velocity: velocity,
-                        rotation: Quat.slerp(properties.rotation, rotation, VELOCITY_FOLLOW_RATE)
+                        rotation: finalQuat
                     });
                 }
             }
