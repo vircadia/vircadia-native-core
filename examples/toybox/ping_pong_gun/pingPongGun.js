@@ -125,11 +125,7 @@
 
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
         },
-
-        clickDownOnEntity: function(entityID, mouseEvent) {
-            this.shootBall()
-        },
-
+        
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
             var frontVector = Quat.getFront(properties.rotation);
