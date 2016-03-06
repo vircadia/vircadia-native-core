@@ -710,12 +710,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         }
 
         glm::vec3 collisionModelDimensions = box.getDimensions();
-        QString shapeKey = _compoundShapeURL + "," +
-            QString::number(_registrationPoint.x) + "," +
-            QString::number(_registrationPoint.y) + "," +
-            QString::number(_registrationPoint.z);
-
-        info.setParams(type, collisionModelDimensions, shapeKey);
+        info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
         info.setOffset(_model->getOffset());
     }

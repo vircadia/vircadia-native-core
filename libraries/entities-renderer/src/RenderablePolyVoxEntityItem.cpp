@@ -1231,6 +1231,8 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     }
 
     glm::vec3 collisionModelDimensions = box.getDimensions();
+    // include the registrationPoint in the shape key, because the offset is already
+    // included in the points and the shapeManager wont know that the shape has changed.
     QString shapeKey = QString(_voxelData.toBase64()) + "," +
         QString::number(_registrationPoint.x) + "," +
         QString::number(_registrationPoint.y) + "," +
@@ -1238,6 +1240,7 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     _shapeInfoLock.lockForWrite();
     _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
     _shapeInfo.setConvexHulls(points);
+    // adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
 
     _meshLock.lockForWrite();
