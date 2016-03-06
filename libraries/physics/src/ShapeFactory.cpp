@@ -16,6 +16,8 @@
 #include "ShapeFactory.h"
 #include "BulletUtil.h"
 
+
+
 btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& points) {
     assert(points.size() > 0);
 
@@ -116,6 +118,5 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             shape = compound;
         }
     }
-
     return shape;
 }

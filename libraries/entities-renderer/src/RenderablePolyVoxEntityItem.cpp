@@ -142,7 +142,7 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
-    glm::vec3 center = getCenterPosition(success);
+    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
     glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
 
@@ -428,6 +428,13 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
 // virtual
 ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
+}
+
+void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        _meshDirty = true;
+        EntityItem::updateRegistrationPoint(value);
+    }
 }
 
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
@@ -1231,7 +1238,6 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     _shapeInfoLock.lockForWrite();
     _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
     _shapeInfo.setConvexHulls(points);
-    adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
 
     _meshLock.lockForWrite();

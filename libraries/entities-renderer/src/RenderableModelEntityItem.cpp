@@ -610,7 +610,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         ModelEntityItem::computeShapeInfo(info);
         info.setParams(type, 0.5f * getDimensions());
         adjustShapeInfoByRegistration(info);
-        assert(false); // XXX
     } else {
         updateModelBounds();
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
@@ -704,6 +703,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         AABox box;
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
+                // scale so the collision points match the model points
                 _points[i][j] *= scale;
                 box += _points[i][j];
             }
