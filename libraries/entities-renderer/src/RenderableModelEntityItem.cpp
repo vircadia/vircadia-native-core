@@ -336,6 +336,37 @@ bool RenderableModelEntityItem::getAnimationFrame() {
     return newFrame;
 }
 
+void RenderableModelEntityItem::updateModelBounds() {
+    if (!hasModel() || !_model) {
+        return;
+    }
+    if (_model->getRegistrationPoint() != getRegistrationPoint()) {
+        qDebug() << "HERE: " << _model->getRegistrationPoint() << getRegistrationPoint();
+    }
+
+    bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
+    if ((movingOrAnimating ||
+         _needsInitialSimulation ||
+         _model->getTranslation() != getPosition() ||
+         _model->getRotation() != getRotation() ||
+         _model->getRegistrationPoint() != getRegistrationPoint())
+        && _model->isActive() && _dimensionsInitialized) {
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+
+        _needsInitialSimulation = false;
+    }
+}
+
+
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
@@ -414,27 +445,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                         }
                     }
                 });
-
-                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
-                if ((movingOrAnimating ||
-                     _needsInitialSimulation ||
-                     _model->getTranslation() != getPosition() ||
-                     _model->getRotation() != getRotation() ||
-                     _model->getRegistrationPoint() != getRegistrationPoint())
-                    && _model->isActive() && _dimensionsInitialized) {
-                    _model->setScaleToFit(true, getDimensions());
-                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-                    _model->setRotation(getRotation());
-                    _model->setTranslation(getPosition());
-
-                    // make sure to simulate so everything gets set up correctly for rendering
-                    {
-                        PerformanceTimer perfTimer("_model->simulate");
-                        _model->simulate(0.0f);
-                    }
-
-                    _needsInitialSimulation = false;
-                }
+                updateModelBounds();
             }
         }
     } else {
@@ -599,7 +610,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         ModelEntityItem::computeShapeInfo(info);
         info.setParams(type, 0.5f * getDimensions());
         adjustShapeInfoByRegistration(info);
+        assert(false); // XXX
     } else {
+        updateModelBounds();
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
 
         // should never fall in here when collision model not fully loaded
@@ -693,6 +706,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             for (int j = 0; j < _points[i].size(); j++) {
                 // compensate for registraion
                 _points[i][j] += _model->getOffset();
+                // _points[i][j] += info.getOffset();
                 // scale so the collision points match the model points
                 _points[i][j] *= scale;
                 box += _points[i][j];
@@ -704,9 +718,14 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             QString::number(_registrationPoint.x) + "," +
             QString::number(_registrationPoint.y) + "," +
             QString::number(_registrationPoint.z);
+
+        qDebug() << "NEW SHAPE FOR" << getName() << shapeKey;
+        qDebug() << "  model-offset:" << _model->getOffset();
+
         info.setParams(type, collisionModelDimensions, shapeKey);
         info.setConvexHulls(_points);
         adjustShapeInfoByRegistration(info);
+        qDebug() << "  info-offset:" << info.getOffset();
     }
 }
 

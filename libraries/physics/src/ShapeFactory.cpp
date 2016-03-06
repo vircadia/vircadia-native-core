@@ -15,7 +15,7 @@
 
 #include "ShapeFactory.h"
 #include "BulletUtil.h"
-
+#include "StreamUtils.h"
 
 
 btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& points) {
@@ -65,6 +65,11 @@ btConvexHullShape* ShapeFactory::createConvexHull(const QVector<glm::vec3>& poin
         hull->addPoint(btVector3(correctedPoint[0], correctedPoint[1], correctedPoint[2]), false);
     }
     hull->recalcLocalAabb();
+
+    qDebug() << "------- NEW COMPOUND SHAPE ------";
+    qDebug() << "   low = " << minCorner;
+    qDebug() << "   high = " << maxCorner;
+
     return hull;
 }
 
@@ -92,11 +97,13 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             const QVector<QVector<glm::vec3>>& points = info.getPoints();
             uint32_t numSubShapes = info.getNumSubShapes();
             if (numSubShapes == 1) {
+                // XXX offset?
                 shape = createConvexHull(info.getPoints()[0]);
             } else {
                 auto compound = new btCompoundShape();
                 btTransform trans;
                 trans.setIdentity();
+                // trans.setOrigin(-glmToBullet(info.getOffset()));
                 foreach (QVector<glm::vec3> hullPoints, points) {
                     btConvexHullShape* hull = createConvexHull(hullPoints);
                     compound->addChildShape (trans, hull);
@@ -110,7 +117,7 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
             // this shape has an offset, which we support by wrapping the true shape
             // in a btCompoundShape with a local transform
-            auto compound = new btCompoundShape(); 
+            auto compound = new btCompoundShape();
             btTransform trans;
             trans.setIdentity();
             trans.setOrigin(glmToBullet(info.getOffset()));
@@ -118,5 +125,11 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
             shape = compound;
         }
     }
+
+    if (type == SHAPE_TYPE_COMPOUND) {
+        qDebug() << "   offset = " << info.getOffset();
+    }
+
+
     return shape;
 }
