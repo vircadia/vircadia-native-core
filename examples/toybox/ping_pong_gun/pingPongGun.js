@@ -22,7 +22,7 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET =-0.35;
+    var GUN_TIP_FWD_OFFSET = -0.35;
     var GUN_TIP_UP_OFFSET = 0.040;
     var GUN_FORCE = 9;
     var BALL_RESTITUTION = 0.6;
@@ -45,12 +45,12 @@
         green: 255,
         blue: 255
     };
-    
+
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
-    
+
 
     PingPongGun.prototype = {
         hand: null,
@@ -98,8 +98,8 @@
             var properties = {
                 // type: 'Model',
                 // modelURL:PING_PONG_BALL_URL,
-                shapeType:'sphere',
-                type:'Sphere',
+                shapeType: 'sphere',
+                type: 'Sphere',
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS,
                 damping: BALL_LINEAR_DAMPING,
@@ -124,6 +124,10 @@
             };
 
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
+        },
+
+        clickDownOnEntity: function(entityID, mouseEvent) {
+            this.shootBall()
         },
 
         getGunTipPosition: function(properties) {
