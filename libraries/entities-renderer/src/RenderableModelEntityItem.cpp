@@ -340,10 +340,6 @@ void RenderableModelEntityItem::updateModelBounds() {
     if (!hasModel() || !_model) {
         return;
     }
-    if (_model->getRegistrationPoint() != getRegistrationPoint()) {
-        qDebug() << "HERE: " << _model->getRegistrationPoint() << getRegistrationPoint();
-    }
-
     bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
     if ((movingOrAnimating ||
          _needsInitialSimulation ||
