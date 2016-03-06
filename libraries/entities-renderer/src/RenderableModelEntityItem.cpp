@@ -704,10 +704,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         AABox box;
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
-                // compensate for registraion
-                _points[i][j] += _model->getOffset();
-                // _points[i][j] += info.getOffset();
-                // scale so the collision points match the model points
                 _points[i][j] *= scale;
                 box += _points[i][j];
             }
@@ -719,13 +715,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
             QString::number(_registrationPoint.y) + "," +
             QString::number(_registrationPoint.z);
 
-        qDebug() << "NEW SHAPE FOR" << getName() << shapeKey;
-        qDebug() << "  model-offset:" << _model->getOffset();
-
         info.setParams(type, collisionModelDimensions, shapeKey);
         info.setConvexHulls(_points);
-        adjustShapeInfoByRegistration(info);
-        qDebug() << "  info-offset:" << info.getOffset();
+        info.setOffset(_model->getOffset());
     }
 }
 
