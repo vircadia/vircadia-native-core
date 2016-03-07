@@ -25,7 +25,7 @@
 
     function startUpdate() {
         //when the baton is claimed;
-        print('trying to claim the object' + _entityID)
+        //   print('trying to claim the object' + _entityID)
         iOwn = true;
         connected = true;
         Script.update.connect(_this.update);
@@ -33,7 +33,7 @@
 
     function stopUpdateAndReclaim() {
         //when the baton is released;
-        print('i released the object ' + _entityID)
+        // print('i released the object ' + _entityID)
         iOwn = false;
         if (connected === true) {
             connected = false;
@@ -54,7 +54,7 @@
         overlayLineDistance: 3,
         debugSphere: null,
         findFishInTank: function() {
-            print('looking for a fish in the tank')
+            // print('looking for a fish in the tank')
             var results = Entities.findEntities(_this.currentProperties.position, TANK_SEARCH_RADIUS);
             var fishList = [];
 
@@ -65,7 +65,7 @@
                 }
             })
 
-            print('fish? ' + fishList.length)
+            //  print('fish? ' + fishList.length)
             return fishList;
         },
 
@@ -75,27 +75,27 @@
             if (properties.hasOwnProperty('userData') === false || properties.userData.length === 0) {
                 _this.initTimeout = Script.setTimeout(function() {
                     if (properties.hasOwnProperty('userData')) {
-                        print('JBP has user data property')
+                        // print('has user data property')
                     }
                     if (properties.userData.length === 0) {
-                        print('JBP user data length is zero')
+                        // print('user data length is zero')
                     }
 
-                    print('JBP try again in one second')
+                    // print('try again in one second')
                     _this.initialize(entityID);
                 }, 1000)
 
             } else {
-                print('JBP userdata before parse attempt' + properties.userData)
+                //  print('userdata before parse attempt' + properties.userData)
                 _this.userData = null;
                 try {
                     _this.userData = JSON.parse(properties.userData);
                 } catch (err) {
-                    print('JBP error parsing json');
-                    print('JBP properties are:' + properties.userData);
+                    // print('error parsing json');
+                    // print('properties are:' + properties.userData);
                     return;
                 }
-                print('after parse')
+                // print('after parse')
                 _this.currentProperties = Entities.getEntityProperties(entityID);
                 baton = virtualBaton({
                     batonName: 'io.highfidelity.fishtank:' + entityID, // One winner for each entity
@@ -107,19 +107,16 @@
         },
 
         preload: function(entityID) {
-            print("preload");
+            // print("preload");
             this.entityID = entityID;
             _entityID = entityID;
             this.initialize(entityID);
-            // if(_this.initTimeout!==null){
-            //     Script.clearTimeout(_this.initTimeout)
-            // }
             this.initTimeout = null;
 
         },
 
         unload: function() {
-            print(' UNLOAD')
+            // print(' UNLOAD')
             if (connected === true) {
                 Script.update.disconnect(_this.update);
             }
@@ -127,7 +124,7 @@
                 _this.overlayLineOff();
             }
             if (baton) {
-                print('BATON RELEASE ')
+                // print('BATON RELEASE ')
                 baton.release(function() {});
             }
 
@@ -135,8 +132,8 @@
         update: function(deltaTime) {
 
             if (iOwn === false) {
-                print('i dont own')
-                    //exit if we're not supposed to be simulating the fish
+                // print('i dont own')
+                //exit if we're not supposed to be simulating the fish
                 return
             }
             // print('i am the owner!')
@@ -214,8 +211,6 @@
             _this.overlayLine = null;
         },
 
-
-
         seeIfOwnerIsLookingAtTheTank: function() {
             var cameraPosition = Camera.getPosition();
             var cameraOrientation = Camera.getOrientation();
@@ -228,7 +223,6 @@
 
             if (WANT_LOOK_DEBUG_LINE === true) {
                 _this.overlayLineOn(pickRay.origin, Vec3.sum(pickRay.origin, Vec3.multiply(front, _this.overlayLineDistance)), INTERSECT_COLOR);
-
             };
 
             var brn = _this.userData['hifi-home-fishtank']['corners'].brn;
@@ -264,7 +258,6 @@
                 }
             }
         },
-        //look attractors could be private to the tank...
         createLookAttractor: function(position, distance) {
             _this.lookAttractor = {
                 position: position,
@@ -296,13 +289,6 @@
             // check for intersection
             // add attractor for closest person (?)
 
-            var intersection = Entities.findRayIntersection(pickRay, true, [_this.entityID]);
-
-            if (intersection.intersects && intersection.entityID === _this.entityID) {
-                print('intersecting a tank')
-
-                print('intersection:: ' + JSON.stringify(intersection));
-            }
         }
 
     };
@@ -595,7 +581,7 @@
     var STARTING_FRACTION = 0.25;
 
     function loadFish(howMany) {
-        print('LOADING FISH: ' + howMany)
+        // print('LOADING FISH: ' + howMany)
 
         var center = _this.currentProperties.position;
 
@@ -654,7 +640,7 @@
 
 
         }
-        print('initial fish::' + fish.length)
+        // print('initial fish::' + fish.length)
         _this.tankLocked = false;
     }
 

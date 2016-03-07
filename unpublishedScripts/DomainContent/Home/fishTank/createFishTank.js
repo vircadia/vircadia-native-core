@@ -1,6 +1,6 @@
 var fishTank, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
-var CLEANUP = true;
+var CLEANUP = false;
 var TANK_DIMENSIONS = {
     x: 1.3393,
     y: 1.3515,
@@ -228,7 +228,6 @@ function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET
     var finalOffset = Vec3.sum(tankProperties.position, upOffset);
     finalOffset = Vec3.sum(finalOffset, frontOffset);
     finalOffset = Vec3.sum(finalOffset, rightOffset);
-    print('final offset is: ' + finalOffset)
     return finalOffset
 }
 
@@ -310,8 +309,7 @@ function createEntitiesAtCorners() {
 
     lowerCorner = Entities.addEntity(lowerProps);
     upperCorner = Entities.addEntity(upperProps);
-    print('CORNERS :::' + JSON.stringify(upperCorner))
-    print('CORNERS :::' + JSON.stringify(lowerCorner))
+
 }
 
 function createRocks() {
