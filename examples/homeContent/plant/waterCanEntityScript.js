@@ -98,10 +98,11 @@
 
 
         createWaterEffect: function() {
+            var waterEffectPosition = Vec3.sum(_this.waterSpoutPosition, Vec3.multiply(Quat.getFront(_this.waterSpoutRotation), -0.04));
             _this.waterEffect = Entities.addEntity({
                 type: "ParticleEffect",
                 name: "water particle effect",
-                position: _this.waterSpoutPosition,
+                position: waterEffectPosition,
                 isEmitting: false,
                 parentID: _this.waterSpout,
                 colorStart: {
@@ -115,41 +116,41 @@
                     blue: 130
                 },
                 colorFinish: {
-                    red: 60,
-                    green: 30,
-                    blue: 140
+                    red: 23,
+                    green: 195,
+                    blue: 206
                 },
                 maxParticles: 20000,
                 lifespan: 2,
-                emitRate: 1000,
+                emitRate: 2000,
                 emitSpeed: .2,
                 speedSpread: 0.0,
                 emitDimensions: {
-                    x: 0,
-                    y: 0,
-                    z: 0
+                    x: 0.0,
+                    y: 0.0,
+                    z: 0.0
                 },
                 emitAcceleration: {
                     x: 0.0,
                     y: 0,
                     z: 0
                 },
-                polarStart: 0,
-                polarFinish: .1,
+                polarStart: 0.0,
+                polarFinish: 0.1,
                 accelerationSpread: {
                     x: 0.01,
                     y: 0.0,
                     z: 0.01
                 },
-                emitOrientation: Quat.fromPitchYawRollDegrees(0, 180, 0),
-                particleRadius: 0.01,
-                radiusSpread: 0.001,
-                radiusStart: 0.01,
-                radiusFinish: 0.01,
-                alpha: 0.9,
-                alphaSpread: .1,
-                alphaStart: 0.7,
-                alphaFinish: 0.5,
+                emitOrientation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+                radiusSpread: 0.0001,
+                radiusStart: 0.005,
+                particleRadius: 0.003,
+                radiusFinish: 0.001,
+                alphaSpread: 0,
+                alphaStart: 0.1,
+                alpha: 1.0,
+                alphaFinish: 1.0,
                 emitterShouldTrail: true,
                 textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png?v2",
             });
@@ -207,6 +208,10 @@
         unload: function() {
             Overlays.deleteOverlay(_this.rayCastLine);
             Entities.deleteEntity(_this.waterEffect);
+            if (_this.waterInjector) {
+                _this.waterInjector.stop();
+                delete _this.waterInjector;
+            }
         }
 
     };
