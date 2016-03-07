@@ -25,6 +25,8 @@
 #include "ReceivedMessage.h"
 #include "ResourceCache.h"
 
+class GetMappingRequest;
+class SetMappingRequest;
 class AssetRequest;
 class AssetUpload;
 
@@ -33,11 +35,51 @@ struct AssetInfo {
     int64_t size;
 };
 
+using MappingOperationCallback = std::function<void(bool responseReceived, AssetServerError serverError, QSharedPointer<ReceivedMessage> message)>;
 using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
-using MappingOperationCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
+
+
+class GetMappingRequest : public QObject {
+    Q_OBJECT
+public:
+    GetMappingRequest(AssetPath path);
+
+    Q_INVOKABLE void start();
+
+    AssetHash getHash() { return _hash;  }
+    AssetServerError getError() { return _error;  }
+
+signals:
+    void finished(GetMappingRequest* thisRequest);
+
+private:
+    AssetPath _path;
+    AssetHash _hash;
+    AssetServerError _error { AssetServerError::NoError };
+};
+
+
+class SetMappingRequest : public QObject {
+    Q_OBJECT
+public:
+    SetMappingRequest(AssetPath path, AssetHash hash);
+
+    Q_INVOKABLE void start();
+
+    AssetHash getHash() { return _hash;  }
+    AssetServerError getError() { return _error;  }
+
+signals:
+    void finished(SetMappingRequest* thisRequest);
+
+private:
+    AssetPath _path;
+    AssetHash _hash;
+    AssetServerError _error { AssetServerError::NoError };
+};
 
 
 class AssetClient : public QObject, public Dependency {
@@ -45,7 +87,9 @@ class AssetClient : public QObject, public Dependency {
 public:
     AssetClient();
 
-    Q_INVOKABLE AssetRequest* createRequest(const QUrl& url);
+    Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
+    Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
+    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
 
@@ -56,7 +100,7 @@ public slots:
     void clearCache();
 
 private slots:
-    void handleAssetGetMappingReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleAssetMappingOperationReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
@@ -64,7 +108,10 @@ private slots:
     void handleNodeKilled(SharedNodePointer node);
 
 private:
-    bool getAssetMapping(const QString& path, MappingOperationCallback callback);
+    bool getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
+    bool deleteAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
     bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
@@ -83,6 +130,8 @@ private:
     
     friend class AssetRequest;
     friend class AssetUpload;
+    friend class GetMappingRequest;
+    friend class SetMappingRequest;
 };
 
 
@@ -93,6 +142,9 @@ public:
 
     Q_INVOKABLE void uploadData(QString data, QString extension, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
+    Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
+    Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
+    Q_INVOKABLE void getAllMappings(QString path, QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;
