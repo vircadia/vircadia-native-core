@@ -54,11 +54,11 @@ static const glm::vec4 NDC_VALUES[NUM_FRUSTUM_CORNERS] = {
 
 void ViewFrustum::setProjection(const glm::mat4& projection) {
     _projection = projection;
-    _inverseProjection = glm::inverse(projection);
+    glm::mat4 inverseProjection = glm::inverse(projection);
 
     // compute our dimensions the usual way
     for (int i = 0; i < NUM_FRUSTUM_CORNERS; ++i) {
-        _corners[i] = _inverseProjection * NDC_VALUES[i];
+        _corners[i] = inverseProjection * NDC_VALUES[i];
         _corners[i] /= _corners[i].w;
     }
     _nearClip = -_corners[BOTTOM_LEFT_NEAR].z;
@@ -66,12 +66,12 @@ void ViewFrustum::setProjection(const glm::mat4& projection) {
     _aspectRatio = (_corners[TOP_RIGHT_NEAR].x - _corners[BOTTOM_LEFT_NEAR].x) /
         (_corners[TOP_RIGHT_NEAR].y - _corners[BOTTOM_LEFT_NEAR].y);
 
-    glm::vec4 top = _inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
+    glm::vec4 top = inverseProjection * vec4(0.0f, 1.0f, -1.0f, 1.0f);
     top /= top.w;
     _fieldOfView = abs(glm::degrees(2.0f * abs(glm::angle(vec3(0.0f, 0.0f, -1.0f), glm::normalize(vec3(top))))));
 }
 
-// ViewFrustum::calculateViewFrustum()
+// ViewFrustum::calculate()
 //
 // Description: this will calculate the view frustum bounds for a given position and direction
 //
@@ -112,9 +112,6 @@ void ViewFrustum::calculate() {
     // Projection matrix : Field of View, ratio, display range : near to far
     glm::vec3 lookAt = _position + _direction;
     glm::mat4 view = glm::lookAt(_position, lookAt, _up);
-
-    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
-    _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -460,52 +457,3 @@ void ViewFrustum::invalidate() {
     }
     _centerSphereRadius = -1.0e6f; // -10^6 should be negative enough
 }
-
-/*
-float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale, float maxScale, int boundaryLevelAdjust) const {
-    float distanceToCamera = glm::length(bounds.calcCenter() - getPosition());
-    float largestDimension = bounds.getLargestDimension();
-
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-
-    static std::once_flag once;
-    static QMap<float, float> shouldRenderTable;
-    std::call_once(once, [&] {
-        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
-        float scale = maxScale;
-        float factor = 1.0f;
-
-        while (scale > SMALLEST_SCALE_IN_TABLE) {
-            scale /= 2.0f;
-            factor /= 2.0f;
-            shouldRenderTable[scale] = factor;
-        }
-    });
-
-    float closestScale = maxScale;
-    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
-    QMap<float, float>::const_iterator lowerBound = shouldRenderTable.lowerBound(largestDimension);
-    if (lowerBound != shouldRenderTable.constEnd()) {
-        closestScale = lowerBound.key();
-        visibleDistanceAtClosestScale = visibleDistanceAtMaxScale * lowerBound.value();
-    }
-
-    if (closestScale < largestDimension) {
-        visibleDistanceAtClosestScale *= 2.0f;
-    }
-
-    // FIXME - for now, it's either visible or not visible. We want to adjust this to eventually return
-    // a floating point for objects that have small angular size to indicate that they may be rendered
-    // with lower preciscion
-    return (distanceToCamera <= visibleDistanceAtClosestScale) ? 1.0f : 0.0f;
-}
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
-    return voxelSizeScale / powf(2, renderLevel);
-}
-
-float getAccuracyAngle(float octreeSizeScale, float maxScale, int boundaryLevelAdjust) const {
-    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, octreeSizeScale) / OCTREE_TO_MESH_RATIO;
-    return atan(maxScale / visibleDistanceAtMaxScale);
-}
-*/

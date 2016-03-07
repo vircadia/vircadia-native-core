@@ -132,38 +132,33 @@ public:
 
     void invalidate(); // causes all reasonable intersection tests to fail
 private:
-    // camera location/orientation attributes
-    glm::vec3 _position; // the position in world-frame
-    glm::quat _orientation;
     glm::mat4 _view;
-
-    // Lens attributes
     glm::mat4 _projection;
 
-    // calculated for orientation
+    ::Plane _planes[NUM_FRUSTUM_PLANES]; // plane normals point inside frustum
+
+    glm::vec3 _position; // position in world-frame
+    glm::quat _orientation; // orientation in world-frame
+
+    // calculated from orientation
     glm::vec3 _direction = IDENTITY_FRONT;
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 
+    // calculated from projection
+    glm::vec4 _corners[NUM_FRUSTUM_CORNERS];
+    glm::vec3 _cornersWorld[NUM_FRUSTUM_CORNERS];
     float _centerSphereRadius = DEFAULT_CENTER_SPHERE_RADIUS;
-
-    // Calculated values
-    glm::mat4 _inverseProjection;
     float _width { 1.0f };
     float _height { 1.0f };
     float _aspectRatio { 1.0f };
-    float _nearClip { DEFAULT_NEAR_CLIP };
-    float _farClip { DEFAULT_FAR_CLIP };
     float _focalLength { 0.25f };
     float _fieldOfView { DEFAULT_FIELD_OF_VIEW_DEGREES };
-    glm::vec4 _corners[NUM_FRUSTUM_CORNERS];
-    glm::vec3 _cornersWorld[NUM_FRUSTUM_CORNERS];
-    ::Plane _planes[NUM_FRUSTUM_PLANES]; // plane normals point inside frustum
+
+    float _nearClip { DEFAULT_NEAR_CLIP };
+    float _farClip { DEFAULT_FAR_CLIP };
 
     const char* debugPlaneName (int plane) const;
-
-    // Used to project points
-    glm::mat4 _ourModelViewProjectionMatrix;
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
