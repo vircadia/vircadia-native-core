@@ -1,6 +1,6 @@
 var fishTank, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
-var CLEANUP = false;
+var CLEANUP = true;
 var TANK_DIMENSIONS = {
     x: 1.3393,
     y: 1.3515,
