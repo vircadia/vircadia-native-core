@@ -42,7 +42,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
-    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOpertation");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
 }
 
 void AssetServer::run() {
@@ -181,25 +181,30 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
                 auto assetHash = it->second;
                 qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
                 replyPacket->writePrimitive(AssetServerError::NoError);
-                replyPacket->write(assetHash.toLatin1().toHex());
+                //replyPacket->write(assetHash.toLatin1().toHex());
+                replyPacket->writeString(assetHash.toLatin1());
             }
             else {
                 qDebug() << "Mapping not found for: " << assetPath;
                 replyPacket->writePrimitive(AssetServerError::AssetNotFound);
             }
+            break;
         }
         case AssetMappingOperationType::Set: {
             QString assetPath = message->readString();
-            auto assetHash = message->read(SHA256_HASH_LENGTH);
+            //auto assetHash = message->read(SHA256_HASH_LENGTH);
+            auto assetHash = message->readString();
             _fileMapping[assetPath] = assetHash;
 
             replyPacket->writePrimitive(AssetServerError::NoError);
+            break;
         }
         case AssetMappingOperationType::Delete: {
             QString assetPath = message->readString();
             bool removed = _fileMapping.erase(assetPath) > 0;
 
             replyPacket->writePrimitive(AssetServerError::NoError);
+            break;
         }
     }
 
@@ -356,14 +361,20 @@ void AssetServer::sendStatsPacket() {
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
 }
 
-AssetServer::Hash AssetServer::getMapping(Path path) {
+void AssetServer::loadMappingFromFile() {
+}
+
+void AssetServer::writeMappingToFile() {
+}
+
+AssetHash AssetServer::getMapping(AssetPath path) {
     return _fileMapping[path];
 }
 
-void AssetServer::setMapping(Path path, Hash hash) {
+void AssetServer::setMapping(AssetPath path, AssetHash hash) {
     _fileMapping[path] = hash;
 }
 
-bool AssetServer::deleteMapping(Path path) {
+bool AssetServer::deleteMapping(AssetPath path) {
     return _fileMapping.erase(path) > 0;
 }
