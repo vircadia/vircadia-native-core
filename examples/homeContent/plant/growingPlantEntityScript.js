@@ -25,7 +25,13 @@
             z: 0.001
         }
 
-        _this.debounceRange = {min: 500, max: 1000};
+        _this.MAX_FLOWERS = 50;
+        _this.MIN_FLOWER_TO_FLOWER_DISTANCE = 0.03;
+
+        _this.debounceRange = {
+            min: 500,
+            max: 1000
+        };
         _this.canCreateFlower = true;
 
     };
@@ -38,13 +44,13 @@
             // If we don't have any flowers yet, immediately grow one
             var data = JSON.parse(data[0]);
 
-            if(_this.canCreateFlower) {
-               _this.createFlower(data.position, data.surfaceNormal);
-               _this.canCreateFlower = false;
-               Script.setTimeout(function() {
+            if (_this.canCreateFlower && _this.flowers.length < _this.MAX_FLOWERS) {
+                _this.createFlower(data.position, data.surfaceNormal);
+                _this.canCreateFlower = false;
+                Script.setTimeout(function() {
                     _this.canCreateFlower = true;
-               }, randFloat(_this.debounceRange.min, this.debounceRange.max));
- 
+                }, randFloat(_this.debounceRange.min, this.debounceRange.max));
+
             }
 
             _this.flowers.forEach(function(flower) {
@@ -56,7 +62,13 @@
         },
 
         createFlower: function(position, surfaceNormal) {
+            if (_this.previousFlowerPosition && Vec3.distance(position, _this.previousFlowerPosition) < _this.MIN_FLOWER_TO_FLOWER_DISTANCE) {
+                // Reduces flower overlap
+                return;
+            }
             var flowerRotation = Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal);
+            _this.flowerUserData.ProceduralEntity.uniforms.hueAngleRange = randFloat(20, 40);
+            _this.flowerUserData.ProceduralEntity.uniforms.hueOffset = Math.random();
             var flowerEntityID = Entities.addEntity({
                 type: "Sphere",
                 name: "flower",
@@ -66,16 +78,23 @@
                 dimensions: _this.STARTING_FLOWER_DIMENSIONS,
                 userData: JSON.stringify(_this.flowerUserData)
             });
-
+            var xzGrowthRate = randFloat(0.0001, 0.0002);
             var flower = {
                 id: flowerEntityID,
-                dimensions: {x: _this.STARTING_FLOWER_DIMENSIONS.x, y: _this.STARTING_FLOWER_DIMENSIONS.y, z: _this.STARTING_FLOWER_DIMENSIONS.z},
+                dimensions: {
+                    x: _this.STARTING_FLOWER_DIMENSIONS.x,
+                    y: _this.STARTING_FLOWER_DIMENSIONS.y,
+                    z: _this.STARTING_FLOWER_DIMENSIONS.z
+                },
                 startingPosition: position,
                 rotation: flowerRotation,
-                maxYDimension: randFloat(0.2, 1.5),
-                growthRate: {x: 0.0002, y: 0.001, z: 0.0002}
+                maxYDimension: randFloat(0.4, 1.0),
+                growthRate: {
+                    x: xzGrowthRate,
+                    y: randFloat(0.001, 0.0025),
+                    z: xzGrowthRate
+                }
             };
-            print(_this.STARTING_FLOWER_DIMENSIONS.y)
             flower.grow = function() {
                 // grow flower a bit
                 if (flower.dimensions.y > flower.maxYDimension) {
@@ -90,16 +109,19 @@
                 });
             }
             _this.flowers.push(flower);
+            _this.previousFlowerPosition = position;
         },
 
         preload: function(entityID) {
             _this.entityID = entityID;
+            var SHADER_URL = "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs"
+            // var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
             _this.flowerUserData = {
                 ProceduralEntity: {
-                    shaderUrl: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs",
+                    shaderUrl: SHADER_URL,
                     uniforms: {
                         iBloomPct: randFloat(0.4, 0.8),
-                        hueTwerking: randFloat(10, 30)
+                        hueTwerking: Math.random()
                     }
                 }
             };

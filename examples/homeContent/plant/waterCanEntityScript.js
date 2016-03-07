@@ -18,7 +18,7 @@
     WaterSpout = function() {
         _this = this;
         _this.waterSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/shower.wav");
-        _this.POUR_ANGLE_THRESHOLD = -10;
+        _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
 
@@ -42,13 +42,22 @@
             var rotation = Entities.getEntityProperties(_this.entityID, "rotation").rotation;
             var pitch = Quat.safeEulerAngles(rotation).x;
             if (pitch < _this.POUR_ANGLE_THRESHOLD) {
+                // Water is pouring
+                var spoutProps =  Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
                 if (!_this.waterPouring) {
                     Entities.editEntity(_this.waterEffect, {
                         isEmitting: true
                     });
                     _this.waterPouring = true;
+                    if (!_this.waterInjector) {
+                        print ("PLAY SOUND")
+                       _this.waterInjector = Audio.playSound(_this.waterSound, {position: spoutProps.position, loop: true});
+                        
+                    } else {
+                        _this.waterInjector.restart();
+                    }
                 }
-                _this.waterSpoutRotation = Entities.getEntityProperties(_this.waterSpout, "rotation").rotation;
+                _this.waterSpoutRotation = spoutProps.rotation;
                 var waterEmitOrientation = Quat.multiply(_this.waterSpoutRotation, Quat.fromPitchYawRollDegrees(0, 180, 0));
                 Entities.editEntity(_this.waterEffect, {
                     emitOrientation: waterEmitOrientation
@@ -58,6 +67,8 @@
                     isEmitting: false
                 });
                 _this.waterPouring = false;
+                //water no longer pouring...
+                _this.waterInjector.stop();
             }
         },
 
@@ -94,19 +105,19 @@
                 isEmitting: false,
                 parentID: _this.waterSpout,
                 colorStart: {
-                    red: 50,
-                    green: 50,
-                    blue: 70
+                    red: 90,
+                    green: 90,
+                    blue: 110
                 },
                 color: {
-                    red: 30,
-                    green: 30,
-                    blue: 40
+                    red: 70,
+                    green: 70,
+                    blue: 130
                 },
                 colorFinish: {
-                    red: 50,
-                    green: 50,
-                    blue: 60
+                    red: 60,
+                    green: 30,
+                    blue: 140
                 },
                 maxParticles: 20000,
                 lifespan: 2,
@@ -124,7 +135,7 @@
                     z: 0
                 },
                 polarStart: 0,
-                polarFinish: .2,
+                polarFinish: .1,
                 accelerationSpread: {
                     x: 0.01,
                     y: 0.0,

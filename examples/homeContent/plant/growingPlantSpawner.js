@@ -62,7 +62,7 @@ var waterCan = Entities.addEntity({
 
 
 var waterSpoutPosition = Vec3.sum(waterCanPosition, Vec3.multiply(0.2, Quat.getFront(orientation)))
-var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(30, 0, 0));
+var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDegrees(10, 0, 0));
 var waterSpout = Entities.addEntity({
   type: "Box",
   name: "hifi-water-spout",
@@ -70,7 +70,8 @@ var waterSpout = Entities.addEntity({
   color: {red: 200, green: 10, blue: 200},
   position: waterSpoutPosition,
   rotation: waterSpoutRotation,
-  parentID: waterCan
+  parentID: waterCan,
+  visible: false
 });
 
 function cleanup() {
