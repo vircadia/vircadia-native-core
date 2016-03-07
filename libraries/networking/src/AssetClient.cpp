@@ -621,4 +621,3 @@ void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
 
 void AssetScriptingInterface::getAllMappings(QString path, QScriptValue callback) {
 }
->>>>>>> 6dd3b1b... Add AssetScriptingInterface methods for mapping
