@@ -28,11 +28,11 @@ class PickRay;
 /// Interface provided by Application to other objects that need access to the current view state details
 class AbstractViewStateInterface {
 public:
-    /// gets the current view frustum for rendering the view state
-    virtual const ViewFrustum& getCurrentViewFrustum() = 0;
+    /// copies the current view frustum for rendering the view state
+    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const = 0;
 
-    /// gets the shadow view frustum for rendering the view state
-    virtual const ViewFrustum& getShadowViewFrustum() = 0;
+    /// copies the shadow view frustum for rendering the view state
+    virtual void copyShadowViewFrustum(ViewFrustum& viewOut) const = 0;
 
     virtual QThread* getMainThread() = 0;
 

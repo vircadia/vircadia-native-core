@@ -56,8 +56,8 @@ public:
     OctreeElementBag elementBag;
     OctreeElementExtraEncodeData extraEncodeData;
 
-    const ViewFrustum& getCurrentViewFrustum() const { return _currentViewFrustum; }
-    const ViewFrustum& getLastKnownViewFrustum() const { return _lastKnownViewFrustum; }
+    void copyCurrentViewFrustum(ViewFrustum& viewOut) const;
+    void copyLastKnownViewFrustum(ViewFrustum& viewOut) const;
 
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
@@ -114,6 +114,8 @@ private:
 
     int _maxSearchLevel { 1 };
     int _maxLevelReachedInLastSearch { 1 };
+
+    mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
     quint64 _lastTimeBagEmpty { 0 };
@@ -139,7 +141,7 @@ private:
     QQueue<OCTREE_PACKET_SEQUENCE> _nackedSequenceNumbers;
 
     quint64 _sceneSendStartTime = 0;
-    
+
     std::array<char, udt::MAX_PACKET_SIZE> _lastOctreePayload;
 };
 

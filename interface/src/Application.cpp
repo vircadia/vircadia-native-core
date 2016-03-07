@@ -1511,12 +1511,17 @@ void Application::paintGL() {
 
     auto lodManager = DependencyManager::get<LODManager>();
 
-
-    _viewFrustum.calculate();
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.calculate();
+    }
     RenderArgs renderArgs(_gpuContext, getEntities(), lodManager->getOctreeSizeScale(),
                           lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
                           RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
-    renderArgs.setViewFrustum(getViewFrustum());
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        renderArgs.setViewFrustum(_viewFrustum);
+    }
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -1813,7 +1818,10 @@ void Application::resizeGL() {
     _myCamera.setProjection(glm::perspective(glm::radians(_fieldOfView.get()), aspectRatio,
                                              DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
     // Possible change in aspect ratio
-    loadViewFrustum(_myCamera, _viewFrustum);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        loadViewFrustum(_myCamera, _viewFrustum);
+    }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto uiSize = displayPlugin->getRecommendedUiSize();
@@ -2140,6 +2148,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_J:
                 if (isShifted) {
+                    QMutexLocker viewLocker(&_viewMutex);
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -2149,6 +2158,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_M:
                 if (isShifted) {
+                    QMutexLocker viewLocker(&_viewMutex);
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
@@ -2997,7 +3007,10 @@ void Application::init() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     getEntities()->init();
-    getEntities()->setViewFrustum(getViewFrustum());
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        getEntities()->setViewFrustum(_viewFrustum);
+    }
 
     ObjectMotionState::setShapeManager(&_shapeManager);
     _physicsEngine->init();
@@ -3017,7 +3030,10 @@ void Application::init() {
     getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
 
     _entityClipboardRenderer.init();
-    _entityClipboardRenderer.setViewFrustum(getViewFrustum());
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _entityClipboardRenderer.setViewFrustum(_viewFrustum);
+    }
     _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
@@ -3220,9 +3236,12 @@ void Application::resetPhysicsReadyInformation() {
 
 void Application::reloadResourceCaches() {
     resetPhysicsReadyInformation();
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
+        _viewFrustum.setOrientation(glm::quat());
+    }
     // Clear entities out of view frustum
-    _viewFrustum.setPosition(glm::vec3(0.0f, 0.0f, TREE_SCALE));
-    _viewFrustum.setOrientation(glm::quat());
     queryOctree(NodeType::EntityServer, PacketType::EntityQuery, _entityServerJurisdictions);
 
     DependencyManager::get<AssetClient>()->clearCache();
@@ -3511,7 +3530,7 @@ void Application::update(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details
     // to the server.
     {
-        PerformanceTimer perfTimer("loadViewFrustum");
+        QMutexLocker viewLocker(&_viewMutex);
         loadViewFrustum(_myCamera, _viewFrustum);
     }
 
@@ -3520,6 +3539,7 @@ void Application::update(float deltaTime) {
     // Update my voxel servers with my current voxel query...
     {
         PROFILE_RANGE_EX("QueryOctree", 0xffff0000, (uint64_t)getActiveDisplayPlugin()->presentCount());
+        QMutexLocker viewLocker(&_viewMutex);
         PerformanceTimer perfTimer("queryOctree");
         quint64 sinceLastQuery = now - _lastQueriedTime;
         const quint64 TOO_LONG_SINCE_LAST_QUERY = 3 * USECS_PER_SECOND;
@@ -3631,14 +3651,19 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     //qCDebug(interfaceapp) << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
-    _octreeQuery.setCameraPosition(_viewFrustum.getPosition());
-    _octreeQuery.setCameraOrientation(_viewFrustum.getOrientation());
-    _octreeQuery.setCameraFov(_viewFrustum.getFieldOfView());
-    _octreeQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
-    _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
+    ViewFrustum viewFrustumCopy;
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        viewFrustumCopy = _viewFrustum;
+    }
+    _octreeQuery.setCameraPosition(viewFrustumCopy.getPosition());
+    _octreeQuery.setCameraOrientation(viewFrustumCopy.getOrientation());
+    _octreeQuery.setCameraFov(viewFrustumCopy.getFieldOfView());
+    _octreeQuery.setCameraAspectRatio(viewFrustumCopy.getAspectRatio());
+    _octreeQuery.setCameraNearClip(viewFrustumCopy.getNearClip());
+    _octreeQuery.setCameraFarClip(viewFrustumCopy.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
+    _octreeQuery.setCameraCenterRadius(viewFrustumCopy.getCenterRadius());
     auto lodManager = DependencyManager::get<LODManager>();
     _octreeQuery.setOctreeSizeScale(lodManager->getOctreeSizeScale());
     _octreeQuery.setBoundaryLevelAdjust(lodManager->getBoundaryLevelAdjust());
@@ -3674,7 +3699,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                                   rootDetails.y * TREE_SCALE,
                                                   rootDetails.z * TREE_SCALE) - glm::vec3(HALF_TREE_SCALE),
                                         rootDetails.s * TREE_SCALE);
-                    if (_viewFrustum.cubeIntersectsKeyhole(serverBounds)) {
+                    if (viewFrustumCopy.cubeIntersectsKeyhole(serverBounds)) {
                         inViewServers++;
                     }
                 }
@@ -3740,7 +3765,7 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
                                         rootDetails.s * TREE_SCALE);
 
 
-                    inView = _viewFrustum.cubeIntersectsKeyhole(serverBounds);
+                    inView = viewFrustumCopy.cubeIntersectsKeyhole(serverBounds);
                 } else {
                     if (wantExtraDebugging) {
                         qCDebug(interfaceapp) << "Jurisdiction without RootCode for node " << *node << ". That's unusual!";
@@ -3835,6 +3860,7 @@ QRect Application::getDesirableApplicationGeometry() const {
 //                 or the "myCamera".
 //
 void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
+    PerformanceTimer perfTimer("loadViewFrustum");
     PROFILE_RANGE(__FUNCTION__);
     // We will use these below, from either the camera or head vectors calculated above
     viewFrustum.setProjection(camera.getProjection());
@@ -3863,7 +3889,8 @@ PickRay Application::computePickRay(float x, float y) const {
         getApplicationCompositor().computeHmdPickRay(pickPoint, result.origin, result.direction);
     } else {
         pickPoint /= getCanvasSize();
-        getViewFrustum().computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
+        QMutexLocker viewLocker(&_viewMutex);
+        _viewFrustum.computePickRay(pickPoint.x, pickPoint.y, result.origin, result.direction);
     }
     return result;
 }
@@ -3876,24 +3903,19 @@ glm::vec3 Application::getAvatarPosition() const {
     return getMyAvatar()->getPosition();
 }
 
-const ViewFrustum& Application::getViewFrustum() const {
-#ifdef DEBUG
-    if (QThread::currentThread() == activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        //qWarning() << "Calling Application::getViewFrustum() from the active rendering thread, did you mean Application::getDisplayViewFrustum()?";
-    }
-#endif
-    return _viewFrustum;
+void Application::copyViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _viewFrustum;
 }
 
-const ViewFrustum& Application::getDisplayViewFrustum() const {
-#ifdef DEBUG
-    if (QThread::currentThread() != activeRenderingThread) {
-        // FIXME, figure out a better way to do this
-        // qWarning() << "Calling Application::getDisplayViewFrustum() from outside the active rendering thread or outside rendering, did you mean Application::getViewFrustum()?";
-    }
-#endif
-    return _displayViewFrustum;
+void Application::copyDisplayViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _displayViewFrustum;
+}
+
+void Application::copyShadowViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _shadowViewFrustum;
 }
 
 // WorldBox Render Data & rendering functions
@@ -4002,7 +4024,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
 
     // load the view frustum
-    loadViewFrustum(theCamera, _displayViewFrustum);
+    {
+        QMutexLocker viewLocker(&_viewMutex);
+        loadViewFrustum(theCamera, _displayViewFrustum);
+    }
 
     // TODO fix shadows and make them use the GPU library
 
@@ -4070,7 +4095,10 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     {
         PerformanceTimer perfTimer("EngineRun");
 
-        renderArgs->setViewFrustum(getDisplayViewFrustum());
+        {
+            QMutexLocker viewLocker(&_viewMutex);
+            renderArgs->setViewFrustum(_displayViewFrustum);
+        }
         _renderEngine->getRenderContext()->args = renderArgs;
 
         // Before the deferred pass, let's try to use the render engine
@@ -4494,6 +4522,11 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
     scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
+}
+
+void Application::copyCurrentViewFrustum(ViewFrustum& viewOut) const {
+    QMutexLocker viewLocker(&_viewMutex);
+    viewOut = _displayViewFrustum;
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -5200,10 +5233,10 @@ void Application::updateInputModes() {
 }
 
 mat4 Application::getEyeProjection(int eye) const {
+    QMutexLocker viewLocker(&_viewMutex);
     if (isHMDMode()) {
         return getActiveDisplayPlugin()->getEyeProjection((Eye)eye, _viewFrustum.getProjection());
     }
-
     return _viewFrustum.getProjection();
 }
 

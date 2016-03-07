@@ -29,8 +29,6 @@ class Head : public HeadData {
 public:
     explicit Head(Avatar* owningAvatar);
 
-    Head(Avatar* owningAvatar);
-
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);

@@ -202,7 +202,7 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
 
 void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
+    assert(renderContext->args->hasViewFrustum());
 
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
@@ -215,8 +215,8 @@ void DrawStateSortDeferred::run(const SceneContextPointer& sceneContext, const R
 
         glm::mat4 projMat;
         Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
+        args->getViewFrustum().evalProjectionMatrix(projMat);
+        args->getViewFrustum().evalViewTransform(viewMat);
 
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);

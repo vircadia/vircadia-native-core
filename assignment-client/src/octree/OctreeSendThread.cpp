@@ -427,9 +427,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                                                  nodeData->getLastTimeBagEmpty(),
                                                  isFullScene, &nodeData->stats, _myServer->getJurisdiction(),
                                                  &nodeData->extraEncodeData);
-                    params.viewFrustum = nodeData->getCurrentViewFrustum();
+                    nodeData->copyCurrentViewFrustum(params.viewFrustum);
                     if (viewFrustumChanged) {
-                        params.lastViewFrustum = nodeData->getLastKnownViewFrustum();
+                        nodeData->copyLastKnownViewFrustum(params.lastViewFrustum);
                     }
 
                     // Our trackSend() function is implemented by the server subclass, and will be called back

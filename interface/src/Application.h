@@ -128,12 +128,12 @@ public:
     Camera* getCamera() { return &_myCamera; }
     const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
-    const ViewFrustum& getViewFrustum() const;
+    void copyViewFrustum(ViewFrustum& viewOut) const;
     // Represents the view frustum of the current rendering pass,
     // which might be different from the viewFrustum, i.e. shadowmap
     // passes, mirror window passes, etc
-    const ViewFrustum& getDisplayViewFrustum() const;
-    const ViewFrustum& getShadowViewFrustum() override { return _shadowViewFrustum; }
+    void copyDisplayViewFrustum(ViewFrustum& viewOut) const;
+    void copyShadowViewFrustum(ViewFrustum& viewOut) const override;
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
     EntityTreeRenderer* getEntities() const { return DependencyManager::get<EntityTreeRenderer>().data(); }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -167,7 +167,7 @@ public:
     virtual controller::ScriptingInterface* getControllerScriptingInterface() { return _controllerScriptingInterface; }
     virtual void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) override;
 
-    virtual const ViewFrustum& getCurrentViewFrustum() override { return getDisplayViewFrustum(); }
+    virtual void copyCurrentViewFrustum(ViewFrustum& viewOut) const override;
     virtual QThread* getMainThread() override { return thread(); }
     virtual PickRay computePickRay(float x, float y) const override;
     virtual glm::vec3 getAvatarPosition() const override;
@@ -412,6 +412,7 @@ private:
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
+    mutable QMutex _viewMutex { QMutex::Recursive };
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
