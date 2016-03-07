@@ -1271,11 +1271,6 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, float glowLevel) {
 
     fixupModelsInScene();
 
-    //  Render head so long as the camera isn't inside it
-    if (shouldRenderHead(renderArgs)) {
-        getHead()->render(renderArgs, 1.0f);
-    }
-
     // This is drawing the lookat vectors from our avatar to wherever we're looking.
     if (qApp->isHMDMode()) {
         glm::vec3 cameraPosition = qApp->getCamera()->getPosition();
@@ -1356,7 +1351,6 @@ void MyAvatar::destroyAnimGraph() {
 void MyAvatar::preRender(RenderArgs* renderArgs) {
 
     render::ScenePointer scene = qApp->getMain3DScene();
-    const bool shouldDrawHead = shouldRenderHead(renderArgs);
 
     if (_skeletonModel->initWhenReady(scene)) {
         initHeadBones();
@@ -1408,6 +1402,7 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
     DebugDraw::getInstance().updateMyAvatarPos(getPosition());
     DebugDraw::getInstance().updateMyAvatarRot(getOrientation());
 
+    const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setCauterizeBones(!shouldDrawHead);
     }

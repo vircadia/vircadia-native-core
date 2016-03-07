@@ -298,7 +298,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                         entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID());
                 }
 
-                if (includeThisEntity) {
+                if (includeThisEntity || params.recurseEverything) {
 
                     // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
                     // simulation changing what's visible. consider the case where the entity contains an angular velocity
