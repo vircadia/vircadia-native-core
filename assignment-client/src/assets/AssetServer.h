@@ -39,18 +39,19 @@ private slots:
     void sendStatsPacket();
     
 private:
-    using Path = QString;
-    using Hash = QString;
-    using Mapping = std::unordered_map<Path, Hash>;
+    using Mapping = std::map<AssetPath, AssetHash>;
 
-    /// Return the hash mapping for Path `path`
-    Hash getMapping(Path path);
+    void loadMappingFromFile();
+    void writeMappingToFile();
+
+    /// Return the hash mapping for AssetPath `path`
+    AssetHash getMapping(AssetPath path);
 
     /// Set the mapping for path to hash
-    void setMapping(Path path, Hash hash);
+    void setMapping(AssetPath path, AssetHash hash);
 
     /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
-    bool deleteMapping(Path path);
+    bool deleteMapping(AssetPath path);
 
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
