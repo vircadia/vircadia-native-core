@@ -55,6 +55,8 @@ private:
 
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
+    void performMappingMigration();
+
     Mapping _fileMapping;
     QDir _resourcesDirectory;
     QThreadPool _taskPool;

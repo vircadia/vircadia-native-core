@@ -127,7 +127,6 @@ void AssetServer::completeSetup() {
                 qDebug() << "\tCopying from " << from << " to " << to;
                 QFile::copy(from, to);
             }
-
         }
     }
     
@@ -141,7 +140,40 @@ void AssetServer::completeSetup() {
 
     qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
+    performMappingMigration();
+
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+}
+
+void AssetServer::performMappingMigration() {
+    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}(\\.[\\w]+)+$" };
+
+    auto files = _resourcesDirectory.entryInfoList(QDir::Files);
+
+    for (const auto& fileInfo : files) {
+        if (hashFileRegex.exactMatch(fileInfo.fileName())) {
+            // we have a pre-mapping file that we should migrate to the new mapping system
+            qDebug() << "Migrating pre-mapping file" << fileInfo.fileName();
+
+            // rename the file to the same name with no extension
+            QFile oldFile { fileInfo.absoluteFilePath() };
+
+            auto oldAbsolutePath = fileInfo.absoluteFilePath();
+            auto oldFilename = fileInfo.fileName();
+            auto fullExtension = oldFilename.mid(oldFilename.indexOf('.'));
+
+            qDebug() << "Moving" << oldAbsolutePath << "to" << oldAbsolutePath.replace(fullExtension, "");
+
+            bool renamed = oldFile.rename(oldAbsolutePath.replace(fullExtension, ""));
+            if (!renamed) {
+                qWarning() << "Could not migrate pre-mapping file" << fileInfo.fileName();
+            } else {
+                qDebug() << "Renamed pre-mapping file" << fileInfo.fileName();
+
+                // add a new mapping with the old extension and a truncated version of the hash
+            }
+        }
+    }
 }
 
 void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -194,7 +226,6 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
->>>>>>> db98e46... Update atp mapping operations to use a single packet
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
