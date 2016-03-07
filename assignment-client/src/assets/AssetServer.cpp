@@ -171,6 +171,13 @@ void AssetServer::performMappingMigration() {
                 qDebug() << "Renamed pre-mapping file" << fileInfo.fileName();
 
                 // add a new mapping with the old extension and a truncated version of the hash
+                static const int TRUNCATED_HASH_NUM_CHAR = 16;
+                auto fakeFileName = oldFilename.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
+
+                auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
+
+                qDebug() << "Adding a migration mapping from" << fakeFileName << "to" << hash;
+                _fileMapping[fakeFileName] = hash;
             }
         }
     }
