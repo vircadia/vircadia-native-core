@@ -12,13 +12,14 @@
 
 #include "AssetServer.h"
 
-#include <QCoreApplication>
-#include <QCryptographicHash>
-#include <QDateTime>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
-#include <QString>
+#include <QtCore/QCoreApplication>
+#include <QtCore/QCryptographicHash>
+#include <QtCore/QDateTime>
+#include <QtCore/QDir>
+#include <QtCore/QFile>
+#include <QtCore/QFileInfo>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QString>
 
 #include "NetworkLogging.h"
 #include "NodeType.h"
@@ -56,6 +57,8 @@ void AssetServer::run() {
 
     ThreadedAssignment::commonInit(ASSET_SERVER_LOGGING_TARGET_NAME, NodeType::AssetServer);
 }
+
+static const QString ASSET_FILES_SUBDIR = "files";
 
 void AssetServer::completeSetup() {
     auto nodeList = DependencyManager::get<NodeList>();
@@ -97,43 +100,18 @@ void AssetServer::completeSetup() {
 
     qDebug() << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
+    _resourcesDirectory.mkpath(ASSET_FILES_SUBDIR);
 
-    bool noExistingAssets = !_resourcesDirectory.exists() || _resourcesDirectory.entryList(QDir::Files).size() == 0;
+    _filesDirectory = _resourcesDirectory;
+    _filesDirectory.cd(ASSET_FILES_SUBDIR);
 
-    if (noExistingAssets) {
-        qDebug() << "Asset resources directory empty, searching for existing asset resources to migrate";
-        QString oldDataDirectory = QCoreApplication::applicationDirPath();
-
-        const QString OLD_RESOURCES_PATH = "assets";
-
-        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + OLD_RESOURCES_PATH);
-
-
-        if (QDir(oldResourcesDirectory).exists()) {
-            qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
-
-
-            QDir resourcesParentDirectory = _resourcesDirectory.filePath("..");
-            if (!resourcesParentDirectory.exists()) {
-                qDebug() << "Creating data directory " << resourcesParentDirectory.absolutePath();
-                resourcesParentDirectory.mkpath(".");
-            }
-
-            auto files = QDir(oldResourcesDirectory).entryList(QDir::Files);
-
-            for (auto& file : files) {
-                auto from = oldResourcesDirectory + QDir::separator() + file;
-                auto to = _resourcesDirectory.absoluteFilePath(file);
-                qDebug() << "\tCopying from " << from << " to " << to;
-                QFile::copy(from, to);
-            }
-        }
-    }
+    // load whatever mappings we currently have from the local file
+    loadMappingFromFile();
     
-    qInfo() << "Serving files from: " << _resourcesDirectory.path();
+    qInfo() << "Serving files from: " << _filesDirectory.path();
 
     // Check the asset directory to output some information about what we have
-    auto files = _resourcesDirectory.entryList(QDir::Files);
+    auto files = _filesDirectory.entryList(QDir::Files);
 
     QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
     auto hashedFiles = files.filter(hashFileRegex);
@@ -150,8 +128,6 @@ void AssetServer::performMappingMigration() {
 
     auto files = _resourcesDirectory.entryInfoList(QDir::Files);
 
-    bool addedAtLeastOneMapping = false;
-
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
             // we have a pre-mapping file that we should migrate to the new mapping system
@@ -162,39 +138,39 @@ void AssetServer::performMappingMigration() {
 
             auto oldAbsolutePath = fileInfo.absoluteFilePath();
             auto oldFilename = fileInfo.fileName();
+            auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
             auto fullExtension = oldFilename.mid(oldFilename.indexOf('.'));
 
-            qDebug() << "Moving" << oldAbsolutePath << "to" << oldAbsolutePath.replace(fullExtension, "");
+            qDebug() << "\tMoving" << oldAbsolutePath << "to" << oldAbsolutePath.replace(fullExtension, "");
 
-            bool renamed = oldFile.rename(oldAbsolutePath.replace(fullExtension, ""));
+            bool renamed = oldFile.copy(_filesDirectory.filePath(hash));
             if (!renamed) {
-                qWarning() << "Could not migrate pre-mapping file" << fileInfo.fileName();
+                qWarning() << "\tCould not migrate pre-mapping file" << fileInfo.fileName();
             } else {
-                qDebug() << "Renamed pre-mapping file" << fileInfo.fileName();
+                qDebug() << "\tRenamed pre-mapping file" << fileInfo.fileName();
 
                 // add a new mapping with the old extension and a truncated version of the hash
                 static const int TRUNCATED_HASH_NUM_CHAR = 16;
-                auto fakeFileName = oldFilename.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
+                auto fakeFileName = hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
 
-                auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
-
-                qDebug() << "Adding a migration mapping from" << fakeFileName << "to" << hash;
+                qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
 
                 auto it = _fileMapping.find(fakeFileName);
                 if (it == _fileMapping.end()) {
                     _fileMapping[fakeFileName] = hash;
 
-                    addedAtLeastOneMapping = true;
+
+                    if (writeMappingToFile()) {
+                        // mapping added and persisted, we can remove the migrated file
+                        oldFile.remove();
+                        qDebug() << "\tMigration completed for" << oldFilename;
+                    }
                 } else {
-                    qDebug() << "Could not add migration mapping for" << hash << "since a mapping for" << fakeFileName
+                    qDebug() << "\tCould not add migration mapping for" << hash << "since a mapping for" << fakeFileName
                         << "already exists.";
                 }
             }
         }
-    }
-
-    if (addedAtLeastOneMapping) {
-        // we added at least one new mapping - let's persist changes to file
     }
 }
 
@@ -214,7 +190,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
 
             auto it = _fileMapping.find(assetPath);
             if (it != _fileMapping.end()) {
-                auto assetHash = it->second;
+                auto assetHash = it->toString();
                 qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
                 replyPacket->writePrimitive(AssetServerError::NoError);
                 //replyPacket->write(assetHash.toLatin1().toHex());
@@ -237,7 +213,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
         }
         case AssetMappingOperationType::Delete: {
             QString assetPath = message->readString();
-            bool removed = _fileMapping.erase(assetPath) > 0;
+            bool removed = _fileMapping.remove(assetPath) > 0;
 
             replyPacket->writePrimitive(AssetServerError::NoError);
             break;
@@ -293,7 +269,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
     }
 
     // Queue task
-    auto task = new SendAssetTask(message, senderNode, _resourcesDirectory);
+    auto task = new SendAssetTask(message, senderNode, _filesDirectory);
     _taskPool.start(task);
 }
 
@@ -302,7 +278,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, Sha
     if (senderNode->getCanRez()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
         
-        auto task = new UploadAssetTask(message, senderNode, _resourcesDirectory);
+        auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
         _taskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities
@@ -393,14 +369,51 @@ void AssetServer::sendStatsPacket() {
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
 }
 
+static const QString MAP_FILE_NAME = "map.json";
+
 void AssetServer::loadMappingFromFile() {
+
+    auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
+
+    QFile mapFile { mapFilePath };
+    if (mapFile.exists()) {
+        if (mapFile.open(QIODevice::ReadOnly)) {
+            auto jsonDocument = QJsonDocument::fromJson(mapFile.readAll());
+            _fileMapping = jsonDocument.object().toVariantHash();
+
+            qInfo() << "Loaded" << _fileMapping.count() << "mappings from map file at" << mapFilePath;
+        } else {
+            qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
+            setFinished(true);
+        }
+    } else {
+        qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
+    }
 }
 
-void AssetServer::writeMappingToFile() {
+bool AssetServer::writeMappingToFile() {
+    auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
+
+    QFile mapFile { mapFilePath };
+    if (mapFile.open(QIODevice::WriteOnly)) {
+        auto jsonObject = QJsonObject::fromVariantHash(_fileMapping);
+        QJsonDocument jsonDocument { jsonObject };
+
+        if (mapFile.write(jsonDocument.toJson()) != -1) {
+            qDebug() << "Wrote JSON mappings to file at" << mapFilePath;
+            return true;
+        } else {
+            qWarning() << "Failed to write JSON mappings to file at" << mapFilePath;
+        }
+    } else {
+        qWarning() << "Failed to open map file at" << mapFilePath;
+    }
+
+    return false;
 }
 
 AssetHash AssetServer::getMapping(AssetPath path) {
-    return _fileMapping[path];
+    return _fileMapping.value(path).toString();
 }
 
 void AssetServer::setMapping(AssetPath path, AssetHash hash) {
@@ -408,5 +421,5 @@ void AssetServer::setMapping(AssetPath path, AssetHash hash) {
 }
 
 bool AssetServer::deleteMapping(AssetPath path) {
-    return _fileMapping.erase(path) > 0;
+    return _fileMapping.remove(path) > 0;
 }

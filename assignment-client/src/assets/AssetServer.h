@@ -39,10 +39,11 @@ private slots:
     void sendStatsPacket();
     
 private:
-    using Mapping = std::map<AssetPath, AssetHash>;
+    using Mapping = QVariantHash;
 
+    // Mapping file operations must be called from main assignment thread only
     void loadMappingFromFile();
-    void writeMappingToFile();
+    bool writeMappingToFile();
 
     /// Return the hash mapping for AssetPath `path`
     AssetHash getMapping(AssetPath path);
@@ -57,8 +58,9 @@ private:
 
     void performMappingMigration();
 
-    Mapping _fileMapping;
+    QVariantHash _fileMapping;
     QDir _resourcesDirectory;
+    QDir _filesDirectory;
     QThreadPool _taskPool;
 };
 
