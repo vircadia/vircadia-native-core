@@ -53,6 +53,10 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(AvatarMixerPacketVersion::SoftAttachmentSupport);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
+        case PacketType::AssetGetInfo:
+        case PacketType::AssetGet:
+            // Introduction of ATP Mappings
+            return 18;
         default:
             return 17;
     }

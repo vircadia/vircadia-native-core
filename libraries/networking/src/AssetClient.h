@@ -89,7 +89,7 @@ public:
 
     Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
-    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const QString& extension);
+    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
 
@@ -112,8 +112,8 @@ private:
     bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
     bool deleteAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
 
-    bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
-    bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
+    bool getAssetInfo(const QString& hash, GetInfoCallback callback);
+    bool getAsset(const QString& hash, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
     bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
 

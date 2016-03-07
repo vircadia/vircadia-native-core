@@ -20,14 +20,42 @@ AssetResourceRequest::~AssetResourceRequest() {
     }
 }
 
+bool AssetResourceRequest::urlIsAssetPath() const {
+    static const QString ATP_HASH_REGEX_STRING = "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$";
+
+    QRegExp hashRegex { ATP_HASH_REGEX_STRING };
+    return !hashRegex.exactMatch(_url.toString());
+}
+
 void AssetResourceRequest::doSend() {
     auto parts = _url.path().split(".", QString::SkipEmptyParts);
     auto hash = parts.length() > 0 ? parts[0] : "";
     auto extension = parts.length() > 1 ? parts[1] : "";
 
-    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        _result = InvalidURL;
-        _state = Finished;
+    // We'll either have a hash or an ATP path to a file (that maps to a hash)
+
+    if (urlIsAssetPath()) {
+        // This is an ATP path, we'll need to figure out what the mapping is.
+        // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
+
+        qDebug() << "Detected an asset path! URL is" << _url;
+    } else {
+
+        qDebug() << "ATP URL was not an asset path - url is" << _url.toString();
+
+        // We've detected that this is a hash - simply use AssetClient to request that asset
+        auto parts = _url.path().split(".", QString::SkipEmptyParts);
+        auto hash = parts.length() > 0 ? parts[0] : "";
+        auto extension = parts.length() > 1 ? parts[1] : "";
+
+        // in case we haven't parsed a valid hash, return an error now
+        if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+            _result = InvalidURL;
+            _state = Finished;
+
+            emit finished();
+            return;
+        }
 
         emit finished();
         return;
@@ -35,7 +63,7 @@ void AssetResourceRequest::doSend() {
 
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetRequest = assetClient->createRequest(hash, extension);
+    _assetRequest = assetClient->createRequest(hash);
 
     if (!_assetRequest) {
         _result = ServerUnavailable;

@@ -184,14 +184,14 @@ SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, c
     return new SetMappingRequest(path, hash);
 }
 
-AssetRequest* AssetClient::createRequest(const AssetHash& hash, const QString& extension) {
+AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return nullptr;
     }
 
     if (haveAssetServer()) {
-        auto request = new AssetRequest(hash, extension);
+        auto request = new AssetRequest(hash);
         
         // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
         request->moveToThread(thread());
@@ -227,36 +227,7 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& ex
     }
 }
 
-//bool AssetClient::setAssetMapping(const QString& path, MappingOperationCallback callback) {
-//    auto nodeList = DependencyManager::get<NodeList>();
-//    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-//
-//    if (assetServer) {
-//        auto messageID = ++_currentID;
-//
-//        auto payload = path.toLatin1();
-//        auto payloadSize = sizeof(messageID) + payload.size();
-//        auto packet = NLPacket::create(PacketType::AssetMappingOperation, payloadSize, true);
-//
-//        qCDebug(asset_client) << "Requesting mapping for" << path << "from asset-server.";
-//
-//        packet->writePrimitive(messageID);
-//
-//        auto bytesWritten = packet->write(payload);
-//        Q_ASSERT(bytesWritten == payload.size());
-//
-//        nodeList->sendPacket(std::move(packet), *assetServer);
-//
-//        _pendingMappingRequests[assetServer][messageID] = callback;
-//
-//        return true;
-//    }
-//    
-//    return false;
-//}
-//
-
-bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
+bool AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end,
                            ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
@@ -270,8 +241,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
         
         auto messageID = ++_currentID;
         
-        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + extension.length()
-            + sizeof(start) + sizeof(end);
+        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(start) + sizeof(end);
         auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
         
         qCDebug(asset_client) << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
@@ -279,9 +249,6 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
         packet->writePrimitive(messageID);
 
         packet->write(QByteArray::fromHex(hash.toLatin1()));
-
-        packet->writePrimitive(uint8_t(extension.length()));
-        packet->write(extension.toLatin1());
 
         packet->writePrimitive(start);
         packet->writePrimitive(end);
@@ -296,20 +263,18 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
     return false;
 }
 
-bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback) {
+bool AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
         auto messageID = ++_currentID;
         
-        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + extension.length();
+        auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH;
         auto packet = NLPacket::create(PacketType::AssetGetInfo, payloadSize, true);
         
         packet->writePrimitive(messageID);
         packet->write(QByteArray::fromHex(hash.toLatin1()));
-        packet->writePrimitive(uint8_t(extension.length()));
-        packet->write(extension.toLatin1());
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
@@ -590,14 +555,13 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
     auto path = urlString.right(urlString.length() - ATP_SCHEME.length());
     auto parts = path.split(".", QString::SkipEmptyParts);
     auto hash = parts.length() > 0 ? parts[0] : "";
-    auto extension = parts.length() > 1 ? parts[1] : "";
 
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         return;
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    auto assetRequest = assetClient->createRequest(hash, extension);
+    auto assetRequest = assetClient->createRequest(hash);
 
     if (!assetRequest) {
         return;

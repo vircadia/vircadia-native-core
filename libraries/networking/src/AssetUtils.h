@@ -41,7 +41,7 @@ enum AssetMappingOperationType : uint8_t {
     Delete
 };
 
-QUrl getATPUrl(const QString& hash, const QString& extension = QString());
+QUrl getATPUrl(const QString& hash);
 
 QByteArray hashData(const QByteArray& data);
 

@@ -19,12 +19,8 @@
 
 #include "ResourceManager.h"
 
-QUrl getATPUrl(const QString& hash, const QString& extension) {
-    if (!extension.isEmpty()) {
-        return QUrl(QString("%1:%2.%3").arg(URL_SCHEME_ATP, hash, extension));
-    } else {
-        return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
-    }
+QUrl getATPUrl(const QString& hash) {
+    return QUrl(QString("%1:%2").arg(URL_SCHEME_ATP, hash));
 }
 
 QByteArray hashData(const QByteArray& data) {
