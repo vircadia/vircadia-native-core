@@ -78,7 +78,7 @@
                 dimensions: _this.STARTING_FLOWER_DIMENSIONS,
                 userData: JSON.stringify(_this.flowerUserData)
             });
-            var xzGrowthRate = randFloat(0.0001, 0.0002);
+            var xzGrowthRate = randFloat(0.00005, 0.00015);
             var flower = {
                 id: flowerEntityID,
                 dimensions: {
@@ -128,9 +128,10 @@
         },
 
         unload: function() {
-            _this.flowers.forEach(function(flower) {
-                Entities.deleteEntity(flower.id);
-            })
+            print("EBL UNLOAD GROWING PLANT SCRIPT");
+            // _this.flowers.forEach(function(flower) {
+            //     Entities.deleteEntity(flower.id);
+            // })
 
 
         }

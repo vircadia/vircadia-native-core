@@ -55,8 +55,8 @@ var waterCan = Entities.addEntity({
   dimensions: {x: 0.1859, y: 0.2762, z: 0.4115},
   position: waterCanPosition,
   angularDamping: 1,
-  damping: 1,
   dynamic: true,
+  gravity: { x: 0.0, y: -2.0, z: 0},
   rotation: waterCanRotation
 });
 
@@ -75,10 +75,10 @@ var waterSpout = Entities.addEntity({
 });
 
 function cleanup() {
-  Entities.deleteEntity(plant);
-  Entities.deleteEntity(bowl);
-  Entities.deleteEntity(waterCan);
-  Entities.deleteEntity(waterSpout);
+  // Entities.deleteEntity(plant);
+  // Entities.deleteEntity(bowl);
+  // Entities.deleteEntity(waterCan);
+  // Entities.deleteEntity(waterSpout);
 }
 
 

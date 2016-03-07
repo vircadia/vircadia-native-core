@@ -21,10 +21,45 @@
         _this.POUR_ANGLE_THRESHOLD = 0;
         _this.waterPouring = false;
         _this.WATER_SPOUT_NAME = "hifi-water-spout";
+        _this.GROWABLE_ENTITIES_SEARCH_RANGE = 100;
 
     };
 
     WaterSpout.prototype = {
+
+        startNearGrab: function() {
+            _this.startHold();
+        },
+
+        startEquip: function() {
+            _this.startHold();
+        },
+
+        startHold: function() {
+            _this.findGrowableEntities();
+            print("EB: GROWABLE ENTITIES length " + _this.growableEntities.length)
+        },
+
+        releaseEquip: function() {
+            _this.releaseHold();
+        },
+
+        releaseGrab: function() {
+            _this.releaseHold();
+        },
+
+        releaseHold: function() {
+            _this.stopPouring();
+        },
+
+        stopPouring: function() {
+            Entities.editEntity(_this.waterEffect, {
+                isEmitting: false
+            });
+            _this.waterPouring = false;
+            //water no longer pouring...
+            _this.waterInjector.stop();
+        },
         continueEquip: function() {
             _this.continueHolding();
         },
@@ -43,16 +78,19 @@
             var pitch = Quat.safeEulerAngles(rotation).x;
             if (pitch < _this.POUR_ANGLE_THRESHOLD) {
                 // Water is pouring
-                var spoutProps =  Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
+                var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["rotation", "position"]);
                 if (!_this.waterPouring) {
                     Entities.editEntity(_this.waterEffect, {
                         isEmitting: true
                     });
                     _this.waterPouring = true;
                     if (!_this.waterInjector) {
-                        print ("PLAY SOUND")
-                       _this.waterInjector = Audio.playSound(_this.waterSound, {position: spoutProps.position, loop: true});
-                        
+                        print("PLAY SOUND")
+                        _this.waterInjector = Audio.playSound(_this.waterSound, {
+                            position: spoutProps.position,
+                            loop: true
+                        });
+
                     } else {
                         _this.waterInjector.restart();
                     }
@@ -63,23 +101,14 @@
                     emitOrientation: waterEmitOrientation
                 });
             } else if (pitch > _this.POUR_ANGLE_THRESHOLD && _this.waterPouring) {
-                Entities.editEntity(_this.waterEffect, {
-                    isEmitting: false
-                });
-                _this.waterPouring = false;
-                //water no longer pouring...
-                _this.waterInjector.stop();
+                _this.stopPouring();
             }
         },
 
-        castRay: function() { 
+        castRay: function() {
             var spoutProps = Entities.getEntityProperties(_this.waterSpout, ["position, rotation"]);
-            var direction =  Quat.getFront(spoutProps.rotation)
+            var direction = Quat.getFront(spoutProps.rotation)
             var end = Vec3.sum(spoutProps.position, Vec3.multiply(5, direction));
-            Overlays.editOverlay(_this.rayCastLine, {
-                start: spoutProps.position,
-                end: end
-            });
 
             var pickRay = {
                 origin: spoutProps.position,
@@ -89,7 +118,10 @@
 
             if (intersection.intersects) {
                 //We've intersected with a waterable object
-                var data = JSON.stringify({position: intersection.intersection, surfaceNormal: intersection.surfaceNormal});
+                var data = JSON.stringify({
+                    position: intersection.intersection,
+                    surfaceNormal: intersection.surfaceNormal
+                });
                 Entities.callEntityMethod(intersection.entityID, 'continueWatering', [data]);
             }
 
@@ -123,8 +155,8 @@
                 maxParticles: 20000,
                 lifespan: 2,
                 emitRate: 2000,
-                emitSpeed: .2,
-                speedSpread: 0.0,
+                emitSpeed: .3,
+                speedSpread: 0.1,
                 emitDimensions: {
                     x: 0.0,
                     y: 0.0,
@@ -159,8 +191,8 @@
 
         findGrowableEntities: function() {
             _this.growableEntities = [];
-            var entities = Entities.findEntities(_this.position, 50);
-            entities.forEach( function(entity) {
+            var entities = Entities.findEntities(_this.position, _this.GROWABLE_ENTITIES_SEARCH_RANGE);
+            entities.forEach(function(entity) {
                 var name = Entities.getEntityProperties(entity, "name").name;
                 if (name.length > 0 && name.indexOf("growable") !== -1) {
                     _this.growableEntities.push(entity);
@@ -172,18 +204,6 @@
         preload: function(entityID) {
             _this.entityID = entityID;
             _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-            _this.rayCastLine = Overlays.addOverlay("line3d", {
-                color: {
-                    red: 200,
-                    green: 10,
-                    blue: 200
-                },
-                lineWidth: 2,
-                alpha: 1,
-                visible: true,
-                ignoreRayIntersection: true
-            });
-            _this.findGrowableEntities();
             // Wait a a bit for spout to spawn for case where preload is initial spawn, then save it 
             Script.setTimeout(function() {
                 var entities = Entities.findEntities(_this.position, 1);
@@ -206,7 +226,6 @@
 
 
         unload: function() {
-            Overlays.deleteOverlay(_this.rayCastLine);
             Entities.deleteEntity(_this.waterEffect);
             if (_this.waterInjector) {
                 _this.waterInjector.stop();
