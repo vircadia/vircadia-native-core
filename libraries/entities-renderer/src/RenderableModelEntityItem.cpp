@@ -699,6 +699,8 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         AABox box;
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
+                // compensate for registration
+                _points[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
                 _points[i][j] *= scale;
                 box += _points[i][j];
@@ -708,7 +710,6 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
-        info.setOffset(_model->getOffset());
     }
 }
 
