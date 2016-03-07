@@ -1,4 +1,4 @@
-var fishTank, bubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
+var fishTank, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
 var CLEANUP = true;
 var TANK_DIMENSIONS = {
@@ -103,7 +103,7 @@ function createBubbleSystem() {
         },
         "emitDimensions": {
             "x": -0.2,
-            "y": 1.6000000000000002,
+            "y": TANK_DIMENSIONS.y,
             "z": 0
         },
         "polarStart": 0,
@@ -147,6 +147,71 @@ function createBubbleSystem() {
     createBubbleSound(finalOffset);
 }
 
+function createSecondBubbleSystem() {
+
+    var tankProperties = Entities.getEntityProperties(fishTank);
+    var bubbleProperties = {
+        "name": 'hifi-home-fishtank-bubbles',
+        "color": {},
+        "isEmitting": 1,
+        "maxParticles": 1880,
+        "lifespan": 1.6,
+        "emitRate": 10,
+        "emitSpeed": 0.025,
+        "speedSpread": 0.025,
+        "emitOrientation": {
+            "x": 0,
+            "y": 0.5,
+            "z": 0.5,
+            "w": 0
+        },
+        "emitDimensions": {
+            "x": -0.4,
+            "y": TANK_DIMENSIONS.y,
+            "z": 0
+        },
+        "polarStart": 0,
+        "polarFinish": 0,
+        "azimuthStart": 0.2,
+        "azimuthFinish": 0.1,
+        "emitAcceleration": {
+            "x": 0,
+            "y": 0.4,
+            "z": 0
+        },
+        "accelerationSpread": {
+            "x": 0.1,
+            "y": 0.1,
+            "z": 0.1
+        },
+        "particleRadius": 0.02,
+        "radiusSpread": 0,
+        "radiusStart": 0.043,
+        "radiusFinish": 0.02,
+        "colorSpread": {},
+        "colorStart": {},
+        "colorFinish": {},
+        "alpha": 0.2,
+        "alphaSpread": 0,
+        "alphaStart": 0.3,
+        "alphaFinish": 0,
+        "emitterShouldTrail": 0,
+        "textures": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/bubble-white.png"
+    };
+
+    bubbleProperties.type = "ParticleEffect";
+    bubbleProperties.parentID = fishTank;
+    bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
+
+    var finalOffset = getOffsetFromTankCenter(BUBBLE_SYSTEM_VERTICAL_OFFSET, BUBBLE_SYSTEM_FORWARD_OFFSET, BUBBLE_SYSTEM_LATERAL_OFFSET - 0.076);
+
+    bubbleProperties.position = finalOffset;
+
+    secondBubbleSystem = Entities.addEntity(bubbleProperties);
+
+}
+
+
 
 function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
 
@@ -169,7 +234,7 @@ function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET
 
 function createBubbleSound(position) {
     var audioProperties = {
-        volume: 1,
+        volume: 0.05,
         position: position,
         loop: true
     };
@@ -288,9 +353,11 @@ createInnerContainer();
 
 createBubbleSystem();
 
+createSecondBubbleSystem();
+
 createEntitiesAtCorners();
 
-createBubbleSound();
+
 
 createUrchin();
 
@@ -327,6 +394,7 @@ Script.setTimeout(function() {
 function cleanup() {
     Entities.deleteEntity(fishTank);
     Entities.deleteEntity(bubbleSystem);
+    Entities.deleteEntity(secondBubbleSystem);
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
