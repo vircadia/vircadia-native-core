@@ -130,34 +130,15 @@ void AssetServer::completeSetup() {
 
         }
     }
-    qDebug() << "Serving files from: " << _resourcesDirectory.path();
+    qInfo() << "Serving files from: " << _resourcesDirectory.path();
 
-    // Scan for new files
-    qDebug() << "Looking for new files in asset directory";
-    auto files = _resourcesDirectory.entryInfoList(QDir::Files);
-    QRegExp filenameRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}(\\..+)?$" };
-    for (const auto& fileInfo : files) {
-        auto filename = fileInfo.fileName();
-        if (!filenameRegex.exactMatch(filename)) {
-            qDebug() << "Found file: " << filename;
-            if (!fileInfo.isReadable()) {
-                qDebug() << "\tCan't open file for reading: " << filename;
-                continue;
-            }
+    // Check the asset directory to output some information about what we have
+    auto files = _resourcesDirectory.entryList(QDir::Files);
 
-            // Read file
-            QFile file { fileInfo.absoluteFilePath() };
-            file.open(QFile::ReadOnly);
-            QByteArray data = file.readAll();
+    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
+    auto hashedFiles = files.filter(hashFileRegex);
 
-            auto hash = hashData(data);
-            auto hexHash = hash.toHex();
-
-            qDebug() << "\tMoving " << filename << " to " << hexHash;
-            
-            file.rename(_resourcesDirectory.absoluteFilePath(hexHash) + "." + fileInfo.suffix());
-        }
-    }
+    qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
@@ -216,17 +197,14 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
-    uint8_t extensionLength;
 
-    if (message->getSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
+    if (message->getSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     message->readPrimitive(&messageID);
     assetHash = message->readWithoutCopy(SHA256_HASH_LENGTH);
-    message->readPrimitive(&extensionLength);
-    QByteArray extension = message->read(extensionLength);
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
@@ -235,7 +213,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     replyPacket->writePrimitive(messageID);
     replyPacket->write(assetHash);
 
-    QString fileName = QString(hexHash) + "." + extension;
+    QString fileName = QString(hexHash);
     QFileInfo fileInfo { _resourcesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
@@ -253,7 +231,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
 
 void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
-    auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + sizeof(DataOffset) + sizeof(DataOffset));
+    auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(DataOffset) + sizeof(DataOffset));
     
     if (message->getSize() < minSize) {
         qDebug() << "ERROR bad file request";
