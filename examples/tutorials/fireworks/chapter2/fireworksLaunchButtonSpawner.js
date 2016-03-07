@@ -1,7 +1,7 @@
 //
 //  fireworksLaunchButtonSpawner.js
 //
-//  Created by Eric Levin on 3/7/2017
+//  Created by Eric Levin on 3/7/2016
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  This is the chapter 2 interface script of the fireworks tutorial (https://docs.highfidelity.com/docs/fireworks-scripting-tutorial)
