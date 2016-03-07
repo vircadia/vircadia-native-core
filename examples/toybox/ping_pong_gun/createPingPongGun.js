@@ -11,7 +11,7 @@
 /*global MyAvatar, Entities, AnimationCache, SoundCache, Scene, Camera, Overlays, HMD, AvatarList, AvatarManager, Controller, UndoStack, Window, Account, GlobalServices, Script, ScriptDiscoveryService, LODManager, Menu, Vec3, Quat, AudioDevice, Paths, Clipboard, Settings, XMLHttpRequest, randFloat, randInt */
 Script.include("../../libraries/utils.js");
 
-var scriptURL = Script.resolvePath('pingPongGun.js?' + Math.random());
+var scriptURL = Script.resolvePath('pingPongGun.js');
 
 var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.fbx'
 var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
