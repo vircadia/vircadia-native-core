@@ -88,7 +88,6 @@ private:
     QByteArray _data;
     QByteArray _headData;
 
-    std::atomic<qint64> _size { true };  
     std::atomic<qint64> _position { 0 };
     std::atomic<qint64> _numPackets { 0 };
 

@@ -110,8 +110,8 @@ QByteArray ReceivedMessage::readAll() {
 QString ReceivedMessage::readString() {
     uint32_t size;
     readPrimitive(&size);
-    Q_ASSERT(size <= _size - _position);
-    auto string = QString::fromUtf8(_data.constData(), size);
+    //Q_ASSERT(size <= _size - _position);
+    auto string = QString::fromUtf8(_data.constData() + _position, size);
     _position += size;
     return string;
 }
