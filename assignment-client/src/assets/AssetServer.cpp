@@ -150,6 +150,8 @@ void AssetServer::performMappingMigration() {
 
     auto files = _resourcesDirectory.entryInfoList(QDir::Files);
 
+    bool addedAtLeastOneMapping = false;
+
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
             // we have a pre-mapping file that we should migrate to the new mapping system
@@ -177,9 +179,22 @@ void AssetServer::performMappingMigration() {
                 auto hash = oldFilename.left(SHA256_HASH_HEX_LENGTH);
 
                 qDebug() << "Adding a migration mapping from" << fakeFileName << "to" << hash;
-                _fileMapping[fakeFileName] = hash;
+
+                auto it = _fileMapping.find(fakeFileName);
+                if (it == _fileMapping.end()) {
+                    _fileMapping[fakeFileName] = hash;
+
+                    addedAtLeastOneMapping = true;
+                } else {
+                    qDebug() << "Could not add migration mapping for" << hash << "since a mapping for" << fakeFileName
+                        << "already exists.";
+                }
             }
         }
+    }
+
+    if (addedAtLeastOneMapping) {
+        // we added at least one new mapping - let's persist changes to file
     }
 }
 
