@@ -703,6 +703,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
                 _points[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
                 _points[i][j] *= scale;
+                // this next subtraction is done so we can give info the offset, which will cause
+                // the shape-key to change.
+                _points[i][j] -= _model->getOffset();
                 box += _points[i][j];
             }
         }
@@ -710,6 +713,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
+        info.setOffset(_model->getOffset());
     }
 }
 
