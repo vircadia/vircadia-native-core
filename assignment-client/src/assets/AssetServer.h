@@ -49,7 +49,7 @@ private:
     AssetHash getMapping(AssetPath path);
 
     /// Set the mapping for path to hash
-    void setMapping(AssetPath path, AssetHash hash);
+    bool setMapping(AssetPath path, AssetHash hash);
 
     /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
     bool deleteMapping(AssetPath path);

@@ -206,16 +206,25 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
             QString assetPath = message->readString();
             //auto assetHash = message->read(SHA256_HASH_LENGTH);
             auto assetHash = message->readString();
-            _fileMapping[assetPath] = assetHash;
 
-            replyPacket->writePrimitive(AssetServerError::NoError);
+            if (setMapping(assetPath, assetHash)) {
+                replyPacket->writePrimitive(AssetServerError::NoError);
+            } else {
+                replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+            }
+
+
             break;
         }
         case AssetMappingOperationType::Delete: {
             QString assetPath = message->readString();
-            bool removed = _fileMapping.remove(assetPath) > 0;
 
-            replyPacket->writePrimitive(AssetServerError::NoError);
+            if (deleteMapping(assetPath)) {
+                replyPacket->writePrimitive(AssetServerError::NoError);
+            } else {
+                replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+            }
+
             break;
         }
     }
@@ -416,10 +425,43 @@ AssetHash AssetServer::getMapping(AssetPath path) {
     return _fileMapping.value(path).toString();
 }
 
-void AssetServer::setMapping(AssetPath path, AssetHash hash) {
+bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
+    // remember what the old mapping was in case persistence fails
+    auto oldMapping = _fileMapping.value(path).toString();
+
+    // update the in memory QHash
     _fileMapping[path] = hash;
+
+    // attempt to write to file
+    if (writeMappingToFile()) {
+        // persistence succeeded, we are good to go
+        return true;
+    } else {
+        // failed to persist this mapping to file - put back the old one in our in-memory representation
+        if (oldMapping.isEmpty()) {
+            _fileMapping.remove(path);
+        } else {
+            _fileMapping[path] = oldMapping;
+        }
+
+        return false;
+    }
 }
 
 bool AssetServer::deleteMapping(AssetPath path) {
-    return _fileMapping.remove(path) > 0;
+    // keep the old mapping in case the delete fails
+    auto oldMapping = _fileMapping.take(path);
+
+    if (!oldMapping.isNull()) {
+        // deleted the old mapping, attempt to persist to file
+        if (writeMappingToFile()) {
+            // persistence succeeded we are good to go
+            return true;
+        } else {
+            // we didn't delete the previous mapping, put it back in our in-memory representation
+            _fileMapping[path] = oldMapping.toString();
+        }
+    }
+
+    return false;
 }
