@@ -159,8 +159,13 @@ Item {
         readonly property int red: 2
         readonly property int black: 3
         readonly property var textColor: [ colors.darkGray, colors.white, colors.white, colors.white ]
-        readonly property var colorStart: [ "#ffffff", "#00b4ef", "#d42043", "#343434" ]
-        readonly property var colorFinish: [ "#afafaf", "#1080b8", "#94132e", "#000000" ]
+        readonly property var colorStart: [ colors.white, colors.primaryHighlight, "#d42043", "#343434" ]
+        readonly property var colorFinish: [ colors.lightGrayText, colors.blueAccent, "#94132e", colors.black ]
+        readonly property var hoveredColor: [ colorStart[white], colorStart[blue], colorStart[red], colorFinish[black] ]
+        readonly property var pressedColor: [ colorFinish[white], colorFinish[blue], colorFinish[red], colorStart[black] ]
+        readonly property var disabledColorStart: [ colorStart[white], colors.baseGrayHighlight]
+        readonly property var disabledColorFinish: [ colorFinish[white], colors.baseGrayShadow]
+        readonly property var disabledTextColor: [ colors.lightGrayText, colors.baseGrayShadow]
         readonly property int radius: 5
     }
 

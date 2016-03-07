@@ -16,7 +16,10 @@ import "../styles-uit"
 
 Original.Button {
     id: button
+
     property int color: 0
+    property int colorScheme: hifi.colorShemes.light
+
     width: 120
     height: 28
 
@@ -24,27 +27,43 @@ Original.Button {
 
         background: Rectangle {
             radius: hifi.buttons.radius
+
             gradient: Gradient {
                 GradientStop {
                     position: 0.2
-                    color: enabled
-                           ? (!pressed && button.color != hifi.buttons.black || (!hovered || pressed) && button.color == hifi.buttons.black
-                              ? hifi.buttons.colorStart[button.color] : hifi.buttons.colorFinish[button.color])
-                           : hifi.buttons.colorStart[hifi.buttons.white]
+                    color: {
+                        if (!enabled) {
+                            hifi.buttons.disabledColorStart[button.colorScheme]
+                        } else if (pressed) {
+                            hifi.buttons.pressedColor[button.color]
+                        } else if (hovered) {
+                            hifi.buttons.hoveredColor[button.color]
+                        } else {
+                            hifi.buttons.colorStart[button.color]
+                        }
+                    }
                 }
                 GradientStop {
                     position: 1.0
-                    color: enabled
-                           ? ((!hovered || pressed) && button.color != hifi.buttons.black || !pressed && button.color == hifi.buttons.black
-                              ? hifi.buttons.colorFinish[button.color] : hifi.buttons.colorStart[button.color])
-                           : hifi.buttons.colorFinish[hifi.buttons.white]
+                    color: {
+                        if (!enabled) {
+                            hifi.buttons.disabledColorFinish[button.colorScheme]
+                        } else if (pressed) {
+                            hifi.buttons.pressedColor[button.color]
+                        } else if (hovered) {
+                            hifi.buttons.hoveredColor[button.color]
+                        } else {
+                            hifi.buttons.colorFinish[button.color]
+                        }
+                    }
                 }
             }
         }
 
         label: RalewayBold {
             font.capitalization: Font.AllUppercase
-            color: enabled ? hifi.buttons.textColor[button.color] : hifi.colors.lightGrayText
+            color: enabled ? hifi.buttons.textColor[button.color]
+                           : hifi.buttons.disabledTextColor[button.colorScheme]
             size: hifi.fontSizes.buttonLabel
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
