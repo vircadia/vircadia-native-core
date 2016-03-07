@@ -21,8 +21,6 @@ AssetResourceRequest::~AssetResourceRequest() {
 }
 
 void AssetResourceRequest::doSend() {
-    // Make request to atp
-    auto assetClient = DependencyManager::get<AssetClient>();
     auto parts = _url.path().split(".", QString::SkipEmptyParts);
     auto hash = parts.length() > 0 ? parts[0] : "";
     auto extension = parts.length() > 1 ? parts[1] : "";
@@ -35,6 +33,8 @@ void AssetResourceRequest::doSend() {
         return;
     }
 
+    // Make request to atp
+    auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash, extension);
 
     if (!_assetRequest) {

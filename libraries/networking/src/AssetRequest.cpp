@@ -21,7 +21,6 @@
 #include "ResourceCache.h"
 
 AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
-    QObject(),
     _hash(hash),
     _extension(extension)
 {
