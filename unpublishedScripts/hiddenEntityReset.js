@@ -1251,8 +1251,9 @@
         }
 
         function createPingPongBallGun() {
-            var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
-            var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_convex.obj';
+
+            var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.fbx';
+            var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
             var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
             var position = {
                 x: 548.6,
