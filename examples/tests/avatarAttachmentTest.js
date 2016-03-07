@@ -17,14 +17,14 @@
 function ToggleButtonBuddy(x, y, width, height, urls) {
     this.up = Overlays.addOverlay("image", {
         x: x, y: y, width: width, height: height,
-        subImage: { x: 0, y: height, width: width, height: height},
+        subImage: { x: 0, y: 0, width: width, height: height},
         imageURL: urls.up,
         visible: true,
         alpha: 1.0
     });
     this.down = Overlays.addOverlay("image", {
         x: x, y: y, width: width, height: height,
-        subImage: { x: 0, y: height, width: width, height: height},
+        subImage: { x: 0, y: 0, width: width, height: height},
         imageURL: urls.down,
         visible: false,
         alpha: 1.0
@@ -120,7 +120,6 @@ coatButton.addToggleHandler(function (isDown) {
     }
 });
 
-
 function wearAttachment(attachment) {
     MyAvatar.attach(attachment.modelURL,
                     attachment.jointName,
@@ -144,5 +143,5 @@ function removeAttachment(attachment) {
 
 Script.scriptEnding.connect(function() {
     hatButton.destroy();
-    coatbutton.destroy();
+    coatButton.destroy();
 });
