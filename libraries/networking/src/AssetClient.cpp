@@ -622,3 +622,39 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     assetRequest->start();
 }
+
+void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createSetMappingRequest(path, hash);
+
+    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+        QScriptValueList args { uint8_t(request->getError()) };
+
+        callback.call(_engine->currentContext()->thisObject(), args);
+
+        request->deleteLater();
+         
+    });
+
+    request->start();
+}
+
+void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createGetMappingRequest(path);
+
+    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+        QScriptValueList args { uint8_t(request->getError()), request->getHash() };
+
+        callback.call(_engine->currentContext()->thisObject(), args);
+
+        request->deleteLater();
+         
+    });
+
+    request->start();
+}
+
+void AssetScriptingInterface::getAllMappings(QString path, QScriptValue callback) {
+}
+>>>>>>> 6dd3b1b... Add AssetScriptingInterface methods for mapping
