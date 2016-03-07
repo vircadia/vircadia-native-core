@@ -1122,8 +1122,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    Menu::getInstance()->deleteLater();
-
     _physicsEngine->setCharacterController(NULL);
 
     ModelEntityItem::cleanupLoadedAnimations();
@@ -1168,6 +1166,10 @@ Application::~Application() {
 #if 0
     ConnexionClient::getInstance().destroy();
 #endif
+    // The window takes ownership of the menu, so this has the side effect of destroying it.
+    _window->setMenuBar(nullptr);
+    
+    _window->deleteLater();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1334,7 +1336,7 @@ void Application::initializeUi() {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
-    Menu::setInstance();
+    _window->setMenuBar(new Menu());
     updateInputModes();
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();

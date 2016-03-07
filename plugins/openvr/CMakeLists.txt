@@ -11,7 +11,7 @@ if (WIN32)
     add_definitions(-DGLEW_STATIC)
     set(TARGET_NAME openvr)
     setup_hifi_plugin(OpenGL Script Qml Widgets)
-    link_hifi_libraries(shared gl networking controllers
+    link_hifi_libraries(shared gl networking controllers ui 
         plugins display-plugins input-plugins script-engine
         render-utils model gpu render model-networking fbx)
 
