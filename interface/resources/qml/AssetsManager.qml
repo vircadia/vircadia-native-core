@@ -52,8 +52,9 @@ Window {
     Column {
         width: pane.contentWidth
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Asset Directory"
+            isFirst: true
 
             Row {
                 id: buttonRow
@@ -102,9 +103,8 @@ Window {
             }
         }
 
-        HifiControls.StaticSection {
+        HifiControls.ContentSection {
             name: "Upload File"
-            hasSeparator: true
 
             HifiControls.TextField {
                 id: fileUrl
