@@ -21,9 +21,21 @@ AssetResourceRequest::~AssetResourceRequest() {
 }
 
 void AssetResourceRequest::doSend() {
+    auto parts = _url.path().split(".", QString::SkipEmptyParts);
+    auto hash = parts.length() > 0 ? parts[0] : "";
+    auto extension = parts.length() > 1 ? parts[1] : "";
+
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+        _result = InvalidURL;
+        _state = Finished;
+
+        emit finished();
+        return;
+    }
+
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetRequest = assetClient->createRequest(_url);
+    _assetRequest = assetClient->createRequest(hash, extension);
 
     if (!_assetRequest) {
         _result = ServerUnavailable;
