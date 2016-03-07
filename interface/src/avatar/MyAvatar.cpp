@@ -1944,13 +1944,26 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
 
-     const float CYLINDER_RADIUS = 0.3f;
-
+    // -z axis of currentBodyMatrix in world space.
+    glm::vec3 forward = glm::normalize(glm::vec3(-currentBodyMatrix[0][3], -currentBodyMatrix[1][3], -currentBodyMatrix[2][3]));
+    // x axis of currentBodyMatrix in world space.
+    glm::vec3 right = glm::normalize(glm::vec3(currentBodyMatrix[0][0], currentBodyMatrix[1][0], currentBodyMatrix[2][0]));
     glm::vec3 offset = extractTranslation(desiredBodyMatrix) - extractTranslation(currentBodyMatrix);
-    glm::vec3 radialOffset(offset.x, 0.0f, offset.z);
-    float radialDistance = glm::length(radialOffset);
 
-    return radialDistance > CYLINDER_RADIUS;
+    float forwardLeanAmount = glm::dot(forward, offset);
+    float lateralLeanAmount = glm::dot(right, offset);
+
+    const float MAX_LATERAL_LEAN = 0.3f;
+    const float MAX_FORWARD_LEAN = 0.15f;
+    const float MAX_BACKWARD_LEAN = 0.1f;
+
+    if (forwardLeanAmount > 0 && forwardLeanAmount > MAX_FORWARD_LEAN) {
+        return true;
+    } else if (forwardLeanAmount < 0 && forwardLeanAmount < -MAX_BACKWARD_LEAN) {
+        return true;
+    }
+
+    return fabs(lateralLeanAmount) > MAX_LATERAL_LEAN;
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
