@@ -130,6 +130,7 @@ void AssetServer::completeSetup() {
 
         }
     }
+    
     qInfo() << "Serving files from: " << _resourcesDirectory.path();
 
     // Check the asset directory to output some information about what we have
