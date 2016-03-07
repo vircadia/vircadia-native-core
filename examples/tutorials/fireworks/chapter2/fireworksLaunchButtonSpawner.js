@@ -1,5 +1,12 @@
-
-  // Chapter 2 : fireworksLaumchButtonSpawner.js
+//
+//  fireworksLaunchButtonSpawner.js
+//
+//  Created by Eric Levin on 3/7/2017
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This is the chapter 2 interface script of the fireworks tutorial (https://docs.highfidelity.com/docs/fireworks-scripting-tutorial)
+//
+//  Distributed under the Apache License, Version 2.0.
 
   var orientation = Camera.getOrientation();
   orientation = Quat.safeEulerAngles(orientation);

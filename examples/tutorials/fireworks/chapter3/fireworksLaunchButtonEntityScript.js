@@ -1,4 +1,12 @@
-// Chapter 3: fireworksLaunchButtonEntityScript.js
+//
+//  fireworksLaunchButtonEntityScript.js
+//
+//  Created by Eric Levin on 3/7/2017
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This is the chapter 3 entity script of the fireworks tutorial (https://docs.highfidelity.com/docs/fireworks-scripting-tutorial)
+//
+//  Distributed under the Apache License, Version 2.0.
 
   (function() {
     Script.include("../../libraries/utils.js");
