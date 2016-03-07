@@ -32,7 +32,7 @@ private slots:
 private:
     bool urlIsAssetPath() const;
     
-    void requestHash(const QString& hash);
+    void requestHash(const AssetHash& hash);
 
     AssetRequest* _assetRequest { nullptr };
 };

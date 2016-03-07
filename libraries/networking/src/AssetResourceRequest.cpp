@@ -51,7 +51,7 @@ void AssetResourceRequest::doSend() {
     }
 }
 
-void AssetResourceRequest::requestHash(const QString& hash) {
+void AssetResourceRequest::requestHash(const AssetHash& hash) {
 
     // in case we haven't parsed a valid hash, return an error now
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
