@@ -30,6 +30,10 @@ private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
+    bool urlIsAssetPath() const;
+    
+    void requestHash(const QString& hash);
+
     AssetRequest* _assetRequest { nullptr };
 };
 

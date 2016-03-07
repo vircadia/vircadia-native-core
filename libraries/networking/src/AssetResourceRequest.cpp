@@ -46,16 +46,17 @@ void AssetResourceRequest::doSend() {
         // We've detected that this is a hash - simply use AssetClient to request that asset
         auto parts = _url.path().split(".", QString::SkipEmptyParts);
         auto hash = parts.length() > 0 ? parts[0] : "";
-        auto extension = parts.length() > 1 ? parts[1] : "";
 
-        // in case we haven't parsed a valid hash, return an error now
-        if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-            _result = InvalidURL;
-            _state = Finished;
+        requestHash(hash);
+    }
+}
 
-            emit finished();
-            return;
-        }
+void AssetResourceRequest::requestHash(const QString& hash) {
+
+    // in case we haven't parsed a valid hash, return an error now
+    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
+        _result = InvalidURL;
+        _state = Finished;
 
         emit finished();
         return;
