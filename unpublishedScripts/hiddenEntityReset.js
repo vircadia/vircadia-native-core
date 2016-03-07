@@ -973,6 +973,8 @@
                     y: 2.545,
                     z: 2.545
                 },
+                intensity: 1.0,
+                falloffRadius: 0.3,
                 cutoff: 90,
                 color: {
                     red: 217,
@@ -1001,6 +1003,8 @@
                     y: 2.545,
                     z: 2.545
                 },
+                intensity: 1.0,
+                falloffRadius: 0.3,
                 cutoff: 90,
                 color: {
                     red: 217,
@@ -1074,6 +1078,8 @@
                     y: 2.545,
                     z: 2.545
                 },
+                intensity: 1.0,
+                falloffRadius: 0.3,
                 cutoff: 90,
                 color: {
                     red: 217,
@@ -1103,6 +1109,8 @@
                     y: 2.545,
                     z: 2.545
                 },
+                intensity: 1.0,
+                falloffRadius: 0.3,
                 cutoff: 90,
                 color: {
                     red: 217,
@@ -1131,6 +1139,8 @@
                     y: 2.545,
                     z: 2.545
                 },
+                intensity: 1.0,
+                falloffRadius: 0.3,
                 cutoff: 90,
                 color: {
                     red: 217,
