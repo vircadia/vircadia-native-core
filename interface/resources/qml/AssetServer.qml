@@ -16,6 +16,7 @@ import Qt.labs.settings 1.0
 import "styles-uit"
 import "controls-uit" as HifiControls
 import "windows-uit"
+import "dialogs"
 
 Window {
     id: root
@@ -38,6 +39,7 @@ Window {
         category: "Overlay.AssetServer"
         property alias x: root.x
         property alias y: root.y
+        property alias directory: ""
     }
 
 
@@ -49,9 +51,8 @@ Window {
         print("goBack");
     }
 
-    function uploadFile(fileUrl) {
-        var shouldAddToScene = addToScene.enabled;
-        print("uploadFile: " + shouldAddToScene);
+    function uploadFile(fileUrl, addToScene) {
+        print("uploadFile: " + fileUrl + " " + addToScene);
 
     }
 
@@ -117,7 +118,7 @@ Window {
 
             HifiControls.Tree {
                 id: treeView
-                height: 155
+                height: 250
                 treeModel: scriptsModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
@@ -128,6 +129,11 @@ Window {
         HifiControls.ContentSection {
             name: ""
             spacing: hifi.dimensions.contentSpacing.y
+
+            Component {
+                id: fileBrowserBuilder;
+                FileDialog { selectDirectory: true }
+            }
 
             HifiControls.TextField {
                 id: fileUrl
@@ -156,6 +162,14 @@ Window {
                     enabled: true
 
                     width: 100
+
+                    onClicked: {
+                        var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
+                        browser.selectedFile.connect(function(url){
+                            console.log(url);
+                            fileUrl.text = fileDialogHelper.urlToPath(url);
+                        });
+                    }
                 }
             }
 
@@ -186,7 +200,7 @@ Window {
                     width: 155
 
                     enabled: fileUrl.text != ""
-                    onClicked: root.uploadFile(fileUrl.text)
+                    onClicked: root.uploadFile(fileUrl.text, addToScene.checked)
                 }
             }
         }
