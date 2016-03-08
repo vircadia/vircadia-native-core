@@ -18,8 +18,6 @@ Column {
     property bool isFirst: false
     property bool isCollapsible: false  // Set at creation.
     property bool isCollapsed: false
-    property int colorScheme: hifi.colorSchemes.light
-    readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
     spacing: 0  // Defer spacing decisions to individual controls.
 
@@ -62,14 +60,14 @@ Column {
                 id: shadow
                 width: frame.width
                 height: 1
-                color: hifi.colors.sectionSeparator1[colorScheme]
+                color: hifi.colors.baseGrayShadow
                 x: -hifi.dimensions.contentMargin.x
             }
 
             Rectangle {
                 width: frame.width
                 height: 1
-                color: hifi.colors.sectionSeparator2[colorScheme]
+                color: hifi.colors.baseGrayHighlight
                 x: -hifi.dimensions.contentMargin.x
                 anchors.top: shadow.bottom
             }
@@ -106,7 +104,7 @@ Column {
                 y: -2
                 size: hifi.fontSizes.disclosureButton
                 text: isCollapsed ? hifi.glyphs.disclosureButtonExpand : hifi.glyphs.disclosureButtonCollapse
-                color: title.color
+                color: hifi.colors.lightGrayText
                 visible: isCollapsible
             }
 
@@ -126,8 +124,8 @@ Column {
             start: Qt.point(0, 0)
             end: Qt.point(0, 4)
             gradient: Gradient {
-                GradientStop { position: 0.0; color: hifi.colors.sectionGradiantStart[colorScheme] }
-                GradientStop { position: 1.0; color: hifi.colors.sectionGradiantFinish[colorScheme] }  // Equivalent of darkGray0 over baseGray background.
+                GradientStop { position: 0.0; color: hifi.colors.darkGray }
+                GradientStop { position: 1.0; color: hifi.colors.baseGray }  // Equivalent of darkGray0 over baseGray background.
             }
             cached: true
         }
