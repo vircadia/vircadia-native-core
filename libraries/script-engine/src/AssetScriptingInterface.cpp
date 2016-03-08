@@ -15,6 +15,7 @@
 
 #include <AssetRequest.h>
 #include <AssetUpload.h>
+#include <MappingRequest.h>
 #include <NetworkLogging.h>
 
 AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :

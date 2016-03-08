@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 #ifndef hifi_AssetClient_h
 #define hifi_AssetClient_h
 
@@ -28,6 +27,9 @@
 
 class GetMappingRequest;
 class SetMappingRequest;
+class GetAllMappingsRequest;
+class DeleteMappingsRequest;
+class RenameMappingRequest;
 class AssetRequest;
 class AssetUpload;
 
@@ -41,107 +43,6 @@ using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetSer
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
-
-class MappingRequest : public QObject {
-    Q_OBJECT
-public:
-    enum Error {
-        NoError,
-        NotFound,
-        NetworkError,
-        PermissionDenied,
-        UnknownError
-    };
-
-    Q_INVOKABLE void start();
-    Error getError() const { return _error; }
-
-protected:
-    Error _error { NoError };
-
-private:
-    virtual void doStart() = 0;
-};
-
-
-class GetMappingRequest : public MappingRequest {
-    Q_OBJECT
-public:
-    GetMappingRequest(const AssetPath& path);
-
-    AssetHash getHash() const { return _hash;  }
-
-signals:
-    void finished(GetMappingRequest* thisRequest);
-
-private:
-    virtual void doStart() override;
-
-    AssetPath _path;
-    AssetHash _hash;
-};
-
-class SetMappingRequest : public MappingRequest {
-    Q_OBJECT
-public:
-    SetMappingRequest(const AssetPath& path, const AssetHash& hash);
-
-    AssetHash getHash() const { return _hash;  }
-
-signals:
-    void finished(SetMappingRequest* thisRequest);
-
-private:
-    virtual void doStart() override;
-
-    AssetPath _path;
-    AssetHash _hash;
-};
-
-class DeleteMappingsRequest : public MappingRequest {
-    Q_OBJECT
-public:
-    DeleteMappingsRequest(const AssetPathList& path);
-
-signals:
-    void finished(DeleteMappingsRequest* thisRequest);
-
-private:
-    virtual void doStart() override;
-
-    AssetPathList _paths;
-};
-
-class RenameMappingRequest : public MappingRequest {
-    Q_OBJECT
-public:
-    RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
-
-signals:
-    void finished(RenameMappingRequest* thisRequest);
-
-private:
-    virtual void doStart() override;
-
-    AssetPath _oldPath;
-    AssetPath _newPath;
-};
-
-class GetAllMappingsRequest : public MappingRequest {
-    Q_OBJECT
-public:
-    GetAllMappingsRequest();
-
-    AssetMapping getMappings() const { return _mappings;  }
-
-signals:
-    void finished(GetAllMappingsRequest* thisRequest);
-
-private:
-    virtual void doStart() override;
-
-    std::map<AssetPath, AssetHash> _mappings;
-};
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT

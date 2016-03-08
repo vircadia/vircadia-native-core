@@ -13,6 +13,7 @@
 
 #include "AssetClient.h"
 #include "AssetUtils.h"
+#include "MappingRequest.h"
 
 AssetResourceRequest::~AssetResourceRequest() {
     if (_assetMappingRequest) {
