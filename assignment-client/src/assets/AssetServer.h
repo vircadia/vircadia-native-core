@@ -34,11 +34,18 @@ private slots:
     void handleAssetGetInfo(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetGet(QSharedPointer<ReceivedMessage> packet, SharedNodePointer senderNode);
     void handleAssetUpload(QSharedPointer<ReceivedMessage> packetList, SharedNodePointer senderNode);
+    void handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     
     void sendStatsPacket();
     
 private:
+
+    void loadMappingFromFile();
+    void writeMappingToFile();
+
     static void writeError(NLPacketList* packetList, AssetServerError error);
+
+    AssetMapping _fileMapping;
     QDir _resourcesDirectory;
     QThreadPool _taskPool;
 };

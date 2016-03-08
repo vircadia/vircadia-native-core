@@ -14,11 +14,17 @@
 
 #include <cstdint>
 
+#include <map>
+
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
 using MessageID = uint32_t;
 using DataOffset = int64_t;
+
+using AssetPath = QString;
+using AssetHash = QString;
+using AssetMapping = std::map<AssetPath, AssetHash>;
 
 const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;
@@ -30,6 +36,13 @@ enum AssetServerError : uint8_t {
     InvalidByteRange,
     AssetTooLarge,
     PermissionDenied
+};
+
+enum AssetMappingOperationType : uint8_t {
+    Get = 0,
+    GetAll,
+    Set,
+    Delete
 };
 
 QUrl getATPUrl(const QString& hash, const QString& extension = QString());

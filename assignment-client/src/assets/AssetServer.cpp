@@ -42,6 +42,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
     packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetMappingOperation, this, "handleAssetMappingOperation");
 }
 
 void AssetServer::run() {
@@ -159,6 +160,67 @@ void AssetServer::completeSetup() {
     }
 
     nodeList->addNodeTypeToInterestSet(NodeType::Agent);
+}
+
+
+void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    MessageID messageID;
+    message->readPrimitive(&messageID);
+
+    AssetMappingOperationType operationType;
+    message->readPrimitive(&operationType);
+
+    auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply, QByteArray(), true, true);
+    replyPacket->writePrimitive(messageID);
+
+    switch (operationType) {
+        case AssetMappingOperationType::Get: {
+            QString assetPath = message->readString();
+
+            auto it = _fileMapping.find(assetPath);
+            if (it != _fileMapping.end()) {
+                auto assetHash = it->second;
+                qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
+                replyPacket->writePrimitive(AssetServerError::NoError);
+                //replyPacket->write(assetHash.toLatin1().toHex());
+                replyPacket->writeString(assetHash.toLatin1());
+            }
+            else {
+                qDebug() << "Mapping not found for: " << assetPath;
+                replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+            }
+            break;
+        }
+        case AssetMappingOperationType::GetAll: {
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            auto count = _fileMapping.size();
+            replyPacket->writePrimitive(count);
+            for (auto& kv : _fileMapping) {
+                replyPacket->writeString(kv.first);
+                replyPacket->writeString(kv.second);
+            }
+            break;
+        }
+        case AssetMappingOperationType::Set: {
+            QString assetPath = message->readString();
+            //auto assetHash = message->read(SHA256_HASH_LENGTH);
+            auto assetHash = message->readString();
+            _fileMapping[assetPath] = assetHash;
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            break;
+        }
+        case AssetMappingOperationType::Delete: {
+            QString assetPath = message->readString();
+            bool removed = _fileMapping.erase(assetPath) > 0;
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            break;
+        }
+    }
+
+    auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->sendPacketList(std::move(replyPacket), *senderNode);
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -307,4 +369,10 @@ void AssetServer::sendStatsPacket() {
     
     // send off the stats packets
     ThreadedAssignment::addPacketStatsAndSendStatsPacket(serverStats);
+}
+
+void AssetServer::loadMappingFromFile() {
+}
+
+void AssetServer::writeMappingToFile() {
 }
