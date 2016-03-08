@@ -104,8 +104,9 @@
                         green: 255,
                         blue: 255
                     },
-                    intensity: 2,
-                    exponent: 0.3,
+                    intensity:  1,
+                    falloffRadius:0.9,
+                    exponent: 0.5,
                     cutoff: 20,
                     lifetime: LIFETIME,
                     position: lightTransform.p,
@@ -128,6 +129,8 @@
                         blue: 255
                     },
                     exponent: 0,
+                    intensity:1.0,
+                    falloffRadius:0.3,
                     lifetime: LIFETIME,
                     cutoff: 90, // in degrees
                     position: glowLightTransform.p,
