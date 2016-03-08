@@ -33,9 +33,6 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        _this.flowersBloomingSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/flowersBlooming.wav");
-        _this.soundPlaying = false;
-        _this.BLOOM_VOLUME = 0.4;
 
     };
 
@@ -60,16 +57,7 @@
                 flower.grow();
             });
 
-            if (!_this.soundPlaying) {
-                _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
-                _this.soundPlaying = true;
-                _this.bloomSoundInjector = Audio.playSound(_this.flowersBloomingSound, {position: _this.position, volume: _this.BLOOM_VOLUME});
-            }
-        },
-
-        stopWatering: function() {
-           _this.bloomSoundInjector.stop();
-           _this.soundPlaying = false;
+ 
         },
 
         createFlower: function(position, surfaceNormal) {
@@ -135,15 +123,7 @@
                     }
                 }
             };
-        },
-
-        unload: function() {
-            if (_this.bloomSoundInjector) {
-                _this.bloomSoundInjector.stop();
-                delete _this.bloomSoundInjector;
-            }
         }
-
     };
 
     // entity scripts always need to return a newly constructed object of our type
