@@ -186,51 +186,71 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
 
     switch (operationType) {
         case AssetMappingOperationType::Get: {
-            QString assetPath = message->readString();
-
-            auto it = _fileMapping.find(assetPath);
-            if (it != _fileMapping.end()) {
-                auto assetHash = it->toString();
-                qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
-                replyPacket->writePrimitive(AssetServerError::NoError);
-                //replyPacket->write(assetHash.toLatin1().toHex());
-                replyPacket->writeString(assetHash.toLatin1());
-            }
-            else {
-                qDebug() << "Mapping not found for: " << assetPath;
-                replyPacket->writePrimitive(AssetServerError::AssetNotFound);
-            }
+            handleGetMappingOperation(*message, senderNode, std::move(replyPacket));
             break;
         }
         case AssetMappingOperationType::Set: {
-            QString assetPath = message->readString();
-            //auto assetHash = message->read(SHA256_HASH_LENGTH);
-            auto assetHash = message->readString();
-
-            if (setMapping(assetPath, assetHash)) {
-                replyPacket->writePrimitive(AssetServerError::NoError);
-            } else {
-                replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
-            }
-
-
+            handleSetMappingOperation(*message, senderNode, std::move(replyPacket));
             break;
         }
         case AssetMappingOperationType::Delete: {
-            QString assetPath = message->readString();
-
-            if (deleteMapping(assetPath)) {
-                replyPacket->writePrimitive(AssetServerError::NoError);
-            } else {
-                replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
-            }
-
+            handleDeleteMappingOperation(*message, senderNode, std::move(replyPacket));
             break;
         }
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
+}
+
+void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
+                                            std::unique_ptr<NLPacket> replyPacket) {
+    QString assetPath = message.readString();
+
+    auto it = _fileMapping.find(assetPath);
+    if (it != _fileMapping.end()) {
+        auto assetHash = it->toString();
+        qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
+        replyPacket->writePrimitive(AssetServerError::NoError);
+        //replyPacket->write(assetHash.toLatin1().toHex());
+        replyPacket->writeString(assetHash.toLatin1());
+    }
+    else {
+        qDebug() << "Mapping not found for: " << assetPath;
+        replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+    }
+}
+
+void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
+                                            std::unique_ptr<NLPacket> replyPacket) {
+    if (senderNode->getCanRez()) {
+        QString assetPath = message.readString();
+        // auto assetHash = message->read(SHA256_HASH_LENGTH);
+        auto assetHash = message.readString();
+
+        if (setMapping(assetPath, assetHash)) {
+            replyPacket->writePrimitive(AssetServerError::NoError);
+        } else {
+            replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+        }
+    } else {
+        replyPacket->writePrimitive(AssetServerError::PermissionDenied);
+    }
+}
+
+void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
+                                               std::unique_ptr<NLPacket> replyPacket) {
+    if (senderNode->getCanRez()) {
+        QString assetPath = message.readString();
+
+        if (deleteMapping(assetPath)) {
+            replyPacket->writePrimitive(AssetServerError::NoError);
+        } else {
+            replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+        }
+    } else {
+        replyPacket->writePrimitive(AssetServerError::PermissionDenied);
+    }
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

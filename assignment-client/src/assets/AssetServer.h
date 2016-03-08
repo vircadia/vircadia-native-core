@@ -41,6 +41,11 @@ private slots:
 private:
     using Mapping = QVariantHash;
 
+    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, std::unique_ptr<NLPacket> replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, std::unique_ptr<NLPacket> replyPacket);
+    void handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
+                                      std::unique_ptr<NLPacket> replyPacket);
+
     // Mapping file operations must be called from main assignment thread only
     void loadMappingFromFile();
     bool writeMappingToFile();
