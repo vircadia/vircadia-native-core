@@ -40,12 +40,13 @@ void GetMappingRequest::start() {
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetMapping(_path, [this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
         if (!error) {
             //_hash = message->read(SHA256_HASH_HEX_LENGTH);
             _hash = message->readString();
+            assetClient->_mappingCache[_path] = _hash;
         }
         emit finished(this);
     });
@@ -61,17 +62,19 @@ void GetAllMappingsRequest::start() {
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAllAssetMappings([this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    assetClient->getAllAssetMappings([this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
         if (!error) {
             size_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
             AssetMapping mapping;
+            assetClient->_mappingCache.clear();
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->readString();
                 mapping[path] = hash;
+                assetClient->_mappingCache[path] = hash;
             }
         }
         emit finished(this);
@@ -88,9 +91,12 @@ void SetMappingRequest::start() {
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->setAssetMapping(_path, _hash, [this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
+        if (!error) {
+            assetClient->_mappingCache[_path] = _hash;
+        }
         emit finished(this);
     });
 };
@@ -105,9 +111,12 @@ void DeleteMappingRequest::start() {
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->deleteAssetMapping(_path, [this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    assetClient->deleteAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
+        if (!error) {
+            assetClient->_mappingCache.remove(_path);
+        }
         emit finished(this);
     });
 };
@@ -171,6 +180,8 @@ void AssetClient::clearCache() {
         QMetaObject::invokeMethod(this, "clearCache", Qt::QueuedConnection);
         return;
     }
+
+    _mappingCache.clear();
 
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
@@ -650,6 +661,18 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
             messageMapIt->second.clear();
         }
     }
+
+    {
+        auto messageMapIt = _pendingMappingRequests.find(node);
+        if (messageMapIt != _pendingMappingRequests.end()) {
+            for (const auto& value : messageMapIt->second) {
+                value.second(false, AssetServerError::PermissionDenied, QSharedPointer<ReceivedMessage>());
+            }
+            messageMapIt->second.clear();
+        }
+    }
+
+    _mappingCache.clear();
 }
 
 void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {

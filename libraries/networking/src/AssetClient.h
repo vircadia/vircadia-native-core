@@ -167,6 +167,8 @@ private:
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
+
+    QHash<QString, QString> _mappingCache;
     
     friend class AssetRequest;
     friend class AssetUpload;
