@@ -27,7 +27,7 @@ Window {
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
-   colorScheme: hifi.colorSchemes.light
+    property int colorScheme: hifi.colorSchemes.dark
 
     HifiConstants { id: hifi }
 
@@ -57,13 +57,13 @@ Window {
         HifiControls.ContentSection {
             name: "Asset Directory"
             spacing: hifi.dimensions.contentSpacing.y
-            colorScheme: root.colorScheme
             isFirst: true
 
             Row {
                 id: buttonRow
                 anchors.left: parent.left
                 anchors.right: parent.right
+                spacing: hifi.dimensions.contentSpacing.x
 
                 HifiControls.GlyphButton {
                     glyph: hifi.glyphs.back
@@ -113,7 +113,6 @@ Window {
         HifiControls.ContentSection {
             name: ""
             spacing: hifi.dimensions.contentSpacing.y
-            colorScheme: root.colorScheme
 
             HifiControls.TextField {
                 id: fileUrl
@@ -176,4 +175,3 @@ Window {
         }
     }
 }
-
