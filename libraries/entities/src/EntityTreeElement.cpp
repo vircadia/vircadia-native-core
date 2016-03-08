@@ -351,9 +351,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 } else {
                     // if the extra data included this entity, and we've decided to not include the entity, then
                     // we can treat it as if it was completed.
-                    if (entityTreeElementExtraEncodeData->entities.contains(entity->getEntityItemID())) {
-                        entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
-                    }
+                    entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
                 }
             }
         }

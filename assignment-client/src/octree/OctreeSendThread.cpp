@@ -583,12 +583,16 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
 
+            // If this was a full scene then make sure we really send out a stats packet at this point so that
+            // the clients will know the scene is stable
             if (isFullScene) {
                 int thisTrueBytesSent = 0;
                 int thisTruePacketsSent = 0;
                 nodeData->stats.sceneCompleted();
-                // FIXME - are we accounting for packets sent correctly here????
                 int packetsJustSent = handlePacketSend(node, nodeData, thisTrueBytesSent, thisTruePacketsSent, true);
+                _totalBytes += thisTrueBytesSent;
+                _totalPackets += thisTruePacketsSent;
+                truePacketsSent += packetsJustSent;
             }
         }
 
