@@ -35,7 +35,8 @@ enum AssetServerError : uint8_t {
     AssetNotFound,
     InvalidByteRange,
     AssetTooLarge,
-    PermissionDenied
+    PermissionDenied,
+    MappingOperationFailed
 };
 
 enum AssetMappingOperationType : uint8_t {
@@ -45,7 +46,7 @@ enum AssetMappingOperationType : uint8_t {
     Delete
 };
 
-QUrl getATPUrl(const QString& hash, const QString& extension = QString());
+QUrl getATPUrl(const QString& hash);
 
 QByteArray hashData(const QByteArray& data);
 

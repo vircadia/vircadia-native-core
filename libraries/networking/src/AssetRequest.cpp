@@ -20,9 +20,8 @@
 #include "NodeList.h"
 #include "ResourceCache.h"
 
-AssetRequest::AssetRequest(const QString& hash, const QString& extension) :
-    _hash(hash),
-    _extension(extension)
+AssetRequest::AssetRequest(const QString& hash) :
+    _hash(hash)
 {
 }
 
@@ -52,7 +51,7 @@ void AssetRequest::start() {
     _state = WaitingForInfo;
     
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->getAssetInfo(_hash, _extension, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
+    assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
         _info = info;
         
         if (!responseReceived) {
@@ -84,7 +83,7 @@ void AssetRequest::start() {
         int start = 0, end = _info.size;
         
         auto assetClient = DependencyManager::get<AssetClient>();
-        assetClient->getAsset(_hash, _extension, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
+        assetClient->getAsset(_hash, start, end, [this, start, end](bool responseReceived, AssetServerError serverError,
                                                                                 const QByteArray& data) {
             if (!responseReceived) {
                 _error = NetworkError;

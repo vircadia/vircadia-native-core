@@ -4331,17 +4331,18 @@ bool Application::askToUploadAsset(const QString& filename) {
 }
 
 void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) {
-    auto filename = QFileInfo(upload->getFilename()).fileName();
+    auto fileInfo = QFileInfo(upload->getFilename());
+    auto filename = fileInfo.fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
-        (FBX_EXTENSION.endsWith(upload->getExtension(), Qt::CaseInsensitive) ||
-         OBJ_EXTENSION.endsWith(upload->getExtension(), Qt::CaseInsensitive))) {
+        (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
+         filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
 
         auto entities = DependencyManager::get<EntityScriptingInterface>();
 
         EntityItemProperties properties;
         properties.setType(EntityTypes::Model);
-        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension()));
+        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(fileInfo.completeSuffix()));
         properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
         properties.setName(QUrl(upload->getFilename()).fileName());
 

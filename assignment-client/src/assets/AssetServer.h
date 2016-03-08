@@ -39,14 +39,31 @@ private slots:
     void sendStatsPacket();
     
 private:
+    using Mappings = QVariantHash;
 
-    void loadMappingFromFile();
-    void writeMappingToFile();
+    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+
+    // Mapping file operations must be called from main assignment thread only
+    void loadMappingsFromFile();
+    bool writeMappingsToFile();
+
+    /// Set the mapping for path to hash
+    bool setMapping(AssetPath path, AssetHash hash);
+
+    /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
+    bool deleteMapping(AssetPath path);
 
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
-    AssetMapping _fileMapping;
+    void performMappingMigration();
+
+    Mappings _fileMappings;
+
     QDir _resourcesDirectory;
+    QDir _filesDirectory;
     QThreadPool _taskPool;
 };
 

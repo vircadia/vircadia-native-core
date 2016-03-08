@@ -15,9 +15,20 @@
 #include "AssetUtils.h"
 
 AssetResourceRequest::~AssetResourceRequest() {
+    if (_assetMappingRequest) {
+        _assetMappingRequest->deleteLater();
+    }
+    
     if (_assetRequest) {
         _assetRequest->deleteLater();
     }
+}
+
+bool AssetResourceRequest::urlIsAssetPath() const {
+    static const QString ATP_HASH_REGEX_STRING = "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$";
+
+    QRegExp hashRegex { ATP_HASH_REGEX_STRING };
+    return !hashRegex.exactMatch(_url.toString());
 }
 
 void AssetResourceRequest::doSend() {
@@ -25,6 +36,79 @@ void AssetResourceRequest::doSend() {
     auto hash = parts.length() > 0 ? parts[0] : "";
     auto extension = parts.length() > 1 ? parts[1] : "";
 
+    // We'll either have a hash or an ATP path to a file (that maps to a hash)
+
+    if (urlIsAssetPath()) {
+        // This is an ATP path, we'll need to figure out what the mapping is.
+        // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
+
+        auto path = _url.path();
+        requestMappingForPath(path);
+    } else {
+        // We've detected that this is a hash - simply use AssetClient to request that asset
+        auto parts = _url.path().split(".", QString::SkipEmptyParts);
+        auto hash = parts.length() > 0 ? parts[0] : "";
+
+        requestHash(hash);
+    }
+}
+
+void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    _assetMappingRequest = assetClient->createGetMappingRequest(path);
+
+    // if we get a nullptr for createGetMappingRequest assume that there is no currently available asset-server
+    if (!_assetMappingRequest) {
+        _result = ServerUnavailable;
+        _state = Finished;
+
+        emit finished();
+        return;
+    }
+
+    // make sure we'll hear about the result of the get mapping request
+    connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
+        Q_ASSERT(_state == InProgress);
+        Q_ASSERT(request == _assetMappingRequest);
+
+        switch (request->getError()) {
+            case MappingRequest::NoError:
+                // we have no error, we should have a resulting hash - use that to send of a request for that asset
+                qDebug() << "Got mapping for:" << path << "=>" << request->getHash();
+
+                requestHash(request->getHash());
+
+                break;
+            case MappingRequest::NotFound:
+                // no result for the mapping request, set error to not found
+                _result = NotFound;
+
+                // since we've failed we know we are finished
+                _state = Finished;
+                emit finished();
+
+                break;
+            default:
+                // these are unexpected errors for a GetMappingRequest object
+                _result = Error;
+
+                // since we've failed we know we are finished
+                _state = Finished;
+                emit finished();
+                
+                break;
+        }
+
+        _assetMappingRequest->deleteLater();
+        _assetMappingRequest = nullptr;
+    });
+
+    _assetMappingRequest->start();
+}
+
+void AssetResourceRequest::requestHash(const AssetHash& hash) {
+
+    // in case we haven't parsed a valid hash, return an error now
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         _result = InvalidURL;
         _state = Finished;
@@ -35,7 +119,7 @@ void AssetResourceRequest::doSend() {
 
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
-    _assetRequest = assetClient->createRequest(hash, extension);
+    _assetRequest = assetClient->createRequest(hash);
 
     if (!_assetRequest) {
         _result = ServerUnavailable;

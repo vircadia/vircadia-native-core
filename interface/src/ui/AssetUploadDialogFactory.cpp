@@ -87,7 +87,7 @@ void AssetUploadDialogFactory::handleUploadFinished(AssetUpload* upload, const Q
         // setup the line edit to hold the copiable text
         QLineEdit* lineEdit = new QLineEdit;
        
-        QString atpURL = QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(upload->getExtension());
+        QString atpURL = QString("%1:%2").arg(URL_SCHEME_ATP).arg(hash);
         
         // set the ATP URL as the text value so it's copiable
         lineEdit->insert(atpURL);

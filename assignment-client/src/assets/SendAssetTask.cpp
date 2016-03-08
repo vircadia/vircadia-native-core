@@ -33,13 +33,10 @@ SendAssetTask::SendAssetTask(QSharedPointer<ReceivedMessage> message, const Shar
 
 void SendAssetTask::run() {
     MessageID messageID;
-    uint8_t extensionLength;
     DataOffset start, end;
     
     _message->readPrimitive(&messageID);
     QByteArray assetHash = _message->read(SHA256_HASH_LENGTH);
-    _message->readPrimitive(&extensionLength);
-    QByteArray extension = _message->read(extensionLength);
 
     // `start` and `end` indicate the range of data to retrieve for the asset identified by `assetHash`.
     // `start` is inclusive, `end` is exclusive. Requesting `start` = 1, `end` = 10 will retrieve 9 bytes of data,
@@ -61,7 +58,7 @@ void SendAssetTask::run() {
     if (end <= start) {
         writeError(replyPacketList.get(), AssetServerError::InvalidByteRange);
     } else {
-        QString filePath = _resourcesDir.filePath(QString(hexHash) + "." + QString(extension));
+        QString filePath = _resourcesDir.filePath(QString(hexHash));
         
         QFile file { filePath };
 

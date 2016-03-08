@@ -104,8 +104,6 @@ class DeleteMappingRequest : public MappingRequest {
 public:
     DeleteMappingRequest(AssetPath path);
 
-    Q_INVOKABLE void start();
-
 signals:
     void finished(DeleteMappingRequest* thisRequest);
 
@@ -120,8 +118,6 @@ class GetAllMappingsRequest : public MappingRequest {
 public:
     GetAllMappingsRequest();
 
-    Q_INVOKABLE void start();
-
     AssetMapping getMappings() const { return _mappings;  }
 
 signals:
@@ -133,8 +129,6 @@ private:
     std::map<AssetPath, AssetHash> _mappings;
 };
 
-
-
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
@@ -144,9 +138,9 @@ public:
     Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
     Q_INVOKABLE DeleteMappingRequest* createDeleteMappingRequest(const AssetPath& path);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
-    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const QString& extension);
+    Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
-    Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
+    Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
 public slots:
     void init();
@@ -168,10 +162,10 @@ private:
     bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
     bool deleteAssetMapping(const AssetPath& path, MappingOperationCallback callback);
 
-    bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
-    bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
+    bool getAssetInfo(const QString& hash, GetInfoCallback callback);
+    bool getAsset(const QString& hash, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
-    bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
+    bool uploadAsset(const QByteArray& data, UploadResultCallback callback);
 
     struct GetAssetCallbacks {
         ReceivedAssetCallback completeCallback;
@@ -200,7 +194,7 @@ class AssetScriptingInterface : public QObject {
 public:
     AssetScriptingInterface(QScriptEngine* engine);
 
-    Q_INVOKABLE void uploadData(QString data, QString extension, QScriptValue callback);
+    Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
