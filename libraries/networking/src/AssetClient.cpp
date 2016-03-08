@@ -703,7 +703,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingMappingRequests.find(node);
         if (messageMapIt != _pendingMappingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::PermissionDenied, QSharedPointer<ReceivedMessage>());
+                value.second(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
             }
             messageMapIt->second.clear();
         }
