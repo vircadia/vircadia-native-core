@@ -161,6 +161,19 @@ ApplicationWindow {
                                        });
                 }
             }
+            Button {
+                text: "Duplicate Bookmark"
+                onClicked: {
+                    desktop.messageBox({
+                                           title: "Duplicate Bookmark",
+                                           icon: hifi.icons.warning,
+                                           text: "The bookmark name you entered alread exists in yoru list.",
+                                           informativeText: "Would you like to overwrite it?",
+                                           buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
+                                           defaultButton: OriginalDialogs.StandardButton.Yes
+                                       });
+                }
+            }
             /*
             // There is no such desktop.queryBox() function; may need to update test to cover QueryDialog.qml?
             Button {

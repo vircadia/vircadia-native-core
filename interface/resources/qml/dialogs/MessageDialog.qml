@@ -84,7 +84,7 @@ ModalWindow {
 
         RalewaySemibold {
             id: mainTextContainer
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            onTextChanged: d.resize();
             wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
@@ -100,7 +100,7 @@ ModalWindow {
 
         RalewaySemibold {
             id: informativeTextContainer
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            onTextChanged: d.resize();
             wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
@@ -194,7 +194,10 @@ ModalWindow {
             }
         ]
 
-        Component.onCompleted: updateIcon()
+        Component.onCompleted: {
+            updateIcon();
+            d.resize();
+        }
         onStateChanged: d.resize()
     }
 
