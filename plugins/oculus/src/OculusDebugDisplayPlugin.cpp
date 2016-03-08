@@ -19,8 +19,3 @@ bool OculusDebugDisplayPlugin::isSupported() const {
     }
     return OculusBaseDisplayPlugin::isSupported();
 }
-
-void OculusDebugDisplayPlugin::customizeContext() {
-    OculusBaseDisplayPlugin::customizeContext();
-    enableVsync(false);
-}

@@ -37,57 +37,38 @@ void OculusDisplayPlugin::uncustomizeContext() {
     OculusBaseDisplayPlugin::uncustomizeContext();
 }
 
-void OculusDisplayPlugin::internalPresent() {
+
+template <typename SrcFbo, typename DstFbo>
+void blit(const SrcFbo& srcFbo, const DstFbo& dstFbo) {
+    using namespace oglplus;
+    srcFbo->Bound(FramebufferTarget::Read, [&] {
+        dstFbo->Bound(FramebufferTarget::Draw, [&] {
+            Context::BlitFramebuffer(
+                0, 0, srcFbo->size.x, srcFbo->size.y,
+                0, 0, dstFbo->size.x, dstFbo->size.y,
+                BufferSelectBit::ColorBuffer, BlitFilter::Linear);
+        });
+    });
+}
+
+void OculusDisplayPlugin::updateFrameData() {
+    Parent::updateFrameData();
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = ovrPoseFromGlm(_currentRenderEyePoses[Left]);
+    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = ovrPoseFromGlm(_currentRenderEyePoses[Right]);
+}
+
+void OculusDisplayPlugin::hmdPresent() {
     if (!_currentSceneTexture) {
         return;
     }
 
-    using namespace oglplus;
-    const auto& size = _sceneFbo->size;
-    _sceneFbo->Bound([&] {
-        Context::Viewport(size.x, size.y);
-        glBindTexture(GL_TEXTURE_2D, _currentSceneTexture);
-        //glEnable(GL_FRAMEBUFFER_SRGB);
-        GLenum err = glGetError();
-        drawUnitQuad();
-        //glDisable(GL_FRAMEBUFFER_SRGB);
-    });
-
-    uint32_t frameIndex { 0 };
-    EyePoses eyePoses;
+    blit(_compositeFramebuffer, _sceneFbo);
     {
-        Lock lock(_mutex);
-        Q_ASSERT(_sceneTextureToFrameIndexMap.contains(_currentSceneTexture));
-        frameIndex = _sceneTextureToFrameIndexMap[_currentSceneTexture];
-        Q_ASSERT(_frameEyePoses.contains(frameIndex));
-        eyePoses = _frameEyePoses[frameIndex];
-    }
-
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Left] = eyePoses.first;
-    _sceneLayer.RenderPose[ovrEyeType::ovrEye_Right] = eyePoses.second;
-
-    {
-
         ovrLayerHeader* layers = &_sceneLayer.Header;
-        ovrResult result = ovr_SubmitFrame(_session, frameIndex, &_viewScaleDesc, &layers, 1);
+        ovrResult result = ovr_SubmitFrame(_session, _currentRenderFrameIndex, &_viewScaleDesc, &layers, 1);
         if (!OVR_SUCCESS(result)) {
             qDebug() << result;
         }
     }
     _sceneFbo->Increment();
-
-    // Handle mirroring to screen in base class
-    HmdDisplayPlugin::internalPresent();
-}
-
-void OculusDisplayPlugin::setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
-    auto ovrPose = ovrPoseFromGlm(pose);
-    {
-        Lock lock(_mutex);
-        if (eye == Eye::Left) {
-            _frameEyePoses[frameIndex].first = ovrPose;
-        } else {
-            _frameEyePoses[frameIndex].second = ovrPose;
-        }
-    }
 }

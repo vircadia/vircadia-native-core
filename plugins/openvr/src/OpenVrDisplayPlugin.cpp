@@ -21,7 +21,6 @@
 #include <PerfStat.h>
 #include <plugins/PluginContainer.h>
 #include <ViewFrustum.h>
-#include <GLMHelpers.h>
 
 #include "OpenVrHelpers.h"
 
@@ -128,19 +127,16 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
     return _trackedDevicePoseMat4[0];
 }
 
-void OpenVrDisplayPlugin::internalPresent() {
+void OpenVrDisplayPlugin::hmdPresent() {
     // Flip y-axis since GL UV coords are backwards.
     static vr::VRTextureBounds_t leftBounds{ 0, 0, 0.5f, 1 };
     static vr::VRTextureBounds_t rightBounds{ 0.5f, 0, 1, 1 };
-
-    vr::Texture_t texture{ (void*)_currentSceneTexture, vr::API_OpenGL, vr::ColorSpace_Auto };
+    
+    vr::Texture_t texture { (void*)oglplus::GetName(_compositeFramebuffer->color), vr::API_OpenGL, vr::ColorSpace_Auto };
 
     _compositor->Submit(vr::Eye_Left, &texture, &leftBounds);
     _compositor->Submit(vr::Eye_Right, &texture, &rightBounds);
 
     vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
-
-    // Handle the mirroring in the base class
-    HmdDisplayPlugin::internalPresent();
 }

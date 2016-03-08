@@ -86,10 +86,13 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
 
 void MenuScriptingInterface::addActionGroup(const QString& groupName, const QStringList& actionList,
                                             const QString& selected) {
+    static const char* slot = SLOT(menuItemTriggered());
     QMetaObject::invokeMethod(Menu::getInstance(), "addActionGroup",
                               Q_ARG(const QString&, groupName),
                               Q_ARG(const QStringList&, actionList),
-                              Q_ARG(const QString&, selected));
+                              Q_ARG(const QString&, selected),
+                              Q_ARG(QObject*, this),
+                              Q_ARG(const char*, slot));
 }
 
 void MenuScriptingInterface::removeActionGroup(const QString& groupName) {

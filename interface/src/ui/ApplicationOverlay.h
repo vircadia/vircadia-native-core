@@ -26,7 +26,8 @@ public:
 
     void renderOverlay(RenderArgs* renderArgs);
 
-    gpu::FramebufferPointer getOverlayFramebuffer() const { return _overlayFramebuffer; }
+    gpu::TexturePointer acquireOverlay(); 
+    void releaseOverlay(gpu::TexturePointer pointer);
 
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);
