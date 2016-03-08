@@ -100,7 +100,7 @@ void AssetServer::completeSetup() {
 
     qDebug() << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
-     _filesDirectory = _resourcesDirectory;
+    _filesDirectory = _resourcesDirectory;
 
     if (!_resourcesDirectory.mkpath(ASSET_FILES_SUBDIR) || !_filesDirectory.cd(ASSET_FILES_SUBDIR)) {
         qCritical() << "Unable to create file directory for asset-server files. Stopping assignment.";
