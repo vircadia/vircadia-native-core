@@ -83,6 +83,13 @@ Item {
         readonly property color dropDownLightFinish: "#afafaf"
         readonly property color dropDownDarkStart: "#7d7d7d"
         readonly property color dropDownDarkFinish: "#6b6a6b"
+        readonly property color textFieldLightBackground: "#d4d4d4"
+        readonly property color sectionSeparator1: [ baseGrayHighlight, baseGrayShadow]
+        readonly property color sectionSeparator2: [ white, baseGrayHighlight]
+        readonly property color sectiongGradiantStart: [ darkGray, darkGray]
+        readonly property color sectionGradiantFinish: [ darkGray0, darkGray0]
+        readonly property color backgroundLight: faintGray
+        readonly property color backgroundDark: baseGray
     }
 
     Item {

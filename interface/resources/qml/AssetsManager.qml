@@ -27,6 +27,8 @@ Window {
     implicitWidth: 384; implicitHeight: 640
     minSize: Qt.vector2d(200, 300)
 
+   colorScheme: hifi.colorSchemes.light
+
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
@@ -54,6 +56,8 @@ Window {
 
         HifiControls.ContentSection {
             name: "Asset Directory"
+            spacing: hifi.dimensions.contentSpacing.y
+            colorScheme: root.colorScheme
             isFirst: true
 
             Row {
@@ -64,6 +68,7 @@ Window {
                 HifiControls.Button {
                     text: "<"
                     color: hifi.buttons.white
+                    colorScheme: root.colorScheme
                     height: 26
                     width: 26
                 }
@@ -71,6 +76,7 @@ Window {
                 HifiControls.Button {
                     text: "O"
                     color: hifi.buttons.white
+                    colorScheme: root.colorScheme
                     height: 26
                     width: 26
                 }
@@ -88,6 +94,7 @@ Window {
 
                     text: "DELETE SELECTION"
                     color: hifi.buttons.red
+                    colorScheme: root.colorScheme
                     height: 26
                     width: 130
                 }
@@ -97,14 +104,16 @@ Window {
                 id: treeView
                 height: 155
                 treeModel: scriptsModel
-                colorScheme: hifi.colorSchemes.light
+                colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
             }
         }
 
         HifiControls.ContentSection {
-            name: "Upload File"
+            name: ""
+            spacing: hifi.dimensions.contentSpacing.y
+            colorScheme: root.colorScheme
 
             HifiControls.TextField {
                 id: fileUrl
@@ -112,8 +121,9 @@ Window {
                 anchors.right: parent.right
                 anchors.rightMargin: chooseButton.width + hifi.dimensions.contentSpacing.x
 
-                label: "Paste URL or choose file"
-                colorScheme: hifi.colorSchemes.light
+                label: "Upload File"
+                placeholderText: "Paste URL or choose file"
+                colorScheme: root.colorScheme
             }
 
             Item {
@@ -128,13 +138,14 @@ Window {
 
                     text: "Choose"
                     color: hifi.buttons.white
+                    colorScheme: root.colorScheme
                     enabled: true
 
                     width: 100
                 }
             }
 
-            CheckBox {
+            HifiControls.CheckBox {
                 id: addToScene
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -156,6 +167,7 @@ Window {
 
                     text: "Upload"
                     color: hifi.buttons.blue
+                    colorScheme: root.colorScheme
                     enabled: true
                     height: 30
                     width: 155

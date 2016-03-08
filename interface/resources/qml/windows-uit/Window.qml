@@ -52,6 +52,9 @@ Fadable {
     // property bool pinned: false
     property bool resizable: false
 
+    property int colorScheme: hifi.colorSchemes.dark
+    readonly property int isLightScheme: colorScheme == hifi.colorSchemes.light
+
     property vector2d minSize: Qt.vector2d(100, 100)
     property vector2d maxSize: Qt.vector2d(1280, 720)
 
@@ -137,7 +140,7 @@ Fadable {
             id: contentBackground
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 11 : 0
-            color: hifi.colors.baseGray
+            color: isLightScheme ? hifi.colors.backgroundLight : hifi.colors.backgroundDark
             visible: modality != Qt.ApplicationModal
         }
 
@@ -217,7 +220,7 @@ Fadable {
             }
             width: parent.contentWidth
             height: footer.height + 2 * hifi.dimensions.contentSpacing.y
-            color: hifi.colors.baseGray
+            color: isLightScheme ? hifi.colors.backgroundLight : hifi.colors.backgroundDark
             visible: footer.height > 0
 
             Item {
