@@ -38,7 +38,7 @@ void MappingRequest::start() {
     doStart();
 };
 
-GetMappingRequest::GetMappingRequest(AssetPath path) : _path(path) {
+GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path) {
 };
 
 void GetMappingRequest::doStart() {
@@ -113,7 +113,7 @@ void GetAllMappingsRequest::doStart() {
     });
 };
 
-SetMappingRequest::SetMappingRequest(AssetPath path, AssetHash hash) : _path(path), _hash(hash) {
+SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) : _path(path), _hash(hash) {
 };
 
 void SetMappingRequest::doStart() {
@@ -142,12 +142,12 @@ void SetMappingRequest::doStart() {
     });
 };
 
-DeleteMappingRequest::DeleteMappingRequest(AssetPath path) : _path(path) {
+DeleteMappingsRequest::DeleteMappingsRequest(const AssetPathList& paths) : _paths(paths) {
 };
 
-void DeleteMappingRequest::doStart() {
+void DeleteMappingsRequest::doStart() {
     auto assetClient = DependencyManager::get<AssetClient>();
-    assetClient->deleteAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+    assetClient->deleteAssetMappings(_paths, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
             _error = NetworkError;
         } else {
@@ -165,7 +165,10 @@ void DeleteMappingRequest::doStart() {
         }
 
         if (!error) {
-            assetClient->_mappingCache.remove(_path);
+            // enumerate the paths and remove them from the cache
+            for (auto& path : _paths) {
+                assetClient->_mappingCache.remove(path);
+            }
         }
         emit finished(this);
     });
@@ -289,8 +292,8 @@ GetAllMappingsRequest* AssetClient::createGetAllMappingsRequest() {
     return new GetAllMappingsRequest();
 }
 
-DeleteMappingRequest* AssetClient::createDeleteMappingRequest(const AssetPath& path) {
-    return new DeleteMappingRequest(path);
+DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetPathList& paths) {
+    return new DeleteMappingsRequest(paths);
 }
 
 SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, const AssetHash& hash) {
@@ -530,7 +533,7 @@ bool AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
     return false;
 }
 
-bool AssetClient::deleteAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
+bool AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -542,7 +545,11 @@ bool AssetClient::deleteAssetMapping(const AssetPath& path, MappingOperationCall
 
         packetList->writePrimitive(AssetMappingOperationType::Delete);
 
-        packetList->writeString(path);
+        packetList->writePrimitive(int(paths.size()));
+
+        for (auto& path: paths) {
+            packetList->writeString(path);
+        }
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
 
@@ -787,11 +794,11 @@ void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
     request->start();
 }
 
-void AssetScriptingInterface::deleteMapping(QString path, QScriptValue callback) {
+void AssetScriptingInterface::deleteMappings(QStringList paths, QScriptValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
-    auto request = assetClient->createDeleteMappingRequest(path);
+    auto request = assetClient->createDeleteMappingsRequest(paths);
 
-    connect(request, &DeleteMappingRequest::finished, this, [this, callback](DeleteMappingRequest* request) mutable {
+    connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
         QScriptValueList args { uint8_t(request->getError()) };
 
         callback.call(_engine->currentContext()->thisObject(), args);
