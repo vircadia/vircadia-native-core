@@ -153,5 +153,5 @@ ModalWindow {
         }
     }
 
-    Component.onCompleted: d.resize()
+    Component.onCompleted: { d.resize(); textResult.forceActiveFocus(); }
 }
