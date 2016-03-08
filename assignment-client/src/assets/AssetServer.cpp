@@ -203,6 +203,10 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
             handleDeleteMappingsOperation(*message, senderNode, *replyPacket);
             break;
         }
+        case AssetMappingOperationType::Rename: {
+            handleRenameMappingOperation(*message, senderNode, *replyPacket);
+            break;
+        }
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
@@ -265,6 +269,21 @@ void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, Shared
         }
 
         if (deleteMappings(mappingsToDelete)) {
+            replyPacket.writePrimitive(AssetServerError::NoError);
+        } else {
+            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
+        }
+    } else {
+        replyPacket.writePrimitive(AssetServerError::PermissionDenied);
+    }
+}
+
+void AssetServer::handleRenameMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+    if (senderNode->getCanRez()) {
+        QString oldPath = message.readString();
+        QString newPath = message.readString();
+
+        if (renameMapping(oldPath, newPath)) {
             replyPacket.writePrimitive(AssetServerError::NoError);
         } else {
             replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
@@ -468,7 +487,7 @@ bool AssetServer::writeMappingsToFile() {
     return false;
 }
 
-bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
+bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
     // remember what the old mapping was in case persistence fails
     auto oldMapping = _fileMappings.value(path).toString();
 
@@ -513,6 +532,28 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
         // we didn't delete the previous mapping, put it back in our in-memory representation
         _fileMappings = oldMappings;
 
+        return false;
+    }
+}
+
+bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
+    // take the old hash to remove the old mapping
+    auto oldMapping = _fileMappings[oldPath].toString();
+
+    if (!oldMapping.isEmpty()) {
+        _fileMappings[newPath] = oldMapping;
+
+        if (writeMappingsToFile()) {
+            // persisted the renamed mapping, return success
+            return true;
+        } else {
+            // we couldn't persist the renamed mapping, rollback and return failure
+            _fileMappings[oldPath] = oldMapping;
+
+            return false;
+        }
+    } else {
+        // failed to find a mapping that was to be renamed, return failure
         return false;
     }
 }
