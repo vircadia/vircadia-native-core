@@ -46,7 +46,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     color = hsb2rgb(vec3( abs(angle/hueAngleRange) + hueTimeOffset, 0.7, brightness));
   
 
-    fragColor = vec4(color, 1.0);
+    fragColor = vec4(1.0, 0.1, 1.0, 1.0);
 }
 
 

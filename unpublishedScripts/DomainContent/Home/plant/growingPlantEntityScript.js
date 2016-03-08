@@ -77,7 +77,10 @@
                 dimensions: _this.STARTING_FLOWER_DIMENSIONS,
                 userData: JSON.stringify(_this.flowerUserData)
             });
-            var xzGrowthRate = randFloat(0.00005, 0.00015);
+            // var xzGrowthRate = randFloat(0.00005, 0.00015);
+            var xzGrowthRate = randFloat(0.0005, 0.0015);
+            // var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0025, z: xzGrowthRate)};
+            var growthRate = {x: xzGrowthRate, y: randFloat(0.01, 0.025), z: xzGrowthRate};
             var flower = {
                 id: flowerEntityID,
                 dimensions: {
@@ -87,12 +90,9 @@
                 },
                 startingPosition: position,
                 rotation: flowerRotation,
-                maxYDimension: randFloat(0.4, 1.0),
-                growthRate: {
-                    x: xzGrowthRate,
-                    y: randFloat(0.001, 0.0025),
-                    z: xzGrowthRate
-                }
+                // maxYDimension: randFloat(0.4, 1.0),
+                maxYDimension: randFloat(4, 10.0),
+                growthRate: growthRate
             };
             flower.grow = function() {
                 // grow flower a bit
@@ -113,7 +113,8 @@
 
         preload: function(entityID) {
             _this.entityID = entityID;
-            var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
+            // var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
+            var SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
             _this.flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: SHADER_URL,
