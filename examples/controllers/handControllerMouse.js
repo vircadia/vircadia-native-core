@@ -1,5 +1,5 @@
 //
-//  reticleHandRotationTest.js
+//  handControllerMouse.js
 //  examples/controllers
 //
 //  Created by Brad Hefta-Gaub on 2015/12/15
@@ -10,6 +10,9 @@
 //
 
 var DEBUGGING = false;
+var angularVelocityTrailingAverage = 0.0;  //  Global trailing average used to decide whether to move reticle at all 
+var lastX = 0;
+var lastY = 0; 
 
 Math.clamp=function(a,b,c) {
     return Math.max(b,Math.min(c,a));
@@ -31,11 +34,16 @@ function moveReticleAbsolute(x, y) {
 
 var MAPPING_NAME = "com.highfidelity.testing.reticleWithHandRotation";
 var mapping = Controller.newMapping(MAPPING_NAME);
-mapping.from(Controller.Hardware.Hydra.L3).peek().to(Controller.Actions.ReticleClick);
-mapping.from(Controller.Hardware.Hydra.R4).peek().to(Controller.Actions.ReticleClick);
+if (Controller.Hardware.Hydra !== undefined) {
+    mapping.from(Controller.Hardware.Hydra.L3).peek().to(Controller.Actions.ReticleClick);
+    mapping.from(Controller.Hardware.Hydra.R4).peek().to(Controller.Actions.ReticleClick);
+}
+if (Controller.Hardware.Vive !== undefined) {
+    mapping.from(Controller.Hardware.Vive.LeftPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+    mapping.from(Controller.Hardware.Vive.RightPrimaryThumb).peek().to(Controller.Actions.ReticleClick);
+}
+
 mapping.enable();
-
-
 
 function debugPrint(message) {
     if (DEBUGGING) {
@@ -76,7 +84,7 @@ Script.update.connect(function(deltaTime) {
     }
 
     // Velocity filter the hand rotation used to position reticle so that it is easier to target small things with the hand controllers
-    var VELOCITY_FILTER_GAIN = 1.0;
+    var VELOCITY_FILTER_GAIN = 0.5;
     filteredRotatedLeft = Vec3.mix(filteredRotatedLeft, rotatedLeft, Math.clamp(Vec3.length(poseLeft.angularVelocity) * VELOCITY_FILTER_GAIN, 0.0, 1.0));
     filteredRotatedRight = Vec3.mix(filteredRotatedRight, rotatedRight, Math.clamp(Vec3.length(poseRight.angularVelocity) * VELOCITY_FILTER_GAIN, 0.0, 1.0));
     var rotated = Vec3.mix(filteredRotatedLeft, filteredRotatedRight, leftRightBias);
@@ -96,11 +104,17 @@ Script.update.connect(function(deltaTime) {
     var y = screenSizeY * yRatio;
 
     // don't move the reticle with the hand controllers unless the controllers are actually being moved
-    var MINIMUM_CONTROLLER_ANGULAR_VELOCITY = 0.0001;
+    //  take a time average of angular velocity, and don't move mouse at all if it's below threshold
+ 
+    var AVERAGING_INTERVAL = 0.95;
+    var MINIMUM_CONTROLLER_ANGULAR_VELOCITY = 0.03;
     var angularVelocityMagnitude = Vec3.length(poseLeft.angularVelocity) * (1.0 - leftRightBias) + Vec3.length(poseRight.angularVelocity) * leftRightBias;
+    angularVelocityTrailingAverage = angularVelocityTrailingAverage * AVERAGING_INTERVAL + angularVelocityMagnitude * (1.0 - AVERAGING_INTERVAL);
 
-    if (!(xRatio == 0.5 && yRatio == 0) && (angularVelocityMagnitude > MINIMUM_CONTROLLER_ANGULAR_VELOCITY)) {
+    if (!(xRatio == 0.5 && yRatio == 0) && (angularVelocityTrailingAverage > MINIMUM_CONTROLLER_ANGULAR_VELOCITY) && ((x != lastX) || (y != lastY))) {
         moveReticleAbsolute(x, y);
+        lastX = x;
+        lastY = y;
     }
 });
 

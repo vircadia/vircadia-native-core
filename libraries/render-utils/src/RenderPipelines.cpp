@@ -66,16 +66,16 @@ void initStencilPipeline(gpu::PipelinePointer& pipeline) {
 
 gpu::BufferView getDefaultMaterialBuffer() {
     model::Material::Schema schema;
-    schema._diffuse = vec3(1.0f);
+    schema._albedo = vec3(1.0f);
     schema._opacity = 1.0f;
-    schema._metallic = vec3(0.1f);
-    schema._gloss = 10.0f;
+    schema._metallic = 0.1f;
+    schema._roughness = 0.9f;
     return gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(model::Material::Schema), (const gpu::Byte*) &schema));
 }
 
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
-    // Set a default diffuse map
-    batch.setResourceTexture(render::ShapePipeline::Slot::DIFFUSE_MAP,
+    // Set a default albedo map
+    batch.setResourceTexture(render::ShapePipeline::Slot::ALBEDO_MAP,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
     // Set a default normal map
     batch.setResourceTexture(render::ShapePipeline::Slot::NORMAL_FITTING_MAP,

@@ -227,7 +227,6 @@ signals:
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
-    void domainConnectionRefused(const QString& reason);
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -296,9 +295,6 @@ private slots:
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
-
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     void notifyPacketVersionMismatch();
 
@@ -476,7 +472,6 @@ private:
     typedef bool (Application::* AcceptURLMethod)(const QString &);
     static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
-    QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;

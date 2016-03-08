@@ -38,7 +38,7 @@ public:
     AssignmentClientMonitor(const unsigned int numAssignmentClientForks, const unsigned int minAssignmentClientForks,
                             const unsigned int maxAssignmentClientForks, Assignment::Type requestAssignmentType,
                             QString assignmentPool, quint16 listenPort, QUuid walletUUID, QString assignmentServerHostname,
-                            quint16 assignmentServerPort, quint16 httpStatusServerPort, QDir logDirectory);
+                            quint16 assignmentServerPort, quint16 httpStatusServerPort, QString logDirectory);
     ~AssignmentClientMonitor();
 
     void stopChildProcesses();
@@ -73,6 +73,8 @@ private:
     quint16 _assignmentServerPort;
 
     QMap<qint64, ACProcess> _childProcesses;
+
+    bool _wantsChildFileLogging { false };
 };
 
 #endif // hifi_AssignmentClientMonitor_h

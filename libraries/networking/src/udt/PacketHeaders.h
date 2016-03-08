@@ -91,6 +91,7 @@ public:
         MessagesData,
         MessagesSubscribe,
         MessagesUnsubscribe,
+        ICEServerHeartbeatDenied,
         AssetMappingOperation,
         AssetMappingOperationReply
     };

@@ -39,6 +39,18 @@ ApplicationWindow {
             property var urls: [];
 
             Button {
+                // Shows the dialog with preferences sections but not each section's preference items
+                // because Preferences.preferencesByCategory() method is not stubbed out.
+                text: "Settings > General..."
+                property var builder: Component {
+                    GeneralPreferencesDialog { }
+                }
+                onClicked: {
+                    var runningScripts = builder.createObject(desktop);
+                }
+            }
+
+            Button {
                 text: "Running Scripts"
                 property var builder: Component {
                     RunningScripts { }

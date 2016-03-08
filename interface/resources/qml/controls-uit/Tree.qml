@@ -55,23 +55,14 @@ TreeView {
         alternateBackgroundColor: parent.isLightColorScheme ? hifi.colors.tableRowLightOdd : hifi.colors.tableRowDarkOdd
 
         branchDelegate: HiFiGlyphs {
-            text: styleData.isExpanded ? hifi.glyphs.disclosureCollapse : hifi.glyphs.disclosureExpand
-            size: hifi.fontSizes.tableText * 2.5
+            text: styleData.isExpanded ? hifi.glyphs.caratDn : hifi.glyphs.caratR
+            size: hifi.fontSizes.carat
             color: colorScheme == hifi.colorSchemes.light
-                   ? (styleData.selected
-                      ? hifi.colors.black
-                      : (iconArea.pressed ? hifi.colors.white : hifi.colors.baseGrayHighlight))
-                   : (styleData.selected
-                      ? hifi.colors.black
-                      : (iconArea.pressed ? hifi.colors.white : hifi.colors.lightGrayText))
+                   ? (styleData.selected ? hifi.colors.black : hifi.colors.baseGrayHighlight)
+                   : (styleData.selected ? hifi.colors.black : hifi.colors.lightGrayText)
             anchors {
                 left: parent ? parent.left : undefined
                 leftMargin: hifi.dimensions.tablePadding / 2
-            }
-            MouseArea {
-                id: iconArea
-                anchors.fill: parent
-                propagateComposedEvents: true
             }
         }
 

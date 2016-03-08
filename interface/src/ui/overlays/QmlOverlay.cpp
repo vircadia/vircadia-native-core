@@ -57,7 +57,7 @@ QmlOverlay::~QmlOverlay() {
     }
 }
 
-void QmlOverlay::setProperties(const QScriptValue& properties) {
+void QmlOverlay::setProperties(const QVariantMap& properties) {
     Overlay2D::setProperties(properties);
     auto bounds = _bounds;
     std::weak_ptr<QQuickItem> weakQmlElement;
@@ -71,7 +71,7 @@ void QmlOverlay::setProperties(const QScriptValue& properties) {
             _qmlElement->setHeight(bounds.height());
         }
     });
-    QMetaObject::invokeMethod(_qmlElement.get(), "updatePropertiesFromScript", Q_ARG(QVariant, properties.toVariant()));
+    QMetaObject::invokeMethod(_qmlElement.get(), "updatePropertiesFromScript", Q_ARG(QVariant, properties));
 }
 
 void QmlOverlay::render(RenderArgs* args) {

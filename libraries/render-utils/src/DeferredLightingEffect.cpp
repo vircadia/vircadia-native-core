@@ -92,6 +92,11 @@ void DeferredLightingEffect::init() {
     // Add the global light to the light stage (for later shadow rendering)
     _lightStage.addLight(lp);
 
+    lp->setDirection(glm::vec3(-1.0f));
+    lp->setColor(glm::vec3(1.0f));
+    lp->setIntensity(1.0f);
+    lp->setType(model::Light::SUN);
+    lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
 }
 
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
@@ -311,22 +316,23 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
             {
                 auto& program = _shadowMapEnabled ? _directionalLightShadow : _directionalLight;
                 LightLocationsPtr locations = _shadowMapEnabled ? _directionalLightShadowLocations : _directionalLightLocations;
+                const auto& keyLight = _allocatedLights[_globalLights.front()];
 
                 // Setup the global directional pass pipeline
                 {
                     if (_shadowMapEnabled) {
-                        if (_skyboxTexture) {
+                        if (keyLight->getAmbientMap()) {
                             program = _directionalSkyboxLightShadow;
                             locations = _directionalSkyboxLightShadowLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLightShadow;
                             locations = _directionalAmbientSphereLightShadowLocations;
                         }
                     } else {
-                        if (_skyboxTexture) {
+                        if (keyLight->getAmbientMap()) {
                             program = _directionalSkyboxLight;
                             locations = _directionalSkyboxLightLocations;
-                        } else if (_ambientLightMode > -1) {
+                        } else {
                             program = _directionalAmbientSphereLight;
                             locations = _directionalAmbientSphereLightLocations;
                         }
@@ -351,7 +357,7 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
                    geometryCache->renderQuad(batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight, color);
                 }
 
-                if (_skyboxTexture) {
+                if (keyLight->getAmbientMap()) {
                     batch.setResourceTexture(SKYBOX_MAP_UNIT, nullptr);
                 }
             }
@@ -490,14 +496,14 @@ void DeferredLightingEffect::render(const render::RenderContextPointer& renderCo
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    auto globalLight = _allocatedLights[_globalLights.front()];
+    auto keyLight = _allocatedLights[_globalLights.front()];
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, globalLight->getSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keyLight->getSchemaBuffer());
     }
 
-    if (_skyboxTexture && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, _skyboxTexture);
+    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
     }
 }
 
@@ -508,7 +514,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("diffuseMap"), DEFERRED_BUFFER_COLOR_UNIT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), DEFERRED_BUFFER_COLOR_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("normalMap"), DEFERRED_BUFFER_NORMAL_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("specularMap"), DEFERRED_BUFFER_EMISSIVE_UNIT));
     slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), DEFERRED_BUFFER_DEPTH_UNIT));
@@ -556,15 +562,14 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
 }
 
-void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture) {
+void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
     auto globalLight = _allocatedLights.front();
     globalLight->setDirection(light->getDirection());
     globalLight->setColor(light->getColor());
     globalLight->setIntensity(light->getIntensity());
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
-
-    _skyboxTexture = skyboxTexture;
+    globalLight->setAmbientMap(light->getAmbientMap());
 }
 
 model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {

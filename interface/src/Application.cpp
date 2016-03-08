@@ -544,7 +544,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
-    connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
 
     // update our location every 5 seconds in the metaverse server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -581,6 +580,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
+    accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
     UserActivityLogger::getInstance().launch(applicationVersion());
 
@@ -888,9 +888,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // the 3Dconnexion device wants to be initiliazed after a window is displayed.
     SpacemouseManager::getInstance().init();
 #endif
-
-    auto& packetReceiver = nodeList->getPacketReceiver();
-    packetReceiver.registerListener(PacketType::DomainConnectionDenied, this, "handleDomainConnectionDeniedPacket");
 
     // If the user clicks an an entity, we will check that it's an unlocked web entity, and if so, set the focus to it
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
@@ -2947,9 +2944,9 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
-                glm::mat4 headPose = _avatarUpdate->getHeadPose() ;
+                glm::mat4 headPose = _avatarUpdate->getHeadPose();
                 glm::quat headRotation = glm::quat_cast(headPose);
-                lookAtSpot = _myCamera.getPosition() +
+                lookAtSpot = myAvatar->getPosition() +
                     myAvatar->getOrientation() * (headRotation * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
@@ -3819,7 +3816,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     // Setup the current Zone Entity lighting
     {
         auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight(), stage->getSkybox()->getCubemap());
+        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
     {
@@ -3955,29 +3952,10 @@ void Application::clearDomainOctreeDetails() {
 void Application::domainChanged(const QString& domainHostname) {
     updateWindowTitle();
     clearDomainOctreeDetails();
-    _domainConnectionRefusals.clear();
     // disable physics until we have enough information about our new location to not cause craziness.
     _physicsEnabled = false;
 }
 
-void Application::handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
-    // Read deny reason from packet
-    quint16 reasonSize;
-    message->readPrimitive(&reasonSize);
-    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
-
-    // output to the log so the user knows they got a denied connection request
-    // and check and signal for an access token so that we can make sure they are logged in
-    qCDebug(interfaceapp) << "The domain-server denied a connection request: " << reason;
-    qCDebug(interfaceapp) << "You may need to re-log to generate a keypair so you can provide a username signature.";
-
-    if (!_domainConnectionRefusals.contains(reason)) {
-        _domainConnectionRefusals.append(reason);
-        emit domainConnectionRefused(reason);
-    }
-
-    AccountManager::getInstance().checkAndSignalForAccessToken();
-}
 
 void Application::resettingDomain() {
     _notifiedPacketVersionMismatchThisDomain = false;
@@ -4515,33 +4493,6 @@ void Application::openUrl(const QUrl& url) {
             QDesktopServices::openUrl(url);
         }
     }
-}
-
-void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
-    // from the domain-handler, figure out the satoshi cost per voxel and per meter cubed
-    const QString VOXEL_SETTINGS_KEY = "voxels";
-    const QString PER_VOXEL_COST_KEY = "per-voxel-credits";
-    const QString PER_METER_CUBED_COST_KEY = "per-meter-cubed-credits";
-    const QString VOXEL_WALLET_UUID = "voxel-wallet";
-
-    const QJsonObject& voxelObject = domainSettingsObject[VOXEL_SETTINGS_KEY].toObject();
-
-    qint64 satoshisPerVoxel = 0;
-    qint64 satoshisPerMeterCubed = 0;
-    QUuid voxelWalletUUID;
-
-    if (!domainSettingsObject.isEmpty()) {
-        float perVoxelCredits = (float) voxelObject[PER_VOXEL_COST_KEY].toDouble();
-        float perMeterCubedCredits = (float) voxelObject[PER_METER_CUBED_COST_KEY].toDouble();
-
-        satoshisPerVoxel = (qint64) floorf(perVoxelCredits * SATOSHIS_PER_CREDIT);
-        satoshisPerMeterCubed = (qint64) floorf(perMeterCubedCredits * SATOSHIS_PER_CREDIT);
-
-        voxelWalletUUID = QUuid(voxelObject[VOXEL_WALLET_UUID].toString());
-    }
-
-    qCDebug(interfaceapp) << "Octree edits costs are" << satoshisPerVoxel << "per octree cell and" << satoshisPerMeterCubed << "per meter cubed";
-    qCDebug(interfaceapp) << "Destination wallet UUID for edit payments is" << voxelWalletUUID;
 }
 
 void Application::loadDialog() {

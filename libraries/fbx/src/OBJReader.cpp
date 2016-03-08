@@ -558,7 +558,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      glm::vec3(0.0f),
-                                                     glm::vec2(0.0f, 1.0f),
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];
@@ -567,13 +566,13 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         model::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
-            fbxMaterial.diffuseTexture.filename = objMaterial.diffuseTextureFilename;
+            fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
-        modelMaterial->setDiffuse(fbxMaterial.diffuseColor);
+        modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
-        modelMaterial->setGloss(fbxMaterial.shininess);
+        modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
         if (fbxMaterial.opacity <= 0.0f) {
             modelMaterial->setOpacity(1.0f);
@@ -617,7 +616,7 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
             qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getGloss();
+            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getRoughness();
             qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
             */
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;

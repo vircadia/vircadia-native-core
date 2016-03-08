@@ -6,7 +6,7 @@ import "../../dialogs"
 PreferencesDialog {
     id: root
     objectName: "GraphicsPreferencesDialog"
-    title: "Graphics Preferences"
+    title: "Graphics Settings"
     showCategories: ["Graphics"]
     property var settings: Settings {
         category: root.objectName

@@ -92,6 +92,7 @@ public slots:
     void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
     void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
     void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
+    void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -114,6 +115,8 @@ signals:
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
 
+    void domainConnectionRefused(QString reason);
+
 private:
     void sendDisconnectPacket();
     void hardReset();
@@ -131,6 +134,10 @@ private:
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+
+    QStringList _domainConnectionRefusals;
+    bool _hasCheckedForAccessToken { false };
+    int _connectionDenialsSinceKeypairRegen { 0 };
 };
 
 #endif // hifi_DomainHandler_h

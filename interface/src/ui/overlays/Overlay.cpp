@@ -52,70 +52,68 @@ Overlay::Overlay(const Overlay* overlay) :
     _colorPulse(overlay->_colorPulse),
     _color(overlay->_color),
     _visible(overlay->_visible),
-    _anchor(overlay->_anchor),
-    _scriptEngine(NULL)
+    _anchor(overlay->_anchor)
 {
-}
-
-void Overlay::init(QScriptEngine* scriptEngine) {
-    _scriptEngine = scriptEngine;
 }
 
 Overlay::~Overlay() {
 }
 
-void Overlay::setProperties(const QScriptValue& properties) {
-    QScriptValue color = properties.property("color");
-    xColorFromScriptValue(properties.property("color"), _color);
+void Overlay::setProperties(const QVariantMap& properties) {
+    bool valid;
+    auto color = xColorFromVariant(properties["color"], valid);
+    if (valid) {
+        _color = color;
+    }
 
-    if (properties.property("alpha").isValid()) {
-        setAlpha(properties.property("alpha").toVariant().toFloat());
+    if (properties["alpha"].isValid()) {
+        setAlpha(properties["alpha"].toFloat());
     }
     
-    if (properties.property("glowLevel").isValid()) {
-        setGlowLevel(properties.property("glowLevel").toVariant().toFloat());
+    if (properties["glowLevel"].isValid()) {
+        setGlowLevel(properties["glowLevel"].toFloat());
     }
 
-    if (properties.property("pulseMax").isValid()) {
-        setPulseMax(properties.property("pulseMax").toVariant().toFloat());
+    if (properties["pulseMax"].isValid()) {
+        setPulseMax(properties["pulseMax"].toFloat());
     }
 
-    if (properties.property("pulseMin").isValid()) {
-        setPulseMin(properties.property("pulseMin").toVariant().toFloat());
+    if (properties["pulseMin"].isValid()) {
+        setPulseMin(properties["pulseMin"].toFloat());
     }
 
-    if (properties.property("pulsePeriod").isValid()) {
-        setPulsePeriod(properties.property("pulsePeriod").toVariant().toFloat());
+    if (properties["pulsePeriod"].isValid()) {
+        setPulsePeriod(properties["pulsePeriod"].toFloat());
     }
     
-    if (properties.property("glowLevelPulse").isValid()) {
-        setGlowLevelPulse(properties.property("glowLevelPulse").toVariant().toFloat());
+    if (properties["glowLevelPulse"].isValid()) {
+        setGlowLevelPulse(properties["glowLevelPulse"].toFloat());
     }
     
-    if (properties.property("alphaPulse").isValid()) {
-        setAlphaPulse(properties.property("alphaPulse").toVariant().toFloat());
+    if (properties["alphaPulse"].isValid()) {
+        setAlphaPulse(properties["alphaPulse"].toFloat());
     }
 
-    if (properties.property("colorPulse").isValid()) {
-        setColorPulse(properties.property("colorPulse").toVariant().toFloat());
+    if (properties["colorPulse"].isValid()) {
+        setColorPulse(properties["colorPulse"].toFloat());
     }
 
-    if (properties.property("visible").isValid()) {
-        bool visible = properties.property("visible").toVariant().toBool();
+    if (properties["visible"].isValid()) {
+        bool visible = properties["visible"].toBool();
         setVisible(visible);
     }
     
-    if (properties.property("anchor").isValid()) {
-        QString property = properties.property("anchor").toVariant().toString();
+    if (properties["anchor"].isValid()) {
+        QString property = properties["anchor"].toString();
         if (property == "MyAvatar") {
             setAnchor(MY_AVATAR);
         }
     }
 }
 
-QScriptValue Overlay::getProperty(const QString& property) {
+QVariant Overlay::getProperty(const QString& property) {
     if (property == "color") {
-        return xColorToScriptValue(_scriptEngine, _color);
+        return xColorToVariant(_color);
     }
     if (property == "alpha") {
         return _alpha;
@@ -148,7 +146,7 @@ QScriptValue Overlay::getProperty(const QString& property) {
         return _anchor == MY_AVATAR ? "MyAvatar" : "";
     }
 
-    return QScriptValue();
+    return QVariant();
 }
 
 xColor Overlay::getColor() { 

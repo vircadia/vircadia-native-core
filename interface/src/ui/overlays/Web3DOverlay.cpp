@@ -12,7 +12,6 @@
 
 #include "Web3DOverlay.h"
 
-#include <QtScript/QScriptValue>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 
@@ -113,30 +112,34 @@ const render::ShapeKey Web3DOverlay::getShapeKey() {
     return builder.build();
 }
 
-void Web3DOverlay::setProperties(const QScriptValue &properties) {
+void Web3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue urlValue = properties.property("url");
+    auto urlValue = properties["url"];
     if (urlValue.isValid()) {
-        QString newURL = urlValue.toVariant().toString();
+        QString newURL = urlValue.toString();
         if (newURL != _url) {
             setURL(newURL);
         }
     }
 
-    QScriptValue resolution = properties.property("resolution");
+    auto resolution = properties["resolution"];
     if (resolution.isValid()) {
-        vec2FromScriptValue(resolution, _resolution);
+        bool valid;
+        auto res = vec2FromVariant(resolution, valid);
+        if (valid) {
+            _resolution = res;
+        }
     }
 
 
-    QScriptValue dpi = properties.property("dpi");
+    auto dpi = properties["dpi"];
     if (dpi.isValid()) {
-        _dpi = dpi.toVariant().toFloat();
+        _dpi = dpi.toFloat();
     }
 }
 
-QScriptValue Web3DOverlay::getProperty(const QString& property) {
+QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }

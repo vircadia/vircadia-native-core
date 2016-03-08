@@ -85,9 +85,11 @@ int main(int argc, char *argv[]) {
 
     setChild(engine, "offscreenFlags");
     setChild(engine, "Account");
+    setChild(engine, "ApplicationCompositor");
     setChild(engine, "Desktop");
     setChild(engine, "ScriptDiscoveryService");
     setChild(engine, "MenuHelper");
+    setChild(engine, "Preferences");
     setChild(engine, "urlHandler");
     engine.rootContext()->setContextProperty("DebugQML", true);
     engine.rootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());

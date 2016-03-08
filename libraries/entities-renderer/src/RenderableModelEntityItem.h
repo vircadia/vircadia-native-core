@@ -49,6 +49,7 @@ public:
     virtual void removeFromScene(EntityItemPointer self, std::shared_ptr<render::Scene> scene, render::PendingChanges& pendingChanges) override;
 
 
+    void updateModelBounds();
     virtual void render(RenderArgs* args) override;
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

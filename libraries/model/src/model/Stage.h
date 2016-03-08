@@ -150,6 +150,7 @@ public:
     void setSunAmbientIntensity(float intensity) { _sunLight->setAmbientIntensity(intensity); }
     float getSunAmbientIntensity() const { return getSunLight()->getAmbientIntensity(); }
     void setSunAmbientSphere(const gpu::SHPointer& sphere);
+    void setSunAmbientMap(const gpu::TexturePointer& map);
 
     // The sun direction is expressed in the world space
     void setSunDirection(const Vec3& direction);

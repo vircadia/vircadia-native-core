@@ -64,56 +64,41 @@ void Line3DOverlay::render(RenderArgs* args) {
 }
 
 const render::ShapeKey Line3DOverlay::getShapeKey() {
-    auto builder = render::ShapeKey::Builder();
+    auto builder = render::ShapeKey::Builder().withoutCullFace();
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }
     return builder.build();
 }
 
-void Line3DOverlay::setProperties(const QScriptValue& properties) {
+void Line3DOverlay::setProperties(const QVariantMap& properties) {
     Base3DOverlay::setProperties(properties);
 
-    QScriptValue start = properties.property("start");
+    auto start = properties["start"];
     // if "start" property was not there, check to see if they included aliases: startPoint
     if (!start.isValid()) {
-        start = properties.property("startPoint");
+        start = properties["startPoint"];
     }
     if (start.isValid()) {
-        QScriptValue x = start.property("x");
-        QScriptValue y = start.property("y");
-        QScriptValue z = start.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newStart;
-            newStart.x = x.toVariant().toFloat();
-            newStart.y = y.toVariant().toFloat();
-            newStart.z = z.toVariant().toFloat();
-            setStart(newStart);
-        }
+        setStart(vec3FromVariant(start));
     }
 
-    QScriptValue end = properties.property("end");
+    auto end = properties["end"];
     // if "end" property was not there, check to see if they included aliases: endPoint
     if (!end.isValid()) {
-        end = properties.property("endPoint");
+        end = properties["endPoint"];
     }
     if (end.isValid()) {
-        QScriptValue x = end.property("x");
-        QScriptValue y = end.property("y");
-        QScriptValue z = end.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newEnd;
-            newEnd.x = x.toVariant().toFloat();
-            newEnd.y = y.toVariant().toFloat();
-            newEnd.z = z.toVariant().toFloat();
-            setEnd(newEnd);
-        }
+        setEnd(vec3FromVariant(end));
     }
 }
 
-QScriptValue Line3DOverlay::getProperty(const QString& property) {
+QVariant Line3DOverlay::getProperty(const QString& property) {
+    if (property == "start" || property == "startPoint" || property == "p1") {
+        return vec3toVariant(_start);
+    }
     if (property == "end" || property == "endPoint" || property == "p2") {
-        return vec3toScriptValue(_scriptEngine, _end);
+        return vec3toVariant(_end);
     }
 
     return Base3DOverlay::getProperty(property);

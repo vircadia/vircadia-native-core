@@ -6,7 +6,7 @@ import "../../dialogs"
 PreferencesDialog {
     id: root
     objectName: "AudioPreferencesDialog"
-    title: "Audio Preferences"
+    title: "Audio Settings"
     showCategories: ["Audio"]
     property var settings: Settings {
         category: root.objectName

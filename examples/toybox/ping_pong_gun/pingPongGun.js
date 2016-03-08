@@ -22,8 +22,8 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET =-0.35;
-    var GUN_TIP_UP_OFFSET = 0.040;
+    var GUN_TIP_FWD_OFFSET = -0.35;
+    var GUN_TIP_UP_OFFSET = 0.12;
     var GUN_FORCE = 9;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
@@ -45,12 +45,12 @@
         green: 255,
         blue: 255
     };
-    
+
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
-    
+
 
     PingPongGun.prototype = {
         hand: null,
@@ -98,8 +98,8 @@
             var properties = {
                 // type: 'Model',
                 // modelURL:PING_PONG_BALL_URL,
-                shapeType:'sphere',
-                type:'Sphere',
+                shapeType: 'sphere',
+                type: 'Sphere',
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS,
                 damping: BALL_LINEAR_DAMPING,
@@ -125,7 +125,7 @@
 
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
         },
-
+        
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
             var frontVector = Quat.getFront(properties.rotation);
