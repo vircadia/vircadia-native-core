@@ -1,8 +1,8 @@
 //
-//  Desktop.qml
+//  MessageDialog.qml
 //
-//  Created by Bradley Austin Davis on 25 Apr 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Bradley Austin Davis on 15 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -80,8 +80,6 @@ ModalWindow {
 
         QtObject {
             id: d
-            readonly property real spacing: hifi.dimensions.contentSpacing.x
-            readonly property real outerSpacing: hifi.dimensions.contentSpacing.y
             readonly property int minWidth: 480
             readonly property int maxWdith: 1280
             readonly property int minHeight: 120
@@ -132,7 +130,7 @@ ModalWindow {
         Flow {
             id: buttons
             focus: true
-            spacing: d.spacing
+            spacing: hifi.dimensions.contentSpacing.x
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
             anchors {
@@ -186,8 +184,8 @@ ModalWindow {
                 id: flickable
                 contentHeight: detailedText.height
                 anchors.fill: parent
-                anchors.topMargin: root.spacing
-                anchors.bottomMargin: root.outerSpacing
+                anchors.topMargin: hifi.dimensions.contentSpacing.x
+                anchors.bottomMargin: hifi.dimensions.contentSpacing.y
                 TextEdit {
                     id: detailedText
                     size: hifi.fontSizes.menuItem
@@ -210,7 +208,7 @@ ModalWindow {
             }
         ]
 
-        Component.onCompleted: updateIcon();
+        Component.onCompleted: updateIcon()
         onStateChanged: d.resize()
     }
 
