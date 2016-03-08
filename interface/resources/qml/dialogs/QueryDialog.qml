@@ -108,8 +108,8 @@ ModalWindow {
                 margins: 0
                 bottomMargin: hifi.dimensions.contentSpacing.y
             }
-            Button { action: acceptAction }
             Button { action: cancelAction }
+            Button { action: acceptAction }
         }
 
         Action {
