@@ -2161,17 +2161,16 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     maybeToggleMenuVisible(event);
 
+    auto& compositor = getApplicationCompositor();
     // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
     // compositor reticle
-    if (event->spontaneous()) {
-        // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
-        if (getApplicationCompositor().handleRealMouseMoveEvent()) {
-            return; // bail
-        }
+    // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
+    if (!compositor.fakeEventActive() && compositor.handleRealMouseMoveEvent()) {
+        return; // bail
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
+    auto eventPosition = compositor.getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     auto button = event->button();
     auto buttons = event->buttons();

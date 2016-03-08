@@ -54,6 +54,7 @@ public:
     float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
     void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
     bool isHMD() const;
+    bool fakeEventActive() const { return _fakeMouseEvent; }
 
     // Converter from one frame of reference to another.
     // Frame of reference:
@@ -167,7 +168,9 @@ private:
 
     bool _allowMouseCapture { true };
 
-    ReticleInterface* _reticleInterface;
+    bool _fakeMouseEvent { false };
+
+    ReticleInterface* _reticleInterface { nullptr };
 };
 
 // Scripting interface available to control the Reticle

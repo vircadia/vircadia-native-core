@@ -303,11 +303,14 @@ void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFa
             auto button = Qt::NoButton;
             auto buttons = QApplication::mouseButtons();
             auto modifiers = QApplication::keyboardModifiers();
+            static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
             if (qApp->thread() == QThread::currentThread()) {
                 QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
-                qApp->sendEvent(qApp, &event);
+                _fakeMouseEvent = true;
+                qApp->sendEvent(renderingWidget, &event);
+                _fakeMouseEvent = false;
             } else {
-                qApp->postEvent(qApp, new QMouseEvent(QEvent::MouseMove, globalPos, button, buttons, modifiers));
+                qApp->postEvent(renderingWidget, new QMouseEvent(QEvent::MouseMove, globalPos, button, buttons, modifiers));
             }
         }
     } else {
