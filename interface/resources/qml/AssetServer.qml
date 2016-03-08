@@ -1,5 +1,5 @@
 //
-//  AssetsServer.qml
+//  AssetServer.qml
 //
 //  Created by Clement on  3/1/16
 //  Copyright 2016 High Fidelity, Inc.
@@ -20,8 +20,8 @@ import "dialogs"
 
 Window {
     id: root
-    objectName: "AssetsServer"
-    title: "Assets Server"
+    objectName: "AssetServer"
+    title: "Asset Server"
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
@@ -34,12 +34,13 @@ Window {
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
+    property var currentDirectory: ""
 
     Settings {
         category: "Overlay.AssetServer"
         property alias x: root.x
         property alias y: root.y
-        property alias directory: ""
+        property alias directory: root.currentDirectory
     }
 
 
@@ -97,7 +98,7 @@ Window {
             }
 
             Item {
-                // Take the browseButton out of the column flow.
+                // Take the deleteButotn out of the column flow.
                 id: deleteButtonContainer
                 anchors.top: buttonRow.top
                 anchors.right: parent.right
@@ -164,7 +165,10 @@ Window {
                     width: 100
 
                     onClicked: {
-                        var browser = fileBrowserBuilder.createObject(desktop, { selectDirectory: true, folder: fileDialogHelper.pathToUrl(preference.value) });
+                        var browser = fileBrowserBuilder.createObject(desktop, {
+                            selectDirectory: true,
+                            folder: fileDialogHelper.pathToUrl(currentDirectory)
+                        });
                         browser.selectedFile.connect(function(url){
                             console.log(url);
                             fileUrl.text = fileDialogHelper.urlToPath(url);
@@ -184,7 +188,7 @@ Window {
             }
 
             Item {
-                // Take the browseButton out of the column flow.
+                // Take the uploadButton out of the column flow.
                 id: uploadButtonContainer
                 anchors.top: addToScene.top
                 anchors.right: parent.right
