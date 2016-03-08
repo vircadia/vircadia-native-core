@@ -217,6 +217,13 @@ QmlWindowClass::QmlWindowClass(QObject* qmlWindow)
     qDebug() << "Created window with ID " << _windowId;
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow));
+    // Forward messages received from QML on to the script
+    connect(_qmlWindow, SIGNAL(sendToScript(QVariant)), this, SIGNAL(fromQml(const QVariant&)), Qt::QueuedConnection);
+}
+
+void QmlWindowClass::sendToQml(const QVariant& message) {
+    // Forward messages received from the script on to QML
+    QMetaObject::invokeMethod(asQuickItem(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
 }
 
 QmlWindowClass::~QmlWindowClass() {

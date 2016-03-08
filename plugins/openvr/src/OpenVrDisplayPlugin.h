@@ -32,11 +32,10 @@ public:
     virtual glm::mat4 getHeadPose(uint32_t frameIndex) const override;
 
 protected:
-    virtual void internalPresent() override;
+    void hmdPresent() override;
 
 private:
     vr::IVRSystem* _system { nullptr };
     static const QString NAME;
     mutable Mutex _poseMutex;
 };
-

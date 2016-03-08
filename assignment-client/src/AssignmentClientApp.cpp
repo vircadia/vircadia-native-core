@@ -139,12 +139,12 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         httpStatusPort = parser.value(httpStatusPortOption).toUShort();
     }
 
-    QDir logDirectory { "." };
+    QString logDirectory;
+
     if (parser.isSet(logDirectoryOption)) {
         logDirectory = parser.value(logDirectoryOption);
-    } else {
-        logDirectory = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
     }
+
 
     Assignment::Type requestAssignmentType = Assignment::AllTypes;
     if (argumentVariantMap.contains(ASSIGNMENT_TYPE_OVERRIDE_OPTION)) {

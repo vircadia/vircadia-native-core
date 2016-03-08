@@ -21,6 +21,7 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QVBoxLayout>
+#include <QtCore/QUrl>
 
 #include "Menu.h"
 

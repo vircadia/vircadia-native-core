@@ -116,6 +116,8 @@ public:
 
     virtual void rebakeMesh();
 
+    virtual void updateRegistrationPoint(const glm::vec3& value);
+
 private:
     // The PolyVoxEntityItem class has _voxelData which contains dimensions and compressed voxel data.  The dimensions
     // may not match _voxelVolumeSize.

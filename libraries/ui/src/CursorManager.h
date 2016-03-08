@@ -47,6 +47,7 @@ namespace Cursor {
         void setScale(float scale);
         Instance* getCursor(uint8_t index = 0);
         uint16_t registerIcon(const QString& path);
+        QList<uint16_t> registeredIcons() const;
         const QString& getIconImage(uint16_t icon);
     private:
         float _scale{ 1.0f };

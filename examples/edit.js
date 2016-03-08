@@ -89,6 +89,9 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
+
+// marketplace info, etc.  not quite ready yet.
+var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
@@ -342,6 +345,7 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
+                Messages.sendLocalMessage("edit-events", JSON.stringify({enabled: active}));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -1022,6 +1026,9 @@ function mouseClickEvent(event) {
     } else if (event.isRightButton) {
         var result = findClickedEntity(event);
         if (result) {
+            if (SHOULD_SHOW_PROPERTY_MENU !== true) {
+                return;
+            }
             var properties = Entities.getEntityProperties(result.entityID);
             if (properties.marketplaceID) {
                 propertyMenu.marketplaceID = properties.marketplaceID;
@@ -1895,9 +1902,11 @@ PopupMenu = function() {
     return this;
 };
 
+
 var propertyMenu = PopupMenu();
 
 propertyMenu.onSelectMenuItem = function(name) {
+
     if (propertyMenu.marketplaceID) {
         showMarketplace(propertyMenu.marketplaceID);
     }

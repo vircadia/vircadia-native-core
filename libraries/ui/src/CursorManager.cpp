@@ -44,6 +44,10 @@ namespace Cursor {
         return instance;
     }
 
+    QList<uint16_t> Manager::registeredIcons() const {
+        return ICONS.keys();
+    }
+
     uint8_t Manager::getCount() {
         return 1;
     }

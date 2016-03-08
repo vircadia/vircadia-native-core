@@ -9,6 +9,7 @@
 //
 
 #include <OffscreenUi.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"

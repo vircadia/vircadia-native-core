@@ -981,7 +981,7 @@ void OctreeServer::readConfiguration() {
     _settings = settingsSectionObject; // keep this for later
 
     if (!readOptionString(QString("statusHost"), settingsSectionObject, _statusHost) || _statusHost.isEmpty()) {
-        _statusHost = getLocalAddress().toString();
+        _statusHost = getGuessedLocalAddress().toString();
     }
     qDebug("statusHost=%s", qPrintable(_statusHost));
 
