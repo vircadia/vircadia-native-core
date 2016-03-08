@@ -162,7 +162,6 @@ void AssetServer::performMappingMigration() {
                 if (it == _fileMappings.end()) {
                     _fileMappings[fakeFileName] = hash;
 
-
                     if (writeMappingsToFile()) {
                         // mapping added and persisted, we can remove the migrated file
                         oldFile.remove();
