@@ -17,6 +17,7 @@ Item {
     readonly property alias dimensions: dimensions
     readonly property alias fontSizes: fontSizes
     readonly property alias glyphs: glyphs
+    readonly property alias icons: icons
     readonly property alias buttons: buttons
     readonly property alias effects: effects
 
@@ -134,6 +135,7 @@ Item {
 
     Item {
         id: glyphs
+        readonly property string alert: "+"
         readonly property string backward: "E"
         readonly property string caratDn: "5"
         readonly property string caratR: "3"
@@ -141,20 +143,27 @@ Item {
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"
-        readonly property string criticalIcon: "="
+        readonly property string critical: "="
         readonly property string disclosureButtonCollapse: "M"
         readonly property string disclosureButtonExpand: "L"
         readonly property string disclosureCollapse: "Z"
         readonly property string disclosureExpand: "B"
         readonly property string forward: "D"
-        readonly property string informatonIcon: "["
+        readonly property string info: "["
         readonly property string noIcon: ""
         readonly property string pin: "y"
         readonly property string pinInverted: "z"
-        readonly property string questionIcon: "]"
+        readonly property string placemark: "U"
+        readonly property string question: "]"
         readonly property string reloadSmall: "a"
         readonly property string resizeHandle: "A"
-        readonly property string warningIcon: "+"
+    }
+
+    Item {
+        id: icons
+        // Values per OffscreenUi::Icon
+        readonly property int none: 0
+        readonly property int placemark: 1
     }
 
     Item {

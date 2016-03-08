@@ -53,7 +53,7 @@ Frame {
                 HiFiGlyphs {
                     id: icon
                     text: window.iconText ? window.iconText : ""
-                    size: 50
+                    size: window.iconSize ? window.iconSize : 30
                     color: hifi.colors.lightGray
                     visible: text != ""
                     anchors.verticalCenter: title.verticalCenter

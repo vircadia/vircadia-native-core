@@ -9,6 +9,7 @@ import "../../../interface/resources/qml/windows-uit"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
 import "../../../interface/resources/qml/hifi/dialogs"
+import "../../../interface/resources/qml/styles-uit"
 
 ApplicationWindow {
     id: appWindow
@@ -16,6 +17,8 @@ ApplicationWindow {
     width: 1280
     height: 800
     title: qsTr("Scratch App")
+
+    HifiConstants { id: hifi }
 
     Desktop {
         id: desktop
@@ -142,6 +145,7 @@ ApplicationWindow {
                 onClicked: {
                     desktop.inputDialog({
                                            title: "Bookmark Location",
+                                           icon: hifi.icons.placemark,
                                            label: "Name"
                                        });
                 }
@@ -151,6 +155,7 @@ ApplicationWindow {
                 onClicked: {
                     desktop.inputDialog({
                                            title: "Delete Bookmark",
+                                           icon: hifi.icons.placemark,
                                            label: "Select the bookmark to delete",
                                            items: ["Bookmark A", "Bookmark B", "Bookmark C"]
                                        });

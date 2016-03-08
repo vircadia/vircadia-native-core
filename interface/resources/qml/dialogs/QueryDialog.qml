@@ -26,6 +26,11 @@ ModalWindow {
     signal selected(var result);
     signal canceled();
 
+    property int icon: hifi.icons.none
+    property string iconText: ""
+    property int iconSize: 35
+    onIconChanged: updateIcon();
+
     property var items;
     property string label
     property var result;
@@ -37,6 +42,20 @@ ModalWindow {
 
     // For combo boxes
     property bool editable: true;
+
+    function updateIcon() {
+        if (!root) {
+            return;
+        }
+
+        switch (root.icon) {
+            case hifi.icons.placemark:
+                iconText = hifi.glyphs.placemark;
+                break;
+            default:
+                iconText = "";
+        }
+    }
 
     Item {
         clip: true
@@ -153,5 +172,9 @@ ModalWindow {
         }
     }
 
-    Component.onCompleted: { d.resize(); textResult.forceActiveFocus(); }
+    Component.onCompleted: {
+        updateIcon();
+        d.resize();
+        textResult.forceActiveFocus();
+    }
 }

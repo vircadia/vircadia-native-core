@@ -107,7 +107,7 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
 void Bookmarks::bookmarkLocation() {
     bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(nullptr, "Bookmark Location", "Name", QLineEdit::Normal, QString(), &ok);
+    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
     if (!ok) {
         return;
     }
@@ -156,7 +156,7 @@ void Bookmarks::deleteBookmark() {
     }
     
     bool ok = false;
-    auto bookmarkName = OffscreenUi::getItem(nullptr, "Delete Bookmark", "Select the bookmark to delete", bookmarkList, 0, false, &ok);
+    auto bookmarkName = OffscreenUi::getItem(OffscreenUi::ICON_PLACEMARK, "Delete Bookmark", "Select the bookmark to delete", bookmarkList, 0, false, &ok);
     if (!ok) {
         return;
     }

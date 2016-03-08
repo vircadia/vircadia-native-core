@@ -45,6 +45,7 @@ ModalWindow {
     property int buttons: OriginalDialogs.StandardButton.Ok
     property int icon: OriginalDialogs.StandardIcon.NoIcon
     property string iconText: ""
+    property int iconSize: 50
     onIconChanged: updateIcon();
     property int defaultButton: OriginalDialogs.StandardButton.NoButton;
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
@@ -56,16 +57,16 @@ ModalWindow {
         }
         switch (root.icon) {
             case OriginalDialogs.StandardIcon.Information:
-                iconText = hifi.glyphs.informatonIcon;
+                iconText = hifi.glyphs.info;
                 break;
             case OriginalDialogs.StandardIcon.Question:
-                iconText = hifi.glyphs.questionIcon;
+                iconText = hifi.glyphs.question;
                 break;
             case OriginalDialogs.StandardIcon.Warning:
-                iconText = hifi.glyphs.warningIcon;
+                iconText = hifi.glyphs.alert;
                 break;
             case OriginalDialogs.StandardIcon.Critical:
-                iconText = hifi.glyphs.criticalIcon;
+                iconText = hifi.glyphs.critical;
                 break;
             default:
                 iconText = hifi.glyphs.noIcon;
