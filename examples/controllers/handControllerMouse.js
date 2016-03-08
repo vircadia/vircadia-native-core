@@ -96,16 +96,8 @@ Script.update.connect(function(deltaTime) {
     var absolutePitch = rotated.y; // from 1 down to -1 up ... but note: if you rotate down "too far" it starts to go up again...
     var absoluteYaw = -rotated.x; // from -1 left to 1 right
 
-    var ROTATION_BOUND = 0.6;
-    var clampYaw = Math.clamp(absoluteYaw, -ROTATION_BOUND, ROTATION_BOUND);
-    var clampPitch = Math.clamp(absolutePitch, -ROTATION_BOUND, ROTATION_BOUND);
-
-    // using only from -ROTATION_BOUND to ROTATION_BOUND
-    var xRatio = (clampYaw + ROTATION_BOUND) / (2 * ROTATION_BOUND);
-    var yRatio = (clampPitch + ROTATION_BOUND) / (2 * ROTATION_BOUND);
-
-    var x = screenSizeX * xRatio;
-    var y = screenSizeY * yRatio;
+    var x = Math.clamp(screenSizeX * (absoluteYaw + 0.5), 0, screenSizeX);
+    var y = Math.clamp(screenSizeX * (absolutePitch + 0.5), 0, screenSizeY);
 
     // don't move the reticle with the hand controllers unless the controllers are actually being moved
     //  take a time average of angular velocity, and don't move mouse at all if it's below threshold
@@ -115,7 +107,7 @@ Script.update.connect(function(deltaTime) {
     var angularVelocityMagnitude = Vec3.length(poseLeft.angularVelocity) * (1.0 - alpha) + Vec3.length(poseRight.angularVelocity) * alpha;
     angularVelocityTrailingAverage = angularVelocityTrailingAverage * AVERAGING_INTERVAL + angularVelocityMagnitude * (1.0 - AVERAGING_INTERVAL);
 
-    if (!(xRatio == 0.5 && yRatio == 0) && (angularVelocityTrailingAverage > MINIMUM_CONTROLLER_ANGULAR_VELOCITY) && ((x != lastX) || (y != lastY))) {
+    if ((angularVelocityTrailingAverage > MINIMUM_CONTROLLER_ANGULAR_VELOCITY) && ((x != lastX) || (y != lastY))) {
         moveReticleAbsolute(x, y);
         lastX = x;
         lastY = y;
