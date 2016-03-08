@@ -170,7 +170,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     AssetMappingOperationType operationType;
     message->readPrimitive(&operationType);
 
-    auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply);
+    auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply, QByteArray(), true, true);
     replyPacket->writePrimitive(messageID);
 
     switch (operationType) {
