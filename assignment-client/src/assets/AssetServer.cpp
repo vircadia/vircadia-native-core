@@ -421,14 +421,20 @@ void AssetServer::loadMappingsFromFile() {
     QFile mapFile { mapFilePath };
     if (mapFile.exists()) {
         if (mapFile.open(QIODevice::ReadOnly)) {
-            auto jsonDocument = QJsonDocument::fromJson(mapFile.readAll());
-            _fileMappings = jsonDocument.object().toVariantHash();
+            QJsonParseError error;
 
-            qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
-        } else {
-            qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
-            setFinished(true);
+            auto jsonDocument = QJsonDocument::fromJson(mapFile.readAll(), &error);
+
+            if (error.error == QJsonParseError::NoError) {
+                _fileMappings = jsonDocument.object().toVariantHash();
+
+                qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
+                return;
+            }
         }
+
+        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
+        setFinished(true);
     } else {
         qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
     }

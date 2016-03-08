@@ -142,7 +142,7 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
     
     QFileInfo assetInfo { request->getUrl().fileName() };
     
-    auto upload = assetClient->createUpload(request->getData(), assetInfo.completeSuffix());
+    auto upload = assetClient->createUpload(request->getData());
     
     if (upload) {
         // add this URL to our hash of AssetUpload to original URL
