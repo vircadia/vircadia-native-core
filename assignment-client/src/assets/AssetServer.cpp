@@ -190,13 +190,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
             break;
         }
         case AssetMappingOperationType::GetAll: {
-            replyPacket->writePrimitive(AssetServerError::NoError);
-            auto count = _fileMappings.size();
-            replyPacket->writePrimitive(count);
-            for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
-                replyPacket->writeString(it.key());
-                replyPacket->write(QByteArray::fromHex(it.value().toString().toLocal8Bit()));
-            }
+            handleGetAllMappingOperation(*message, senderNode, *replyPacket);
             break;
         }
         case AssetMappingOperationType::Set: {
@@ -226,6 +220,19 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     else {
         qDebug() << "Mapping not found for: " << assetPath;
         replyPacket.writePrimitive(AssetServerError::AssetNotFound);
+    }
+}
+
+void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+    replyPacket.writePrimitive(AssetServerError::NoError);
+
+    auto count = _fileMappings.size();
+
+    replyPacket.writePrimitive(count);
+
+    for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
+        replyPacket.writeString(it.key());
+        replyPacket.write(QByteArray::fromHex(it.value().toString().toUtf8()));
     }
 }
 
