@@ -345,6 +345,7 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
+                Messages.sendMessage("edit-events", JSON.stringify({enabled: active}));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
