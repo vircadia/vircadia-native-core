@@ -5,79 +5,114 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1112;
+var version = 1207;
+
+var WORLD_OFFSET = {
+    x: -6000,
+    y: -6000,
+    z: -6000
+}
+
+var WORLD_SCALE_AMOUNT = 1.0;
+
+
+function offsetVectorToWorld(vector) {
+    var newVector;
+
+    newVector = Vec3.sum(vector, WORLD_OFFSET);
+
+    print('JBP NEW VECTOR IS:: ' + JSON.stringify(newVector))
+    return newVector
+}
+
+function scaleVectorToWorld(vector) {
+    var newVector;
+
+    newVector = Vec3.multiply(vector, WORLD_SCALE_AMOUNT);
+
+    return newVector
+}
+
+function transformToSmallerWorld(vector) {
+    var newVector = offsetVectorToWorld(vector);
+    // newVector = scaleVectorToWorld(newVector);
+    return newVector;
+}
+
 var cellLayout;
 var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScience/";
 
 var utilsScript = Script.resolvePath('Scripts/utils.js');
 Script.include(utilsScript);
 
-function makeUngrabbable(entityID) {
-    setEntityCustomData('grabbableKey', entityID, {
-        grabbable: false
-    });
-}
+// function makeUngrabbable(entityID) {
+//     setEntityCustomData('grabbableKey', entityID, {
+//         grabbable: false
+//     });
+// }
 
-Entities.addingEntity.connect(makeUngrabbable);
+// Entities.addingEntity.connect(makeUngrabbable);
 
 assignVariables();
 
 var locations = {
-    cellLayout: [{
+    cellLayout: [offsetVectorToWorld({
         x: 3000,
-        y: 13500,
+        y: 10500,
         z: 3000
-    }, {
+    }), offsetVectorToWorld({
         x: 3276.6,
-        y: 13703.3,
+        y: 10703.3,
         z: 4405.6
-    }, 1800],
-    cells: [{
+    }), 1800],
+    cells: [offsetVectorToWorld({
         x: 13500,
-        y: 13500,
+        y: 10500,
         z: 13500
-    }, {
+    }), offsetVectorToWorld({
         x: 13501,
-        y: 13501,
+        y: 10501,
         z: 13501
-    }, 400],
-    ribosome: [{
+    }), 400],
+    ribosome: [offsetVectorToWorld({
         x: 13500,
         y: 3000,
         z: 3000
-    }, {
+    }), offsetVectorToWorld({
         x: 13685,
         y: 3248,
         z: 2861
-    }, 1000],
-    hexokinase: [{
+    }), 1000],
+    hexokinase: [offsetVectorToWorld({
         x: 3000,
         y: 3000,
         z: 13500
-    }, {
+    }), offsetVectorToWorld({
         x: 2755,
         y: 3121,
         z: 13501
-    }, 2000],
-    mitochondria: [{
+    }), 2000],
+    mitochondria: [offsetVectorToWorld({
         x: 3000,
-        y: 13500,
+        y: 10500,
         z: 3000
-    }, {
+    }), offsetVectorToWorld({
         x: 3240,
         y: 13519,
         z: 3874
-    }, 1000],
-    translation: [{
+    }), 1000],
+    translation: [offsetVectorToWorld({
         x: 3000,
-        y: 13500,
+        y: 10500,
         z: 3000
-    }, {
+    }), offsetVectorToWorld({
         x: 2962,
-        y: 13492,
+        y: 10492,
         z: 3342
-    }, 1000]
+    }), 1000]
 };
+
+print('JBP locations locations'  +JSON.stringify(locations))
 
 var scenes = [{
     name: "Cells",
@@ -507,7 +542,6 @@ var scenes = [{
 
 function ImportScene(scene) {
 
-
     var sceneDataLines = scene.objects.split(";");
     for (var i = 1; i < sceneDataLines.length; i++) {
         var data = sceneDataLines[i].split(",");
@@ -565,27 +599,15 @@ function ImportScene(scene) {
 
 }
 
-clearAllNav();
-
-function clearAllNav() {
-    var result = Entities.findEntities(MyAvatar.position, 25000);
-    result.forEach(function(r) {
-        var properties = Entities.getEntityProperties(r, "name");
-        if (properties.name.indexOf('navigation button') > -1) {
-            Entities.deleteEntity(r);
-        }
-    })
-}
-
 function createLayoutLights() {
     Entities.addEntity({
         type: "Light",
         name: "Cell layout light",
-        position: {
+        position:offsetVectorToWorld( {
             x: 3110,
-            y: 13660,
+            y: 10660,
             z: 3785
-        },
+        }),
         dimensions: {
             x: 1500,
             y: 1500,
@@ -602,7 +624,8 @@ function createLayoutLights() {
 }
 
 function CreateNavigationButton(scene, number) {
-    Entities.addEntity({
+
+   var nav =  Entities.addEntity({
         type: "Box",
         name: scene.name + " navigation button",
         color: {
@@ -634,7 +657,7 @@ function CreateNavigationButton(scene, number) {
         script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
     });
-
+    print('JBP CREATE NAV AT::' +nav+" name: " + scene.name + ": " + JSON.stringify(scene.location))
 }
 
 function CreateBoundary(scene) {
@@ -8990,10 +9013,13 @@ function assignVariables() {
 
 for (var i = 0; i < scenes.length; i++) {
     // print('setting up scene.  first, delete' + JSON.stringify(scenes[i]))
-    deleteAllInRadius(scenes[i].location, scenes[i].zone.dimensions.x);
+    // deleteAllInRadius(scenes[i].location, scenes[i].zone.dimensions.x);
+     CreateNavigationButton(scenes[i], i);
+
     ImportScene(scenes[i]);
     // print('setting up scene.  then import')
-    CreateNavigationButton(scenes[i], i);
+
+
 }
 
 createLayoutLights();
@@ -9002,7 +9028,7 @@ Script.scriptEnding.connect(function() {
     Entities.addingEntity.disconnect(makeUngrabbable);
 });
 
-Script.setTimeout(function() {
-    print('JBP stopping cell science import');
-    Script.stop();
-}, 30000)
+// Script.setTimeout(function() {
+//     print('JBP stopping cell science import');
+//     Script.stop();
+// }, 30000)
