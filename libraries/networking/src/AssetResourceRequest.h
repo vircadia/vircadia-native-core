@@ -31,9 +31,11 @@ private slots:
 
 private:
     bool urlIsAssetPath() const;
-    
+
+    void requestMappingForPath(const AssetPath& path);
     void requestHash(const AssetHash& hash);
 
+    GetMappingRequest* _assetMappingRequest { nullptr };
     AssetRequest* _assetRequest { nullptr };
 };
 
