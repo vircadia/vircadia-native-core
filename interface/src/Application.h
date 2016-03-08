@@ -242,7 +242,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
-    void toggleAssetsManagerWidget();
+    void toggleAssetServerWidget();
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();

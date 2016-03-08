@@ -103,9 +103,9 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
         qApp, SLOT(toggleRunningScriptsWidget()));
 
-    // Edit > Assets Manager
-    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetsManager, 0,
-        qApp, SLOT(toggleAssetsManagerWidget()));
+    // Edit > Asset Server
+    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, 0,
+        qApp, SLOT(toggleAssetServerWidget()));
 
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,

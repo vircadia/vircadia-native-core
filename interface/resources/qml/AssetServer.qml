@@ -1,5 +1,5 @@
 //
-//  AssetsManager.qml
+//  AssetsServer.qml
 //
 //  Created by Clement on  3/1/16
 //  Copyright 2016 High Fidelity, Inc.
@@ -19,7 +19,7 @@ import "windows-uit"
 
 Window {
     id: root
-    objectName: "AssetsManager"
+    objectName: "AssetsServer"
     title: "Assets Server"
     resizable: true
     destroyOnInvisible: true
@@ -36,7 +36,7 @@ Window {
     property var runningScriptsModel: ListModel { }
 
     Settings {
-        category: "Overlay.AssetManager"
+        category: "Overlay.AssetServer"
         property alias x: root.x
         property alias y: root.y
     }

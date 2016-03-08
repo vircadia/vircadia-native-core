@@ -4453,9 +4453,9 @@ void Application::toggleRunningScriptsWidget() {
     //}
 }
 
-void Application::toggleAssetsManagerWidget() {
-    static const QUrl url("AssetsManager.qml");
-    DependencyManager::get<OffscreenUi>()->show(url, "AssetsManager");
+void Application::toggleAssetServerWidget() {
+    static const QUrl url("AssetServer.qml");
+    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer");
 }
 
 void Application::packageModel() {
