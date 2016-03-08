@@ -16,6 +16,8 @@
 #include <QString>
 #include <QScriptValue>
 
+#include <map>
+
 #include <DependencyManager.h>
 
 #include "AssetUtils.h"
@@ -61,7 +63,6 @@ private:
     AssetServerError _error { AssetServerError::NoError };
 };
 
-
 class SetMappingRequest : public QObject {
     Q_OBJECT
 public:
@@ -81,6 +82,42 @@ private:
     AssetServerError _error { AssetServerError::NoError };
 };
 
+class DeleteMappingRequest : public QObject {
+    Q_OBJECT
+public:
+    DeleteMappingRequest(AssetPath path);
+
+    Q_INVOKABLE void start();
+
+    AssetServerError getError() { return _error;  }
+
+signals:
+    void finished(DeleteMappingRequest* thisRequest);
+
+private:
+    AssetPath _path;
+    AssetServerError _error { AssetServerError::NoError };
+};
+
+class GetAllMappingsRequest : public QObject {
+    Q_OBJECT
+public:
+    GetAllMappingsRequest();
+
+    Q_INVOKABLE void start();
+
+    AssetServerError getError() { return _error;  }
+    AssetMapping getMappings() { return _mappings;  }
+
+signals:
+    void finished(GetAllMappingsRequest* thisRequest);
+
+private:
+    std::map<AssetPath, AssetHash> _mappings;
+    AssetServerError _error { AssetServerError::NoError };
+};
+
+
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
@@ -88,6 +125,8 @@ public:
     AssetClient();
 
     Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
+    Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
+    Q_INVOKABLE DeleteMappingRequest* createDeleteMappingRequest(const AssetPath& path);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
     Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
@@ -109,8 +148,9 @@ private slots:
 
 private:
     bool getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    bool getAllAssetMappings(MappingOperationCallback callback);
     bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
-    bool deleteAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    bool deleteAssetMapping(const AssetPath& path, MappingOperationCallback callback);
 
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
     bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
@@ -131,7 +171,9 @@ private:
     friend class AssetRequest;
     friend class AssetUpload;
     friend class GetMappingRequest;
+    friend class GetAllMappingsRequest;
     friend class SetMappingRequest;
+    friend class DeleteMappingRequest;
 };
 
 
@@ -144,7 +186,7 @@ public:
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
-    Q_INVOKABLE void getAllMappings(QString path, QScriptValue callback);
+    Q_INVOKABLE void getAllMappings(QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;

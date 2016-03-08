@@ -170,7 +170,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     AssetMappingOperationType operationType;
     message->readPrimitive(&operationType);
 
-    auto replyPacket = NLPacket::create(PacketType::AssetMappingOperationReply);
+    auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply);
     replyPacket->writePrimitive(messageID);
 
     switch (operationType) {
@@ -188,6 +188,16 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
             else {
                 qDebug() << "Mapping not found for: " << assetPath;
                 replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+            }
+            break;
+        }
+        case AssetMappingOperationType::GetAll: {
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            auto count = _fileMapping.size();
+            replyPacket->writePrimitive(count);
+            for (auto& kv : _fileMapping) {
+                replyPacket->writeString(kv.first);
+                replyPacket->writeString(kv.second);
             }
             break;
         }
@@ -210,7 +220,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+    nodeList->sendPacketList(std::move(replyPacket), *senderNode);
 }
 
 void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

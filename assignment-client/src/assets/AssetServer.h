@@ -39,7 +39,6 @@ private slots:
     void sendStatsPacket();
     
 private:
-    using Mapping = std::map<AssetPath, AssetHash>;
 
     void loadMappingFromFile();
     void writeMappingToFile();
@@ -55,7 +54,7 @@ private:
 
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
-    Mapping _fileMapping;
+    AssetMapping _fileMapping;
     QDir _resourcesDirectory;
     QThreadPool _taskPool;
 };

@@ -50,6 +50,34 @@ void GetMappingRequest::start() {
         emit finished(this);
     });
 };
+
+GetAllMappingsRequest::GetAllMappingsRequest() {
+};
+
+void GetAllMappingsRequest::start() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
+        return;
+    }
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->getAllAssetMappings([this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        // read message
+        _error = error;
+        if (!error) {
+            size_t numberOfMappings;
+            message->readPrimitive(&numberOfMappings);
+            AssetMapping mapping;
+            for (auto i = 0; i < numberOfMappings; ++i) {
+                auto path = message->readString();
+                auto hash = message->readString();
+                mapping[path] = hash;
+            }
+        }
+        emit finished(this);
+    });
+};
+
 SetMappingRequest::SetMappingRequest(AssetPath path, AssetHash hash) : _path(path), _hash(hash) {
 };
 
@@ -61,6 +89,23 @@ void SetMappingRequest::start() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->setAssetMapping(_path, _hash, [this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        // read message
+        _error = error;
+        emit finished(this);
+    });
+};
+
+DeleteMappingRequest::DeleteMappingRequest(AssetPath path) : _path(path) {
+};
+
+void DeleteMappingRequest::start() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
+        return;
+    }
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->deleteAssetMapping(_path, [this](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
         emit finished(this);
@@ -174,9 +219,16 @@ bool haveAssetServer() {
     
     return true;
 }
-
 GetMappingRequest* AssetClient::createGetMappingRequest(const AssetPath& path) {
     return new GetMappingRequest(path);
+}
+
+GetAllMappingsRequest* AssetClient::createGetAllMappingsRequest() {
+    return new GetAllMappingsRequest();
+}
+
+DeleteMappingRequest* AssetClient::createDeleteMappingRequest(const AssetPath& path) {
+    return new DeleteMappingRequest(path);
 }
 
 SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, const AssetHash& hash) {
@@ -404,7 +456,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     }
 }
 
-bool AssetClient::getAssetMapping(const AssetHash& hash, MappingOperationCallback callback) {
+bool AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -416,7 +468,53 @@ bool AssetClient::getAssetMapping(const AssetHash& hash, MappingOperationCallbac
 
         packetList->writePrimitive(AssetMappingOperationType::Get);
 
-        packetList->writeString(hash.toUtf8());
+        packetList->writeString(path);
+
+        nodeList->sendPacketList(std::move(packetList), *assetServer);
+
+        _pendingMappingRequests[assetServer][messageID] = callback;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
+    if (assetServer) {
+        auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
+
+        auto messageID = ++_currentID;
+        packetList->writePrimitive(messageID);
+
+        packetList->writePrimitive(AssetMappingOperationType::GetAll);
+
+        nodeList->sendPacketList(std::move(packetList), *assetServer);
+
+        _pendingMappingRequests[assetServer][messageID] = callback;
+
+        return true;
+    }
+
+    return false;
+}
+
+bool AssetClient::deleteAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+    
+    if (assetServer) {
+        auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
+
+        auto messageID = ++_currentID;
+        packetList->writePrimitive(messageID);
+
+        packetList->writePrimitive(AssetMappingOperationType::Delete);
+
+        packetList->writeString(path);
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
 
@@ -440,8 +538,8 @@ bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, Ma
 
         packetList->writePrimitive(AssetMappingOperationType::Set);
 
-        packetList->writeString(path.toUtf8());
-        packetList->writeString(hash.toUtf8());
+        packetList->writeString(path);
+        packetList->writeString(hash);
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
 
@@ -653,5 +751,25 @@ void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
     request->start();
 }
 
-void AssetScriptingInterface::getAllMappings(QString path, QScriptValue callback) {
+void AssetScriptingInterface::getAllMappings(QScriptValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createGetAllMappingsRequest();
+
+    connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
+        auto mappings = request->getMappings();
+        auto map = callback.engine()->newObject();
+
+        for (auto& kv : mappings ) {
+            map.setProperty(kv.first, kv.second);
+        }
+
+        QScriptValueList args { uint8_t(request->getError()), map };
+
+        callback.call(_engine->currentContext()->thisObject(), args);
+
+        request->deleteLater();
+         
+    });
+
+    request->start();
 }
