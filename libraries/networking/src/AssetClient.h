@@ -43,78 +43,94 @@ using GetInfoCallback = std::function<void(bool responseReceived, AssetServerErr
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
 
+class MappingRequest : public QObject {
+    Q_OBJECT
+public:
+    enum Error {
+        NoError,
+        NotFound,
+        NetworkError,
+        PermissionDenied,
+        UnknownError
+    };
 
-class GetMappingRequest : public QObject {
+    Q_INVOKABLE void start();
+    Error getError() const { return _error; }
+
+protected:
+    Error _error { NoError };
+
+private:
+    virtual void doStart() = 0;
+};
+
+
+class GetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
     GetMappingRequest(AssetPath path);
 
-    Q_INVOKABLE void start();
-
-    AssetHash getHash() { return _hash;  }
-    AssetServerError getError() { return _error;  }
+    AssetHash getHash() const { return _hash;  }
 
 signals:
     void finished(GetMappingRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     AssetPath _path;
     AssetHash _hash;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
-class SetMappingRequest : public QObject {
+class SetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
     SetMappingRequest(AssetPath path, AssetHash hash);
 
-    Q_INVOKABLE void start();
-
-    AssetHash getHash() { return _hash;  }
-    AssetServerError getError() { return _error;  }
+    AssetHash getHash() const { return _hash;  }
 
 signals:
     void finished(SetMappingRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     AssetPath _path;
     AssetHash _hash;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
-class DeleteMappingRequest : public QObject {
+class DeleteMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
     DeleteMappingRequest(AssetPath path);
 
     Q_INVOKABLE void start();
 
-    AssetServerError getError() { return _error;  }
-
 signals:
     void finished(DeleteMappingRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     AssetPath _path;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
-class GetAllMappingsRequest : public QObject {
+class GetAllMappingsRequest : public MappingRequest {
     Q_OBJECT
 public:
     GetAllMappingsRequest();
 
     Q_INVOKABLE void start();
 
-    AssetServerError getError() { return _error;  }
-    AssetMapping getMappings() { return _mappings;  }
+    AssetMapping getMappings() const { return _mappings;  }
 
 signals:
     void finished(GetAllMappingsRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     std::map<AssetPath, AssetHash> _mappings;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
 

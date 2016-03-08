@@ -30,14 +30,18 @@
 
 MessageID AssetClient::_currentID = 0;
 
-GetMappingRequest::GetMappingRequest(AssetPath path) : _path(path) {
-};
-
-void GetMappingRequest::start() {
+void MappingRequest::start() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
         return;
     }
+    doStart();
+};
+
+GetMappingRequest::GetMappingRequest(AssetPath path) : _path(path) {
+};
+
+void GetMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
@@ -50,9 +54,23 @@ void GetMappingRequest::start() {
     }
 
     assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
-        // read message
-        _error = error;
-        if (!error) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::AssetNotFound:
+                    _error = NotFound;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (!_error) {
             //_hash = message->read(SHA256_HASH_HEX_LENGTH);
             _hash = message->readString();
             assetClient->_mappingCache[_path] = _hash;
@@ -64,7 +82,7 @@ void GetMappingRequest::start() {
 GetAllMappingsRequest::GetAllMappingsRequest() {
 };
 
-void GetAllMappingsRequest::start() {
+void GetAllMappingsRequest::doStart() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
         return;
@@ -72,8 +90,20 @@ void GetAllMappingsRequest::start() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->getAllAssetMappings([this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
-        // read message
-        _error = error;
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+
         if (!error) {
             size_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
@@ -92,7 +122,7 @@ void GetAllMappingsRequest::start() {
 SetMappingRequest::SetMappingRequest(AssetPath path, AssetHash hash) : _path(path), _hash(hash) {
 };
 
-void SetMappingRequest::start() {
+void SetMappingRequest::doStart() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
         return;
@@ -100,8 +130,22 @@ void SetMappingRequest::start() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
-        // read message
-        _error = error;
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::PermissionDenied:
+                    _error = PermissionDenied;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
         if (!error) {
             assetClient->_mappingCache[_path] = _hash;
         }
@@ -112,7 +156,7 @@ void SetMappingRequest::start() {
 DeleteMappingRequest::DeleteMappingRequest(AssetPath path) : _path(path) {
 };
 
-void DeleteMappingRequest::start() {
+void DeleteMappingRequest::doStart() {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
         return;
@@ -120,8 +164,22 @@ void DeleteMappingRequest::start() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->deleteAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
-        // read message
-        _error = error;
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::PermissionDenied:
+                    _error = PermissionDenied;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
         if (!error) {
             assetClient->_mappingCache.remove(_path);
         }
