@@ -278,20 +278,20 @@ void Resource::refresh() {
 }
 
 void Resource::allReferencesCleared() {
-    if (_cache) {
+    if (_cache && isCacheable()) {
         if (QThread::currentThread() != thread()) {
             QMetaObject::invokeMethod(this, "allReferencesCleared");
             return;
         }
-        
+
         // create and reinsert new shared pointer 
         QSharedPointer<Resource> self(this, &Resource::allReferencesCleared);
         setSelf(self);
         reinsert();
-        
+
         // add to the unused list
         _cache->addUnusedResource(self);
-        
+
     } else {
         delete this;
     }
