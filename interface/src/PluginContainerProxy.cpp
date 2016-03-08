@@ -181,7 +181,7 @@ void PluginContainerProxy::releaseSceneTexture(const gpu::TexturePointer& textur
 }
 
 void PluginContainerProxy::releaseOverlayTexture(const gpu::TexturePointer& texture) {
-    // FIXME implement present thread compositing
+    qApp->_applicationOverlay.releaseOverlay(texture);
 }
 
 /// settings interface
