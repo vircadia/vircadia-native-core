@@ -33,7 +33,6 @@ Window {
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
-    property var runningScriptsModel: ListModel { }
 
     Settings {
         category: "Overlay.AssetServer"
@@ -41,14 +40,24 @@ Window {
         property alias y: root.y
     }
 
-    Component.onCompleted: updateRunningScripts()
 
-    function updateRunningScripts() {
-        var runningScripts = ScriptDiscoveryService.getRunning();
-        runningScriptsModel.clear()
-        for (var i = 0; i < runningScripts.length; ++i) {
-            runningScriptsModel.append(runningScripts[i]);
-        }
+    function reload() {
+        print("reload");
+    }
+
+    function goBack() {
+        print("goBack");
+    }
+
+    function uploadFile(fileUrl) {
+        var shouldAddToScene = addToScene.enabled;
+        print("uploadFile: " + shouldAddToScene);
+
+    }
+
+    function deleteFile() {
+        print("deleteFile");
+
     }
 
     Column {
@@ -71,6 +80,8 @@ Window {
                     colorScheme: root.colorScheme
                     height: 26
                     width: 26
+
+                    onClicked: root.goBack()
                 }
 
                 HifiControls.GlyphButton {
@@ -79,6 +90,8 @@ Window {
                     colorScheme: root.colorScheme
                     height: 26
                     width: 26
+
+                    onClicked: root.reload()
                 }
             }
 
@@ -97,6 +110,8 @@ Window {
                     colorScheme: root.colorScheme
                     height: 26
                     width: 130
+
+                    onClicked: root.deleteFile()
                 }
             }
 
@@ -167,9 +182,11 @@ Window {
                     text: "Upload"
                     color: hifi.buttons.blue
                     colorScheme: root.colorScheme
-                    enabled: true
                     height: 30
                     width: 155
+
+                    enabled: fileUrl.text != ""
+                    onClicked: root.uploadFile(fileUrl.text)
                 }
             }
         }
