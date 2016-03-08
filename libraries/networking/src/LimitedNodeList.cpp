@@ -922,7 +922,6 @@ void LimitedNodeList::connectedForLocalSocketTest() {
 
 void LimitedNodeList::errorTestingLocalSocket(QAbstractSocket::SocketError error) {
     auto localIPTestSocket = qobject_cast<QTcpSocket*>(sender());
-    qDebug() << sender() << error;
 
     if (localIPTestSocket) {
 
