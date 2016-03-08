@@ -19,9 +19,8 @@
 
 const QString AssetUpload::PERMISSION_DENIED_ERROR = "You do not have permission to upload content to this asset-server.";
 
-AssetUpload::AssetUpload(const QByteArray& data, const QString& extension) :
-    _data(data),
-    _extension(extension)
+AssetUpload::AssetUpload(const QByteArray& data) :
+    _data(data)
 {
     
 }
@@ -59,12 +58,7 @@ void AssetUpload::start() {
         // try to open the file at the given filename
         QFile file { _filename };
         
-        if (file.open(QIODevice::ReadOnly)) {
-            
-            // file opened, read the data and grab the extension
-            _extension = QFileInfo(_filename).suffix();
-            _extension = _extension.toLower();
-            
+        if (file.open(QIODevice::ReadOnly)) {            
             _data = file.readAll();
         } else {
             // we couldn't open the file - set the error result
@@ -82,7 +76,7 @@ void AssetUpload::start() {
         qCDebug(asset_client) << "Attempting to upload" << _filename << "to asset-server.";
     }
     
-    assetClient->uploadAsset(_data, _extension, [this](bool responseReceived, AssetServerError error, const QString& hash){
+    assetClient->uploadAsset(_data, [this](bool responseReceived, AssetServerError error, const QString& hash){
         if (!responseReceived) {
             _error = NetworkError;
         } else {

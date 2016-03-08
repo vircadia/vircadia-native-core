@@ -328,9 +328,9 @@ AssetUpload* AssetClient::createUpload(const QString& filename) {
     }
 }
 
-AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& extension) {
+AssetUpload* AssetClient::createUpload(const QByteArray& data) {
     if (haveAssetServer()) {
-        auto upload = new AssetUpload(data, extension);
+        auto upload = new AssetUpload(data);
         
         upload->moveToThread(thread());
         
@@ -579,7 +579,7 @@ bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, Ma
     return false;
 }
 
-bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback) {
+bool AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
     
@@ -588,9 +588,6 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
 
         auto messageID = ++_currentID;
         packetList->writePrimitive(messageID);
-
-        packetList->writePrimitive(static_cast<uint8_t>(extension.length()));
-        packetList->write(extension.toLatin1().constData(), extension.length());
 
         uint64_t size = data.length();
         packetList->writePrimitive(size);
@@ -692,17 +689,17 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
     _mappingCache.clear();
 }
 
-void AssetScriptingInterface::uploadData(QString data, QString extension, QScriptValue callback) {
+void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     QByteArray dataByteArray = data.toUtf8();
-    auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray, extension);
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray);
     if (!upload) {
         qCWarning(asset_client) << "Error uploading file to asset server";
         return;
     }
 
-    QObject::connect(upload, &AssetUpload::finished, this, [this, callback, extension](AssetUpload* upload, const QString& hash) mutable {
+    QObject::connect(upload, &AssetUpload::finished, this, [this, callback](AssetUpload* upload, const QString& hash) mutable {
         if (callback.isFunction()) {
-            QString url = "atp://" + hash + "." + extension;
+            QString url = "atp://" + hash;
             QScriptValueList args { url };
             callback.call(_engine->currentContext()->thisObject(), args);
         }

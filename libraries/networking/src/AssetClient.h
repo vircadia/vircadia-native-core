@@ -140,7 +140,7 @@ public:
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
     Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
-    Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
+    Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
 
 public slots:
     void init();
@@ -165,7 +165,7 @@ private:
     bool getAssetInfo(const QString& hash, GetInfoCallback callback);
     bool getAsset(const QString& hash, DataOffset start, DataOffset end,
                   ReceivedAssetCallback callback, ProgressCallback progressCallback);
-    bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
+    bool uploadAsset(const QByteArray& data, UploadResultCallback callback);
 
     struct GetAssetCallbacks {
         ReceivedAssetCallback completeCallback;
@@ -194,7 +194,7 @@ class AssetScriptingInterface : public QObject {
 public:
     AssetScriptingInterface(QScriptEngine* engine);
 
-    Q_INVOKABLE void uploadData(QString data, QString extension, QScriptValue callback);
+    Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);

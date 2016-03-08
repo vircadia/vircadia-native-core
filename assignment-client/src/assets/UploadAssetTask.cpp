@@ -37,15 +37,10 @@ void UploadAssetTask::run() {
     MessageID messageID;
     buffer.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
     
-    uint8_t extensionLength;
-    buffer.read(reinterpret_cast<char*>(&extensionLength), sizeof(extensionLength));
-    
-    QByteArray extension = buffer.read(extensionLength);
-    
     uint64_t fileSize;
     buffer.read(reinterpret_cast<char*>(&fileSize), sizeof(fileSize));
     
-    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes and extension" << extension << "from"
+    qDebug() << "UploadAssetTask reading a file of " << fileSize << "bytes from"
         << uuidStringWithoutCurlyBraces(_senderNode->getUUID());
     
     auto replyPacket = NLPacket::create(PacketType::AssetUploadReply);
@@ -62,7 +57,7 @@ void UploadAssetTask::run() {
         qDebug() << "Hash for uploaded file from" << uuidStringWithoutCurlyBraces(_senderNode->getUUID())
             << "is: (" << hexHash << ") ";
         
-        QFile file { _resourcesDir.filePath(QString(hexHash)) + "." + QString(extension) };
+        QFile file { _resourcesDir.filePath(QString(hexHash)) };
         
         if (file.exists()) {
             qDebug() << "[WARNING] This file already exists: " << hexHash;
