@@ -40,6 +40,15 @@ void GetMappingRequest::start() {
     }
 
     auto assetClient = DependencyManager::get<AssetClient>();
+
+    // Check cache
+    auto it = assetClient->_mappingCache.constFind(_path);
+    if (it != assetClient->_mappingCache.constEnd()) {
+        _hash = it.value();
+        emit finished(this);
+        return;
+    }
+
     assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         // read message
         _error = error;
