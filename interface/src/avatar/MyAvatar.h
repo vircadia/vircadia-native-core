@@ -22,7 +22,7 @@
 #include "Avatar.h"
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
-
+#include <ThreadSafeValueCache.h>
 
 class ModelItemID;
 
@@ -78,6 +78,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(controller::Pose rightHandPose READ getRightHandPose)
     Q_PROPERTY(controller::Pose leftHandTipPose READ getLeftHandTipPose)
     Q_PROPERTY(controller::Pose rightHandTipPose READ getRightHandTipPose)
+
+    Q_PROPERTY(glm::mat4 sensorToWorldMatrix READ getSensorToWorldMatrix)
+
     Q_PROPERTY(float energy READ getEnergy WRITE setEnergy)
 
 public:
@@ -98,8 +101,9 @@ public:
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
     const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
-    glm::mat4 getSensorToWorldMatrix() const;
 
+    // thread safe
+    Q_INVOKABLE glm::mat4 getSensorToWorldMatrix() const;
 
     // Pass a recent sample of the HMD to the avatar.
     // This can also update the avatar's position to follow the HMD
@@ -390,6 +394,7 @@ private:
 
     // used to transform any sensor into world space, including the _hmdSensorMat, or hand controllers.
     glm::mat4 _sensorToWorldMatrix;
+    ThreadSafeValueCache<glm::mat4> _sensorToWorldMatrixCache { glm::mat4() };
 
     struct FollowHelper {
         FollowHelper();
