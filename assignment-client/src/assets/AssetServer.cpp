@@ -215,7 +215,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         auto assetHash = it->toString();
         qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
         replyPacket.writePrimitive(AssetServerError::NoError);
-        replyPacket.write(QByteArray::fromHex(assetHash.toLocal8Bit()));
+        replyPacket.write(QByteArray::fromHex(assetHash.toUtf8()));
     }
     else {
         qDebug() << "Mapping not found for: " << assetPath;
