@@ -143,6 +143,8 @@ public:
     float specularFactor = 1.0f;
 
     glm::vec3 emissiveColor{ 0.0f };
+    float emissiveFactor = 0.0f;
+
     float shininess = 23.0f;
     float opacity = 1.0f;
 
@@ -151,6 +153,7 @@ public:
     float emissiveIntensity{ 1.0f };
 
     QString materialID;
+    QString name;
     model::MaterialPointer _material;
 
     FBXTexture normalTexture;
@@ -417,6 +420,7 @@ public:
 
 
     QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> diffuseFactorTextures;
     QHash<QString, QString> transparentTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;
