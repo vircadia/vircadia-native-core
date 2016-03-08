@@ -47,12 +47,12 @@ Frame {
             }
 
             Item {
-                width: title.width + (window.iconText !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
+                width: title.width + (icon.text !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
                 x: (parent.width - width) / 2
 
                 FontAwesome {
                     id: icon
-                    text: window.iconText
+                    text: window.iconText ? window.iconText : ""
                     size: 30
                     color: hifi.colors.lightGrayText
                     visible: text != ""
