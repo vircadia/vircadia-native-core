@@ -174,6 +174,46 @@ void DeleteMappingsRequest::doStart() {
     });
 };
 
+RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) :
+    _oldPath(oldPath),
+    _newPath(newPath)
+{
+
+}
+
+void RenameMappingRequest::doStart() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->renameAssetMapping(_oldPath, _newPath, [this, assetClient](bool responseReceived,
+                                                                            AssetServerError error,
+                                                                            QSharedPointer<ReceivedMessage> message) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::PermissionDenied:
+                    _error = PermissionDenied;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (!error) {
+            // take the hash mapped for the old path from the cache
+            auto hash = assetClient->_mappingCache.take(_oldPath);
+            if (!hash.isEmpty()) {
+                // use the hash mapped for the old path for the new path
+                assetClient->_mappingCache[_newPath] = hash;
+            }
+        }
+        emit finished(this);
+    });
+}
+
 
 AssetClient::AssetClient() {
     
@@ -298,6 +338,10 @@ DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetPathL
 
 SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, const AssetHash& hash) {
     return new SetMappingRequest(path, hash);
+}
+
+RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) {
+    return new RenameMappingRequest(oldPath, newPath);
 }
 
 AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
@@ -573,7 +617,7 @@ bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, Ma
 
         packetList->writePrimitive(AssetMappingOperationType::Set);
 
-        packetList->writeString(path.toUtf8());
+        packetList->writeString(path);
         packetList->write(QByteArray::fromHex(hash.toUtf8()));
 
         nodeList->sendPacketList(std::move(packetList), *assetServer);
@@ -581,6 +625,32 @@ bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, Ma
         _pendingMappingRequests[assetServer][messageID] = callback;
 
         return true;
+    }
+
+    return false;
+}
+
+bool AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
+
+    if (assetServer) {
+        auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
+
+        auto messageID = ++_currentID;
+        packetList->writePrimitive(messageID);
+
+        packetList->writePrimitive(AssetMappingOperationType::Rename);
+
+        packetList->writeString(oldPath);
+        packetList->writeString(newPath);
+
+        nodeList->sendPacketList(std::move(packetList), *assetServer);
+
+        _pendingMappingRequests[assetServer][messageID] = callback;
+
+        return true;
+
     }
 
     return false;
@@ -830,5 +900,21 @@ void AssetScriptingInterface::getAllMappings(QScriptValue callback) {
          
     });
 
+    request->start();
+}
+
+void AssetScriptingInterface::renameMapping(QString oldPath, QString newPath, QScriptValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
+
+    connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
+        QScriptValueList args { uint8_t(request->getError()) };
+
+        callback.call(_engine->currentContext()->thisObject(), args);
+
+        request->deleteLater();
+
+    });
+    
     request->start();
 }

@@ -113,6 +113,21 @@ private:
     AssetPathList _paths;
 };
 
+class RenameMappingRequest : public MappingRequest {
+    Q_OBJECT
+public:
+    RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
+
+signals:
+    void finished(RenameMappingRequest* thisRequest);
+
+private:
+    virtual void doStart() override;
+
+    AssetPath _oldPath;
+    AssetPath _newPath;
+};
+
 class GetAllMappingsRequest : public MappingRequest {
     Q_OBJECT
 public:
@@ -138,6 +153,7 @@ public:
     Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
     Q_INVOKABLE DeleteMappingsRequest* createDeleteMappingsRequest(const AssetPathList& paths);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
+    Q_INVOKABLE RenameMappingRequest* createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath);
     Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data);
@@ -161,6 +177,7 @@ private:
     bool getAllAssetMappings(MappingOperationCallback callback);
     bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
     bool deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback);
+    bool renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback);
 
     bool getAssetInfo(const QString& hash, GetInfoCallback callback);
     bool getAsset(const QString& hash, DataOffset start, DataOffset end,
@@ -186,6 +203,7 @@ private:
     friend class GetAllMappingsRequest;
     friend class SetMappingRequest;
     friend class DeleteMappingsRequest;
+    friend class RenameMappingRequest;
 };
 
 
@@ -200,6 +218,7 @@ public:
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
     Q_INVOKABLE void deleteMappings(QStringList paths, QScriptValue callback);
     Q_INVOKABLE void getAllMappings(QScriptValue callback);
+    Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;
