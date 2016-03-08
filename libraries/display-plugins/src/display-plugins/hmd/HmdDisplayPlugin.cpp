@@ -77,12 +77,11 @@ void HmdDisplayPlugin::compositePointer() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     _plane->Use();
     // Reconstruct the headpose from the eye poses
-    auto currentHeadPose = _currentRenderEyePoses[Left];
-    currentHeadPose[3] = vec4((vec3(_currentRenderEyePoses[Left][3]) + vec3(_currentRenderEyePoses[Right][3])) / 2.0f, 1.0f);
+    auto headPosition = (vec3(_currentRenderEyePoses[Left][3]) + vec3(_currentRenderEyePoses[Right][3])) / 2.0f;
     for_each_eye([&](Eye eye) {
         using namespace oglplus;
         eyeViewport(eye);
-        auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], currentHeadPose);
+        auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], headPosition);
         Uniform<glm::mat4>(*_program, _modelViewUniform).Set(reticleTransform);
         Uniform<glm::mat4>(*_program, _projectionUniform).Set(_eyeProjections[eye]);
         _plane->Draw();

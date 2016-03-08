@@ -26,7 +26,6 @@
 
 // Used to animate the magnification windows
 
-static const quint64 MSECS_TO_USECS = 1000ULL;
 //static const quint64 TOOLTIP_DELAY = 500 * MSECS_TO_USECS;
 
 static const float reticleSize = TWO_PI / 100.0f;
@@ -432,42 +431,31 @@ void CompositorHelper::toggle() {
 }
 
 
-glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::mat4& headPose) const {
+
+glm::mat4 CompositorHelper::getReticleTransform(const glm::mat4& eyePose, const glm::vec3& headPosition) const {
     glm::mat4 result;
     if (isHMD()) {
         vec3 reticleScale = vec3(Cursor::Manager::instance().getScale() * reticleSize);
         auto reticlePosition = getReticlePosition();
-        if (getReticleDepth() != 1.0f) {
-            auto spherical = overlayToSpherical(reticlePosition);
-            auto sphereSurfacePoint = getPoint(spherical.x, spherical.y);
-            auto origin = vec3(headPose[3]);
-            auto direction = glm::normalize(sphereSurfacePoint - origin);
-            auto apparentPosition = (direction * getReticleDepth());
-
-            // same code as used to render for apparent location
-            auto relativePosition4 = glm::inverse(eyePose) * vec4(apparentPosition, 1);
-            auto relativePosition = vec3(relativePosition4) / relativePosition4.w;
-            auto relativeDistance = glm::length(relativePosition);
-
-            // look at borrowed from overlays
-            float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
-            float azimuth = atan2f(relativePosition.x, relativePosition.z);
-            glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, -PI, 0)); // this extra *quat(vec3(0,-PI,0)) was required to get the quad to flip this seems like we could optimize
-
-            Transform transform;
-            transform.setTranslation(relativePosition);
-            transform.setScale(reticleScale);
-            transform.postScale(relativeDistance); 
-            transform.setRotation(faceCamera);
-            transform.getMatrix(result);
-        } else {
-            glm::mat4 overlayXfm;
-            _modelTransform.getMatrix(overlayXfm);
-            glm::vec2 projection = overlayToSpherical(reticlePosition);
-            mat4 pointerXfm = glm::inverse(eyePose) * glm::mat4_cast(quat(vec3(-projection.y, projection.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
-            mat4 reticleXfm = overlayXfm * pointerXfm;
-            result = glm::scale(reticleXfm, reticleScale);
-        }
+        auto spherical = overlayToSpherical(reticlePosition);
+        // The pointer transform relative to the sensor
+        auto pointerTransform = glm::mat4_cast(quat(vec3(-spherical.y, spherical.x, 0.0f))) * glm::translate(mat4(), vec3(0, 0, -1));
+        float reticleDepth = getReticleDepth();
+        if (reticleDepth != 1.0f) {
+            // Cursor position in UI space
+            auto cursorPosition = vec3(pointerTransform[3]) / pointerTransform[3].w;
+            // Ray to the cursor, in UI space
+            auto cursorRay = glm::normalize(cursorPosition - headPosition) * reticleDepth;
+            // Move the ray to be relative to the head pose
+            pointerTransform[3] = vec4(cursorRay + headPosition, 1);
+            // Scale up the cursor because of distance
+            reticleScale *= reticleDepth;
+        } 
+        glm::mat4 overlayXfm;
+        _modelTransform.getMatrix(overlayXfm);
+        pointerTransform = overlayXfm * pointerTransform;
+        pointerTransform = glm::inverse(eyePose) * pointerTransform;
+        result = glm::scale(pointerTransform, reticleScale);
     } else {
         static const float CURSOR_PIXEL_SIZE = 32.0f;
         static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
