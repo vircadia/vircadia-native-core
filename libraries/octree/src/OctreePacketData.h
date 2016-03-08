@@ -236,6 +236,8 @@ public:
     /// the number of bytes in the packet currently reserved
     int getReservedBytes() { return _bytesReserved; }
 
+    int getBytesAvailable() { return _bytesAvailable; }
+
     /// displays contents for debugging
     void debugContent();
     

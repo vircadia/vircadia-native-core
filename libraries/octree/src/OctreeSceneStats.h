@@ -149,6 +149,7 @@ public:
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
+    bool isFullScene() const { return _isFullScene; }
     quint64 getTotalElements() const { return _totalElements; }
     quint64 getTotalInternal() const { return _totalInternal; }
     quint64 getTotalLeaves() const { return _totalLeaves; }
