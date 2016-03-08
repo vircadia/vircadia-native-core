@@ -157,7 +157,7 @@ qint64 BasePacket::writeString(const QString& string) {
 }
 
 QString BasePacket::readString() {
-    uint32_t size {};
+    uint32_t size;
     readPrimitive(&size);
     auto string = QString::fromUtf8(getPayload() + pos(), size);
     seek(pos() + size);
