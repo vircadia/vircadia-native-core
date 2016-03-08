@@ -160,6 +160,7 @@ FocusScope {
         ScrollView {
             id: scrollView
             height: 480
+            width: root.width + 4
 
             ListView {
                 id: listView
