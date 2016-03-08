@@ -281,7 +281,7 @@ public slots:
 
     void runTests();
 
-    void fakeMouseEvent(QMouseEvent event);
+    void fakeMouseEvent(int type, int x, int y, quint32 button, quint32 buttons, quint32 modifiers);
 
 private slots:
     void showDesktop();

@@ -457,7 +457,9 @@ void ApplicationCompositor::setReticlePosition(glm::vec2 position, bool sendFake
             auto buttons = QApplication::mouseButtons();
             auto modifiers = QApplication::keyboardModifiers();
             QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
-            QMetaObject::invokeMethod(qApp, "fakeMouseEvent", Qt::AutoConnection, Q_ARG(QMouseEvent, event));
+            QMetaObject::invokeMethod(qApp, "fakeMouseEvent", Qt::AutoConnection,
+                                      Q_ARG(int, (int)QEvent::MouseMove), Q_ARG(int, globalPos.x()), Q_ARG(int, globalPos.y()),
+                                      Q_ARG(quint32, (quint32)button), Q_ARG(quint32, (quint32)buttons), Q_ARG(quint32, (quint32)modifiers));
         }
     } else {
         // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,

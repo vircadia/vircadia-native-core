@@ -2173,8 +2173,9 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) {
 }
 
 /// called by ApplicationCompositor when in HMD mode and we're faking our mouse movement
-void Application::fakeMouseEvent(QMouseEvent event) {
+void Application::fakeMouseEvent(int type, int x, int y, uint32_t button, uint32_t buttons, uint32_t modifiers) {
     _fakedMouseEvent = true;
+    QMouseEvent event(QEvent::MouseMove, QPoint(x, y), (Qt::MouseButton)button, (Qt::MouseButtons)buttons, (Qt::KeyboardModifiers)modifiers);
     sendEvent(_glWidget, &event);
     _fakedMouseEvent = false;
 }
