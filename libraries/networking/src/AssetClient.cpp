@@ -83,11 +83,6 @@ GetAllMappingsRequest::GetAllMappingsRequest() {
 };
 
 void GetAllMappingsRequest::doStart() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
-        return;
-    }
-
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->getAllAssetMappings([this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
@@ -123,11 +118,6 @@ SetMappingRequest::SetMappingRequest(AssetPath path, AssetHash hash) : _path(pat
 };
 
 void SetMappingRequest::doStart() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
-        return;
-    }
-
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
@@ -157,11 +147,6 @@ DeleteMappingRequest::DeleteMappingRequest(AssetPath path) : _path(path) {
 };
 
 void DeleteMappingRequest::doStart() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
-        return;
-    }
-
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->deleteAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
