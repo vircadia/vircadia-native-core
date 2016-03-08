@@ -66,8 +66,8 @@ void HmdDisplayPlugin::compositeOverlay() {
     for_each_eye([&](Eye eye) {
         eyeViewport(eye);
         auto modelView = glm::inverse(_currentRenderEyePoses[eye]); // *glm::translate(mat4(), vec3(0, 0, -1));
-        Uniform<glm::mat4>(*_program, _modelViewUniform).Set(modelView);
-        Uniform<glm::mat4>(*_program, _projectionUniform).Set(_eyeProjections[eye]);
+        auto mvp = _eyeProjections[eye] * modelView;
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _sphereSection->Draw();
     });
 }
@@ -82,8 +82,8 @@ void HmdDisplayPlugin::compositePointer() {
         using namespace oglplus;
         eyeViewport(eye);
         auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], headPosition);
-        Uniform<glm::mat4>(*_program, _modelViewUniform).Set(reticleTransform);
-        Uniform<glm::mat4>(*_program, _projectionUniform).Set(_eyeProjections[eye]);
+        auto mvp = _eyeProjections[eye] * reticleTransform;
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _plane->Draw();
     });
 }
