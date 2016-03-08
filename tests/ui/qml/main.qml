@@ -137,6 +137,25 @@ ApplicationWindow {
                                        });
                 }
             }
+            Button {
+                text: "Bookmark Location"
+                onClicked: {
+                    desktop.inputDialog({
+                                           title: "Bookmark Location",
+                                           label: "Name"
+                                       });
+                }
+            }
+            Button {
+                text: "Delete Bookmark"
+                onClicked: {
+                    desktop.inputDialog({
+                                           title: "Delete Bookmark",
+                                           label: "Select the bookmark to delete",
+                                           items: ["Bookmark A", "Bookmark B", "Bookmark C"]
+                                       });
+                }
+            }
             /*
             // There is no such desktop.queryBox() function; may need to update test to cover QueryDialog.qml?
             Button {
