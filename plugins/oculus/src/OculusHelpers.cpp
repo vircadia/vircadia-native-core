@@ -8,6 +8,62 @@
 
 #include "OculusHelpers.h"
 
+#include <atomic>
+#include <QtCore/QLoggingCategory>
+using Mutex = std::mutex;
+using Lock = std::unique_lock<Mutex>;
+
+
+Q_DECLARE_LOGGING_CATEGORY(oculus)
+Q_LOGGING_CATEGORY(oculus, "hifi.plugins.oculus")
+
+static std::atomic<uint32_t> refCount { 0 };
+static ovrSession session { nullptr };
+
+bool oculusAvailable() {
+    ovrDetectResult detect = ovr_Detect(0);
+    return (detect.IsOculusServiceRunning && detect.IsOculusHMDConnected);
+}
+
+ovrSession acquireOculusSession() {
+    if (!session && !oculusAvailable()) {
+        qCDebug(oculus) << "oculus: no runtime or HMD present";
+        return session;
+    }
+
+    if (!session) {
+        ovrInitParams init = {};
+        init.Flags = 0;
+        init.ConnectionTimeoutMS = 0;
+        init.LogCallback = nullptr;
+        if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
+            qCWarning(oculus) << "Failed to initialize Oculus SDK";
+            return session;
+        }
+
+        Q_ASSERT(0 == refCount);
+        ovrGraphicsLuid luid;
+        if (!OVR_SUCCESS(ovr_Create(&session, &luid))) {
+            qCWarning(oculus) << "Failed to acquire Oculus session";
+            return session;
+        }
+    }
+
+    ++refCount;
+    return session;
+}
+
+void releaseOculusSession() {
+    Q_ASSERT(refCount > 0 && session);
+    if (!--refCount) {
+        qCDebug(oculus) << "oculus: zero refcount, shutdown SDK and session";
+        ovr_Destroy(session);
+        ovr_Shutdown();
+        session = nullptr;
+    }
+}
+
+
 // A wrapper for constructing and using a swap texture set,
 // where each frame you draw to a texture via the FBO,
 // then submit it and increment to the next texture.
