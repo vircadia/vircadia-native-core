@@ -12,10 +12,10 @@
 #ifndef hifi_AssetServer_h
 #define hifi_AssetServer_h
 
-#include <QDir>
+#include <QtCore/QDir>
+#include <QtCore/QThreadPool>
 
 #include <ThreadedAssignment.h>
-#include <QThreadPool>
 
 #include "AssetUtils.h"
 #include "ReceivedMessage.h"
@@ -60,8 +60,6 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(const AssetPath& oldPath, const AssetPath& newPath);
 
-    static void writeError(NLPacketList* packetList, AssetServerError error);
-
     void performMappingMigration();
 
     Mappings _fileMappings;
@@ -70,9 +68,5 @@ private:
     QDir _filesDirectory;
     QThreadPool _taskPool;
 };
-
-inline void writeError(NLPacketList* packetList, AssetServerError error) {
-    packetList->writePrimitive(error);
-}
 
 #endif
