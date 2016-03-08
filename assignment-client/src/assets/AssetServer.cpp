@@ -212,8 +212,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         auto assetHash = it->toString();
         qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
         replyPacket->writePrimitive(AssetServerError::NoError);
-        //replyPacket->write(assetHash.toLatin1().toHex());
-        replyPacket->writeString(assetHash.toLatin1());
+        replyPacket->write(QByteArray::fromHex(assetHash.toLocal8Bit()));
     }
     else {
         qDebug() << "Mapping not found for: " << assetPath;
@@ -225,8 +224,7 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
                                             std::unique_ptr<NLPacket> replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
-        // auto assetHash = message->read(SHA256_HASH_LENGTH);
-        auto assetHash = message.readString();
+        auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
 
         if (setMapping(assetPath, assetHash)) {
             replyPacket->writePrimitive(AssetServerError::NoError);
