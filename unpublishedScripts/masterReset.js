@@ -720,6 +720,7 @@ MasterReset = function() {
 
     function createTargets() {
 
+
         var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target.fbx';
         var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/target_collision_hull.obj';
 
@@ -960,6 +961,8 @@ MasterReset = function() {
                 y: 2.545,
                 z: 2.545
             },
+            intensity: 1.0,
+            falloffRadius: 0.3,
             cutoff: 90,
             color: {
                 red: 217,
@@ -988,6 +991,8 @@ MasterReset = function() {
                 y: 2.545,
                 z: 2.545
             },
+            intensity: 1.0,
+            falloffRadius: 0.3,
             cutoff: 90,
             color: {
                 red: 217,
@@ -1061,6 +1066,8 @@ MasterReset = function() {
                 y: 2.545,
                 z: 2.545
             },
+            intensity: 1.0,
+            falloffRadius: 0.3,
             cutoff: 90,
             color: {
                 red: 217,
@@ -1090,6 +1097,8 @@ MasterReset = function() {
                 y: 2.545,
                 z: 2.545
             },
+            intensity: 1.0,
+            falloffRadius: 0.3,
             cutoff: 90,
             color: {
                 red: 217,
@@ -1118,6 +1127,8 @@ MasterReset = function() {
                 y: 2.545,
                 z: 2.545
             },
+            intensity: 1.0,
+            falloffRadius: 0.3,
             cutoff: 90,
             color: {
                 red: 217,
@@ -1228,8 +1239,9 @@ MasterReset = function() {
     }
 
     function createPingPongBallGun() {
-        var MODEL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun.fbx';
-        var COLLISION_HULL_URL = 'http://hifi-public.s3.amazonaws.com/models/ping_pong_gun/ping_pong_gun_convex.obj';
+        var MODEL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.fbx';
+        var COLLISION_HULL_URL = 'http://hifi-content.s3.amazonaws.com/alan/dev/Pingpong-Gun-New.obj';
+
         var COLLISION_SOUND_URL = 'http://hifi-public.s3.amazonaws.com/sounds/Collisions-otherorganic/plastic_impact.L.wav';
         var position = {
             x: 548.6,
@@ -1254,9 +1266,9 @@ MasterReset = function() {
             },
             restitution: 0,
             dimensions: {
-                x: 0.08,
-                y: 0.21,
-                z: 0.47
+                x: 0.125,
+                y: 0.3875,
+                z: 0.9931
             },
             dynamic: true,
             collisionSoundURL: COLLISION_SOUND_URL,

@@ -41,9 +41,9 @@ private slots:
 private:
     using Mappings = QVariantHash;
 
-    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket);
-    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket);
-    void handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket);
+    void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     void loadMappingsFromFile();
@@ -63,6 +63,7 @@ private:
     void performMappingMigration();
 
     Mappings _fileMappings;
+
     QDir _resourcesDirectory;
     QDir _filesDirectory;
     QThreadPool _taskPool;

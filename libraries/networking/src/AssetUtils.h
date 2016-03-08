@@ -14,6 +14,8 @@
 
 #include <cstdint>
 
+#include <map>
+
 #include <QtCore/QByteArray>
 #include <QtCore/QUrl>
 
@@ -22,6 +24,7 @@ using DataOffset = int64_t;
 
 using AssetPath = QString;
 using AssetHash = QString;
+using AssetMapping = std::map<AssetPath, AssetHash>;
 
 const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;
@@ -38,6 +41,7 @@ enum AssetServerError : uint8_t {
 
 enum AssetMappingOperationType : uint8_t {
     Get = 0,
+    GetAll,
     Set,
     Delete
 };

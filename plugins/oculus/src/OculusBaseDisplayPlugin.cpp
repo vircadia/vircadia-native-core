@@ -76,8 +76,6 @@ void OculusBaseDisplayPlugin::activate() {
         qFatal("Failed to acquire HMD");
     }
 
-    HmdDisplayPlugin::activate();
-
     _hmdDesc = ovr_GetHmdDesc(_session);
 
     _ipd = ovr_GetFloat(_session, OVR_KEY_IPD, _ipd);
@@ -123,6 +121,11 @@ void OculusBaseDisplayPlugin::activate() {
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
     }
+
+    // This must come after the initialization, so that the values calculated 
+    // above are available during the customizeContext call (when not running
+    // in threaded present mode)
+    HmdDisplayPlugin::activate();
 }
 
 void OculusBaseDisplayPlugin::deactivate() {

@@ -13,7 +13,8 @@
 
 #include <QtScript/QScriptContext>
 
-#include "display-plugins/DisplayPlugin.h"
+#include <display-plugins/DisplayPlugin.h>
+#include <display-plugins/CompositorHelper.h>
 #include <avatar/AvatarManager.h>
 #include "Application.h"
 

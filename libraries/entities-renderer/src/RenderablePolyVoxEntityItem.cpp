@@ -142,7 +142,7 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
     bool success; // TODO -- Does this actually have to happen in world space?
-    glm::vec3 center = getCenterPosition(success);
+    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
     glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
 
@@ -428,6 +428,13 @@ PolyVox::RaycastResult RenderablePolyVoxEntityItem::doRayCast(glm::vec4 originIn
 // virtual
 ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
+}
+
+void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        _meshDirty = true;
+        EntityItem::updateRegistrationPoint(value);
+    }
 }
 
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
@@ -1224,10 +1231,16 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     }
 
     glm::vec3 collisionModelDimensions = box.getDimensions();
-    QByteArray b64 = _voxelData.toBase64();
+    // include the registrationPoint in the shape key, because the offset is already
+    // included in the points and the shapeManager wont know that the shape has changed.
+    QString shapeKey = QString(_voxelData.toBase64()) + "," +
+        QString::number(_registrationPoint.x) + "," +
+        QString::number(_registrationPoint.y) + "," +
+        QString::number(_registrationPoint.z);
     _shapeInfoLock.lockForWrite();
-    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, QString(b64));
+    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
     _shapeInfo.setConvexHulls(points);
+    // adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
 
     _meshLock.lockForWrite();

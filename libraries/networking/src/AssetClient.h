@@ -16,6 +16,8 @@
 #include <QString>
 #include <QScriptValue>
 
+#include <map>
+
 #include <DependencyManager.h>
 
 #include "AssetUtils.h"
@@ -41,46 +43,95 @@ using GetInfoCallback = std::function<void(bool responseReceived, AssetServerErr
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
 using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
 
+class MappingRequest : public QObject {
+    Q_OBJECT
+public:
+    enum Error {
+        NoError,
+        NotFound,
+        NetworkError,
+        PermissionDenied,
+        UnknownError
+    };
 
-class GetMappingRequest : public QObject {
+    Q_INVOKABLE void start();
+    Error getError() const { return _error; }
+
+protected:
+    Error _error { NoError };
+
+private:
+    virtual void doStart() = 0;
+};
+
+
+class GetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
     GetMappingRequest(AssetPath path);
 
-    Q_INVOKABLE void start();
-
-    AssetHash getHash() { return _hash;  }
-    AssetServerError getError() { return _error;  }
+    AssetHash getHash() const { return _hash;  }
 
 signals:
     void finished(GetMappingRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     AssetPath _path;
     AssetHash _hash;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
-
-class SetMappingRequest : public QObject {
+class SetMappingRequest : public MappingRequest {
     Q_OBJECT
 public:
     SetMappingRequest(AssetPath path, AssetHash hash);
 
-    Q_INVOKABLE void start();
-
-    AssetHash getHash() { return _hash;  }
-    AssetServerError getError() { return _error;  }
+    AssetHash getHash() const { return _hash;  }
 
 signals:
     void finished(SetMappingRequest* thisRequest);
 
 private:
+    virtual void doStart() override;
+
     AssetPath _path;
     AssetHash _hash;
-    AssetServerError _error { AssetServerError::NoError };
 };
 
+class DeleteMappingRequest : public MappingRequest {
+    Q_OBJECT
+public:
+    DeleteMappingRequest(AssetPath path);
+
+    Q_INVOKABLE void start();
+
+signals:
+    void finished(DeleteMappingRequest* thisRequest);
+
+private:
+    virtual void doStart() override;
+
+    AssetPath _path;
+};
+
+class GetAllMappingsRequest : public MappingRequest {
+    Q_OBJECT
+public:
+    GetAllMappingsRequest();
+
+    Q_INVOKABLE void start();
+
+    AssetMapping getMappings() const { return _mappings;  }
+
+signals:
+    void finished(GetAllMappingsRequest* thisRequest);
+
+private:
+    virtual void doStart() override;
+
+    std::map<AssetPath, AssetHash> _mappings;
+};
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
@@ -88,6 +139,8 @@ public:
     AssetClient();
 
     Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
+    Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
+    Q_INVOKABLE DeleteMappingRequest* createDeleteMappingRequest(const AssetPath& path);
     Q_INVOKABLE SetMappingRequest* createSetMappingRequest(const AssetPath& path, const AssetHash& hash);
     Q_INVOKABLE AssetRequest* createRequest(const AssetHash& hash);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
@@ -109,8 +162,9 @@ private slots:
 
 private:
     bool getAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    bool getAllAssetMappings(MappingOperationCallback callback);
     bool setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback);
-    bool deleteAssetMapping(const AssetHash& hash, MappingOperationCallback callback);
+    bool deleteAssetMapping(const AssetPath& path, MappingOperationCallback callback);
 
     bool getAssetInfo(const QString& hash, GetInfoCallback callback);
     bool getAsset(const QString& hash, DataOffset start, DataOffset end,
@@ -127,11 +181,15 @@ private:
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
+
+    QHash<QString, QString> _mappingCache;
     
     friend class AssetRequest;
     friend class AssetUpload;
     friend class GetMappingRequest;
+    friend class GetAllMappingsRequest;
     friend class SetMappingRequest;
+    friend class DeleteMappingRequest;
 };
 
 
@@ -144,7 +202,8 @@ public:
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
-    Q_INVOKABLE void getAllMappings(QString path, QScriptValue callback);
+    Q_INVOKABLE void deleteMapping(QString path, QScriptValue callback);
+    Q_INVOKABLE void getAllMappings(QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;

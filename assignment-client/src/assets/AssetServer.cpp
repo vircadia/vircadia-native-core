@@ -181,12 +181,22 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     AssetMappingOperationType operationType;
     message->readPrimitive(&operationType);
 
-    auto replyPacket = NLPacket::create(PacketType::AssetMappingOperationReply);
+    auto replyPacket = NLPacketList::create(PacketType::AssetMappingOperationReply, QByteArray(), true, true);
     replyPacket->writePrimitive(messageID);
 
     switch (operationType) {
         case AssetMappingOperationType::Get: {
             handleGetMappingOperation(*message, senderNode, *replyPacket);
+            break;
+        }
+        case AssetMappingOperationType::GetAll: {
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            auto count = _fileMappings.size();
+            replyPacket->writePrimitive(count);
+            for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
+                replyPacket->writeString(it.key());
+                replyPacket->write(QByteArray::fromHex(it.value().toString().toLocal8Bit()));
+            }
             break;
         }
         case AssetMappingOperationType::Set: {
@@ -200,10 +210,10 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     }
 
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacket(std::move(replyPacket), *senderNode);
+    nodeList->sendPacketList(std::move(replyPacket), *senderNode);
 }
 
-void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
+void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     QString assetPath = message.readString();
 
     auto it = _fileMappings.find(assetPath);
@@ -219,7 +229,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
+void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
@@ -234,7 +244,7 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
+void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
 
