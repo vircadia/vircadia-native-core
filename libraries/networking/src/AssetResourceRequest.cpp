@@ -72,14 +72,14 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
         Q_ASSERT(request == _assetMappingRequest);
 
         switch (request->getError()) {
-            case AssetServerError::NoError:
+            case MappingRequest::NoError:
                 // we have no error, we should have a resulting hash - use that to send of a request for that asset
                 qDebug() << "Got mapping for:" << path << "=>" << request->getHash();
 
                 requestHash(request->getHash());
 
                 break;
-            case AssetServerError::AssetNotFound:
+            case MappingRequest::NotFound:
                 // no result for the mapping request, set error to not found
                 _result = NotFound;
 
@@ -90,6 +90,12 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 break;
             default:
                 // these are unexpected errors for a GetMappingRequest object
+                _result = Error;
+
+                // since we've failed we know we are finished
+                _state = Finished;
+                emit finished();
+                
                 break;
         }
 
