@@ -106,7 +106,7 @@ void AssetServer::completeSetup() {
     _filesDirectory.cd(ASSET_FILES_SUBDIR);
 
     // load whatever mappings we currently have from the local file
-    loadMappingFromFile();
+    loadMappingsFromFile();
     
     qInfo() << "Serving files from: " << _filesDirectory.path();
 
@@ -155,12 +155,12 @@ void AssetServer::performMappingMigration() {
 
                 qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
 
-                auto it = _fileMapping.find(fakeFileName);
-                if (it == _fileMapping.end()) {
-                    _fileMapping[fakeFileName] = hash;
+                auto it = _fileMappings.find(fakeFileName);
+                if (it == _fileMappings.end()) {
+                    _fileMappings[fakeFileName] = hash;
 
 
-                    if (writeMappingToFile()) {
+                    if (writeMappingsToFile()) {
                         // mapping added and persisted, we can remove the migrated file
                         oldFile.remove();
                         qDebug() << "\tMigration completed for" << oldFilename;
@@ -206,8 +206,8 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
 void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
     QString assetPath = message.readString();
 
-    auto it = _fileMapping.find(assetPath);
-    if (it != _fileMapping.end()) {
+    auto it = _fileMappings.find(assetPath);
+    if (it != _fileMappings.end()) {
         auto assetHash = it->toString();
         qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
         replyPacket.writePrimitive(AssetServerError::NoError);
@@ -395,7 +395,7 @@ void AssetServer::sendStatsPacket() {
 
 static const QString MAP_FILE_NAME = "map.json";
 
-void AssetServer::loadMappingFromFile() {
+void AssetServer::loadMappingsFromFile() {
 
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
@@ -403,9 +403,9 @@ void AssetServer::loadMappingFromFile() {
     if (mapFile.exists()) {
         if (mapFile.open(QIODevice::ReadOnly)) {
             auto jsonDocument = QJsonDocument::fromJson(mapFile.readAll());
-            _fileMapping = jsonDocument.object().toVariantHash();
+            _fileMappings = jsonDocument.object().toVariantHash();
 
-            qInfo() << "Loaded" << _fileMapping.count() << "mappings from map file at" << mapFilePath;
+            qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
         } else {
             qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
             setFinished(true);
@@ -415,12 +415,12 @@ void AssetServer::loadMappingFromFile() {
     }
 }
 
-bool AssetServer::writeMappingToFile() {
+bool AssetServer::writeMappingsToFile() {
     auto mapFilePath = _resourcesDirectory.absoluteFilePath(MAP_FILE_NAME);
 
     QFile mapFile { mapFilePath };
     if (mapFile.open(QIODevice::WriteOnly)) {
-        auto jsonObject = QJsonObject::fromVariantHash(_fileMapping);
+        auto jsonObject = QJsonObject::fromVariantHash(_fileMappings);
         QJsonDocument jsonDocument { jsonObject };
 
         if (mapFile.write(jsonDocument.toJson()) != -1) {
@@ -437,26 +437,26 @@ bool AssetServer::writeMappingToFile() {
 }
 
 AssetHash AssetServer::getMapping(AssetPath path) {
-    return _fileMapping.value(path).toString();
+    return _fileMappings.value(path).toString();
 }
 
 bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     // remember what the old mapping was in case persistence fails
-    auto oldMapping = _fileMapping.value(path).toString();
+    auto oldMapping = _fileMappings.value(path).toString();
 
     // update the in memory QHash
-    _fileMapping[path] = hash;
+    _fileMappings[path] = hash;
 
     // attempt to write to file
-    if (writeMappingToFile()) {
+    if (writeMappingsToFile()) {
         // persistence succeeded, we are good to go
         return true;
     } else {
         // failed to persist this mapping to file - put back the old one in our in-memory representation
         if (oldMapping.isEmpty()) {
-            _fileMapping.remove(path);
+            _fileMappings.remove(path);
         } else {
-            _fileMapping[path] = oldMapping;
+            _fileMappings[path] = oldMapping;
         }
 
         return false;
@@ -465,16 +465,16 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
 
 bool AssetServer::deleteMapping(AssetPath path) {
     // keep the old mapping in case the delete fails
-    auto oldMapping = _fileMapping.take(path);
+    auto oldMapping = _fileMappings.take(path);
 
     if (!oldMapping.isNull()) {
         // deleted the old mapping, attempt to persist to file
-        if (writeMappingToFile()) {
+        if (writeMappingsToFile()) {
             // persistence succeeded we are good to go
             return true;
         } else {
             // we didn't delete the previous mapping, put it back in our in-memory representation
-            _fileMapping[path] = oldMapping.toString();
+            _fileMappings[path] = oldMapping.toString();
         }
     }
 
