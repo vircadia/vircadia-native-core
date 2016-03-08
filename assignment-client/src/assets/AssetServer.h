@@ -50,9 +50,6 @@ private:
     void loadMappingsFromFile();
     bool writeMappingsToFile();
 
-    /// Return the hash mapping for AssetPath `path`
-    AssetHash getMapping(AssetPath path);
-
     /// Set the mapping for path to hash
     bool setMapping(AssetPath path, AssetHash hash);
 

@@ -455,10 +455,6 @@ bool AssetServer::writeMappingsToFile() {
     return false;
 }
 
-AssetHash AssetServer::getMapping(AssetPath path) {
-    return _fileMappings.value(path).toString();
-}
-
 bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     // remember what the old mapping was in case persistence fails
     auto oldMapping = _fileMappings.value(path).toString();
