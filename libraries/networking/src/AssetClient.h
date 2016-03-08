@@ -104,8 +104,6 @@ class DeleteMappingRequest : public MappingRequest {
 public:
     DeleteMappingRequest(AssetPath path);
 
-    Q_INVOKABLE void start();
-
 signals:
     void finished(DeleteMappingRequest* thisRequest);
 
@@ -119,8 +117,6 @@ class GetAllMappingsRequest : public MappingRequest {
     Q_OBJECT
 public:
     GetAllMappingsRequest();
-
-    Q_INVOKABLE void start();
 
     AssetMapping getMappings() const { return _mappings;  }
 
