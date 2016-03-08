@@ -426,8 +426,8 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(BACK, "Back"),
-        makePair(START, "Start"),
+        makePair(BACK, "LeftApplicationMenu"),
+        makePair(START, "RightApplicationMenu"),
     };
 
     //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));

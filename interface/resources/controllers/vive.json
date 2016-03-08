@@ -15,8 +15,8 @@
         { "from": "Vive.RB", "to": "Standard.RB" },
         { "from": "Vive.RS", "to": "Standard.RS" },
 
-        { "from": "Vive.Back", "to": "Standard.Back" },
-        { "from": "Vive.Start", "to": "Standard.Start" },
+        { "from": "Vive.LeftApplicationMenu", "to": "Standard.Back" },
+        { "from": "Vive.RightApplicationMenu", "to": "Standard.Start" },
 
         { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
         { "from": "Vive.RightHand", "to": "Standard.RightHand" }
