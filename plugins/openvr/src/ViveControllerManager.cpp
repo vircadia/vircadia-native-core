@@ -311,7 +311,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 
     using namespace controller;
     if (button == vr::k_EButton_ApplicationMenu) {
-        _buttonPressedMap.insert(isLeftHand ? LEFT_PRIMARY_THUMB : RIGHT_PRIMARY_THUMB);
+        _buttonPressedMap.insert(isLeftHand ? BACK : START);
     } else if (button == vr::k_EButton_Grip) {
         _buttonPressedMap.insert(isLeftHand ? LB : RB);
     } else if (button == vr::k_EButton_SteamVR_Trigger) {
@@ -426,10 +426,8 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
-        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
-        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
-        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
+        makePair(BACK, "Back"),
+        makePair(START, "Start"),
     };
 
     //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
