@@ -293,14 +293,12 @@ void OpenGLDisplayPlugin::customizeContext() {
     auto uniforms = _program->ActiveUniforms();
     while (!uniforms.Empty()) {
         auto uniform = uniforms.Front();
-        if (uniform.Name() == "Projection") {
-            _projectionUniform = uniform.Index();
-        } else if (uniform.Name() == "ModelView") {
-            _modelViewUniform = uniform.Index();
+        if (uniform.Name() == "mvp") {
+            _mvpUniform = uniform.Index();
         }
         uniforms.Next();
     }
-
+  
     _plane = loadPlane(_program);
 
     _compositeFramebuffer = std::make_shared<BasicFramebufferWrapper>();
@@ -410,16 +408,14 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
     // Overlay draw
     if (isStereo()) {
-        Uniform<glm::mat4>(*_program, _projectionUniform).Set(mat4());
-        Uniform<glm::mat4>(*_program, _modelViewUniform).Set(mat4());
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
         for_each_eye([&](Eye eye) {
             eyeViewport(eye);
             drawUnitQuad();
         });
     } else {
         // Overlay draw
-        Uniform<glm::mat4>(*_program, _projectionUniform).Set(mat4());
-        Uniform<glm::mat4>(*_program, _modelViewUniform).Set(mat4());
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
         drawUnitQuad();
     }
 }
@@ -427,7 +423,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 void OpenGLDisplayPlugin::compositePointer() {
     using namespace oglplus;
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    Uniform<glm::mat4>(*_program, _modelViewUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
+    Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
     if (isStereo()) {
         for_each_eye([&](Eye eye) {
             eyeViewport(eye);
@@ -436,8 +432,7 @@ void OpenGLDisplayPlugin::compositePointer() {
     } else {
         drawUnitQuad();
     }
-    Uniform<glm::mat4>(*_program, _projectionUniform).Set(mat4());
-    Uniform<glm::mat4>(*_program, _modelViewUniform).Set(mat4());
+    Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
 }
 
 void OpenGLDisplayPlugin::compositeLayers() {
@@ -452,8 +447,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
         Context::Clear().DepthBuffer();
         glBindTexture(GL_TEXTURE_2D, getSceneTextureId());
         _program->Bind();
-        Uniform<glm::mat4>(*_program, _projectionUniform).Set(mat4());
-        Uniform<glm::mat4>(*_program, _modelViewUniform).Set(mat4());
+        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
         drawUnitQuad();
         auto overlayTextureId = getOverlayTextureId();
         if (overlayTextureId) {
