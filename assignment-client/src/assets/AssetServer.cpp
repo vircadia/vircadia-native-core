@@ -186,15 +186,15 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
 
     switch (operationType) {
         case AssetMappingOperationType::Get: {
-            handleGetMappingOperation(*message, senderNode, std::move(replyPacket));
+            handleGetMappingOperation(*message, senderNode, *replyPacket);
             break;
         }
         case AssetMappingOperationType::Set: {
-            handleSetMappingOperation(*message, senderNode, std::move(replyPacket));
+            handleSetMappingOperation(*message, senderNode, *replyPacket);
             break;
         }
         case AssetMappingOperationType::Delete: {
-            handleDeleteMappingOperation(*message, senderNode, std::move(replyPacket));
+            handleDeleteMappingOperation(*message, senderNode, *replyPacket);
             break;
         }
     }
@@ -203,51 +203,48 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
-void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
-                                            std::unique_ptr<NLPacket> replyPacket) {
+void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
     QString assetPath = message.readString();
 
     auto it = _fileMapping.find(assetPath);
     if (it != _fileMapping.end()) {
         auto assetHash = it->toString();
         qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
-        replyPacket->writePrimitive(AssetServerError::NoError);
-        replyPacket->write(QByteArray::fromHex(assetHash.toLocal8Bit()));
+        replyPacket.writePrimitive(AssetServerError::NoError);
+        replyPacket.write(QByteArray::fromHex(assetHash.toLocal8Bit()));
     }
     else {
         qDebug() << "Mapping not found for: " << assetPath;
-        replyPacket->writePrimitive(AssetServerError::AssetNotFound);
+        replyPacket.writePrimitive(AssetServerError::AssetNotFound);
     }
 }
 
-void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
-                                            std::unique_ptr<NLPacket> replyPacket) {
+void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
 
         if (setMapping(assetPath, assetHash)) {
-            replyPacket->writePrimitive(AssetServerError::NoError);
+            replyPacket.writePrimitive(AssetServerError::NoError);
         } else {
-            replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
         }
     } else {
-        replyPacket->writePrimitive(AssetServerError::PermissionDenied);
+        replyPacket.writePrimitive(AssetServerError::PermissionDenied);
     }
 }
 
-void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode,
-                                               std::unique_ptr<NLPacket> replyPacket) {
+void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacket& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
 
         if (deleteMapping(assetPath)) {
-            replyPacket->writePrimitive(AssetServerError::NoError);
+            replyPacket.writePrimitive(AssetServerError::NoError);
         } else {
-            replyPacket->writePrimitive(AssetServerError::MappingOperationFailed);
+            replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
         }
     } else {
-        replyPacket->writePrimitive(AssetServerError::PermissionDenied);
+        replyPacket.writePrimitive(AssetServerError::PermissionDenied);
     }
 }
 
