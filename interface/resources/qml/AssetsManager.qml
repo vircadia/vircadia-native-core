@@ -65,16 +65,16 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
 
-                HifiControls.Button {
-                    text: "<"
+                HifiControls.GlyphButton {
+                    glyph: hifi.glyphs.back
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
                     height: 26
                     width: 26
                 }
 
-                HifiControls.Button {
-                    text: "O"
+                HifiControls.GlyphButton {
+                    glyph: hifi.glyphs.reload
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
                     height: 26

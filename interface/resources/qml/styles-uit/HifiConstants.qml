@@ -157,6 +157,10 @@ Item {
         readonly property string pinInverted: "z"
         readonly property string reloadSmall: "a"
         readonly property string resizeHandle: "A"
+        readonly property string upload: "j"
+        readonly property string reload: "a"
+        readonly property string back: "1"
+
     }
 
     Item {
