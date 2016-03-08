@@ -249,7 +249,7 @@ signals:
 
 protected slots:
     void connectedForLocalSocketTest();
-    void errorTestingLocalSocket(QAbstractSocket::SocketError error);
+    void errorTestingLocalSocket();
 
 protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);

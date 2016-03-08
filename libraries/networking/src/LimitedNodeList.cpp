@@ -920,7 +920,7 @@ void LimitedNodeList::connectedForLocalSocketTest() {
     }
 }
 
-void LimitedNodeList::errorTestingLocalSocket(QAbstractSocket::SocketError error) {
+void LimitedNodeList::errorTestingLocalSocket() {
     auto localIPTestSocket = qobject_cast<QTcpSocket*>(sender());
 
     if (localIPTestSocket) {
