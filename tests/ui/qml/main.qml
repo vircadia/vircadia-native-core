@@ -102,11 +102,11 @@ ApplicationWindow {
                     var messageBox = desktop.messageBox({
                                            title: "Set Avatar",
                                            text: "Would you like to use 'Albert' for your avatar?",
-                                           icon: OriginalDialogs.StandardIcon.Question,         // Test question icon
-                                           //icon: OriginalDialogs.StandardIcon.Information,    // Test informaton icon
-                                           //icon: OriginalDialogs.StandardIcon.Warning,        // Test warning icon
-                                           //icon: OriginalDialogs.StandardIcon.Critical,       // Test critical icon
-                                           //icon: OriginalDialogs.StandardIcon.NoIcon,         // Test no icon
+                                           icon: hifi.icons.question,         // Test question icon
+                                           //icon: hifi.icons.information,    // Test informaton icon
+                                           //icon: hifi.icons.warning,        // Test warning icon
+                                           //icon: hifi.icons.critical,       // Test critical icon
+                                           //icon: hifi.icons.none,         // Test no icon
                                            buttons: OriginalDialogs.StandardButton.Ok + OriginalDialogs.StandardButton.Cancel,
                                            defaultButton: OriginalDialogs.StandardButton.Ok
                                        });
@@ -121,7 +121,7 @@ ApplicationWindow {
                 onClicked: {
                     var messageBox = desktop.messageBox({
                                                             text: "Diagnostic cycle will be complete in 30 seconds",
-                                                            icon: OriginalDialogs.StandardIcon.Critical,
+                                                            icon: hifi.icons.critical,
                                                         });
                     messageBox.selected.connect(function(button) {
                         console.log("You clicked " + button)
@@ -135,7 +135,7 @@ ApplicationWindow {
                     desktop.messageBox({
                                            informativeText: "Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds ",
                                            text: "Baloney",
-                                           icon: OriginalDialogs.StandardIcon.Warning,
+                                           icon: hifi.icons.warning,
                                            detailedText: "sakjd;laskj dksa;dl jka;lsd j;lkjas ;dlkaj s;dlakjd ;alkjda; slkjda; lkjda;lksjd ;alksjd; alksjd ;alksjd; alksjd; alksdjas;ldkjas;lkdja ;kj ;lkasjd; lkj as;dlka jsd;lka jsd;laksjd a"
                                        });
                 }
@@ -169,7 +169,7 @@ ApplicationWindow {
                     var queryBox = desktop.queryBox({
                                                           text: "Have you stopped beating your wife?",
                                                           placeholderText: "Are you sure?",
-                                                         // icon: OriginalDialogs.StandardIcon.Critical,
+                                                         // icon: hifi.icons.critical,
                                                       });
                     queryBox.selected.connect(function(result) {
                         console.log("User responded with " + result);

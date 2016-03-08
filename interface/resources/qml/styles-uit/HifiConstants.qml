@@ -21,6 +21,31 @@ Item {
     readonly property alias buttons: buttons
     readonly property alias effects: effects
 
+    function glyphForIcon(icon) {
+        // Translates icon enum to glyph char.
+        var glyph;
+        switch (icon) {
+            case hifi.icons.information:
+                glyph = hifi.glyphs.info;
+                break;
+            case hifi.icons.question:
+                glyph = hifi.glyphs.question;
+                break;
+            case hifi.icons.warning:
+                glyph = hifi.glyphs.alert;
+                break;
+            case hifi.icons.critical:
+                glyph = hifi.glyphs.critical;
+                break;
+            case hifi.icons.placemark:
+                glyph = hifi.glyphs.placemark;
+                break;
+            default:
+                ch = hifi.glyphs.noIcon;
+        }
+        return glyph;
+    }
+
     Item {
         id: colors
 
@@ -163,7 +188,11 @@ Item {
         id: icons
         // Values per OffscreenUi::Icon
         readonly property int none: 0
-        readonly property int placemark: 1
+        readonly property int question: 1
+        readonly property int information: 2
+        readonly property int warning: 3
+        readonly property int critical: 4
+        readonly property int placemark: 5
     }
 
     Item {

@@ -47,14 +47,7 @@ ModalWindow {
         if (!root) {
             return;
         }
-
-        switch (root.icon) {
-            case hifi.icons.placemark:
-                iconText = hifi.glyphs.placemark;
-                break;
-            default:
-                iconText = "";
-        }
+        iconText = hifi.glyphForIcon(root.icon);
     }
 
     Item {

@@ -41,11 +41,19 @@ public:
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 
+    enum Icon {
+        ICON_NONE = 0,
+        ICON_QUESTION,
+        ICON_INFORMATION,
+        ICON_WARNING,
+        ICON_CRITICAL,
+        ICON_PLACEMARK
+    };
 
     // Message box compatibility
-    Q_INVOKABLE QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QMessageBox::StandardButton messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
-    QQuickItem* createMessageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    QQuickItem* createMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
     Q_INVOKABLE int waitForMessageBoxResult(QQuickItem* messageBox);
 
@@ -94,11 +102,6 @@ public:
     static QString getOpenFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
     // Compatibility with QFileDialog::getSaveFileName
     static QString getSaveFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
-
-    enum Icon {
-        ICON_NONE = 0,
-        ICON_PLACEMARK
-    };
 
     Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
     QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);

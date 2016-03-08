@@ -123,7 +123,7 @@ void Bookmarks::bookmarkLocation() {
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(QMessageBox::Warning, "Duplicate Bookmark",
+        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
             "The bookmark name you entered already exists in your list.",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");

@@ -55,22 +55,7 @@ ModalWindow {
         if (!root) {
             return;
         }
-        switch (root.icon) {
-            case OriginalDialogs.StandardIcon.Information:
-                iconText = hifi.glyphs.info;
-                break;
-            case OriginalDialogs.StandardIcon.Question:
-                iconText = hifi.glyphs.question;
-                break;
-            case OriginalDialogs.StandardIcon.Warning:
-                iconText = hifi.glyphs.alert;
-                break;
-            case OriginalDialogs.StandardIcon.Critical:
-                iconText = hifi.glyphs.critical;
-                break;
-            default:
-                iconText = hifi.glyphs.noIcon;
-        }
+        iconText = hifi.glyphForIcon(root.icon);
     }
 
     Item {
