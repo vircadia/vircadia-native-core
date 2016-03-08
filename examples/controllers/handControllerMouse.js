@@ -76,20 +76,20 @@ Script.update.connect(function(deltaTime) {
     // Decide which hand should be controlling the pointer
     // by comparing which one is moving more, and by
     // tending to stay with the one moving more.
-    var BIAS_ADJUST_RATE = 0.5;
-    var BIAS_ADJUST_DEADZONE = 0.05;
-    leftRightBias += (Vec3.length(poseRight.angularVelocity) - Vec3.length(poseLeft.angularVelocity)) * BIAS_ADJUST_RATE;
-    if (leftRightBias < BIAS_ADJUST_DEADZONE) {
-        leftRightBias = 0.0;
-    } else if (leftRightBias > (1.0 - BIAS_ADJUST_DEADZONE)) {
-        leftRightBias = 1.0;
+    var BIAS_ADJUST_PERIOD = 1.0;
+    if (deltaTime > 0.001) {
+        var tau = Math.clamp(deltaTime / BIAS_ADJUST_PERIOD, 0, 1);
+        newLeftRightBias = Vec3.length(poseRight.angularVelocity) - Vec3.length(poseLeft.angularVelocity);
+        leftRightBias = (1 - tau) * leftRightBias + tau * newLeftRightBias;
     }
+
+    var alpha = leftRightBias > 0 ? 1 : 0;
 
     // Velocity filter the hand rotation used to position reticle so that it is easier to target small things with the hand controllers
     var VELOCITY_FILTER_GAIN = 0.5;
     filteredRotatedLeft = Vec3.mix(filteredRotatedLeft, rotatedLeft, Math.clamp(Vec3.length(poseLeft.angularVelocity) * VELOCITY_FILTER_GAIN, 0.0, 1.0));
     filteredRotatedRight = Vec3.mix(filteredRotatedRight, rotatedRight, Math.clamp(Vec3.length(poseRight.angularVelocity) * VELOCITY_FILTER_GAIN, 0.0, 1.0));
-    var rotated = Vec3.mix(filteredRotatedLeft, filteredRotatedRight, leftRightBias);
+    var rotated = Vec3.mix(filteredRotatedLeft, filteredRotatedRight, alpha);
 
     var absolutePitch = rotated.y; // from 1 down to -1 up ... but note: if you rotate down "too far" it starts to go up again...
     var absoluteYaw = -rotated.x; // from -1 left to 1 right
@@ -110,7 +110,7 @@ Script.update.connect(function(deltaTime) {
 
     var AVERAGING_INTERVAL = 0.95;
     var MINIMUM_CONTROLLER_ANGULAR_VELOCITY = 0.03;
-    var angularVelocityMagnitude = Vec3.length(poseLeft.angularVelocity) * (1.0 - leftRightBias) + Vec3.length(poseRight.angularVelocity) * leftRightBias;
+    var angularVelocityMagnitude = Vec3.length(poseLeft.angularVelocity) * (1.0 - alpha) + Vec3.length(poseRight.angularVelocity) * alpha;
     angularVelocityTrailingAverage = angularVelocityTrailingAverage * AVERAGING_INTERVAL + angularVelocityMagnitude * (1.0 - AVERAGING_INTERVAL);
 
     if (!(xRatio == 0.5 && yRatio == 0) && (angularVelocityTrailingAverage > MINIMUM_CONTROLLER_ANGULAR_VELOCITY) && ((x != lastX) || (y != lastY))) {
