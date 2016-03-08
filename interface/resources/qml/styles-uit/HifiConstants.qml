@@ -141,15 +141,20 @@ Item {
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"
+        readonly property string criticalIcon: "="
         readonly property string disclosureButtonCollapse: "M"
         readonly property string disclosureButtonExpand: "L"
         readonly property string disclosureCollapse: "Z"
         readonly property string disclosureExpand: "B"
         readonly property string forward: "D"
+        readonly property string informatonIcon: "["
+        readonly property string noIcon: ""
         readonly property string pin: "y"
         readonly property string pinInverted: "z"
+        readonly property string questionIcon: "]"
         readonly property string reloadSmall: "a"
         readonly property string resizeHandle: "A"
+        readonly property string warningIcon: "+"
     }
 
     Item {

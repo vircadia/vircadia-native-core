@@ -42,10 +42,10 @@ ModalWindow {
     property alias detailedText: detailedText.text
     property alias text: mainTextContainer.text
     property alias informativeText: informativeTextContainer.text
-    onIconChanged: updateIcon();
     property int buttons: OriginalDialogs.StandardButton.Ok
     property int icon: OriginalDialogs.StandardIcon.NoIcon
     property string iconText: ""
+    onIconChanged: updateIcon();
     property int defaultButton: OriginalDialogs.StandardButton.NoButton;
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
     focus: defaultButton === OriginalDialogs.StandardButton.NoButton
@@ -56,19 +56,19 @@ ModalWindow {
         }
         switch (root.icon) {
             case OriginalDialogs.StandardIcon.Information:
-                iconText = "\uF05A";
+                iconText = hifi.glyphs.informatonIcon;
                 break;
             case OriginalDialogs.StandardIcon.Question:
-                iconText = "\uF059"
+                iconText = hifi.glyphs.questionIcon;
                 break;
             case OriginalDialogs.StandardIcon.Warning:
-                iconText = "\uF071"
+                iconText = hifi.glyphs.warningIcon;
                 break;
             case OriginalDialogs.StandardIcon.Critical:
-                iconText = "\uF057"
+                iconText = hifi.glyphs.criticalIcon;
                 break;
             default:
-                iconText = ""
+                iconText = hifi.glyphs.noIcon;
         }
     }
 

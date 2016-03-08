@@ -50,13 +50,13 @@ Frame {
                 width: title.width + (icon.text !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
                 x: (parent.width - width) / 2
 
-                FontAwesome {
+                HiFiGlyphs {
                     id: icon
                     text: window.iconText ? window.iconText : ""
-                    size: 30
-                    color: hifi.colors.lightGrayText
+                    size: 50
+                    color: hifi.colors.lightGray
                     visible: text != ""
-                    y: -hifi.dimensions.modalDialogTitleHeight - 5
+                    anchors.verticalCenter: title.verticalCenter
                     anchors.left: parent.left
                 }
                 RalewayRegular {
