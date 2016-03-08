@@ -30,9 +30,9 @@ var pingPongGun = Entities.addEntity({
   script: scriptURL,
   position: center,
   dimensions: {
-    x: 0.08,
-    y: 0.21,
-    z: 0.47
+    x: 0.125,
+    y: 0.3875,
+    z: 0.9931
   },
   dynamic: true,
   collisionSoundURL: COLLISION_SOUND_URL,
