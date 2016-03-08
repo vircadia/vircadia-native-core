@@ -33,6 +33,9 @@
             max: 1000
         };
         _this.canCreateFlower = true;
+        _this.flowersBloomingSound = SoundCache.getSound("https://s3-us-west-1.amazonaws.com/hifi-content/eric/Sounds/flowersBlooming.wav");
+        _this.soundPlaying = false;
+        _this.BLOOM_VOLUME = 0.4;
 
     };
 
@@ -57,8 +60,16 @@
                 flower.grow();
             });
 
+            if (!_this.soundPlaying) {
+                _this.position = Entities.getEntityProperties(_this.entityID, "position").position;
+                _this.soundPlaying = true;
+                _this.bloomSoundInjector = Audio.playSound(_this.flowersBloomingSound, {position: _this.position, volume: _this.BLOOM_VOLUME});
+            }
+        },
 
-
+        stopWatering: function() {
+           _this.bloomSoundInjector.stop();
+           _this.soundPlaying = false;
         },
 
         createFlower: function(position, surfaceNormal) {
@@ -114,8 +125,7 @@
 
         preload: function(entityID) {
             _this.entityID = entityID;
-            var SHADER_URL = "file:///C:/Users/Eric/hifi/examples/homeContent/plant/flower.fs"
-            // var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+            var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
             _this.flowerUserData = {
                 ProceduralEntity: {
                     shaderUrl: SHADER_URL,
@@ -128,12 +138,10 @@
         },
 
         unload: function() {
-            print("EBL UNLOAD GROWING PLANT SCRIPT");
-            // _this.flowers.forEach(function(flower) {
-            //     Entities.deleteEntity(flower.id);
-            // })
-
-
+            if (_this.bloomSoundInjector) {
+                _this.bloomSoundInjector.stop();
+                delete _this.bloomSoundInjector;
+            }
         }
 
     };

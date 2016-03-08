@@ -37,7 +37,6 @@
 
         startHold: function() {
             _this.findGrowableEntities();
-            print("EB: GROWABLE ENTITIES length " + _this.growableEntities.length)
         },
 
         releaseEquip: function() {
@@ -58,7 +57,10 @@
             });
             _this.waterPouring = false;
             //water no longer pouring...
-            _this.waterInjector.stop();
+            if (_this.waterInjector) {
+              _this.waterInjector.stop();  
+            }
+            Entities.callEntityMethod(_this.mostRecentIntersectedGrowableEntity, 'stopWatering');
         },
         continueEquip: function() {
             _this.continueHolding();
@@ -85,7 +87,6 @@
                     });
                     _this.waterPouring = true;
                     if (!_this.waterInjector) {
-                        print("PLAY SOUND")
                         _this.waterInjector = Audio.playSound(_this.waterSound, {
                             position: spoutProps.position,
                             loop: true
@@ -122,6 +123,7 @@
                     position: intersection.intersection,
                     surfaceNormal: intersection.surfaceNormal
                 });
+                _this.mostRecentIntersectedGrowableEntity = intersection.entityID;
                 Entities.callEntityMethod(intersection.entityID, 'continueWatering', [data]);
             }
 
@@ -184,7 +186,7 @@
                 alpha: 1.0,
                 alphaFinish: 1.0,
                 emitterShouldTrail: true,
-                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png?v2",
+                textures: "https://s3-us-west-1.amazonaws.com/hifi-content/eric/images/raindrop.png",
             });
 
         },

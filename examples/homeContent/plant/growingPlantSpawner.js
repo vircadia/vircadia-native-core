@@ -18,8 +18,12 @@ orientation = Quat.fromVec3Degrees(orientation);
 
 var bowlPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(orientation)));
 var BOWL_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Bowl.fbx";
-var bowlDimensions = {x: 0.518, y: 0.1938, z: 0.5518};
-var bowl= Entities.addEntity({
+var bowlDimensions = {
+  x: 0.518,
+  y: 0.1938,
+  z: 0.5518
+};
+var bowl = Entities.addEntity({
   type: "Model",
   modelURL: BOWL_MODEL_URL,
   dimensions: bowlDimensions,
@@ -30,8 +34,16 @@ var bowl= Entities.addEntity({
 
 var PLANT_MODEL_URL = "http://hifi-content.s3.amazonaws.com/alan/dev/Flowers--Moss-Rock.fbx";
 var PLANT_SCRIPT_URL = Script.resolvePath("growingPlantEntityScript.js?v1" + Math.random().toFixed(2));
-var plantDimensions =  {x: 0.52, y: 0.2600, z: 0.52};
-var plantPosition = Vec3.sum(bowlPosition, {x: 0, y: plantDimensions.y/2, z: 0});
+var plantDimensions = {
+  x: 0.52,
+  y: 0.2600,
+  z: 0.52
+};
+var plantPosition = Vec3.sum(bowlPosition, {
+  x: 0,
+  y: plantDimensions.y / 2,
+  z: 0
+});
 var plant = Entities.addEntity({
   type: "Model",
   modelURL: PLANT_MODEL_URL,
@@ -52,12 +64,46 @@ var waterCan = Entities.addEntity({
   name: "hifi-water-can",
   modelURL: WATER_CAN_MODEL_URL,
   script: WATER_CAN_SCRIPT_URL,
-  dimensions: {x: 0.1859, y: 0.2762, z: 0.4115},
+  dimensions: {
+    x: 0.1859,
+    y: 0.2762,
+    z: 0.4115
+  },
   position: waterCanPosition,
   angularDamping: 1,
   dynamic: true,
-  gravity: { x: 0.0, y: -2.0, z: 0},
-  rotation: waterCanRotation
+  gravity: {
+    x: 0.0,
+    y: -2.0,
+    z: 0
+  },
+  rotation: waterCanRotation,
+  userData: JSON.stringify({
+    wearable: {
+      joints: {
+        RightHand: [{
+          x: 0.024,
+          y: 0.173,
+          z: 0.152
+        }, {
+          x: 0.374,
+          y: 0.636,
+          z: -0.638,
+          w: -0.215
+        }],
+        LeftHand: [{
+          x: -0.0348,
+          y: 0.201,
+          z: 0.166
+        }, {
+          x: 0.4095,
+          y: -0.625,
+          z: 0.616,
+          w: -0.247
+        }]
+      }
+    }
+  })
 });
 
 
@@ -66,8 +112,16 @@ var waterSpoutRotation = Quat.multiply(waterCanRotation, Quat.fromPitchYawRollDe
 var waterSpout = Entities.addEntity({
   type: "Box",
   name: "hifi-water-spout",
-  dimensions: {x: 0.02, y: 0.02, z: 0.07},
-  color: {red: 200, green: 10, blue: 200},
+  dimensions: {
+    x: 0.02,
+    y: 0.02,
+    z: 0.07
+  },
+  color: {
+    red: 200,
+    green: 10,
+    blue: 200
+  },
   position: waterSpoutPosition,
   rotation: waterSpoutRotation,
   parentID: waterCan,

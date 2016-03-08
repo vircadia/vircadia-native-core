@@ -1,3 +1,13 @@
+//
+//  flowers.fs
+//  examples/homeContent/plant
+//
+//  Created by Eric Levin on 3/7/16.
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  This fragment shader is designed to shader a sphere to create the effect of a blooming flower
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
 #define TWO_PI 6.28318530718
