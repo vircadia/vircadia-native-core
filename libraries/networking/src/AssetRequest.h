@@ -52,9 +52,6 @@ signals:
     void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
 
-//private slots:
-    //void getAssetCallback(bool responseReceived, AssetServerError serverError, const QByteArray& data);
-
 private:
     State _state = NotStarted;
     Error _error = NoError;
