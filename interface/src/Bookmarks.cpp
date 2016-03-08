@@ -107,7 +107,7 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
 void Bookmarks::bookmarkLocation() {
     bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(nullptr, "Bookmark Location", "Name:", QLineEdit::Normal, QString(), &ok);
+    auto bookmarkName = OffscreenUi::getText(nullptr, "Bookmark Location", "Name", QLineEdit::Normal, QString(), &ok);
     if (!ok) {
         return;
     }
