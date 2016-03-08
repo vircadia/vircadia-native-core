@@ -41,7 +41,7 @@ Item {
                 glyph = hifi.glyphs.placemark;
                 break;
             default:
-                ch = hifi.glyphs.noIcon;
+                glyph = hifi.glyphs.noIcon;
         }
         return glyph;
     }
