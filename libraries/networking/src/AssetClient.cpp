@@ -782,6 +782,22 @@ void AssetScriptingInterface::getMapping(QString path, QScriptValue callback) {
     request->start();
 }
 
+void AssetScriptingInterface::deleteMapping(QString path, QScriptValue callback) {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createDeleteMappingRequest(path);
+
+    connect(request, &DeleteMappingRequest::finished, this, [this, callback](DeleteMappingRequest* request) mutable {
+        QScriptValueList args { uint8_t(request->getError()) };
+
+        callback.call(_engine->currentContext()->thisObject(), args);
+
+        request->deleteLater();
+         
+    });
+
+    request->start();
+}
+
 void AssetScriptingInterface::getAllMappings(QScriptValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();

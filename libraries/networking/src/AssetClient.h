@@ -188,6 +188,7 @@ public:
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
     Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
     Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
+    Q_INVOKABLE void deleteMapping(QString path, QScriptValue callback);
     Q_INVOKABLE void getAllMappings(QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
