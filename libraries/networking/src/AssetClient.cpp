@@ -44,8 +44,7 @@ void GetMappingRequest::start() {
         // read message
         _error = error;
         if (!error) {
-            //_hash = message->read(SHA256_HASH_HEX_LENGTH);
-            _hash = message->readString();
+            _hash = message->read(SHA256_HASH_LENGTH).toHex();
         }
         emit finished(this);
     });
