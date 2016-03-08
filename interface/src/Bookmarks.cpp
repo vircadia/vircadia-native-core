@@ -88,11 +88,11 @@ void Bookmarks::persistToFile() {
 
 void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
-    menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation, 0,
-                                           this, SLOT(bookmarkLocation()));
+    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation);
+    QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(bookmarkLocation()), Qt::QueuedConnection);
     _bookmarksMenu = menu->addMenu(MenuOption::Bookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark, 0,
-                                                                    this, SLOT(deleteBookmark()));
+    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
+    QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
     
     // Enable/Disable menus as needed
     enableMenuItems(_bookmarks.count() > 0);
