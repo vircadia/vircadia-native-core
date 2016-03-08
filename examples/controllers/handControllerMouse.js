@@ -76,13 +76,15 @@ Script.update.connect(function(deltaTime) {
     // Decide which hand should be controlling the pointer
     // by comparing which one is moving more, and by
     // tending to stay with the one moving more.
-    var BIAS_ADJUST_PERIOD = 1.0;
     if (deltaTime > 0.001) {
+        // leftRightBias is a running average of the difference in angular hand speed.
+        // a positive leftRightBias indicates the right hand is spinning faster then the left hand.
+        // a negative leftRightBias indicates the left hand is spnning faster.
+        var BIAS_ADJUST_PERIOD = 1.0;
         var tau = Math.clamp(deltaTime / BIAS_ADJUST_PERIOD, 0, 1);
         newLeftRightBias = Vec3.length(poseRight.angularVelocity) - Vec3.length(poseLeft.angularVelocity);
         leftRightBias = (1 - tau) * leftRightBias + tau * newLeftRightBias;
     }
-
     var alpha = leftRightBias > 0 ? 1 : 0;
 
     // Velocity filter the hand rotation used to position reticle so that it is easier to target small things with the hand controllers
