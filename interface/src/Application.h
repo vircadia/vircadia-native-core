@@ -221,8 +221,6 @@ public:
 
     float getAverageSimsPerSecond();
 
-    void fakeMouseEvent(QMouseEvent* event);
-
 signals:
     void svoImportRequested(const QString& url);
 
@@ -282,6 +280,8 @@ public slots:
     void rotationModeChanged();
 
     void runTests();
+
+    void fakeMouseEvent(QMouseEvent event);
 
 private slots:
     void showDesktop();

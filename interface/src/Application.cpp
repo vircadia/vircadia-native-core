@@ -2173,9 +2173,9 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) {
 }
 
 /// called by ApplicationCompositor when in HMD mode and we're faking our mouse movement
-void Application::fakeMouseEvent(QMouseEvent* event) {
+void Application::fakeMouseEvent(QMouseEvent event) {
     _fakedMouseEvent = true;
-    sendEvent(_glWidget, event);
+    sendEvent(_glWidget, &event);
     _fakedMouseEvent = false;
 }
 
