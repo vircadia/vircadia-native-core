@@ -3,6 +3,8 @@
 #include <QFile>
 #include <QImage>
 
+#include <ColorUtils.h>
+
 #include <StreamHelpers.h>
 
 #include "sdf_text3D_vert.h"
@@ -354,7 +356,10 @@ void Font::drawString(gpu::Batch& batch, float x, float y, const QString& str, c
     batch.setPipeline(layered ? _layeredPipeline : _pipeline);
     batch.setResourceTexture(_fontLoc, _texture);
     batch._glUniform1i(_outlineLoc, (effectType == OUTLINE_EFFECT));
-    batch._glUniform4fv(_colorLoc, 1, (const float*)color);
+    
+    // need the gamma corrected color here
+    glm::vec4 lrgba = glm::vec4(ColorUtils::toLinearVec3(glm::vec3(*color)), color->a);
+    batch._glUniform4fv(_colorLoc, 1, (const float*)&lrgba);
 
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);

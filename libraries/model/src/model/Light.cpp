@@ -130,7 +130,7 @@ void Light::setShowContour(float show) {
     if (show <= 0.f) {
         show = 0.0f;
     }
-    editSchema()._control.w = show;
+    editSchema()._control.z = show;
 }
 
 void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
@@ -139,4 +139,17 @@ void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
 
 void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
     editSchema()._ambientSphere.assignPreset(preset);
+}
+
+void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
+    _ambientMap = ambientMap;
+    if (ambientMap) {
+        setAmbientMapNumMips(_ambientMap->evalNumMips());
+    } else {
+        setAmbientMapNumMips(0);
+    }
+}
+
+void Light::setAmbientMapNumMips(uint16_t numMips) {
+    editSchema()._ambientMapNumMips = (float)numMips;
 }

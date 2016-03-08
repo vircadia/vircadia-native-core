@@ -20,7 +20,7 @@
 class AssetResourceRequest : public ResourceRequest {
     Q_OBJECT
 public:
-    AssetResourceRequest(QObject* parent, const QUrl& url) : ResourceRequest(parent, url) { }
+    AssetResourceRequest(const QUrl& url) : ResourceRequest(url) { }
     ~AssetResourceRequest();
 
 protected:

@@ -40,8 +40,8 @@ public:
     void setHeight(int height) { _bounds.setHeight(height); }
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
 protected:
     QRect _bounds; // where on the screen to draw

@@ -29,7 +29,8 @@ public:
     
     Q_INVOKABLE void init();
 
-    Q_INVOKABLE void sendMessage(QString channel, QString message);
+    Q_INVOKABLE void sendMessage(QString channel, QString message, bool localOnly = false);
+    Q_INVOKABLE void sendLocalMessage(QString channel, QString message);
     Q_INVOKABLE void subscribe(QString channel);
     Q_INVOKABLE void unsubscribe(QString channel);
 
@@ -38,7 +39,7 @@ public:
 
 
 signals:
-    void messageReceived(QString channel, QString message, QUuid senderUUID);
+    void messageReceived(QString channel, QString message, QUuid senderUUID, bool localOnly);
 
 private slots:
     void handleMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode);

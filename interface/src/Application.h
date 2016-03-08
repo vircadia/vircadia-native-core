@@ -120,6 +120,8 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
+    void showCursor(const QCursor& cursor);
+
     bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
@@ -225,7 +227,6 @@ signals:
     void svoImportRequested(const QString& url);
 
     void checkBackgroundDownloads();
-    void domainConnectionRefused(const QString& reason);
 
     void fullAvatarURLChanged(const QString& newValue, const QString& modelName);
 
@@ -288,15 +289,12 @@ private slots:
     void idle(uint64_t now);
     void aboutToQuit();
 
-    void connectedToDomain(const QString& hostname);
+    void resettingDomain();
 
     void audioMuteToggled();
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
-
-    void domainSettingsReceived(const QJsonObject& domainSettingsObject);
-    void handleDomainConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
     void notifyPacketVersionMismatch();
 
@@ -327,8 +325,6 @@ private:
     void init();
 
     void cleanupBeforeQuit();
-
-    void emptyLocalCache();
 
     void update(float deltaTime);
 
@@ -476,7 +472,6 @@ private:
     typedef bool (Application::* AcceptURLMethod)(const QString &);
     static const QHash<QString, AcceptURLMethod> _acceptedExtensions;
 
-    QList<QString> _domainConnectionRefusals;
     glm::uvec2 _renderResolution;
 
     int _maxOctreePPS = DEFAULT_MAX_OCTREE_PPS;
@@ -515,6 +510,11 @@ private:
     QTimer* _idleTimer { nullptr };
 
     bool _fakedMouseEvent { false };
+
+    void checkChangeCursor();
+    mutable QMutex _changeCursorLock { QMutex::Recursive };
+    QCursor _desiredCursor{ Qt::BlankCursor };
+    bool _cursorNeedsChanging { false };
 };
 
 #endif // hifi_Application_h

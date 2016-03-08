@@ -212,19 +212,21 @@ void ApplicationCompositor::displayOverlayTexture(RenderArgs* renderArgs) {
         geometryCache->renderUnitQuad(batch, vec4(vec3(1), _alpha));
 
         //draw the mouse pointer
-        // Get the mouse coordinates and convert to NDC [-1, 1]
-        vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
-        vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
-        // Invert the Y axis
-        mousePosition.y *= -1.0f;
+        if (getReticleVisible()) {
+            // Get the mouse coordinates and convert to NDC [-1, 1]
+            vec2 canvasSize = qApp->getCanvasSize(); // desktop, use actual canvas...
+            vec2 mousePosition = toNormalizedDeviceScale(vec2(qApp->getMouse()), canvasSize);
+            // Invert the Y axis
+            mousePosition.y *= -1.0f;
 
-        Transform model;
-        model.setTranslation(vec3(mousePosition, 0));
-        vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
-        model.setScale(vec3(mouseSize, 1.0f));
-        batch.setModelTransform(model);
-        bindCursorTexture(batch);
-        geometryCache->renderUnitQuad(batch, vec4(1));
+            Transform model;
+            model.setTranslation(vec3(mousePosition, 0));
+            vec2 mouseSize = CURSOR_PIXEL_SIZE / canvasSize;
+            model.setScale(vec3(mouseSize, 1.0f));
+            batch.setModelTransform(model);
+            bindCursorTexture(batch);
+            geometryCache->renderUnitQuad(batch, vec4(1));
+        }
     });
 }
 
@@ -301,7 +303,7 @@ void ApplicationCompositor::displayOverlayTextureHmd(RenderArgs* renderArgs, int
                 // look at borrowed from overlays
                 float elevation = -asinf(relativePosition.y / glm::length(relativePosition));
                 float azimuth = atan2f(relativePosition.x, relativePosition.z);
-                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, 0, -1)); // this extra *quat(vec3(0,0,-1)) was required to get the quad to flip this seems like we could optimize
+                glm::quat faceCamera = glm::quat(glm::vec3(elevation, azimuth, 0)) * quat(vec3(0, -PI, 0)); // this extra *quat(vec3(0,-PI,0)) was required to get the quad to flip this seems like we could optimize
 
                 Transform transform;
                 transform.setTranslation(relativePosition);
@@ -335,8 +337,20 @@ QPointF ApplicationCompositor::getMouseEventPosition(QMouseEvent* event) {
 
 bool ApplicationCompositor::shouldCaptureMouse() const {
     // if we're in HMD mode, and some window of ours is active, but we're not currently showing a popup menu
-    return qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
+    return _allowMouseCapture && qApp->isHMDMode() && QApplication::activeWindow() && !Menu::isSomeSubmenuShown();
 }
+
+void ApplicationCompositor::setAllowMouseCapture(bool capture) {
+    if (qApp->isHMDMode()) {
+        if (capture) {
+            qApp->showCursor(Qt::BlankCursor);
+        } else {
+            qApp->showCursor(Qt::ArrowCursor);
+        }
+    }
+    _allowMouseCapture = capture;
+}
+
 
 void ApplicationCompositor::handleLeaveEvent() {
 

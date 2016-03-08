@@ -1,19 +1,32 @@
+//
+//  Section.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import Hifi 1.0
 
-import "../../controls" as VrControls
+import "../../controls-uit" as HiFiControls
+import "../../styles-uit"
 import "."
 
 Preference {
     id: root
     property bool collapsable: true
     property bool expanded: false
+    property bool isFirst: false
+    property bool isLast: false
     property string name: "Header"
     property real spacing: 8
-    readonly property alias toggle: toggle
-    readonly property alias header: header
     default property alias preferences: contentContainer.children
+
+    HifiConstants { id: hifi }
 
     function saveAll() {
         for (var i = 0; i < d.preferences.length; ++i) {
@@ -29,47 +42,24 @@ Preference {
         }
     }
 
-    clip: true
-    children: [ toggle, header, contentContainer ]
-    height: expanded ? header.height + contentContainer.height + root.spacing * 3
-                     : Math.max(toggle.height, header.height) + root.spacing * 2
-    Behavior on height { PropertyAnimation {} }
+    children: [ contentContainer ]
+
+    height: contentContainer.height + (root.isLast ? 2 * hifi.dimensions.contentSpacing.y : 0)
 
     Component.onCompleted: d.buildPreferences();
 
-    function toggleExpanded() {
-        root.expanded = !root.expanded;
-    }
-
-    VrControls.FontAwesome {
-        id: toggle
-        width: root.collapsable ? height : 0
-        anchors { left: parent.left; top: parent.top; margins: root.spacing }
-        visible: root.collapsable
-        enabled: root.collapsable
-        rotation: root.expanded ? 0 : -90
-        text: "\uf078"
-        Behavior on rotation { PropertyAnimation {} }
-        MouseArea { anchors.fill: parent; onClicked: root.toggleExpanded() }
-    }
-
-    Text {
-        id: header
-        anchors { left: toggle.right; top: parent.top; leftMargin: root.spacing * 2; margins: root.spacing }
-        font.bold: true
-        font.pointSize: 16
-        color: "#0e7077"
-        text: root.name
-        MouseArea { anchors.fill: parent; onClicked: root.toggleExpanded() }
-    }
-
-    Column {
+    HiFiControls.ContentSection {
         id: contentContainer
-        spacing: root.spacing
-        anchors { left: toggle.right; top: header.bottom; topMargin: root.spacing; right: parent.right; margins: root.spacing }
-        enabled: root.expanded
-        visible: root.expanded
-        clip: true
+        name: root.name
+        isFirst: root.isFirst
+        isCollapsible: root.collapsable
+        isCollapsed: !root.expanded
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            margins: 0
+        }
     }
 
     QtObject {
@@ -83,6 +73,7 @@ Preference {
         property var buttonBuilder: Component { ButtonPreference { } }
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var preferences: []
+        property int checkBoxCount: 0
 
         function buildPreferences() {
             var categoryPreferences = Preferences.preferencesByCategory[root.name];
@@ -99,40 +90,49 @@ Preference {
             var builder;
             switch (preference.type) {
                 case Preference.Editable:
+                    checkBoxCount = 0;
                     builder = editableBuilder;
                     break;
 
                 case Preference.Browsable:
+                    checkBoxCount = 0;
                     builder = browsableBuilder;
                     break;
 
                 case Preference.Spinner:
+                    checkBoxCount = 0;
                     builder = spinnerBuilder;
                     break;
 
                 case Preference.Slider:
+                    checkBoxCount = 0;
                     builder = sliderBuilder;
                     break;
 
                 case Preference.Checkbox:
+                    checkBoxCount++;
+                    console.log("####### checkBoxCount = " + checkBoxCount);
                     builder = checkboxBuilder;
                     break;
 
                 case Preference.Avatar:
+                    checkBoxCount = 0;
                     builder = avatarBuilder;
                     break;
 
                 case Preference.Button:
+                    checkBoxCount = 0;
                     builder = buttonBuilder;
                     break;
 
                 case Preference.ComboBox:
+                    checkBoxCount = 0;
                     builder = comboBoxBuilder;
                     break;
             };
 
             if (builder) {
-                preferences.push(builder.createObject(contentContainer, { preference: preference }));
+                preferences.push(builder.createObject(contentContainer, { preference: preference, isFirstCheckBox: (checkBoxCount === 1) }));
             }
         }
     }

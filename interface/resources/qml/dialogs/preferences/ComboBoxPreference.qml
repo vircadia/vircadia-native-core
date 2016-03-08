@@ -1,14 +1,26 @@
+//
+//  ComboBoxPreference.qml
+//
+//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
+
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
+import "../../controls-uit" as HiFiControls
+import "../../styles-uit"
 
 Preference {
     id: root
-    property real spacing: 8
-    height: labelText.height + dataComboBox.height + spacing
+    height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
-        dataComboBox.currentIndex = dataComboBox.find(preference.value);
+        dataComboBox.currentIndex = dataComboBox.comboBox.find(preference.value);
     }
 
     function save() {
@@ -16,22 +28,38 @@ Preference {
         preference.save();
     }
 
-    Text {
-        id: labelText
-        color: enabled ? "black" : "gray"
-        text: root.label
-    }
-
-    ComboBox {
-        id: dataComboBox
-        model: preference.items
-        style: ComboBoxStyle { renderType: Text.QtRendering }
+    Item {
+        id: control
         anchors {
-            top: labelText.bottom
             left: parent.left
             right: parent.right
-            topMargin: root.spacing
-            rightMargin: root.spacing
+            bottom: parent.bottom
+        }
+        height: Math.max(labelText.height, dataComboBox.controlHeight)
+
+        HiFiControls.Label {
+            id: labelText
+            text: root.label + ":"
+            colorScheme: hifi.colorSchemes.dark
+            anchors {
+                left: parent.left
+                right: dataComboBox.left
+                rightMargin: hifi.dimensions.labelPadding
+                verticalCenter: parent.verticalCenter
+            }
+            horizontalAlignment: Text.AlignRight
+            wrapMode: Text.Wrap
+        }
+
+        HiFiControls.ComboBox {
+            id: dataComboBox
+            model: preference.items
+            width: 150
+            anchors {
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            colorScheme: hifi.colorSchemes.dark
         }
     }
 }

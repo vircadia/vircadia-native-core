@@ -50,8 +50,7 @@ public:
         Stopped
     };
     
-    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination,
-                                             SequenceNumber currentSequenceNumber = SequenceNumber());
+    static std::unique_ptr<SendQueue> create(Socket* socket, HifiSockAddr destination);
     
     void queuePacket(std::unique_ptr<Packet> packet);
     void queuePacketList(std::unique_ptr<PacketList> packetList);
@@ -72,7 +71,7 @@ public slots:
     void ack(SequenceNumber ack);
     void nak(SequenceNumber start, SequenceNumber end);
     void overrideNAKListFromPacket(ControlPacket& packet);
-    void handshakeACK();
+    void handshakeACK(SequenceNumber initialSequenceNumber);
 
 signals:
     void packetSent(int dataSize, int payloadSize);
@@ -84,7 +83,7 @@ private slots:
     void run();
     
 private:
-    SendQueue(Socket* socket, HifiSockAddr dest, SequenceNumber currentSequenceNumber);
+    SendQueue(Socket* socket, HifiSockAddr dest);
     SendQueue(SendQueue& other) = delete;
     SendQueue(SendQueue&& other) = delete;
     
@@ -106,6 +105,8 @@ private:
     
     Socket* _socket { nullptr }; // Socket to send packet on
     HifiSockAddr _destination; // Destination addr
+
+    SequenceNumber _initialSequenceNumber; // Randomized on SendQueue creation, identifies connection during re-connect requests
     
     std::atomic<uint32_t> _lastACKSequenceNumber { 0 }; // Last ACKed sequence number
     

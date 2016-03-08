@@ -58,6 +58,8 @@ Fadable {
     // The content to place inside the window, determined by the client
     default property var content
 
+    property var footer: Item { }  // Optional static footer at the bottom of the dialog.
+
     function setDefaultFocus() {}  // Default function; can be overridden by dialogs.
 
     property var rectifier: Timer {
@@ -125,7 +127,8 @@ Fadable {
     // Scrollable window content.
     property var pane: Item {
         property bool isScrolling: scrollView.height < scrollView.contentItem.height
-        property int contentWidth: scrollView.width - (isScrolling ? 11 : 0)
+        property int contentWidth: scrollView.width - (isScrolling ? 10 : 0)
+        property int scrollHeight: scrollView.height
 
         anchors.fill: parent
         anchors.rightMargin: isScrolling ? 11 : 0
@@ -162,6 +165,7 @@ Fadable {
             verticalScrollBarPolicy: Qt.ScrollBarAsNeeded
             anchors.fill: parent
             anchors.rightMargin: parent.isScrolling ? 1 : 0
+            anchors.bottomMargin: footer.height > 0 ? footerPane.height : 0
 
             style: ScrollViewStyle {
 
@@ -203,7 +207,46 @@ Fadable {
                 }
             }
         }
+
+        Rectangle {
+            // Optional non-scrolling footer.
+            id: footerPane
+            anchors {
+                left: parent.left
+                bottom: parent.bottom
+            }
+            width: parent.contentWidth
+            height: footer.height + 2 * hifi.dimensions.contentSpacing.y
+            color: hifi.colors.baseGray
+            visible: footer.height > 0
+
+            Item {
+                // Horizontal rule.
+                anchors.fill: parent
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    y: 1  // Stop displaying content just above horizontal rule/=.
+                    color: hifi.colors.baseGrayShadow
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    y: 2
+                    color: hifi.colors.baseGrayHighlight
+                }
+            }
+
+            Item {
+                anchors.fill: parent
+                anchors.topMargin: 3  // Horizontal rule.
+                children: [ footer ]
+            }
+        }
     }
+
     children: [ swallower, frame, pane, activator ]
 
     Component.onCompleted: { raise(); setDefaultFocus(); }

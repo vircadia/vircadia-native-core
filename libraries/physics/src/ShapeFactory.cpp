@@ -106,11 +106,11 @@ btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
         }
         break;
     }
-    if (shape && type != SHAPE_TYPE_COMPOUND) {
+    if (shape) {
         if (glm::length2(info.getOffset()) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET) {
             // this shape has an offset, which we support by wrapping the true shape
             // in a btCompoundShape with a local transform
-            auto compound = new btCompoundShape(); 
+            auto compound = new btCompoundShape();
             btTransform trans;
             trans.setIdentity();
             trans.setOrigin(glmToBullet(info.getOffset()));

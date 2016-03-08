@@ -400,7 +400,7 @@ void Avatar::render(RenderArgs* renderArgs, const glm::vec3& cameraPosition) {
         frustum = qApp->getDisplayViewFrustum();
     }
 
-    if (frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
+    if (!frustum->sphereIntersectsFrustum(getPosition(), boundingRadius)) {
         endRender();
         return;
     }

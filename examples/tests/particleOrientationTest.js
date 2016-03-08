@@ -46,7 +46,7 @@ function emitter(jointName) {
             x:0,
             y: 0,
             z: 0,
-            w: Math.PI
+            w: 1
         },
         emitRadiusStart: 0,
         polarStart: 0,
@@ -84,7 +84,7 @@ function emitter(jointName) {
         alpha: 1,
         alphaSpread: 0,
         alphaStart: 1,
-        alphaFinish: 1  
+        alphaFinish: 1
     });
     return newEmitter;
 }
