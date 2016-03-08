@@ -4331,7 +4331,8 @@ bool Application::askToUploadAsset(const QString& filename) {
 }
 
 void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) {
-    auto filename = QFileInfo(upload->getFilename()).fileName();
+    auto fileInfo = QFileInfo(upload->getFilename());
+    auto filename = fileInfo.fileName();
 
     if ((upload->getError() == AssetUpload::NoError) &&
         (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
@@ -4341,7 +4342,7 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
 
         EntityItemProperties properties;
         properties.setType(EntityTypes::Model);
-        properties.setModelURL(QString("%1:%2").arg(URL_SCHEME_ATP).arg(hash));
+        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(fileInfo.completeSuffix()));
         properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
         properties.setName(QUrl(upload->getFilename()).fileName());
 
