@@ -35,6 +35,7 @@ namespace MenuOption {
     const QString AnimDebugDrawDefaultPose = "Debug Draw Default Pose";
     const QString AnimDebugDrawPosition= "Debug Draw Position";
     const QString AssetMigration = "ATP Asset Migration";
+    const QString AssetServer = "Asset Server";
     const QString Attachments = "Attachments...";
     const QString AudioNetworkStats = "Audio Network Stats";
     const QString AudioNoiseReduction = "Audio Noise Reduction";

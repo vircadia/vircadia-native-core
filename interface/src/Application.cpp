@@ -4453,6 +4453,11 @@ void Application::toggleRunningScriptsWidget() {
     //}
 }
 
+void Application::toggleAssetServerWidget() {
+    static const QUrl url("AssetServer.qml");
+    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer");
+}
+
 void Application::packageModel() {
     ModelPackager::package();
 }
