@@ -77,12 +77,11 @@ void GetAllMappingsRequest::start() {
         if (!error) {
             size_t numberOfMappings;
             message->readPrimitive(&numberOfMappings);
-            AssetMapping mapping;
             assetClient->_mappingCache.clear();
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->readString();
-                mapping[path] = hash;
+                _mappings[path] = hash;
                 assetClient->_mappingCache[path] = hash;
             }
         }
