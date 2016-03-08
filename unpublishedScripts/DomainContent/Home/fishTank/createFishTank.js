@@ -1,11 +1,6 @@
 var fishTank, tankBase, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
 var CLEANUP = true;
-// var TANK_DIMENSIONS = {
-//     x: 1.3393,
-//     y: 1.3515,
-//     z: 3.5914
-// };
 
 var TANK_DIMENSIONS = {
     x: 0.8212,
@@ -44,9 +39,9 @@ var TANK_BASE_DIMENSIONS = {
     z: 2.1936
 };
 
-var BASE_VERTICAL_OFFSET=0.42;
+var BASE_VERTICAL_OFFSET = 0.42;
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x+0.06;
+var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
 //depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.25;
@@ -102,12 +97,11 @@ function createFishTank() {
     fishTank = Entities.addEntity(tankProperties);
 }
 
-function createBubbleSystem() {
+function createBubbleSystems() {
 
     var tankProperties = Entities.getEntityProperties(fishTank);
     var bubbleProperties = {
         "name": 'hifi-home-fishtank-bubbles',
-        "color": {},
         "isEmitting": 1,
         "maxParticles": 1880,
         "lifespan": 1.6,
@@ -143,9 +137,6 @@ function createBubbleSystem() {
         "radiusSpread": 0,
         "radiusStart": 0.043,
         "radiusFinish": 0.02,
-        "colorSpread": {},
-        "colorStart": {},
-        "colorFinish": {},
         "alpha": 0.2,
         "alphaSpread": 0,
         "alphaStart": 0.3,
@@ -161,73 +152,12 @@ function createBubbleSystem() {
     var finalOffset = getOffsetFromTankCenter(BUBBLE_SYSTEM_VERTICAL_OFFSET, BUBBLE_SYSTEM_FORWARD_OFFSET, BUBBLE_SYSTEM_LATERAL_OFFSET);
 
     bubbleProperties.position = finalOffset;
-
     bubbleSystem = Entities.addEntity(bubbleProperties);
+
+    bubbleProperties.position.z += -0.076;
+    secondBubbleSystem = Entities.addEntity(bubbleProperties)
+
     createBubbleSound(finalOffset);
-}
-
-function createSecondBubbleSystem() {
-
-    var tankProperties = Entities.getEntityProperties(fishTank);
-    var bubbleProperties = {
-        "name": 'hifi-home-fishtank-bubbles',
-        "color": {},
-        "isEmitting": 1,
-        "maxParticles": 1880,
-        "lifespan": 1.6,
-        "emitRate": 10,
-        "emitSpeed": 0.025,
-        "speedSpread": 0.025,
-        "emitOrientation": {
-            "x": 0,
-            "y": 0.5,
-            "z": 0.5,
-            "w": 0
-        },
-        "emitDimensions": {
-            "x": -0.4,
-            "y": TANK_DIMENSIONS.y,
-            "z": 0
-        },
-        "polarStart": 0,
-        "polarFinish": 0,
-        "azimuthStart": 0.2,
-        "azimuthFinish": 0.1,
-        "emitAcceleration": {
-            "x": 0,
-            "y": 0.4,
-            "z": 0
-        },
-        "accelerationSpread": {
-            "x": 0.1,
-            "y": 0.1,
-            "z": 0.1
-        },
-        "particleRadius": 0.02,
-        "radiusSpread": 0,
-        "radiusStart": 0.043,
-        "radiusFinish": 0.02,
-        "colorSpread": {},
-        "colorStart": {},
-        "colorFinish": {},
-        "alpha": 0.2,
-        "alphaSpread": 0,
-        "alphaStart": 0.3,
-        "alphaFinish": 0,
-        "emitterShouldTrail": 0,
-        "textures": "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/bubble-white.png"
-    };
-
-    bubbleProperties.type = "ParticleEffect";
-    bubbleProperties.parentID = fishTank;
-    bubbleProperties.dimensions = BUBBLE_SYSTEM_DIMENSIONS;
-
-    var finalOffset = getOffsetFromTankCenter(BUBBLE_SYSTEM_VERTICAL_OFFSET, BUBBLE_SYSTEM_FORWARD_OFFSET, BUBBLE_SYSTEM_LATERAL_OFFSET - 0.076);
-
-    bubbleProperties.position = finalOffset;
-
-    secondBubbleSystem = Entities.addEntity(bubbleProperties);
-
 }
 
 
@@ -372,22 +302,20 @@ function createTankBase() {
         shapeType: 'compound',
         compoundShapeURL: TANK_BASE_COLLISION_HULL,
         position: {
-            x:TANK_POSITION.x,
-            y:TANK_POSITION.y-BASE_VERTICAL_OFFSET,
-            z:TANK_POSITION.z
-        }
+            x: TANK_POSITION.x,
+            y: TANK_POSITION.y - BASE_VERTICAL_OFFSET,
+            z: TANK_POSITION.z
+        },
+        dimensions: TANK_BASE_DIMENSIONS
     }
     tankBase = Entities.addEntity(properties);
 }
-
 
 createFishTank();
 
 createInnerContainer();
 
-createBubbleSystem();
-
-createSecondBubbleSystem();
+createBubbleSystems();
 
 createEntitiesAtCorners();
 
