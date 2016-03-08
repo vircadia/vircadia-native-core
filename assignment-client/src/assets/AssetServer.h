@@ -43,15 +43,6 @@ private:
     void loadMappingFromFile();
     void writeMappingToFile();
 
-    /// Return the hash mapping for AssetPath `path`
-    AssetHash getMapping(AssetPath path);
-
-    /// Set the mapping for path to hash
-    void setMapping(AssetPath path, AssetHash hash);
-
-    /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
-    bool deleteMapping(AssetPath path);
-
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
     AssetMapping _fileMapping;

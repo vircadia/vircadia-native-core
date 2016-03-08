@@ -478,7 +478,6 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
 bool AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
     if (assetServer) {
         auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
 

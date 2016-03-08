@@ -376,15 +376,3 @@ void AssetServer::loadMappingFromFile() {
 
 void AssetServer::writeMappingToFile() {
 }
-
-AssetHash AssetServer::getMapping(AssetPath path) {
-    return _fileMapping[path];
-}
-
-void AssetServer::setMapping(AssetPath path, AssetHash hash) {
-    _fileMapping[path] = hash;
-}
-
-bool AssetServer::deleteMapping(AssetPath path) {
-    return _fileMapping.erase(path) > 0;
-}
