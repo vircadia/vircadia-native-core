@@ -183,10 +183,13 @@ void FBXReader::consolidateFBXMaterials() {
 
         // Finally create the true material representation
         material._material = std::make_shared<model::Material>();
-        material._material->setEmissive(material.emissiveColor * material.emissiveFactor);
 
-        // Do not use the Diffuse Factor from FBX at all, this simpliies the export path
-        auto diffuse = material.diffuseColor;
+        // Emissive color is the mix of emissiveColor with emissiveFactor
+        auto emissive = material.emissiveColor * material.emissiveFactor;
+        material._material->setEmissive(emissive);
+
+        // Final diffuse color is the mix of diffuseColor with diffuseFactor
+        auto diffuse = material.diffuseColor * material.diffuseFactor;
         material._material->setAlbedo(diffuse);
 
         if (material.isPBSMaterial) {
