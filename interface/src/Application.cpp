@@ -4341,7 +4341,7 @@ void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) 
 
         EntityItemProperties properties;
         properties.setType(EntityTypes::Model);
-        properties.setModelURL(QString("%1:%2").arg(URL_SCHEME_ATP).arg(hash);
+        properties.setModelURL(QString("%1:%2").arg(URL_SCHEME_ATP).arg(hash));
         properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
         properties.setName(QUrl(upload->getFilename()).fileName());
 
