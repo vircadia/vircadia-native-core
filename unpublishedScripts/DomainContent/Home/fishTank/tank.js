@@ -1,6 +1,6 @@
 (function() {
 
-    Script.include('../../../../examples/libraries/virtualBaton.js?' + Math.random());
+    Script.include('../../../../examples/libraries/virtualBaton.js');
 
     //only one person should simulate the tank at a time -- we pass around a virtual baton
     var baton;
