@@ -10,9 +10,9 @@
 //
 
 var DEBUGGING = false;
-var angularVelocityTrailingAverage = 0.0;  //  Global trailing average used to decide whether to move reticle at all 
+var angularVelocityTrailingAverage = 0.0;  //  Global trailing average used to decide whether to move reticle at all
 var lastX = 0;
-var lastY = 0; 
+var lastY = 0;
 
 Math.clamp=function(a,b,c) {
     return Math.max(b,Math.min(c,a));
@@ -57,6 +57,7 @@ var filteredRotatedRight = Vec3.UNIT_NEG_Y;
 
 Script.update.connect(function(deltaTime) {
 
+    // avatar frame
     var poseRight = Controller.getPoseValue(Controller.Standard.RightHand);
     var poseLeft = Controller.getPoseValue(Controller.Standard.LeftHand);
 
@@ -65,15 +66,16 @@ Script.update.connect(function(deltaTime) {
     var screenSizeX = screenSize.x;
     var screenSizeY = screenSize.y;
 
-    var rotatedRight = Vec3.multiplyQbyV(poseRight.rotation, Vec3.UNIT_NEG_Y);
-    var rotatedLeft = Vec3.multiplyQbyV(poseLeft.rotation, Vec3.UNIT_NEG_Y);
+    // transform hand facing vectors from avatar frame into sensor frame.
+    var worldToSensorMatrix = Mat4.inverse(MyAvatar.sensorToWorldMatrix);
+    var rotatedRight = Mat4.transformVector(worldToSensorMatrix, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiplyQbyV(poseRight.rotation, Vec3.UNIT_NEG_Y)));
+    var rotatedLeft = Mat4.transformVector(worldToSensorMatrix, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.multiplyQbyV(poseLeft.rotation, Vec3.UNIT_NEG_Y)));
 
     lastRotatedRight = rotatedRight;
 
-
     // Decide which hand should be controlling the pointer
-    // by comparing which one is moving more, and by 
-    // tending to stay with the one moving more.  
+    // by comparing which one is moving more, and by
+    // tending to stay with the one moving more.
     var BIAS_ADJUST_RATE = 0.5;
     var BIAS_ADJUST_DEADZONE = 0.05;
     leftRightBias += (Vec3.length(poseRight.angularVelocity) - Vec3.length(poseLeft.angularVelocity)) * BIAS_ADJUST_RATE;
@@ -105,7 +107,7 @@ Script.update.connect(function(deltaTime) {
 
     // don't move the reticle with the hand controllers unless the controllers are actually being moved
     //  take a time average of angular velocity, and don't move mouse at all if it's below threshold
- 
+
     var AVERAGING_INTERVAL = 0.95;
     var MINIMUM_CONTROLLER_ANGULAR_VELOCITY = 0.03;
     var angularVelocityMagnitude = Vec3.length(poseLeft.angularVelocity) * (1.0 - leftRightBias) + Vec3.length(poseRight.angularVelocity) * leftRightBias;
@@ -121,5 +123,3 @@ Script.update.connect(function(deltaTime) {
 Script.scriptEnding.connect(function(){
     mapping.disable();
 });
-
-
