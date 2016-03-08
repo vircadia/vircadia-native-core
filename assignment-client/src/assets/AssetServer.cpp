@@ -200,7 +200,7 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
             break;
         }
         case AssetMappingOperationType::Delete: {
-            handleDeleteMappingOperation(*message, senderNode, *replyPacket);
+            handleDeleteMappingsOperation(*message, senderNode, *replyPacket);
             break;
         }
     }
@@ -253,11 +253,18 @@ void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNode
     }
 }
 
-void AssetServer::handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
+void AssetServer::handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     if (senderNode->getCanRez()) {
-        QString assetPath = message.readString();
+        int numberOfDeletedMappings { 0 };
+        message.readPrimitive(&numberOfDeletedMappings);
 
-        if (deleteMapping(assetPath)) {
+        QStringList mappingsToDelete;
+
+        for (int i = 0; i < numberOfDeletedMappings; ++i) {
+            mappingsToDelete << message.readString();
+        }
+
+        if (deleteMappings(mappingsToDelete)) {
             replyPacket.writePrimitive(AssetServerError::NoError);
         } else {
             replyPacket.writePrimitive(AssetServerError::MappingOperationFailed);
@@ -484,20 +491,28 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     }
 }
 
-bool AssetServer::deleteMapping(AssetPath path) {
-    // keep the old mapping in case the delete fails
-    auto oldMapping = _fileMappings.take(path);
+bool AssetServer::deleteMappings(const AssetPathList& paths) {
+    // take a copy of the current mappings in case persistence of these deletes fails
+    auto oldMappings = _fileMappings;
 
-    if (!oldMapping.isNull()) {
-        // deleted the old mapping, attempt to persist to file
-        if (writeMappingsToFile()) {
-            // persistence succeeded we are good to go
-            return true;
+    // enumerate the paths to delete and remove them all
+    for (auto& path : paths) {
+        auto oldMapping = _fileMappings.take(path);
+        if (!oldMapping.isNull()) {
+            qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
         } else {
-            // we didn't delete the previous mapping, put it back in our in-memory representation
-            _fileMappings[path] = oldMapping.toString();
+            qDebug() << "Unable to delete a mapping that was not found:" << path;
         }
     }
 
-    return false;
+    // deleted the old mappings, attempt to persist to file
+    if (writeMappingsToFile()) {
+        // persistence succeeded we are good to go
+        return true;
+    } else {
+        // we didn't delete the previous mapping, put it back in our in-memory representation
+        _fileMappings = oldMappings;
+
+        return false;
+    }
 }

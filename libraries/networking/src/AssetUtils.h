@@ -25,6 +25,7 @@ using DataOffset = int64_t;
 using AssetPath = QString;
 using AssetHash = QString;
 using AssetMapping = std::map<AssetPath, AssetHash>;
+using AssetPathList = QStringList;
 
 const size_t SHA256_HASH_LENGTH = 32;
 const size_t SHA256_HASH_HEX_LENGTH = 64;

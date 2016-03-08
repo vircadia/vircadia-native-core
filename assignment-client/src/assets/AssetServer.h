@@ -44,7 +44,7 @@ private:
     void handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
     void handleGetAllMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
     void handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
-    void handleDeleteMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
+    void handleDeleteMappingsOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket);
 
     // Mapping file operations must be called from main assignment thread only
     void loadMappingsFromFile();
@@ -53,8 +53,8 @@ private:
     /// Set the mapping for path to hash
     bool setMapping(AssetPath path, AssetHash hash);
 
-    /// Delete mapping `path`. Return `true` if mapping existed, else `false`.
-    bool deleteMapping(AssetPath path);
+    /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
+    bool deleteMappings(const AssetPathList& paths);
 
     static void writeError(NLPacketList* packetList, AssetServerError error);
 
