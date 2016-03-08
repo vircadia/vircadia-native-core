@@ -124,7 +124,7 @@ QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
     return dataStream;
 }
 
-QHostAddress getLocalAddress() {
+QHostAddress getGuessedLocalAddress() {
 
     QHostAddress localAddress;
 
