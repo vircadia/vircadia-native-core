@@ -565,11 +565,14 @@ function keyReleaseEvent(event) {
     grabber.keyReleaseEvent(event);
 }
 
-function editEvent(channel, message, sender) {
+function editEvent(channel, message, sender, localOnly) {
     if (channel != "edit-events") {
         return;
     }
     if (sender != MyAvatar.sessionUUID) {
+        return;
+    }
+    if (!localOnly) {
         return;
     }
     try {
