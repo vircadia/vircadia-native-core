@@ -297,34 +297,6 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& ex
     }
 }
 
-//bool AssetClient::setAssetMapping(const QString& path, MappingOperationCallback callback) {
-//    auto nodeList = DependencyManager::get<NodeList>();
-//    SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-//
-//    if (assetServer) {
-//        auto messageID = ++_currentID;
-//
-//        auto payload = path.toLatin1();
-//        auto payloadSize = sizeof(messageID) + payload.size();
-//        auto packet = NLPacket::create(PacketType::AssetMappingOperation, payloadSize, true);
-//
-//        qCDebug(asset_client) << "Requesting mapping for" << path << "from asset-server.";
-//
-//        packet->writePrimitive(messageID);
-//
-//        auto bytesWritten = packet->write(payload);
-//        Q_ASSERT(bytesWritten == payload.size());
-//
-//        nodeList->sendPacket(std::move(packet), *assetServer);
-//
-//        _pendingMappingRequests[assetServer][messageID] = callback;
-//
-//        return true;
-//    }
-//    
-//    return false;
-//}
-//
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
                            ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
