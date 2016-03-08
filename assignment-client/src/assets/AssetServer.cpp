@@ -100,10 +100,13 @@ void AssetServer::completeSetup() {
 
     qDebug() << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
-    _resourcesDirectory.mkpath(ASSET_FILES_SUBDIR);
+     _filesDirectory = _resourcesDirectory;
 
-    _filesDirectory = _resourcesDirectory;
-    _filesDirectory.cd(ASSET_FILES_SUBDIR);
+    if (!_resourcesDirectory.mkpath(ASSET_FILES_SUBDIR) || !_filesDirectory.cd(ASSET_FILES_SUBDIR)) {
+        qCritical() << "Unable to create file directory for asset-server files. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
 
     // load whatever mappings we currently have from the local file
     loadMappingsFromFile();
