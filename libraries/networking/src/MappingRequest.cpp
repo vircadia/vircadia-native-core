@@ -50,7 +50,7 @@ void GetMappingRequest::doStart() {
                     break;
                 case AssetServerError::AssetNotFound:
                     _error = NotFound;
-                    break
+                    break;
                 default:
                     _error = UnknownError;
                     break;
