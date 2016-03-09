@@ -16,7 +16,7 @@ orientation.x = 0;
 orientation = Quat.fromVec3Degrees(orientation);
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 
-var SHADER_URL = "file:///C:/Users/Eric/hifi/examples/tests/rapidUniformChange/rapidUniformChangeTest.fs";
+var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/rapidUniformChangeTest.fs";
 
 
 var userData = {
