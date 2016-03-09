@@ -1,12 +1,13 @@
 //
-//  Button.qml
+//  GlyphButton.qml
 //
-//  Created by David Rowe on 16 Feb 2016
+//  Created by Clement on  3/7/16
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 
 import QtQuick 2.5
 import QtQuick.Controls 1.4 as Original
@@ -16,7 +17,8 @@ import "../styles-uit"
 
 Original.Button {
     property int color: 0
-    property int colorScheme: hifi.colorSchemes.light
+    property int colorScheme: hifi.colorShemes.light
+    property string glyph: ""
 
     width: 120
     height: 28
@@ -58,14 +60,12 @@ Original.Button {
             }
         }
 
-        label: RalewayBold {
-            font.capitalization: Font.AllUppercase
+        label: HiFiGlyphs {
             color: enabled ? hifi.buttons.textColor[control.color]
                            : hifi.buttons.disabledTextColor[control.colorScheme]
-            size: hifi.fontSizes.buttonLabel
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
-            text: control.text
+            text: control.glyph
         }
     }
 }

@@ -85,8 +85,7 @@ protected:
     virtual void updateFrameData();
 
     ProgramPtr _program;
-    int32_t _modelViewUniform { -1 };
-    int32_t _projectionUniform { -1 };
+    int32_t _mvpUniform { -1 };
     ShapeWrapperPtr _plane;
 
     mutable Mutex _mutex;

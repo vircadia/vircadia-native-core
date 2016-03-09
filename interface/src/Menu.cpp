@@ -99,9 +99,13 @@ Menu::Menu() {
     redoAction->setShortcut(Qt::CTRL | Qt::SHIFT | Qt::Key_Z);
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
-    // Edit > Running Sccripts
+    // Edit > Running Scripts
     addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
         qApp, SLOT(toggleRunningScriptsWidget()));
+
+    // Edit > Asset Server
+    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, 0,
+        qApp, SLOT(toggleAssetServerWidget()));
 
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
@@ -590,6 +594,8 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DisplayCrashOptions, 0, true);
     // Developer > Crash Application
     addActionToQMenuAndActionHash(developerMenu, MenuOption::CrashInterface, 0, qApp, SLOT(crashApplication()));
+    // Developer > Deadlock Application
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::DeadlockInterface, 0, qApp, SLOT(deadlockApplication()));
 
     // Developer > Log...
     addActionToQMenuAndActionHash(developerMenu, MenuOption::Log, Qt::CTRL | Qt::SHIFT | Qt::Key_L,

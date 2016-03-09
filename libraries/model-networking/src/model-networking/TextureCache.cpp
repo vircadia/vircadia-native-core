@@ -344,6 +344,7 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, int origin
         _width = _height = 0;
     }
     
+    _isCacheable = true;
     finishedLoading(true);
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));

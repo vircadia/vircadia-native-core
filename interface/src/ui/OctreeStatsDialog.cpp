@@ -220,6 +220,11 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
             } else {
                 sendingMode << "S";
             }
+            if (stats.isFullScene()) {
+                sendingMode << "F";
+            } else {
+                sendingMode << "p";
+            }
         }
     });
     sendingMode << " - " << serverCount << " servers";

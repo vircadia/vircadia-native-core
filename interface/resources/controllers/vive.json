@@ -15,10 +15,8 @@
         { "from": "Vive.RB", "to": "Standard.RB" },
         { "from": "Vive.RS", "to": "Standard.RS" },
 
-        { "from": "Vive.LeftPrimaryThumb", "to": "Standard.LeftPrimaryThumb" },
-        { "from": "Vive.RightPrimaryThumb", "to": "Standard.RightPrimaryThumb" },
-        { "from": "Vive.LeftSecondaryThumb", "to": "Standard.LeftSecondaryThumb" },
-        { "from": "Vive.RightSecondaryThumb", "to": "Standard.RightSecondaryThumb" },
+        { "from": "Vive.LeftApplicationMenu", "to": "Standard.Back" },
+        { "from": "Vive.RightApplicationMenu", "to": "Standard.Start" },
 
         { "from": "Vive.LeftHand", "to": "Standard.LeftHand" },
         { "from": "Vive.RightHand", "to": "Standard.RightHand" }

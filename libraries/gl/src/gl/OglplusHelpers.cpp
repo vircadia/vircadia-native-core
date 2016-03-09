@@ -15,8 +15,7 @@ using namespace oglplus::shapes;
 static const char * SIMPLE_TEXTURED_VS = R"VS(#version 410 core
 #pragma line __LINE__
 
-uniform mat4 Projection = mat4(1);
-uniform mat4 ModelView = mat4(1);
+uniform mat4 mvp = mat4(1);
 
 in vec3 Position;
 in vec2 TexCoord;
@@ -24,7 +23,7 @@ in vec2 TexCoord;
 out vec2 vTexCoord;
 
 void main() {
-  gl_Position = Projection * ModelView * vec4(Position, 1);
+  gl_Position = mvp * vec4(Position, 1);
   vTexCoord = TexCoord ;
 }
 

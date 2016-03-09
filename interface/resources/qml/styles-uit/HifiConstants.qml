@@ -17,8 +17,34 @@ Item {
     readonly property alias dimensions: dimensions
     readonly property alias fontSizes: fontSizes
     readonly property alias glyphs: glyphs
+    readonly property alias icons: icons
     readonly property alias buttons: buttons
     readonly property alias effects: effects
+
+    function glyphForIcon(icon) {
+        // Translates icon enum to glyph char.
+        var glyph;
+        switch (icon) {
+            case hifi.icons.information:
+                glyph = hifi.glyphs.info;
+                break;
+            case hifi.icons.question:
+                glyph = hifi.glyphs.question;
+                break;
+            case hifi.icons.warning:
+                glyph = hifi.glyphs.alert;
+                break;
+            case hifi.icons.critical:
+                glyph = hifi.glyphs.critical;
+                break;
+            case hifi.icons.placemark:
+                glyph = hifi.glyphs.placemark;
+                break;
+            default:
+                glyph = hifi.glyphs.noIcon;
+        }
+        return glyph;
+    }
 
     Item {
         id: colors
@@ -83,6 +109,7 @@ Item {
         readonly property color dropDownLightFinish: "#afafaf"
         readonly property color dropDownDarkStart: "#7d7d7d"
         readonly property color dropDownDarkFinish: "#6b6a6b"
+        readonly property color textFieldLightBackground: "#d4d4d4"
     }
 
     Item {
@@ -134,6 +161,7 @@ Item {
 
     Item {
         id: glyphs
+        readonly property string alert: "+"
         readonly property string backward: "E"
         readonly property string caratDn: "5"
         readonly property string caratR: "3"
@@ -141,15 +169,35 @@ Item {
         readonly property string close: "w"
         readonly property string closeInverted: "x"
         readonly property string closeSmall: "C"
+        readonly property string critical: "="
         readonly property string disclosureButtonCollapse: "M"
         readonly property string disclosureButtonExpand: "L"
         readonly property string disclosureCollapse: "Z"
         readonly property string disclosureExpand: "B"
         readonly property string forward: "D"
+        readonly property string info: "["
+        readonly property string noIcon: ""
         readonly property string pin: "y"
         readonly property string pinInverted: "z"
+        readonly property string placemark: "U"
+        readonly property string question: "]"
         readonly property string reloadSmall: "a"
         readonly property string resizeHandle: "A"
+        readonly property string upload: "j"
+        readonly property string reload: "a"
+        readonly property string back: "1"
+
+    }
+
+    Item {
+        id: icons
+        // Values per OffscreenUi::Icon
+        readonly property int none: 0
+        readonly property int question: 1
+        readonly property int information: 2
+        readonly property int warning: 3
+        readonly property int critical: 4
+        readonly property int placemark: 5
     }
 
     Item {
@@ -159,8 +207,13 @@ Item {
         readonly property int red: 2
         readonly property int black: 3
         readonly property var textColor: [ colors.darkGray, colors.white, colors.white, colors.white ]
-        readonly property var colorStart: [ "#ffffff", "#00b4ef", "#d42043", "#343434" ]
-        readonly property var colorFinish: [ "#afafaf", "#1080b8", "#94132e", "#000000" ]
+        readonly property var colorStart: [ colors.white, colors.primaryHighlight, "#d42043", "#343434" ]
+        readonly property var colorFinish: [ colors.lightGrayText, colors.blueAccent, "#94132e", colors.black ]
+        readonly property var hoveredColor: [ colorStart[white], colorStart[blue], colorStart[red], colorFinish[black] ]
+        readonly property var pressedColor: [ colorFinish[white], colorFinish[blue], colorFinish[red], colorStart[black] ]
+        readonly property var disabledColorStart: [ colorStart[white], colors.baseGrayHighlight]
+        readonly property var disabledColorFinish: [ colorFinish[white], colors.baseGrayShadow]
+        readonly property var disabledTextColor: [ colors.lightGrayText, colors.baseGrayShadow]
         readonly property int radius: 5
     }
 
