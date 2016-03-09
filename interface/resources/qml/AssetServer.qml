@@ -43,29 +43,36 @@ Window {
         property alias directory: root.currentDirectory
     }
 
-
     function reload() {
         print("reload");
     }
-
-    function goBack() {
-        print("goBack");
+    function addToWorld() {
+        print("addToWorld");
     }
-
-    function uploadFile(fileUrl, addToScene) {
-        print("uploadFile: " + fileUrl + " " + addToScene);
-
+    function renameFile() {
+        print("renameFile");
     }
-
     function deleteFile() {
         print("deleteFile");
 
+    }
+
+    function uploadFile(fileUrl, addToScene) {
+        var object = desktop.inputDialog({
+            label: "Enter asset path",
+            //placeholderText: "atp:/myFolder/myFile.ext"
+        });
+        object.selected.connect(function(value) {
+            print(value);
+        });
+        print("uploadFile: " + fileUrl + " " + addToScene);
     }
 
     Column {
         width: pane.contentWidth
 
         HifiControls.ContentSection {
+            id: assetDirectory
             name: "Asset Directory"
             spacing: hifi.dimensions.contentSpacing.y
             isFirst: true
@@ -77,16 +84,6 @@ Window {
                 spacing: hifi.dimensions.contentSpacing.x
 
                 HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.back
-                    color: hifi.buttons.white
-                    colorScheme: root.colorScheme
-                    height: 26
-                    width: 26
-
-                    onClicked: root.goBack()
-                }
-
-                HifiControls.GlyphButton {
                     glyph: hifi.glyphs.reload
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
@@ -95,23 +92,35 @@ Window {
 
                     onClicked: root.reload()
                 }
-            }
 
-            Item {
-                // Take the deleteButotn out of the column flow.
-                id: deleteButtonContainer
-                anchors.top: buttonRow.top
-                anchors.right: parent.right
+                HifiControls.Button {
+                    text: "ADD TO WORLD"
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    height: 26
+                    width: 120
+
+                    onClicked: root.addToWorld()
+                }
+
+                HifiControls.Button {
+                    text: "RENAME"
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    height: 26
+                    width: 80
+
+                    onClicked: root.renameFile()
+                }
 
                 HifiControls.Button {
                     id: deleteButton
-                    anchors.right: parent.right
 
-                    text: "DELETE SELECTION"
+                    text: "DELETE"
                     color: hifi.buttons.red
                     colorScheme: root.colorScheme
                     height: 26
-                    width: 130
+                    width: 80
 
                     onClicked: root.deleteFile()
                 }
@@ -119,7 +128,7 @@ Window {
 
             HifiControls.Tree {
                 id: treeView
-                height: 250
+                height: 400
                 treeModel: scriptsModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
@@ -128,6 +137,7 @@ Window {
         }
 
         HifiControls.ContentSection {
+            id: uploadSection
             name: ""
             spacing: hifi.dimensions.contentSpacing.y
 
@@ -166,7 +176,7 @@ Window {
 
                     onClicked: {
                         var browser = fileBrowserBuilder.createObject(desktop, {
-                            selectDirectory: true,
+                            selectDirectory: false,
                             folder: fileDialogHelper.pathToUrl(currentDirectory)
                         });
                         browser.selectedFile.connect(function(url){
