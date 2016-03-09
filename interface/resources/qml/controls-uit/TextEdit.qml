@@ -17,8 +17,8 @@ TextEdit {
 
     property real size: 32
 
-    FontLoader { id: ralewaySemibold; source: "../../fonts/Raleway-Semibold.ttf"; }
-    font.family: ralewaySemibold.name
+    FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
+    font.family: ralewaySemiBold.name
     font.pointSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
