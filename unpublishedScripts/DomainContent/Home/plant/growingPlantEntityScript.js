@@ -114,6 +114,7 @@
             flower.id = Entities.addEntity({
                 type: "Sphere",
                 name: "flower",
+                lifetime: 3600,
                 position: position,
                 collisionless: true,
                 rotation: flower.rotation,
