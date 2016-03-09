@@ -35,7 +35,6 @@
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
-#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
@@ -365,17 +364,6 @@ Menu::Menu() {
 
     // Developer > Assets >>>
     MenuWrapper* assetDeveloperMenu = developerMenu->addMenu("Assets");
-    auto& assetDialogFactory = AssetUploadDialogFactory::getInstance();
-    assetDialogFactory.setDialogParent(this);
-    QAction* assetUpload = addActionToQMenuAndActionHash(assetDeveloperMenu,
-        MenuOption::UploadAsset,
-        0,
-        &assetDialogFactory,
-        SLOT(showDialog()));
-
-    // disable the asset upload action by default - it gets enabled only if asset server becomes present
-    assetUpload->setEnabled(false);
-
     auto& atpMigrator = ATPAssetMigrator::getInstance();
     atpMigrator.setDialogParent(this);
 

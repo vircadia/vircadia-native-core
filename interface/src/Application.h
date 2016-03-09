@@ -242,7 +242,7 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog();
     void toggleLogDialog();
     void toggleRunningScriptsWidget();
-    void toggleAssetServerWidget();
+    void toggleAssetServerWidget(QString filePath = "");
 
     void handleLocalServerConnection();
     void readArgumentsFromLocalSocket();
@@ -303,8 +303,6 @@ private slots:
     bool acceptSnapshot(const QString& urlString);
     bool askToSetAvatarUrl(const QString& url);
     bool askToLoadScript(const QString& scriptFilenameOrURL);
-    bool askToUploadAsset(const QString& asset);
-    void modelUploadFinished(AssetUpload* upload, const QString& hash);
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;

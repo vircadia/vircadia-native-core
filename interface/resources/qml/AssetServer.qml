@@ -35,6 +35,7 @@ Window {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var currentDirectory;
+    property alias currentFileUrl: fileUrlTextField.text;
 
     Settings {
         category: "Overlay.AssetServer"

@@ -158,7 +158,6 @@
 #include "Stars.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
-#include "ui/AssetUploadDialogFactory.h"
 #include "ui/DialogsManager.h"
 #include "ui/LoginDialog.h"
 #include "ui/overlays/Cube3DOverlay.h"
@@ -3937,9 +3936,6 @@ void Application::nodeAdded(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet right away
         getMyAvatar()->sendIdentityPacket();
-    } else if (node->getType() == NodeType::AssetServer) {
-        // the addition of an asset-server always re-enables the upload to asset server menu option
-        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(true);
     }
 }
 
@@ -3989,10 +3985,6 @@ void Application::nodeKilled(SharedNodePointer node) {
     } else if (node->getType() == NodeType::AvatarMixer) {
         // our avatar mixer has gone away - clear the hash of avatars
         DependencyManager::get<AvatarManager>()->clearOtherAvatars();
-    } else if (node->getType() == NodeType::AssetServer
-               && !DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::AssetServer)) {
-        // this was our last asset server - disable the menu option to upload an asset
-        Menu::getInstance()->getActionForOption(MenuOption::UploadAsset)->setEnabled(false);
     }
 }
 void Application::trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket) {
@@ -4218,7 +4210,10 @@ bool Application::acceptURL(const QString& urlString, bool defaultUpload) {
         }
     }
 
-    return defaultUpload && askToUploadAsset(urlString);
+    if (defaultUpload) {
+        toggleAssetServerWidget(urlString);
+    }
+    return defaultUpload;
 }
 
 void Application::setSessionUUID(const QUuid& sessionUUID) {
@@ -4278,80 +4273,6 @@ bool Application::askToLoadScript(const QString& scriptFilenameOrURL) {
         qCDebug(interfaceapp) << "Declined to run the script: " << scriptFilenameOrURL;
     }
     return true;
-}
-
-bool Application::askToUploadAsset(const QString& filename) {
-    if (!DependencyManager::get<NodeList>()->getThisNodeCanRez()) {
-        OffscreenUi::warning(_window, "Failed Upload",
-                             QString("You don't have upload rights on that domain.\n\n"));
-        return false;
-    }
-
-    QUrl url { filename };
-    if (auto upload = DependencyManager::get<AssetClient>()->createUpload(url.toLocalFile())) {
-
-        QMessageBox messageBox;
-        messageBox.setWindowTitle("Asset upload");
-        messageBox.setText("You are about to upload the following file to the asset server:\n" +
-                           url.toDisplayString());
-        messageBox.setInformativeText("Do you want to continue?");
-        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
-        messageBox.setDefaultButton(QMessageBox::Ok);
-
-        // Option to drop model in world for models
-        if (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) || filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive)) {
-            auto checkBox = new QCheckBox(&messageBox);
-            checkBox->setText("Add to scene");
-            messageBox.setCheckBox(checkBox);
-        }
-
-        if (messageBox.exec() != QMessageBox::Ok) {
-            upload->deleteLater();
-            return false;
-        }
-
-        // connect to the finished signal so we know when the AssetUpload is done
-        if (messageBox.checkBox() && (messageBox.checkBox()->checkState() == Qt::Checked)) {
-            // Custom behavior for models
-            QObject::connect(upload, &AssetUpload::finished, this, &Application::modelUploadFinished);
-        } else {
-            QObject::connect(upload, &AssetUpload::finished,
-                             &AssetUploadDialogFactory::getInstance(),
-                             &AssetUploadDialogFactory::handleUploadFinished);
-        }
-
-        // start the upload now
-        upload->start();
-        return true;
-    }
-
-    // display a message box with the error
-    OffscreenUi::warning(_window, "Failed Upload", QString("Failed to upload %1.\n\n").arg(filename));
-    return false;
-}
-
-void Application::modelUploadFinished(AssetUpload* upload, const QString& hash) {
-    auto fileInfo = QFileInfo(upload->getFilename());
-    auto filename = fileInfo.fileName();
-
-    if ((upload->getError() == AssetUpload::NoError) &&
-        (filename.endsWith(FBX_EXTENSION, Qt::CaseInsensitive) ||
-         filename.endsWith(OBJ_EXTENSION, Qt::CaseInsensitive))) {
-
-        auto entities = DependencyManager::get<EntityScriptingInterface>();
-
-        EntityItemProperties properties;
-        properties.setType(EntityTypes::Model);
-        properties.setModelURL(QString("%1:%2.%3").arg(URL_SCHEME_ATP).arg(hash).arg(fileInfo.completeSuffix()));
-        properties.setPosition(_myCamera.getPosition() + _myCamera.getOrientation() * Vectors::FRONT * 2.0f);
-        properties.setName(QUrl(upload->getFilename()).fileName());
-
-        entities->addEntity(properties);
-
-        upload->deleteLater();
-    } else {
-        AssetUploadDialogFactory::getInstance().handleUploadFinished(upload, hash);
-    }
 }
 
 bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
@@ -4453,9 +4374,12 @@ void Application::toggleRunningScriptsWidget() {
     //}
 }
 
-void Application::toggleAssetServerWidget() {
+void Application::toggleAssetServerWidget(QString filePath) {
     static const QUrl url("AssetServer.qml");
-    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer");
+    auto urlSetter = [=](QQmlContext* context, QObject* newObject){
+        newObject->setProperty("currentFileUrl", filePath);
+    };
+    DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", urlSetter);
 }
 
 void Application::packageModel() {
