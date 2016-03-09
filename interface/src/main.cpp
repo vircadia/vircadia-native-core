@@ -145,9 +145,9 @@ int main(int argc, const char* argv[]) {
 
 #ifdef HAS_BUGSPLAT
         AccountManager& accountManager = AccountManager::getInstance();
-        mpSender.setDefaultUserName(accountManager.getAccountInfo().getUsername().toLatin1());
+        mpSender.setDefaultUserName(accountManager.getAccountInfo().getUsername().toLatin1().constData());
         QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
-            mpSender.setDefaultUserName(newUsername);
+            mpSender.setDefaultUserName(newUsername.toLatin1().constData());
         });
 #endif
 
