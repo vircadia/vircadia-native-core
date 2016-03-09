@@ -892,24 +892,27 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "DiffuseFactor") {
                                         material.diffuseFactor = property.properties.at(index).value<double>();
                                     } else if (property.properties.at(0) == "Diffuse") {
-                                      //  material.diffuseColor = getVec3(property.properties, index);
-                                      //  material.diffuseFactor = 1.0;
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.diffuseColor = getVec3(property.properties, index);
+                                        //  material.diffuseFactor = 1.0;
 
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specularColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "SpecularFactor") {
                                         material.specularFactor = property.properties.at(index).value<double>();
                                     } else if (property.properties.at(0) == "Specular") {
-                                      //  material.specularColor = getVec3(property.properties, index);
-                                      //  material.specularFactor = 1.0;
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.specularColor = getVec3(property.properties, index);
+                                        //  material.specularFactor = 1.0;
 
                                     } else if (property.properties.at(0) == "EmissiveColor") {
                                         material.emissiveColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "EmissiveFactor") {
                                         material.emissiveFactor = property.properties.at(index).value<double>();
                                     } else if (property.properties.at(0) == "Emissive") {
-                                      //  material.emissiveColor = getVec3(property.properties, index);
-                                      //  material.emissiveFactor = 1.0;
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.emissiveColor = getVec3(property.properties, index);
+                                        //  material.emissiveFactor = 1.0;
 
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
@@ -917,6 +920,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Opacity") {
                                         material.opacity = property.properties.at(index).value<double>();
                                     }
+
                                     // Sting Ray Material Properties!!!!
                                     else if (property.properties.at(0) == "Maya|use_normal_map") {
                                         material.isPBSMaterial = true;
@@ -925,6 +929,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Maya|base_color") {
                                         material.isPBSMaterial = true;
                                         material.diffuseColor = getVec3(property.properties, index);
+
                                     } else if (property.properties.at(0) == "Maya|use_color_map") {
                                         material.isPBSMaterial = true;
                                         material.useAlbedoMap = (bool) property.properties.at(index).value<double>();
@@ -932,6 +937,7 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Maya|roughness") {
                                         material.isPBSMaterial = true;
                                         material.roughness = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_roughness_map") {
                                         material.isPBSMaterial = true;
                                         material.useRoughnessMap = (bool)property.properties.at(index).value<double>();
@@ -939,20 +945,25 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Maya|metallic") {
                                         material.isPBSMaterial = true;
                                         material.metallic = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_metallic_map") {
                                         material.isPBSMaterial = true;
                                         material.useMetallicMap = (bool)property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|emissive") {
                                         material.isPBSMaterial = true;
                                         material.emissiveColor = getVec3(property.properties, index);
+
                                     } else if (property.properties.at(0) == "Maya|emissive_intensity") {
                                         material.isPBSMaterial = true;
                                         material.emissiveIntensity = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_emissive_map") {
                                         material.isPBSMaterial = true;
                                         material.useEmissiveMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|use_ao_map") {
+                                        material.isPBSMaterial = true;
                                         material.useOcclusionMap = (bool)property.properties.at(index).value<double>();
 
                                     } else {
