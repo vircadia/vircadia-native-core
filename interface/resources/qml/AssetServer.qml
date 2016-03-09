@@ -50,13 +50,18 @@ Window {
         print("addToWorld");
     }
     function renameFile() {
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        if (!path) {
+            return;
+        }
+
         var object = desktop.inputDialog({
             label: "Enter new path:",
-            prefilledText: "atp:/myFolder/myFile.ext",
+            prefilledText: path,
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
-            console.log("Renaming " + "fileUrl" + " to " + destinationPath);
+            console.log("Renaming " + path + " to " + destinationPath);
 
 
 
@@ -65,43 +70,56 @@ Window {
         });
     }
     function deleteFile() {
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        if (!path) {
+            return;
+        }
+
         var object = desktop.messageBox({
+            icon: OriginalDialogs.StandardIcon.Question,
+            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.No,
             text: "Deleting",
-            informativeText: "You are about to delete the following file:\n" + "test" + "\nDo you want to continue?"
+            informativeText: "You are about to delete the following file:\n" +
+                             path +
+                             "\nDo you want to continue?"
         });
         object.selected.connect(function(button) {
+            if (button === OriginalDialogs.StandardButton.Yes) {
+                console.log("Deleting " + path);
 
 
 
-
+            }
         });
     }
 
     function chooseClicked() {
         var browser = desktop.fileDialog({
             selectDirectory: false,
-            folder: fileDialogHelper.pathToUrl(currentDirectory)
+            dir: currentDirectory
         });
         browser.selectedFile.connect(function(url){
-            console.log(url);
             fileUrlTextField.text = fileDialogHelper.urlToPath(url);
+            currentDirectory = browser.dir;
         });
-
-
-
     }
 
     function uploadClicked() {
         var fileUrl = fileUrlTextField.text
-        var addToScene = addToSceneCheckBox.checked
+        var addToWorld = addToWorldCheckBox.checked
+
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
+        var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
         var object = desktop.inputDialog({
             label: "Enter asset path:",
-            prefilledText: "atp:/myFolder/myFile.ext",
+            prefilledText: directory + filename,
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
-            console.log("Uploading " + fileUrl + " to " + destinationPath + " (addToScene: " + addToScene + ")");
+            console.log("Uploading " + fileUrl + " to " + destinationPath + " (addToWorld: " + addToWorld + ")");
 
 
 
@@ -216,19 +234,19 @@ Window {
             }
 
             HifiControls.CheckBox {
-                id: addToSceneCheckBox
+                id: addToWorldCheckBox
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.rightMargin: uploadButton.width + hifi.dimensions.contentSpacing.x
 
-                text: "Add to scene on upload"
+                text: "Add to world on upload"
                 checked: false
             }
 
             Item {
                 // Take the uploadButton out of the column flow.
                 id: uploadButtonContainer
-                anchors.top: addToSceneCheckBox.top
+                anchors.top: addToWorldCheckBox.top
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -245,6 +263,8 @@ Window {
                     onClicked: root.uploadClicked()
                 }
             }
+
+            HifiControls.VerticalSpacer {}
         }
     }
 }
