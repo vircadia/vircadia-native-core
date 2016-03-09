@@ -235,6 +235,44 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl }
 };
 
+class DeadlockWatchdogThread : public QThread {
+public:
+    static const unsigned long HEARTBEAT_CHECK_INTERVAL_SECS = 1;
+    static const unsigned long HEARTBEAT_UPDATE_INTERVAL_SECS = 1;
+    static const unsigned long MAX_HEARTBEAT_AGE_USECS = 10 * USECS_PER_SECOND;
+
+    // Set the heartbeat on launch
+    DeadlockWatchdogThread() {
+        QTimer* heartbeatTimer = new QTimer();
+        // Give the heartbeat an initial value
+        _heartbeat = usecTimestampNow();
+        connect(heartbeatTimer, &QTimer::timeout, [this] {
+            _heartbeat = usecTimestampNow();
+        });
+        heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
+    }
+
+    void deadlockDetectionCrash() {
+        uint32_t* crashTrigger = nullptr;
+        *crashTrigger = 0xDEAD10CC;
+    }
+
+    void run() override {
+        while (!qApp->isAboutToQuit()) {
+            QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
+            auto now = usecTimestampNow();
+            auto lastHeartbeatAge = now - _heartbeat;
+            if (lastHeartbeatAge > MAX_HEARTBEAT_AGE_USECS) {
+                deadlockDetectionCrash();
+            }
+        }
+    }
+
+    static std::atomic<uint64_t> _heartbeat;
+};
+
+std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
+
 #ifdef Q_OS_WIN
 class MyNativeEventFilter : public QAbstractNativeEventFilter {
 public:
@@ -456,6 +494,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
     auto nodeList = DependencyManager::get<NodeList>();
+
+    // Set up a watchdog thread to intentionally crash the application on deadlocks
+    (new DeadlockWatchdogThread())->start();
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
 
@@ -4964,6 +5005,15 @@ void Application::crashApplication() {
     QObject* object = nullptr;
     bool value = object->isWindowType();
     Q_UNUSED(value);
+}
+
+void Application::deadlockApplication() {
+    qCDebug(interfaceapp) << "Intentionally deadlocked Interface";
+    // Using a loop that will *technically* eventually exit (in ~600 billion years)
+    // to avoid compiler warnings about a loop that will never exit
+    for (uint64_t i = 1; i != 0; ++i) {
+        QThread::sleep(1);
+    }
 }
 
 void Application::setActiveDisplayPlugin(const QString& pluginName) {

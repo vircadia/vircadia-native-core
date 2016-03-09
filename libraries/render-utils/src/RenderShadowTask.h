@@ -15,17 +15,17 @@
 #include <gpu/Framebuffer.h>
 #include <gpu/Pipeline.h>
 
-#include <render/DrawTask.h>
+#include <render/CullTask.h>
 
 class ViewFrustum;
 
 class RenderShadowMap {
 public:
-    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapesIDsBounds>;
+    using JobModel = render::Job::ModelI<RenderShadowMap, render::ShapeBounds>;
 
     RenderShadowMap(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
-             const render::ShapesIDsBounds& inShapes);
+             const render::ShapeBounds& inShapes);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
