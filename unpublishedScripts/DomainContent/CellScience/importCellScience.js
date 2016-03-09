@@ -5,12 +5,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var version = 1207;
+var version = 1209;
 
 var WORLD_OFFSET = {
-    x: -6000,
-    y: -6000,
-    z: -6000
+    x: 0,
+    y: 0,
+    z: 0
 }
 
 var WORLD_SCALE_AMOUNT = 1.0;
@@ -21,7 +21,6 @@ function offsetVectorToWorld(vector) {
 
     newVector = Vec3.sum(vector, WORLD_OFFSET);
 
-    print('JBP NEW VECTOR IS:: ' + JSON.stringify(newVector))
     return newVector
 }
 
@@ -58,7 +57,7 @@ assignVariables();
 var locations = {
     cellLayout: [offsetVectorToWorld({
         x: 3000,
-        y: 10500,
+        y: 13500,
         z: 3000
     }), offsetVectorToWorld({
         x: 3276.6,
@@ -67,11 +66,11 @@ var locations = {
     }), 1800],
     cells: [offsetVectorToWorld({
         x: 13500,
-        y: 10500,
+        y: 13500,
         z: 13500
     }), offsetVectorToWorld({
         x: 13501,
-        y: 10501,
+        y: 13501,
         z: 13501
     }), 400],
     ribosome: [offsetVectorToWorld({
@@ -94,7 +93,7 @@ var locations = {
     }), 2000],
     mitochondria: [offsetVectorToWorld({
         x: 3000,
-        y: 10500,
+        y: 13500,
         z: 3000
     }), offsetVectorToWorld({
         x: 3240,
@@ -103,16 +102,16 @@ var locations = {
     }), 1000],
     translation: [offsetVectorToWorld({
         x: 3000,
-        y: 10500,
+        y: 13500,
         z: 3000
     }), offsetVectorToWorld({
         x: 2962,
-        y: 10492,
+        y: 13492,
         z: 3342
     }), 1000]
 };
 
-print('JBP locations locations'  +JSON.stringify(locations))
+print('JBP locations locations' + JSON.stringify(locations))
 
 var scenes = [{
     name: "Cells",
@@ -603,7 +602,7 @@ function createLayoutLights() {
     Entities.addEntity({
         type: "Light",
         name: "Cell layout light",
-        position:offsetVectorToWorld( {
+        position: offsetVectorToWorld({
             x: 3110,
             y: 10660,
             z: 3785
@@ -625,7 +624,7 @@ function createLayoutLights() {
 
 function CreateNavigationButton(scene, number) {
 
-   var nav =  Entities.addEntity({
+    var nav = Entities.addEntity({
         type: "Box",
         name: scene.name + " navigation button",
         color: {
@@ -657,7 +656,7 @@ function CreateNavigationButton(scene, number) {
         script: baseLocation + "Scripts/navigationButton.js?" + version,
         collisionless: true,
     });
-    print('JBP CREATE NAV AT::' +nav+" name: " + scene.name + ": " + JSON.stringify(scene.location))
+    print('JBP CREATE NAV AT::' + nav + " name: " + scene.name + ": " + JSON.stringify(scene.location))
 }
 
 function CreateBoundary(scene) {
@@ -9014,7 +9013,7 @@ function assignVariables() {
 for (var i = 0; i < scenes.length; i++) {
     // print('setting up scene.  first, delete' + JSON.stringify(scenes[i]))
     // deleteAllInRadius(scenes[i].location, scenes[i].zone.dimensions.x);
-     CreateNavigationButton(scenes[i], i);
+    CreateNavigationButton(scenes[i], i);
 
     ImportScene(scenes[i]);
     // print('setting up scene.  then import')

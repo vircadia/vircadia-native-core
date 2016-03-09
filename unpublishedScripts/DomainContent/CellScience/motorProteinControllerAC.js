@@ -8,7 +8,7 @@
 var numDynein = 2;
 var numKinesin = 2;
 var percentOnMainMT = 100;
-//print('RUNNING AC!!');
+
 var baseLocation;
 if (USE_LOCAL_HOST === true) {
     baseLocation = "http://localhost:8080/";
@@ -17,9 +17,9 @@ if (USE_LOCAL_HOST === true) {
 }
 
 var WORLD_OFFSET = {
-    x: -6000,
-    y: -6000,
-    z: -6000
+    x: 0,
+    y: 0,
+    z: 0
 }
 
 var WORLD_SCALE_AMOUNT = 1.0;
@@ -37,7 +37,7 @@ var USE_LOCAL_HOST = false;
 
 var basePosition = offsetVectorToWorld({
     x: 3000,
-    y: 10500,
+    y: 13500,
     z: 3000
 });
 
@@ -65,7 +65,7 @@ var t = 0;
 var tInc = 0.001;
 var sceneOffset = offsetVectorToWorld({
     x: 3000,
-    y: 10500,
+    y: 13500,
     z: 3000
 });
 
@@ -82,7 +82,7 @@ var secondaryInit = false;
 function deleteAllMotorProteins() {
     var position = offsetVectorToWorld({
         x: 3280,
-        y: 10703,
+        y: 13703,
         z: 4405
     });
 

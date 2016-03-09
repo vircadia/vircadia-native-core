@@ -5,9 +5,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 var WORLD_OFFSET = {
-    x: -6000,
-    y: -6000,
-    z: -6000
+    x: 0,
+    y: 0,
+    z: 0
 }
 
 var WORLD_SCALE_AMOUNT = 1.0;
@@ -23,7 +23,7 @@ function offsetVectorToWorld(vector) {
 
 var basePosition = offsetVectorToWorld({
     x: 3000,
-    y: 10500,
+    y: 13500,
     z: 3000
 }, WORLD_OFFSET);
 
