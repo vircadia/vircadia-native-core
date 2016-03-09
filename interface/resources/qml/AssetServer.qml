@@ -44,10 +44,58 @@ Window {
         property alias directory: root.currentDirectory
     }
 
+    function doDeleteFile(path) {
+        console.log("Deleting " + path);
+
+    }
+    function doUploadFile(path, mapping, addToWorld) {
+        console.log("Uploading " + path + " to " + mapping + " (addToWorld: " + addToWorld + ")");
+
+
+    }
+    function doRenameFile(oldPath, newPath) {
+        console.log("Renaming " + oldPath + " to " + newPath);
+
+    }
+
+    function fileExists(destinationPath) {
+        return true; // TODO get correct value
+    }
+
+    function askForOverride(path, callback) {
+        var object = desktop.messageBox({
+            icon: OriginalDialogs.StandardIcon.Question,
+            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.No,
+            text: "Override?",
+            informativeText: "The following file already exists:\n" + path +
+                             "\nDo you want to override it?"
+        });
+        object.selected.connect(function(button) {
+            if (button === OriginalDialogs.StandardButton.Yes) {
+                callback();
+            }
+        });
+    }
+
+    function canAddToWorld() {
+        var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+
+        return supportedExtensions.reduce(function(total, current) {
+            return total | new RegExp(current).test(path);
+        }, false);
+    }
+
     function reload() {
         print("reload");
     }
     function addToWorld() {
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        if (!path) {
+            return;
+        }
+
         print("addToWorld");
     }
     function renameFile() {
@@ -62,12 +110,13 @@ Window {
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
-            console.log("Renaming " + path + " to " + destinationPath);
-
-
-
-
-
+            if (fileExists(destinationPath)) {
+                askForOverride(path, function() {
+                    doRenameFile(path, destinationPath);
+                });
+            } else {
+                doRenameFile(path, destinationPath);
+            }
         });
     }
     function deleteFile() {
@@ -87,10 +136,7 @@ Window {
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
-                console.log("Deleting " + path);
-
-
-
+                doDeleteFile(path);
             }
         });
     }
@@ -120,12 +166,13 @@ Window {
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
-            console.log("Uploading " + fileUrl + " to " + destinationPath + " (addToWorld: " + addToWorld + ")");
-
-
-
-
-
+            if (fileExists(destinationPath)) {
+                askForOverride(fileUrl, function() {
+                    doUploadFile(fileUrl, destinationPath, addToWorld);
+                });
+            } else {
+                doUploadFile(fileUrl, destinationPath, addToWorld);
+            }
         });
     }
 
@@ -160,6 +207,8 @@ Window {
                     colorScheme: root.colorScheme
                     height: 26
                     width: 120
+
+                    enabled: canAddToWorld()
 
                     onClicked: root.addToWorld()
                 }
