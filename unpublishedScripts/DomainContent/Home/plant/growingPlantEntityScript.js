@@ -66,23 +66,11 @@
                 return;
             }
             var flowerRotation = Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal);
-            _this.flowerUserData.ProceduralEntity.uniforms.hueAngleRange = randFloat(20, 40);
-            _this.flowerUserData.ProceduralEntity.uniforms.hueOffset = Math.random();
-            var flowerEntityID = Entities.addEntity({
-                type: "Sphere",
-                name: "flower",
-                position: position,
-                collisionless: true,
-                rotation: flowerRotation,
-                dimensions: _this.STARTING_FLOWER_DIMENSIONS,
-                userData: JSON.stringify(_this.flowerUserData)
-            });
             // var xzGrowthRate = randFloat(0.00005, 0.00015);
             var xzGrowthRate = randFloat(0.0005, 0.0015);
             // var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0025, z: xzGrowthRate)};
             var growthRate = {x: xzGrowthRate, y: randFloat(0.01, 0.025), z: xzGrowthRate};
             var flower = {
-                id: flowerEntityID,
                 dimensions: {
                     x: _this.STARTING_FLOWER_DIMENSIONS.x,
                     y: _this.STARTING_FLOWER_DIMENSIONS.y,
@@ -92,8 +80,20 @@
                 rotation: flowerRotation,
                 // maxYDimension: randFloat(0.4, 1.0),
                 maxYDimension: randFloat(4, 10.0),
+                startingHSLColor: {hue: 80/360, saturation: 0.47, light: 0.48},
+                endingHSLColor: {hue: 19/260, saturation: 0.92, light: 0.41},
                 growthRate: growthRate
             };
+            _this.flowerUserData.ProceduralEntity.uniforms.iHSLColor= [flower.startingHSLColor.hue, flower.startingHSLColor.saturation, flower.startingHSLColor.light];
+            flower.id = Entities.addEntity({
+                type: "Sphere",
+                name: "flower",
+                position: position,
+                collisionless: true,
+                rotation: flowerRotation,
+                dimensions: _this.STARTING_FLOWER_DIMENSIONS,
+                userData: JSON.stringify(_this.flowerUserData)
+            });
             flower.grow = function() {
                 // grow flower a bit
                 if (flower.dimensions.y > flower.maxYDimension) {
@@ -120,7 +120,6 @@
                     shaderUrl: SHADER_URL,
                     uniforms: {
                         iBloomPct: randFloat(0.4, 0.8),
-                        hueTwerking: Math.random()
                     }
                 }
             };
