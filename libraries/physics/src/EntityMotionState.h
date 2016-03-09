@@ -125,7 +125,7 @@ protected:
     uint8_t _loopsWithoutOwner;
     uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _outgoingPriority { ZERO_SIMULATION_PRIORITY };
+    uint8_t _outgoingPriority { 0 };
 };
 
 #endif // hifi_EntityMotionState_h
