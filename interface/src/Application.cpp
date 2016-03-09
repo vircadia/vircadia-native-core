@@ -1267,6 +1267,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Quat", new Quat());
     rootContext->setContextProperty("Vec3", new Vec3());
     rootContext->setContextProperty("Uuid", new ScriptUUID());
+    rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface(engine));
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
 

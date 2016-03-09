@@ -12,6 +12,7 @@
 #ifndef hifi_AssetClient_h
 #define hifi_AssetClient_h
 
+#include <QtQml/QJSEngine>
 #include <QString>
 
 #include <map>
@@ -105,5 +106,38 @@ private:
     friend class DeleteMappingsRequest;
     friend class RenameMappingRequest;
 };
+
+
+class AssetScriptingInterface : public QObject {
+    Q_OBJECT
+public:
+    AssetScriptingInterface(QScriptEngine* engine);
+
+    Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
+    Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
+//    Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
+//    Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
+//    Q_INVOKABLE void deleteMappings(QStringList paths, QScriptValue callback);
+//    Q_INVOKABLE void getAllMappings(QScriptValue callback);
+protected:
+    QSet<AssetRequest*> _pendingRequests;
+    QScriptEngine* _engine;
+};
+
+
+class AssetMappingsScriptingInterface : public QObject {
+    Q_OBJECT
+public:
+    AssetMappingsScriptingInterface(QJSEngine* engine);
+
+    Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);
+    Q_INVOKABLE void getMapping(QString path, QJSValue callback);
+    Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback);
+    Q_INVOKABLE void getAllMappings(QJSValue callback);
+protected:
+    QSet<AssetRequest*> _pendingRequests;
+    QJSEngine* _engine;
+};
+
 
 #endif
