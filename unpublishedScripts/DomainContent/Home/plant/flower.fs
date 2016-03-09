@@ -73,9 +73,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
     }
 
     // simulate ambient occlusion
-
-  
-    vec3 rgbColor =hsl2rgb(iHSLColor);
+    float brightness = pow(radius, 0.8);
+    vec3 hslColor = iHSLColor + (abs(angle) * 0.02);
+    hslColor.z = 0.15 + pow(radius, 2.);
+    vec3 rgbColor = hsl2rgb(hslColor);
     fragColor = vec4(rgbColor, 1.0);
 }
 

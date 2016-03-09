@@ -39,11 +39,11 @@
         _this.flowerHSLColors = [{
             hue: 19 / 360,
             saturation: 0.92,
-            light: 0.41
+            light: 0.31
         }, {
             hue: 161 / 360,
             saturation: 0.28,
-            light: 0.72
+            light: 0.62
         }];
 
     };
@@ -77,14 +77,9 @@
                 // Reduces flower overlap
                 return;
             }
-            // var xzGrowthRate = randFloat(0.00005, 0.00015);
-            var xzGrowthRate = randFloat(0.0005, 0.0015);
-            // var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0025, z: xzGrowthRate)};
-            var growthRate = {
-                x: xzGrowthRate,
-                y: randFloat(0.01, 0.025),
-                z: xzGrowthRate
-            };
+            var xzGrowthRate = randFloat(0.00008, 0.00018);
+            var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0035), z: xzGrowthRate};
+    
             var flower = {
                 dimensions: {
                     x: _this.STARTING_FLOWER_DIMENSIONS.x,
@@ -93,8 +88,7 @@
                 },
                 startingPosition: position,
                 rotation: Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal),
-                // maxYDimension: randFloat(0.4, 1.0),
-                maxYDimension: randFloat(4, 10.0),
+                maxYDimension: randFloat(0.5, 1.3),
                 // startingHSLColor: {
                 //     hue: 80 / 360,
                 //     saturation: 0.47,
