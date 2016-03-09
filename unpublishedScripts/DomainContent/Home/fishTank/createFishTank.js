@@ -1,3 +1,16 @@
+//
+//  createTank.js
+//  
+//
+//  created by James b. Pollack @imgntn on 3/9/2016
+//  Copyright 2016 High Fidelity, Inc.   
+//  
+//  Adds a fish tank and base, decorations, particle bubble systems, and a bubble sound.  Attaches a script that does fish swimming.  
+// 
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 var fishTank, tankBase, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
 var CLEANUP = true;
@@ -42,7 +55,6 @@ var TANK_BASE_DIMENSIONS = {
 var BASE_VERTICAL_OFFSET = 0.42;
 
 var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
-//depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.25;
 
@@ -56,7 +68,6 @@ var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
 var URCHIN_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
-//depth of tank
 var URCHIN_LATERAL_OFFSET = -0.15;
 var URCHIN_VERTICAL_OFFSET = -0.17;
 
@@ -69,7 +80,6 @@ var URCHIN_DIMENSIONS = {
 }
 
 var ROCKS_FORWARD_OFFSET = 0;
-//depth of tank
 var ROCKS_LATERAL_OFFSET = 0.0;
 var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
 
@@ -159,8 +169,6 @@ function createBubbleSystems() {
 
     createBubbleSound(finalOffset);
 }
-
-
 
 function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
 
@@ -308,6 +316,7 @@ function createTankBase() {
         },
         dimensions: TANK_BASE_DIMENSIONS
     }
+
     tankBase = Entities.addEntity(properties);
 }
 
@@ -324,8 +333,8 @@ createUrchin();
 createRocks();
 
 createTankBase();
-var customKey = 'hifi-home-fishtank';
 
+var customKey = 'hifi-home-fishtank';
 
 var data = {
     fishLoaded: false,
@@ -339,16 +348,8 @@ var data = {
 
 }
 
-//fisthank initialize has a different UUID than the model that i see
 Script.setTimeout(function() {
-    print('CREATE TIMEOUT!!!')
-    print('TANK AT CREATE IS::: ' + fishTank)
-    print('DATA AT CREATE IS:::' + JSON.stringify(data));
-
     setEntityCustomData(customKey, fishTank, data);
-    // setEntityCustomData('grabbableKey', id, {
-    //     grabbable: false
-    // });
 }, 2000)
 
 
@@ -385,7 +386,6 @@ function setEntityUserData(id, data) {
     });
 }
 
-// FIXME do non-destructive modification of the existing user data
 function getEntityUserData(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id, "userData");
