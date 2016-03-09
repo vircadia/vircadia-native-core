@@ -54,6 +54,7 @@ function debugPrint(message) {
 var leftRightBias = 0.0;
 var filteredRotatedLeft = Vec3.UNIT_NEG_Y;
 var filteredRotatedRight = Vec3.UNIT_NEG_Y;
+var lastAlpha = 0;
 
 Script.update.connect(function(deltaTime) {
 
@@ -85,7 +86,18 @@ Script.update.connect(function(deltaTime) {
         newLeftRightBias = Vec3.length(poseRight.angularVelocity) - Vec3.length(poseLeft.angularVelocity);
         leftRightBias = (1 - tau) * leftRightBias + tau * newLeftRightBias;
     }
-    var alpha = leftRightBias > 0 ? 1 : 0;
+
+    // add a bit of hysteresis to prevent control flopping back and forth
+    // between hands when they are both mostly stationary.
+    var alpha;
+    var HYSTERESIS_OFFSET = 0.25;
+    if (lastAlpha > 0.5) {
+        // prefer right hand over left
+        alpha = leftRightBias > -HYSTERESIS_OFFSET ? 1 : 0;
+    } else {
+        alpha = leftRightBias > HYSTERESIS_OFFSET ? 1 : 0;
+    }
+    lastAlpha = alpha;
 
     // Velocity filter the hand rotation used to position reticle so that it is easier to target small things with the hand controllers
     var VELOCITY_FILTER_GAIN = 0.5;
@@ -97,7 +109,7 @@ Script.update.connect(function(deltaTime) {
     var absoluteYaw = -rotated.x; // from -1 left to 1 right
 
     var x = Math.clamp(screenSizeX * (absoluteYaw + 0.5), 0, screenSizeX);
-    var y = Math.clamp(screenSizeX * (absolutePitch + 0.5), 0, screenSizeY);
+    var y = Math.clamp(screenSizeX * absolutePitch, 0, screenSizeY);
 
     // don't move the reticle with the hand controllers unless the controllers are actually being moved
     //  take a time average of angular velocity, and don't move mouse at all if it's below threshold
