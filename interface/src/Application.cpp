@@ -69,6 +69,7 @@
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
+#include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
@@ -3287,6 +3288,14 @@ void Application::update(float deltaTime) {
 
     // update sensorToWorldMatrix for rendering camera.
     myAvatar->updateSensorToWorldMatrix();
+
+    // AJT: TODO: make this a menu item.
+    const bool DRAW_SENSOR_TO_WORLD_MATRIX = true;
+    if (DRAW_SENSOR_TO_WORLD_MATRIX) {
+        // draw the origin of the room in world space.
+        glm::mat4 m = myAvatar->getSensorToWorldMatrix();
+        DebugDraw::getInstance().addMarker("room", glmExtractRotation(m), extractTranslation(m), glm::vec4(1));
+    }
 }
 
 
@@ -4811,7 +4820,7 @@ void Application::updateDisplayMode() {
         }
     }
     emit activeDisplayPluginChanged();
-    resetSensors();
+
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
