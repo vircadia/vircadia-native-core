@@ -1,8 +1,8 @@
-  var orientation = Camera.getOrientation();
+  var orientation = MyAvatar.orientation;
   orientation = Quat.safeEulerAngles(orientation);
   orientation.x = 0;
   orientation = Quat.fromVec3Degrees(orientation);
-  var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
+  var center = Vec3.sum(MyAvatar.getHeadPosition(), Vec3.multiply(2, Quat.getFront(orientation)));
 
 
 Script.include("../libraries/utils.js");
@@ -33,7 +33,7 @@ var visualEntity = Entities.addEntity({
     angularDamping: 1,
     color: {red: 0, green: 200, blue: 10},
     dynamic: true,
-    position: Vec3.sum(center, {x: 0, y: 0.2, z: 0}),
+    position: Vec3.subtract(center, {x: 0, y: 0.2, z: 0}),
     script: VISUAL_SCRIPT_URL
 });
 Script.setTimeout(function() {

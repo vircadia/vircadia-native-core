@@ -33,7 +33,7 @@
                         dynamic: false
                     });
                     Script.setTimeout(function() {
-                        Entities.editEntity(_this.entityID, {dynamic: true});
+                        Entities.editEntity(_this.entityID, {dynamic: true, velocity: ZERO_VEC});
                     }, 100);
                     return;
                 }
