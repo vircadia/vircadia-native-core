@@ -521,11 +521,35 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 
     // enumerate the paths to delete and remove them all
     for (auto& path : paths) {
-        auto oldMapping = _fileMappings.take(path);
-        if (!oldMapping.isNull()) {
-            qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+
+        // figure out if this path will delete a file or folder
+        if (pathIsFolder(path)) {
+            // enumerate the in memory file mappings and remove anything that matches
+            auto it = _fileMappings.begin();
+            auto sizeBefore = _fileMappings.size();
+
+            while (it != _fileMappings.end()) {
+                if (it->toString().startsWith(path)) {
+                    it = _fileMappings.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            auto sizeNow = _fileMappings.size();
+            if (sizeBefore != sizeNow) {
+                qDebug() << "Deleted" << sizeBefore - sizeNow << "mappings in folder: " << path;
+            } else {
+                qDebug() << "Did not find any mappings in folder:" << path;
+            }
+
         } else {
-            qDebug() << "Unable to delete a mapping that was not found:" << path;
+            auto oldMapping = _fileMappings.take(path);
+            if (!oldMapping.isNull()) {
+                qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+            } else {
+                qDebug() << "Unable to delete a mapping that was not found:" << path;
+            }
         }
     }
 
@@ -542,6 +566,7 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
+    // figure out if this rename is for a file or folder
     if (pathIsFolder(oldPath)) {
         if (!pathIsFolder(newPath)) {
             // we were asked to rename a path to a folder to a path that isn't a folder, this is a fail
