@@ -303,6 +303,13 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
     }
 }
 
+// An enum for buttons which do not exist in the StandardControls enum
+enum ViveButtonChannel {
+    LEFT_APP_MENU = controller::StandardButtonChannel::NUM_STANDARD_BUTTONS,
+    RIGHT_APP_MENU
+};
+
+
 // These functions do translation from the Steam IDs to the standard controller IDs
 void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand) {
     if (!pressed) {
@@ -311,7 +318,7 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
 
     using namespace controller;
     if (button == vr::k_EButton_ApplicationMenu) {
-        _buttonPressedMap.insert(isLeftHand ? LEFT_PRIMARY_THUMB : RIGHT_PRIMARY_THUMB);
+        _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
     } else if (button == vr::k_EButton_Grip) {
         _buttonPressedMap.insert(isLeftHand ? LB : RB);
     } else if (button == vr::k_EButton_SteamVR_Trigger) {
@@ -426,23 +433,9 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
-        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
-        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
-        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
+        Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
+        Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
     };
-
-    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
-    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 0), "Left Trackpad Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 0), "Left Trigger Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 0), "Left Back Trigger"));
-    //availableInputs.append(Input::NamedPair(makeInput(RIGHT_HAND), "Right Hand"));
-    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 1), "Right Button A"));
-    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 1), "Right Grip Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 1), "Right Trackpad Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 1), "Right Trigger Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 1), "Right Back Trigger"));
 
     return availableInputs;
 }
@@ -451,31 +444,3 @@ QString ViveControllerManager::InputDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
     return MAPPING_JSON;
 }
-
-//void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//
-//    // Left Trackpad: Movement, strafing
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//
-//    // Right Trackpad: Vertical movement, zooming
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-//
-//    // Buttons
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 0));
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 1));
-//
-//    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(GRIP_BUTTON, 0));
-//    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(GRIP_BUTTON, 1));
-//
-//    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
-//    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
-//
-//    // Hands
-//    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
-//    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
-//}
