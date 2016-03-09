@@ -21,52 +21,13 @@ namespace render {
 
     void cullItems(const RenderContextPointer& renderContext, const CullFunctor& cullFunctor, RenderDetails::Item& details,
         const ItemBounds& inItems, ItemBounds& outItems);
-    void depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems);
 
-    class FetchItemsConfig : public Job::Config {
-        Q_OBJECT
-        Q_PROPERTY(int numItems READ getNumItems)
+    class FetchNonspatialItems {
     public:
-        int getNumItems() { return numItems; }
-
-        int numItems{ 0 };
-    };
-
-    class FetchItems {
-    public:
-        using Config = FetchItemsConfig;
-        using JobModel = Job::ModelO<FetchItems, ItemBounds, Config>;
-
-        FetchItems() {}
-        FetchItems(const ItemFilter& filter) : _filter(filter) {}
-
-        ItemFilter _filter{ ItemFilter::Builder::opaqueShape().withoutLayered() };
-
-        void configure(const Config& config);
+        using JobModel = Job::ModelO<FetchNonspatialItems, ItemBounds>;
         void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems);
     };
 
-
-    template<RenderDetails::Type T>
-    class CullItems {
-    public:
-        using JobModel = Job::ModelIO<CullItems<T>, ItemBounds, ItemBounds>;
-
-        CullItems(CullFunctor cullFunctor) : _cullFunctor{ cullFunctor } {}
-
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-            const auto& args = renderContext->args;
-            auto& details = args->_details.edit(T);
-            outItems.clear();
-            outItems.reserve(inItems.size());
-            render::cullItems(renderContext, _cullFunctor, details, inItems, outItems);
-        }
-
-    protected:
-        CullFunctor _cullFunctor;
-    };
-
-    
     class FetchSpatialTreeConfig : public Job::Config {
         Q_OBJECT
         Q_PROPERTY(int numItems READ getNumItems)
@@ -209,27 +170,18 @@ namespace render {
                 outItems[i].template edit<ItemBounds>().clear();
             }
 
-            // For each item, filter it into the buckets
+            // For each item, filter it into one bucket
             for (auto itemBound : inItems) {
                 auto& item = scene->getItem(itemBound.id);
                 auto itemKey = item.getKey();
                 for (size_t i = 0; i < NUM_FILTERS; i++) {
                     if (_filters[i].test(itemKey)) {
                         outItems[i].template edit<ItemBounds>().emplace_back(itemBound);
+                        break;
                     }
                 }
             }
         }
-    };
-
-    class DepthSortItems {
-    public:
-        using JobModel = Job::ModelIO<DepthSortItems, ItemBounds, ItemBounds>;
-
-        bool _frontToBack;
-        DepthSortItems(bool frontToBack = true) : _frontToBack(frontToBack) {}
-
-        void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
     };
 }
 

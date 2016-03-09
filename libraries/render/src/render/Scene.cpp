@@ -15,57 +15,9 @@
 
 using namespace render;
 
-void ItemBucketMap::insert(const ItemID& id, const ItemKey& key) {
-    // Insert the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.insert(id);
-        }
-    }
-}
-void ItemBucketMap::erase(const ItemID& id, const ItemKey& key) {
-    // Remove the itemID in every bucket where it filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(key)) {
-            bucket.second.erase(id);
-        }
-    }
-}
-
-void ItemBucketMap::reset(const ItemID& id, const ItemKey& oldKey, const ItemKey& newKey) {
-    // Reset the itemID in every bucket,
-    // Remove from the buckets where oldKey filters true AND newKey filters false
-    // Insert into the buckets where newKey filters true
-    for (auto& bucket : (*this)) {
-        if (bucket.first.test(oldKey)) {
-            if (!bucket.first.test(newKey)) {
-                bucket.second.erase(id);
-            }
-        } else if (bucket.first.test(newKey)) {
-            bucket.second.insert(id);
-        }
-    }
-}
-
-void ItemBucketMap::allocateStandardOpaqueTranparentBuckets() {
-    (*this)[ItemFilter::Builder::opaqueShape().withoutLayered()];
-    (*this)[ItemFilter::Builder::transparentShape().withoutLayered()];
-    (*this)[ItemFilter::Builder::light()];
-    (*this)[ItemFilter::Builder::background()];
-    (*this)[ItemFilter::Builder::opaqueShape().withLayered()];
-    (*this)[ItemFilter::Builder::transparentShape().withLayered()];
-}
-
-
 void PendingChanges::resetItem(ItemID id, const PayloadPointer& payload) {
     _resetItems.push_back(id);
     _resetPayloads.push_back(payload);
-}
-
-void PendingChanges::resortItem(ItemID id, ItemKey oldKey, ItemKey newKey) {
-    _resortItems.push_back(id);
-    _resortOldKeys.push_back(oldKey);
-    _resortNewKeys.push_back(newKey);
 }
 
 void PendingChanges::removeItem(ItemID id) {
@@ -80,9 +32,6 @@ void PendingChanges::updateItem(ItemID id, const UpdateFunctorPointer& functor) 
 void PendingChanges::merge(PendingChanges& changes) {
     _resetItems.insert(_resetItems.end(), changes._resetItems.begin(), changes._resetItems.end());
     _resetPayloads.insert(_resetPayloads.end(), changes._resetPayloads.begin(), changes._resetPayloads.end());
-    _resortItems.insert(_resortItems.end(), changes._resortItems.begin(), changes._resortItems.end());
-    _resortOldKeys.insert(_resortOldKeys.end(), changes._resortOldKeys.begin(), changes._resortOldKeys.end());
-    _resortNewKeys.insert(_resortNewKeys.end(), changes._resortNewKeys.begin(), changes._resortNewKeys.end());
     _removedItems.insert(_removedItems.end(), changes._removedItems.begin(), changes._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), changes._updatedItems.begin(), changes._updatedItems.end());
     _updateFunctors.insert(_updateFunctors.end(), changes._updateFunctors.begin(), changes._updateFunctors.end());
@@ -92,7 +41,6 @@ Scene::Scene(glm::vec3 origin, float size) :
     _masterSpatialTree(origin, size)
 {
     _items.push_back(Item()); // add the itemID #0 to nothing
-    _masterBucketMap.allocateStandardOpaqueTranparentBuckets();
 }
 
 ItemID Scene::allocateID() {
@@ -133,7 +81,6 @@ void Scene::processPendingChangesQueue() {
         // capture anything coming from the pendingChanges
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
-        resortItems(consolidatedPendingChanges._resortItems, consolidatedPendingChanges._resortOldKeys, consolidatedPendingChanges._resortNewKeys);
         removeItems(consolidatedPendingChanges._removedItems);
 
      // ready to go back to rendering activities
@@ -141,7 +88,6 @@ void Scene::processPendingChangesQueue() {
 }
 
 void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-
     auto resetPayload = payloads.begin();
     for (auto resetID : ids) {
         // Access the true item
@@ -153,25 +99,17 @@ void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
         item.resetPayload(*resetPayload);
         auto newKey = item.getKey();
 
-
-        // Reset the item in the Bucket map
-        _masterBucketMap.reset(resetID, oldKey, newKey);
-
-        // Reset the item in the spatial tree
-        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
-        item.resetCell(newCell, newKey.isSmall());
+        // Update the item's container
+        assert((oldKey.isSpatial() == newKey.isSpatial()) || oldKey._flags.none());
+        if (newKey.isSpatial()) {
+            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+            item.resetCell(newCell, newKey.isSmall());
+        } else {
+            _masterNonspatialSet.insert(resetID);
+        }
 
         // next loop
         resetPayload++;
-    }
-}
-
-void Scene::resortItems(const ItemIDs& ids, ItemKeys& oldKeys, ItemKeys& newKeys) {
-    auto resortID = ids.begin();
-    auto oldKey = oldKeys.begin();
-    auto newKey = newKeys.begin();
-    for (; resortID != ids.end(); resortID++, oldKey++, newKey++) {
-        _masterBucketMap.reset(*resortID, *oldKey, *newKey);
     }
 }
 
@@ -182,11 +120,12 @@ void Scene::removeItems(const ItemIDs& ids) {
         auto oldCell = item.getCell();
         auto oldKey = item.getKey();
 
-        // Remove from Bucket map
-        _masterBucketMap.erase(removedID, item.getKey());
-
-        // Remove from spatial tree
-        _masterSpatialTree.removeItem(oldCell, oldKey, removedID);
+        // Remove the item
+        if (oldKey.isSpatial()) {
+            _masterSpatialTree.removeItem(oldCell, oldKey, removedID);
+        } else {
+            _masterNonspatialSet.erase(removedID);
+        }
 
         // Kill it
         item.kill();
@@ -202,14 +141,30 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         auto oldCell = item.getCell();
         auto oldKey = item.getKey();
 
-        // Update it
-        _items[updateID].update((*updateFunctor));
-
+        // Update the item
+        item.update((*updateFunctor));
         auto newKey = item.getKey();
 
-        // Update the citem in the spatial tree if needed
-        auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
-        item.resetCell(newCell, newKey.isSmall());
+        // Update the item's container
+        if (oldKey.isSpatial() == newKey.isSpatial()) {
+            if (newKey.isSpatial()) {
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                item.resetCell(newCell, newKey.isSmall());
+            }
+        } else {
+            if (newKey.isSpatial()) {
+                _masterNonspatialSet.erase(updateID);
+
+                auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), updateID, newKey);
+                item.resetCell(newCell, newKey.isSmall());
+            } else {
+                _masterSpatialTree.removeItem(oldCell, oldKey, updateID);
+                item.resetCell();
+
+                _masterNonspatialSet.insert(updateID);
+            }
+        }
+
 
         // next loop
         updateFunctor++;

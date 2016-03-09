@@ -9,15 +9,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderShadowTask.h"
+
 #include <gpu/Context.h>
 
 #include <ViewFrustum.h>
 
-#include "render/Context.h"
+#include <render/Context.h>
+#include <render/CullTask.h>
+#include <render/SortTask.h>
+#include <render/DrawTask.h>
+
 #include "DeferredLightingEffect.h"
 #include "FramebufferCache.h"
-
-#include "RenderShadowTask.h"
 
 #include "model_shadow_vert.h"
 #include "skin_model_shadow_vert.h"
@@ -28,7 +32,7 @@
 using namespace render;
 
 void RenderShadowMap::run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext,
-                          const render::ShapesIDsBounds& inShapes) {
+                          const render::ShapeBounds& inShapes) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
@@ -104,20 +108,18 @@ RenderShadowTask::RenderShadowTask(CullFunctor cullFunctor) : Task(std::make_sha
             skinProgram, state);
     }
 
-    // CPU: Fetch shadow-casting opaques
-    const auto fetchedItems = addJob<FetchItems>("FetchShadowMap");
+    // CPU jobs:
+    // Fetch and cull the items from the scene
+    auto shadowFilter = ItemFilter::Builder::visibleWorldItems().withTypeShape().withOpaque().withoutLayered();
+    const auto shadowSelection = addJob<FetchSpatialTree>("FetchShadowSelection", shadowFilter);
+    const auto culledShadowSelection = addJob<CullSpatialSelection>("CullShadowSelection", shadowSelection, cullFunctor, RenderDetails::SHADOW, shadowFilter);
 
-    // CPU: Cull against KeyLight frustum (nearby viewing camera)
-    const auto culledItems = addJob<CullItems<RenderDetails::SHADOW>>("CullShadowMap", fetchedItems, cullFunctor);
+    // Sort
+    const auto sortedPipelines = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledShadowSelection);
+    const auto sortedShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedPipelines);
 
-    // CPU: Sort by pipeline
-    const auto sortedShapes = addJob<PipelineSortShapes>("PipelineSortShadowSort", culledItems);
-
-    // CPU: Sort front to back
-    const auto shadowShapes = addJob<DepthSortShapes>("DepthSortShadowMap", sortedShapes);
-
-    // GPU: Render to shadow map
-    addJob<RenderShadowMap>("RenderShadowMap", shadowShapes, shapePlumber);
+    // GPU jobs: Render to shadow map
+    addJob<RenderShadowMap>("RenderShadowMap", sortedShapes, shapePlumber);
 }
 
 void RenderShadowTask::configure(const Config& configuration) {

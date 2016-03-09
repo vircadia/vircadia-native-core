@@ -73,38 +73,3 @@ void DrawLight::run(const SceneContextPointer& sceneContext, const RenderContext
         args->_batch = nullptr;
     });
 }
-
-void PipelineSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes) {
-    auto& scene = sceneContext->_scene;
-    outShapes.clear();
-
-    for (const auto& item : inItems) {
-        auto key = scene->getItem(item.id).getShapeKey();
-        auto outItems = outShapes.find(key);
-        if (outItems == outShapes.end()) {
-            outItems = outShapes.insert(std::make_pair(key, ItemBounds{})).first;
-            outItems->second.reserve(inItems.size());
-        }
-
-        outItems->second.push_back(item);
-    }
-
-    for (auto& items : outShapes) {
-        items.second.shrink_to_fit();
-    }
-}
-
-void DepthSortShapes::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes) {
-    outShapes.clear();
-    outShapes.reserve(inShapes.size());
-
-    for (auto& pipeline : inShapes) {
-        auto& inItems = pipeline.second;
-        auto outItems = outShapes.find(pipeline.first);
-        if (outItems == outShapes.end()) {
-            outItems = outShapes.insert(std::make_pair(pipeline.first, ItemBounds{})).first;
-        }
-
-        depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems->second);
-    }
-}

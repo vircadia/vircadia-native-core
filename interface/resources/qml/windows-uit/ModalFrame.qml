@@ -47,16 +47,16 @@ Frame {
             }
 
             Item {
-                width: title.width + (window.iconText !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
+                width: title.width + (icon.text !== "" ? icon.width + hifi.dimensions.contentSpacing.x : 0)
                 x: (parent.width - width) / 2
 
-                FontAwesome {
+                HiFiGlyphs {
                     id: icon
-                    text: window.iconText
-                    size: 30
-                    color: hifi.colors.lightGrayText
+                    text: window.iconText ? window.iconText : ""
+                    size: window.iconSize ? window.iconSize : 30
+                    color: hifi.colors.lightGray
                     visible: text != ""
-                    y: -hifi.dimensions.modalDialogTitleHeight - 5
+                    anchors.verticalCenter: title.verticalCenter
                     anchors.left: parent.left
                 }
                 RalewayRegular {
