@@ -126,22 +126,28 @@ protected:
 };
 
 
+ class AssetMappingItem : public QStandardItem {
+ public:
+     AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder);
+
+     QString name;
+     QString fullPath;
+     bool isFolder;
+ };
+
+
  class AssetMappingModel : public QStandardItemModel {
      Q_OBJECT
  public:
      AssetMappingModel(QObject* parent = nullptr);
 
+     QVariant AssetMappingModel::data(const QModelIndex& index, int role) const;
+
      Q_INVOKABLE void refresh();
+
  private:
-     QHash<QString, QStandardItem*> _pathToItemMap;
+     QHash<QString, AssetMappingItem*> _pathToItemMap;
  };
-
- //class AssetMappingItem : public QStandardItem {
-     //Q_OBJECT
- //public:
-     //AssetMappingItem();
- //};
-
 
 class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT

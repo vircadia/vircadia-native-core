@@ -871,6 +871,13 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     request->start();
 }
 
+AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder)
+    : name(name),
+      fullPath(fullPath),
+      isFolder(isFolder) {
+    
+}
+
 AssetMappingModel::AssetMappingModel(QObject* parent) {
 }
 
@@ -880,9 +887,7 @@ void AssetMappingModel::refresh() {
     auto request = assetClient->createGetAllMappingsRequest();
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
-        qDebug() << "Got response";
         auto mappings = request->getMappings();
-//        clear();
         for (auto& mapping : mappings) {
             auto& path = mapping.first;
             auto parts = path.split("/");
@@ -895,6 +900,8 @@ void AssetMappingModel::refresh() {
             auto it = _pathToItemMap.find(prefix);
             if (it == _pathToItemMap.end()) {
                 lastItem = new QStandardItem(parts[0]);
+                lastItem->setData(parts[0], Qt::UserRole + 1);
+                lastItem->setData(prefix, Qt::UserRole + 2);
                 _pathToItemMap[prefix] = lastItem;
                 appendRow(lastItem);
             } else {
@@ -909,6 +916,8 @@ void AssetMappingModel::refresh() {
                     if (it == _pathToItemMap.end()) {
                         qDebug() << "prefix not found: " << prefix;
                         auto item = new QStandardItem(parts[i]);
+                        item->setData(parts[i], Qt::UserRole + 1);
+                        item->setData(prefix, Qt::UserRole + 2);
                         lastItem->setChild(lastItem->rowCount(), 0, item);
                         lastItem = item;
                         _pathToItemMap[prefix] = lastItem;
@@ -924,7 +933,6 @@ void AssetMappingModel::refresh() {
 
     request->start();
 }
-
 
 // QModelIndex AssetMappingModel::index(int row, int column, const QModelIndex& parent) const {
 //     if (row < 0 || column < 0) {
@@ -950,13 +958,15 @@ void AssetMappingModel::refresh() {
 // }
 
 // QVariant AssetMappingModel::data(const QModelIndex& index, int role) const {
-//     TreeNodeBase* node = getTreeNodeFromIndex(index);
-//     if (!node) {
-//         return QVariant();
+//     if (index.isValid()) {
+//         AssetMappingItem* item = (static_cast<AssetMappingItem*>(index.internalPointer()));
+//         if (item) {
+//             return item->name;
+//         }
 //     }
 //     return QVariant();
 // }
-
+//
 // int AssetMappingModel::rowCount(const QModelIndex& parent) const {
 //     return 1;
 // }
