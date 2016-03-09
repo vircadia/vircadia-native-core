@@ -511,6 +511,10 @@ bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
     }
 }
 
+bool pathIsFolder(const AssetPath& path) {
+    return path.endsWith('/');
+}
+
 bool AssetServer::deleteMappings(const AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
@@ -538,23 +542,59 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
-    // take the old hash to remove the old mapping
-    auto oldMapping = _fileMappings[oldPath].toString();
+    if (pathIsFolder(oldPath)) {
+        if (!pathIsFolder(newPath)) {
+            // we were asked to rename a path to a folder to a path that isn't a folder, this is a fail
+            return false;
+        }
 
-    if (!oldMapping.isEmpty()) {
-        _fileMappings[newPath] = oldMapping;
+        // take a copy of the old mappings
+        auto oldMappings = _fileMappings;
+
+        // iterate the current mappings and adjust any that matches the renamed folder
+        auto it = oldMappings.begin();
+        while (it != oldMappings.end()) {
+
+            if (it->toString().startsWith(oldPath)) {
+                auto oldKey = it.key();
+                auto newKey = oldKey.replace(0, oldPath.size(), newPath);
+
+                // remove the old version from the in memory file mappings
+                _fileMappings.remove(oldKey);
+                _fileMappings.insert(newKey, it.value());
+            }
+
+            ++it;
+        }
 
         if (writeMappingsToFile()) {
-            // persisted the renamed mapping, return success
+            // persisted the changed mappings return success
             return true;
         } else {
-            // we couldn't persist the renamed mapping, rollback and return failure
-            _fileMappings[oldPath] = oldMapping;
+            // couldn't persist the renamed paths, rollback and return failure
+            _fileMappings = oldMappings;
 
             return false;
         }
     } else {
-        // failed to find a mapping that was to be renamed, return failure
-        return false;
+        // take the old hash to remove the old mapping
+        auto oldMapping = _fileMappings[oldPath].toString();
+
+        if (!oldMapping.isEmpty()) {
+            _fileMappings[newPath] = oldMapping;
+
+            if (writeMappingsToFile()) {
+                // persisted the renamed mapping, return success
+                return true;
+            } else {
+                // we couldn't persist the renamed mapping, rollback and return failure
+                _fileMappings[oldPath] = oldMapping;
+
+                return false;
+            }
+        } else {
+            // failed to find a mapping that was to be renamed, return failure
+            return false;
+        }
     }
 }
