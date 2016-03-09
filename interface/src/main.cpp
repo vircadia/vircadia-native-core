@@ -143,6 +143,14 @@ int main(int argc, const char* argv[]) {
 
         QObject::connect(&server, &QLocalServer::newConnection, &app, &Application::handleLocalServerConnection);
 
+#ifdef HAS_BUGSPLAT
+        AccountManager& accountManager = AccountManager::getInstance();
+        mpSender.setDefaultUserName(accountManager.getAccountInfo().getUsername().toLatin1());
+        QObject::connect(&accountManager, &AccountManager::usernameChanged, &app, [&mpSender](const QString& newUsername) {
+            mpSender.setDefaultUserName(newUsername);
+        });
+#endif
+
         QTranslator translator;
         translator.load("i18n/interface_en");
         app.installTranslator(&translator);
