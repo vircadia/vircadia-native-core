@@ -34,7 +34,7 @@ Window {
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
-    property var currentDirectory: ""
+    property var currentDirectory;
 
     Settings {
         category: "Overlay.AssetServer"
@@ -57,15 +57,35 @@ Window {
 
     }
 
-    function uploadFile(fileUrl, addToScene) {
+    function chooseClicked() {
+        var browser = fileBrowserBuilder.createObject(desktop, {
+            selectDirectory: false,
+            folder: fileDialogHelper.pathToUrl(currentDirectory)
+        });
+        browser.selectedFile.connect(function(url){
+            console.log(url);
+            fileUrlTextField.text = fileDialogHelper.urlToPath(url);
+        });
+
+    }
+
+    function uploadClicked() {
+        var fileUrl = fileUrlTextField.text
+        var addToScene = addToSceneCheckBox.checked
+
         var object = desktop.inputDialog({
-            label: "Enter asset path",
-            //placeholderText: "atp:/myFolder/myFile.ext"
+            label: "Enter asset path:",
+            prefilledText: "atp:/myFolder/myFile.ext",
+            placeholderText: "Enter path here"
         });
-        object.selected.connect(function(value) {
-            print(value);
+        object.selected.connect(function(destinationPath) {
+            console.log("Uploading " + fileUrl + " to " + destinationPath + " (addToScene: " + addToScene + ")");
+
+
+
+
+
         });
-        print("uploadFile: " + fileUrl + " " + addToScene);
     }
 
     Column {
@@ -147,7 +167,7 @@ Window {
             }
 
             HifiControls.TextField {
-                id: fileUrl
+                id: fileUrlTextField
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.rightMargin: chooseButton.width + hifi.dimensions.contentSpacing.x
@@ -160,7 +180,7 @@ Window {
             Item {
                 // Take the chooseButton out of the column flow.
                 id: chooseButtonContainer
-                anchors.top: fileUrl.top
+                anchors.top: fileUrlTextField.top
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -174,21 +194,12 @@ Window {
 
                     width: 100
 
-                    onClicked: {
-                        var browser = fileBrowserBuilder.createObject(desktop, {
-                            selectDirectory: false,
-                            folder: fileDialogHelper.pathToUrl(currentDirectory)
-                        });
-                        browser.selectedFile.connect(function(url){
-                            console.log(url);
-                            fileUrl.text = fileDialogHelper.urlToPath(url);
-                        });
-                    }
+                    onClicked: root.chooseClicked()
                 }
             }
 
             HifiControls.CheckBox {
-                id: addToScene
+                id: addToSceneCheckBox
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.rightMargin: uploadButton.width + hifi.dimensions.contentSpacing.x
@@ -200,7 +211,7 @@ Window {
             Item {
                 // Take the uploadButton out of the column flow.
                 id: uploadButtonContainer
-                anchors.top: addToScene.top
+                anchors.top: addToSceneCheckBox.top
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -213,8 +224,8 @@ Window {
                     height: 30
                     width: 155
 
-                    enabled: fileUrl.text != ""
-                    onClicked: root.uploadFile(fileUrl.text, addToScene.checked)
+                    enabled: fileUrlTextField.text != ""
+                    onClicked: root.uploadClicked()
                 }
             }
         }
