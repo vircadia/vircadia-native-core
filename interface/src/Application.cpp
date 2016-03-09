@@ -250,6 +250,9 @@ public:
             _heartbeat = usecTimestampNow();
         });
         heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
+        connect(qApp, &QCoreApplication::aboutToQuit, [this] {
+            _quit = true;
+        });
     }
 
     void deadlockDetectionCrash() {
@@ -258,7 +261,7 @@ public:
     }
 
     void run() override {
-        while (!qApp->isAboutToQuit()) {
+        while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
@@ -269,6 +272,7 @@ public:
     }
 
     static std::atomic<uint64_t> _heartbeat;
+    bool _quit { false };
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
