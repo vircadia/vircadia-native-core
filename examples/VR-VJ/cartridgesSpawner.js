@@ -36,7 +36,6 @@ var visualEntity = Entities.addEntity({
     position: Vec3.sum(center, {x: 0, y: 0.2, z: 0}),
     script: VISUAL_SCRIPT_URL
 });
-
 Script.setTimeout(function() {
     // Wait for sounds to load
     Entities.callEntityMethod(soundEntity, "playSound");
