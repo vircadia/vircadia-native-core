@@ -111,7 +111,7 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
             } else {
                 // unowned object is still moving --> we should volunteer to own it
                 // TODO? put a delay in here proportional to distance from object?
-                setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
+                upgradeOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
                 _loopsWithoutOwner = LOOPS_FOR_SIMULATION_ORPHAN;
                 _nextOwnershipBid = 0;
             }
@@ -125,11 +125,15 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
             }
         }
     }
-    if (flags & Simulation::DIRTY_SIMULATOR_OWNERSHIP) {
-        // The DIRTY_SIMULATOR_OWNERSHIP bit really means "we should bid for ownership at SCRIPT priority".
-        // Since that bit is set there must be a local script that is updating the physics properties of the objects
-        // therefore we upgrade _outgoingPriority to trigger a bid for ownership.
-        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
+    if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) {
+        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bits really mean "we should bid for ownership because
+        // a local script has been changing physics properties, or we should adjust our own ownership priority".
+        // The desired priority is determined by which bits were set.
+        if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB) {
+            _outgoingPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
+        } else {
+            _outgoingPriority = SCRIPT_POKE_SIMULATION_PRIORITY;
+        }
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -209,7 +213,7 @@ void EntityMotionState::setWorldTransform(const btTransform& worldTrans) {
         _loopsWithoutOwner++;
 
         if (_loopsWithoutOwner > LOOPS_FOR_SIMULATION_ORPHAN && usecTimestampNow() > _nextOwnershipBid) {
-            setOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
+            upgradeOutgoingPriority(VOLUNTEER_SIMULATION_PRIORITY);
         }
     }
 
@@ -298,7 +302,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     }
 
     if (_entity->actionDataNeedsTransmit()) {
-        setOutgoingPriority(SCRIPT_EDIT_SIMULATION_PRIORITY);
+        _outgoingPriority = _entity->hasActions() ? SCRIPT_GRAB_SIMULATION_PRIORITY : SCRIPT_POKE_SIMULATION_PRIORITY;
         return true;
     }
 
@@ -503,6 +507,9 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;
+    } else if (_outgoingPriority != _entity->getSimulationPriority()) {
+        // we own the simulation but need to update the priority
+        properties.setSimulationOwner(sessionID, _outgoingPriority);
     }
 
     EntityItemID id(_entity->getID());
@@ -578,7 +585,7 @@ QUuid EntityMotionState::getSimulatorID() const {
 }
 
 void EntityMotionState::bump(uint8_t priority) {
-    setOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
+    upgradeOutgoingPriority(glm::max(VOLUNTEER_SIMULATION_PRIORITY, --priority));
 }
 
 void EntityMotionState::resetMeasuredBodyAcceleration() {
@@ -640,6 +647,6 @@ void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& ma
     _entity->computeCollisionGroupAndFinalMask(group, mask);
 }
 
-void EntityMotionState::setOutgoingPriority(uint8_t priority) {
+void EntityMotionState::upgradeOutgoingPriority(uint8_t priority) {
     _outgoingPriority = glm::max<uint8_t>(_outgoingPriority, priority);
 }
