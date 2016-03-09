@@ -268,7 +268,7 @@ if (WIN32)
 
     set(TARGET_INSTALL_DIR ${INTERFACE_INSTALL_DIR})
     set(TARGET_INSTALL_COMPONENT ${CLIENT_COMPONENT})
-    manually_install_ssl_eay()
+    manually_install_openssl_for_qt()
 
     package_libraries_for_deployment()
 endif()

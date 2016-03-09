@@ -1,5 +1,5 @@
 //
-//  RalewaySemibold.qml
+//  RalewaySemiBold.qml
 //
 //  Created by David Rowe on 12 Feb 2016
 //  Copyright 2016 High Fidelity, Inc.
@@ -14,10 +14,10 @@ import QtQuick.Controls.Styles 1.4
 
 Text {
     id: root
-    FontLoader { id: ralewaySemibold; source: "../../fonts/Raleway-Semibold.ttf"; }
+    FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     property real size: 32
     font.pixelSize: size
     verticalAlignment: Text.AlignVCenter
     horizontalAlignment: Text.AlignLeft
-    font.family: ralewaySemibold.name
+    font.family: ralewaySemiBold.name
 }

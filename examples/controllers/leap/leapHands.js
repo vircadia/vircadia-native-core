@@ -11,6 +11,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var leftTriggerValue = 0;
+var rightTriggerValue = 0;
+
+var LEAP_TRIGGER_START_ANGLE = 15.0;
+var LEAP_TRIGGER_END_ANGLE = 40.0;
+
+function getLeapMotionLeftTrigger() {
+    //print("left trigger = " + leftTriggerValue);
+    return leftTriggerValue;
+}
+function getLeapMotionRightTrigger() {
+    //print("right trigger = " + rightTriggerValue);
+    return rightTriggerValue;
+}
+
 var leapHands = (function () {
 
     var isOnHMD,
@@ -61,78 +76,6 @@ var leapHands = (function () {
             print(i + ": " + jointNames[i]);
         }
         print("... skeleton joint names");
-
-        /*
-        http://public.highfidelity.io/models/skeletons/ron_standing.fst
-        Skeleton joint names ...
-        0: Hips
-        1: RightUpLeg
-        2: RightLeg
-        3: RightFoot
-        4: RightToeBase
-        5: RightToe_End
-        6: LeftUpLeg
-        7: LeftLeg
-        8: LeftFoot
-        9: LeftToeBase
-        10: LeftToe_End
-        11: Spine
-        12: Spine1
-        13: Spine2
-        14: RightShoulder
-        15: RightArm
-        16: RightForeArm
-        17: RightHand
-        18: RightHandPinky1
-        19: RightHandPinky2
-        20: RightHandPinky3
-        21: RightHandPinky4
-        22: RightHandRing1
-        23: RightHandRing2
-        24: RightHandRing3
-        25: RightHandRing4
-        26: RightHandMiddle1
-        27: RightHandMiddle2
-        28: RightHandMiddle3
-        29: RightHandMiddle4
-        30: RightHandIndex1
-        31: RightHandIndex2
-        32: RightHandIndex3
-        33: RightHandIndex4
-        34: RightHandThumb1
-        35: RightHandThumb2
-        36: RightHandThumb3
-        37: RightHandThumb4
-        38: LeftShoulder
-        39: LeftArm
-        40: LeftForeArm
-        41: LeftHand
-        42: LeftHandPinky1
-        43: LeftHandPinky2
-        44: LeftHandPinky3
-        45: LeftHandPinky4
-        46: LeftHandRing1
-        47: LeftHandRing2
-        48: LeftHandRing3
-        49: LeftHandRing4
-        50: LeftHandMiddle1
-        51: LeftHandMiddle2
-        52: LeftHandMiddle3
-        53: LeftHandMiddle4
-        54: LeftHandIndex1
-        55: LeftHandIndex2
-        56: LeftHandIndex3
-        57: LeftHandIndex4
-        58: LeftHandThumb1
-        59: LeftHandThumb2
-        60: LeftHandThumb3
-        61: LeftHandThumb4
-        62: Neck
-        63: Head
-        64: HeadTop_End
-        65: body
-        ... skeleton joint names
-        */
     }
 
     function animateLeftHand() {
@@ -357,6 +300,13 @@ var leapHands = (function () {
         settingsTimer = Script.setInterval(checkSettings, 2000);
 
         calibrationStatus = UNCALIBRATED;
+
+        {
+            var mapping = Controller.newMapping("LeapmotionTrigger");
+            mapping.from(getLeapMotionLeftTrigger).to(Controller.Standard.LT);
+            mapping.from(getLeapMotionRightTrigger).to(Controller.Standard.RT);
+            mapping.enable();
+        }
     }
 
     function moveHands() {
@@ -469,10 +419,17 @@ var leapHands = (function () {
                 hands[h].rotation = handRotation;
 
                 // Set finger joints ...
+                var summed = 0;
+                var closeAngle = 0;
                 for (i = 0; i < NUM_FINGERS; i += 1) {
                     for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                         if (fingers[h][i][j].controller !== null) {
                             locRotation = fingers[h][i][j].controller.getLocRotation();
+                            var eulers = Quat.safeEulerAngles(locRotation);
+                            closeAngle += eulers.x;
+
+                            summed++;
+
                             if (i === THUMB) {
                                 locRotation = {
                                     x: side * locRotation.y,
@@ -496,8 +453,21 @@ var leapHands = (function () {
                         }
                     }
                 }
-
+ 
                 hands[h].inactiveCount = 0;
+                if (summed > 0) {
+                    closeAngle /= summed;
+                }
+
+                var triggerValue = (-closeAngle - LEAP_TRIGGER_START_ANGLE) /  (LEAP_TRIGGER_END_ANGLE - LEAP_TRIGGER_START_ANGLE);
+                triggerValue = Math.max(0.0, Math.min(triggerValue, 1.0));
+
+                if (h == 0) {
+                    leftTriggerValue = triggerValue; 
+                } else {
+                    rightTriggerValue = triggerValue;
+
+                }
 
             } else {
 
@@ -509,6 +479,8 @@ var leapHands = (function () {
                         if (handAnimationStateHandlers[h] !== null) {
                             MyAvatar.removeAnimationStateHandler(handAnimationStateHandlers[h]);
                             handAnimationStateHandlers[h] = null;
+                            leftTriggerValue = 0.0;
+                            rightTriggerValue = 0.0;
                         }
                     }
                 }

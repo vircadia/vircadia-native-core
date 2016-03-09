@@ -60,10 +60,10 @@ void ViveControllerManager::activate() {
         [this] (bool clicked) { this->setRenderControllers(clicked); },
         true, true);
 
-    if (!_hmd) {
-        _hmd = acquireOpenVrSystem();
+    if (!_system) {
+        _system = acquireOpenVrSystem();
     }
-    Q_ASSERT(_hmd);
+    Q_ASSERT(_system);
 
     // OpenVR provides 3d mesh representations of the controllers
     // Disabled controller rendering code
@@ -71,7 +71,7 @@ void ViveControllerManager::activate() {
     auto renderModels = vr::VRRenderModels();
 
     vr::RenderModel_t model;
-    if (!_hmd->LoadRenderModel(CONTROLLER_MODEL_STRING, &model)) {
+    if (!_system->LoadRenderModel(CONTROLLER_MODEL_STRING, &model)) {
         qDebug() << QString("Unable to load render model %1\n").arg(CONTROLLER_MODEL_STRING);
     } else {
         model::Mesh* mesh = new model::Mesh();
@@ -118,7 +118,7 @@ void ViveControllerManager::activate() {
     }
     */
 
-    // unregister with UserInputMapper
+    // register with UserInputMapper
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->registerDevice(_inputDevice);
     _registeredWithInputMapper = true;
@@ -130,9 +130,9 @@ void ViveControllerManager::deactivate() {
     _container->removeMenuItem(MENU_NAME, RENDER_CONTROLLERS);
     _container->removeMenu(MENU_PATH);
 
-    if (_hmd) {
+    if (_system) {
         releaseOpenVrSystem();
-        _hmd = nullptr;
+        _system = nullptr;
     }
 
     _inputDevice->_poseStateMap.clear();
@@ -226,56 +226,56 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     _poseStateMap.clear();
-
     _buttonPressedMap.clear();
 
     PerformanceTimer perfTimer("ViveControllerManager::update");
 
+    auto leftHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_LeftHand);
+    auto rightHandDeviceIndex = _system->GetTrackedDeviceIndexForControllerRole(vr::TrackedControllerRole_RightHand);
+
+    if (!jointsCaptured) {
+        handleHandController(deltaTime, leftHandDeviceIndex, inputCalibrationData, true);
+        handleHandController(deltaTime, rightHandDeviceIndex, inputCalibrationData, false);
+    }
+
     int numTrackedControllers = 0;
-
-    for (vr::TrackedDeviceIndex_t device = vr::k_unTrackedDeviceIndex_Hmd + 1;
-         device < vr::k_unMaxTrackedDeviceCount && numTrackedControllers < 2; ++device) {
-
-        if (!_hmd->IsTrackedDeviceConnected(device)) {
-            continue;
-        }
-
-        if (_hmd->GetTrackedDeviceClass(device) != vr::TrackedDeviceClass_Controller) {
-            continue;
-        }
-
-        if (!_trackedDevicePose[device].bPoseIsValid) {
-            continue;
-        }
-
+    if (leftHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
         numTrackedControllers++;
-        bool left = numTrackedControllers == 2;
+    }
+    if (rightHandDeviceIndex != vr::k_unTrackedDeviceIndexInvalid) {
+        numTrackedControllers++;
+    }
+    _trackedControllers = numTrackedControllers;
+}
 
-        if (!jointsCaptured) {
-            const mat4& mat = _trackedDevicePoseMat4[device];
-            const vec3 linearVelocity = _trackedDeviceLinearVelocities[device];
-            const vec3 angularVelocity = _trackedDeviceAngularVelocities[device];
-            handlePoseEvent(inputCalibrationData, mat, linearVelocity, angularVelocity, numTrackedControllers - 1);
-        }
+void ViveControllerManager::InputDevice::handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand) {
 
-        // handle inputs
+    if (_system->IsTrackedDeviceConnected(deviceIndex) &&
+        _system->GetTrackedDeviceClass(deviceIndex) == vr::TrackedDeviceClass_Controller &&
+        _trackedDevicePose[deviceIndex].bPoseIsValid) {
+
+        // process pose
+        const mat4& mat = _trackedDevicePoseMat4[deviceIndex];
+        const vec3 linearVelocity = _trackedDeviceLinearVelocities[deviceIndex];
+        const vec3 angularVelocity = _trackedDeviceAngularVelocities[deviceIndex];
+        handlePoseEvent(deltaTime, inputCalibrationData, mat, linearVelocity, angularVelocity, isLeftHand);
+
         vr::VRControllerState_t controllerState = vr::VRControllerState_t();
-        if (_hmd->GetControllerState(device, &controllerState)) {
-            //qDebug() << (numTrackedControllers == 1 ? "Left: " : "Right: ");
-            //qDebug() << "Trackpad: " << controllerState.rAxis[0].x << " " << controllerState.rAxis[0].y;
-            //qDebug() << "Trigger: " << controllerState.rAxis[1].x << " " << controllerState.rAxis[1].y;
+        if (_system->GetControllerState(deviceIndex, &controllerState)) {
+
+            // process each button
             for (uint32_t i = 0; i < vr::k_EButton_Max; ++i) {
                 auto mask = vr::ButtonMaskFromId((vr::EVRButtonId)i);
                 bool pressed = 0 != (controllerState.ulButtonPressed & mask);
-                handleButtonEvent(i, pressed, left);
+                handleButtonEvent(deltaTime, i, pressed, isLeftHand);
             }
+
+            // process each axis
             for (uint32_t i = 0; i < vr::k_unControllerStateAxisCount; i++) {
-                handleAxisEvent(i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, left);
+                handleAxisEvent(deltaTime, i, controllerState.rAxis[i].x, controllerState.rAxis[i].y, isLeftHand);
             }
         }
     }
-
-    _trackedControllers = numTrackedControllers;
 }
 
 void ViveControllerManager::InputDevice::focusOutEvent() {
@@ -284,42 +284,53 @@ void ViveControllerManager::InputDevice::focusOutEvent() {
 };
 
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::InputDevice::handleAxisEvent(uint32_t axis, float x, float y, bool left) {
+void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32_t axis, float x, float y, bool isLeftHand) {
     //FIX ME? It enters here every frame: probably we want to enter only if an event occurs
     axis += vr::k_EButton_Axis0;
     using namespace controller;
+
     if (axis == vr::k_EButton_SteamVR_Touchpad) {
-        _axisStateMap[left ? LX : RX] = x;
-        _axisStateMap[left ? LY : RY] = y;
+        glm::vec2 stick(x, y);
+        if (isLeftHand) {
+            stick = _filteredLeftStick.process(deltaTime, stick);
+        } else {
+            stick = _filteredRightStick.process(deltaTime, stick);
+        }
+        _axisStateMap[isLeftHand ? LX : RX] = stick.x;
+        _axisStateMap[isLeftHand ? LY : RY] = stick.y;
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
-        _axisStateMap[left ? LT : RT] = x;
+        _axisStateMap[isLeftHand ? LT : RT] = x;
     }
 }
 
+// An enum for buttons which do not exist in the StandardControls enum
+enum ViveButtonChannel {
+    LEFT_APP_MENU = controller::StandardButtonChannel::NUM_STANDARD_BUTTONS,
+    RIGHT_APP_MENU
+};
+
+
 // These functions do translation from the Steam IDs to the standard controller IDs
-void ViveControllerManager::InputDevice::handleButtonEvent(uint32_t button, bool pressed, bool left) {
+void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint32_t button, bool pressed, bool isLeftHand) {
     if (!pressed) {
         return;
     }
 
+    using namespace controller;
     if (button == vr::k_EButton_ApplicationMenu) {
-        _buttonPressedMap.insert(left ? controller::LEFT_PRIMARY_THUMB : controller::RIGHT_PRIMARY_THUMB);
+        _buttonPressedMap.insert(isLeftHand ? LEFT_APP_MENU : RIGHT_APP_MENU);
     } else if (button == vr::k_EButton_Grip) {
-        // Tony says these are harder to reach, so make them the meta buttons
-        _buttonPressedMap.insert(left ? controller::LB : controller::RB);
+        _buttonPressedMap.insert(isLeftHand ? LB : RB);
     } else if (button == vr::k_EButton_SteamVR_Trigger) {
-        _buttonPressedMap.insert(left ? controller::LT : controller::RT);
+        _buttonPressedMap.insert(isLeftHand ? LT : RT);
     } else if (button == vr::k_EButton_SteamVR_Touchpad) {
-        _buttonPressedMap.insert(left ? controller::LS : controller::RS);
-    } else if (button == vr::k_EButton_System) {
-        //FIX ME: not able to ovrewrite the behaviour of this button
-        _buttonPressedMap.insert(left ? controller::LEFT_SECONDARY_THUMB : controller::RIGHT_SECONDARY_THUMB);
+        _buttonPressedMap.insert(isLeftHand ? LS : RS);
     }
 }
 
-void ViveControllerManager::InputDevice::handlePoseEvent(const controller::InputCalibrationData& inputCalibrationData,
+void ViveControllerManager::InputDevice::handlePoseEvent(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
                                                          const mat4& mat, const vec3& linearVelocity,
-                                                         const vec3& angularVelocity, bool left) {
+                                                         const vec3& angularVelocity, bool isLeftHand) {
     // When the sensor-to-world rotation is identity the coordinate axes look like this:
     //
     //                       user
@@ -384,8 +395,8 @@ void ViveControllerManager::InputDevice::handlePoseEvent(const controller::Input
     static const glm::vec3 leftTranslationOffset = glm::vec3(-1.0f, 1.0f, 1.0f) * CONTROLLER_OFFSET;
     static const glm::vec3 rightTranslationOffset = CONTROLLER_OFFSET;
 
-    auto translationOffset = (left ? leftTranslationOffset : rightTranslationOffset);
-    auto rotationOffset = (left ? leftRotationOffset : rightRotationOffset);
+    auto translationOffset = (isLeftHand ? leftTranslationOffset : rightTranslationOffset);
+    auto rotationOffset = (isLeftHand ? leftRotationOffset : rightRotationOffset);
 
     glm::vec3 position = extractTranslation(mat);
     glm::quat rotation = glm::normalize(glm::quat_cast(mat));
@@ -399,7 +410,7 @@ void ViveControllerManager::InputDevice::handlePoseEvent(const controller::Input
     // handle change in velocity due to translationOffset
     avatarPose.velocity = linearVelocity + glm::cross(angularVelocity, position - extractTranslation(mat));
     avatarPose.angularVelocity = angularVelocity;
-    _poseStateMap[left ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
+    _poseStateMap[isLeftHand ? controller::LEFT_HAND : controller::RIGHT_HAND] = avatarPose.transform(controllerToAvatar);
 }
 
 controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableInputs() const {
@@ -422,23 +433,9 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
 
-        makePair(LEFT_PRIMARY_THUMB, "LeftPrimaryThumb"),
-        makePair(LEFT_SECONDARY_THUMB, "LeftSecondaryThumb"),
-        makePair(RIGHT_PRIMARY_THUMB, "RightPrimaryThumb"),
-        makePair(RIGHT_SECONDARY_THUMB, "RightSecondaryThumb"),
+        Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
+        Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
     };
-
-    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 0), "Left Button A"));
-    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 0), "Left Grip Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 0), "Left Trackpad Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 0), "Left Trigger Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 0), "Left Back Trigger"));
-    //availableInputs.append(Input::NamedPair(makeInput(RIGHT_HAND), "Right Hand"));
-    //availableInputs.append(Input::NamedPair(makeInput(BUTTON_A, 1), "Right Button A"));
-    //availableInputs.append(Input::NamedPair(makeInput(GRIP_BUTTON, 1), "Right Grip Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRACKPAD_BUTTON, 1), "Right Trackpad Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(TRIGGER_BUTTON, 1), "Right Trigger Button"));
-    //availableInputs.append(Input::NamedPair(makeInput(BACK_TRIGGER, 1), "Right Back Trigger"));
 
     return availableInputs;
 }
@@ -447,31 +444,3 @@ QString ViveControllerManager::InputDevice::getDefaultMappingConfig() const {
     static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/vive.json";
     return MAPPING_JSON;
 }
-
-//void ViveControllerManager::assignDefaultInputMapping(UserInputMapper& mapper) {
-//    const float JOYSTICK_MOVE_SPEED = 1.0f;
-//
-//    // Left Trackpad: Movement, strafing
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_FORWARD, makeInput(AXIS_Y_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LONGITUDINAL_BACKWARD, makeInput(AXIS_Y_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_RIGHT, makeInput(AXIS_X_POS, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::LATERAL_LEFT, makeInput(AXIS_X_NEG, 0), makeInput(TRACKPAD_BUTTON, 0), JOYSTICK_MOVE_SPEED);
-//
-//    // Right Trackpad: Vertical movement, zooming
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_UP, makeInput(AXIS_Y_POS, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-//    mapper.addInputChannel(UserInputMapper::VERTICAL_DOWN, makeInput(AXIS_Y_NEG, 1), makeInput(TRACKPAD_BUTTON, 1), JOYSTICK_MOVE_SPEED);
-//
-//    // Buttons
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 0));
-//    mapper.addInputChannel(UserInputMapper::SHIFT, makeInput(BUTTON_A, 1));
-//
-//    mapper.addInputChannel(UserInputMapper::ACTION1, makeInput(GRIP_BUTTON, 0));
-//    mapper.addInputChannel(UserInputMapper::ACTION2, makeInput(GRIP_BUTTON, 1));
-//
-//    mapper.addInputChannel(UserInputMapper::LEFT_HAND_CLICK, makeInput(BACK_TRIGGER, 0));
-//    mapper.addInputChannel(UserInputMapper::RIGHT_HAND_CLICK, makeInput(BACK_TRIGGER, 1));
-//
-//    // Hands
-//    mapper.addInputChannel(UserInputMapper::LEFT_HAND, makeInput(LEFT_HAND));
-//    mapper.addInputChannel(UserInputMapper::RIGHT_HAND, makeInput(RIGHT_HAND));
-//}

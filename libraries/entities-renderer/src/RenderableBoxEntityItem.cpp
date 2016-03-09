@@ -62,7 +62,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transToCenter); // we want to include the scale as well
-    if (_procedural->ready()) {
+    if (_procedural && _procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions());
         auto color = _procedural->getColor(cubeColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);

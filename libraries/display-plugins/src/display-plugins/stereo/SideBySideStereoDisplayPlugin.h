@@ -18,6 +18,7 @@ public:
     virtual const QString& getName() const override { return NAME; }
     virtual grouping getGrouping() const override { return ADVANCED; }
     virtual glm::uvec2 getRecommendedRenderSize() const override;
+
 private:
     static const QString NAME;
 };

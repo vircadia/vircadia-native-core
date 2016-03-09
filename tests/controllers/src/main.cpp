@@ -92,8 +92,8 @@ public:
     virtual void showDisplayPluginsTools() override {}
     virtual void requestReset() override {}
     virtual bool makeRenderingContextCurrent() override { return true; }
-    virtual void releaseSceneTexture(uint32_t texture) override {}
-    virtual void releaseOverlayTexture(uint32_t texture) override {}
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override {}
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override {}
     virtual GLWidget* getPrimaryWidget() override { return nullptr; }
     virtual QWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }

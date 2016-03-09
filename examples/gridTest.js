@@ -17,8 +17,8 @@ var SIZE = 10.0;
 var SEPARATION = 20.0;
 var ROWS_X = 30; 
 var ROWS_Z = 30;
-var TYPE = "Sphere";            //   Right now this can be "Box" or "Model" or "Sphere"
-var MODEL_URL = "https://hifi-public.s3.amazonaws.com/models/props/LowPolyIsland/CypressTreeGroup.fbx";
+var TYPE = "Model";            //   Right now this can be "Box" or "Model" or "Sphere"
+var MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/CellScience/Instances/vesicle.fbx";
 var MODEL_DIMENSION = { x: 33, y: 16, z: 49 };
 var RATE_PER_SECOND = 1000;    //    The entity server will drop data if we create things too fast.
 var SCRIPT_INTERVAL = 100;
@@ -38,6 +38,7 @@ Script.setInterval(function () {
     var numToCreate = RATE_PER_SECOND * (SCRIPT_INTERVAL / 1000.0);
     for (var i = 0; i < numToCreate; i++) {
         var position = { x: SIZE + (x * SEPARATION), y: SIZE, z: SIZE + (z * SEPARATION) };
+        print('position:'+JSON.stringify(position))
         if (TYPE == "Model") {
             Entities.addEntity({ 
             type: TYPE,

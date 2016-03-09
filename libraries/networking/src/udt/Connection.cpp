@@ -87,7 +87,8 @@ SendQueue& Connection::getSendQueue() {
         // receiver is getting the sequence numbers it expects (given that the connection must still be active)
 
         // Lasily create send queue
-        _sendQueue = SendQueue::create(_parentSocket, _destination, _inactiveSendQueueSequenceNumber);
+        _sendQueue = SendQueue::create(_parentSocket, _destination);
+        _lastReceivedACK = _sendQueue->getCurrentSequenceNumber();
 
 #ifdef UDT_CONNECTION_DEBUG
         qCDebug(networking) << "Created SendQueue for connection to" << _destination;
@@ -109,10 +110,6 @@ SendQueue& Connection::getSendQueue() {
 }
 
 void Connection::queueInactive() {
-    // get the current sequence number from the send queue, this is to be re-used if the send
-    // queue is re-activated for this connection
-    _inactiveSendQueueSequenceNumber = _sendQueue->getCurrentSequenceNumber();
-
     // tell our current send queue to go down and reset our ptr to it to null
     stopSendQueue();
     
@@ -728,15 +725,28 @@ void Connection::processNAK(std::unique_ptr<ControlPacket> controlPacket) {
 }
 
 void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) {
+    SequenceNumber initialSequenceNumber;
+    controlPacket->readPrimitive(&initialSequenceNumber);
     
-    if (!_hasReceivedHandshake || _isReceivingData) {
+    if (!_hasReceivedHandshake || initialSequenceNumber != _initialReceiveSequenceNumber) {
         // server sent us a handshake - we need to assume this means state should be reset
         // as long as we haven't received a handshake yet or we have and we've received some data
+
+#ifdef UDT_CONNECTION_DEBUG
+        if (initialSequenceNumber != _initialReceiveSequenceNumber) {
+            qCDebug(networking) << "Resetting receive state, received a new initial sequence number in handshake";
+        }
+#endif
         resetReceiveState();
+        _initialReceiveSequenceNumber = initialSequenceNumber;
+        _lastReceivedSequenceNumber = initialSequenceNumber - 1;
+        _lastSentACK = initialSequenceNumber - 1;
     }
     
     // immediately respond with a handshake ACK
-    static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, 0);
+    static auto handshakeACK = ControlPacket::create(ControlPacket::HandshakeACK, sizeof(SequenceNumber));
+    handshakeACK->seek(0);
+    handshakeACK->writePrimitive(initialSequenceNumber);
     _parentSocket->writeBasePacket(*handshakeACK, _destination);
     
     // indicate that handshake has been received
@@ -746,8 +756,11 @@ void Connection::processHandshake(std::unique_ptr<ControlPacket> controlPacket) 
 void Connection::processHandshakeACK(std::unique_ptr<ControlPacket> controlPacket) {
     // if we've decided to clean up the send queue then this handshake ACK should be ignored, it's useless
     if (_sendQueue) {
+        SequenceNumber initialSequenceNumber;
+        controlPacket->readPrimitive(&initialSequenceNumber);
+
         // hand off this handshake ACK to the send queue so it knows it can start sending
-        getSendQueue().handshakeACK();
+        getSendQueue().handshakeACK(initialSequenceNumber);
         
         // indicate that handshake ACK was received
         _hasReceivedHandshakeACK = true;

@@ -12,6 +12,7 @@
 #include <condition_variable>
 
 #include <QtCore/QTimer>
+#include <QtGui/QImage>
 
 #include <GLMHelpers.h>
 #include <SimpleMovingAverage.h>
@@ -25,6 +26,7 @@ protected:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
     using Condition = std::condition_variable;
+    using TextureEscrow = GLEscrow<gpu::TexturePointer>;
 public:
     OpenGLDisplayPlugin();
     virtual void activate() override;
@@ -32,8 +34,8 @@ public:
     virtual void stop() override;
     virtual bool eventFilter(QObject* receiver, QEvent* event) override;
 
-    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
-    virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) override;
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
+    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
     virtual float presentRate() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override {
@@ -50,7 +52,13 @@ protected:
 #if THREADED_PRESENT
     friend class PresentThread;
 #endif
+    uint32_t getSceneTextureId() const;
+    uint32_t getOverlayTextureId() const;
     
+    void compositeLayers();
+    virtual void compositeOverlay();
+    virtual void compositePointer();
+
     virtual glm::uvec2 getSurfaceSize() const = 0;
     virtual glm::uvec2 getSurfacePixels() const = 0;
 
@@ -61,31 +69,47 @@ protected:
     // These functions must only be called on the presentation thread
     virtual void customizeContext();
     virtual void uncustomizeContext();
-    virtual void cleanupForSceneTexture(uint32_t sceneTexture);
-    void withMainThreadContext(std::function<void()> f) const;
+    virtual void cleanupForSceneTexture(const gpu::TexturePointer& sceneTexture);
+    // Plugin specific functionality to send the composed scene to the output window or device
+    virtual void internalPresent();
 
+    void withMainThreadContext(std::function<void()> f) const;
 
     void present();
     void updateTextures();
     void updateFramerate();
     void drawUnitQuad();
     void swapBuffers();
-    // Plugin specific functionality to composite the scene and overlay and present the result
-    virtual void internalPresent();
+    void eyeViewport(Eye eye) const;
+
+    virtual void updateFrameData();
 
     ProgramPtr _program;
+    int32_t _mvpUniform { -1 };
     ShapeWrapperPtr _plane;
 
     mutable Mutex _mutex;
     SimpleMovingAverage _usecsPerFrame { 10 };
-    QMap<uint32_t, uint32_t> _sceneTextureToFrameIndexMap;
+    QMap<gpu::TexturePointer, uint32_t> _sceneTextureToFrameIndexMap;
+    uint32_t _currentRenderFrameIndex { 0 };
 
-    GLuint _currentSceneTexture { 0 };
-    GLuint _currentOverlayTexture { 0 };
+    gpu::TexturePointer _currentSceneTexture;
+    gpu::TexturePointer _currentOverlayTexture;
 
-    GLTextureEscrow _sceneTextureEscrow;
+    TextureEscrow _sceneTextureEscrow;
+    TextureEscrow _overlayTextureEscrow;
 
     bool _vsyncSupported { false };
+
+    struct CursorData {
+        QImage image;
+        vec2 hotSpot;
+        uvec2 size;
+        uint32_t texture { 0 };
+    };
+
+    std::map<uint16_t, CursorData> _cursorsData;
+    BasicFramebufferWrapperPtr _compositeFramebuffer;
 
 private:
 #if THREADED_PRESENT

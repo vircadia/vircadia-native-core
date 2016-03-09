@@ -627,6 +627,9 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("Hand", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot);
+            stConstraint->setTwistLimits(0.0f, 0.0f); // max == min, disables twist limits
+
+            /* KEEP THIS CODE for future experimentation -- twist limits for hands
             const float MAX_HAND_TWIST = 3.0f * PI / 5.0f;
             const float MIN_HAND_TWIST = -PI / 2.0f;
             if (isLeft) {
@@ -634,8 +637,9 @@ void AnimInverseKinematics::initConstraints() {
             } else {
                 stConstraint->setTwistLimits(MIN_HAND_TWIST, MAX_HAND_TWIST);
             }
+            */
 
-            /* KEEP THIS CODE for future experimentation
+            /* KEEP THIS CODE for future experimentation -- non-symmetrical swing limits for wrist
              * a more complicated wrist with asymmetric cone
             // these directions are approximate swing limits in parent-frame
             // NOTE: they don't need to be normalized
@@ -670,7 +674,7 @@ void AnimInverseKinematics::initConstraints() {
             stConstraint->setTwistLimits(-MAX_SHOULDER_TWIST, MAX_SHOULDER_TWIST);
 
             std::vector<float> minDots;
-            const float MAX_SHOULDER_SWING = PI / 6.0f;
+            const float MAX_SHOULDER_SWING = PI / 20.0f;
             minDots.push_back(cosf(MAX_SHOULDER_SWING));
             stConstraint->setSwingLimits(minDots);
 

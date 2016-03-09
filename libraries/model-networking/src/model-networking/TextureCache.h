@@ -29,7 +29,20 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, LIGHTMAP_TEXTURE, CUSTOM_TEXTURE };
+enum TextureType {
+    DEFAULT_TEXTURE,
+    NORMAL_TEXTURE,
+    BUMP_TEXTURE,
+    SPECULAR_TEXTURE,
+    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
+    ROUGHNESS_TEXTURE,
+    GLOSS_TEXTURE,
+    EMISSIVE_TEXTURE,
+    CUBE_TEXTURE,
+    OCCLUSION_TEXTURE,
+    LIGHTMAP_TEXTURE,
+    CUSTOM_TEXTURE
+};
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -83,8 +96,6 @@ private:
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
     gpu::TexturePointer _normalFittingTexture;
-
-    QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
 };
 
 /// A simple object wrapper for an OpenGL texture.
@@ -114,7 +125,11 @@ public:
     int getHeight() const { return _height; }
     
     TextureLoaderFunc getTextureLoader() const;
-    
+
+signals:
+    void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
+
+
 protected:
 
     virtual void downloadFinished(const QByteArray& data) override;
@@ -122,8 +137,6 @@ protected:
     Q_INVOKABLE void loadContent(const QByteArray& content);
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
     Q_INVOKABLE void setImage(const QImage& image, void* texture, int originalWidth, int originalHeight);
-
-    virtual void imageLoaded(const QImage& image);
 
 
 private:

@@ -21,6 +21,7 @@ Framebuffer::~Framebuffer() {
 Framebuffer* Framebuffer::create() {
     auto framebuffer = new Framebuffer();
     framebuffer->_renderBuffers.resize(MAX_NUM_RENDER_BUFFERS);
+    framebuffer->_colorStamps.resize(MAX_NUM_RENDER_BUFFERS, 0);
     return framebuffer;
 }
 
@@ -174,6 +175,8 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
         }
     }
 
+    ++_colorStamps[slot];
+
     updateSize(texture);
 
     // assign the new one
@@ -190,6 +193,7 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
 }
 
 void Framebuffer::removeRenderBuffers() {
+
     if (isSwapchain()) {
         return;
     }
@@ -230,6 +234,7 @@ uint32 Framebuffer::getRenderBufferSubresource(uint32 slot) const {
 }
 
 bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+    ++_depthStamp;
     if (isSwapchain()) {
         return false;
     }

@@ -50,7 +50,23 @@ Windows.Window {
             }
         }
     }
+
+    // Handle message traffic from the script that launched us to the loaded QML
+    function fromScript(message) {
+        if (root.dynamicContent && root.dynamicContent.fromScript) {
+            root.dynamicContent.fromScript(message);
+        }
+    }
     
+    // Handle message traffic from our loaded QML to the script that launched us
+    signal sendToScript(var message);
+    onDynamicContentChanged: {
+        if (dynamicContent && dynamicContent.sendToScript) {
+            dynamicContent.sendToScript.connect(sendToScript);
+        }
+    }
+
+
     Item {
         id: contentHolder
         anchors.fill: parent

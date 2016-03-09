@@ -64,8 +64,8 @@ int OctreeQuery::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_boundaryLevelAdjust, sizeof(_boundaryLevelAdjust));
     destinationBuffer += sizeof(_boundaryLevelAdjust);
 
-    memcpy(destinationBuffer, &_keyholeRadius, sizeof(_keyholeRadius));
-    destinationBuffer += sizeof(_keyholeRadius);
+    memcpy(destinationBuffer, &_cameraCenterRadius, sizeof(_cameraCenterRadius));
+    destinationBuffer += sizeof(_cameraCenterRadius);
     
     return destinationBuffer - bufferStart;
 }
@@ -109,9 +109,9 @@ int OctreeQuery::parseData(ReceivedMessage& message) {
 
     auto bytesRead = sourceBuffer - startPosition;
     auto bytesLeft = message.getSize() - bytesRead;
-    if (bytesLeft >= (int)sizeof(_keyholeRadius)) {
-        memcpy(&_keyholeRadius, sourceBuffer, sizeof(_keyholeRadius));
-        sourceBuffer += sizeof(_keyholeRadius);
+    if (bytesLeft >= (int)sizeof(_cameraCenterRadius)) {
+        memcpy(&_cameraCenterRadius, sourceBuffer, sizeof(_cameraCenterRadius));
+        sourceBuffer += sizeof(_cameraCenterRadius);
     }
     return sourceBuffer - startPosition;
 }

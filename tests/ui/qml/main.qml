@@ -9,6 +9,7 @@ import "../../../interface/resources/qml/windows-uit"
 import "../../../interface/resources/qml/dialogs"
 import "../../../interface/resources/qml/hifi"
 import "../../../interface/resources/qml/hifi/dialogs"
+import "../../../interface/resources/qml/styles-uit"
 
 ApplicationWindow {
     id: appWindow
@@ -16,6 +17,8 @@ ApplicationWindow {
     width: 1280
     height: 800
     title: qsTr("Scratch App")
+
+    HifiConstants { id: hifi }
 
     Desktop {
         id: desktop
@@ -37,6 +40,18 @@ ApplicationWindow {
 
             property var tabs: [];
             property var urls: [];
+
+            Button {
+                // Shows the dialog with preferences sections but not each section's preference items
+                // because Preferences.preferencesByCategory() method is not stubbed out.
+                text: "Settings > General..."
+                property var builder: Component {
+                    GeneralPreferencesDialog { }
+                }
+                onClicked: {
+                    var runningScripts = builder.createObject(desktop);
+                }
+            }
 
             Button {
                 text: "Running Scripts"
@@ -87,11 +102,11 @@ ApplicationWindow {
                     var messageBox = desktop.messageBox({
                                            title: "Set Avatar",
                                            text: "Would you like to use 'Albert' for your avatar?",
-                                           icon: OriginalDialogs.StandardIcon.Question,         // Test question icon
-                                           //icon: OriginalDialogs.StandardIcon.Information,    // Test informaton icon
-                                           //icon: OriginalDialogs.StandardIcon.Warning,        // Test warning icon
-                                           //icon: OriginalDialogs.StandardIcon.Critical,       // Test critical icon
-                                           //icon: OriginalDialogs.StandardIcon.NoIcon,         // Test no icon
+                                           icon: hifi.icons.question,         // Test question icon
+                                           //icon: hifi.icons.information,    // Test informaton icon
+                                           //icon: hifi.icons.warning,        // Test warning icon
+                                           //icon: hifi.icons.critical,       // Test critical icon
+                                           //icon: hifi.icons.none,         // Test no icon
                                            buttons: OriginalDialogs.StandardButton.Ok + OriginalDialogs.StandardButton.Cancel,
                                            defaultButton: OriginalDialogs.StandardButton.Ok
                                        });
@@ -106,7 +121,7 @@ ApplicationWindow {
                 onClicked: {
                     var messageBox = desktop.messageBox({
                                                             text: "Diagnostic cycle will be complete in 30 seconds",
-                                                            icon: OriginalDialogs.StandardIcon.Critical,
+                                                            icon: hifi.icons.critical,
                                                         });
                     messageBox.selected.connect(function(button) {
                         console.log("You clicked " + button)
@@ -120,8 +135,42 @@ ApplicationWindow {
                     desktop.messageBox({
                                            informativeText: "Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds  Diagnostic cycle will be complete in 30 seconds ",
                                            text: "Baloney",
-                                           icon: OriginalDialogs.StandardIcon.Warning,
+                                           icon: hifi.icons.warning,
                                            detailedText: "sakjd;laskj dksa;dl jka;lsd j;lkjas ;dlkaj s;dlakjd ;alkjda; slkjda; lkjda;lksjd ;alksjd; alksjd ;alksjd; alksjd; alksdjas;ldkjas;lkdja ;kj ;lkasjd; lkj as;dlka jsd;lka jsd;laksjd a"
+                                       });
+                }
+            }
+            Button {
+                text: "Bookmark Location"
+                onClicked: {
+                    desktop.inputDialog({
+                                           title: "Bookmark Location",
+                                           icon: hifi.icons.placemark,
+                                           label: "Name"
+                                       });
+                }
+            }
+            Button {
+                text: "Delete Bookmark"
+                onClicked: {
+                    desktop.inputDialog({
+                                           title: "Delete Bookmark",
+                                           icon: hifi.icons.placemark,
+                                           label: "Select the bookmark to delete",
+                                           items: ["Bookmark A", "Bookmark B", "Bookmark C"]
+                                       });
+                }
+            }
+            Button {
+                text: "Duplicate Bookmark"
+                onClicked: {
+                    desktop.messageBox({
+                                           title: "Duplicate Bookmark",
+                                           icon: hifi.icons.warning,
+                                           text: "The bookmark name you entered alread exists in yoru list.",
+                                           informativeText: "Would you like to overwrite it?",
+                                           buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
+                                           defaultButton: OriginalDialogs.StandardButton.Yes
                                        });
                 }
             }
@@ -133,7 +182,7 @@ ApplicationWindow {
                     var queryBox = desktop.queryBox({
                                                           text: "Have you stopped beating your wife?",
                                                           placeholderText: "Are you sure?",
-                                                         // icon: OriginalDialogs.StandardIcon.Critical,
+                                                         // icon: hifi.icons.critical,
                                                       });
                     queryBox.selected.connect(function(result) {
                         console.log("User responded with " + result);

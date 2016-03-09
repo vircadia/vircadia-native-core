@@ -79,18 +79,27 @@ void MessagesClient::handleMessagesPacket(QSharedPointer<ReceivedMessage> receiv
     QString channel, message;
     QUuid senderID;
     decodeMessagesPacket(receivedMessage, channel, message, senderID);
-    emit messageReceived(channel, message, senderID);
+    emit messageReceived(channel, message, senderID, false);
 }
 
-void MessagesClient::sendMessage(QString channel, QString message) {
+void MessagesClient::sendMessage(QString channel, QString message, bool localOnly) {
     auto nodeList = DependencyManager::get<NodeList>();
-    SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
-    
-    if (messagesMixer) {
+    if (localOnly) {
         QUuid senderID = nodeList->getSessionUUID();
-        auto packetList = encodeMessagesPacket(channel, message, senderID);
-        nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+        emit messageReceived(channel, message, senderID, true);
+    } else {
+        SharedNodePointer messagesMixer = nodeList->soloNodeOfType(NodeType::MessagesMixer);
+
+        if (messagesMixer) {
+            QUuid senderID = nodeList->getSessionUUID();
+            auto packetList = encodeMessagesPacket(channel, message, senderID);
+            nodeList->sendPacketList(std::move(packetList), *messagesMixer);
+        }
     }
+}
+
+void MessagesClient::sendLocalMessage(QString channel, QString message) {
+    sendMessage(channel, message, true);
 }
 
 void MessagesClient::subscribe(QString channel) {

@@ -236,10 +236,6 @@ OctreeServer::OctreeServer(ReceivedMessage& message) :
 {
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
-
-    // make sure the AccountManager has an Auth URL for payment redemptions
-
-    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {
@@ -985,7 +981,7 @@ void OctreeServer::readConfiguration() {
     _settings = settingsSectionObject; // keep this for later
 
     if (!readOptionString(QString("statusHost"), settingsSectionObject, _statusHost) || _statusHost.isEmpty()) {
-        _statusHost = getLocalAddress().toString();
+        _statusHost = getGuessedLocalAddress().toString();
     }
     qDebug("statusHost=%s", qPrintable(_statusHost));
 

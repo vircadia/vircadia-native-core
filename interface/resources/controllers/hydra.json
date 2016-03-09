@@ -13,11 +13,11 @@
         { "from": "Hydra.RB", "to": "Standard.RB" }, 
         { "from": "Hydra.RS", "to": "Standard.RS" },
 
-        { "from": [ "Hydra.L1", "Hydra.L2", "Hydra.L3", "Hydra.L4" ], "to": "Standard.LeftPrimaryThumb" },
-        { "from": [ "Hydra.L0" ], "to": "Standard.LeftSecondaryThumb" },
+        { "from": "Hydra.L0", "to": "Standard.Back" },
+        { "from": "Hydra.R0", "to": "Standard.Start" },
 
+        { "from": [ "Hydra.L1", "Hydra.L2", "Hydra.L3", "Hydra.L4" ], "to": "Standard.LeftPrimaryThumb" },
         { "from": [ "Hydra.R1", "Hydra.R2", "Hydra.R3", "Hydra.R4" ], "to": "Standard.RightPrimaryThumb" },
-        { "from": [ "Hydra.R0" ], "to": "Standard.RightSecondaryThumb" },
 
         { "from": "Hydra.LeftHand", "to": "Standard.LeftHand" }, 
         { "from": "Hydra.RightHand", "to": "Standard.RightHand" }

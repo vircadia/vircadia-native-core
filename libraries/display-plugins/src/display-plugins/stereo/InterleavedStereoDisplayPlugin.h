@@ -12,17 +12,17 @@
 class InterleavedStereoDisplayPlugin : public StereoDisplayPlugin {
     Q_OBJECT
 public:
-    InterleavedStereoDisplayPlugin();
+    const QString& getName() const override { return NAME; }
+    grouping getGrouping() const override { return ADVANCED; }
+    glm::uvec2 getRecommendedRenderSize() const override;
 
-    virtual const QString& getName() const override { return NAME; }
-    virtual grouping getGrouping() const override { return ADVANCED; }
-
+protected:
     // initialize OpenGL context settings needed by the plugin
-    virtual void customizeContext() override;
-
-    virtual glm::uvec2 getRecommendedRenderSize() const override;
+    void customizeContext() override;
+    void uncustomizeContext() override;
     void internalPresent() override;
 
 private:
+    ProgramPtr _interleavedProgram;
     static const QString NAME;
 };

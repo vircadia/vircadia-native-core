@@ -64,11 +64,10 @@ macro(install_beside_console)
       )
     endif()
 
+    # set variables used by manual ssleay library copy
+    set(TARGET_INSTALL_DIR ${COMPONENT_INSTALL_DIR})
+    set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
+    manually_install_openssl_for_qt()
+
   endif ()
-
-  # set variables used by manual ssleay library copy
-  set(TARGET_INSTALL_DIR ${COMPONENT_INSTALL_DIR})
-  set(TARGET_INSTALL_COMPONENT ${SERVER_COMPONENT})
-  manually_install_ssl_eay()
-
 endmacro()

@@ -153,7 +153,7 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     newestViewFrustum.setPosition(getCameraPosition());
     newestViewFrustum.setOrientation(getCameraOrientation());
 
-    newestViewFrustum.setKeyholeRadius(getKeyholeRadius());
+    newestViewFrustum.setCenterRadius(getCameraCenterRadius());
 
     // Also make sure it's got the correct lens details from the camera
     float originalFOV = getCameraFov();

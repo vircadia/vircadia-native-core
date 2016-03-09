@@ -13,25 +13,31 @@ import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
 import "../styles-uit"
+import "../controls-uit" as HifiControls
 
 TextField {
     id: textField
 
     property int colorScheme: hifi.colorSchemes.light
+    readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property string label: ""
+    property real controlHeight: height + (textFieldLabel.visible ? textFieldLabel.height : 0)
+
+    placeholderText: textField.placeholderText
 
     FontLoader { id: firaSansSemiBold; source: "../../fonts/FiraSans-SemiBold.ttf"; }
     font.family: firaSansSemiBold.name
     font.pixelSize: hifi.fontSizes.textFieldInput
     height: implicitHeight + 4  // Make surrounding box higher so that highlight is vertically centered.
-    placeholderText: textField.label  // Instead of separate label (see below).
+
+    y: textFieldLabel.visible ? textFieldLabel.height + textFieldLabel.anchors.bottomMargin : 0
 
     style: TextFieldStyle {
-        textColor: textField.colorScheme == hifi.colorSchemes.light
+        textColor: isLightColorScheme
                    ? (textField.focus ? hifi.colors.black : hifi.colors.lightGray)
                    : (textField.focus ? hifi.colors.white : hifi.colors.lightGrayText)
         background: Rectangle {
-            color: textField.colorScheme == hifi.colorSchemes.light
+            color: isLightColorScheme
                    ? (textField.focus ? hifi.colors.white : hifi.colors.lightGray)
                    : (textField.focus ? hifi.colors.black : hifi.colors.baseGrayShadow)
             border.color: hifi.colors.primaryHighlight
@@ -44,16 +50,13 @@ TextField {
         padding.right: hifi.dimensions.textPadding
     }
 
-    /*
-    // Separate label instead of placeholderText.
-    RalewaySemibold {
+    HifiControls.Label {
+        id: textFieldLabel
         text: textField.label
-        size: hifi.fontSizes.inputLabel
-        color: hifi.colors.lightGrayText
+        colorScheme: textField.colorScheme
         anchors.left: parent.left
         anchors.bottom: parent.top
         anchors.bottomMargin: 4
         visible: label != ""
     }
-    */
 }

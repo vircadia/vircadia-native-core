@@ -195,10 +195,13 @@ public:
     public:
         static const int SKINNING_GPU = 2;
         static const int MATERIAL_GPU = 3;
-        static const int DIFFUSE_MAP = 0;
+        static const int ALBEDO_MAP = 0;
         static const int NORMAL_MAP = 1;
-        static const int SPECULAR_MAP = 2;
-        static const int LIGHTMAP_MAP = 3;
+        static const int METALLIC_MAP = 2;
+        static const int EMISSIVE_LIGHTMAP_MAP = 3;
+        static const int ROUGHNESS_MAP = 4;
+        static const int OCCLUSION_MAP = 5;
+
         static const int LIGHT_BUFFER = 4;
         static const int NORMAL_FITTING_MAP = 10;
     };
@@ -206,10 +209,12 @@ public:
     class Locations {
     public:
         int texcoordMatrices;
-        int diffuseTextureUnit;
+        int albedoTextureUnit;
         int normalTextureUnit;
-        int specularTextureUnit;
+        int roughnessTextureUnit;
+        int metallicTextureUnit;
         int emissiveTextureUnit;
+        int occlusionTextureUnit;
         int emissiveParams;
         int normalFittingMapUnit;
         int skinClusterBufferUnit;

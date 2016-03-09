@@ -63,6 +63,13 @@ void Item::PayloadInterface::addStatusGetters(const Status::Getters& getters) {
     }
 }
 
+void Item::update(const UpdateFunctorPointer& updateFunctor) {
+    if (updateFunctor) {
+        _payload->update(updateFunctor);
+    }
+    _key = _payload->getKey();
+}
+
 void Item::resetPayload(const PayloadPointer& payload) {
     if (!payload) {
         kill();

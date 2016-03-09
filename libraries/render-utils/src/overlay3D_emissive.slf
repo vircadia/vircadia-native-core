@@ -20,12 +20,12 @@ in vec3 _color;
 out vec4 _fragColor;
 
 void main(void) {
-    vec4 diffuse = texture(originalTexture, _texCoord0);
+    vec4 albedo = texture(originalTexture, _texCoord0);
 
-    if (diffuse.a <= 0.1) {
+    if (albedo.a <= 0.1) {
         discard;
     }
-    vec4 color = vec4(diffuse.rgb * _color, diffuse.a);
+    vec4 color = vec4(albedo.rgb * _color, albedo.a);
 
     // Apply standard tone mapping
     _fragColor = vec4(pow(color.xyz, vec3(1.0 / 2.2)), color.w);

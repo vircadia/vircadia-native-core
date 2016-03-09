@@ -272,7 +272,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
     float dt = (float)(numSteps) * PHYSICS_ENGINE_FIXED_SUBSTEP;
 
     if (_numInactiveUpdates > 0) {
-        const uint8_t MAX_NUM_INACTIVE_UPDATES = 3;
+        const uint8_t MAX_NUM_INACTIVE_UPDATES = 20;
         if (_numInactiveUpdates > MAX_NUM_INACTIVE_UPDATES) {
             // clear local ownership (stop sending updates) and let the server clear itself
             _entity->clearSimulationOwnership();
@@ -282,7 +282,7 @@ bool EntityMotionState::remoteSimulationOutOfSync(uint32_t simulationStep) {
         // until it is removed from the outgoing updates
         // (which happens when we don't own the simulation and it isn't touching our simulation)
         const float INACTIVE_UPDATE_PERIOD = 0.5f;
-        return (dt > INACTIVE_UPDATE_PERIOD);
+        return (dt > INACTIVE_UPDATE_PERIOD * (float)_numInactiveUpdates);
     }
 
     if (!_body->isActive()) {
@@ -404,8 +404,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
     assert(_entity);
     assert(entityTreeIsLocked());
 
-    bool active = _body->isActive();
-    if (!active) {
+    if (!_body->isActive()) {
         // make sure all derivatives are zero
         glm::vec3 zero(0.0f);
         _entity->setVelocity(zero);
@@ -495,16 +494,12 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, const Q
         qCDebug(physics) << "       lastSimulated:" << debugTime(lastSimulated, now);
     #endif //def WANT_DEBUG
 
-    if (sessionID == _entity->getSimulatorID()) {
-        // we think we own the simulation
-        if (!active) {
-            // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
-            // but we remember that we do still own it...  and rely on the server to tell us that we don't
-            properties.clearSimulationOwner();
-            _outgoingPriority = ZERO_SIMULATION_PRIORITY;
-        }
-        // else the ownership is not changing so we don't bother to pack it
-    } else {
+    if (_numInactiveUpdates > 0) {
+        // we own the simulation but the entity has stopped, so we tell the server that we're clearing simulatorID
+        // but we remember that we do still own it...  and rely on the server to tell us that we don't
+        properties.clearSimulationOwner();
+        _outgoingPriority = ZERO_SIMULATION_PRIORITY;
+    } else if (sessionID != _entity->getSimulatorID()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         properties.setSimulationOwner(sessionID, glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY));
         _nextOwnershipBid = now + USECS_BETWEEN_OWNERSHIP_BIDS;

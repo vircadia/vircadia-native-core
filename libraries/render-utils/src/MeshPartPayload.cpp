@@ -106,7 +106,7 @@ ShapeKey MeshPartPayload::getShapeKey() const {
     if (drawMaterialKey.isNormalMap()) {
         builder.withTangents();
     }
-    if (drawMaterialKey.isGlossMap()) {
+    if (drawMaterialKey.isMetallicMap()) {
         builder.withSpecular();
     }
     if (drawMaterialKey.isLightmapMap()) {
@@ -145,20 +145,34 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
     auto textureMaps = _drawMaterial->getTextureMaps();
     glm::mat4 texcoordTransform[2];
 
-    // Diffuse
-    if (materialKey.isDiffuseMap()) {
-        auto diffuseMap = textureMaps[model::MaterialKey::DIFFUSE_MAP];
-        if (diffuseMap && diffuseMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, diffuseMap->getTextureView());
+    // Albedo
+    if (materialKey.isAlbedoMap()) {
+        auto albedoMap = textureMaps[model::MaterialKey::ALBEDO_MAP];
+        if (albedoMap && albedoMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, albedoMap->getTextureView());
 
-            if (!diffuseMap->getTextureTransform().isIdentity()) {
-                diffuseMap->getTextureTransform().getMatrix(texcoordTransform[0]);
+            if (!albedoMap->getTextureTransform().isIdentity()) {
+                albedoMap->getTextureTransform().getMatrix(texcoordTransform[0]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getGrayTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::DIFFUSE_MAP, textureCache->getWhiteTexture());
+        batch.setResourceTexture(ShapePipeline::Slot::ALBEDO_MAP, textureCache->getWhiteTexture());
+    }
+
+    // Roughness map
+    if (materialKey.isRoughnessMap()) {
+        auto roughnessMap = textureMaps[model::MaterialKey::ROUGHNESS_MAP];
+        if (roughnessMap && roughnessMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, roughnessMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::ROUGHNESS_MAP, textureCache->getWhiteTexture());
     }
 
     // Normal map
@@ -167,7 +181,7 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         if (normalMap && normalMap->isDefined()) {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, normalMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
             batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, textureCache->getBlueTexture());
         }
@@ -175,26 +189,40 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
         batch.setResourceTexture(ShapePipeline::Slot::NORMAL_MAP, nullptr);
     }
 
-    // TODO: For now gloss map is used as the "specular map in the shading, we ll need to fix that
-    if (materialKey.isGlossMap()) {
-        auto specularMap = textureMaps[model::MaterialKey::GLOSS_MAP];
+    // Metallic map
+    if (materialKey.isMetallicMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::METALLIC_MAP];
         if (specularMap && specularMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, specularMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, specularMap->getTextureView());
 
-            // texcoord are assumed to be the same has diffuse
+            // texcoord are assumed to be the same has albedo
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, textureCache->getBlackTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::SPECULAR_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::METALLIC_MAP, nullptr);
     }
 
-    // TODO: For now lightmaop is piped into the emissive map unit, we need to fix that and support for real emissive too
+    // Occlusion map
+    if (materialKey.isOcclusionMap()) {
+        auto specularMap = textureMaps[model::MaterialKey::OCCLUSION_MAP];
+        if (specularMap && specularMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, specularMap->getTextureView());
+
+            // texcoord are assumed to be the same has albedo
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, textureCache->getWhiteTexture());
+        }
+    } else {
+        batch.setResourceTexture(ShapePipeline::Slot::OCCLUSION_MAP, nullptr);
+    }
+
+    // Emissive / Lightmap
     if (materialKey.isLightmapMap()) {
         auto lightmapMap = textureMaps[model::MaterialKey::LIGHTMAP_MAP];
 
         if (lightmapMap && lightmapMap->isDefined()) {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, lightmapMap->getTextureView());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, lightmapMap->getTextureView());
 
             auto lightmapOffsetScale = lightmapMap->getLightmapOffsetScale();
             batch._glUniform2f(locations->emissiveParams, lightmapOffsetScale.x, lightmapOffsetScale.y);
@@ -203,10 +231,18 @@ void MeshPartPayload::bindMaterial(gpu::Batch& batch, const ShapePipeline::Locat
                 lightmapMap->getTextureTransform().getMatrix(texcoordTransform[1]);
             }
         } else {
-            batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, textureCache->getGrayTexture());
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getGrayTexture());
+        }
+    } else if (materialKey.isEmissiveMap()) {
+        auto emissiveMap = textureMaps[model::MaterialKey::EMISSIVE_MAP];
+
+        if (emissiveMap && emissiveMap->isDefined()) {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, emissiveMap->getTextureView());
+        } else {
+            batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, textureCache->getBlackTexture());
         }
     } else {
-        batch.setResourceTexture(ShapePipeline::Slot::LIGHTMAP_MAP, nullptr);
+        batch.setResourceTexture(ShapePipeline::Slot::EMISSIVE_LIGHTMAP_MAP, nullptr);
     }
 
     // Texcoord transforms ?
@@ -378,7 +414,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 
     bool isTranslucent = drawMaterialKey.isTransparent() || drawMaterialKey.isTransparentMap();
     bool hasTangents = drawMaterialKey.isNormalMap() && !mesh.tangents.isEmpty();
-    bool hasSpecular = drawMaterialKey.isGlossMap();
+    bool hasSpecular = drawMaterialKey.isMetallicMap();
     bool hasLightmap = drawMaterialKey.isLightmapMap();
 
     bool isSkinned = _isSkinned;
@@ -413,9 +449,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
 void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
     if (!_isBlendShaped) {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
-        
+
         batch.setInputFormat((_drawMesh->getVertexFormat()));
-        
+
         batch.setInputStream(0, _drawMesh->getVertexStream());
     } else {
         batch.setIndexBuffer(gpu::UINT32, (_drawMesh->getIndexBuffer()._buffer), 0);
@@ -426,7 +462,7 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) const {
         batch.setInputBuffer(1, _model->_blendedVertexBuffers[_meshIndex], _drawMesh->getNumVertices() * sizeof(glm::vec3), sizeof(glm::vec3));
         batch.setInputStream(2, _drawMesh->getVertexStream().makeRangedStream(2));
     }
-    
+
     // TODO: Get rid of that extra call
     if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
@@ -474,17 +510,14 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
 #ifdef DEBUG_BOUNDING_PARTS
     {
         AABox partBounds = getPartBounds(_meshIndex, partIndex);
-        bool inView = args->_viewFrustum->boxInFrustum(partBounds) != ViewFrustum::OUTSIDE;
-        
-        glm::vec4 cubeColor;
+
+        glm::vec4 cubeColor(1.0f, 1.0f, 0.0f, 1.0f);
         if (isSkinned) {
             cubeColor = glm::vec4(0.0f, 1.0f, 1.0f, 1.0f);
-        } else if (inView) {
+        } else if (args->_viewFrustum->boxIntersectsFrustum(partBounds)) {
             cubeColor = glm::vec4(1.0f, 0.0f, 1.0f, 1.0f);
-        } else {
-            cubeColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
         }
-        
+
         Transform transform;
         transform.setTranslation(partBounds.calcCenter());
         transform.setScale(partBounds.getDimensions());
@@ -492,7 +525,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
         DependencyManager::get<GeometryCache>()->renderWireCube(batch, 1.0f, cubeColor);
     }
 #endif //def DEBUG_BOUNDING_PARTS
-    
+
     auto locations =  args->_pipeline->locations;
     assert(locations);
 
@@ -500,23 +533,23 @@ void ModelMeshPartPayload::render(RenderArgs* args) const {
     bool canCauterize = args->_renderMode != RenderArgs::SHADOW_RENDER_MODE;
     _model->updateClusterMatrices(_transform.getTranslation(), _transform.getRotation());
     bindTransform(batch, locations, canCauterize);
-    
+
     //Bind the index buffer and vertex buffer and Blend shapes if needed
     bindMesh(batch);
-    
+
     // apply material properties
     bindMaterial(batch, locations);
-        
+
     if (args) {
         args->_details._materialSwitches++;
     }
-    
+
     // Draw!
     {
         PerformanceTimer perfTimer("batch.drawIndexed()");
         drawCall(batch);
     }
-    
+
     if (args) {
         const int INDICES_PER_TRIANGLE = 3;
         args->_details._trianglesRendered += _drawPart._numIndices / INDICES_PER_TRIANGLE;
