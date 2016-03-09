@@ -498,6 +498,7 @@ bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
     // attempt to write to file
     if (writeMappingsToFile()) {
         // persistence succeeded, we are good to go
+        qDebug() << "Set mapping:" << path << "=>" << hash;
         return true;
     } else {
         // failed to persist this mapping to file - put back the old one in our in-memory representation
@@ -506,6 +507,8 @@ bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
         } else {
             _fileMappings[path] = oldMapping;
         }
+
+        qWarning() << "Failed to persist mapping:" << path << "=>" << hash;
 
         return false;
     }
@@ -578,8 +581,8 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
 
         // iterate the current mappings and adjust any that matches the renamed folder
         auto it = oldMappings.begin();
-        while (it != oldMappings.end()) {
 
+        while (it != oldMappings.end()) {
             if (it->toString().startsWith(oldPath)) {
                 auto oldKey = it.key();
                 auto newKey = oldKey.replace(0, oldPath.size(), newPath);
@@ -593,11 +596,15 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
         }
 
         if (writeMappingsToFile()) {
-            // persisted the changed mappings return success
+            // persisted the changed mappings, return success
+            qDebug() << "Renamed mapping:" << oldPath << "=>" << newPath;
+            
             return true;
         } else {
             // couldn't persist the renamed paths, rollback and return failure
             _fileMappings = oldMappings;
+
+            qWarning() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
 
             return false;
         }
@@ -610,10 +617,14 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
 
             if (writeMappingsToFile()) {
                 // persisted the renamed mapping, return success
+                qDebug() << "Renamed mapping:" << oldPath << "=>" << newPath;
+
                 return true;
             } else {
                 // we couldn't persist the renamed mapping, rollback and return failure
                 _fileMappings[oldPath] = oldMapping;
+
+                qDebug() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
 
                 return false;
             }
