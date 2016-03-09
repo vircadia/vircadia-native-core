@@ -24,6 +24,7 @@ ModalWindow {
 
     // For text boxes
     property alias placeholderText: textResult.placeholderText
+    property alias prefilledText: textResult.text
 
     // For combo boxes
     property bool editable: true;

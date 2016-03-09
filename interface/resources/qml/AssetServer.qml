@@ -34,7 +34,7 @@ Window {
 
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
-    property var currentDirectory: ""
+    property var currentDirectory;
 
     Settings {
         category: "Overlay.AssetServer"
@@ -43,29 +43,96 @@ Window {
         property alias directory: root.currentDirectory
     }
 
-
     function reload() {
         print("reload");
     }
-
-    function goBack() {
-        print("goBack");
+    function addToWorld() {
+        print("addToWorld");
     }
+    function renameFile() {
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        if (!path) {
+            return;
+        }
 
-    function uploadFile(fileUrl, addToScene) {
-        print("uploadFile: " + fileUrl + " " + addToScene);
+        var object = desktop.inputDialog({
+            label: "Enter new path:",
+            prefilledText: path,
+            placeholderText: "Enter path here"
+        });
+        object.selected.connect(function(destinationPath) {
+            console.log("Renaming " + path + " to " + destinationPath);
 
+
+
+
+
+        });
     }
-
     function deleteFile() {
-        print("deleteFile");
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        if (!path) {
+            return;
+        }
 
+        var object = desktop.messageBox({
+            icon: OriginalDialogs.StandardIcon.Question,
+            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.No,
+            text: "Deleting",
+            informativeText: "You are about to delete the following file:\n" +
+                             path +
+                             "\nDo you want to continue?"
+        });
+        object.selected.connect(function(button) {
+            if (button === OriginalDialogs.StandardButton.Yes) {
+                console.log("Deleting " + path);
+
+
+
+            }
+        });
+    }
+
+    function chooseClicked() {
+        var browser = desktop.fileDialog({
+            selectDirectory: false,
+            dir: currentDirectory
+        });
+        browser.selectedFile.connect(function(url){
+            fileUrlTextField.text = fileDialogHelper.urlToPath(url);
+            currentDirectory = browser.dir;
+        });
+    }
+
+    function uploadClicked() {
+        var fileUrl = fileUrlTextField.text
+        var addToWorld = addToWorldCheckBox.checked
+
+        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
+        var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
+
+        var object = desktop.inputDialog({
+            label: "Enter asset path:",
+            prefilledText: directory + filename,
+            placeholderText: "Enter path here"
+        });
+        object.selected.connect(function(destinationPath) {
+            console.log("Uploading " + fileUrl + " to " + destinationPath + " (addToWorld: " + addToWorld + ")");
+
+
+
+
+
+        });
     }
 
     Column {
         width: pane.contentWidth
 
         HifiControls.ContentSection {
+            id: assetDirectory
             name: "Asset Directory"
             spacing: hifi.dimensions.contentSpacing.y
             isFirst: true
@@ -77,16 +144,6 @@ Window {
                 spacing: hifi.dimensions.contentSpacing.x
 
                 HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.back
-                    color: hifi.buttons.white
-                    colorScheme: root.colorScheme
-                    height: 26
-                    width: 26
-
-                    onClicked: root.goBack()
-                }
-
-                HifiControls.GlyphButton {
                     glyph: hifi.glyphs.reload
                     color: hifi.buttons.white
                     colorScheme: root.colorScheme
@@ -95,23 +152,35 @@ Window {
 
                     onClicked: root.reload()
                 }
-            }
 
-            Item {
-                // Take the deleteButotn out of the column flow.
-                id: deleteButtonContainer
-                anchors.top: buttonRow.top
-                anchors.right: parent.right
+                HifiControls.Button {
+                    text: "ADD TO WORLD"
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    height: 26
+                    width: 120
+
+                    onClicked: root.addToWorld()
+                }
+
+                HifiControls.Button {
+                    text: "RENAME"
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    height: 26
+                    width: 80
+
+                    onClicked: root.renameFile()
+                }
 
                 HifiControls.Button {
                     id: deleteButton
-                    anchors.right: parent.right
 
-                    text: "DELETE SELECTION"
+                    text: "DELETE"
                     color: hifi.buttons.red
                     colorScheme: root.colorScheme
                     height: 26
-                    width: 130
+                    width: 80
 
                     onClicked: root.deleteFile()
                 }
@@ -119,7 +188,7 @@ Window {
 
             HifiControls.Tree {
                 id: treeView
-                height: 250
+                height: 400
                 treeModel: scriptsModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
@@ -128,16 +197,12 @@ Window {
         }
 
         HifiControls.ContentSection {
+            id: uploadSection
             name: ""
             spacing: hifi.dimensions.contentSpacing.y
 
-            Component {
-                id: fileBrowserBuilder;
-                FileDialog { selectDirectory: true }
-            }
-
             HifiControls.TextField {
-                id: fileUrl
+                id: fileUrlTextField
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.rightMargin: chooseButton.width + hifi.dimensions.contentSpacing.x
@@ -150,7 +215,7 @@ Window {
             Item {
                 // Take the chooseButton out of the column flow.
                 id: chooseButtonContainer
-                anchors.top: fileUrl.top
+                anchors.top: fileUrlTextField.top
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -164,33 +229,24 @@ Window {
 
                     width: 100
 
-                    onClicked: {
-                        var browser = fileBrowserBuilder.createObject(desktop, {
-                            selectDirectory: true,
-                            folder: fileDialogHelper.pathToUrl(currentDirectory)
-                        });
-                        browser.selectedFile.connect(function(url){
-                            console.log(url);
-                            fileUrl.text = fileDialogHelper.urlToPath(url);
-                        });
-                    }
+                    onClicked: root.chooseClicked()
                 }
             }
 
             HifiControls.CheckBox {
-                id: addToScene
+                id: addToWorldCheckBox
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.rightMargin: uploadButton.width + hifi.dimensions.contentSpacing.x
 
-                text: "Add to scene on upload"
+                text: "Add to world on upload"
                 checked: false
             }
 
             Item {
                 // Take the uploadButton out of the column flow.
                 id: uploadButtonContainer
-                anchors.top: addToScene.top
+                anchors.top: addToWorldCheckBox.top
                 anchors.right: parent.right
 
                 HifiControls.Button {
@@ -203,10 +259,12 @@ Window {
                     height: 30
                     width: 155
 
-                    enabled: fileUrl.text != ""
-                    onClicked: root.uploadFile(fileUrl.text, addToScene.checked)
+                    enabled: fileUrlTextField.text != ""
+                    onClicked: root.uploadClicked()
                 }
             }
+
+            HifiControls.VerticalSpacer {}
         }
     }
 }
