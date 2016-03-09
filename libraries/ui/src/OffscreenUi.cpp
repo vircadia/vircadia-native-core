@@ -326,8 +326,8 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
         QVariant result;
         QMetaObject::invokeMethod(this, "inputDialog", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QVariant, result),
-            Q_ARG(QString, title),
             Q_ARG(Icon, icon),
+            Q_ARG(QString, title),
             Q_ARG(QString, label),
             Q_ARG(QVariant, current));
         return result;
