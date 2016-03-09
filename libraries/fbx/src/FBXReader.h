@@ -138,15 +138,15 @@ public:
         opacity(opacity)  {}
 
     glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor = 1.0f;
+    float diffuseFactor{ 1.0f };
     glm::vec3 specularColor{ 0.02f };
-    float specularFactor = 1.0f;
+    float specularFactor{ 1.0f };
 
     glm::vec3 emissiveColor{ 0.0f };
-    float emissiveFactor = 0.0f;
+    float emissiveFactor{ 0.0f };
 
-    float shininess = 23.0f;
-    float opacity = 1.0f;
+    float shininess{ 23.0f };
+    float opacity{ 1.0f };
 
     float metallic{ 0.0f };
     float roughness{ 1.0f };

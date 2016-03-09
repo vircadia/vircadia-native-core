@@ -80,10 +80,12 @@ void FBXReader::consolidateFBXMaterials() {
         QString diffuseFactorTextureID = diffuseFactorTextures.value(material.materialID);
 
         if (!diffuseFactorTextureID.isNull() || !diffuseTextureID.isNull()) {
-            // If both factor and color are specified, color wins
+            // If both factor and color are specified, the texture bound to DiffuseColor wins
             if (!diffuseFactorTextureID.isNull() && diffuseTextureID.isNull()) {
                 diffuseTextureID = diffuseFactorTextureID;
-                // Avoid the DiffuseFactor effect in this case because here Maya would put 0.5...
+                // If the diffuseTextureID comes from the Texture bound to DiffuseFactor, we know it s exported from maya
+                // And the DiffuseFactor is forced to 0.5 by Maya which is bad
+                // So we need to force it to 1.0
                 material.diffuseFactor = 1.0;
             }
 
@@ -190,10 +192,13 @@ void FBXReader::consolidateFBXMaterials() {
 
         // Finally create the true material representation
         material._material = std::make_shared<model::Material>();
-        material._material->setEmissive(material.emissiveColor * material.emissiveFactor);
 
-        // Do not use the Diffuse Factor from FBX at all, this simpliies the export path
-        auto diffuse = material.diffuseColor;
+        // Emissive color is the mix of emissiveColor with emissiveFactor
+        auto emissive = material.emissiveColor * material.emissiveFactor;
+        material._material->setEmissive(emissive);
+
+        // Final diffuse color is the mix of diffuseColor with diffuseFactor
+        auto diffuse = material.diffuseColor * material.diffuseFactor;
         material._material->setAlbedo(diffuse);
 
         if (material.isPBSMaterial) {
