@@ -50,15 +50,35 @@ Window {
         print("addToWorld");
     }
     function renameFile() {
-        print("renameFile");
+        var object = desktop.inputDialog({
+            label: "Enter new path:",
+            prefilledText: "atp:/myFolder/myFile.ext",
+            placeholderText: "Enter path here"
+        });
+        object.selected.connect(function(destinationPath) {
+            console.log("Renaming " + "fileUrl" + " to " + destinationPath);
+
+
+
+
+
+        });
     }
     function deleteFile() {
-        print("deleteFile");
+        var object = desktop.messageBox({
+            text: "Deleting",
+            informativeText: "You are about to delete the following file:\n" + "test" + "\nDo you want to continue?"
+        });
+        object.selected.connect(function(button) {
 
+
+
+
+        });
     }
 
     function chooseClicked() {
-        var browser = fileBrowserBuilder.createObject(desktop, {
+        var browser = desktop.fileDialog({
             selectDirectory: false,
             folder: fileDialogHelper.pathToUrl(currentDirectory)
         });
@@ -66,6 +86,8 @@ Window {
             console.log(url);
             fileUrlTextField.text = fileDialogHelper.urlToPath(url);
         });
+
+
 
     }
 
@@ -160,11 +182,6 @@ Window {
             id: uploadSection
             name: ""
             spacing: hifi.dimensions.contentSpacing.y
-
-            Component {
-                id: fileBrowserBuilder;
-                FileDialog { selectDirectory: true }
-            }
 
             HifiControls.TextField {
                 id: fileUrlTextField
