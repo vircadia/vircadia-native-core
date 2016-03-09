@@ -41,11 +41,19 @@ public:
     QQuickItem* getDesktop();
     QQuickItem* getToolWindow();
 
+    enum Icon {
+        ICON_NONE = 0,
+        ICON_QUESTION,
+        ICON_INFORMATION,
+        ICON_WARNING,
+        ICON_CRITICAL,
+        ICON_PLACEMARK
+    };
 
     // Message box compatibility
-    Q_INVOKABLE QMessageBox::StandardButton messageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    Q_INVOKABLE QMessageBox::StandardButton messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
-    QQuickItem* createMessageBox(QMessageBox::Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
+    QQuickItem* createMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton);
     // Must be called from the main thread
     Q_INVOKABLE int waitForMessageBoxResult(QQuickItem* messageBox);
 
@@ -95,16 +103,25 @@ public:
     // Compatibility with QFileDialog::getSaveFileName
     static QString getSaveFileName(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
-
-    // input dialog compatibility
-    Q_INVOKABLE QVariant inputDialog(const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
-    QQuickItem* createInputDialog(const QString& title, const QString& label, const QVariant& current);
+    Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
+    QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);
     QVariant waitForInputDialogResult(QQuickItem* inputDialog);
 
     // Compatibility with QInputDialog::getText
-    static QString getText(void* ignored, const QString & title, const QString & label, QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
+    static QString getText(void* ignored, const QString & title, const QString & label,
+        QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0,
+        Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
+        return getText(OffscreenUi::ICON_NONE, title, label, text, ok);
+    }
     // Compatibility with QInputDialog::getItem
-    static QString getItem(void *ignored, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone);
+    static QString getItem(void *ignored, const QString & title, const QString & label, const QStringList & items,
+        int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0,
+        Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
+        return getItem(OffscreenUi::ICON_NONE, title, label, items, current, editable, ok);
+    }
+
+    static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
+    static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
 
 signals:
     void showDesktop();

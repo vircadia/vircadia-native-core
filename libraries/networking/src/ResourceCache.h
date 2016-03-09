@@ -192,6 +192,9 @@ protected slots:
 protected:
     virtual void init();
 
+    /// Checks whether the resource is cacheable.
+    virtual bool isCacheable() const { return true; }
+
     /// Called when the download has finished
     virtual void downloadFinished(const QByteArray& data);
 
