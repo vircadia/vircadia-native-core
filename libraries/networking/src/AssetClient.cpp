@@ -31,6 +31,150 @@
 
 MessageID AssetClient::_currentID = 0;
 
+void MappingRequest::start() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "start", Qt::AutoConnection);
+        return;
+    }
+    doStart();
+};
+
+GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path) {
+};
+
+void GetMappingRequest::doStart() {
+
+    auto assetClient = DependencyManager::get<AssetClient>();
+
+    // Check cache
+    auto it = assetClient->_mappingCache.constFind(_path);
+    if (it != assetClient->_mappingCache.constEnd()) {
+        _hash = it.value();
+        emit finished(this);
+        return;
+    }
+
+    assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::AssetNotFound:
+                    _error = NotFound;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (!_error) {
+            _hash = message->read(SHA256_HASH_LENGTH).toHex();
+            assetClient->_mappingCache[_path] = _hash;
+        }
+        emit finished(this);
+    });
+};
+
+GetAllMappingsRequest::GetAllMappingsRequest() {
+};
+
+void GetAllMappingsRequest::doStart() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->getAllAssetMappings([this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+
+        if (!error) {
+            int numberOfMappings;
+            message->readPrimitive(&numberOfMappings);
+            assetClient->_mappingCache.clear();
+            for (auto i = 0; i < numberOfMappings; ++i) {
+                auto path = message->readString();
+                auto hash = message->read(SHA256_HASH_LENGTH).toHex();
+                _mappings[path] = hash;
+                assetClient->_mappingCache[path] = hash;
+            }
+        }
+        emit finished(this);
+    });
+};
+
+SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) : _path(path), _hash(hash) {
+};
+
+void SetMappingRequest::doStart() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::PermissionDenied:
+                    _error = PermissionDenied;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (!error) {
+            assetClient->_mappingCache[_path] = _hash;
+        }
+        emit finished(this);
+    });
+};
+
+DeleteMappingsRequest::DeleteMappingsRequest(const AssetPathList& paths) : _paths(paths) {
+};
+
+void DeleteMappingsRequest::doStart() {
+    auto assetClient = DependencyManager::get<AssetClient>();
+    assetClient->deleteAssetMappings(_paths, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
+        if (!responseReceived) {
+            _error = NetworkError;
+        } else {
+            switch (error) {
+                case AssetServerError::NoError:
+                    _error = NoError;
+                    break;
+                case AssetServerError::PermissionDenied:
+                    _error = PermissionDenied;
+                    break;
+                default:
+                    _error = UnknownError;
+                    break;
+            }
+        }
+
+        if (!error) {
+            // enumerate the paths and remove them from the cache
+            for (auto& path : _paths) {
+                assetClient->_mappingCache.remove(path);
+            }
+        }
+        emit finished(this);
+    });
+};
+
 AssetClient::AssetClient() {
     
     setCustomDeleter([](Dependency* dependency){
