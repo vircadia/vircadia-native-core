@@ -32,7 +32,7 @@ static const uint64_t MAX_LOG_AGE_USECS = USECS_PER_SECOND * 3600;
 
 QString getLogRollerFilename() {
     QString result = FileUtils::standardPath(LOGS_DIRECTORY);
-    QHostAddress clientAddress = getLocalAddress();
+    QHostAddress clientAddress = getGuessedLocalAddress();
     QDateTime now = QDateTime::currentDateTime();
     result.append(QString(FILENAME_FORMAT).arg(clientAddress.toString(), now.toString(DATETIME_FORMAT)));
     return result;

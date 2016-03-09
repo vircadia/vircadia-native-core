@@ -120,6 +120,7 @@
 #include <recording/Recorder.h>
 #include <QmlWebWindowClass.h>
 #include <Preferences.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "AnimDebugDraw.h"
 #include "AudioClient.h"
@@ -376,6 +377,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
+    DependencyManager::set<CompositorHelper>();
     return true;
 }
 
@@ -770,7 +772,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
         }
 
         if (action == controller::toInt(controller::Action::RETICLE_CLICK)) {
-            auto reticlePos = _compositor.getReticlePosition();
+            auto reticlePos = getApplicationCompositor().getReticlePosition();
             QPoint globalPos(reticlePos.x, reticlePos.y);
 
             // FIXME - it would be nice if this was self contained in the _compositor or Reticle class
@@ -793,14 +795,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             } else if (action == controller::toInt(controller::Action::CYCLE_CAMERA)) {
                 cycleCamera();
             } else if (action == controller::toInt(controller::Action::CONTEXT_MENU)) {
-                auto reticlePosition = _compositor.getReticlePosition();
+                auto reticlePosition = getApplicationCompositor().getReticlePosition();
                 offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
             } else if (action == controller::toInt(controller::Action::RETICLE_X)) {
-                auto oldPos = _compositor.getReticlePosition();
-                _compositor.setReticlePosition({ oldPos.x + state, oldPos.y });
+                auto oldPos = getApplicationCompositor().getReticlePosition();
+                getApplicationCompositor().setReticlePosition({ oldPos.x + state, oldPos.y });
             } else if (action == controller::toInt(controller::Action::RETICLE_Y)) {
-                auto oldPos = _compositor.getReticlePosition();
-                _compositor.setReticlePosition({ oldPos.x, oldPos.y + state });
+                auto oldPos = getApplicationCompositor().getReticlePosition();
+                getApplicationCompositor().setReticlePosition({ oldPos.x, oldPos.y + state });
             } else if (action == controller::toInt(controller::Action::TOGGLE_OVERLAY)) {
                 toggleOverlays();
             }
@@ -1253,17 +1255,17 @@ void Application::initializeUi() {
     rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
-    rootContext->setContextProperty("Reticle", _compositor.getReticleInterface());
+    rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
 
-    rootContext->setContextProperty("ApplicationCompositor", &_compositor);
+    rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     _glWidget->installEventFilter(offscreenUi.data());
     offscreenUi->setMouseTranslator([=](const QPointF& pt) {
         QPointF result = pt;
         auto displayPlugin = getActiveDisplayPlugin();
         if (displayPlugin->isHmd()) {
-            _compositor.handleRealMouseMoveEvent(false);
-            auto resultVec = _compositor.getReticlePosition();
+            getApplicationCompositor().handleRealMouseMoveEvent(false);
+            auto resultVec = getApplicationCompositor().getReticlePosition();
             result = QPointF(resultVec.x, resultVec.y);
         }
         return result.toPoint();
@@ -1287,7 +1289,15 @@ void Application::initializeUi() {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
+    Menu::setInstance();
     updateInputModes();
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, [=] {
+        if (isHMDMode()) {
+            showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
+        }
+    });
 }
 
 void Application::paintGL() {
@@ -1381,9 +1391,10 @@ void Application::paintGL() {
         QSize size = getDeviceSize();
         renderArgs._viewport = glm::ivec4(0, 0, size.width(), size.height());
         _applicationOverlay.renderOverlay(&renderArgs);
-        gpu::FramebufferPointer overlayFramebuffer = _applicationOverlay.getOverlayFramebuffer();
-
-
+        auto overlayTexture = _applicationOverlay.acquireOverlay();
+        if (overlayTexture) {
+            displayPlugin->submitOverlayTexture(overlayTexture);
+        }
     }
 
     glm::vec3 boomOffset;
@@ -1484,6 +1495,8 @@ void Application::paintGL() {
         myAvatar->endCapture();
     }
 
+    getApplicationCompositor().setFrameInfo(_frameCount, _myCamera.getTransform());
+
     // Primary rendering pass
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
     const QSize size = framebufferCache->getFrameBufferSize();
@@ -1536,7 +1549,7 @@ void Application::paintGL() {
                 mat4 eyeOffsetTransform = glm::translate(mat4(), eyeOffset * -1.0f * IPDScale);
                 eyeOffsets[eye] = eyeOffsetTransform;
 
-                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose);
+                displayPlugin->setEyeRenderPose(_frameCount, eye, headPose * glm::inverse(eyeOffsetTransform));
 
                 eyeProjections[eye] = displayPlugin->getEyeProjection(eye, baseProjection);
             });
@@ -1550,44 +1563,12 @@ void Application::paintGL() {
         renderArgs._context->enableStereo(false);
     }
 
-    // Overlay Composition, needs to occur after screen space effects have completed
-    // FIXME migrate composition into the display plugins
-    {
-        PROFILE_RANGE(__FUNCTION__ "/compositor");
-        PerformanceTimer perfTimer("compositor");
-
-        auto primaryFbo = finalFramebuffer;
-
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gpu::GLBackend::getFramebufferID(primaryFbo));
-        if (displayPlugin->isStereo()) {
-            QRect currentViewport(QPoint(0, 0), QSize(size.width() / 2, size.height()));
-            glClear(GL_DEPTH_BUFFER_BIT);
-            for_each_eye([&](Eye eye) {
-                renderArgs._viewport = toGlm(currentViewport);
-                if (displayPlugin->isHmd()) {
-                    _compositor.displayOverlayTextureHmd(&renderArgs, eye);
-                } else {
-                    _compositor.displayOverlayTexture(&renderArgs);
-                }
-            }, [&] {
-                currentViewport.moveLeft(currentViewport.width());
-            });
-        } else {
-            glViewport(0, 0, size.width(), size.height());
-            _compositor.displayOverlayTexture(&renderArgs);
-        }
-    }
-
     // deliver final composited scene to the display plugin
     {
         PROFILE_RANGE(__FUNCTION__ "/pluginOutput");
         PerformanceTimer perfTimer("pluginOutput");
 
-        auto finalTexturePointer = finalFramebuffer->getRenderBuffer(0);
-
-        GLuint finalTexture = gpu::GLBackend::getTextureID(finalTexturePointer);
-        Q_ASSERT(0 != finalTexture);
-
+        auto finalTexture = finalFramebuffer->getRenderBuffer(0);
         Q_ASSERT(!_lockedFramebufferMap.contains(finalTexture));
         _lockedFramebufferMap[finalTexture] = finalFramebuffer;
 
@@ -1595,10 +1576,9 @@ void Application::paintGL() {
         {
             PROFILE_RANGE(__FUNCTION__ "/pluginSubmitScene");
             PerformanceTimer perfTimer("pluginSubmitScene");
-            displayPlugin->submitSceneTexture(_frameCount, finalTexture, toGlm(size));
+            displayPlugin->submitSceneTexture(_frameCount, finalTexture);
         }
         Q_ASSERT(isCurrentContext(_offscreenContext->getContext()));
-
     }
 
     {
@@ -1795,7 +1775,7 @@ bool Application::event(QEvent* event) {
 bool Application::eventFilter(QObject* object, QEvent* event) {
 
     if (event->type() == QEvent::Leave) {
-        _compositor.handleLeaveEvent();
+        getApplicationCompositor().handleLeaveEvent();
     }
 
     if (event->type() == QEvent::ShortcutOverride) {
@@ -2083,7 +2063,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Alt && _altPressed && hasFocus()) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto reticlePosition = _compositor.getReticlePosition();
+        auto reticlePosition = getApplicationCompositor().getReticlePosition();
         offscreenUi->toggleMenu(_glWidget->mapFromGlobal(QPoint(reticlePosition.x, reticlePosition.y)));
     }
 
@@ -2172,14 +2152,6 @@ void Application::maybeToggleMenuVisible(QMouseEvent* event) {
 #endif
 }
 
-/// called by ApplicationCompositor when in HMD mode and we're faking our mouse movement
-void Application::fakeMouseEvent(int type, int x, int y, uint32_t button, uint32_t buttons, uint32_t modifiers) {
-    _fakedMouseEvent = true;
-    QMouseEvent event(QEvent::MouseMove, QPoint(x, y), (Qt::MouseButton)button, (Qt::MouseButtons)buttons, (Qt::KeyboardModifiers)modifiers);
-    sendEvent(_glWidget, &event);
-    _fakedMouseEvent = false;
-}
-
 void Application::mouseMoveEvent(QMouseEvent* event) {
     PROFILE_RANGE(__FUNCTION__);
 
@@ -2189,17 +2161,16 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
     maybeToggleMenuVisible(event);
 
+    auto& compositor = getApplicationCompositor();
     // if this is a real mouse event, and we're in HMD mode, then we should use it to move the 
     // compositor reticle
-    if (!_fakedMouseEvent) {
-        // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
-        if (_compositor.handleRealMouseMoveEvent()) {
-            return; // bail
-        }
+    // handleRealMouseMoveEvent() will return true, if we shouldn't process the event further
+    if (!compositor.fakeEventActive() && compositor.handleRealMouseMoveEvent()) {
+        return; // bail
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto eventPosition = _compositor.getMouseEventPosition(event);
+    auto eventPosition = compositor.getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     auto button = event->button();
     auto buttons = event->buttons();
@@ -2241,7 +2212,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
     // will consume all keyboard events.
     offscreenUi->unfocusWindows();
 
-    auto eventPosition = _compositor.getMouseEventPosition(event);
+    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
@@ -2287,7 +2258,7 @@ void Application::mouseDoublePressEvent(QMouseEvent* event) {
 void Application::mouseReleaseEvent(QMouseEvent* event) {
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto eventPosition = _compositor.getMouseEventPosition(event);
+    auto eventPosition = getApplicationCompositor().getMouseEventPosition(event);
     QPointF transformedPos = offscreenUi->mapToVirtualScreen(eventPosition, _glWidget);
     QMouseEvent mappedEvent(event->type(),
         transformedPos,
@@ -2570,7 +2541,7 @@ void Application::setLowVelocityFilter(bool lowVelocityFilter) {
 }
 
 ivec2 Application::getMouse() {
-    auto reticlePosition = _compositor.getReticlePosition();
+    auto reticlePosition = getApplicationCompositor().getReticlePosition();
 
     // in the HMD, the reticlePosition is the mouse position
     if (isHMDMode()) {
@@ -4209,7 +4180,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Render", _renderEngine->getConfiguration().get());
 
     scriptEngine->registerGlobalObject("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-    scriptEngine->registerGlobalObject("Reticle", _compositor.getReticleInterface());
+    scriptEngine->registerGlobalObject("Reticle", getApplicationCompositor().getReticleInterface());
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -4710,7 +4681,7 @@ static void addDisplayPluginToMenu(DisplayPluginPointer displayPlugin, bool acti
     auto action = menu->addActionToQMenuAndActionHash(parent,
         name, 0, qApp,
         SLOT(updateDisplayMode()),
-        QAction::NoRole, UNSPECIFIED_POSITION, groupingMenu);
+        QAction::NoRole, Menu::UNSPECIFIED_POSITION, groupingMenu);
 
     action->setCheckable(true);
     action->setChecked(active);
@@ -4815,6 +4786,7 @@ void Application::updateDisplayMode() {
 
     oldDisplayPlugin = _displayPlugin;
     _displayPlugin = newDisplayPlugin;
+    getApplicationCompositor().setDisplayPlugin(_displayPlugin);
 
     // If the displayPlugin is a screen based HMD, then it will want the HMDTools displayed
     // Direct Mode HMDs (like windows Oculus) will be isHmd() but will have a screen of -1
@@ -5031,4 +5003,8 @@ void Application::showDesktop() {
     if (!_overlayConductor.getEnabled()) {
         _overlayConductor.setEnabled(true);
     }
+}
+
+CompositorHelper& Application::getApplicationCompositor() const {
+    return *DependencyManager::get<CompositorHelper>();
 }

@@ -35,9 +35,9 @@ void Basic2DWindowOpenGLDisplayPlugin::activate() {
     updateFramerate();
 }
 
-void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
+void Basic2DWindowOpenGLDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
     _wantVsync = true; // always
-    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture, sceneSize);
+    WindowOpenGLDisplayPlugin::submitSceneTexture(frameIndex, sceneTexture);
 }
 
 void Basic2DWindowOpenGLDisplayPlugin::internalPresent() {

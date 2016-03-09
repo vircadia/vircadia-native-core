@@ -170,7 +170,7 @@ bool PluginContainerProxy::makeRenderingContextCurrent() {
     return qApp->_offscreenContext->makeCurrent();
 }
 
-void PluginContainerProxy::releaseSceneTexture(uint32_t texture) {
+void PluginContainerProxy::releaseSceneTexture(const gpu::TexturePointer& texture) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
     auto& framebufferMap = qApp->_lockedFramebufferMap;
     Q_ASSERT(framebufferMap.contains(texture));
@@ -180,8 +180,8 @@ void PluginContainerProxy::releaseSceneTexture(uint32_t texture) {
     framebufferCache->releaseFramebuffer(framebufferPointer);
 }
 
-void PluginContainerProxy::releaseOverlayTexture(uint32_t texture) {
-    // FIXME implement present thread compositing
+void PluginContainerProxy::releaseOverlayTexture(const gpu::TexturePointer& texture) {
+    qApp->_applicationOverlay.releaseOverlay(texture);
 }
 
 /// settings interface

@@ -51,7 +51,6 @@
 #include "render/Engine.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/DialogsManagerScriptingInterface.h"
-#include "ui/ApplicationCompositor.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/AudioStatsDialog.h"
 #include "ui/BandwidthDialog.h"
@@ -67,6 +66,7 @@ class GLCanvas;
 class FaceTracker;
 class MainWindow;
 class AssetUpload;
+class CompositorHelper;
 
 namespace controller {
     class StateController;
@@ -125,6 +125,7 @@ public:
     bool isThrottleRendering() const;
 
     Camera* getCamera() { return &_myCamera; }
+    const Camera* getCamera() const { return &_myCamera; }
     // Represents the current view frustum of the avatar.
     ViewFrustum* getViewFrustum();
     const ViewFrustum* getViewFrustum() const;
@@ -149,8 +150,7 @@ public:
 
     ApplicationOverlay& getApplicationOverlay() { return _applicationOverlay; }
     const ApplicationOverlay& getApplicationOverlay() const { return _applicationOverlay; }
-    ApplicationCompositor& getApplicationCompositor() { return _compositor; }
-    const ApplicationCompositor& getApplicationCompositor() const { return _compositor; }
+    CompositorHelper& getApplicationCompositor() const;
 
     Overlays& getOverlays() { return _overlays; }
 
@@ -281,8 +281,6 @@ public slots:
 
     void runTests();
 
-    void fakeMouseEvent(int type, int x, int y, quint32 button, quint32 buttons, quint32 modifiers);
-
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
@@ -390,7 +388,7 @@ private:
     InputPluginList _activeInputPlugins;
 
     bool _activatingDisplayPlugin { false };
-    QMap<uint32_t, gpu::FramebufferPointer> _lockedFramebufferMap;
+    QMap<gpu::TexturePointer, gpu::FramebufferPointer> _lockedFramebufferMap;
 
     MainWindow* _window;
 
@@ -484,7 +482,6 @@ private:
 
     Overlays _overlays;
     ApplicationOverlay _applicationOverlay;
-    ApplicationCompositor _compositor;
     OverlayConductor _overlayConductor;
 
     DialogsManagerScriptingInterface* _dialogsManagerScriptingInterface = new DialogsManagerScriptingInterface();

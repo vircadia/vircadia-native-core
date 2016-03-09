@@ -224,6 +224,12 @@ void Stats::updateStats(bool force) {
             } else {
                 sendingModeStream << "S";
             }
+            if (stats.isFullScene()) {
+                sendingModeStream << "F";
+            }
+            else {
+                sendingModeStream << "p";
+            }
         }
 
         // calculate server node totals

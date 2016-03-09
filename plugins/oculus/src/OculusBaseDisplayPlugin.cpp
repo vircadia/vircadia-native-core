@@ -26,31 +26,7 @@ glm::mat4 OculusBaseDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
 }
 
 bool OculusBaseDisplayPlugin::isSupported() const {
-    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-        qDebug() << "OculusBaseDisplayPlugin : ovr_Initialize() failed";
-        return false;
-    }
-
-    ovrSession session { nullptr };
-    ovrGraphicsLuid luid;
-    auto result = ovr_Create(&session, &luid);
-    if (!OVR_SUCCESS(result)) {
-        ovrErrorInfo error;
-        ovr_GetLastErrorInfo(&error);
-        qDebug() << "OculusBaseDisplayPlugin : ovr_Create() failed" << result << error.Result << error.ErrorString;
-        ovr_Shutdown();
-        return false;
-    }
-
-    auto hmdDesc = ovr_GetHmdDesc(session);
-    if (hmdDesc.Type == ovrHmd_None) {
-        ovr_Destroy(session);
-        ovr_Shutdown();
-        return false;
-    }
-
-    ovr_Shutdown();
-    return true;
+    return oculusAvailable();
 }
 
 // DLL based display plugins MUST initialize GLEW inside the DLL code.
@@ -68,15 +44,7 @@ void OculusBaseDisplayPlugin::deinit() {
 }
 
 void OculusBaseDisplayPlugin::activate() {
-    if (!OVR_SUCCESS(ovr_Initialize(nullptr))) {
-        qFatal("Could not init OVR");
-    }
-
-    if (!OVR_SUCCESS(ovr_Create(&_session, &_luid))) {
-        qFatal("Failed to acquire HMD");
-    }
-
-    HmdDisplayPlugin::activate();
+    _session = acquireOculusSession();
 
     _hmdDesc = ovr_GetHmdDesc(_session);
 
@@ -123,11 +91,15 @@ void OculusBaseDisplayPlugin::activate() {
         ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0))) {
         qFatal("Could not attach to sensor device");
     }
+
+    // This must come after the initialization, so that the values calculated 
+    // above are available during the customizeContext call (when not running
+    // in threaded present mode)
+    HmdDisplayPlugin::activate();
 }
 
 void OculusBaseDisplayPlugin::deactivate() {
     HmdDisplayPlugin::deactivate();
-    ovr_Destroy(_session);
+    releaseOculusSession();
     _session = nullptr;
-    ovr_Shutdown();
 }
