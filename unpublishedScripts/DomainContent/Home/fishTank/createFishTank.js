@@ -1,11 +1,13 @@
-var fishTank, bubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
+var fishTank, tankBase, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
 
 var CLEANUP = true;
+
 var TANK_DIMENSIONS = {
-    x: 1.3393,
-    y: 1.3515,
-    z: 3.5914
+    x: 0.8212,
+    y: 0.8116,
+    z: 2.1404
 };
+
 
 var INNER_TANK_SCALE = 0.7;
 var INNER_TANK_DIMENSIONS = Vec3.multiply(INNER_TANK_SCALE, TANK_DIMENSIONS);
@@ -25,12 +27,24 @@ var TANK_POSITION = center;
 
 var TANK_SCRIPT = Script.resolvePath('tank.js?' + Math.random())
 
-var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquarium-6.fbx";
+var TANK_MODEL_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumTank.fbx";
 
-var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x;
+var TANK_BASE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumBase.fbx';
+
+var TANK_BASE_COLLISION_HULL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/aquariumBase.obj'
+
+var TANK_BASE_DIMENSIONS = {
+    x: 0.8599,
+    y: 1.8450,
+    z: 2.1936
+};
+
+var BASE_VERTICAL_OFFSET = 0.42;
+
+var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
 //depth of tank
-var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.15;
-var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.5;
+var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
+var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.25;
 
 var BUBBLE_SYSTEM_DIMENSIONS = {
     x: TANK_DIMENSIONS.x / 8,
@@ -44,7 +58,7 @@ var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 var URCHIN_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
 //depth of tank
 var URCHIN_LATERAL_OFFSET = -0.15;
-var URCHIN_VERTICAL_OFFSET = -0.37;
+var URCHIN_VERTICAL_OFFSET = -0.17;
 
 var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
 
@@ -54,7 +68,7 @@ var URCHIN_DIMENSIONS = {
     z: 0.35
 }
 
-var ROCKS_FORWARD_OFFSET = (TANK_DIMENSIONS.x / 2) - 0.75;
+var ROCKS_FORWARD_OFFSET = 0;
 //depth of tank
 var ROCKS_LATERAL_OFFSET = 0.0;
 var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
@@ -62,9 +76,9 @@ var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
 var ROCK_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Aquarium-Rocks-2.fbx';
 
 var ROCK_DIMENSIONS = {
-    x: 0.88,
+    x: 0.707,
     y: 0.33,
-    z: 2.9
+    z: 1.64
 }
 
 function createFishTank() {
@@ -83,12 +97,11 @@ function createFishTank() {
     fishTank = Entities.addEntity(tankProperties);
 }
 
-function createBubbleSystem() {
+function createBubbleSystems() {
 
     var tankProperties = Entities.getEntityProperties(fishTank);
     var bubbleProperties = {
         "name": 'hifi-home-fishtank-bubbles',
-        "color": {},
         "isEmitting": 1,
         "maxParticles": 1880,
         "lifespan": 1.6,
@@ -103,7 +116,7 @@ function createBubbleSystem() {
         },
         "emitDimensions": {
             "x": -0.2,
-            "y": 1.6000000000000002,
+            "y": TANK_DIMENSIONS.y,
             "z": 0
         },
         "polarStart": 0,
@@ -124,9 +137,6 @@ function createBubbleSystem() {
         "radiusSpread": 0,
         "radiusStart": 0.043,
         "radiusFinish": 0.02,
-        "colorSpread": {},
-        "colorStart": {},
-        "colorFinish": {},
         "alpha": 0.2,
         "alphaSpread": 0,
         "alphaStart": 0.3,
@@ -142,10 +152,14 @@ function createBubbleSystem() {
     var finalOffset = getOffsetFromTankCenter(BUBBLE_SYSTEM_VERTICAL_OFFSET, BUBBLE_SYSTEM_FORWARD_OFFSET, BUBBLE_SYSTEM_LATERAL_OFFSET);
 
     bubbleProperties.position = finalOffset;
-
     bubbleSystem = Entities.addEntity(bubbleProperties);
+
+    bubbleProperties.position.z += -0.076;
+    secondBubbleSystem = Entities.addEntity(bubbleProperties)
+
     createBubbleSound(finalOffset);
 }
+
 
 
 function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
@@ -163,13 +177,12 @@ function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET
     var finalOffset = Vec3.sum(tankProperties.position, upOffset);
     finalOffset = Vec3.sum(finalOffset, frontOffset);
     finalOffset = Vec3.sum(finalOffset, rightOffset);
-    print('final offset is: ' + finalOffset)
     return finalOffset
 }
 
 function createBubbleSound(position) {
     var audioProperties = {
-        volume: 1,
+        volume: 0.05,
         position: position,
         loop: true
     };
@@ -245,8 +258,7 @@ function createEntitiesAtCorners() {
 
     lowerCorner = Entities.addEntity(lowerProps);
     upperCorner = Entities.addEntity(upperProps);
-    print('CORNERS :::' + JSON.stringify(upperCorner))
-    print('CORNERS :::' + JSON.stringify(lowerCorner))
+
 }
 
 function createRocks() {
@@ -281,21 +293,37 @@ function createUrchin() {
 
 }
 
+function createTankBase() {
+    var properties = {
+        name: 'hifi-home-fishtank-base',
+        type: 'Model',
+        modelURL: TANK_BASE_MODEL_URL,
+        parentID: fishTank,
+        shapeType: 'compound',
+        compoundShapeURL: TANK_BASE_COLLISION_HULL,
+        position: {
+            x: TANK_POSITION.x,
+            y: TANK_POSITION.y - BASE_VERTICAL_OFFSET,
+            z: TANK_POSITION.z
+        },
+        dimensions: TANK_BASE_DIMENSIONS
+    }
+    tankBase = Entities.addEntity(properties);
+}
 
 createFishTank();
 
 createInnerContainer();
 
-createBubbleSystem();
+createBubbleSystems();
 
 createEntitiesAtCorners();
-
-createBubbleSound();
 
 createUrchin();
 
 createRocks();
 
+createTankBase();
 var customKey = 'hifi-home-fishtank';
 
 
@@ -326,7 +354,9 @@ Script.setTimeout(function() {
 
 function cleanup() {
     Entities.deleteEntity(fishTank);
+    Entities.deleteEntity(tankBase);
     Entities.deleteEntity(bubbleSystem);
+    Entities.deleteEntity(secondBubbleSystem);
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
