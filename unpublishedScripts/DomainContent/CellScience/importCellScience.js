@@ -43,14 +43,6 @@ var baseLocation = "https://hifi-content.s3.amazonaws.com/DomainContent/CellScie
 var utilsScript = Script.resolvePath('Scripts/utils.js');
 Script.include(utilsScript);
 
-// function makeUngrabbable(entityID) {
-//     setEntityCustomData('grabbableKey', entityID, {
-//         grabbable: false
-//     });
-// }
-
-// Entities.addingEntity.connect(makeUngrabbable);
-
 assignVariables();
 
 var locations = {
@@ -9013,7 +9005,7 @@ Script.setTimeout(function(){
 
 for (var i = 0; i < scenes.length; i++) {
     // print('setting up scene.  first, delete' + JSON.stringify(scenes[i]))
-    // deleteAllInRadius(scenes[i].location, scenes[i].zone.dimensions.x);
+
     CreateNavigationButton(scenes[i], i);
 
     ImportScene(scenes[i]);
@@ -9026,11 +9018,3 @@ createLayoutLights();
 },3500)
 
 
-// Script.scriptEnding.connect(function() {
-//     Entities.addingEntity.disconnect(makeUngrabbable);
-// });
-
-// Script.setTimeout(function() {
-//     print('JBP stopping cell science import');
-//     Script.stop();
-// }, 30000)
