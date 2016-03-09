@@ -276,6 +276,7 @@ public slots:
     void reloadResourceCaches();
 
     void crashApplication();
+    void deadlockApplication();
 
     void rotationModeChanged();
 
