@@ -117,23 +117,22 @@ bool EntityMotionState::handleEasyChanges(uint32_t& flags) {
         } else if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
             // we just inherited ownership, make sure our desired priority matches what we have
             upgradeOutgoingPriority(_entity->getSimulationPriority());
+        } else {
+            _outgoingPriority = 0;
+            _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
         }
     }
     if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) {
         // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bits really mean "we should bid for ownership because
         // a local script has been changing physics properties, or we should adjust our own ownership priority".
-        if (_outgoingPriority <= VOLUNTEER_SIMULATION_PRIORITY) {
-            // we were previously uninterested in owning this object
-            // which means this is our first frame of interest
-            // therefore we should bid immediately
-            _nextOwnershipBid = 0;
-        }
         // The desired priority is determined by which bits were set.
         if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB) {
             _outgoingPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
         } else {
             _outgoingPriority = SCRIPT_POKE_SIMULATION_PRIORITY;
         }
+        // reset bid expiry so that we bid ASAP
+        _nextOwnershipBid = 0;
     }
     if ((flags & Simulation::DIRTY_PHYSICS_ACTIVATION) && !_body->isActive()) {
         _body->activate();
@@ -389,9 +388,15 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep, const QUuid& s
 
     if (_entity->getSimulatorID() != sessionID) {
         // we don't own the simulation
-        return _outgoingPriority > 0 && // but we would like to own it and
-                _outgoingPriority >= _entity->getSimulationPriority() &&  // we are sufficiently interested and
+        bool shouldBid = _outgoingPriority > 0 && // but we would like to own it and
                 usecTimestampNow() > _nextOwnershipBid; // it is time to bid again
+        if (shouldBid && _outgoingPriority < _entity->getSimulationPriority()) {
+            // we are insufficiently interested so clear our interest
+            // and reset the bid expiry
+            _outgoingPriority = 0;
+            _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
+        }
+        return shouldBid;
     }
 
     return remoteSimulationOutOfSync(simulationStep);
