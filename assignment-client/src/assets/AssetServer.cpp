@@ -561,6 +561,8 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
         // persistence succeeded we are good to go
         return true;
     } else {
+        qWarning() << "Failed to persist deleted mappings, rolling back";
+
         // we didn't delete the previous mapping, put it back in our in-memory representation
         _fileMappings = oldMappings;
 
@@ -619,10 +621,13 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
         }
 
         // take the old hash to remove the old mapping
-        auto oldMapping = _fileMappings.take(oldPath).toString();
+        auto oldSourceMapping = _fileMappings.take(oldPath).toString();
 
-        if (!oldMapping.isEmpty()) {
-            _fileMappings[newPath] = oldMapping;
+        // in case we're overwriting, keep the current destination mapping for potential rollback
+        auto oldDestinationMapping = _fileMappings.value(newPath);
+
+        if (!oldSourceMapping.isEmpty()) {
+            _fileMappings[newPath] = oldSourceMapping;
 
             if (writeMappingsToFile()) {
                 // persisted the renamed mapping, return success
@@ -631,7 +636,15 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
                 return true;
             } else {
                 // we couldn't persist the renamed mapping, rollback and return failure
-                _fileMappings[oldPath] = oldMapping;
+                _fileMappings[oldPath] = oldSourceMapping;
+
+                if (!oldDestinationMapping.isNull()) {
+                    // put back the overwritten mapping for the destination path
+                    _fileMappings[newPath] = oldDestinationMapping.toString();
+                } else {
+                    // clear the new mapping
+                    _fileMappings.remove(newPath);
+                }
 
                 qDebug() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
 
