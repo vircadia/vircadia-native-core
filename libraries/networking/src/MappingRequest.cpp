@@ -32,14 +32,6 @@ void GetMappingRequest::doStart() {
 
     auto assetClient = DependencyManager::get<AssetClient>();
 
-    // Check cache
-    auto it = assetClient->_mappingCache.constFind(_path);
-    if (it != assetClient->_mappingCache.constEnd()) {
-        _hash = it.value();
-        emit finished(this);
-        return;
-    }
-
     assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
             _error = NetworkError;
@@ -59,7 +51,6 @@ void GetMappingRequest::doStart() {
 
         if (!_error) {
             _hash = message->read(SHA256_HASH_LENGTH).toHex();
-            assetClient->_mappingCache[_path] = _hash;
         }
         emit finished(this);
     });
@@ -88,12 +79,10 @@ void GetAllMappingsRequest::doStart() {
         if (!error) {
             int numberOfMappings;
             message->readPrimitive(&numberOfMappings);
-            assetClient->_mappingCache.clear();
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->readString();
                 _mappings[path] = hash;
-                assetClient->_mappingCache[path] = hash;
             }
         }
         emit finished(this);
@@ -122,9 +111,6 @@ void SetMappingRequest::doStart() {
             }
         }
 
-        if (!error) {
-            assetClient->_mappingCache[_path] = _hash;
-        }
         emit finished(this);
     });
 };
@@ -151,12 +137,6 @@ void DeleteMappingsRequest::doStart() {
             }
         }
 
-        if (!error) {
-            // enumerate the paths and remove them from the cache
-            for (auto& path : _paths) {
-                assetClient->_mappingCache.remove(path);
-            }
-        }
         emit finished(this);
     });
 };
@@ -189,14 +169,6 @@ void RenameMappingRequest::doStart() {
             }
         }
 
-        if (!error) {
-            // take the hash mapped for the old path from the cache
-            auto hash = assetClient->_mappingCache.take(_oldPath);
-            if (!hash.isEmpty()) {
-                // use the hash mapped for the old path for the new path
-                assetClient->_mappingCache[_newPath] = hash;
-            }
-        }
         emit finished(this);
     });
 }

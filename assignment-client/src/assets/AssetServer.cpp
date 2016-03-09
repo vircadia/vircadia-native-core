@@ -220,12 +220,10 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     auto it = _fileMappings.find(assetPath);
     if (it != _fileMappings.end()) {
         auto assetHash = it->toString();
-        qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
         replyPacket.writePrimitive(AssetServerError::NoError);
         replyPacket.write(QByteArray::fromHex(assetHash.toUtf8()));
     }
     else {
-        qDebug() << "Mapping not found for: " << assetPath;
         replyPacket.writePrimitive(AssetServerError::AssetNotFound);
     }
 }
@@ -314,7 +312,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     replyPacket->write(assetHash);
 
     QString fileName = QString(hexHash);
-    QFileInfo fileInfo { _resourcesDirectory.filePath(fileName) };
+    QFileInfo fileInfo { _filesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
         qDebug() << "Opening file: " << fileInfo.filePath();
