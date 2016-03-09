@@ -540,6 +540,7 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene() {
+    _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
     // fix them up in the scene
@@ -560,9 +561,11 @@ void Avatar::fixupModelsInScene() {
             attachmentModel->addToScene(scene, pendingChanges);
         }
     }
+
     for (auto& attachmentModelToRemove : _attachmentsToRemove) {
         attachmentModelToRemove->removeFromScene(scene, pendingChanges);
     }
+    _attachmentsToDelete.insert(_attachmentsToDelete.end(), _attachmentsToRemove.begin(), _attachmentsToRemove.end());
     _attachmentsToRemove.clear();
     scene->enqueuePendingChanges(pendingChanges);
 }
