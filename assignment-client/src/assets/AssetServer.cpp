@@ -610,7 +610,7 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
         }
     } else {
         // take the old hash to remove the old mapping
-        auto oldMapping = _fileMappings[oldPath].toString();
+        auto oldMapping = _fileMappings.take(oldPath).toString();
 
         if (!oldMapping.isEmpty()) {
             _fileMappings[newPath] = oldMapping;
