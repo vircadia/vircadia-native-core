@@ -129,10 +129,10 @@ var waterSpout = Entities.addEntity({
 });
 
 function cleanup() {
-  Entities.deleteEntity(plant);
-  Entities.deleteEntity(bowl);
-  Entities.deleteEntity(waterCan);
-  Entities.deleteEntity(waterSpout);
+  // Entities.deleteEntity(plant);
+  // Entities.deleteEntity(bowl);
+  // Entities.deleteEntity(waterCan);
+  // Entities.deleteEntity(waterSpout);
 }
 
 

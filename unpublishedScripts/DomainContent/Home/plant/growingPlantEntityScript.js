@@ -33,8 +33,8 @@
             max: 1000
         };
         _this.canCreateFlower = true;
-        // _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
-        _this.SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
+        _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs";
+        // _this.SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
 
         _this.flowerHSLColors = [{
             hue: 19 / 360,
@@ -77,8 +77,8 @@
                 // Reduces flower overlap
                 return;
             }
-            var xzGrowthRate = randFloat(0.00008, 0.00018);
-            var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0035), z: xzGrowthRate};
+            var xzGrowthRate = randFloat(0.00006, 0.00016);
+            var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.003), z: xzGrowthRate};
     
             var flower = {
                 dimensions: {
@@ -88,7 +88,7 @@
                 },
                 startingPosition: position,
                 rotation: Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal),
-                maxYDimension: randFloat(0.5, 1.3),
+                maxYDimension: randFloat(0.4, 1.1),
                 // startingHSLColor: {
                 //     hue: 80 / 360,
                 //     saturation: 0.47,
@@ -144,7 +144,8 @@
 
         preload: function(entityID) {
             _this.entityID = entityID;
-        }
+        },
+
     };
 
     // entity scripts always need to return a newly constructed object of our type
