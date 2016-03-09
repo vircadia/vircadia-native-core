@@ -532,7 +532,7 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
             auto sizeBefore = _fileMappings.size();
 
             while (it != _fileMappings.end()) {
-                if (it->toString().startsWith(path)) {
+                if (it.key().startsWith(path)) {
                     it = _fileMappings.erase(it);
                 } else {
                     ++it;
@@ -573,6 +573,8 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
     if (pathIsFolder(oldPath)) {
         if (!pathIsFolder(newPath)) {
             // we were asked to rename a path to a folder to a path that isn't a folder, this is a fail
+            qWarning() << "Cannot rename mapping from folder path" << oldPath << "to file path" << newPath;
+
             return false;
         }
 
@@ -583,12 +585,12 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
         auto it = oldMappings.begin();
 
         while (it != oldMappings.end()) {
-            if (it->toString().startsWith(oldPath)) {
-                auto oldKey = it.key();
-                auto newKey = oldKey.replace(0, oldPath.size(), newPath);
+            if (it.key().startsWith(oldPath)) {
+                auto newKey = it.key();
+                newKey.replace(0, oldPath.size(), newPath);
 
                 // remove the old version from the in memory file mappings
-                _fileMappings.remove(oldKey);
+                _fileMappings.remove(it.key());
                 _fileMappings.insert(newKey, it.value());
             }
 
@@ -597,18 +599,25 @@ bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPa
 
         if (writeMappingsToFile()) {
             // persisted the changed mappings, return success
-            qDebug() << "Renamed mapping:" << oldPath << "=>" << newPath;
+            qDebug() << "Renamed folder mapping:" << oldPath << "=>" << newPath;
             
             return true;
         } else {
             // couldn't persist the renamed paths, rollback and return failure
             _fileMappings = oldMappings;
 
-            qWarning() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
+            qWarning() << "Failed to persist renamed folder mapping:" << oldPath << "=>" << newPath;
 
             return false;
         }
     } else {
+        if (pathIsFolder(newPath)) {
+            // we were asked to rename a path to a file to a path that is a folder, this is a fail
+            qWarning() << "Cannot rename mapping from file path" << oldPath << "to folder path" << newPath;
+
+            return false;
+        }
+
         // take the old hash to remove the old mapping
         auto oldMapping = _fileMappings.take(oldPath).toString();
 
