@@ -225,7 +225,7 @@ public slots:
 
     void removeSilentNodes();
 
-    void updateLocalSockAddr();
+    void updateLocalSocket();
 
     void startSTUNPublicSocketUpdate();
     virtual void sendSTUNRequest();
@@ -247,6 +247,10 @@ signals:
     void isAllowedEditorChanged(bool isAllowedEditor);
     void canRezChanged(bool canRez);
 
+protected slots:
+    void connectedForLocalSocketTest();
+    void errorTestingLocalSocket();
+
 protected:
     LimitedNodeList(unsigned short socketListenPort = 0, unsigned short dtlsListenPort = 0);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
@@ -258,6 +262,8 @@ protected:
                        const QUuid& connectionSecret = QUuid());
     void collectPacketStats(const NLPacket& packet);
     void fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret = QUuid());
+
+    void setLocalSocket(const HifiSockAddr& sockAddr);
     
     bool isPacketVerified(const udt::Packet& packet);
     bool packetVersionMatch(const udt::Packet& packet);
@@ -271,8 +277,6 @@ protected:
     void sendPacketToIceServer(PacketType packetType, const HifiSockAddr& iceServerSockAddr, const QUuid& clientID,
                                const QUuid& peerRequestID = QUuid());
 
-
-
     QUuid _sessionUUID;
     NodeHash _nodeHash;
     QReadWriteLock _nodeMutex;
@@ -281,6 +285,7 @@ protected:
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     HifiSockAddr _stunSockAddr;
+    bool _hasTCPCheckedLocalSocket { false };
 
     PacketReceiver* _packetReceiver;
 

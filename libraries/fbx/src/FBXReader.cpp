@@ -428,17 +428,17 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
+QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     QString path = QFileInfo(url).path();
-    QByteArray filename = filenameString;
-    QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
-    //check if the file exists at the RelativeFileName
-    if (checkFile.exists() && checkFile.isFile()) {
-        filename = filename.replace('\\', '/');
-    } else {
-        // there is no texture at the fbx dir with the filename added. Assume it is in the fbx dir.
-        filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    QByteArray filename = filepath;
+    QFileInfo checkFile(path + "/" + filepath);
+
+    // check if the file exists at the RelativeFilename
+    if (!(checkFile.exists() && checkFile.isFile())) {
+        // if not, assume it is in the fbx directory
+        filename = filename.mid(filename.lastIndexOf('/') + 1);
     }
+
     return filename;
 }
 
@@ -765,7 +765,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = fileOnUrl(filename, url);
+                            QByteArray filepath = filename.replace('\\', '/');
+                            filename = fileOnUrl(filepath, url);
+                            _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
@@ -849,19 +851,19 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         _textureParams.insert(getID(object.properties), tex);
                     }
                 } else if (object.name == "Video") {
-                    QByteArray filename;
+                    QByteArray filepath;
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filename = subobject.properties.at(0).toByteArray();
-                            filename = fileOnUrl(filename, url);
+                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
                         }
                     }
                     if (!content.isEmpty()) {
-                        _textureContent.insert(filename, content);
+                        _textureContent.insert(filepath, content);
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material;

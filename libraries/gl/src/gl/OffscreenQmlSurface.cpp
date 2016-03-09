@@ -485,7 +485,9 @@ void OffscreenQmlSurface::updateQuick() {
     if (_render) {
         QMutexLocker lock(&(_renderer->_mutex));
         _renderer->post(RENDER);
-        _renderer->_cond.wait(&(_renderer->_mutex));
+        while (!_renderer->_cond.wait(&(_renderer->_mutex), 100)) {
+            qApp->processEvents();
+        }
         _render = false;
     }
 

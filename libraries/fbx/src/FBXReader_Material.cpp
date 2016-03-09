@@ -28,9 +28,16 @@ bool FBXMaterial::needTangentSpace() const {
 
 FBXTexture FBXReader::getTexture(const QString& textureID) {
     FBXTexture texture;
-    texture.filename = _textureFilenames.value(textureID);
+    const QByteArray& filepath = _textureFilepaths.value(textureID);
+    texture.content = _textureContent.value(filepath);
+
+    if (texture.content.isEmpty()) { // the content is not inlined
+        texture.filename = _textureFilenames.value(textureID);
+    } else { // use supplied filepath for inlined content
+        texture.filename = filepath;
+    }
+
     texture.name = _textureNames.value(textureID);
-    texture.content = _textureContent.value(texture.filename);
     texture.transform.setIdentity();
     texture.texcoordSet = 0;
     if (_textureParams.contains(textureID)) {

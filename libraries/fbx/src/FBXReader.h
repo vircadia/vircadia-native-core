@@ -414,7 +414,11 @@ public:
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
+    // Hashes the original RelativeFilename of textures
+    QHash<QString, QByteArray> _textureFilepaths;
+    // Hashes the place to look for textures, in case they are not inlined
     QHash<QString, QByteArray> _textureFilenames;
+    // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;
 

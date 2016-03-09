@@ -258,9 +258,11 @@ template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
     qDebug() << "_minFlag=" << _minFlag;
     qDebug() << "_maxFlag=" << _maxFlag;
     qDebug() << "_trailingFlipped=" << _trailingFlipped;
+    QString bits;
     for(int i = 0; i < _flags.size(); i++) {
-        qDebug() << "bit[" << i << "]=" << _flags.at(i);
+        bits += (_flags.at(i) ? "1" : "0");
     }
+    qDebug() << "bits:" << bits;
 }
 
 
