@@ -13,10 +13,6 @@
 #define hifi_render_DrawTask_h
 
 #include "Engine.h"
-#include "CullTask.h"
-#include "ShapePipeline.h"
-#include "gpu/Batch.h"
-
 
 namespace render {
 
@@ -29,22 +25,6 @@ public:
 
     void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inLights);
 protected:
-};
-
-class PipelineSortShapes {
-public:
-    using JobModel = Job::ModelIO<PipelineSortShapes, ItemBounds, ShapesIDsBounds>;
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ShapesIDsBounds& outShapes);
-};
-
-class DepthSortShapes {
-public:
-    using JobModel = Job::ModelIO<DepthSortShapes, ShapesIDsBounds, ShapesIDsBounds>;
- 
-    bool _frontToBack;
-    DepthSortShapes(bool frontToBack = true) : _frontToBack(frontToBack) {}
-
-    void run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ShapesIDsBounds& inShapes, ShapesIDsBounds& outShapes);
 };
 
 }

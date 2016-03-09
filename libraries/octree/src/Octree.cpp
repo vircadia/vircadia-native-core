@@ -942,7 +942,6 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
     int childBytesWritten = encodeTreeBitstreamRecursion(element, packetData, bag, params,
                                                          currentEncodeLevel, parentLocationThisView);
 
-
     // if childBytesWritten == 1 then something went wrong... that's not possible
     assert(childBytesWritten != 1);
 
@@ -1529,7 +1528,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
     // If we made it this far, then we've written all of our child data... if this element is the root
     // element, then we also allow the root element to write out it's data...
     if (continueThisLevel && element == _rootElement && rootElementHasData()) {
-
         int bytesBeforeChild = packetData->getUncompressedSize();
 
         // release the bytes we reserved...
@@ -1537,6 +1535,7 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
 
         LevelDetails rootDataLevelKey = packetData->startLevel();
         OctreeElement::AppendState rootAppendState = element->appendElementData(packetData, params);
+
         bool partOfRootFit = (rootAppendState != OctreeElement::NONE);
         bool allOfRootFit = (rootAppendState == OctreeElement::COMPLETED);
 
@@ -1571,7 +1570,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
             qCDebug(octree) << "WARNING UNEXPECTED CASE: Something failed in packing ROOT data";
             qCDebug(octree) << "This is not expected!!!! -- continueThisLevel=FALSE....";
         }
-
     }
 
     // if we were unable to fit this level in our packet, then rewind and add it to the element bag for

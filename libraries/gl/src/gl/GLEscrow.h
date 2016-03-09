@@ -42,13 +42,19 @@
 // in use by the GPU.  Fence sync objects are used to moderate the actual release of
 // resources in either direction.
 template <
-    typename T,
-    // Only accept numeric types
-    typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
+    typename T
+    //,
+    //// Only accept numeric types
+    //typename = typename std::enable_if<std::is_arithmetic<T>::value, T>::type
 >
 class GLEscrow {
 public:
     static const uint64_t MAX_UNSIGNALED_TIME = USECS_PER_SECOND / 2;
+    
+    const T& invalid() const {
+        static const T INVALID_RESULT;
+        return INVALID_RESULT;
+    }
 
     struct Item {
         const T _value;
@@ -133,7 +139,7 @@ public:
     // or if none is available (which could mean either the submission
     // list is empty or that the first item on the list isn't yet signaled
     T fetch() {
-        T result{0};
+        T result = invalid();
         // On the one hand using try_lock() reduces the chance of blocking the consumer thread,
         // but if the produce thread is going fast enough, it could effectively
         // starve the consumer out of ever actually getting resources.
@@ -151,7 +157,7 @@ public:
     // or if none is available (which could mean either the submission
     // list is empty or that the first item on the list isn't yet signaled
     // Also releases any previous texture held by the caller
-    T fetchAndRelease(T oldValue) {
+    T fetchAndRelease(const T& oldValue) {
         T result = fetch();
         if (!result) {
             return oldValue;
@@ -164,7 +170,7 @@ public:
 
     // If fetch returns a non-zero value, it's the responsibility of the
     // client to release it at some point
-    void release(T t, GLsync readSync = 0) {
+    void release(const T& t, GLsync readSync = 0) {
         if (!readSync) {
             // FIXME should the release and submit actually force the creation of a fence?
             readSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -240,7 +246,7 @@ private:
         // inside the locked sections, so it cannot have any latency
         if (item.signaled()) {
             // if the sync is signaled, queue it for deletion
-            _trash.push_front(Item(0, item._sync));
+            _trash.push_front(Item(invalid(), item._sync));
             // And change the stored value to 0 so we don't check it again
             item._sync = 0;
             return true;
@@ -258,6 +264,12 @@ private:
     // Items which are no longer in use.
     List _trash;
 };
+
+template<>
+inline const GLuint& GLEscrow<GLuint>::invalid() const {
+    static const GLuint INVALID_RESULT { 0 };
+    return INVALID_RESULT;
+}
 
 using GLTextureEscrow = GLEscrow<GLuint>;
 

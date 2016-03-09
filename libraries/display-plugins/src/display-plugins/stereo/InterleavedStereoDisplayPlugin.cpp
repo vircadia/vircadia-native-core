@@ -46,13 +46,15 @@ void main() {
 
 const QString InterleavedStereoDisplayPlugin::NAME("3D TV - Interleaved");
 
-InterleavedStereoDisplayPlugin::InterleavedStereoDisplayPlugin() {
-}
-
 void InterleavedStereoDisplayPlugin::customizeContext() {
     StereoDisplayPlugin::customizeContext();
     // Set up the stencil buffers?  Or use a custom shader?
-    compileProgram(_program, INTERLEAVED_TEXTURED_VS, INTERLEAVED_TEXTURED_FS);
+    compileProgram(_interleavedProgram, INTERLEAVED_TEXTURED_VS, INTERLEAVED_TEXTURED_FS);
+}
+
+void InterleavedStereoDisplayPlugin::uncustomizeContext() {
+    _interleavedProgram.reset();
+    StereoDisplayPlugin::uncustomizeContext();
 }
 
 glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
@@ -64,8 +66,14 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
 
 void InterleavedStereoDisplayPlugin::internalPresent() {
     using namespace oglplus;
-    _program->Bind();
     auto sceneSize = getRecommendedRenderSize();
-    Uniform<ivec2>(*_program, "textureSize").SetValue(sceneSize);
-    WindowOpenGLDisplayPlugin::internalPresent();
+    _interleavedProgram->Bind();
+    Uniform<ivec2>(*_interleavedProgram, "textureSize").SetValue(sceneSize);
+    auto surfaceSize = getSurfacePixels();
+    Context::Viewport(0, 0, surfaceSize.x, surfaceSize.y);
+    glBindTexture(GL_TEXTURE_2D, GetName(_compositeFramebuffer->color));
+    _plane->Use();
+    _plane->Draw();
+    swapBuffers();
 }
+

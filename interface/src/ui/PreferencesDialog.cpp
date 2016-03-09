@@ -16,6 +16,7 @@
 #include <ScriptEngines.h>
 #include <OffscreenUi.h>
 #include <Preferences.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "DialogsManager.h"

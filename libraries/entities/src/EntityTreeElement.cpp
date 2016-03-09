@@ -64,6 +64,7 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
 }
 
 void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params) {
+
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     // Check to see if this element yet has encode data... if it doesn't create it
@@ -347,6 +348,10 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     #endif
                     indexesOfEntitiesToInclude << i;
                     numberOfEntities++;
+                } else {
+                    // if the extra data included this entity, and we've decided to not include the entity, then
+                    // we can treat it as if it was completed.
+                    entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
                 }
             }
         }
@@ -398,6 +403,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data.
         // Only our parent can remove our extra data in these cases and only after it knows that all of its
         // children have been encoded.
+        //
+        // FIXME -- this comment seems wrong....
+        //
         // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
         // since that will signal that the entire element needs to be encoded on the next attempt
         if (appendElementState == OctreeElement::NONE) {
@@ -441,9 +449,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         appendElementState = OctreeElement::NONE;
     } else {
         if (noEntitiesFit) {
-            appendElementState = OctreeElement::PARTIAL;
+            //appendElementState = OctreeElement::PARTIAL;
+            packetData->discardLevel(elementLevel);
+            appendElementState = OctreeElement::NONE;
+        } else {
+            packetData->endLevel(elementLevel);
         }
-        packetData->endLevel(elementLevel);
     }
     return appendElementState;
 }

@@ -83,7 +83,7 @@ public:
         ~GLTexture();
     };
     static GLTexture* syncGPUObject(const Texture& texture);
-    static GLuint getTextureID(const TexturePointer& texture);
+    static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now
     static void syncSampler(const Sampler& sampler, Texture::Type type, GLTexture* object);
