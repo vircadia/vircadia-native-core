@@ -155,7 +155,7 @@ void AssetServer::performMappingMigration() {
 
                 // add a new mapping with the old extension and a truncated version of the hash
                 static const int TRUNCATED_HASH_NUM_CHAR = 16;
-                auto fakeFileName = hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
+                auto fakeFileName = "/" + hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
 
                 qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
 
