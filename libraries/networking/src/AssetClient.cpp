@@ -792,8 +792,11 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
     assetRequest->start();
 }
 
+static int standardItemModelMetaTypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
+
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface(QJSEngine* engine) :
-    _engine(engine)
+    _engine(engine),
+    _assetMappingModel(this)
 {
 }
 
@@ -867,3 +870,97 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
 
     request->start();
 }
+
+AssetMappingModel::AssetMappingModel(QObject* parent) {
+}
+
+void AssetMappingModel::refresh() {
+    qDebug() << "Refreshing asset mapping model";
+    auto assetClient = DependencyManager::get<AssetClient>();
+    auto request = assetClient->createGetAllMappingsRequest();
+
+    connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
+        qDebug() << "Got response";
+        auto mappings = request->getMappings();
+//        clear();
+        for (auto& mapping : mappings) {
+            auto& path = mapping.first;
+            auto parts = path.split("/");
+            auto length = parts.length();
+
+            QString prefix = parts[0];
+
+            QStandardItem* lastItem = nullptr;
+
+            auto it = _pathToItemMap.find(prefix);
+            if (it == _pathToItemMap.end()) {
+                lastItem = new QStandardItem(parts[0]);
+                _pathToItemMap[prefix] = lastItem;
+                appendRow(lastItem);
+            } else {
+                lastItem = it.value();
+            }
+
+            if (length > 1) {
+                for (int i = 1; i < length; ++i) {
+                    prefix += "/" + parts[i];
+
+                    auto it = _pathToItemMap.find(prefix);
+                    if (it == _pathToItemMap.end()) {
+                        qDebug() << "prefix not found: " << prefix;
+                        auto item = new QStandardItem(parts[i]);
+                        lastItem->setChild(lastItem->rowCount(), 0, item);
+                        lastItem = item;
+                        _pathToItemMap[prefix] = lastItem;
+                    } else {
+                        lastItem = it.value();
+                    }
+                }
+            }
+
+            Q_ASSERT(prefix == path);
+        }
+    });
+
+    request->start();
+}
+
+
+// QModelIndex AssetMappingModel::index(int row, int column, const QModelIndex& parent) const {
+//     if (row < 0 || column < 0) {
+//         return QModelIndex();
+//     }
+
+//     if (parent.isValid()) {
+//         auto item = static_cast<AssetMappingItem*>(parent.internalPointer());
+//         return createIndex(row, column, )
+//     }
+//     return createIndex(row, column, getFolderNodes(
+//         static_cast<AssetMappingItem*>(getTreeNodeFromIndex(parent))).at(row));
+// }
+
+// QModelIndex AssetMappingModel::parent(const QModelIndex& child) const {
+//     AssetMappingItem* parent = (static_cast<AssetMappingItem*>(child.internalPointer()))->getParent();
+//     if (!parent) {
+//         return QModelIndex();
+//     }
+//     AssetMappingItem* grandParent = parent->getParent();
+//     int row = getFolderNodes(grandParent).indexOf(parent);
+//     return createIndex(row, 0, parent);
+// }
+
+// QVariant AssetMappingModel::data(const QModelIndex& index, int role) const {
+//     TreeNodeBase* node = getTreeNodeFromIndex(index);
+//     if (!node) {
+//         return QVariant();
+//     }
+//     return QVariant();
+// }
+
+// int AssetMappingModel::rowCount(const QModelIndex& parent) const {
+//     return 1;
+// }
+
+// int AssetMappingModel::columnCount(const QModelIndex& parent) const {
+//     return 1;
+// }

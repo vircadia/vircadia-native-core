@@ -33,7 +33,7 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var scriptsModel: scripts.scriptsModelFilter
+    property var scriptsModel: Assets.getAssetMappingModel()
     property var currentDirectory;
 
     Settings {
@@ -45,6 +45,7 @@ Window {
 
     function reload() {
         print("reload");
+        scriptsModel.refresh();
     }
     function addToWorld() {
         print("addToWorld");

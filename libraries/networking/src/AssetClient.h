@@ -12,6 +12,7 @@
 #ifndef hifi_AssetClient_h
 #define hifi_AssetClient_h
 
+#include <QStandardItemModel>
 #include <QtQml/QJSEngine>
 #include <QString>
 
@@ -125,10 +126,30 @@ protected:
 };
 
 
+ class AssetMappingModel : public QStandardItemModel {
+     Q_OBJECT
+ public:
+     AssetMappingModel(QObject* parent = nullptr);
+
+     Q_INVOKABLE void refresh();
+ private:
+     QHash<QString, QStandardItem*> _pathToItemMap;
+ };
+
+ //class AssetMappingItem : public QStandardItem {
+     //Q_OBJECT
+ //public:
+     //AssetMappingItem();
+ //};
+
+
 class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT
+    Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
 public:
     AssetMappingsScriptingInterface(QJSEngine* engine);
+
+    Q_INVOKABLE AssetMappingModel* getAssetMappingModel() { return &_assetMappingModel; };
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);
     Q_INVOKABLE void getMapping(QString path, QJSValue callback);
@@ -137,7 +158,6 @@ public:
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QJSEngine* _engine;
+    AssetMappingModel _assetMappingModel;
 };
-
-
 #endif
