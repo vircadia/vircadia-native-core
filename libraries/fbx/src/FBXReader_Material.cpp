@@ -79,8 +79,8 @@ void FBXReader::consolidateFBXMaterials() {
         QString diffuseTextureID = diffuseTextures.value(material.materialID);
         QString diffuseFactorTextureID = diffuseFactorTextures.value(material.materialID);
 
+        // If both factor and color textures are specified, the texture bound to DiffuseColor wins
         if (!diffuseFactorTextureID.isNull() || !diffuseTextureID.isNull()) {
-            // If both factor and color are specified, the texture bound to DiffuseColor wins
             if (!diffuseFactorTextureID.isNull() && diffuseTextureID.isNull()) {
                 diffuseTextureID = diffuseFactorTextureID;
                 // If the diffuseTextureID comes from the Texture bound to DiffuseFactor, we know it s exported from maya
