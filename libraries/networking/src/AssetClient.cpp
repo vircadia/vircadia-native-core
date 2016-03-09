@@ -91,8 +91,6 @@ void AssetClient::clearCache() {
         return;
     }
 
-    _mappingCache.clear();
-
     if (auto cache = NetworkAccessManager::getInstance().cache()) {
         qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
         cache->clear();
@@ -578,6 +576,4 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
             messageMapIt->second.clear();
         }
     }
-
-    _mappingCache.clear();
 }
