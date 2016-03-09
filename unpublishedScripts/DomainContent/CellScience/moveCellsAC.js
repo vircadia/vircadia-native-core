@@ -4,12 +4,29 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+var WORLD_OFFSET = {
+    x: 0,
+    y: 0,
+    z: 0
+}
 
-var basePosition = {
+var WORLD_SCALE_AMOUNT = 1.0;
+
+
+function offsetVectorToWorld(vector) {
+    var newVector;
+
+    newVector = Vec3.sum(vector, WORLD_OFFSET);
+
+    print('JBP NEW VECTOR IS:: ' + JSON.stringify(newVector))
+    return newVector
+}
+
+var basePosition = offsetVectorToWorld({
     x: 3000,
     y: 13500,
     z: 3000
-};
+}, WORLD_OFFSET);
 
 var initialized = false;
 
