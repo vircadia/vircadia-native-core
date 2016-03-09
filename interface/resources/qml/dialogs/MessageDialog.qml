@@ -98,7 +98,7 @@ ModalWindow {
             }
         }
 
-        RalewaySemibold {
+        RalewaySemiBold {
             id: mainTextContainer
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             wrapMode: Text.WordWrap
@@ -114,7 +114,7 @@ ModalWindow {
             lineHeightMode: Text.ProportionalHeight
         }
 
-        RalewaySemibold {
+        RalewaySemiBold {
             id: informativeTextContainer
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             wrapMode: Text.WordWrap
