@@ -34,6 +34,7 @@ public:
                     /// a single last item will be returned by extract as a null pointer
     
     void deleteAll();
+    size_t size() const { return _bagElements.size(); }
 
 private:
     Bag _bagElements;
