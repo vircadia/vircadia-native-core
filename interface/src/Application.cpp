@@ -244,6 +244,8 @@ public:
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
         QTimer* heartbeatTimer = new QTimer();
+        // Give the heartbeat an initial value
+        _heartbeat = usecTimestampNow();
         connect(heartbeatTimer, &QTimer::timeout, [this] {
             _heartbeat = usecTimestampNow();
         });
