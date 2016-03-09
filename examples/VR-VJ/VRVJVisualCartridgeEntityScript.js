@@ -25,7 +25,7 @@
             var entities = Entities.findEntities(_this.position, _this.SOUND_CARTRIDGE_SEARCH_RANGE);
             for (var i = 0; i < entities.length; i++) {
                 var entity = entities[i];
-                var props = Entities.getEntityProperties(entity, ["name"]);
+                var props = Entities.getEntityProperties(entity, ["name", "color"]);
                 if (props.name.indexOf(_this.SOUND_LOOP_NAME) !== -1) {
                     // Need to set a timeout to wait for grab script to stop messing with entity
                     Entities.editEntity(_this.entityID, {
@@ -33,20 +33,22 @@
                         dynamic: false
                     });
                     Script.setTimeout(function() {
-                        Entities.editEntity(_this.entityID, {dynamic: true, velocity: ZERO_VEC});
+                        Entities.editEntity(_this.entityID, {dynamic: true, velocity: ZERO_VEC, color: props.color});
                     }, 100);
                     return;
                 }
 
             }
             Entities.editEntity(_this.entityID, {
-                parentID: NULL_UUID
+                parentID: NULL_UUID,
+                color: _this.originalColor
             });
         },
 
         preload: function(entityID) {
             print("YAAAA")
             _this.entityID = entityID;
+            _this.originalColor = Entities.getEntityProperties(_this.entityID, "color").color;
 
         },
     };
