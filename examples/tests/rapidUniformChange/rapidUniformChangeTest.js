@@ -1,4 +1,3 @@
-
 //  rapidUniformChangeTest.js
 //  examples
 //
@@ -19,6 +18,15 @@ var center = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientat
 
 var SHADER_URL = "file:///C:/Users/Eric/hifi/examples/tests/rapidUniformChange/rapidUniformChangeTest.fs";
 
+
+var userData = {
+    ProceduralEntity: {
+        shaderUrl: SHADER_URL,
+        uniforms: {
+            red: 0.0
+        }
+    }
+}
 var testEntity = Entities.addEntity({
     type: "Box",
     dimensions: {
@@ -27,15 +35,20 @@ var testEntity = Entities.addEntity({
         z: 0.5
     },
     position: center,
-    userData: JSON.stringify({
-        ProceduralEntity: {
-            shaderUrl: SHADER_URL,
-            uniforms: {
-                red: 0.5
-            }
-        }
-    })
+    userData: JSON.stringify(userData)
 });
+
+
+var currentTime = 0;
+
+function update(deltaTime) {
+    var red = (Math.sin(currentTime) + 1) / 2;
+    userData.ProceduralEntity.uniforms.red = red;
+    Entities.editEntity(testEntity, {userData: JSON.stringify(userData)});
+    currentTime += deltaTime;
+}
+
+Script.update.connect(update);
 
 Script.scriptEnding.connect(cleanup);
 
