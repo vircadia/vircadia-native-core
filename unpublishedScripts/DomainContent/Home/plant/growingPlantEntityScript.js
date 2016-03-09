@@ -33,6 +33,18 @@
             max: 1000
         };
         _this.canCreateFlower = true;
+        // _this.SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
+        _this.SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
+
+        _this.flowerHSLColors = [{
+            hue: 19 / 360,
+            saturation: 0.92,
+            light: 0.41
+        }, {
+            hue: 161 / 360,
+            saturation: 0.28,
+            light: 0.72
+        }];
 
     };
 
@@ -57,7 +69,7 @@
                 flower.grow();
             });
 
- 
+
         },
 
         createFlower: function(position, surfaceNormal) {
@@ -65,11 +77,14 @@
                 // Reduces flower overlap
                 return;
             }
-            var flowerRotation = Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal);
             // var xzGrowthRate = randFloat(0.00005, 0.00015);
             var xzGrowthRate = randFloat(0.0005, 0.0015);
             // var growthRate = {x: xzGrowthRate, y: randFloat(0.001, 0.0025, z: xzGrowthRate)};
-            var growthRate = {x: xzGrowthRate, y: randFloat(0.01, 0.025), z: xzGrowthRate};
+            var growthRate = {
+                x: xzGrowthRate,
+                y: randFloat(0.01, 0.025),
+                z: xzGrowthRate
+            };
             var flower = {
                 dimensions: {
                     x: _this.STARTING_FLOWER_DIMENSIONS.x,
@@ -77,22 +92,39 @@
                     z: _this.STARTING_FLOWER_DIMENSIONS.z
                 },
                 startingPosition: position,
-                rotation: flowerRotation,
+                rotation: Quat.rotationBetween(Vec3.UNIT_Y, surfaceNormal),
                 // maxYDimension: randFloat(0.4, 1.0),
                 maxYDimension: randFloat(4, 10.0),
-                startingHSLColor: {hue: 80/360, saturation: 0.47, light: 0.48},
-                endingHSLColor: {hue: 19/260, saturation: 0.92, light: 0.41},
+                // startingHSLColor: {
+                //     hue: 80 / 360,
+                //     saturation: 0.47,
+                //     light: 0.48
+                // },
+                // endingHSLColor: {
+                //     hue: 19 / 260,
+                //     saturation: 0.92,
+                //     light: 0.41
+                // },
+                hslColor: Math.random() < 0.5 ? _this.flowerHSLColors[0] : _this.flowerHSLColors[1], 
                 growthRate: growthRate
             };
-            _this.flowerUserData.ProceduralEntity.uniforms.iHSLColor= [flower.startingHSLColor.hue, flower.startingHSLColor.saturation, flower.startingHSLColor.light];
+            flower.userData = {
+                ProceduralEntity: {
+                    shaderUrl: _this.SHADER_URL,
+                    uniforms: {
+                        iBloomPct: randFloat(0.4, 0.8),
+                        iHSLColor: [flower.hslColor.hue, flower.hslColor.saturation, flower.hslColor.light]
+                    }
+                }
+            };
             flower.id = Entities.addEntity({
                 type: "Sphere",
                 name: "flower",
                 position: position,
                 collisionless: true,
-                rotation: flowerRotation,
+                rotation: flower.rotation,
                 dimensions: _this.STARTING_FLOWER_DIMENSIONS,
-                userData: JSON.stringify(_this.flowerUserData)
+                userData: JSON.stringify(flower.userData)
             });
             flower.grow = function() {
                 // grow flower a bit
@@ -102,9 +134,14 @@
                 flower.dimensions = Vec3.sum(flower.dimensions, flower.growthRate);
                 flower.position = Vec3.sum(flower.startingPosition, Vec3.multiply(Quat.getUp(flower.rotation), flower.dimensions.y / 2));
                 //As we grow we must also move ourselves in direction we grow!
+                //TODO: Add this color changing back once we fix bug https://app.asana.com/0/inbox/31759584831096/96943843100173/98022172055918
+                // var newHue = map(flower.dimensions.y, _this.STARTING_FLOWER_DIMENSIONS.y, flower.maxYDimension, flower.startingHSLColor.hue, flower.endingHSLColor.hue);
+                // var newSaturation = map(flower.dimensions.y, _this.STARTING_FLOWER_DIMENSIONS.y, flower.maxYDimension, flower.startingHSLColor.saturation, flower.endingHSLColor.saturation);
+                // var newLight = map(flower.dimensions.y, _this.STARTING_FLOWER_DIMENSIONS.y, flower.maxYDimension, flower.startingHSLColor.light, flower.endingHSLColor.light);
+                // flower.userData.PrsoceduralEntity.uniforms.iHSLColor = [newHue, newSaturation, newLight];
                 Entities.editEntity(flower.id, {
                     dimensions: flower.dimensions,
-                    position: flower.position
+                    position: flower.position,
                 });
             }
             _this.flowers.push(flower);
@@ -113,16 +150,6 @@
 
         preload: function(entityID) {
             _this.entityID = entityID;
-            // var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/flower.fs?v1";
-            var SHADER_URL = "file:///C:/Users/Eric/hifi/unpublishedScripts/DomainContent/Home/plant/flower.fs";
-            _this.flowerUserData = {
-                ProceduralEntity: {
-                    shaderUrl: SHADER_URL,
-                    uniforms: {
-                        iBloomPct: randFloat(0.4, 0.8),
-                    }
-                }
-            };
         }
     };
 
