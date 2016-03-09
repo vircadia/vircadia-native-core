@@ -9,7 +9,7 @@
 
     VRVJSoundEntity.prototype = {
         playSound: function() {
-            _this.soundInjector = Audio.playSound(_this.clip, {position: _this.position, volume: 1.0});
+            // _this.soundInjector = Audio.playSound(_this.clip, {position: _this.position, volume: 1.0});
         },
 
         preload: function(entityID) {

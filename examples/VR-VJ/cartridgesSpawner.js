@@ -16,6 +16,7 @@ var soundEntity = Entities.addEntity({
       color: {red: 200, green: 10, blue: 200},
       position: center,
       damping: 1,
+      angularDamping: 1,
       dynamic: true,
       script: SOUND_SCRIPT_URL,
       userData: JSON.stringify({
@@ -23,12 +24,13 @@ var soundEntity = Entities.addEntity({
       })
 });
 
-var VISUAL_SCRIPT_URL = Script.resolvePath("VRVJVisualCartridgeEntityScript.js");
+var VISUAL_SCRIPT_URL = Script.resolvePath("VRVJVisualCartridgeEntityScript.js?v1" + Math.random());
 var visualEntity = Entities.addEntity({
     type: "Sphere",
     name: "VRVJ-Visual-Cartridge",
     dimensions: {x: 0.1, y: 0.1, z: 0.1},
     damping: 1,
+    angularDamping: 1,
     color: {red: 0, green: 200, blue: 10},
     dynamic: true,
     position: Vec3.sum(center, {x: 0, y: 0.2, z: 0}),
