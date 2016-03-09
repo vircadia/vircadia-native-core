@@ -50,7 +50,7 @@ void GetMappingRequest::doStart() {
                     break;
                 case AssetServerError::AssetNotFound:
                     _error = NotFound;
-                    break;
+                    break
                 default:
                     _error = UnknownError;
                     break;
@@ -85,13 +85,13 @@ void GetAllMappingsRequest::doStart() {
         }
 
 
-        if (!error) {
+        if (!_error) {
             int numberOfMappings;
             message->readPrimitive(&numberOfMappings);
             assetClient->_mappingCache.clear();
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
-                auto hash = message->readString();
+                auto hash = message->read(SHA256_HASH_LENGTH).toHex();
                 _mappings[path] = hash;
                 assetClient->_mappingCache[path] = hash;
             }
@@ -122,7 +122,7 @@ void SetMappingRequest::doStart() {
             }
         }
 
-        if (!error) {
+        if (!_error) {
             assetClient->_mappingCache[_path] = _hash;
         }
         emit finished(this);
@@ -151,7 +151,7 @@ void DeleteMappingsRequest::doStart() {
             }
         }
 
-        if (!error) {
+        if (!_error) {
             // enumerate the paths and remove them from the cache
             for (auto& path : _paths) {
                 assetClient->_mappingCache.remove(path);
@@ -189,7 +189,7 @@ void RenameMappingRequest::doStart() {
             }
         }
 
-        if (!error) {
+        if (!_error) {
             // take the hash mapped for the old path from the cache
             auto hash = assetClient->_mappingCache.take(_oldPath);
             if (!hash.isEmpty()) {

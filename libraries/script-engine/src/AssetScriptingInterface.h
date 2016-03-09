@@ -26,11 +26,6 @@ public:
 
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
-    Q_INVOKABLE void setMapping(QString path, QString hash, QScriptValue callback);
-    Q_INVOKABLE void getMapping(QString path, QScriptValue callback);
-    Q_INVOKABLE void deleteMappings(QStringList paths, QScriptValue callback);
-    Q_INVOKABLE void getAllMappings(QScriptValue callback);
-    Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QScriptValue callback);
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;

@@ -72,6 +72,7 @@ Window {
     }
     function deleteFile() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        print(path);
         if (!path) {
             return;
         }
@@ -89,6 +90,10 @@ Window {
             if (button === OriginalDialogs.StandardButton.Yes) {
                 console.log("Deleting " + path);
 
+                Assets.deleteMappings([path], function(err) {
+                    print("Finished deleting path: ", path, err);
+                    reload();
+                });
 
 
             }

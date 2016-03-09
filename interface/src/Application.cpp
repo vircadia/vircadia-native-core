@@ -66,6 +66,7 @@
 #include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
+#include <AssetMappingsScriptingInterface.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
@@ -413,6 +414,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
+    DependencyManager::set<AssetMappingsScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
@@ -1267,7 +1269,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Quat", new Quat());
     rootContext->setContextProperty("Vec3", new Vec3());
     rootContext->setContextProperty("Uuid", new ScriptUUID());
-    rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface(engine));
+    rootContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
 
@@ -4288,8 +4290,8 @@ bool Application::askToSetAvatarUrl(const QString& url) {
 
         case FSTReader::HEAD_AND_BODY_MODEL:
              ok = QMessageBox::Ok == OffscreenUi::question("Set Avatar",
-							   "Would you like to use '" + modelName + "' for your avatar?",
-							   QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
+                               "Would you like to use '" + modelName + "' for your avatar?",
+                               QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
         break;
 
         default:
