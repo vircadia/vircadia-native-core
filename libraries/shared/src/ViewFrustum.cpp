@@ -107,6 +107,14 @@ void ViewFrustum::calculate() {
     _planes[RIGHT_PLANE].set3Points(_cornersWorld[BOTTOM_RIGHT_FAR], _cornersWorld[BOTTOM_RIGHT_NEAR], _cornersWorld[TOP_RIGHT_FAR]);
     _planes[NEAR_PLANE].set3Points(_cornersWorld[BOTTOM_RIGHT_NEAR], _cornersWorld[BOTTOM_LEFT_NEAR], _cornersWorld[TOP_LEFT_NEAR]);
     _planes[FAR_PLANE].set3Points(_cornersWorld[BOTTOM_LEFT_FAR], _cornersWorld[BOTTOM_RIGHT_FAR], _cornersWorld[TOP_RIGHT_FAR]);
+
+    // Also calculate our projection matrix in case people want to project points...
+    // Projection matrix : Field of View, ratio, display range : near to far
+    glm::vec3 lookAt = _position + _direction;
+    glm::mat4 view = glm::lookAt(_position, lookAt, _up);
+
+    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
+    _ourModelViewProjectionMatrix = _projection * view; // Remember, matrix multiplication is the other way around
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -260,6 +268,55 @@ bool testMatches(float lhs, float rhs, float epsilon = EPSILON) {
     return (fabs(lhs - rhs) <= epsilon);
 }
 
+bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
+    bool result =
+           testMatches(compareTo._position, _position) &&
+           testMatches(compareTo._direction, _direction) &&
+           testMatches(compareTo._up, _up) &&
+           testMatches(compareTo._right, _right) &&
+           testMatches(compareTo._fieldOfView, _fieldOfView) &&
+           testMatches(compareTo._aspectRatio, _aspectRatio) &&
+           testMatches(compareTo._nearClip, _nearClip) &&
+           testMatches(compareTo._farClip, _farClip) &&
+           testMatches(compareTo._focalLength, _focalLength);
+
+    if (!result && debug) {
+        qCDebug(shared, "ViewFrustum::matches()... result=%s", debug::valueOf(result));
+        qCDebug(shared, "%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f",
+                (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._position.x, (double)compareTo._position.y, (double)compareTo._position.z,
+                (double)_position.x, (double)_position.y, (double)_position.z);
+        qCDebug(shared, "%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f",
+                (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._direction.x, (double)compareTo._direction.y, (double)compareTo._direction.z,
+                (double)_direction.x, (double)_direction.y, (double)_direction.z );
+        qCDebug(shared, "%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f",
+                (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._up.x, (double)compareTo._up.y, (double)compareTo._up.z,
+                (double)_up.x, (double)_up.y, (double)_up.z );
+        qCDebug(shared, "%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f",
+                (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._right.x, (double)compareTo._right.y, (double)compareTo._right.z,
+                (double)_right.x, (double)_right.y, (double)_right.z );
+        qCDebug(shared, "%s -- compareTo._fieldOfView=%f _fieldOfView=%f",
+                (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._fieldOfView, (double)_fieldOfView);
+        qCDebug(shared, "%s -- compareTo._aspectRatio=%f _aspectRatio=%f",
+                (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._aspectRatio, (double)_aspectRatio);
+        qCDebug(shared, "%s -- compareTo._nearClip=%f _nearClip=%f",
+                (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._nearClip, (double)_nearClip);
+        qCDebug(shared, "%s -- compareTo._farClip=%f _farClip=%f",
+                (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._farClip, (double)_farClip);
+        qCDebug(shared, "%s -- compareTo._focalLength=%f _focalLength=%f",
+                (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
+                (double)compareTo._focalLength, (double)_focalLength);
+    }
+    return result;
+}
+
 bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
 
     //  Compute distance between the two positions
@@ -381,6 +438,166 @@ void ViewFrustum::printDebugDetails() const {
     qCDebug(shared, "_nearClip=%f", (double)_nearClip);
     qCDebug(shared, "_farClip=%f", (double)_farClip);
     qCDebug(shared, "_focalLength=%f", (double)_focalLength);
+}
+
+glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
+
+    glm::vec4 pointVec4 = glm::vec4(point, 1.0f);
+    glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
+    pointInView = (projectedPointVec4.w > 0.0f); // math! If the w result is negative then the point is behind the viewer
+
+    // what happens with w is 0???
+    float x = projectedPointVec4.x / projectedPointVec4.w;
+    float y = projectedPointVec4.y / projectedPointVec4.w;
+    glm::vec2 projectedPoint(x,y);
+
+    // if the point is out of view we also need to flip the signs of x and y
+    if (!pointInView) {
+        projectedPoint.x = -x;
+        projectedPoint.y = -y;
+    }
+
+    return projectedPoint;
+}
+
+
+const int MAX_POSSIBLE_COMBINATIONS = 43;
+
+const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
+    // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AACube
+
+//0
+    {0}, // inside
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
+    {4, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR,  TOP_LEFT_NEAR, TOP_LEFT_FAR  },  // left
+    {0}, // n/a
+
+//4
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR}, // bottom
+//5
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR },//bottom, right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, },//bottom, left
+    {0}, // n/a
+//8
+    {4, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},         // top
+    {6, TOP_RIGHT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},   // top, right
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR},   // top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+//16
+    {4, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front or near
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front, right
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, }, // front, left
+    {0}, // n/a
+//20
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front,bottom
+
+//21
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, //front,bottom,right
+//22
+    {6, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR  }, //front,bottom,left
+    {0}, // n/a
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR}, // front, top
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR }, // front, top, right
+
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR }, // front, top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+//32
+    {4, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // back, right
+//34
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back, left
+
+
+    {0}, // n/a
+//36
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR}, // back, bottom
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR},//back, bottom, right
+
+// 38
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR },//back, bottom, left
+    {0}, // n/a
+
+// 40
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR}, // back, top
+
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // back, top, right
+//42
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
+};
+
+CubeProjectedPolygon ViewFrustum::getProjectedPolygon(const AACube& box) const {
+    const glm::vec3& bottomNearRight = box.getCorner();
+    glm::vec3 topFarLeft = box.calcTopFarLeft();
+
+    int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
+               + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
+               + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
+               + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
+               + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
+               + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
+
+    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
+
+    CubeProjectedPolygon projectedPolygon(vertexCount);
+
+    bool pointInView = true;
+    bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
+    bool anyPointsInView = false; // assume the worst!
+    if (vertexCount) {
+        allPointsInView = true; // assume the best!
+        for(int i = 0; i < vertexCount; i++) {
+            int vertexNum = hullVertexLookup[lookUp][i+1];
+            glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
+            glm::vec2 projectedPoint = projectPoint(point, pointInView);
+            allPointsInView = allPointsInView && pointInView;
+            anyPointsInView = anyPointsInView || pointInView;
+            projectedPolygon.setVertex(i, projectedPoint);
+        }
+
+        /***
+        // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
+        // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
+        // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
+        if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
+             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
+             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
+             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
+
+            CoverageRegion::_clippedPolygons++;
+
+            glm::vec2* clippedVertices;
+            int        clippedVertexCount;
+            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
+
+            // Now reset the vertices of our projectedPolygon object
+            projectedPolygon.setVertexCount(clippedVertexCount);
+            for(int i = 0; i < clippedVertexCount; i++) {
+                projectedPolygon.setVertex(i, clippedVertices[i]);
+            }
+            delete[] clippedVertices;
+
+            lookUp += PROJECTION_CLIPPED;
+        }
+        ***/
+    }
+    // set the distance from our camera position, to the closest vertex
+    float distance = glm::distance(getPosition(), box.calcCenter());
+    projectedPolygon.setDistance(distance);
+    projectedPolygon.setAnyInView(anyPointsInView);
+    projectedPolygon.setAllInView(allPointsInView);
+    projectedPolygon.setProjectionType(lookUp); // remember the projection type
+    return projectedPolygon;
 }
 
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the

@@ -21,6 +21,7 @@
 
 #include "AABox.h"
 #include "AACube.h"
+#include "CubeProjectedPolygon.h"
 #include "Plane.h"
 #include "RegisteredMetaTypes.h"
 #include "Transform.h"
@@ -108,6 +109,10 @@ public:
     bool cubeIntersectsKeyhole(const AACube& cube) const;
     bool boxIntersectsKeyhole(const AABox& box) const;
 
+    // some frustum comparisons
+    bool matches(const ViewFrustum& compareTo, bool debug = false) const;
+    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
+
     bool isVerySimilar(const ViewFrustum& compareTo, bool debug = false) const;
     bool isVerySimilar(const ViewFrustum* compareTo, bool debug = false) const { return isVerySimilar(*compareTo, debug); }
 
@@ -119,6 +124,8 @@ public:
 
     void printDebugDetails() const;
 
+    glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
+    CubeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
 
     float distanceToCamera(const glm::vec3& point) const;
@@ -159,6 +166,9 @@ private:
     float _farClip { DEFAULT_FAR_CLIP };
 
     const char* debugPlaneName (int plane) const;
+
+    // Used to project points
+    glm::mat4 _ourModelViewProjectionMatrix;
 };
 using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
