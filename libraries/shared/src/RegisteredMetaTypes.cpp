@@ -34,6 +34,7 @@ static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 static int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 
 void registerMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
     qScriptRegisterMetaType(engine, qVectorVec3ToScriptValue, qVectorVec3FromScriptValue);
@@ -51,6 +52,46 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
     qScriptRegisterMetaType(engine, qSizeFToScriptValue, qSizeFFromScriptValue);
     qScriptRegisterMetaType(engine, aaCubeToScriptValue, aaCubeFromScriptValue);
+}
+
+QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("r0c0", mat4[0][0]);
+    obj.setProperty("r1c0", mat4[0][1]);
+    obj.setProperty("r2c0", mat4[0][2]);
+    obj.setProperty("r3c0", mat4[0][3]);
+    obj.setProperty("r0c1", mat4[1][0]);
+    obj.setProperty("r1c1", mat4[1][1]);
+    obj.setProperty("r2c1", mat4[1][2]);
+    obj.setProperty("r3c1", mat4[1][3]);
+    obj.setProperty("r0c2", mat4[2][0]);
+    obj.setProperty("r1c2", mat4[2][1]);
+    obj.setProperty("r2c2", mat4[2][2]);
+    obj.setProperty("r3c2", mat4[2][3]);
+    obj.setProperty("r0c3", mat4[3][0]);
+    obj.setProperty("r1c3", mat4[3][1]);
+    obj.setProperty("r2c3", mat4[3][2]);
+    obj.setProperty("r3c3", mat4[3][3]);
+    return obj;
+}
+
+void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4) {
+    mat4[0][0] = object.property("r0c0").toVariant().toFloat();
+    mat4[0][1] = object.property("r1c0").toVariant().toFloat();
+    mat4[0][2] = object.property("r2c0").toVariant().toFloat();
+    mat4[0][3] = object.property("r3c0").toVariant().toFloat();
+    mat4[1][0] = object.property("r0c1").toVariant().toFloat();
+    mat4[1][1] = object.property("r1c1").toVariant().toFloat();
+    mat4[1][2] = object.property("r2c1").toVariant().toFloat();
+    mat4[1][3] = object.property("r3c1").toVariant().toFloat();
+    mat4[2][0] = object.property("r0c2").toVariant().toFloat();
+    mat4[2][1] = object.property("r1c2").toVariant().toFloat();
+    mat4[2][2] = object.property("r2c2").toVariant().toFloat();
+    mat4[2][3] = object.property("r3c2").toVariant().toFloat();
+    mat4[3][0] = object.property("r0c3").toVariant().toFloat();
+    mat4[3][1] = object.property("r1c3").toVariant().toFloat();
+    mat4[3][2] = object.property("r2c3").toVariant().toFloat();
+    mat4[3][3] = object.property("r3c3").toVariant().toFloat();
 }
 
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4) {
