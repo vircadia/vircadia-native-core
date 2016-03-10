@@ -22,8 +22,8 @@
 
     //if the trigger value goes below this value, reload the gun.
     var RELOAD_THRESHOLD = 0.95;
-    var GUN_TIP_FWD_OFFSET =-0.35;
-    var GUN_TIP_UP_OFFSET = 0.040;
+    var GUN_TIP_FWD_OFFSET = -0.35;
+    var GUN_TIP_UP_OFFSET = 0.12;
     var GUN_FORCE = 9;
     var BALL_RESTITUTION = 0.6;
     var BALL_LINEAR_DAMPING = 0.4;
@@ -45,56 +45,35 @@
         green: 255,
         blue: 255
     };
-    
+
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
         Controller.Standard.RT,
     ];
-    
+
 
     PingPongGun.prototype = {
         hand: null,
-        whichHand: null,
         gunTipPosition: null,
         canShoot: false,
         canShootTimeout: null,
-        setRightHand: function() {
-            this.hand = 1;
+
+        startEquip: function(entityID, args) {
+            this.hand = args[0] == "left" ? 0 : 1;
         },
 
-        setLeftHand: function() {
-            this.hand = 0;
-        },
-
-        startNearGrab: function() {
-            this.setWhichHand();
-        },
-
-        setWhichHand: function() {
-            this.whichHand = this.hand;
-        },
-
-        continueNearGrab: function() {
-            if (this.whichHand === null) {
-                //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
-                this.setWhichHand();
-            } else {
-                if (this.canShootTimeout !== null) {
-                    Script.clearTimeout(this.canShootTimeout);
-                }
-                this.checkTriggerPressure(this.whichHand);
+        continueEquip: function(entityID, args) {
+            if (this.canShootTimeout !== null) {
+                Script.clearTimeout(this.canShootTimeout);
             }
+            this.checkTriggerPressure(this.hand);
         },
 
-        releaseGrab: function() {
+        releaseEquip: function(entityID, args) {
             var _this = this;
-
-            if (this.whichHand === this.hand) {
-                this.whichHand = null;
-                this.canShootTimeout = Script.setTimeout(function() {
-                    _this.canShoot = false;
-                }, 250);
-            }
+            this.canShootTimeout = Script.setTimeout(function() {
+                _this.canShoot = false;
+            }, 250);
         },
 
         checkTriggerPressure: function(gunHand) {
@@ -102,7 +81,7 @@
             if (this.triggerValue < RELOAD_THRESHOLD) {
                 // print('RELOAD');
                 this.canShoot = true;
-            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true && this.hand === this.whichHand) {
+            } else if (this.triggerValue >= RELOAD_THRESHOLD && this.canShoot === true) {
                 var gunProperties = Entities.getEntityProperties(this.entityID, ["position", "rotation"]);
                 this.shootBall(gunProperties);
                 this.canShoot = false;
@@ -119,14 +98,14 @@
             var properties = {
                 // type: 'Model',
                 // modelURL:PING_PONG_BALL_URL,
-                shapeType:'sphere',
-                type:'Sphere',
+                shapeType: 'sphere',
+                type: 'Sphere',
                 color: BALL_COLOR,
                 dimensions: BALL_DIMENSIONS,
                 damping: BALL_LINEAR_DAMPING,
                 gravity: BALL_GRAVITY,
                 restitution: BALL_RESTITUTION,
-                collisionsWillMove: true,
+                dynamic: true,
                 rotation: gunProperties.rotation,
                 position: this.getGunTipPosition(gunProperties),
                 velocity: forwardVec,
@@ -146,7 +125,7 @@
 
             Audio.playSound(this.SHOOTING_SOUND, audioProperties);
         },
-
+        
         getGunTipPosition: function(properties) {
             //the tip of the gun is going to be in a different place than the center, so we move in space relative to the model to find that position
             var frontVector = Quat.getFront(properties.rotation);

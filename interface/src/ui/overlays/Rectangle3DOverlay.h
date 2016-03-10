@@ -24,7 +24,8 @@ public:
     Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay);
     ~Rectangle3DOverlay();
     virtual void render(RenderArgs* args);
-    virtual void setProperties(const QScriptValue& properties);
+    virtual const render::ShapeKey getShapeKey() override;
+    void setProperties(const QVariantMap& properties) override;
 
     virtual Rectangle3DOverlay* createClone() const;
 private:

@@ -13,9 +13,8 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 const int MAX_TEXCOORDS = 2;
@@ -30,7 +29,8 @@ out vec3 _tangent;
 out vec3 _color;
 
 void main(void) {
-    _color = inColor.xyz;
+    // pass along the color in linear space
+    _color = colorToLinearRGB(inColor.xyz);
 
     // and the texture coordinates
     _texCoord0 = (texcoordMatrices[0] * vec4(inTexCoord0.st, 0.0, 1.0)).st;

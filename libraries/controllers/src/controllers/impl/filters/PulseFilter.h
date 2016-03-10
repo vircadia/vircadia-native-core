@@ -23,7 +23,7 @@ public:
 
     virtual float apply(float value) const override;
 
-    virtual bool parseParameters(const QJsonValue& parameters);
+    virtual bool parseParameters(const QJsonValue& parameters) override;
 
 private:
     static const float DEFAULT_LAST_EMIT_TIME;

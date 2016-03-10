@@ -22,13 +22,17 @@ namespace gpu {
 
 class Pipeline {
 public:
-    static Pipeline* create(const ShaderPointer& program, const StatePointer& state);
+    using Pointer = std::shared_ptr< Pipeline >;
+
+    static Pointer create(const ShaderPointer& program, const StatePointer& state);
     ~Pipeline();
 
     const ShaderPointer& getProgram() const { return _program; }
 
     const StatePointer& getState() const { return _state; }
 
+    const GPUObjectPointer gpuObject {};
+    
 protected:
     ShaderPointer _program;
     StatePointer _state;
@@ -36,15 +40,9 @@ protected:
     Pipeline();
     Pipeline(const Pipeline& pipeline); // deep copy of the sysmem shader
     Pipeline& operator=(const Pipeline& pipeline); // deep copy of the sysmem texture
-
-    // This shouldn't be used by anything else than the Backend class with the proper casting.
-    mutable GPUObject* _gpuObject = nullptr;
-    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    GPUObject* getGPUObject() const { return _gpuObject; }
-    friend class Backend;
 };
 
-typedef std::shared_ptr< Pipeline > PipelinePointer;
+typedef Pipeline::Pointer PipelinePointer;
 typedef std::vector< PipelinePointer > Pipelines;
 
 };

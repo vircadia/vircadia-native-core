@@ -28,6 +28,6 @@
     };
     
     if (!isScriptRunning(SCRIPT_NAME)) {
-         Script.load(SCRIPT_NAME); 
+        ScriptDiscoveryService.loadOneScript(SCRIPT_NAME);
     } 
 })

@@ -75,9 +75,9 @@ void makeBindings(GLBackend::GLShader* shader) {
         glBindAttribLocation(glprogram, gpu::Stream::SKIN_CLUSTER_WEIGHT, "inSkinClusterWeight");
     }
 
-    loc = glGetAttribLocation(glprogram, "inInstanceTransform");
-    if (loc >= 0 && loc != gpu::Stream::INSTANCE_XFM) {
-        glBindAttribLocation(glprogram, gpu::Stream::INSTANCE_XFM, "inInstanceTransform");
+    loc = glGetAttribLocation(glprogram, "_drawCallInfo");
+    if (loc >= 0 && loc != gpu::Stream::DRAW_CALL_INFO) {
+        glBindAttribLocation(glprogram, gpu::Stream::DRAW_CALL_INFO, "_drawCallInfo");
     }
 
     // Link again to take into account the assigned attrib location
@@ -92,17 +92,27 @@ void makeBindings(GLBackend::GLShader* shader) {
     // now assign the ubo binding, then DON't relink!
 
     //Check for gpu specific uniform slotBindings
-    loc = glGetUniformBlockIndex(glprogram, "transformObjectBuffer");
+#ifdef GPU_SSBO_DRAW_CALL_INFO
+    loc = glGetProgramResourceIndex(glprogram, GL_SHADER_STORAGE_BLOCK, "transformObjectBuffer");
     if (loc >= 0) {
-        glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        glShaderStorageBlockBinding(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
         shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
     }
+#else
+    loc = glGetUniformLocation(glprogram, "transformObjectBuffer");
+    if (loc >= 0) {
+        glProgramUniform1i(glprogram, loc, gpu::TRANSFORM_OBJECT_SLOT);
+        shader->_transformObjectSlot = gpu::TRANSFORM_OBJECT_SLOT;
+    }
+#endif
 
     loc = glGetUniformBlockIndex(glprogram, "transformCameraBuffer");
     if (loc >= 0) {
         glUniformBlockBinding(glprogram, loc, gpu::TRANSFORM_CAMERA_SLOT);
         shader->_transformCameraSlot = gpu::TRANSFORM_CAMERA_SLOT;
     }
+
+    (void)CHECK_GL_ERROR();
 }
 
 GLBackend::GLShader* compileShader(const Shader& shader) {
@@ -152,9 +162,7 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
         char* temp = new char[infoLength] ;
         glGetShaderInfoLog(glshader, infoLength, NULL, temp);
 
-        qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
-        qCWarning(gpulogging) << temp;
-
+        
         /*
         filestream.open("debugshader.glsl.info.txt");
         if (filestream.is_open()) {
@@ -162,6 +170,11 @@ GLBackend::GLShader* compileShader(const Shader& shader) {
             filestream.close();
         }
         */
+
+        qCWarning(gpulogging) << "GLShader::compileShader - failed to compile the gl shader object:";
+        qCWarning(gpulogging) << srcstr;
+        qCWarning(gpulogging) << "GLShader::compileShader - errors:";
+        qCWarning(gpulogging) << temp;
         delete[] temp;
 
         glDeleteShader(glshader);

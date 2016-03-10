@@ -49,7 +49,7 @@ function mousePressEvent(event) {
             dimensions: {x: 0.3, y: 0.7, z: 0.3},
             gravity: {x: 0.0, y: -3.0, z: 0.0},
             damping: 0.2,
-            collisionsWillMove: true
+            dynamic: true
         });
 
         var pointToOffsetFrom = Vec3.sum(position, {x: 0.0, y: 2.0, z: 0.0});

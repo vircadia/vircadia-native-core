@@ -20,13 +20,13 @@
 
 const QString MESSAGES_MIXER_LOGGING_NAME = "messages-mixer";
 
-MessagesMixer::MessagesMixer(NLPacket& packet) : ThreadedAssignment(packet)
+MessagesMixer::MessagesMixer(ReceivedMessage& message) : ThreadedAssignment(message)
 {
     connect(DependencyManager::get<NodeList>().data(), &NodeList::nodeKilled, this, &MessagesMixer::nodeKilled);
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
-    packetReceiver.registerMessageListener(PacketType::MessagesData, this, "handleMessages");
-    packetReceiver.registerMessageListener(PacketType::MessagesSubscribe, this, "handleMessagesSubscribe");
-    packetReceiver.registerMessageListener(PacketType::MessagesUnsubscribe, this, "handleMessagesUnsubscribe");
+    packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessages");
+    packetReceiver.registerListener(PacketType::MessagesSubscribe, this, "handleMessagesSubscribe");
+    packetReceiver.registerListener(PacketType::MessagesUnsubscribe, this, "handleMessagesUnsubscribe");
 }
 
 void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
@@ -35,10 +35,10 @@ void MessagesMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+void MessagesMixer::handleMessages(QSharedPointer<ReceivedMessage> receivedMessage, SharedNodePointer senderNode) {
     QString channel, message;
     QUuid senderID;
-    MessagesClient::decodeMessagesPacket(packetList, channel, message, senderID);
+    MessagesClient::decodeMessagesPacket(receivedMessage, channel, message, senderID);
 
     auto nodeList = DependencyManager::get<NodeList>();
 
@@ -53,13 +53,13 @@ void MessagesMixer::handleMessages(QSharedPointer<NLPacketList> packetList, Shar
     });
 }
 
-void MessagesMixer::handleMessagesSubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QString channel = QString::fromUtf8(packetList->getMessage());
+void MessagesMixer::handleMessagesSubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    QString channel = QString::fromUtf8(message->getMessage());
     _channelSubscribers[channel] << senderNode->getUUID();
 }
 
-void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QString channel = QString::fromUtf8(packetList->getMessage());
+void MessagesMixer::handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    QString channel = QString::fromUtf8(message->getMessage());
     if (_channelSubscribers.contains(channel)) {
         _channelSubscribers[channel].remove(senderNode->getUUID());
     }

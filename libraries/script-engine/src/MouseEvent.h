@@ -17,7 +17,7 @@
 class MouseEvent {
 public:
     MouseEvent();
-    MouseEvent(const QMouseEvent& event, const unsigned int deviceID = 0);
+    MouseEvent(const QMouseEvent& event);
     
     static QScriptValue toScriptValue(QScriptEngine* engine, const MouseEvent& event);
     static void fromScriptValue(const QScriptValue& object, MouseEvent& event);
@@ -26,7 +26,6 @@ public:
     
     int x;
     int y;
-    unsigned int deviceID;
     QString button;
     bool isLeftButton;
     bool isRightButton;

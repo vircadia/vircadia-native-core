@@ -58,7 +58,7 @@ for (var i = 0; i < planetTypes.length; i++) {
               angularDamping: 0.0,
             ignoreCollisions: false,
             lifetime: LIFETIME,
-            collisionsWillMove: false })); 
+            dynamic: false })); 
 }
 
 Script.setTimeout(createParticles, 1000); 
@@ -82,7 +82,7 @@ function createParticles() {
                 ignoreCollisions: false,
                 damping: DAMPING,
                 lifetime: LIFETIME,
-                collisionsWillMove: true })); 
+                dynamic: true })); 
     }
     Script.update.connect(update);
 }

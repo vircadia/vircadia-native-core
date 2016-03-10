@@ -42,7 +42,7 @@ for (var x = 0; x < SIDE_SIZE; x++) {
                 dimensions: { x: radius, y: radius, z: radius }, 
                 color: color,
                 ignoreCollisions: true,
-                collisionsWillMove: false, 
+                dynamic: false, 
                 lifetime: LIFETIME
             }));
         }

@@ -13,6 +13,7 @@
 #define hifi_HifiConfigVariantMap_h
 
 #include <QtCore/QStringList>
+#include <QtCore/QVariantMap>
 
 class HifiConfigVariantMap {
 public:
@@ -24,6 +25,8 @@ public:
     const QVariantMap& getMasterConfig() const { return _masterConfig; }
     QVariantMap& getUserConfig() { return _userConfig; }
     QVariantMap& getMergedConfig() { return _mergedConfig; }
+
+    void mergeMasterAndUserConfigs();
 
     const QString& getUserConfigFilename() const { return _userConfigFilename; }
 private:

@@ -34,6 +34,8 @@ public:
         NumTypes
     };
 
+    static const AnimVariant False;
+
     AnimVariant() : _type(Type::Bool) { memset(&_val, 0, sizeof(_val)); }
     AnimVariant(bool value) : _type(Type::Bool) { _val.boolVal = value; }
     AnimVariant(int value) : _type(Type::Int) { _val.intVal = value; }
@@ -57,13 +59,50 @@ public:
     void setQuat(const glm::quat& value) { assert(_type == Type::Quat); *reinterpret_cast<glm::quat*>(&_val) = value; }
     void setString(const QString& value) { assert(_type == Type::String); _stringVal = value; }
 
-    bool getBool() const { assert(_type == Type::Bool); return _val.boolVal; }
-    int getInt() const { assert(_type == Type::Int || _type == Type::Float); return _type == Type::Float ? (int)_val.floats[0] : _val.intVal; }
-    float getFloat() const { assert(_type == Type::Float || _type == Type::Int); return _type == Type::Int ? (float)_val.intVal : _val.floats[0]; }
-
-    const glm::vec3& getVec3() const { assert(_type == Type::Vec3); return *reinterpret_cast<const glm::vec3*>(&_val); }
-    const glm::quat& getQuat() const { assert(_type == Type::Quat); return *reinterpret_cast<const glm::quat*>(&_val); }
-    const QString& getString() const { assert(_type == Type::String); return _stringVal; }
+    bool getBool() const {
+        if (_type == Type::Bool) {
+            return _val.boolVal;
+        } else if (_type == Type::Int) {
+            return _val.intVal != 0;
+        } else {
+            return false;
+        }
+    }
+    int getInt() const {
+        if (_type == Type::Int) {
+            return _val.intVal;
+        } else if (_type == Type::Float) {
+            return (int)_val.floats[0];
+        } else {
+            return 0;
+        }
+    }
+    float getFloat() const {
+        if (_type == Type::Float) {
+            return _val.floats[0];
+        } else if (_type == Type::Int) {
+            return (float)_val.intVal;
+        } else {
+            return 0.0f;
+        }
+    }
+    const glm::vec3& getVec3() const {
+        if (_type == Type::Vec3) {
+            return *reinterpret_cast<const glm::vec3*>(&_val);
+        } else {
+            return Vectors::ZERO;
+        }
+    }
+    const glm::quat& getQuat() const {
+        if (_type == Type::Quat) {
+            return *reinterpret_cast<const glm::quat*>(&_val);
+        } else {
+            return Quaternions::IDENTITY;
+        }
+    }
+    const QString& getString() const {
+        return _stringVal;
+    }
 
 protected:
     Type _type;
@@ -71,7 +110,7 @@ protected:
     union {
         bool boolVal;
         int intVal;
-        float floats[16];
+        float floats[4];
     } _val;
 };
 
@@ -171,6 +210,15 @@ public:
 
     void clearMap() { _map.clear(); }
     bool hasKey(const QString& key) const { return _map.find(key) != _map.end(); }
+
+    const AnimVariant& get(const QString& key) const {
+        auto iter = _map.find(key);
+        if (iter != _map.end()) {
+            return iter->second;
+        } else {
+            return AnimVariant::False;
+        }
+    }
 
     // Answer a Plain Old Javascript Object (for the given engine) all of our values set as properties.
     QScriptValue animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const;

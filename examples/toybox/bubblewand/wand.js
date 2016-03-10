@@ -71,7 +71,7 @@
         addCollisionsToBubbleAfterCreation: function(bubble) {
             //if the bubble collide immediately, we get weird effects.  so we add collisions after release
             Entities.editEntity(bubble, {
-                collisionsWillMove: true
+                dynamic: true
             });
         },
         randomizeBubbleGravity: function() {
@@ -119,7 +119,8 @@
                     //wait to make the bubbles collidable, so that they dont hit each other and the wand
                     Script.setTimeout(this.addCollisionsToBubbleAfterCreation(this.currentBubble), lifetime / 2);
 
-                    //release the bubble -- when we create a new bubble, it will carry on and this update loop will affect the new bubble
+                    //release the bubble -- when we create a new bubble, it will carry on and this update loop will
+                    // affect the new bubble
                     this.createBubbleAtTipOfWand();
                     return;
                 } else {
@@ -161,8 +162,8 @@
                 modelURL: BUBBLE_MODEL,
                 position: this.getWandTipPosition(properties),
                 dimensions: BUBBLE_INITIAL_DIMENSIONS,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
+                dynamic: false,
+                collisionless: true,
                 damping: BUBBLE_LINEAR_DAMPING,
                 shapeType: "sphere"
             });
@@ -173,6 +174,9 @@
             if (this.currentBubble === null) {
                 this.createBubbleAtTipOfWand();
             }
+        },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
         },
         continueNearGrab: function() {
             var deltaTime = checkInterval();
@@ -188,10 +192,16 @@
             this.growBubbleWithWandVelocity(properties, deltaTime);
 
         },
+        continueEquip: function() {
+            this.continueNearGrab();
+        },
         releaseGrab: function() {
             //delete the  current buble and reset state when the wand is released
             Entities.deleteEntity(this.currentBubble);
             this.currentBubble = null;
+        },
+        releaseEquip: function() {
+            this.releaseGrab();
         },
 
     };

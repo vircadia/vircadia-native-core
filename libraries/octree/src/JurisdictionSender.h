@@ -32,13 +32,13 @@ public:
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
 
-    virtual bool process();
+    virtual bool process() override;
 
     NodeType_t getNodeType() const { return _nodeType; }
     void setNodeType(NodeType_t type) { _nodeType = type; }
 
 protected:
-    virtual void processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
 
     /// Locks all the resources of the thread.
     void lockRequestingNodes() { _requestingNodeMutex.lock(); }

@@ -10,7 +10,7 @@
 
 #include "Circle3DOverlay.h"
 
-#include <DeferredLightingEffect.h>
+#include <GeometryUtil.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 
@@ -106,7 +106,6 @@ void Circle3DOverlay::render(RenderArgs* args) {
     auto transform = _transform;
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false);
     
     // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
     // we just draw a line...
@@ -279,85 +278,92 @@ void Circle3DOverlay::render(RenderArgs* args) {
     }
 }
 
-void Circle3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Circle3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Circle3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
 
-    QScriptValue startAt = properties.property("startAt");
+    QVariant startAt = properties["startAt"];
     if (startAt.isValid()) {
-        setStartAt(startAt.toVariant().toFloat());
+        setStartAt(startAt.toFloat());
     }
 
-    QScriptValue endAt = properties.property("endAt");
+    QVariant endAt = properties["endAt"];
     if (endAt.isValid()) {
-        setEndAt(endAt.toVariant().toFloat());
+        setEndAt(endAt.toFloat());
     }
 
-    QScriptValue outerRadius = properties.property("outerRadius");
+    QVariant outerRadius = properties["radius"];
+    if (!outerRadius.isValid()) {
+        outerRadius = properties["outerRadius"];
+    }
     if (outerRadius.isValid()) {
-        setOuterRadius(outerRadius.toVariant().toFloat());
+        setOuterRadius(outerRadius.toFloat());
     }
 
-    QScriptValue innerRadius = properties.property("innerRadius");
+    QVariant innerRadius = properties["innerRadius"];
     if (innerRadius.isValid()) {
-        setInnerRadius(innerRadius.toVariant().toFloat());
+        setInnerRadius(innerRadius.toFloat());
     }
 
-    QScriptValue hasTickMarks = properties.property("hasTickMarks");
+    QVariant hasTickMarks = properties["hasTickMarks"];
     if (hasTickMarks.isValid()) {
-        setHasTickMarks(hasTickMarks.toVariant().toBool());
+        setHasTickMarks(hasTickMarks.toBool());
     }
 
-    QScriptValue majorTickMarksAngle = properties.property("majorTickMarksAngle");
+    QVariant majorTickMarksAngle = properties["majorTickMarksAngle"];
     if (majorTickMarksAngle.isValid()) {
-        setMajorTickMarksAngle(majorTickMarksAngle.toVariant().toFloat());
+        setMajorTickMarksAngle(majorTickMarksAngle.toFloat());
     }
 
-    QScriptValue minorTickMarksAngle = properties.property("minorTickMarksAngle");
+    QVariant minorTickMarksAngle = properties["minorTickMarksAngle"];
     if (minorTickMarksAngle.isValid()) {
-        setMinorTickMarksAngle(minorTickMarksAngle.toVariant().toFloat());
+        setMinorTickMarksAngle(minorTickMarksAngle.toFloat());
     }
 
-    QScriptValue majorTickMarksLength = properties.property("majorTickMarksLength");
+    QVariant majorTickMarksLength = properties["majorTickMarksLength"];
     if (majorTickMarksLength.isValid()) {
-        setMajorTickMarksLength(majorTickMarksLength.toVariant().toFloat());
+        setMajorTickMarksLength(majorTickMarksLength.toFloat());
     }
 
-    QScriptValue minorTickMarksLength = properties.property("minorTickMarksLength");
+    QVariant minorTickMarksLength = properties["minorTickMarksLength"];
     if (minorTickMarksLength.isValid()) {
-        setMinorTickMarksLength(minorTickMarksLength.toVariant().toFloat());
+        setMinorTickMarksLength(minorTickMarksLength.toFloat());
     }
 
-    QScriptValue majorTickMarksColor = properties.property("majorTickMarksColor");
+    bool valid;
+    auto majorTickMarksColor = properties["majorTickMarksColor"];
     if (majorTickMarksColor.isValid()) {
-        QScriptValue red = majorTickMarksColor.property("red");
-        QScriptValue green = majorTickMarksColor.property("green");
-        QScriptValue blue = majorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _majorTickMarksColor.red = red.toVariant().toInt();
-            _majorTickMarksColor.green = green.toVariant().toInt();
-            _majorTickMarksColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(majorTickMarksColor, valid);
+        if (valid) {
+            _majorTickMarksColor = color;
         }
     }
 
-    QScriptValue minorTickMarksColor = properties.property("minorTickMarksColor");
+    auto minorTickMarksColor = properties["minorTickMarksColor"];
     if (minorTickMarksColor.isValid()) {
-        QScriptValue red = minorTickMarksColor.property("red");
-        QScriptValue green = minorTickMarksColor.property("green");
-        QScriptValue blue = minorTickMarksColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _minorTickMarksColor.red = red.toVariant().toInt();
-            _minorTickMarksColor.green = green.toVariant().toInt();
-            _minorTickMarksColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(majorTickMarksColor, valid);
+        if (valid) {
+            _minorTickMarksColor = color;
         }
     }
 }
 
-QScriptValue Circle3DOverlay::getProperty(const QString& property) {
+QVariant Circle3DOverlay::getProperty(const QString& property) {
     if (property == "startAt") {
         return _startAt;
     }
     if (property == "endAt") {
         return _endAt;
+    }
+    if (property == "radius") {
+        return _outerRadius;
     }
     if (property == "outerRadius") {
         return _outerRadius;
@@ -381,10 +387,10 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
         return _minorTickMarksLength;
     }
     if (property == "majorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _majorTickMarksColor);
+        return xColorToVariant(_majorTickMarksColor);
     }
     if (property == "minorTickMarksColor") {
-        return xColorToScriptValue(_scriptEngine, _minorTickMarksColor);
+        return xColorToVariant(_minorTickMarksColor);
     }
 
     return Planar3DOverlay::getProperty(property);
@@ -394,18 +400,18 @@ QScriptValue Circle3DOverlay::getProperty(const QString& property) {
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                             BoxFace& face, glm::vec3& surfaceNormal) {
 
-    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face, surfaceNormal);
+    // Scale the dimensions by the diameter
+    glm::vec2 dimensions = getOuterRadius() * 2.0f * getDimensions();
+    bool intersects = findRayRectangleIntersection(origin, direction, getRotation(), getPosition(), dimensions, distance);
 
     if (intersects) {
         glm::vec3 hitPosition = origin + (distance * direction);
         glm::vec3 localHitPosition = glm::inverse(getRotation()) * (hitPosition - getPosition());
-        localHitPosition.y = localHitPosition.y * getDimensions().x / getDimensions().y;  // Scale to make circular
-
+        localHitPosition.x /= getDimensions().x;
+        localHitPosition.y /= getDimensions().y;
         float distanceToHit = glm::length(localHitPosition);
-        float innerRadius = getDimensions().x / 2.0f * _innerRadius;
-        float outerRadius = getDimensions().x / 2.0f * _outerRadius;
 
-        intersects = innerRadius <= distanceToHit && distanceToHit <= outerRadius;
+        intersects = getInnerRadius() <= distanceToHit && distanceToHit <= getOuterRadius();
     }
 
     return intersects;

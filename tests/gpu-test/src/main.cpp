@@ -30,12 +30,10 @@
 #include <gpu/Context.h>
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
-#include <gpu/StandardShaderLib.h>
 #include <gpu/GLBackend.h>
 
-// Must come after GL headers
-#include <QtGui/QOpenGLContext>
-#include <QtGui/QOpenGLDebugLogger>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <GLMHelpers.h>
 #include <PathUtils.h>
@@ -59,7 +57,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {
@@ -85,9 +83,9 @@ public:
 uint32_t toCompactColor(const glm::vec4& color);
 
 gpu::ShaderPointer makeShader(const std::string & vertexShaderSrc, const std::string & fragmentShaderSrc, const gpu::Shader::BindingSet & bindings) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(vertexShaderSrc));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(fragmentShaderSrc));
-    auto shader = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(vertexShaderSrc);
+    auto fs = gpu::Shader::createPixel(fragmentShaderSrc);
+    auto shader = gpu::Shader::createProgram(vs, fs);
     if (!gpu::Shader::makeProgram(*shader, bindings)) {
         printf("Could not compile shader\n");
         exit(-1);
@@ -118,7 +116,7 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat();
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext* _qGlContext{ nullptr };
+    QOpenGLContextWrapper _qGlContext;
     QSize _size;
     
     gpu::ContextPointer _context;
@@ -126,7 +124,6 @@ class QTestWindow : public QWindow {
     glm::mat4 _projectionMatrix;
     RateCounter fps;
     QTime _time;
-    int _instanceLocation{ -1 };
 
 protected:
     void renderText();
@@ -151,19 +148,12 @@ public:
 
         setFormat(format);
 
-        _qGlContext = new QOpenGLContext;
-        _qGlContext->setFormat(format);
-        _qGlContext->create();
+        _qGlContext.setFormat(format);
+        _qGlContext.create();
 
         show();
         makeCurrent();
-        QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-        logger->initialize(); // initializes in the current context, i.e. ctx
-        connect(logger, &QOpenGLDebugLogger::messageLogged, [](const QOpenGLDebugMessage& message){
-            qDebug() << message;
-        });
-        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-
+        setupDebugLogger(this);
 
         gpu::Context::init<gpu::GLBackend>();
         _context = std::make_shared<gpu::Context>();
@@ -172,8 +162,7 @@ public:
         auto state = std::make_shared<gpu::State>();
         state->setMultisampleEnable(true);
         state->setDepthTest(gpu::State::DepthTest { true });
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(shader, state));
-        _instanceLocation = _pipeline->getProgram()->getUniforms().findLocation("Instanced");
+        _pipeline = gpu::Pipeline::create(shader, state);
         
         // Clear screen
         gpu::Batch batch;
@@ -227,16 +216,16 @@ public:
             static const std::string GRID_INSTANCE = "Grid";
             static auto compactColor1 = toCompactColor(vec4{ 0.35f, 0.25f, 0.15f, 1.0f });
             static auto compactColor2 = toCompactColor(vec4{ 0.15f, 0.25f, 0.35f, 1.0f });
-            static gpu::BufferPointer transformBuffer; 
+            static std::vector<glm::mat4> transforms;
             static gpu::BufferPointer colorBuffer;
-            if (!transformBuffer) {
-                transformBuffer = std::make_shared<gpu::Buffer>();
+            if (!transforms.empty()) {
+                transforms.reserve(200);
                 colorBuffer = std::make_shared<gpu::Buffer>();
                 for (int i = 0; i < 100; ++i) {
                     {
                         glm::mat4 transform = glm::translate(mat4(), vec3(0, -1, -50 + i));
                         transform = glm::scale(transform, vec3(100, 1, 1));
-                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
                         colorBuffer->append(compactColor1);
                     }
 
@@ -244,20 +233,21 @@ public:
                         glm::mat4 transform = glm::mat4_cast(quat(vec3(0, PI / 2.0f, 0)));
                         transform = glm::translate(transform, vec3(0, -1, -50 + i));
                         transform = glm::scale(transform, vec3(100, 1, 1));
-                        transformBuffer->append(transform);
+                        transforms.push_back(transform);
                         colorBuffer->append(compactColor2);
                     }
                 }
             }
-            
-            batch.setupNamedCalls(GRID_INSTANCE, 200, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
-                batch.setViewTransform(camera);
-                batch.setModelTransform(Transform());
-                batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
-                geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data._count, transformBuffer, colorBuffer);
-                batch._glUniform1i(_instanceLocation, 0);
-            });
+
+            auto pipeline = geometryCache->getSimplePipeline();
+            for (auto& transform : transforms) {
+                batch.setModelTransform(transform);
+                batch.setupNamedCalls(GRID_INSTANCE, [=](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+                    batch.setViewTransform(camera);
+                    batch.setPipeline(_pipeline);
+                    geometryCache->renderWireShapeInstances(batch, GeometryCache::Line, data.count(), colorBuffer);
+                });
+            }
         }
 
         {
@@ -291,10 +281,10 @@ public:
                     GeometryCache::ShapeData shapeData = geometryCache->_shapes[shape];
                     {
                         gpu::Batch::DrawIndexedIndirectCommand indirectCommand;
-                        indirectCommand._count = shapeData._indexCount;
+                        indirectCommand._count = (uint)shapeData._indexCount;
                         indirectCommand._instanceCount = ITEM_COUNT;
-                        indirectCommand._baseInstance = i * ITEM_COUNT;
-                        indirectCommand._firstIndex = shapeData._indexOffset / 2;
+                        indirectCommand._baseInstance = (uint)(i * ITEM_COUNT);
+                        indirectCommand._firstIndex = (uint)shapeData._indexOffset / 2;
                         indirectCommand._baseVertex = 0;
                         indirectBuffer->append(indirectCommand);
                     }
@@ -325,14 +315,11 @@ public:
                 batch.setViewTransform(camera);
                 batch.setModelTransform(Transform());
                 batch.setPipeline(_pipeline);
-                batch._glUniform1i(_instanceLocation, 1);
                 batch.setInputFormat(getInstancedSolidStreamFormat());
                 batch.setInputBuffer(gpu::Stream::COLOR, colorView);
-                batch.setInputBuffer(gpu::Stream::INSTANCE_XFM, instanceXfmView);
                 batch.setIndirectBuffer(indirectBuffer);
                 shapeData.setupBatch(batch);
                 batch.multiDrawIndexedIndirect(TYPE_COUNT, gpu::TRIANGLES);
-                batch._glUniform1i(_instanceLocation, 0);
             }
 #else
             batch.setViewTransform(camera);
@@ -371,7 +358,7 @@ public:
         geometryCache->renderWireCube(batch);
 
         _context->render(batch);
-        _qGlContext->swapBuffers(this);
+        _qGlContext.swapBuffers(this);
         
         fps.increment();
         if (fps.elapsed() >= 0.5f) {
@@ -381,7 +368,7 @@ public:
     }
     
     void makeCurrent() {
-        _qGlContext->makeCurrent(this);
+        _qGlContext.makeCurrent(this);
     }
 
 protected:

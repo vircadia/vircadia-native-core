@@ -32,7 +32,7 @@ public:
         return _frames.size();
     }
 
-    Clip::Pointer duplicate() const {
+    virtual Clip::Pointer duplicate() const override {
         auto result = newClip();
         Locker lock(_mutex);
         for (size_t i = 0; i < _frames.size(); ++i) {
@@ -41,7 +41,7 @@ public:
         return result;
     }
 
-    virtual void seekFrameTime(Frame::Time offset) {
+    virtual void seekFrameTime(Frame::Time offset) override {
         Locker lock(_mutex);
         auto itr = std::lower_bound(_frames.begin(), _frames.end(), offset,
                 [](const T& a, Frame::Time b)->bool {

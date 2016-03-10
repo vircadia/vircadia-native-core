@@ -34,8 +34,8 @@ const QString AVATAR_MIXER_LOGGING_NAME = "avatar-mixer";
 const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 60;
 const unsigned int AVATAR_DATA_SEND_INTERVAL_MSECS = (1.0f / (float) AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND) * 1000;
 
-AvatarMixer::AvatarMixer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+AvatarMixer::AvatarMixer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _broadcastThread(),
     _lastFrameTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _trailingSleepRatio(1.0f),
@@ -157,7 +157,7 @@ void AvatarMixer::broadcastAvatarData() {
             ++_sumListeners;
 
             AvatarData& avatar = nodeData->getAvatar();
-            glm::vec3 myPosition = avatar.getPosition();
+            glm::vec3 myPosition = avatar.getClientGlobalPosition();
 
             // reset the internal state for correct random number distribution
             distribution.reset();
@@ -290,7 +290,7 @@ void AvatarMixer::broadcastAvatarData() {
 
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                     //  at twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    glm::vec3 otherPosition = otherAvatar.getPosition();
+                    glm::vec3 otherPosition = otherAvatar.getClientGlobalPosition();
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
 
                     // potentially update the max full rate distance for this frame
@@ -424,19 +424,19 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
     }
 }
 
-void AvatarMixer::handleAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AvatarMixer::handleAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+    nodeList->updateNodeWithDataFromPacket(message, senderNode);
 }
 
-void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (senderNode->getLinkedData()) {
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             AvatarData& avatar = nodeData->getAvatar();
 
             // parse the identity packet and update the change timestamp if appropriate
-            if (avatar.hasIdentityChangedAfterParsing(*packet)) {
+            if (avatar.hasIdentityChangedAfterParsing(message->getMessage())) {
                 QMutexLocker nodeDataLocker(&nodeData->getMutex());
                 nodeData->setIdentityChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
             }
@@ -444,13 +444,13 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<NLPacket> packet, Sh
     }
 }
 
-void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
     if (nodeData) {
         AvatarData& avatar = nodeData->getAvatar();
 
         // parse the billboard packet and update the change timestamp if appropriate
-        if (avatar.hasBillboardChangedAfterParsing(*packet)) {
+        if (avatar.hasBillboardChangedAfterParsing(message->getMessage())) {
             QMutexLocker nodeDataLocker(&nodeData->getMutex());
             nodeData->setBillboardChangeTimestamp(QDateTime::currentMSecsSinceEpoch());
         }
@@ -458,8 +458,8 @@ void AvatarMixer::handleAvatarBillboardPacket(QSharedPointer<NLPacket> packet, S
     }
 }
 
-void AvatarMixer::handleKillAvatarPacket(QSharedPointer<NLPacket> packet) {
-    DependencyManager::get<NodeList>()->processKillNode(*packet);
+void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+    DependencyManager::get<NodeList>()->processKillNode(*message);
 }
 
 void AvatarMixer::sendStatsPacket() {

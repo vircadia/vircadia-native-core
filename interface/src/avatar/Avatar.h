@@ -27,6 +27,7 @@
 #include "SkeletonModel.h"
 #include "world.h"
 #include "Rig.h"
+#include <ThreadSafeValueCache.h>
 
 namespace render {
     template <> const ItemKey payloadGetKey(const AvatarSharedPointer& avatar);
@@ -36,10 +37,6 @@ namespace render {
 
 static const float SCALING_RATIO = .05f;
 static const float SMOOTHING_RATIO = .05f; // 0 < ratio < 1
-static const float RESCALING_TOLERANCE = .02f;
-
-static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 
 extern const float CHAT_MESSAGE_SCALE;
 extern const float CHAT_MESSAGE_HEIGHT;
@@ -69,6 +66,7 @@ public:
 
     void init();
     void simulate(float deltaTime);
+    virtual void simulateAttachments(float deltaTime);
 
     virtual void render(RenderArgs* renderArgs, const glm::vec3& cameraPosition);
 
@@ -77,6 +75,8 @@ public:
 
     void removeFromScene(AvatarSharedPointer self, std::shared_ptr<render::Scene> scene,
                                 render::PendingChanges& pendingChanges);
+
+    void updateRenderItem(render::PendingChanges& pendingChanges);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -87,9 +87,8 @@ public:
     bool isInitialized() const { return _initialized; }
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     const SkeletonModel& getSkeletonModel() const { return _skeletonModel; }
-    const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
-    float getScale() const { return _scale; }
+    float getUniformScale() const { return getScale().y; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -100,22 +99,29 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    virtual bool isMyAvatar() const { return false; }
+    virtual bool isMyAvatar() const override { return false; }
 
-    virtual QVector<glm::quat> getJointRotations() const;
-    virtual glm::quat getJointRotation(int index) const;
-    virtual glm::vec3 getJointTranslation(int index) const;
-    virtual int getJointIndex(const QString& name) const;
-    virtual QStringList getJointNames() const;
+    virtual QVector<glm::quat> getJointRotations() const override;
+    virtual glm::quat getJointRotation(int index) const override;
+    virtual glm::vec3 getJointTranslation(int index) const override;
+    virtual int getJointIndex(const QString& name) const override;
+    virtual QStringList getJointNames() const override;
 
-    virtual void setFaceModelURL(const QUrl& faceModelURL);
-    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    virtual void setBillboard(const QByteArray& billboard);
+    Q_INVOKABLE virtual glm::quat getDefaultJointRotation(int index) const;
+    Q_INVOKABLE virtual glm::vec3 getDefaultJointTranslation(int index) const;
+
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
+
+    virtual void setFaceModelURL(const QUrl& faceModelURL) override;
+    virtual void setSkeletonModelURL(const QUrl& skeletonModelURL) override;
+    virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     void setShowDisplayName(bool showDisplayName);
 
-    virtual int parseDataFromBuffer(const QByteArray& buffer);
+    virtual int parseDataFromBuffer(const QByteArray& buffer) override;
 
     static void renderJointConnectingCone( gpu::Batch& batch, glm::vec3 position1, glm::vec3 position2,
                                                 float radius1, float radius2, const glm::vec4& color);
@@ -131,8 +137,6 @@ public:
     Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
-    Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
-    Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
 
     Q_INVOKABLE bool getShouldRender() const { return !_shouldSkipRender; }
 
@@ -141,34 +145,56 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() { _skeletonModel.updateAttitude(); }
+    virtual void updateAttitude() override { _skeletonModel.updateAttitude(); }
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
     // (otherwise floating point error will cause problems at large positions).
     void applyPositionDelta(const glm::vec3& delta);
 
-    virtual void rebuildSkeletonBody();
+    virtual void rebuildCollisionShape();
 
     virtual void computeShapeInfo(ShapeInfo& shapeInfo);
 
-    void setMotionState(AvatarMotionState* motionState) { _motionState = motionState; }
     AvatarMotionState* getMotionState() { return _motionState; }
+
+    using SpatiallyNestable::setPosition;
+    virtual void setPosition(const glm::vec3& position) override;
+    using SpatiallyNestable::setOrientation;
+    virtual void setOrientation(const glm::quat& orientation) override;
+
+    // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
+    Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
+    Q_INVOKABLE virtual void setParentID(const QUuid& parentID) override;
+    Q_INVOKABLE virtual quint16 getParentJointIndex() const override { return SpatiallyNestable::getParentJointIndex(); }
+    Q_INVOKABLE virtual void setParentJointIndex(quint16 parentJointIndex) override;
+
+    // NOT thread safe, must be called on main thread.
+    glm::vec3 getUncachedLeftPalmPosition() const;
+    glm::quat getUncachedLeftPalmRotation() const;
+    glm::vec3 getUncachedRightPalmPosition() const;
+    glm::quat getUncachedRightPalmRotation() const;
 
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
-    glm::vec3 getLeftPalmPosition();
-    glm::quat getLeftPalmRotation();
-    glm::vec3 getRightPalmPosition();
-    glm::quat getRightPalmRotation();
+    // thread safe, will return last valid palm from cache
+    glm::vec3 getLeftPalmPosition() const;
+    glm::quat getLeftPalmRotation() const;
+    glm::vec3 getRightPalmPosition() const;
+    glm::quat getRightPalmRotation() const;
 
 protected:
+    friend class AvatarManager;
+
+    void setMotionState(AvatarMotionState* motionState);
+
     SkeletonModel _skeletonModel;
     glm::vec3 _skeletonOffset;
-    QVector<Model*> _attachmentModels;
-    QVector<Model*> _attachmentsToRemove;
-    QVector<Model*> _unusedAttachments;
+    std::vector<std::shared_ptr<Model>> _attachmentModels;
+    std::vector<std::shared_ptr<Model>> _attachmentsToRemove;
+    std::vector<std::shared_ptr<Model>> _attachmentsToDelete;
+
     float _bodyYawDelta;  // degrees/sec
 
     // These position histories and derivatives are in the world-frame.
@@ -186,19 +212,19 @@ protected:
     glm::quat _lastOrientation;
 
     float _leanScale;
-    float _scale;
     glm::vec3 _worldUpDirection;
     float _stringLength;
     bool _moving; ///< set when position is changing
 
-    bool isLookingAtMe(AvatarSharedPointer avatar);
-
     // protected methods...
+    bool isLookingAtMe(AvatarSharedPointer avatar) const;
+
+    virtual void animateScaleChanges(float deltaTime);
+
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void setScale(float scale);
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;
@@ -206,28 +232,30 @@ protected:
     float getPelvisFloatingHeight() const;
     glm::vec3 getDisplayNamePosition() const;
 
-    Transform calculateDisplayNameTransform(const ViewFrustum& frustum, const glm::vec3& textPosition) const;
-    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& frustum, const glm::vec3& textPosition) const;
+    Transform calculateDisplayNameTransform(const ViewFrustum& view, const glm::vec3& textPosition) const;
+    void renderDisplayName(gpu::Batch& batch, const ViewFrustum& view, const glm::vec3& textPosition) const;
     virtual void renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const RenderArgs* renderArgs) const;
     virtual void fixupModelsInScene();
 
-    void simulateAttachments(float deltaTime);
+    virtual void updateJointMappings() override;
 
-    virtual void updateJointMappings();
+    virtual void updatePalms();
 
-    render::ItemID _renderItemID;
+    render::ItemID _renderItemID{ render::Item::INVALID_ITEM_ID };
+
+    ThreadSafeValueCache<glm::vec3> _leftPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _leftPalmRotationCache { glm::quat() };
+    ThreadSafeValueCache<glm::vec3> _rightPalmPositionCache { glm::vec3() };
+    ThreadSafeValueCache<glm::quat> _rightPalmRotationCache { glm::quat() };
 
 private:
     bool _initialized;
-    NetworkTexturePointer _billboardTexture;
-    bool _shouldRenderBillboard;
+    bool _shouldAnimate { true };
     bool _shouldSkipRender { false };
     bool _isLookAtTarget;
 
-    void renderBillboard(RenderArgs* renderArgs);
-
-    float getBillboardSize() const;
+    float getBoundingRadius() const;
 
     static int _jointConesID;
 

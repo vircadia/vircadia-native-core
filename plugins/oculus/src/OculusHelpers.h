@@ -12,9 +12,11 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#if (OVR_MAJOR_VERSION < 6)
-#define OVR_SUCCESS(x) x
-#endif
+#include <gl/OglplusHelpers.h>
+
+bool oculusAvailable();
+ovrSession acquireOculusSession();
+void releaseOculusSession();
 
 // Convenience method for looping over each eye with a lambda
 template <typename Function>
@@ -25,6 +27,19 @@ inline void ovr_for_each_eye(Function function) {
         function(eye);
     }
 }
+
+template <typename Function>
+inline void ovr_for_each_hand(Function function) {
+    for (ovrHandType hand = ovrHandType::ovrHand_Left;
+        hand <= ovrHandType::ovrHand_Right;
+        hand = static_cast<ovrHandType>(hand + 1)) {
+        function(hand);
+    }
+}
+
+
+
+
 
 inline glm::mat4 toGlm(const ovrMatrix4f & om) {
     return glm::transpose(glm::make_mat4(&om.M[0][0]));
@@ -87,3 +102,27 @@ inline ovrPosef ovrPoseFromGlm(const glm::mat4 & m) {
     result.Position = ovrFromGlm(translation);
     return result; 
 }
+
+
+// A wrapper for constructing and using a swap texture set,
+// where each frame you draw to a texture via the FBO,
+// then submit it and increment to the next texture.
+// The Oculus SDK manages the creation and destruction of
+// the textures
+struct SwapFramebufferWrapper : public FramebufferWrapper<ovrSwapTextureSet*, void*> {
+    SwapFramebufferWrapper(const ovrSession& session);
+    ~SwapFramebufferWrapper();
+    void Increment();
+    void Resize(const uvec2 & size);
+protected:
+    void initColor() override final;
+    void initDepth() override final {}
+    void initDone() override final;
+    void onBind(oglplus::Framebuffer::Target target) override final;
+    void onUnbind(oglplus::Framebuffer::Target target) override final;
+
+    void destroyColor();
+
+private:
+    ovrSession _session;
+};

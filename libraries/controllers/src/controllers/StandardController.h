@@ -27,8 +27,8 @@ class StandardController : public QObject, public InputDevice {
 public:
     virtual EndpointPointer createEndpoint(const Input& input) const override;
     virtual Input::NamedVector getAvailableInputs() const override;
-    virtual QString getDefaultMappingConfig() const override;
-    virtual void update(float deltaTime, bool jointsCaptured) override;
+    virtual QStringList getDefaultMappingConfigs() const override;
+    virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) override;
     virtual void focusOutEvent() override;
 
     StandardController(); 

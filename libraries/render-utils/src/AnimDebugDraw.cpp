@@ -48,7 +48,7 @@ public:
         batch.setIndexBuffer(gpu::UINT16, _indexBuffer, 0);
 
         auto numIndices = _indexBuffer->getSize() / sizeof(uint16_t);
-        batch.drawIndexed(gpu::LINES, numIndices);
+        batch.drawIndexed(gpu::LINES, (int)numIndices);
     }
 
     gpu::PipelinePointer _pipeline;
@@ -56,13 +56,16 @@ public:
     gpu::Stream::FormatPointer _vertexFormat;
     gpu::BufferPointer _vertexBuffer;
     gpu::BufferPointer _indexBuffer;
+
+    render::Item::Bound _bound { glm::vec3(-16384.0f), 32768.0f };
+    bool _isVisible { true };
 };
 
 typedef render::Payload<AnimDebugDrawData> AnimDebugDrawPayload;
 
 namespace render {
-    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return ItemKey::Builder::opaqueShape(); }
-    template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return Item::Bound(); }
+    template <> const ItemKey payloadGetKey(const AnimDebugDrawData::Pointer& data) { return (data->_isVisible ? ItemKey::Builder::opaqueShape() : ItemKey::Builder::opaqueShape().withInvisible()); }
+    template <> const Item::Bound payloadGetBound(const AnimDebugDrawData::Pointer& data) { return data->_bound; }
     template <> void payloadRender(const AnimDebugDrawData::Pointer& data, RenderArgs* args) {
         data->render(args);
     }
@@ -95,10 +98,10 @@ AnimDebugDraw::AnimDebugDraw() :
     state->setBlendFunction(false, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD,
                             gpu::State::INV_SRC_ALPHA, gpu::State::FACTOR_ALPHA,
                             gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    auto vertShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(animdebugdraw_vert)));
-    auto fragShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(animdebugdraw_frag)));
-    auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vertShader, fragShader));
-    _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+    auto vertShader = gpu::Shader::createVertex(std::string(animdebugdraw_vert));
+    auto fragShader = gpu::Shader::createPixel(std::string(animdebugdraw_frag));
+    auto program = gpu::Shader::createProgram(vertShader, fragShader);
+    _pipeline = gpu::Pipeline::create(program, state);
 
     _animDebugDrawData = std::make_shared<AnimDebugDrawData>();
     _animDebugDrawPayload = std::make_shared<AnimDebugDrawPayload>(_animDebugDrawData);
@@ -326,7 +329,7 @@ void AnimDebugDraw::update() {
         for (auto& iter : _absolutePoses) {
             AnimSkeleton::ConstPointer& skeleton = std::get<0>(iter.second);
             numVerts += skeleton->getNumJoints() * VERTICES_PER_BONE;
-            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+            for (auto i = 0; i < skeleton->getNumJoints(); i++) {
                 auto parentIndex = skeleton->getParentIndex(i);
                 if (parentIndex >= 0) {
                     numVerts += VERTICES_PER_LINK;
@@ -336,9 +339,9 @@ void AnimDebugDraw::update() {
 
         // count marker verts from shared DebugDraw singleton
         auto markerMap = DebugDraw::getInstance().getMarkerMap();
-        numVerts += markerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)markerMap.size() * VERTICES_PER_BONE;
         auto myAvatarMarkerMap = DebugDraw::getInstance().getMyAvatarMarkerMap();
-        numVerts += myAvatarMarkerMap.size() * VERTICES_PER_BONE;
+        numVerts += (int)myAvatarMarkerMap.size() * VERTICES_PER_BONE;
 
         // allocate verts!
         data._vertexBuffer->resize(sizeof(Vertex) * numVerts);
@@ -389,6 +392,13 @@ void AnimDebugDraw::update() {
 
         assert(numVerts == (v - verts));
 
+        render::Item::Bound theBound;
+        for (int i = 0; i < numVerts; i++) {
+            theBound += verts[i].pos;
+        }
+
+        data._isVisible = (numVerts > 0);
+        data._bound = theBound;
         data._indexBuffer->resize(sizeof(uint16_t) * numVerts);
         uint16_t* indices = (uint16_t*)data._indexBuffer->editData();
         for (int i = 0; i < numVerts; i++) {

@@ -19,7 +19,6 @@
 #include <PathUtils.h>
 
 #include "AddressBarDialog.h"
-#include "AttachmentsDialog.h"
 #include "BandwidthDialog.h"
 #include "CachesSizeDialog.h"
 #include "DiskCacheEditor.h"
@@ -91,24 +90,6 @@ void DialogsManager::cachesSizeDialog() {
     _cachesSizeDialog->raise();
 }
 
-void DialogsManager::editPreferences() {
-    if (!_preferencesDialog) {
-        maybeCreateDialog(_preferencesDialog);
-        _preferencesDialog->show();
-    } else {
-        _preferencesDialog->close();
-    }
-}
-
-void DialogsManager::editAttachments() {
-    if (!_attachmentsDialog) {
-        maybeCreateDialog(_attachmentsDialog);
-        _attachmentsDialog->show();
-    } else {
-        _attachmentsDialog->close();
-    }
-}
-
 void DialogsManager::audioStatsDetails() {
     if (! _audioStatsDialog) {
         _audioStatsDialog = new AudioStatsDialog(qApp->getWindow());
@@ -147,11 +128,6 @@ void DialogsManager::lodTools() {
     _lodToolsDialog->raise();
 }
 
-void DialogsManager::toggleToolWindow() {
-    QMainWindow* toolWindow = qApp->getToolWindow();
-    toolWindow->setVisible(!toolWindow->isVisible());
-}
-
 void DialogsManager::hmdTools(bool showTools) {
     if (showTools) {
         if (!_hmdToolsDialog) {
@@ -174,20 +150,6 @@ void DialogsManager::showScriptEditor() {
     maybeCreateDialog(_scriptEditor);
     _scriptEditor->show();
     _scriptEditor->raise();
-}
-
-void DialogsManager::showIRCLink() {
-    if (!_ircInfoBox) {
-        _ircInfoBox = new QMessageBox(QMessageBox::NoIcon,
-                                      "High Fidelity IRC",
-                                      "High Fidelity has an IRC channel on irc.freenode.net at #highfidelity.<br/><br/>Web chat is available <a href='http://webchat.freenode.net/?channels=highfidelity&uio=d4'>here</a>.",
-                                      QMessageBox::Ok);
-        _ircInfoBox->setTextFormat(Qt::RichText);
-        _ircInfoBox->setAttribute(Qt::WA_DeleteOnClose);
-        _ircInfoBox->show();
-    }
-
-    _ircInfoBox->raise();
 }
 
 void DialogsManager::showDomainConnectionDialog() {

@@ -16,7 +16,6 @@
 #include <gpu/Batch.h>
 
 #include <DependencyManager.h>
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
@@ -29,7 +28,9 @@ static const float SPHERE_ENTITY_SCALE = 0.5f;
 
 
 EntityItemPointer RenderableSphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableSphereEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableSphereEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableSphereEntityItem::setUserData(const QString& value) {
@@ -57,16 +58,21 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
 
     gpu::Batch& batch = *args->_batch;
     glm::vec4 sphereColor(toGlm(getXColor()), getLocalRenderAlpha());
-    Transform modelTransform = getTransformToCenter();
+    bool success;
+    Transform modelTransform = getTransformToCenter(success);
+    if (!success) {
+        return;
+    }
     modelTransform.postScale(SPHERE_ENTITY_SCALE);
+    batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
     if (_procedural->ready()) {
-        batch.setModelTransform(modelTransform); // use a transform with scale, rotation, registration point and translation
         _procedural->prepare(batch, getPosition(), getDimensions());
         auto color = _procedural->getColor(sphereColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);
         DependencyManager::get<GeometryCache>()->renderSphere(batch);
     } else {
-        batch.setModelTransform(Transform());
-        DependencyManager::get<DeferredLightingEffect>()->renderSolidSphereInstance(batch, modelTransform, sphereColor);
+        DependencyManager::get<GeometryCache>()->renderSolidSphereInstance(batch, sphereColor);
     }
-};
+    static const auto triCount = DependencyManager::get<GeometryCache>()->getSphereTriangleCount();
+    args->_details._trianglesRendered += (int)triCount;
+}

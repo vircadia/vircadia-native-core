@@ -63,11 +63,12 @@ void AudioIOStats::sentPacket() {
         _lastSentAudioPacket = now;
     }
 }
-void AudioIOStats::processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+
+void AudioIOStats::processStreamStatsPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
 
     // parse the appendFlag, clear injected audio stream stats if 0
     quint8 appendFlag;
-    packet->readPrimitive(&appendFlag);
+    message->readPrimitive(&appendFlag);
 
     if (!appendFlag) {
         _mixerInjectedStreamStatsMap.clear();
@@ -75,12 +76,12 @@ void AudioIOStats::processStreamStatsPacket(QSharedPointer<NLPacket> packet, Sha
 
     // parse the number of stream stats structs to follow
     quint16 numStreamStats;
-    packet->readPrimitive(&numStreamStats);
+    message->readPrimitive(&numStreamStats);
 
     // parse the stream stats
     AudioStreamStats streamStats;
     for (quint16 i = 0; i < numStreamStats; i++) {
-        packet->readPrimitive(&streamStats);
+        message->readPrimitive(&streamStats);
 
         if (streamStats._streamType == PositionalAudioStream::Microphone) {
             _mixerAvatarStreamStats = streamStats;

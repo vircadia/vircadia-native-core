@@ -22,13 +22,11 @@ class AvatarUpdate : public GenericThread {
 public:
     AvatarUpdate();
     void synchronousProcess();
-    void setRequestBillboardUpdate(bool needsUpdate) { _updateBillboard = needsUpdate; }
 
 private:
     virtual bool process(); // No reason for other classes to invoke this.
     quint64 _lastAvatarUpdate; // microsoeconds
     quint64 _targetInterval; // microseconds
-    bool _updateBillboard;
 
     // Goes away if Application::getActiveDisplayPlugin() and friends are made thread safe:
 public:

@@ -23,9 +23,9 @@ EntityEditPacketSender::EntityEditPacketSender() {
     packetReceiver.registerDirectListener(PacketType::EntityEditNack, this, "processEntityEditNackPacket");
 }
 
-void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
+void EntityEditPacketSender::processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
     if (_shouldProcessNack) {
-        processNackPacket(*packet, sendingNode);
+        processNackPacket(*message, sendingNode);
     }
 }
 

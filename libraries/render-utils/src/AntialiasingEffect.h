@@ -16,13 +16,21 @@
 
 #include "render/DrawTask.h"
 
+class AntiAliasingConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(bool enabled MEMBER enabled)
+public:
+    AntiAliasingConfig() : render::Job::Config(true) {}
+};
+
 class Antialiasing {
 public:
+    using Config = AntiAliasingConfig;
+    using JobModel = render::Job::Model<Antialiasing, Config>;
 
     Antialiasing();
-
+    void configure(const Config& config) {}
     void run(const render::SceneContextPointer& sceneContext, const render::RenderContextPointer& renderContext);
-    typedef render::Job::Model<Antialiasing> JobModel;
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();

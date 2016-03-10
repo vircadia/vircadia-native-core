@@ -22,13 +22,10 @@ const int FIXED_FONT_POINT_SIZE = 40;
 class RenderableTextEntityItem : public TextEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableTextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        TextEntityItem(entityItemID, properties)
-        { }
+    RenderableTextEntityItem(const EntityItemID& entityItemID) : TextEntityItem(entityItemID) { }
     ~RenderableTextEntityItem() { delete _textRenderer; }
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
     SIMPLE_RENDERABLE();
     

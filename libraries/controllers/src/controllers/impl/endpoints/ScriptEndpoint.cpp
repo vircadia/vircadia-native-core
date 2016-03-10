@@ -10,6 +10,8 @@
 
 #include <QtCore/QThread>
 
+#include <StreamUtils.h>
+
 using namespace controller;
 
 float ScriptEndpoint::peek() const {
@@ -23,7 +25,16 @@ void ScriptEndpoint::updateValue() {
         return;
     }
 
-    _lastValueRead = (float)_callable.call().toNumber();
+    QScriptValue result = _callable.call();
+
+    // If the callable ever returns a non-number, we assume it's a pose
+    // and start reporting ourselves as a pose.
+    if (result.isNumber()) {
+        _lastValueRead = (float)_callable.call().toNumber();
+    } else {
+        Pose::fromScriptValue(result, _lastPoseRead);
+        _returnPose = true;
+    }
 }
 
 void ScriptEndpoint::apply(float value, const Pointer& source) {
@@ -43,4 +54,37 @@ void ScriptEndpoint::internalApply(float value, int sourceID) {
     }
     _callable.call(QScriptValue(),
         QScriptValueList({ QScriptValue(value), QScriptValue(sourceID) }));
+}
+
+Pose ScriptEndpoint::peekPose() const {
+    const_cast<ScriptEndpoint*>(this)->updatePose();
+    return _lastPoseRead;
+}
+
+void ScriptEndpoint::updatePose() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "updatePose", Qt::QueuedConnection);
+        return;
+    }
+    QScriptValue result = _callable.call();
+    Pose::fromScriptValue(result, _lastPoseRead);
+}
+
+void ScriptEndpoint::apply(const Pose& newPose, const Pointer& source) {
+    if (newPose == _lastPoseWritten) {
+        return;
+    }
+    internalApply(newPose, source->getInput().getID());
+}
+
+void ScriptEndpoint::internalApply(const Pose& newPose, int sourceID) {
+    _lastPoseWritten = newPose;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "internalApply", Qt::QueuedConnection,
+            Q_ARG(const Pose&, newPose),
+            Q_ARG(int, sourceID));
+        return;
+    }
+    _callable.call(QScriptValue(),
+        QScriptValueList({ Pose::toScriptValue(_callable.engine(), newPose), QScriptValue(sourceID) }));
 }

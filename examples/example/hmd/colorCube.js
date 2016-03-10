@@ -30,7 +30,7 @@ ColorCube.prototype.create = function() {
         name: that.NAME,
         color: that.COLOR,
         ignoreCollisions: true,
-        collisionsWillMove: false,
+        dynamic: false,
         dimensions: { x: size, y: size, z: size },
         lifetime: 3600,
         userData: JSON.stringify(that.USER_DATA)

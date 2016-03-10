@@ -62,7 +62,7 @@ function initMonsters() {
                 y: 1.6,
                 z: 0.07
             },
-            collisionsWillMove: true,
+            dynamic: true,
             shapeType: 'box',
             velocity: {
                 x: randFloat(1, 3),

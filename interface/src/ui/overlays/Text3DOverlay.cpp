@@ -8,32 +8,22 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
 #include "Text3DOverlay.h"
 
-#include <DeferredLightingEffect.h>
+#include <TextureCache.h>
 #include <GeometryCache.h>
 #include <RegisteredMetaTypes.h>
 #include <RenderDeferredTask.h>
 #include <TextRenderer3D.h>
 
-const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
-const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
-const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
 const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 80.0f; // this is a ratio determined through experimentation
 const float LINE_SCALE_RATIO = 1.2f;
 
 QString const Text3DOverlay::TYPE = "text3d";
 
-Text3DOverlay::Text3DOverlay() :
-    _backgroundColor(DEFAULT_BACKGROUND_COLOR),
-    _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
-    _lineHeight(0.1f),
-    _leftMargin(DEFAULT_MARGIN),
-    _topMargin(DEFAULT_MARGIN),
-    _rightMargin(DEFAULT_MARGIN),
-    _bottomMargin(DEFAULT_MARGIN)
-{
+Text3DOverlay::Text3DOverlay() {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
 
@@ -41,14 +31,14 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Billboard3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
-    _backgroundAlpha(text3DOverlay->_backgroundAlpha),
+    _textAlpha(text3DOverlay->_textAlpha),
     _lineHeight(text3DOverlay->_lineHeight),
     _leftMargin(text3DOverlay->_leftMargin),
     _topMargin(text3DOverlay->_topMargin),
     _rightMargin(text3DOverlay->_rightMargin),
     _bottomMargin(text3DOverlay->_bottomMargin)
 {
-     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
+    _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
 }
 
 Text3DOverlay::~Text3DOverlay() {
@@ -101,7 +91,6 @@ void Text3DOverlay::render(RenderArgs* args) {
     
     glm::vec3 topLeft(-halfDimensions.x, -halfDimensions.y, SLIGHTLY_BEHIND);
     glm::vec3 bottomRight(halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, true, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, topLeft, bottomRight, quadColor);
     
     // Same font properties as textSize()
@@ -120,64 +109,77 @@ void Text3DOverlay::render(RenderArgs* args) {
     batch.setModelTransform(transform);
 
     glm::vec4 textColor = { _color.red / MAX_COLOR, _color.green / MAX_COLOR,
-                            _color.blue / MAX_COLOR, getAlpha() };
-    _textRenderer->draw(batch, 0, 0, _text, textColor);
+                            _color.blue / MAX_COLOR, getTextAlpha() };
+    _textRenderer->draw(batch, 0, 0, _text, textColor, glm::vec2(-1.0f), getDrawInFront());
 }
 
-void Text3DOverlay::setProperties(const QScriptValue& properties) {
+const render::ShapeKey Text3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Text3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue text = properties.property("text");
+    auto text = properties["text"];
     if (text.isValid()) {
-        setText(text.toVariant().toString());
+        setText(text.toString());
     }
 
-    QScriptValue backgroundColor = properties.property("backgroundColor");
+    auto textAlpha = properties["textAlpha"];
+    if (textAlpha.isValid()) {
+        setTextAlpha(textAlpha.toFloat());
+    }
+
+    bool valid;
+    auto backgroundColor = properties["backgroundColor"];
     if (backgroundColor.isValid()) {
-        QScriptValue red = backgroundColor.property("red");
-        QScriptValue green = backgroundColor.property("green");
-        QScriptValue blue = backgroundColor.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            _backgroundColor.red = red.toVariant().toInt();
-            _backgroundColor.green = green.toVariant().toInt();
-            _backgroundColor.blue = blue.toVariant().toInt();
+        auto color = xColorFromVariant(backgroundColor, valid);
+        if (valid) {
+            _backgroundColor = color;
         }
     }
 
-    if (properties.property("backgroundAlpha").isValid()) {
-        _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+    if (properties["backgroundAlpha"].isValid()) {
+        setAlpha(properties["backgroundAlpha"].toFloat());
     }
 
-    if (properties.property("lineHeight").isValid()) {
-        setLineHeight(properties.property("lineHeight").toVariant().toFloat());
+    if (properties["lineHeight"].isValid()) {
+        setLineHeight(properties["lineHeight"].toFloat());
     }
 
-    if (properties.property("leftMargin").isValid()) {
-        setLeftMargin(properties.property("leftMargin").toVariant().toFloat());
+    if (properties["leftMargin"].isValid()) {
+        setLeftMargin(properties["leftMargin"].toFloat());
     }
 
-    if (properties.property("topMargin").isValid()) {
-        setTopMargin(properties.property("topMargin").toVariant().toFloat());
+    if (properties["topMargin"].isValid()) {
+        setTopMargin(properties["topMargin"].toFloat());
     }
 
-    if (properties.property("rightMargin").isValid()) {
-        setRightMargin(properties.property("rightMargin").toVariant().toFloat());
+    if (properties["rightMargin"].isValid()) {
+        setRightMargin(properties["rightMargin"].toFloat());
     }
 
-    if (properties.property("bottomMargin").isValid()) {
-        setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
+    if (properties["bottomMargin"].isValid()) {
+        setBottomMargin(properties["bottomMargin"].toFloat());
     }
 }
 
-QScriptValue Text3DOverlay::getProperty(const QString& property) {
+QVariant Text3DOverlay::getProperty(const QString& property) {
     if (property == "text") {
         return _text;
     }
+    if (property == "textAlpha") {
+        return _textAlpha;
+    }
     if (property == "backgroundColor") {
-        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+        return xColorToVariant(_backgroundColor);
     }
     if (property == "backgroundAlpha") {
-        return _backgroundAlpha;
+        return Billboard3DOverlay::getProperty("alpha");
     }
     if (property == "lineHeight") {
         return _lineHeight;

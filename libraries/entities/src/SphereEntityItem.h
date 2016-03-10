@@ -18,7 +18,7 @@ class SphereEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    SphereEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -52,7 +52,7 @@ public:
     }
 
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_SPHERE; }
-    virtual bool shouldBePhysical() const { return true; }
+    virtual bool shouldBePhysical() const { return !isDead(); }
     
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

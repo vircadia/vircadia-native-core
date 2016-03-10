@@ -18,17 +18,14 @@
 class RenderableLightEntityItem : public LightEntityItem  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
+    RenderableLightEntityItem(const EntityItemID& entityItemID) : LightEntityItem(entityItemID) { }
 
-    RenderableLightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        LightEntityItem(entityItemID, properties)
-        { }
-
-    virtual void render(RenderArgs* args);
-    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual void render(RenderArgs* args) override;
+    virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 
                          BoxFace& face, glm::vec3& surfaceNormal,
-                         void** intersectedObject, bool precisionPicking) const;
+                         void** intersectedObject, bool precisionPicking) const override;
 
     SIMPLE_RENDERABLE();
 };

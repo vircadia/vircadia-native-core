@@ -62,14 +62,19 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
         }
     }
 
-    qCritical() << "Did not find settings decription in JSON at" << SETTINGS_DESCRIPTION_RELATIVE_PATH
-            << "- Unable to continue. domain-server will quit.";
-    QMetaObject::invokeMethod(QCoreApplication::instance(), "quit", Qt::QueuedConnection);
+    static const QString MISSING_SETTINGS_DESC_MSG =
+        QString("Did not find settings decription in JSON at %1 - Unable to continue. domain-server will quit.")
+        .arg(SETTINGS_DESCRIPTION_RELATIVE_PATH);
+    static const int MISSING_SETTINGS_DESC_ERROR_CODE = 6;
+
+    QMetaObject::invokeMethod(QCoreApplication::instance(), "queuedQuit", Qt::QueuedConnection,
+                              Q_ARG(QString, MISSING_SETTINGS_DESC_MSG),
+                              Q_ARG(int, MISSING_SETTINGS_DESC_ERROR_CODE));
 }
 
-void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NLPacket> packet) {
+void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message) {
     Assignment::Type type;
-    packet->readPrimitive(&type);
+    message->readPrimitive(&type);
 
     QJsonObject responseObject = responseObjectForType(QString::number(type));
     auto json = QJsonDocument(responseObject).toJson();
@@ -79,7 +84,7 @@ void DomainServerSettingsManager::processSettingsRequestPacket(QSharedPointer<NL
     packetList->write(json);
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->sendPacketList(std::move(packetList), packet->getSenderSockAddr());
+    nodeList->sendPacketList(std::move(packetList), message->getSenderSockAddr());
 }
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
@@ -124,6 +129,41 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
                 // reload the master and user config so that the merged config is right
                 _configMap.loadMasterAndUserConfig(argumentList);
             }
+        } else if (oldVersion < 1.1) {
+            static const QString ENTITY_SERVER_SETTINGS_KEY = "entity_server_settings";
+            static const QString ENTITY_FILE_NAME_KEY = "persistFilename";
+            static const QString ENTITY_FILE_PATH_KEYPATH = ENTITY_SERVER_SETTINGS_KEY + ".persistFilePath";
+
+            // this was prior to change of poorly named entitiesFileName to entitiesFilePath
+            QVariant* persistFileNameVariant = valueForKeyPath(_configMap.getMergedConfig(),
+                                                               ENTITY_SERVER_SETTINGS_KEY + "." + ENTITY_FILE_NAME_KEY);
+            if (persistFileNameVariant && persistFileNameVariant->canConvert(QMetaType::QString)) {
+                QString persistFileName = persistFileNameVariant->toString();
+
+                qDebug() << "Migrating persistFilename to persistFilePath for entity-server settings";
+
+                // grab the persistFilePath option, create it if it doesn't exist
+                QVariant* persistFilePath = valueForKeyPath(_configMap.getUserConfig(), ENTITY_FILE_PATH_KEYPATH, true);
+
+                // write the migrated value
+                *persistFilePath = persistFileName;
+
+                // remove the old setting
+                QVariant* entityServerVariant = valueForKeyPath(_configMap.getUserConfig(), ENTITY_SERVER_SETTINGS_KEY);
+                if (entityServerVariant && entityServerVariant->canConvert(QMetaType::QVariantMap)) {
+                    QVariantMap entityServerMap = entityServerVariant->toMap();
+                    entityServerMap.remove(ENTITY_FILE_NAME_KEY);
+
+                    *entityServerVariant = entityServerMap;
+                }
+
+                // write the new settings to the json file
+                persistToFile();
+
+                // reload the master and user config so that the merged config is right
+                _configMap.loadMasterAndUserConfig(argumentList);
+            }
+
         }
     }
 
@@ -193,7 +233,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         qDebug() << "DomainServerSettingsManager postedObject -" << postedObject;
 
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _configMap.getUserConfig());
+        recurseJSONObjectAndOverwriteSettings(postedObject);
 
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -407,8 +447,9 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
     return QJsonObject();
 }
 
-void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
-                                                                        QVariantMap& settingsVariant) {
+void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
+    auto& settingsVariant = _configMap.getUserConfig();
+    
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
         QJsonValue rootValue = postedObject[rootKey];
@@ -481,6 +522,9 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             settingsVariant.remove(rootKey);
         }
     }
+
+    // re-merge the user and master configs after a settings change
+    _configMap.mergeMasterAndUserConfigs();
 }
 
 void DomainServerSettingsManager::persistToFile() {

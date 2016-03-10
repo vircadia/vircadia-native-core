@@ -33,7 +33,8 @@
     };
 
     var ARROW_MODEL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_textured.fbx";
-    var ARROW_COLLISION_HULL_URL = "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
+    var ARROW_COLLISION_HULL_URL =
+        "http://hifi-content.s3.amazonaws.com/james/bow_and_arrow/models/newarrow_collision_hull.obj";
 
     var ARROW_DIMENSIONS = {
         x: 0.02,
@@ -66,16 +67,6 @@
         max2: 15
     }
 
-    var BOW_SPATIAL_KEY = {
-        relativePosition: {
-            x: 0,
-            y: 0.06,
-            z: 0.11
-        },
-        relativeRotation: Quat.fromPitchYawRollDegrees(0, -90, 90)
-    }
-
-
     var USE_DEBOUNCE = false;
 
     var TRIGGER_CONTROLS = [
@@ -104,7 +95,6 @@
     }
 
     Bow.prototype = {
-        isGrabbed: false,
         stringDrawn: false,
         aiming: false,
         arrowTipPosition: null,
@@ -125,52 +115,31 @@
             this.shootArrowSound = SoundCache.getSound(SHOOT_ARROW_SOUND_URL);
             this.arrowHitSound = SoundCache.getSound(ARROW_HIT_SOUND_URL);
             this.arrowNotchSound = SoundCache.getSound(NOTCH_ARROW_SOUND_URL);
-
+            var userData = Entities.getEntityProperties(this.entityID).userData;
+            this.userData = JSON.parse(userData);
+            this.preNotchString = this.userData.bowKey.preNotchString;
         },
 
         unload: function() {
             this.deleteStrings();
-            Entities.deleteEntity(this.preNotchString);
             Entities.deleteEntity(this.arrow);
         },
 
-        setLeftHand: function() {
-            if (this.isGrabbed === true) {
-                return false;
-            }
-            this.hand = 'left';
-        },
-
-        setRightHand: function() {
-            if (this.isGrabbed === true) {
-                return false;
-            }
-            this.hand = 'right';
-        },
-
-        startNearGrab: function() {
-
-            print('START BOW GRAB')
-            if (this.isGrabbed === true) {
-                return false;
-            }
-
-            this.isGrabbed = true;
-
-            this.initialHand = this.hand;
+        startEquip: function(entityID, args) {
+            this.hand = args[0];
+            avatarID = args[1];
 
             //disable the opposite hand in handControllerGrab.js by message
-            var handToDisable = this.initialHand === 'right' ? 'left' : 'right';
+            var handToDisable = this.hand === 'right' ? 'left' : 'right';
+            print("disabling hand: " + handToDisable);
             Messages.sendMessage('Hifi-Hand-Disabler', handToDisable);
 
-            setEntityCustomData('grabbableKey', this.entityID, {
-                grabbable: false,
-                invertSolidWhileHeld: true,
-                spatialKey: BOW_SPATIAL_KEY
-            });
+            var data = getEntityCustomData('grabbableKey', this.entityID, {});
+            data.grabbable = false;
+            setEntityCustomData('grabbableKey', this.entityID, data);
 
         },
-        continueNearGrab: function() {
+        continueEquip: function(entityID, args) {
             this.deltaTime = checkInterval();
 
             //debounce during debugging -- maybe we're updating too fast?
@@ -186,18 +155,6 @@
 
             this.bowProperties = Entities.getEntityProperties(this.entityID);
 
-            //create a string across the bow when we pick it up
-            if (this.preNotchString === null) {
-                this.createPreNotchString();
-            }
-
-            if (this.preNotchString !== null && this.aiming === false) {
-                //   print('DRAW PRE NOTCH STRING')
-                this.drawPreNotchStrings();
-            }
-
-            // create the notch detector that arrows will look for
-
             if (this.aiming === true) {
                 Entities.editEntity(this.preNotchString, {
                     visible: false
@@ -211,28 +168,19 @@
             this.checkStringHand();
 
         },
-
-        releaseGrab: function() {
+        releaseEquip: function(entityID, args) {
             //  print('RELEASE GRAB EVENT')
-            if (this.isGrabbed === true && this.hand === this.initialHand) {
+            Messages.sendMessage('Hifi-Hand-Disabler', "none")
 
-                Messages.sendMessage('Hifi-Hand-Disabler', "none")
+            this.stringDrawn = false;
+            this.deleteStrings();
 
-                this.isGrabbed = false;
-                this.stringDrawn = false;
-                this.deleteStrings();
-                setEntityCustomData('grabbableKey', this.entityID, {
-                    grabbable: true,
-                    invertSolidWhileHeld: true,
-                    spatialKey: BOW_SPATIAL_KEY
-                });
-                Entities.deleteEntity(this.preNotchString);
-                Entities.deleteEntity(this.arrow);
-                this.aiming = false;
-                this.hasArrowNotched = false;
-                this.preNotchString = null;
-
-            }
+            var data = getEntityCustomData('grabbableKey', this.entityID, {});
+            data.grabbable = true;
+            setEntityCustomData('grabbableKey', this.entityID, data);
+            Entities.deleteEntity(this.arrow);
+            this.aiming = false;
+            this.hasArrowNotched = false;
         },
 
         createArrow: function() {
@@ -247,16 +195,16 @@
                 compoundShapeURL: ARROW_COLLISION_HULL_URL,
                 dimensions: ARROW_DIMENSIONS,
                 position: this.bowProperties.position,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
+                dynamic: false,
+                collisionless: true,
                 collisionSoundURL: ARROW_HIT_SOUND_URL,
                 damping: 0.01,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
-                    }
+                    },
+                    creatorSessionUUID: MyAvatar.sessionUUID
                 })
-
             });
 
             var makeArrowStick = function(entityA, entityB, collision) {
@@ -277,7 +225,7 @@
                             z: 0
                         },
                         position: collision.contactPoint,
-                        collisionsWillMove: false
+                        dynamic: false
                     })
                     // print('ARROW COLLIDED WITH::' + entityB);
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick)
@@ -299,8 +247,8 @@
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
+                dynamic: false,
+                collisionless: true,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -317,8 +265,8 @@
                 type: 'Line',
                 position: Vec3.sum(this.bowProperties.position, BOTTOM_NOTCH_OFFSET),
                 dimensions: LINE_DIMENSIONS,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
+                dynamic: false,
+                collisionless: true,
                 userData: JSON.stringify({
                     grabbableKey: {
                         grabbable: false
@@ -346,10 +294,6 @@
             this.topStringPosition = Vec3.sum(topStringPosition, backOffset);
             var bottomStringPosition = Vec3.sum(this.bowProperties.position, downOffset);
             this.bottomStringPosition = Vec3.sum(bottomStringPosition, backOffset);
-
-            Entities.editEntity(this.preNotchString, {
-                position: this.topStringPosition
-            });
 
             Entities.editEntity(this.topString, {
                 position: this.topStringPosition
@@ -394,57 +338,13 @@
             return [topVector, bottomVector];
         },
 
-        createPreNotchString: function() {
-            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
-
-            var stringProperties = {
-                type: 'Line',
-                position: Vec3.sum(this.bowProperties.position, TOP_NOTCH_OFFSET),
-                dimensions: LINE_DIMENSIONS,
-                visible: true,
-                collisionsWillMove: false,
-                ignoreForCollisions: true,
-                userData: JSON.stringify({
-                    grabbableKey: {
-                        grabbable: false
-                    }
-                })
-            };
-
-            this.preNotchString = Entities.addEntity(stringProperties);
-        },
-
-        drawPreNotchStrings: function() {
-            this.bowProperties = Entities.getEntityProperties(_this.entityID, ["position", "rotation", "userData"]);
-
-            this.updateStringPositions();
-
-            var downVector = Vec3.multiply(-1, Quat.getUp(this.bowProperties.rotation));
-            var downOffset = Vec3.multiply(downVector, BOTTOM_NOTCH_OFFSET * 2);
-
-            Entities.editEntity(this.preNotchString, {
-                name: 'Hifi-Pre-Notch-String',
-                linePoints: [{
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }, Vec3.sum({
-                    x: 0,
-                    y: 0,
-                    z: 0
-                }, downOffset)],
-                lineWidth: 5,
-                color: this.stringData.currentColor,
-            });
-        },
-
         checkStringHand: function() {
             //invert the hands because our string will be held with the opposite hand of the first one we pick up the bow with
             var triggerLookup;
-            if (this.initialHand === 'left') {
+            if (this.hand === 'left') {
                 triggerLookup = 1;
                 this.getStringHandPosition = MyAvatar.getRightPalmPosition;
-            } else if (this.initialHand === 'right') {
+            } else if (this.hand === 'right') {
                 this.getStringHandPosition = MyAvatar.getLeftPalmPosition;
                 triggerLookup = 0;
             }
@@ -551,8 +451,9 @@
 
                 //make the arrow physical, give it gravity, a lifetime, and set our velocity
                 var arrowProperties = {
-                    collisionsWillMove: true,
-                    ignoreForCollisions: false,
+                    dynamic: true,
+                    collisionless: false,
+                    collidesWith: "static,dynamic,otherAvatar", // workaround: not with kinematic --> no collision with bow
                     velocity: releaseVelocity,
                     gravity: ARROW_GRAVITY,
                     lifetime: 10,

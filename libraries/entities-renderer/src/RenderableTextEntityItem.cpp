@@ -11,7 +11,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <DeferredLightingEffect.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 #include <Transform.h>
@@ -22,7 +21,9 @@
 #include "GLMHelpers.h"
 
 EntityItemPointer RenderableTextEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderableTextEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderableTextEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 void RenderableTextEntityItem::render(RenderArgs* args) {
@@ -42,8 +43,12 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     // Batch render calls
     Q_ASSERT(args->_batch);
     gpu::Batch& batch = *args->_batch;
-    
-    Transform transformToTopLeft = getTransformToCenter();
+
+    bool success;
+    Transform transformToTopLeft = getTransformToCenter(success);
+    if (!success) {
+        return;
+    }
     if (getFaceCamera()) {
         //rotate about vertical to face the camera
         glm::vec3 dPosition = args->_viewFrustum->getPosition() - getPosition();
@@ -57,7 +62,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     
     batch.setModelTransform(transformToTopLeft);
     
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, false, false, false, true);
+    DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch, false, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, minCorner, maxCorner, backgroundColor);
     
     float scale = _lineHeight / _textRenderer->getFontSize();

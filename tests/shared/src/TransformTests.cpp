@@ -11,19 +11,21 @@
 #include "TransformTests.h"
 
 #include <algorithm>
-#include <glm/glm.hpp>
 
 #include <SharedLogging.h>
-#include <Transform.h>
 
 #include "../QTestExtensions.h"
+#include <QtCore/QDebug>
+#include <Transform.h>
+#include <StreamUtils.h>
+#include <glm/glm.hpp>
 
-using namespace glm;
+//using namespace glm;
 
 const vec3 xAxis(1.0f, 0.0f, 0.0f);
 const vec3 yAxis(0.0f, 1.0f, 0.0f);
 const vec3 zAxis(0.0f, 0.0f, 1.0f);
-const quat rot90 = angleAxis((float)M_PI / 2.0f, yAxis);
+const quat rot90 = glm::angleAxis((float)M_PI / 2.0f, yAxis);
 
 QTEST_MAIN(TransformTests)
 
@@ -71,19 +73,26 @@ void TransformTests::getInverseMatrix() {
                        vec4( 0.0f, 1.0f, 0.0f, 0.0f),
                        vec4( 0.0f, 0.0f, 1.0f, 0.0f),
                        vec4( 0.0f, 0.0f, 0.0f, 1.0f));
-    const mat4 result_a = inverse(m * mirrorX);
+    const mat4 result_a = glm::inverse(m * mirrorX);
 
     Transform xform;
     xform.setTranslation(t);
     xform.setRotation(rot90);
-
-    //
-    // change postScale to preScale and the test will pass...
-    //
-
     xform.postScale(vec3(-1.0f, 1.0f, 1.0f));
+
     mat4 result_b;
     xform.getInverseMatrix(result_b);
 
-    QCOMPARE_WITH_ABS_ERROR(result_a, result_b, EPSILON);
+    // don't check elements directly, instead compare each axis transformed by the matrix.
+    auto xa = transformPoint(result_a, xAxis);
+    auto ya = transformPoint(result_a, yAxis);
+    auto za = transformPoint(result_a, zAxis);
+
+    auto xb = transformPoint(result_b, xAxis);
+    auto yb = transformPoint(result_b, yAxis);
+    auto zb = transformPoint(result_b, zAxis);
+
+    QCOMPARE_WITH_ABS_ERROR(xa, xb, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(ya, yb, EPSILON);
+    QCOMPARE_WITH_ABS_ERROR(za, zb, EPSILON);
 }

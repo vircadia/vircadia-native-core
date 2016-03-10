@@ -31,6 +31,8 @@ public:
 
     virtual void update(float deltatime);
 
+    virtual const render::ShapeKey getShapeKey() override;
+
     // getters
     const QString& getText() const { return _text; }
     float getLineHeight() const { return _lineHeight; }
@@ -39,18 +41,20 @@ public:
     float getRightMargin() const { return _rightMargin; }
     float getBottomMargin() const { return _bottomMargin; }
     xColor getBackgroundColor();
-    float getBackgroundAlpha() const { return _backgroundAlpha; }
+    float getTextAlpha() { return _textAlpha; }
+    float getBackgroundAlpha() { return getAlpha(); }
 
     // setters
     void setText(const QString& text) { _text = text; }
+    void setTextAlpha(float alpha) { _textAlpha = alpha; }
     void setLineHeight(float value) { _lineHeight = value; }
     void setLeftMargin(float margin) { _leftMargin = margin; }
     void setTopMargin(float margin) { _topMargin = margin; }
     void setRightMargin(float margin) { _rightMargin = margin; }
     void setBottomMargin(float margin) { _bottomMargin = margin; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     QSizeF textSize(const QString& test) const;  // Meters
 
@@ -63,14 +67,13 @@ private:
     TextRenderer3D* _textRenderer = nullptr;
     
     QString _text;
-    xColor _backgroundColor;
-    float _backgroundAlpha;
-    float _lineHeight;
-    float _leftMargin;
-    float _topMargin;
-    float _rightMargin;
-    float _bottomMargin;
+    xColor _backgroundColor = xColor { 0, 0, 0 };
+    float _textAlpha { 1.0f };
+    float _lineHeight { 1.0f };
+    float _leftMargin { 0.1f };
+    float _topMargin { 0.1f };
+    float _rightMargin { 0.1f };
+    float _bottomMargin { 0.1f };
 };
 
- 
 #endif // hifi_Text3DOverlay_h

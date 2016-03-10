@@ -1,47 +1,44 @@
 import QtQuick 2.3
 import QtQuick.Controls 1.2
-import QtWebKit 3.0
+import QtWebEngine 1.1
+
 import "controls"
 import "styles"
+import "windows"
 
-VrDialog {
+Window {
     id: root
     HifiConstants { id: hifi }
     title: "Browser"
     resizable: true
-    contentImplicitWidth: clientArea.implicitWidth
-    contentImplicitHeight: clientArea.implicitHeight
-    backgroundColor: "#7f000000"
-
-
+    destroyOnInvisible: true
+    width: 800
+    height: 600
+    property alias webView: webview
+    
     Component.onCompleted: {
-        enabled = true
+        visible = true
         addressBar.text = webview.url
     }
 
     onParentChanged: {
-        if (visible && enabled) {
+        if (visible) {
             addressBar.forceActiveFocus();
             addressBar.selectAll()
         }
     }
 
     Item {
-        id: clientArea
-        implicitHeight: 600
-        implicitWidth: 800
-        x: root.clientX
-        y: root.clientY
-        width: root.clientWidth
-        height: root.clientHeight
-        
+        id:item
+        anchors.fill: parent
         Rectangle {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.bottom: scrollView.top
+            anchors.bottom: webview.top
             color: "white"
         }
+    
         Row {
             id: buttons
             spacing: 4
@@ -83,6 +80,7 @@ VrDialog {
                     source: webview.icon;
                     x: (parent.height - height) / 2
                     y: (parent.width - width) / 2
+                    sourceSize: Qt.size(width, height);
                     verticalAlignment: Image.AlignVCenter;
                     horizontalAlignment: Image.AlignHCenter
                     onSourceChanged: console.log("Icon url: " + source)
@@ -112,27 +110,27 @@ VrDialog {
             }
         }
 
-        ScrollView {
-            id: scrollView
+        WebView {
+            id: webview
+            url: "http://highfidelity.com"
             anchors.top: buttons.bottom
             anchors.topMargin: 8
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.right: parent.right
-            WebView {
-                id: webview
-                url: "http://highfidelity.com"
-                anchors.fill: parent
-                onLoadingChanged: {
-                    if (loadRequest.status == WebView.LoadSucceededStarted) {
-                        addressBar.text = loadRequest.url
-                    }
-                }
-                onIconChanged: {
-                    barIcon.source = icon
+            onLoadingChanged: {
+                if (loadRequest.status == WebEngineView.LoadSucceededStatus) {
+                    addressBar.text = loadRequest.url
                 }
             }
+            onIconChanged: {
+                console.log("New icon: " + icon)
+            }
+            
+            profile: desktop.browserProfile
+    
         }
+
     } // item
     
     Keys.onPressed: {
@@ -146,5 +144,4 @@ VrDialog {
                 break;
         }
     }
-    
 } // dialog

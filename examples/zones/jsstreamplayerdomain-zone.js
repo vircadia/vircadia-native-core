@@ -33,7 +33,7 @@ var toggleStreamPlayButton = Overlays.addOverlay("text", {
     visible: false,
     text: " Play"
 });
- 
+
 // Set up toggleStreamStopButton overlay.
 var toggleStreamStopButton = Overlays.addOverlay("text", {
     x: 166,
@@ -47,7 +47,7 @@ var toggleStreamStopButton = Overlays.addOverlay("text", {
     visible: false,
     text: " Stop"
 });
- 
+
 // Set up increaseVolumeButton overlay.
 var toggleIncreaseVolumeButton = Overlays.addOverlay("text", {
     x: 211,
@@ -61,7 +61,7 @@ var toggleIncreaseVolumeButton = Overlays.addOverlay("text", {
     visible: false,
     text: " +"
 });
- 
+
 // Set up decreaseVolumeButton overlay.
 var toggleDecreaseVolumeButton = Overlays.addOverlay("text", {
     x: 234,
@@ -93,7 +93,7 @@ function changeVolume(volume) {
         }
         streamWindow.eventBridge.emitScriptEvent(JSON.stringify(volumeJSON));
 }
-        
+
 // Function that adds mousePressEvent functionality to connect UI to enter stream URL, play and stop stream.
 function mousePressEvent(event) {
     if (Overlays.getOverlayAtPoint({x: event.x, y: event.y}) == toggleStreamPlayButton) {
@@ -116,7 +116,7 @@ function mousePressEvent(event) {
 
 // Function checking bool if in proper zone.
 function isOurZone(properties) {
-    return stream != "" && properties.type == "Zone";
+    return stream != "" && stream != undefined && properties.type == "Zone";
 }
 
 // Function to toggle visibile the overlay.
@@ -129,7 +129,21 @@ function toggleVisible(newVisibility) {
         Overlays.editOverlay(toggleDecreaseVolumeButton, {visible: visible});
     }
 }
- 
+
+// Procedure to check to see if you within a zone with a given stream.
+var entities = Entities.findEntities(MyAvatar.position, 0.1);
+for (var i in entities) {
+    var properties = Entities.getEntityProperties(entities[i]);
+    if (properties.type == "Zone") {
+        print("Entered zone: " + JSON.stringify(entities[i]));
+        stream = JSON.parse(properties.userData).stream;
+        if (isOurZone(properties)) {
+            print("Entered zone " + JSON.stringify(entities[i]) + " with stream: " + stream);
+            lastZone = properties.name;
+            toggleVisible(true);
+        }
+    }
+}
 // Function to check if avatar is in proper domain. 
 Window.domainChanged.connect(function() {
     Script.stop();
@@ -139,7 +153,7 @@ Window.domainChanged.connect(function() {
 Entities.enterEntity.connect(function(entityID) {
     print("Entered..." + JSON.stringify(entityID));
     var properties = Entities.getEntityProperties(entityID);
-    stream = properties.userData;
+    stream = JSON.parse(properties.userData).stream;
     if(isOurZone(properties))
     {
       lastZone = properties.name;

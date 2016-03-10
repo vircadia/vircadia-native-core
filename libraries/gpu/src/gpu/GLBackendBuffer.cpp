@@ -46,7 +46,7 @@ GLBackend::GLBuffer* GLBackend::syncGPUObject(const Buffer& buffer) {
     glBufferData(GL_ARRAY_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     object->_stamp = buffer.getSysmem().getStamp();
-    object->_size = buffer.getSysmem().getSize();
+    object->_size = (GLuint)buffer.getSysmem().getSize();
     //}
     (void) CHECK_GL_ERROR();
 

@@ -15,6 +15,7 @@
 #include <QTemporaryDir>
 
 #include <FSTReader.h>
+#include <OffscreenUi.h>
 
 #include "ModelSelector.h"
 #include "ModelPropertiesDialog.h"
@@ -78,7 +79,7 @@ bool ModelPackager::loadModel() {
     if (_modelFile.completeSuffix().contains("fst")) {
         QFile fst(_modelFile.filePath());
         if (!fst.open(QFile::ReadOnly | QFile::Text)) {
-            QMessageBox::warning(NULL,
+            OffscreenUi::warning(NULL,
                                  QString("ModelPackager::loadModel()"),
                                  QString("Could not open FST file %1").arg(_modelFile.filePath()),
                                  QMessageBox::Ok);
@@ -97,7 +98,7 @@ bool ModelPackager::loadModel() {
     // open the fbx file
     QFile fbx(_fbxInfo.filePath());
     if (!_fbxInfo.exists() || !_fbxInfo.isFile() || !fbx.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(NULL,
+        OffscreenUi::warning(NULL,
                              QString("ModelPackager::loadModel()"),
                              QString("Could not open FBX file %1").arg(_fbxInfo.filePath()),
                              QMessageBox::Ok);
@@ -341,9 +342,9 @@ void ModelPackager::populateBasicMapping(QVariantHash& mapping, QString filename
 void ModelPackager::listTextures() {
     _textures.clear();
     foreach (const FBXMaterial mat, _geometry->materials) {
-        if (!mat.diffuseTexture.filename.isEmpty() && mat.diffuseTexture.content.isEmpty() &&
-            !_textures.contains(mat.diffuseTexture.filename)) {
-            _textures << mat.diffuseTexture.filename;
+        if (!mat.albedoTexture.filename.isEmpty() && mat.albedoTexture.content.isEmpty() &&
+            !_textures.contains(mat.albedoTexture.filename)) {
+            _textures << mat.albedoTexture.filename;
         }
         if (!mat.normalTexture.filename.isEmpty() && mat.normalTexture.content.isEmpty() &&
             !_textures.contains(mat.normalTexture.filename)) {
@@ -402,7 +403,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
     }
     
     if (!errors.isEmpty()) {
-        QMessageBox::warning(nullptr, "ModelPackager::copyTextures()",
+        OffscreenUi::warning(nullptr, "ModelPackager::copyTextures()",
                              "Missing textures:" + errors);
         qCDebug(interfaceapp) << "ModelPackager::copyTextures():" << errors;
         return false;

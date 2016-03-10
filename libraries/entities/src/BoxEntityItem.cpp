@@ -21,15 +21,13 @@
 #include "EntityTreeElement.h"
 
 EntityItemPointer BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new BoxEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity { new BoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Box;
-    setProperties(properties);
 }
 
 EntityItemProperties BoxEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {

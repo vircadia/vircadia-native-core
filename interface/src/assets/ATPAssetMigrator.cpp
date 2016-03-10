@@ -25,6 +25,7 @@
 #include <AssetUpload.h>
 #include <ResourceManager.h>
 
+#include "OffscreenUi.h"
 #include "../ui/AssetUploadDialogFactory.h"
 
 Q_DECLARE_LOGGING_CATEGORY(asset_migrator);
@@ -52,7 +53,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             " continue?\n\nMake sure you are connected to the right domain."
         };
         
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, MIGRATION_CONFIRMATION_TEXT,
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         
         if (button == QMessageBox::No) {
@@ -67,7 +68,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             QByteArray jsonData;
             
             if (!gunzip(compressedJsonData, jsonData)) {
-                QMessageBox::warning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
+                OffscreenUi::warning(_dialogParent, "Error", "The file at" + filename + "was not in gzip format.");
             }
             
             QJsonDocument modelsJSON = QJsonDocument::fromJson(jsonData);
@@ -107,7 +108,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                     if (request->getResult() == ResourceRequest::Success) {
                                         migrateResource(request);
                                     } else {
-                                        QMessageBox::warning(_dialogParent, "Error",
+                                        OffscreenUi::warning(_dialogParent, "Error",
                                                              QString("Could not retrieve asset at %1").arg(modelURL.toString()));
                                     }
                                     request->deleteLater();
@@ -115,7 +116,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
                                 
                                 request->send();
                             } else {
-                                QMessageBox::warning(_dialogParent, "Error",
+                                OffscreenUi::warning(_dialogParent, "Error",
                                                      QString("Could not create request for asset at %1").arg(modelURL.toString()));
                             }
                             
@@ -129,7 +130,7 @@ void ATPAssetMigrator::loadEntityServerFile() {
             _doneReading = true;
             
         } else {
-            QMessageBox::warning(_dialogParent, "Error",
+            OffscreenUi::warning(_dialogParent, "Error",
                                  "There was a problem loading that entity-server file for ATP asset migration. Please try again");
         }
     }
@@ -212,7 +213,7 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
             "Select \"No\" to be prompted for each discovered asset."
         };
         
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE, COMPLETE_MIGRATION_TEXT,
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
                               
         if (button == QMessageBox::Yes) {
@@ -226,7 +227,7 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
         return true;
     } else {
         // present a dialog asking the user if they want to migrate this specific resource
-        auto button = QMessageBox::question(_dialogParent, MESSAGE_BOX_TITLE,
+        auto button = OffscreenUi::question(_dialogParent, MESSAGE_BOX_TITLE,
                                             "Would you like to migrate the following resource?\n" + url.toString(),
                                             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         return button == QMessageBox::Yes;
@@ -254,11 +255,11 @@ void ATPAssetMigrator::saveEntityServerFile() {
             QMessageBox::information(_dialogParent, "Success",
                                      QString("Your new entities file has been saved at %1").arg(saveName));
         } else {
-            QMessageBox::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
+            OffscreenUi::warning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
         }
     
     } else {
-        QMessageBox::warning(_dialogParent, "Error",
+        OffscreenUi::warning(_dialogParent, "Error",
                              QString("Could not open file at %1 to write new entities file to.").arg(saveName));
     }
 }

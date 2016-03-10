@@ -15,6 +15,8 @@
 #include <mutex>
 #include <functional>
 
+#include <shared/NsightHelpers.h>
+
 #include "Framebuffer.h"
 #include "Pipeline.h"
 #include "Query.h"
@@ -22,24 +24,17 @@
 #include "Texture.h"
 #include "Transform.h"
 
-
-#if defined(NSIGHT_FOUND)
-    class ProfileRange {
-    public:
-        ProfileRange(const char *name);
-        ~ProfileRange();
-    };
-#define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
-#else
-#define PROFILE_RANGE(name)
-#endif
-
 class QDebug;
 
 namespace gpu {
 
 enum ReservedSlot {
+
+#ifdef GPU_SSBO_DRAW_CALL_INFO
     TRANSFORM_OBJECT_SLOT = 6,
+#else
+    TRANSFORM_OBJECT_SLOT = 31,
+#endif
     TRANSFORM_CAMERA_SLOT = 7,
 };
 
@@ -55,23 +50,50 @@ class Batch {
 public:
     typedef Stream::Slot Slot;
 
+
+    class DrawCallInfo {
+    public:
+        using Index = uint16_t;
+
+        DrawCallInfo(Index idx) : index(idx) {}
+
+        Index index { 0 };
+        uint16_t unused { 0 }; // Reserved space for later
+
+    };
+    // Make sure DrawCallInfo has no extra padding
+    static_assert(sizeof(DrawCallInfo) == 4, "DrawCallInfo size is incorrect.");
+
+    using DrawCallInfoBuffer = std::vector<DrawCallInfo>;
+
     struct NamedBatchData {
         using BufferPointers = std::vector<BufferPointer>;
         using Function = std::function<void(gpu::Batch&, NamedBatchData&)>;
 
-        std::once_flag _once;
-        BufferPointers _buffers;
-        size_t _count{ 0 };
-        Function _function;
+        BufferPointers buffers;
+        Function function;
+        DrawCallInfoBuffer drawCallInfos;
+
+        size_t count() const { return drawCallInfos.size();  }
 
         void process(Batch& batch) {
-            if (_function) {
-                _function(batch, *this);
+            if (function) {
+                function(batch, *this);
             }
         }
     };
 
     using NamedBatchDataMap = std::map<std::string, NamedBatchData>;
+
+    DrawCallInfoBuffer _drawCallInfos;
+
+    std::string _currentNamedCall;
+
+    const DrawCallInfoBuffer& getDrawCallInfoBuffer() const;
+    DrawCallInfoBuffer& getDrawCallInfoBuffer();
+
+    void captureDrawCallInfo();
+    void captureNamedDrawCallInfo(std::string name);
 
     class CacheState {
     public:
@@ -99,7 +121,7 @@ public:
             transformsSize(transformsSize), pipelinesSize(pipelinesSize), framebuffersSize(framebuffersSize), queriesSize(queriesSize) { }
     };
 
-    Batch();
+    Batch() {}
     Batch(const CacheState& cacheState);
     explicit Batch(const Batch& batch);
     ~Batch();
@@ -132,13 +154,8 @@ public:
     void multiDrawIndirect(uint32 numCommands, Primitive primitiveType);
     void multiDrawIndexedIndirect(uint32 numCommands, Primitive primitiveType);
 
-
-    void setupNamedCalls(const std::string& instanceName, size_t count, NamedBatchData::Function function);
     void setupNamedCalls(const std::string& instanceName, NamedBatchData::Function function);
     BufferPointer getNamedBuffer(const std::string& instanceName, uint8_t index = 0);
-    void setNamedBuffer(const std::string& instanceName, BufferPointer& buffer, uint8_t index = 0);
-
-    
 
     // Input Stage
     // InputFormat
@@ -221,6 +238,9 @@ public:
     // with xy and zw the bounding corners of the rect region.
     void blit(const FramebufferPointer& src, const Vec4i& srcRect, const FramebufferPointer& dst, const Vec4i& dstRect);
 
+    // Generate the mips for a texture
+    void generateTextureMips(const TexturePointer& texture);
+
     // Query Section
     void beginQuery(const QueryPointer& query);
     void endQuery(const QueryPointer& query);
@@ -302,6 +322,7 @@ public:
         COMMAND_setFramebuffer,
         COMMAND_clearFramebuffer,
         COMMAND_blit,
+        COMMAND_generateTextureMips,
 
         COMMAND_beginQuery,
         COMMAND_endQuery,
@@ -310,6 +331,9 @@ public:
         COMMAND_resetStages,
 
         COMMAND_runLambda,
+
+        COMMAND_startNamedCall,
+        COMMAND_stopNamedCall,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -334,7 +358,7 @@ public:
         NUM_COMMANDS,
     };
     typedef std::vector<Command> Commands;
-    typedef std::vector<uint32> CommandOffsets;
+    typedef std::vector<size_t> CommandOffsets;
 
     const Commands& getCommands() const { return _commands; }
     const CommandOffsets& getCommandOffsets() const { return _commandOffsets; }
@@ -342,11 +366,17 @@ public:
     class Param {
     public:
         union {
+#if (QT_POINTER_SIZE == 8)
+            size_t _size;
+#endif            
             int32 _int;
             uint32 _uint;
-            float   _float;
-            char _chars[4];
+            float _float;
+            char _chars[sizeof(size_t)];
         };
+#if (QT_POINTER_SIZE == 8)
+        Param(size_t val) : _size(val) {}
+#endif            
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
@@ -370,8 +400,8 @@ public:
             std::vector< Cache<T> > _items;
 
             size_t size() const { return _items.size(); }
-            uint32 cache(const Data& data) {
-                uint32 offset = _items.size();
+            size_t cache(const Data& data) {
+                size_t offset = _items.size();
                 _items.push_back(Cache<T>(data));
                 return offset;
             }
@@ -396,15 +426,15 @@ public:
     typedef Cache<PipelinePointer>::Vector PipelineCaches;
     typedef Cache<FramebufferPointer>::Vector FramebufferCaches;
     typedef Cache<QueryPointer>::Vector QueryCaches;
-    typedef Cache<std::string>::Vector ProfileRangeCaches;
+    typedef Cache<std::string>::Vector StringCaches;
     typedef Cache<std::function<void()>>::Vector LambdaCache;
 
     // Cache Data in a byte array if too big to fit in Param
     // FOr example Mat4s are going there
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
-    uint32 cacheData(uint32 size, const void* data);
-    Byte* editData(uint32 offset) {
+    size_t cacheData(size_t size, const void* data);
+    Byte* editData(size_t offset) {
         if (offset >= _data.size()) {
             return 0;
         }
@@ -416,6 +446,18 @@ public:
     Params _params;
     Bytes _data;
 
+    // SSBO class... layout MUST match the layout in TransformCamera.slh
+    class TransformObject {
+    public:
+        Mat4 _model;
+        Mat4 _modelInverse;
+    };
+
+    using TransformObjects = std::vector<TransformObject>;
+    bool _invalidModel { true };
+    Transform _currentModel;
+    TransformObjects _objects;
+
     BufferCaches _buffers;
     TextureCaches _textures;
     StreamFormatCaches _streamFormats;
@@ -424,7 +466,8 @@ public:
     FramebufferCaches _framebuffers;
     QueryCaches _queries;
     LambdaCache _lambdas;
-    ProfileRangeCaches _profileRanges;
+    StringCaches _profileRanges;
+    StringCaches _names;
 
     NamedBatchDataMap _namedData;
 
@@ -432,8 +475,13 @@ public:
     bool _enableSkybox{ false };
 
 protected:
+    void startNamedCall(const std::string& name);
+    void stopNamedCall();
+
     // Maybe useful but shoudln't be public. Please convince me otherwise
     void runLambda(std::function<void()> f);
+
+    void captureDrawCallInfoImpl();
 };
 
 }

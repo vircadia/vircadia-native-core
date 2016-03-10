@@ -15,7 +15,6 @@
 
 
 GenericThread::GenericThread() :
-    QObject(),
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
@@ -38,9 +37,10 @@ void GenericThread::initialize(bool isThreaded, QThread::Priority priority) {
         _thread->setObjectName(objectName());
 
         // when the worker thread is started, call our engine's run..
-        connect(_thread, SIGNAL(started()), this, SLOT(threadRoutine()));
+        connect(_thread, &QThread::started, this, &GenericThread::threadRoutine);
+        connect(_thread, &QThread::finished, this, &GenericThread::finished);
 
-        this->moveToThread(_thread);
+        moveToThread(_thread);
 
         // Starts an event loop, and emits _thread->started()
         _thread->start();
@@ -82,5 +82,4 @@ void GenericThread::threadRoutine() {
     if (_isThreaded && _thread) {
         _thread->quit();
     }
-    emit finished();
 }

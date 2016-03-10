@@ -34,6 +34,12 @@ public:
     AvatarHash getHashCopy() { QReadLocker lock(&_hashLock); return _avatarHash; }
     int size() { return _avatarHash.size(); }
 
+    // Currently, your own avatar will be included as the null avatar id.
+    Q_INVOKABLE QVector<QUuid> getAvatarIdentifiers();
+    Q_INVOKABLE AvatarData* getAvatar(QUuid avatarID);
+
+    virtual AvatarSharedPointer getAvatarBySessionID(const QUuid& sessionID) { return findAvatar(sessionID); }
+
 signals:
     void avatarAddedEvent(const QUuid& sessionUUID);
     void avatarRemovedEvent(const QUuid& sessionUUID);
@@ -45,10 +51,10 @@ public slots:
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
     
-    void processAvatarDataPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void processAvatarIdentityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void processAvatarBillboardPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
-    void processKillAvatar(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processAvatarDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processAvatarBillboardPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
+    void processKillAvatar(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 protected:
     AvatarHashMap();

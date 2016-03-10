@@ -45,7 +45,7 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         
         _model.setSnapModelToCenter(true);
-        _model.setScale(getScale());
+        _model.setScale(getDimensions());
         _model.setRotation(getRotation());
         _model.setTranslation(getPosition());
         _model.setURL(_url);
@@ -82,46 +82,39 @@ void ModelOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return;
     }
-
-    /*    
-    if (_model.isActive()) {
-        if (_model.isRenderable()) {
-            float glowLevel = getGlowLevel();
-            Glower* glower = NULL;
-            if (glowLevel > 0.0f) {
-                glower = new Glower(glowLevel);
-            }
-            _model.render(args, getAlpha());
-            if (glower) {
-                delete glower;
-            }
-        }
-    }
-    */
 }
 
-void ModelOverlay::setProperties(const QScriptValue &properties) {
+void ModelOverlay::setProperties(const QVariantMap& properties) {
     auto position = getPosition();
     auto rotation = getRotation();
     auto scale = getDimensions();
     
     Volume3DOverlay::setProperties(properties);
     
-    if (position != getPosition() || rotation != getRotation() || scale != getDimensions()) {
-        _model.setScaleToFit(true, getScale());
+    if (position != getPosition() || rotation != getRotation()) {
         _updateModel = true;
     }
+
+    if (scale != getDimensions()) {
+        auto newScale = getDimensions();
+        if (newScale.x <= 0 || newScale.y <= 0 || newScale.z <= 0) {
+            setDimensions(scale);
+        } else {
+            _model.setScaleToFit(true, getDimensions());
+            _updateModel = true;
+        }
+    }
     
-    QScriptValue urlValue = properties.property("url");
-    if (urlValue.isValid() && urlValue.isString()) {
+    auto urlValue = properties["url"];
+    if (urlValue.isValid() && urlValue.canConvert<QString>()) {
         _url = urlValue.toString();
         _updateModel = true;
         _isLoaded = false;
     }
     
-    QScriptValue texturesValue = properties.property("textures");
-    if (texturesValue.isValid() && texturesValue.toVariant().canConvert(QVariant::Map)) {
-        QVariantMap textureMap = texturesValue.toVariant().toMap();
+    auto texturesValue = properties["textures"];
+    if (texturesValue.isValid() && texturesValue.canConvert(QVariant::Map)) {
+        QVariantMap textureMap = texturesValue.toMap();
         foreach(const QString& key, textureMap.keys()) {
             
             QUrl newTextureURL = textureMap[key].toUrl();
@@ -136,22 +129,22 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
-QScriptValue ModelOverlay::getProperty(const QString& property) {
+QVariant ModelOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url.toString();
     }
-    if (property == "dimensions") {
-        return vec3toScriptValue(_scriptEngine, _model.getScaleToFitDimensions());
+    if (property == "dimensions" || property == "scale" || property == "size") {
+        return vec3toVariant(_model.getScaleToFitDimensions());
     }
     if (property == "textures") {
         if (_modelTextures.size() > 0) {
-            QScriptValue textures = _scriptEngine->newObject();
+            QVariantMap textures;
             foreach(const QString& key, _modelTextures.keys()) {
-                textures.setProperty(key, _modelTextures[key].toString());
+                textures[key] = _modelTextures[key].toString();
             }
             return textures;
         } else {
-            return QScriptValue();
+            return QVariant();
         }
     }
 

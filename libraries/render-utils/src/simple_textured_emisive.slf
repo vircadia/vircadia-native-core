@@ -14,7 +14,7 @@
 
 <@include DeferredBufferWrite.slh@>
 
-// the diffuse texture
+// the albedo texture
 uniform sampler2D originalTexture;
 
 // the interpolated normal
@@ -27,8 +27,10 @@ void main(void) {
     
     packDeferredFragmentLightmap(
          normalize(_normal),
-         glowIntensity * texel.a,
+         texel.a,
          _color.rgb,
-         DEFAULT_SPECULAR, DEFAULT_SHININESS,
+         DEFAULT_ROUGHNESS,
+         DEFAULT_METALLIC,
+         DEFAULT_SPECULAR,
          texel.rgb);
 }

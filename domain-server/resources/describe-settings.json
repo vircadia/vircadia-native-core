@@ -1,5 +1,5 @@
 {
-  "version": 1.0,
+  "version": 1.1,
   "settings": [
     {
       "name": "metaverse",
@@ -65,7 +65,7 @@
             {
               "name": "viewpoint",
               "label": "Viewpoint",
-              "placeholder": "/512,512,512"
+              "placeholder": "/0,0,0"
             }
           ]
         }
@@ -168,7 +168,7 @@
     },
     {
       "name": "asset_server",
-      "label": "Asset Server",
+      "label": "Asset Server (ATP)",
       "assignment-types": [3],
       "settings": [
         {
@@ -177,6 +177,14 @@
           "label": "Enabled",
           "help": "Assigns an asset-server in your domain to serve files to clients via the ATP protocol (over UDP)",
           "default": true,
+          "advanced": true
+        },
+        {
+          "name": "assets_path",
+          "type": "string",
+          "label": "Assets Path",
+          "help": "The path to the directory assets are stored in.<br/>If this path is relative, it will be relative to the application data directory.<br/>If you change this path you will need to manually copy any existing assets from the previous directory.",
+          "default": "",
           "advanced": true
         }
       ]
@@ -222,22 +230,40 @@
           },
           "columns": [
             {
-              "name": "x_range",
-              "label": "X range",
+              "name": "x_min",
+              "label": "X start",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "-16384.0"
             },
             {
-              "name": "y_range",
-              "label": "Y range",
+              "name": "x_max",
+              "label": "X end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },            
+            {
+              "name": "y_min",
+              "label": "Y start",
+              "can_set": true,
+              "placeholder": "-16384.0"
             },
             {
-              "name": "z_range",
-              "label": "Z range",
+              "name": "y_max",
+              "label": "Y end",
               "can_set": true,
-              "placeholder": "0-16384"
+              "placeholder": "16384.0"
+            },
+            {
+              "name": "z_min",
+              "label": "Z start",
+              "can_set": true,
+              "placeholder": "-16384.0"
+            },
+            {
+              "name": "z_max",
+              "label": "Z end",
+              "can_set": true,
+              "placeholder": "16384.0"
             }
           ]
         },
@@ -308,7 +334,7 @@
           "type": "checkbox",
           "label": "Dynamic Jitter Buffers",
           "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
-          "default": false,
+          "default": true,
           "advanced": true
         },
         {
@@ -366,14 +392,6 @@
           "help": "Dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
           "default": false,
           "advanced": true
-        },
-        {
-          "name": "print_stream_stats",
-          "type": "checkbox",
-          "label": "Print Stream Stats",
-          "help": "Audio upstream and downstream stats of each agent printed to audio-mixer stdout",
-          "default": false,
-          "advanced": true
         }
       ]
     },
@@ -383,11 +401,11 @@
       "assignment-types": [6],
       "settings": [
         {
-          "name": "persistFilename",
-          "label": "Entities Filename",
-          "help": "the path to the file entities are stored in. Make sure the path exists.",
-          "placeholder": "resources/models.json.gz",
-          "default": "resources/models.json.gz",
+          "name": "persistFilePath",
+          "label": "Entities File Path",
+          "help": "The path to the file entities are stored in.<br/>If this path is relative it will be relative to the application data directory.<br/>The filename must end in .json.gz.",
+          "placeholder": "models.json.gz",
+          "default": "models.json.gz",
           "advanced": true
         },
         {

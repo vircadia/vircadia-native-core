@@ -42,7 +42,7 @@ for (var i = 0; i < NUM_BLOCKS; i++) {
       z: basePosition.z + randFloat(-SPAWN_RANGE, SPAWN_RANGE)
     },
     color: {red: Math.random() * 255, green: Math.random() * 255, blue: Math.random() * 255},
-    collisionsWillMove: true,
+    dynamic: true,
     gravity: {x: 0, y: 0, z: 0}
   }));
 }

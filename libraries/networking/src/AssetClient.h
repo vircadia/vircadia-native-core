@@ -22,6 +22,7 @@
 #include "LimitedNodeList.h"
 #include "NLPacket.h"
 #include "Node.h"
+#include "ReceivedMessage.h"
 #include "ResourceCache.h"
 
 class AssetRequest;
@@ -35,34 +36,44 @@ struct AssetInfo {
 using ReceivedAssetCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QByteArray& data)>;
 using GetInfoCallback = std::function<void(bool responseReceived, AssetServerError serverError, AssetInfo info)>;
 using UploadResultCallback = std::function<void(bool responseReceived, AssetServerError serverError, const QString& hash)>;
-
+using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>;
 
 
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
     AssetClient();
-    
-    Q_INVOKABLE void init();
 
     Q_INVOKABLE AssetRequest* createRequest(const QString& hash, const QString& extension);
     Q_INVOKABLE AssetUpload* createUpload(const QString& filename);
     Q_INVOKABLE AssetUpload* createUpload(const QByteArray& data, const QString& extension);
 
+public slots:
+    void init();
+
+    void cacheInfoRequest(QObject* reciever, QString slot);
+    void clearCache();
+
 private slots:
-    void handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
-    void handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    void handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
     void handleNodeKilled(SharedNodePointer node);
 
 private:
     bool getAssetInfo(const QString& hash, const QString& extension, GetInfoCallback callback);
-    bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end, ReceivedAssetCallback callback);
+    bool getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
+                  ReceivedAssetCallback callback, ProgressCallback progressCallback);
     bool uploadAsset(const QByteArray& data, const QString& extension, UploadResultCallback callback);
 
+    struct GetAssetCallbacks {
+        ReceivedAssetCallback completeCallback;
+        ProgressCallback progressCallback;
+    };
+
     static MessageID _currentID;
-    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, ReceivedAssetCallback>> _pendingRequests;
+    std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetCallbacks>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
     

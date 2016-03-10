@@ -21,7 +21,7 @@
 class MessagesMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
-    MessagesMixer(NLPacket& packet);
+    MessagesMixer(ReceivedMessage& message);
 
 public slots:
     void run();
@@ -29,9 +29,9 @@ public slots:
     void sendStatsPacket();
 
 private slots:
-    void handleMessages(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    void handleMessagesSubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
-    void handleMessagesUnsubscribe(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode);
+    void handleMessages(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleMessagesSubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleMessagesUnsubscribe(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
     QHash<QString,QSet<QUuid>> _channelSubscribers;

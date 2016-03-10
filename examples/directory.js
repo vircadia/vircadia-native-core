@@ -9,84 +9,118 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("libraries/globals.js");
+Script.include([
+    "libraries/toolBars.js",
+]);
 
-var directory = (function () {
+HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 
-    var DIRECTORY_URL = "https://metaverse.highfidelity.com/directory",
-        directoryWindow,
-        DIRECTORY_BUTTON_URL = HIFI_PUBLIC_BUCKET + "images/tools/directory.svg",
-        BUTTON_WIDTH = 50,
-        BUTTON_HEIGHT = 50,
-        BUTTON_ALPHA = 0.9,
-        BUTTON_MARGIN = 8,
-        directoryButton,
-        EDIT_TOOLBAR_BUTTONS = 10,  // Number of buttons in edit.js toolbar
-        viewport;
+var DIRECTORY_WINDOW_URL = "https://metaverse.highfidelity.com/directory";
+var directoryWindow = new OverlayWebWindow({
+    title: 'directory',
+    source: "about:blank",
+    width: 900,
+    height: 700,
+    visible: false
+});
 
-    function updateButtonPosition() {
-        Overlays.editOverlay(directoryButton, {
-            x: viewport.x - BUTTON_WIDTH - BUTTON_MARGIN,
-            y: (viewport.y - (EDIT_TOOLBAR_BUTTONS + 1) * (BUTTON_HEIGHT + BUTTON_MARGIN) - BUTTON_MARGIN) / 2 - 1
+var toolHeight = 50;
+var toolWidth = 50;
+
+
+function showDirectory() {
+    directoryWindow.setURL(DIRECTORY_WINDOW_URL);
+    directoryWindow.setVisible(true);
+}
+
+function hideDirectory() {
+    directoryWindow.setVisible(false);
+    directoryWindow.setURL("about:blank");
+}
+
+function toggleDirectory() {
+    if (directoryWindow.visible) {
+        hideDirectory();
+    } else {
+        showDirectory();
+    }
+}
+
+var toolBar = (function() {
+    var that = {},
+        toolBar,
+        browseDirectoryButton;
+
+    function initialize() {
+        ToolBar.SPACING = 16;
+        toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.directory.toolbar", function(windowDimensions, toolbar) {
+            return {
+                x: windowDimensions.x - 8 - toolbar.width,
+                y: 50
+            };
         });
-    }
-
-    function onMousePressEvent(event) {
-        var clickedOverlay;
-
-        clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-
-        if (clickedOverlay === directoryButton) {
-            if (directoryWindow.url !== DIRECTORY_URL) {
-                directoryWindow.setURL(DIRECTORY_URL);
-            }
-            directoryWindow.setVisible(true);
-            directoryWindow.raise();
-        }
-    }
-
-    function onDomainChanged() {
-        directoryWindow.setVisible(false);
-    }
-
-    function onScriptUpdate() {
-        var oldViewport = viewport;
-
-        viewport = Controller.getViewportDimensions();
-
-        if (viewport.x !== oldViewport.x || viewport.y !== oldViewport.y) {
-            updateButtonPosition();
-        }
-    }
-
-    function setUp() {
-        viewport = Controller.getViewportDimensions();
-
-        directoryWindow = new WebWindow('Directory', DIRECTORY_URL, 900, 700, false);
-        directoryWindow.setVisible(false);
-
-        directoryButton = Overlays.addOverlay("image", {
-            imageURL: DIRECTORY_BUTTON_URL,
-            width: BUTTON_WIDTH,
-            height: BUTTON_HEIGHT,
-            x: viewport.x - BUTTON_WIDTH - BUTTON_MARGIN,
-            y: BUTTON_MARGIN,
-            alpha: BUTTON_ALPHA,
-            visible: true
+        browseDirectoryButton = toolBar.addTool({
+            imageURL: toolIconUrl + "directory.svg",
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true,
         });
 
-        updateButtonPosition();
-
-        Controller.mousePressEvent.connect(onMousePressEvent);
-        Window.domainChanged.connect(onDomainChanged);
-
-        Script.update.connect(onScriptUpdate);
+        toolBar.showTool(browseDirectoryButton, true);
     }
 
-    function tearDown() {
-        Overlays.deleteOverlay(directoryButton);
+    var browseDirectoryButtonDown = false;
+    that.mousePressEvent = function(event) {
+        var clickedOverlay,
+            url,
+            file;
+
+        if (!event.isLeftButton) {
+            // if another mouse button than left is pressed ignore it
+            return false;
+        }
+
+        clickedOverlay = Overlays.getOverlayAtPoint({
+            x: event.x,
+            y: event.y
+        });
+
+
+
+        if (browseDirectoryButton === toolBar.clicked(clickedOverlay)) {
+            toggleDirectory();
+            return true;
+        }
+
+        return false;
+    };
+
+    that.mouseReleaseEvent = function(event) {
+        var handled = false;
+
+
+        if (browseDirectoryButtonDown) {
+            var clickedOverlay = Overlays.getOverlayAtPoint({
+                x: event.x,
+                y: event.y
+            });
+        }
+
+        newModelButtonDown = false;
+        browseDirectoryButtonDown = false;
+
+        return handled;
     }
 
-    setUp();
-    Script.scriptEnding.connect(tearDown);
+    that.cleanup = function() {
+        toolBar.cleanup();
+    };
+
+    initialize();
+    return that;
 }());
+
+Controller.mousePressEvent.connect(toolBar.mousePressEvent)
+Script.scriptEnding.connect(toolBar.cleanup);

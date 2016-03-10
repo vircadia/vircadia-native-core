@@ -20,6 +20,7 @@
 #include "ControlPacket.h"
 #include "Packet.h"
 #include "../NLPacket.h"
+#include "../NLPacketList.h"
 #include "PacketList.h"
 
 using namespace udt;
@@ -123,8 +124,9 @@ qint64 Socket::writePacketList(std::unique_ptr<PacketList> packetList, const Hif
         // because Qt can't invoke with the unique_ptr we have to release it here and re-construct in writeReliablePacketList
         
         if (QThread::currentThread() != thread()) {
-            QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::QueuedConnection,
-                                      Q_ARG(PacketList*, packetList.release()),
+            auto ptr = packetList.release();
+            QMetaObject::invokeMethod(this, "writeReliablePacketList", Qt::AutoConnection,
+                                      Q_ARG(PacketList*, ptr),
                                       Q_ARG(HifiSockAddr, sockAddr));
         } else {
             writeReliablePacketList(packetList.release(), sockAddr);
@@ -194,10 +196,12 @@ void Socket::clearConnections() {
         QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
         return;
     }
-    
-    // clear all of the current connections in the socket
-    qDebug() << "Clearing all remaining connections in Socket.";
-    _connectionsHash.clear();
+
+    if (_connectionsHash.size() > 0) {
+        // clear all of the current connections in the socket
+        qDebug() << "Clearing all remaining connections in Socket.";
+        _connectionsHash.clear();
+    }
 }
 
 void Socket::cleanupConnection(HifiSockAddr sockAddr) {
@@ -210,9 +214,15 @@ void Socket::cleanupConnection(HifiSockAddr sockAddr) {
     }
 }
 
-void Socket::messageReceived(std::unique_ptr<PacketList> packetList) {
-    if (_packetListHandler) {
-        _packetListHandler(std::move(packetList));
+void Socket::messageReceived(std::unique_ptr<Packet> packet) {
+    if (_messageHandler) {
+        _messageHandler(std::move(packet));
+    }
+}
+
+void Socket::messageFailed(Connection* connection, Packet::MessageNumber messageNumber) {
+    if (_messageFailureHandler) {
+        _messageFailureHandler(connection->getDestination(), messageNumber);
     }
 }
 
@@ -226,8 +236,14 @@ void Socket::readPendingDatagrams() {
         auto buffer = std::unique_ptr<char[]>(new char[packetSizeWithHeader]);
        
         // pull the datagram
-        _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
-                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+        auto sizeRead = _udpSocket.readDatagram(buffer.get(), packetSizeWithHeader,
+                                                senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
+
+        if (sizeRead <= 0) {
+            // we either didn't pull anything for this packet or there was an error reading (this seems to trigger
+            // on windows even if there's not a packet available)
+            continue;
+        }
         
         auto it = _unfilteredHandlers.find(senderSockAddr);
         
@@ -238,7 +254,7 @@ void Socket::readPendingDatagrams() {
                 it->second(std::move(basePacket));
             }
             
-            return;
+            continue;
         }
         
         // check if this was a control packet or a data packet
@@ -261,12 +277,12 @@ void Socket::readPendingDatagrams() {
                 if (packet->isReliable()) {
                     // if this was a reliable packet then signal the matching connection with the sequence number
                     auto& connection = findOrCreateConnection(senderSockAddr);
-                    
+
                     if (!connection.processReceivedSequenceNumber(packet->getSequenceNumber(),
                                                                   packet->getDataSize(),
                                                                   packet->getPayloadSize())) {
                         // the connection indicated that we should not continue processing this packet
-                        return;
+                        continue;
                     }
                 }
 

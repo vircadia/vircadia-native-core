@@ -16,6 +16,8 @@
 
 #include <QtCore/QObject>
 #include <QtCore/QStringList>
+#include <QtQml/QJSValue>
+#include <QtQml/QJSValueList>
 
 #include <DependencyManager.h>
 #include <Octree.h>
@@ -57,8 +59,11 @@ void RayToEntityIntersectionResultFromScriptValue(const QScriptValue& object, Ra
 /// handles scripting of Entity commands from JS passed to assigned clients
 class EntityScriptingInterface : public OctreeScriptingInterface, public Dependency  {
     Q_OBJECT
+    
+    Q_PROPERTY(float currentAvatarEnergy READ getCurrentAvatarEnergy WRITE setCurrentAvatarEnergy)
+    Q_PROPERTY(float costMultiplier READ getCostMultiplier WRITE setCostMultiplier)
 public:
-    EntityScriptingInterface();
+    EntityScriptingInterface(bool bidOnSimulationOwnership);
 
     EntityEditPacketSender* getEntityPacketSender() const { return (EntityEditPacketSender*)getPacketSender(); }
     virtual NodeType_t getServerNodeType() const { return NodeType::EntityServer; }
@@ -67,7 +72,7 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine) { _entitiesScriptEngine = engine; }
-
+    float calculateCost(float mass, float oldVelocity, float newVelocity);
 public slots:
 
     // returns true if the DomainServer will allow this Node/Avatar to make changes
@@ -86,7 +91,7 @@ public slots:
 
     /// edits a model updating only the included properties, will return the identified EntityItemID in case of
     /// successful edit, if the input entityID is for an unknown model this function will have no effect
-    Q_INVOKABLE QUuid editEntity(QUuid entityID, EntityItemProperties properties);
+    Q_INVOKABLE QUuid editEntity(QUuid entityID, const EntityItemProperties& properties);
 
     /// deletes a model
     Q_INVOKABLE void deleteEntity(QUuid entityID);
@@ -112,11 +117,11 @@ public slots:
     /// If the scripting context has visible entities, this will determine a ray intersection, the results
     /// may be inaccurate if the engine is unable to access the visible entities, in which case result.accurate
     /// will be false.
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue());
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
     /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
     /// order to return an accurate result
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue());
+    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());
 
     Q_INVOKABLE void setLightsArePickable(bool value);
     Q_INVOKABLE bool getLightsArePickable() const;
@@ -149,6 +154,22 @@ public slots:
     Q_INVOKABLE glm::vec3 voxelCoordsToLocalCoords(const QUuid& entityID, glm::vec3 voxelCoords);
     Q_INVOKABLE glm::vec3 localCoordsToVoxelCoords(const QUuid& entityID, glm::vec3 localCoords);
 
+    Q_INVOKABLE glm::vec3 getAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE glm::quat getAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex);
+    Q_INVOKABLE bool setAbsoluteJointTranslationInObjectFrame(const QUuid& entityID, int jointIndex, glm::vec3 translation);
+    Q_INVOKABLE bool setAbsoluteJointRotationInObjectFrame(const QUuid& entityID, int jointIndex, glm::quat rotation);
+    Q_INVOKABLE bool setAbsoluteJointRotationsInObjectFrame(const QUuid& entityID,
+                                                            const QVector<glm::quat>& rotations);
+    Q_INVOKABLE bool setAbsoluteJointTranslationsInObjectFrame(const QUuid& entityID,
+                                                               const QVector<glm::vec3>& translations);
+    Q_INVOKABLE bool setAbsoluteJointsDataInObjectFrame(const QUuid& entityID,
+                                                        const QVector<glm::quat>& rotations,
+                                                        const QVector<glm::vec3>& translations);
+
+    Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name);
+    Q_INVOKABLE QStringList getJointNames(const QUuid& entityID);
+    Q_INVOKABLE QVector<QUuid> getChildrenIDsOfJoint(const QUuid& parentID, int jointIndex);
+
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
@@ -173,20 +194,33 @@ signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
     void clearingEntities();
+    void debitEnergySource(float value);
 
 private:
     bool actionWorker(const QUuid& entityID, std::function<bool(EntitySimulation*, EntityItemPointer)> actor);
     bool setVoxels(QUuid entityID, std::function<bool(PolyVoxEntityItem&)> actor);
     bool setPoints(QUuid entityID, std::function<bool(LineEntityItem&)> actor);
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
+    
+    EntityItemPointer checkForTreeEntityAndTypeMatch(const QUuid& entityID,
+                                                     EntityTypes::EntityType entityType = EntityTypes::Unknown);
 
 
     /// actually does the work of finding the ray intersection, can be called in locking mode or tryLock mode
     RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                            bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude);
+        bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard);
 
     EntityTreePointer _entityTree;
-    EntitiesScriptEngineProvider* _entitiesScriptEngine = nullptr;
+    EntitiesScriptEngineProvider* _entitiesScriptEngine { nullptr };
+    
+    bool _bidOnSimulationOwnership { false };
+    float _currentAvatarEnergy = { FLT_MAX };
+    float getCurrentAvatarEnergy() { return _currentAvatarEnergy; }
+    void setCurrentAvatarEnergy(float energy);
+    
+    float costMultiplier = { 0.01f };
+    float getCostMultiplier();
+    void setCostMultiplier(float value);
 };
 
 #endif // hifi_EntityScriptingInterface_h

@@ -18,7 +18,7 @@ class TextEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    TextEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
 

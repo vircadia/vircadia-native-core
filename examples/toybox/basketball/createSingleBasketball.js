@@ -42,12 +42,17 @@ function makeBasketball() {
             y: DIAMETER,
             z: DIAMETER
         },
-        collisionsWillMove: true,
+        dynamic: true,
         collisionSoundURL: collisionSoundURL,
         modelURL: basketballURL,
         restitution: 1.0,
         damping: 0.00001,
-        shapeType: "sphere"
+        shapeType: "sphere",
+        userData: JSON.stringify({
+            grabbableKey: {
+                invertSolidWhileHeld: true
+            }
+        })
     });
     originalPosition = position;
 }

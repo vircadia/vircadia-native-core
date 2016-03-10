@@ -409,7 +409,7 @@ function createPuppet(model, location) {
             registrationPoint: { x: 0.5, y: 0, z: 0.5 },
             animation: ANIMATION_SETTINGS,
             position: location,
-            ignoreForCollisions: true,
+            collisionless: true,
             dimensions: DIMENSIONS,
             lifetime: TEMPORARY_LIFETIME
         });

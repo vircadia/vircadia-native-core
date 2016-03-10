@@ -45,20 +45,15 @@ typedef QVector<Collision> CollisionEvents;
 
 class PhysicsEngine {
 public:
-    uint32_t getNumSubsteps();
-
     PhysicsEngine(const glm::vec3& offset);
     ~PhysicsEngine();
     void init();
 
-    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
-    const QUuid& getSessionID() const { return _sessionID; }
+    uint32_t getNumSubsteps();
 
-    void addObject(ObjectMotionState* motionState);
-    void removeObject(ObjectMotionState* motionState);
+    void removeObjects(const VectorOfMotionStates& objects);
+    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
 
-    void deleteObjects(const VectorOfMotionStates& objects);
-    void deleteObjects(const SetOfMotionStates& objects); // only called during teardown
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
     void reinsertObject(ObjectMotionState* object);
@@ -83,22 +78,23 @@ public:
     /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
-    /// \brief call bump on any objects that touch the object corresponding to motionState
-    void bump(ObjectMotionState* motionState);
-
-    void removeRigidBody(btRigidBody* body);
-
     void setCharacterController(CharacterController* character);
 
     void dumpNextStats() { _dumpNextStats = true; }
 
-    int16_t getCollisionMask(int16_t group) const;
-
     EntityActionPointer getActionByID(const QUuid& actionID) const;
     void addAction(EntityActionPointer action);
     void removeAction(const QUuid actionID);
+    void forEachAction(std::function<void(EntityActionPointer)> actor);
+
+    void setSessionUUID(const QUuid& sessionID) { _sessionID = sessionID; }
 
 private:
+    void addObjectToDynamicsWorld(ObjectMotionState* motionState);
+
+    /// \brief bump any objects that touch this one, then remove contact info
+    void bumpAndPruneContacts(ObjectMotionState* motionState);
+
     void removeContacts(ObjectMotionState* motionState);
 
     void doOwnershipInfection(const btCollisionObject* objectA, const btCollisionObject* objectB);
@@ -111,26 +107,21 @@ private:
     ThreadSafeDynamicsWorld* _dynamicsWorld = NULL;
     btGhostPairCallback* _ghostPairCallback = NULL;
 
-    glm::vec3 _originOffset;
-
     ContactMap _contactMap;
-    uint32_t _numContactFrames = 0;
-    uint32_t _lastNumSubstepsAtUpdateInternal = 0;
+    CollisionEvents _collisionEvents;
+    QHash<QUuid, EntityActionPointer> _objectActions;
 
-    /// character collisions
+    glm::vec3 _originOffset;
+    QUuid _sessionID;
+
     CharacterController* _myAvatarController;
+
+    uint32_t _numContactFrames = 0;
+    uint32_t _numSubsteps;
 
     bool _dumpNextStats = false;
     bool _hasOutgoingChanges = false;
 
-    QUuid _sessionID;
-    CollisionEvents _collisionEvents;
-
-    QHash<QUuid, EntityActionPointer> _objectActions;
-
-    btHashMap<btHashInt, int16_t> _collisionMasks;
-
-    uint32_t _numSubsteps;
 };
 
 typedef std::shared_ptr<PhysicsEngine> PhysicsEnginePointer;

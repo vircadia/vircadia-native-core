@@ -24,6 +24,7 @@
 #include "NLPacket.h"
 #include "NLPacketList.h"
 #include "Node.h"
+#include "ReceivedMessage.h"
 
 const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 const unsigned short DEFAULT_DOMAIN_SERVER_DTLS_PORT = 40103;
@@ -87,10 +88,11 @@ public slots:
     void setHostnameAndPort(const QString& hostname, quint16 port = DEFAULT_DOMAIN_SERVER_PORT);
     void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
 
-    void processSettingsPacketList(QSharedPointer<NLPacketList> packetList);
-    void processICEPingReplyPacket(QSharedPointer<NLPacket> packet);
-    void processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket);
-    void processICEResponsePacket(QSharedPointer<NLPacket> icePacket);
+    void processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList);
+    void processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message);
+    void processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> dtlsRequirementPacket);
+    void processICEResponsePacket(QSharedPointer<ReceivedMessage> icePacket);
+    void processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message);
 
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -103,6 +105,7 @@ signals:
     // It means that, either from DNS lookup or ICE, we think we have a socket we can talk to DS on
     void completedSocketDiscovery();
 
+    void resetting();
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
 
@@ -111,6 +114,8 @@ signals:
 
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
+
+    void domainConnectionRefused(QString reason);
 
 private:
     void sendDisconnectPacket();
@@ -129,6 +134,10 @@ private:
     QJsonObject _settingsObject;
     QString _pendingPath;
     QTimer _settingsTimer;
+
+    QStringList _domainConnectionRefusals;
+    bool _hasCheckedForAccessToken { false };
+    int _connectionDenialsSinceKeypairRegen { 0 };
 };
 
 #endif // hifi_DomainHandler_h

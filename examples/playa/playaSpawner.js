@@ -113,7 +113,7 @@ function spawnBoxes() {
             collisionSoundURL: collisionSoundURL,
             shapeType: "box",
             position: position,
-            collisionsWillMove: true,
+            dynamic: true,
             dimensions: {x: 1, y: 2, z: 3},
             velocity: {x: 0, y: -.01, z: 0},
             gravity: {x: 0, y: -2.5 - Math.random() * 6, z: 0}

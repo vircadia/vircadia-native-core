@@ -263,6 +263,10 @@ table#properties-list {
     border-bottom: 0.75pt solid #e5e5e5;
 }
 
+.sub-props-checkbox-group {
+    margin-left: 20px;
+}
+
 #properties-list .label {
     font-weight: bold;
     overflow: hidden;

@@ -34,14 +34,7 @@ const ElementArray& getDefaultElements() {
         //SKIN_CLUSTER_WEIGHT = 6,
         Element::VEC4F_XYZW,
         //TEXCOORD1 = 7,
-        Element::VEC2F_UV,
-        //INSTANCE_SCALE = 8,
-        Element::VEC3F_XYZ,
-        //INSTANCE_TRANSLATE = 9,
-        Element::VEC3F_XYZ,
-        //INSTANCE_XFM = 10, 
-        // FIXME make a matrix element
-        Element::VEC4F_XYZW
+        Element::VEC2F_UV
     }};
     return defaultElements;
 }
@@ -75,16 +68,6 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Frequency frequency) 
     _attributes[slot] = Attribute((InputSlot)slot, channel, getDefaultElements()[slot], 0, frequency);
     evaluateCache();
     return true;
-}
-
-
-BufferStream::BufferStream() :
-    _buffers(),
-    _offsets(),
-    _strides()
-{}
-
-BufferStream::~BufferStream() {
 }
 
 void BufferStream::addBuffer(const BufferPointer& buffer, Offset offset, Offset stride) {

@@ -15,12 +15,20 @@ function createDoll() {
 
     var scriptURL = Script.resolvePath("doll.js");
 
-    var center = Vec3.sum(Vec3.sum(MyAvatar.position, { x: 0, y: 0.5, z: 0 }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+    var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+        x: 0,
+        y: 0.5,
+        z: 0
+    }), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
-    var naturalDimensions = { x: 1.63, y: 1.67, z: 0.26};
+    var naturalDimensions = {
+        x: 1.63,
+        y: 1.67,
+        z: 0.26
+    };
 
     var desiredDimensions = Vec3.multiply(naturalDimensions, 0.15);
-    
+
     var doll = Entities.addEntity({
         type: "Model",
         name: "doll",
@@ -39,7 +47,12 @@ function createDoll() {
             y: 0,
             z: 0
         },
-        collisionsWillMove: true
+        dynamic: true,
+        userData: JSON.stringify({
+            grabbableKey: {
+                invertSolidWhileHeld: true
+            }
+        })
     });
     return doll;
 }

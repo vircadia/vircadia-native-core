@@ -19,6 +19,7 @@
 #include <QScriptValue>
 #include <vector>
 #include <JointData.h>
+#include <QReadWriteLock>
 
 #include "AnimNode.h"
 #include "AnimNodeLoader.h"
@@ -26,6 +27,9 @@
 
 class Rig;
 typedef std::shared_ptr<Rig> RigPointer;
+
+// Rig instances are reentrant.
+// However only specific methods thread-safe.  Noted below.
 
 class Rig : public QObject, public std::enable_shared_from_this<Rig> {
 public:
@@ -63,12 +67,20 @@ public:
     struct HandParameters {
         bool isLeftEnabled;
         bool isRightEnabled;
+        float bodyCapsuleRadius;
+        float bodyCapsuleHalfHeight;
+        glm::vec3 bodyCapsuleLocalOffset;
         glm::vec3 leftPosition = glm::vec3();     // rig space
         glm::quat leftOrientation = glm::quat();  // rig space (z forward)
         glm::vec3 rightPosition = glm::vec3();    // rig space
         glm::quat rightOrientation = glm::quat(); // rig space (z forward)
-        float leftTrigger = 0.0f;
-        float rightTrigger = 0.0f;
+    };
+
+    enum class CharacterControllerState {
+        Ground = 0,
+        Takeoff,
+        InAir,
+        Hover
     };
 
     virtual ~Rig() {}
@@ -87,6 +99,7 @@ public:
     bool jointStatesEmpty();
     int getJointStateCount() const;
     int indexOfJoint(const QString& jointName) const;
+    QString nameOfJoint(int jointIndex) const;
 
     void setModelOffset(const glm::mat4& modelOffsetMat);
 
@@ -123,11 +136,13 @@ public:
     // if rotation is identity, result will be in rig space
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
 
-    // geometry space
+    // geometry space (thread-safe)
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
-
-    // geometry space
     bool getJointTranslation(int jointIndex, glm::vec3& translation) const;
+
+    // rig space (thread-safe)
+    bool getAbsoluteJointRotationInRigFrame(int jointIndex, glm::quat& rotation) const;
+    bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
 
     // legacy
     bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
@@ -136,7 +151,7 @@ public:
     glm::mat4 getJointTransform(int jointIndex) const;
 
     // Start or stop animations as needed.
-    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation);
+    void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
     void updateAnimations(float deltaTime, glm::mat4 rootTransform);
@@ -194,10 +209,16 @@ public:
     // rig space
     const AnimPoseVec& getAbsoluteDefaultPoses() const;
 
+    // geometry space
+    bool getRelativeDefaultJointRotation(int index, glm::quat& rotationOut) const;
+    bool getRelativeDefaultJointTranslation(int index, glm::vec3& translationOut) const;
+
     void copyJointsIntoJointData(QVector<JointData>& jointDataVec) const;
     void copyJointsFromJointData(const QVector<JointData>& jointDataVec);
 
     void computeAvatarBoundingCapsule(const FBXGeometry& geometry, float& radiusOut, float& heightOut, glm::vec3& offsetOut) const;
+
+    void setEnableInverseKinematics(bool enable);
 
  protected:
     bool isIndexValid(int index) const { return _animSkeleton && index >= 0 && index < _animSkeleton->getNumJoints(); }
@@ -212,15 +233,22 @@ public:
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
-    void computeEyesInRootFrame(const AnimPoseVec& poses);
-
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
 
-    AnimPoseVec _relativePoses; // geometry space relative to parent.
-    AnimPoseVec _absolutePoses; // rig space, not relative to parent.
-    AnimPoseVec _overridePoses; // geometry space relative to parent.
-    std::vector<bool> _overrideFlags;
+    struct PoseSet {
+        AnimPoseVec _relativePoses; // geometry space relative to parent.
+        AnimPoseVec _absolutePoses; // rig space, not relative to parent.
+        AnimPoseVec _overridePoses; // geometry space relative to parent.
+        std::vector<bool> _overrideFlags;
+    };
+
+    // Only accessed by the main thread
+    PoseSet _internalPoseSet;
+
+    // Copy of the _poseSet for external threads.
+    PoseSet _externalPoseSet;
+    mutable QReadWriteLock _externalPoseSetLock;
 
     AnimPoseVec _absoluteDefaultPoses; // rig space, not relative to parent.
 
@@ -250,7 +278,10 @@ public:
     enum class RigRole {
         Idle = 0,
         Turn,
-        Move
+        Move,
+        Hover,
+        Takeoff,
+        InAir
     };
     RigRole _state { RigRole::Idle };
     RigRole _desiredState { RigRole::Idle };
@@ -270,6 +301,11 @@ public:
 
     std::map<QString, AnimNode::Pointer> _origRoleAnimations;
     std::vector<AnimNode::Pointer> _prefetchedAnimations;
+
+    bool _lastEnableInverseKinematics { true };
+    bool _enableInverseKinematics { true };
+
+    mutable uint32_t _jointNameWarningCount { 0 };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

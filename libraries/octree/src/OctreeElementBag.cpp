@@ -16,26 +16,25 @@ void OctreeElementBag::deleteAll() {
     _bagElements = Bag();
 }
 
+/// does the bag contain elements?
+/// if all of the contained elements are expired, they will not report as empty, and
+/// a single last item will be returned by extract as a null pointer
 bool OctreeElementBag::isEmpty() {
-    // Pop all expired front elements
-    while (!_bagElements.empty() && _bagElements.front().expired()) {
-        _bagElements.pop();
-    }
-    
     return _bagElements.empty();
 }
 
 void OctreeElementBag::insert(OctreeElementPointer element) {
-    _bagElements.push(element);
+    _bagElements[element.get()] = element;
 }
 
 OctreeElementPointer OctreeElementBag::extract() {
     OctreeElementPointer result;
 
     // Find the first element still alive
-    while (!result && !_bagElements.empty()) {
-        result = _bagElements.front().lock(); // Grab head's shared_ptr
-        _bagElements.pop();
+    Bag::iterator it = _bagElements.begin();
+    while (it != _bagElements.end() && !result) {
+        result = it->second.lock();
+        it = _bagElements.erase(it);
     }
     return result;
 }

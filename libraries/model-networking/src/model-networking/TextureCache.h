@@ -29,7 +29,20 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, BUMP_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, CUBE_TEXTURE, CUSTOM_TEXTURE };
+enum TextureType {
+    DEFAULT_TEXTURE,
+    NORMAL_TEXTURE,
+    BUMP_TEXTURE,
+    SPECULAR_TEXTURE,
+    METALLIC_TEXTURE = SPECULAR_TEXTURE, // for now spec and metallic texture are the same, converted to grey
+    ROUGHNESS_TEXTURE,
+    GLOSS_TEXTURE,
+    EMISSIVE_TEXTURE,
+    CUBE_TEXTURE,
+    OCCLUSION_TEXTURE,
+    LIGHTMAP_TEXTURE,
+    CUSTOM_TEXTURE
+};
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache, public Dependency {
@@ -67,9 +80,6 @@ public:
     typedef gpu::Texture* TextureLoader(const QImage& image, const std::string& srcImageName);
     
     typedef std::function<TextureLoader> TextureLoaderFunc;
-    
-    NetworkTexturePointer getTexture(const QUrl& url, const TextureLoaderFunc& textureLoader,
-                                     const QByteArray& content = QByteArray());
 protected:
 
     virtual QSharedPointer<Resource> createResource(const QUrl& url,
@@ -86,23 +96,15 @@ private:
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
     gpu::TexturePointer _normalFittingTexture;
-
-    QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
 };
 
 /// A simple object wrapper for an OpenGL texture.
 class Texture {
 public:
     friend class TextureCache;
-    Texture();
-    ~Texture();
 
-    const gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
+    gpu::TexturePointer getGPUTexture() const { return _textureSource->getGPUTexture(); }
     gpu::TextureSourcePointer _textureSource;
-
-protected:
-
-private:
 };
 
 /// A texture loaded from the network.
@@ -123,8 +125,14 @@ public:
     int getHeight() const { return _height; }
     
     TextureLoaderFunc getTextureLoader() const;
-    
+
+signals:
+    void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
+
+
 protected:
+
+    virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
           
@@ -132,16 +140,14 @@ protected:
     // FIXME: This void* should be a gpu::Texture* but i cannot get it to work for now, moving on...
     Q_INVOKABLE void setImage(const QImage& image, void* texture, int originalWidth, int originalHeight);
 
-    virtual void imageLoaded(const QImage& image);
-
-    TextureType _type;
 
 private:
+    TextureType _type;
     TextureLoaderFunc _textureLoader;
-    int _originalWidth;
-    int _originalHeight;
-    int _width;
-    int _height;
+    int _originalWidth { 0 };
+    int _originalHeight { 0 };
+    int _width { 0 };
+    int _height { 0 };
 };
 
 #endif // hifi_TextureCache_h

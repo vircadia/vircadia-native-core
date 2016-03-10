@@ -20,8 +20,8 @@ in vec2 varQuadPosition;
 out vec4 outFragColor;
 
 void main(void) {
-  vec2 center = vec2(0.0, 0.0);
-  float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
-  float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
-  outFragColor = vec4(1.0, 0.0, 0.0, alpha);
+    vec2 center = vec2(0.0, 0.0);
+    float distFromCenter = distance( vec2(0.0, 0.0), varQuadPosition);
+    float alpha = mix(0.0, 0.5, pow(distFromCenter,5.));
+    outFragColor = vec4(1.0, 0.0, 0.0, alpha);
 }

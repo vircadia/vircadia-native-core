@@ -45,7 +45,7 @@ public:
     void sendDownstreamAudioStatsPacket();
 
 public slots:
-    void processStreamStatsPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processStreamStatsPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
 
 private:
     MixedProcessedAudioStream* _receivedAudioStream;

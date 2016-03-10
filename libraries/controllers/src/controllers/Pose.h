@@ -23,12 +23,12 @@ namespace controller {
         vec3 translation;
         quat rotation;
         vec3 velocity;
-        quat angularVelocity;
+        vec3 angularVelocity;
         bool valid{ false };
 
         Pose() {}
         Pose(const vec3& translation, const quat& rotation,
-             const vec3& velocity = vec3(), const quat& angularVelocity = quat());
+             const vec3& velocity = vec3(), const vec3& angularVelocity = vec3());
 
         Pose(const Pose&) = default;
         Pose& operator = (const Pose&) = default;
@@ -38,7 +38,9 @@ namespace controller {
         vec3 getTranslation() const { return translation; }
         quat getRotation() const { return rotation; }
         vec3 getVelocity() const { return velocity; }
-        quat getAngularVelocity() const { return angularVelocity; }
+        vec3 getAngularVelocity() const { return angularVelocity; }
+
+        Pose transform(const glm::mat4& mat) const;
 
         static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
         static void fromScriptValue(const QScriptValue& object, Pose& event);

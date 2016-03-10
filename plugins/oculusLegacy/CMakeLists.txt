@@ -10,7 +10,7 @@ if (NOT WIN32)
 
     set(TARGET_NAME oculusLegacy)
     setup_hifi_plugin()
-    link_hifi_libraries(shared gl plugins display-plugins)
+    link_hifi_libraries(shared gl gpu plugins display-plugins input-plugins)
     
     include_hifi_library_headers(octree)
     

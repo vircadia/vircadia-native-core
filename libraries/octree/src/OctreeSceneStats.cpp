@@ -123,14 +123,14 @@ void OctreeSceneStats::copyFromOther(const OctreeSceneStats& other) {
 
     // Now copy the values from the other
     if (other._jurisdictionRoot) {
-        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot));
+        auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot));
         _jurisdictionRoot = new unsigned char[bytes];
         memcpy(_jurisdictionRoot, other._jurisdictionRoot, bytes);
     }
     for (size_t i = 0; i < other._jurisdictionEndNodes.size(); i++) {
         unsigned char* endNodeCode = other._jurisdictionEndNodes[i];
         if (endNodeCode) {
-            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             unsigned char* endNodeCodeCopy = new unsigned char[bytes];
             memcpy(endNodeCodeCopy, endNodeCode, bytes);
             _jurisdictionEndNodes.push_back(endNodeCodeCopy);
@@ -178,7 +178,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
     if (jurisdictionMap) {
         unsigned char* jurisdictionRoot = jurisdictionMap->getRootOctalCode();
         if (jurisdictionRoot) {
-            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
+            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
             _jurisdictionRoot = new unsigned char[bytes];
             memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
         }
@@ -187,7 +187,7 @@ void OctreeSceneStats::sceneStarted(bool isFullScene, bool isMoving, OctreeEleme
         for (int i = 0; i < jurisdictionMap->getEndNodeCount(); i++) {
             unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
             if (endNodeCode) {
-                int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+                auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
                 unsigned char* endNodeCodeCopy = new unsigned char[bytes];
                 memcpy(endNodeCodeCopy, endNodeCode, bytes);
                 _jurisdictionEndNodes.push_back(endNodeCodeCopy);
@@ -371,14 +371,12 @@ void OctreeSceneStats::existsInPacketBitsWritten() {
     _existsInPacketBitsWritten++;
 }
 
-void OctreeSceneStats::childBitsRemoved(bool includesExistsBits, bool includesColors) {
+void OctreeSceneStats::childBitsRemoved(bool includesExistsBits) {
     _existsInPacketBitsWritten--;
     if (includesExistsBits) {
         _existsBitsWritten--;
     }
-    if (includesColors) {
-        _colorBitsWritten--;
-    }
+    _colorBitsWritten--;
     _treesRemoved++;
 }
 
@@ -420,18 +418,18 @@ int OctreeSceneStats::packIntoPacket() {
     // add the root jurisdiction
     if (_jurisdictionRoot) {
         // copy the
-        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
+        int bytes = (int)bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
         _statsPacket->writePrimitive(bytes);
         _statsPacket->write(reinterpret_cast<char*>(_jurisdictionRoot), bytes);
 
         // if and only if there's a root jurisdiction, also include the end elements
-        int endNodeCount = _jurisdictionEndNodes.size();
+        int endNodeCount = (int)_jurisdictionEndNodes.size();
 
         _statsPacket->writePrimitive(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _jurisdictionEndNodes[i];
-            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            auto bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
             _statsPacket->writePrimitive(bytes);
             _statsPacket->write(reinterpret_cast<char*>(endNodeCode), bytes);
         }
@@ -443,7 +441,7 @@ int OctreeSceneStats::packIntoPacket() {
     return _statsPacket->getPayloadSize();
 }
 
-int OctreeSceneStats::unpackFromPacket(NLPacket& packet) {
+int OctreeSceneStats::unpackFromPacket(ReceivedMessage& packet) {
     packet.readPrimitive(&_start);
     packet.readPrimitive(&_end);
     packet.readPrimitive(&_elapsed);
@@ -550,7 +548,7 @@ int OctreeSceneStats::unpackFromPacket(NLPacket& packet) {
     float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
     _bitsPerOctreeAverage.updateAverage(calculatedBPV);
 
-    return packet.pos(); // excludes header!
+    return packet.getPosition(); // excludes header!
 }
 
 
@@ -748,17 +746,17 @@ const char* OctreeSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
-void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec) {
+void OctreeSceneStats::trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, int nodeClockSkewUsec) {
     const bool wantExtraDebugging = false;
 
     // skip past the flags
-    packet.seek(sizeof(OCTREE_PACKET_FLAGS));
+    message.seek(sizeof(OCTREE_PACKET_FLAGS));
     
     OCTREE_PACKET_SEQUENCE sequence;
-    packet.readPrimitive(&sequence);
+    message.readPrimitive(&sequence);
 
     OCTREE_PACKET_SENT_TIME sentAt;
-    packet.readPrimitive(&sentAt);
+    message.readPrimitive(&sentAt);
 
     //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
     //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
@@ -790,8 +788,8 @@ void OctreeSceneStats::trackIncomingOctreePacket(NLPacket& packet, bool wasStats
 
     // track packets here...
     _incomingPacket++;
-    _incomingBytes += packet.getDataSize();
+    _incomingBytes += message.getSize();
     if (!wasStatsPacket) {
-        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - packet.getDataSize());
+        _incomingWastedBytes += (udt::MAX_PACKET_SIZE - message.getSize());
     }
 }

@@ -13,24 +13,42 @@
 
 #include <QtScript/QScriptContext>
 
-#include "display-plugins/DisplayPlugin.h"
+#include <display-plugins/DisplayPlugin.h>
+#include <display-plugins/CompositorHelper.h>
 #include <avatar/AvatarManager.h>
 #include "Application.h"
 
 HMDScriptingInterface::HMDScriptingInterface() {
 }
 
+glm::vec3 HMDScriptingInterface::calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction) const {
+    glm::vec3 result;
+    qApp->getApplicationCompositor().calculateRayUICollisionPoint(position, direction, result);
+    return result;
+}
+
+glm::vec2 HMDScriptingInterface::overlayFromWorldPoint(const glm::vec3& position) const {
+    return qApp->getApplicationCompositor().overlayFromSphereSurface(position);
+}
+
+glm::vec3 HMDScriptingInterface::worldPointFromOverlay(const glm::vec2& overlay) const {
+    return qApp->getApplicationCompositor().sphereSurfaceFromOverlay(overlay);
+}
+
+glm::vec2 HMDScriptingInterface::sphericalToOverlay(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().sphericalToOverlay(position);
+}
+
+glm::vec2 HMDScriptingInterface::overlayToSpherical(const glm::vec2 & position) const {
+    return qApp->getApplicationCompositor().overlayToSpherical(position);
+}
+
 QScriptValue HMDScriptingInterface::getHUDLookAtPosition2D(QScriptContext* context, QScriptEngine* engine) {
     glm::vec3 hudIntersection;
     auto instance = DependencyManager::get<HMDScriptingInterface>();
     if (instance->getHUDLookAtPosition3D(hudIntersection)) {
-        MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-        glm::vec3 sphereCenter = myAvatar->getDefaultEyePosition();
-        glm::vec3 direction = glm::inverse(myAvatar->getOrientation()) * (hudIntersection - sphereCenter);
-        glm::quat rotation = ::rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), direction);
-        glm::vec3 eulers = ::safeEulerAngles(rotation);
-        return qScriptValueFromValue<glm::vec2>(engine, qApp->getApplicationCompositor()
-            .sphericalToOverlay(glm::vec2(eulers.y, -eulers.x)));
+        glm::vec2 overlayPos = qApp->getApplicationCompositor().overlayFromSphereSurface(hudIntersection);
+        return qScriptValueFromValue<glm::vec2>(engine, overlayPos);
     }
     return QScriptValue::NullValue;
 }
@@ -42,14 +60,6 @@ QScriptValue HMDScriptingInterface::getHUDLookAtPosition3D(QScriptContext* conte
         return qScriptValueFromValue<glm::vec3>(engine, result);
     }
     return QScriptValue::NullValue;
-}
-
-void HMDScriptingInterface::toggleMagnifier() {
-    qApp->getApplicationCompositor().toggleMagnifier();
-}
-
-bool HMDScriptingInterface::getMagnifier() const {
-    return qApp->getApplicationCompositor().hasMagnifier();
 }
 
 bool HMDScriptingInterface::getHUDLookAtPosition3D(glm::vec3& result) const {

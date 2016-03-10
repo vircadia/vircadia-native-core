@@ -23,6 +23,7 @@
 #include <LODManager.h>
 #include <OffscreenUi.h>
 #include <PerfStat.h>
+#include <plugins/DisplayPlugin.h>
 
 #include "BandwidthRecorder.h"
 #include "Menu.h"
@@ -115,10 +116,13 @@ void Stats::updateStats(bool force) {
     auto avatarManager = DependencyManager::get<AvatarManager>();
     // we need to take one avatar out so we don't include ourselves
     STAT_UPDATE(avatarCount, avatarManager->size() - 1);
-    STAT_UPDATE(avatarRenderableCount, avatarManager->getNumberInRenderRange());
-    STAT_UPDATE(avatarRenderDistance, (int) round(avatarManager->getRenderDistance())); // deliberately truncating
-    STAT_UPDATE(serverCount, nodeList->size());
-    STAT_UPDATE(framerate, (int)qApp->getFps());
+    STAT_UPDATE(serverCount, (int)nodeList->size());
+    STAT_UPDATE(renderrate, (int)qApp->getFps());
+    if (qApp->getActiveDisplayPlugin()) {
+        STAT_UPDATE(presentrate, (int)round(qApp->getActiveDisplayPlugin()->presentRate()));
+    } else {
+        STAT_UPDATE(presentrate, -1);
+    }
     STAT_UPDATE(simrate, (int)qApp->getAverageSimsPerSecond());
     STAT_UPDATE(avatarSimrate, (int)qApp->getAvatarSimrate());
 
@@ -132,10 +136,12 @@ void Stats::updateStats(bool force) {
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
+    SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
     STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
     STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
-    
+    STAT_UPDATE(messagePing, messageMixerNode ? messageMixerNode->getPingMs() : -1);
+
     //// Now handle entity servers, since there could be more than one, we average their ping times
     int totalPingOctree = 0;
     int octreeServerCount = 0;
@@ -158,7 +164,7 @@ void Stats::updateStats(bool force) {
     MyAvatar* myAvatar = avatarManager->getMyAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     STAT_UPDATE(position, QVector3D(avatarPos.x, avatarPos.y, avatarPos.z));
-    STAT_UPDATE_FLOAT(velocity, glm::length(myAvatar->getVelocity()), 0.1f);
+    STAT_UPDATE_FLOAT(speed, glm::length(myAvatar->getVelocity()), 0.1f);
     STAT_UPDATE_FLOAT(yaw, myAvatar->getBodyYaw(), 0.1f);
     if (_expanded || force) {
         SharedNodePointer avatarMixer = nodeList->soloNodeOfType(NodeType::AvatarMixer);
@@ -220,6 +226,12 @@ void Stats::updateStats(bool force) {
             } else {
                 sendingModeStream << "S";
             }
+            if (stats.isFullScene()) {
+                sendingModeStream << "F";
+            }
+            else {
+                sendingModeStream << "p";
+            }
         }
 
         // calculate server node totals
@@ -264,7 +276,7 @@ void Stats::updateStats(bool force) {
     if (voxelPacketsToProcess == 0) {
         _resetRecentMaxPacketsSoon = true;
     } else if (voxelPacketsToProcess > _recentMaxPackets) {
-        _recentMaxPackets = voxelPacketsToProcess;
+        _recentMaxPackets = (int)voxelPacketsToProcess;
     }
 
     // Server Octree Elements
@@ -338,18 +350,14 @@ void Stats::setRenderDetails(const RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {
-        STAT_UPDATE(opaqueConsidered, details._opaque._considered);
-        STAT_UPDATE(opaqueOutOfView, details._opaque._outOfView);
-        STAT_UPDATE(opaqueTooSmall, details._opaque._tooSmall);
-        STAT_UPDATE(opaqueRendered, details._opaque._rendered);
-        STAT_UPDATE(translucentConsidered, details._translucent._considered);
-        STAT_UPDATE(translucentOutOfView, details._translucent._outOfView);
-        STAT_UPDATE(translucentTooSmall, details._translucent._tooSmall);
-        STAT_UPDATE(translucentRendered, details._translucent._rendered);
-        STAT_UPDATE(otherConsidered, details._other._considered);
-        STAT_UPDATE(otherOutOfView, details._other._outOfView);
-        STAT_UPDATE(otherTooSmall, details._other._tooSmall);
-        STAT_UPDATE(otherRendered, details._other._rendered);
+        STAT_UPDATE(itemConsidered, details._item._considered);
+        STAT_UPDATE(itemOutOfView, details._item._outOfView);
+        STAT_UPDATE(itemTooSmall, details._item._tooSmall);
+        STAT_UPDATE(itemRendered, details._item._rendered);
+        STAT_UPDATE(shadowConsidered, details._shadow._considered);
+        STAT_UPDATE(shadowOutOfView, details._shadow._outOfView);
+        STAT_UPDATE(shadowTooSmall, details._shadow._tooSmall);
+        STAT_UPDATE(shadowRendered, details._shadow._rendered);
     }
 }
 

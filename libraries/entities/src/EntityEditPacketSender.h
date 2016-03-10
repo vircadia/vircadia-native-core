@@ -35,7 +35,7 @@ public:
     virtual void adjustEditPacketForClockSkew(PacketType type, QByteArray& buffer, int clockSkew);
 
 public slots:
-    void processEntityEditNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode);
+    void processEntityEditNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode);
     void toggleNackPackets() { _shouldProcessNack = !_shouldProcessNack; }
 
 private:

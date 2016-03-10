@@ -177,7 +177,7 @@ function makeNewProp(which, position) {
       damping: PUCK_DAMPING,
       angularDamping: ANGULAR_DAMPING,
       lifetime: LIFETIME,
-      collisionsWillMove: true
+      dynamic: true
     });
   } else if (which == "paddle1") {
     paddle1Pos = Vec3.sum(center, {
@@ -211,7 +211,7 @@ function makeNewProp(which, position) {
       damping: PADDLE_DAMPING,
       angularDamping: PADDLE_ANGULAR_DAMPING,
       lifetime: LIFETIME,
-      collisionsWillMove: true
+      dynamic: true
     });
   } else if (which == "paddle2") {
     paddle2Pos = Vec3.sum(center, {
@@ -245,7 +245,7 @@ function makeNewProp(which, position) {
       damping: PADDLE_DAMPING,
       angularDamping: PADDLE_ANGULAR_DAMPING,
       lifetime: LIFETIME,
-      collisionsWillMove: true
+      dynamic: true
     });
   }
 }

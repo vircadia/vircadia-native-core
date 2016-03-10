@@ -38,11 +38,14 @@ class PendingReceivedMessage {
 public:
     void enqueuePacket(std::unique_ptr<Packet> packet);
     bool isComplete() const { return _hasLastPacket && _numPackets == _packets.size(); }
+    bool hasAvailablePackets() const;
+    std::unique_ptr<Packet> removeNextPacket();
     
     std::list<std::unique_ptr<Packet>> _packets;
 
 private:
     bool _hasLastPacket { false };
+    Packet::MessagePartNumber _nextPartNumber = 0;
     unsigned int _numPackets { 0 };
 };
 
@@ -70,6 +73,8 @@ public:
     ConnectionStats::Stats sampleStats() { return _stats.sample(); }
     
     bool isActive() const { return _isActive; }
+
+    HifiSockAddr getDestination() const { return _destination; }
 
 signals:
     void packetSent();
@@ -125,7 +130,9 @@ private:
     
     bool _isReceivingData { false }; // flag used for expiry of receipt portion of connection
     bool _isActive { true }; // flag used for inactivity of connection
-    
+
+    SequenceNumber _initialReceiveSequenceNumber; // Randomized by peer SendQueue on creation, identifies connection during re-connect requests
+
     LossList _lossList; // List of all missing packets
     SequenceNumber _lastReceivedSequenceNumber; // The largest sequence number received from the peer
     SequenceNumber _lastReceivedACK; // The last ACK received
@@ -134,7 +141,7 @@ private:
     
     SequenceNumber _lastSentACK; // The last sent ACK
     SequenceNumber _lastSentACK2; // The last sent ACK sub-sequence number in an ACK2
-   
+
     int _acksDuringSYN { 1 }; // The number of non-SYN ACKs sent during SYN
     int _lightACKsDuringSYN { 1 }; // The number of lite ACKs sent during SYN interval
     

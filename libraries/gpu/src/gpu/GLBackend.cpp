@@ -52,6 +52,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_setFramebuffer),
     (&::gpu::GLBackend::do_clearFramebuffer),
     (&::gpu::GLBackend::do_blit),
+    (&::gpu::GLBackend::do_generateTextureMips),
 
     (&::gpu::GLBackend::do_beginQuery),
     (&::gpu::GLBackend::do_endQuery),
@@ -60,6 +61,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_resetStages),
 
     (&::gpu::GLBackend::do_runLambda),
+
+    (&::gpu::GLBackend::do_startNamedCall),
+    (&::gpu::GLBackend::do_stopNamedCall),
 
     (&::gpu::GLBackend::do_glActiveBindTexture),
 
@@ -120,11 +124,7 @@ Backend* GLBackend::createBackend() {
     return new GLBackend();
 }
 
-GLBackend::GLBackend() :
-    _input(),
-    _pipeline(),
-    _output()
-{
+GLBackend::GLBackend() {
     glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &_uboAlignment);
     initInput();
     initTransform();
@@ -154,31 +154,30 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync all the buffers
         PROFILE_RANGE("syncCPUTransform");
-        _transform._cameras.resize(0);
+        _transform._cameras.clear();
         _transform._cameraOffsets.clear();
-        _transform._objects.resize(0);
-        _transform._objectOffsets.clear();
 
         for (_commandIndex = 0; _commandIndex < numCommands; ++_commandIndex) {
             switch (*command) {
-            case Batch::COMMAND_draw:
-            case Batch::COMMAND_drawIndexed:
-            case Batch::COMMAND_drawInstanced:
-            case Batch::COMMAND_drawIndexedInstanced:
-                _transform.preUpdate(_commandIndex, _stereo);
-                break;
+                case Batch::COMMAND_draw:
+                case Batch::COMMAND_drawIndexed:
+                case Batch::COMMAND_drawInstanced:
+                case Batch::COMMAND_drawIndexedInstanced:
+                case Batch::COMMAND_multiDrawIndirect:
+                case Batch::COMMAND_multiDrawIndexedIndirect:
+                    _transform.preUpdate(_commandIndex, _stereo);
+                    break;
 
-            case Batch::COMMAND_setModelTransform:
-            case Batch::COMMAND_setViewportTransform:
-            case Batch::COMMAND_setViewTransform:
-            case Batch::COMMAND_setProjectionTransform: {
-                CommandCall call = _commandCalls[(*command)];
-                (this->*(call))(batch, *offset);
-                break;
-            }
+                case Batch::COMMAND_setViewportTransform:
+                case Batch::COMMAND_setViewTransform:
+                case Batch::COMMAND_setProjectionTransform: {
+                    CommandCall call = _commandCalls[(*command)];
+                    (this->*(call))(batch, *offset);
+                    break;
+                }
 
-            default:
-                break;
+                default:
+                    break;
             }
             command++;
             offset++;
@@ -187,12 +186,14 @@ void GLBackend::renderPassTransfer(Batch& batch) {
 
     { // Sync the transform buffers
         PROFILE_RANGE("syncGPUTransform");
-        _transform.transfer();
+        _transform.transfer(batch);
     }
+
+
 }
 
 void GLBackend::renderPassDraw(Batch& batch) {
-    _transform._objectsItr = _transform._objectOffsets.begin();
+    _currentDraw = -1;
     _transform._camerasItr = _transform._cameraOffsets.begin();
     const size_t numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
@@ -208,6 +209,22 @@ void GLBackend::renderPassDraw(Batch& batch) {
             case Batch::COMMAND_setProjectionTransform:
                 break;
 
+            case Batch::COMMAND_draw:
+            case Batch::COMMAND_drawIndexed:
+            case Batch::COMMAND_drawInstanced:
+            case Batch::COMMAND_drawIndexedInstanced:
+            case Batch::COMMAND_multiDrawIndirect:
+            case Batch::COMMAND_multiDrawIndexedIndirect: {
+                // updates for draw calls
+                ++_currentDraw;
+                updateInput();
+                updateTransform(batch);
+                updatePipeline();
+                
+                CommandCall call = _commandCalls[(*command)];
+                (this->*(call))(batch, *offset);
+                break;
+            }
             default: {
                 CommandCall call = _commandCalls[(*command)];
                 (this->*(call))(batch, *offset);
@@ -304,11 +321,7 @@ void GLBackend::syncCache() {
     glEnable(GL_LINE_SMOOTH);
 }
 
-void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
+void GLBackend::do_draw(Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numVertices = batch._params[paramOffset + 1]._uint;
@@ -317,11 +330,7 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
+void GLBackend::do_drawIndexed(Batch& batch, size_t paramOffset) {
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
@@ -336,11 +345,7 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
+void GLBackend::do_drawInstanced(Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 3]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -351,11 +356,7 @@ void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
     (void) CHECK_GL_ERROR();
 }
 
-void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
+void GLBackend::do_drawIndexedInstanced(Batch& batch, size_t paramOffset) {
     GLint numInstances = batch._params[paramOffset + 4]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 3]._uint];
     uint32 numIndices = batch._params[paramOffset + 2]._uint;
@@ -378,16 +379,12 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 
-void GLBackend::do_multiDrawIndirect(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_multiDrawIndirect(Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
 
-    glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, _input._indirectBufferStride);
+    glMultiDrawArraysIndirect(mode, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
 #else
     // FIXME implement the slow path
 #endif
@@ -395,17 +392,13 @@ void GLBackend::do_multiDrawIndirect(Batch& batch, uint32 paramOffset) {
 
 }
 
-void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset) {
 #if (GPU_INPUT_PROFILE == GPU_CORE_43)
-    updateInput();
-    updateTransform();
-    updatePipeline();
-
     uint commandCount = batch._params[paramOffset + 0]._uint;
     GLenum mode = _primitiveToGLmode[(Primitive)batch._params[paramOffset + 1]._uint];
     GLenum indexType = _elementTypeToGLType[_input._indexBufferType];
   
-    glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, _input._indirectBufferStride);
+    glMultiDrawElementsIndirect(mode, indexType, reinterpret_cast<GLvoid*>(_input._indirectBufferOffset), commandCount, (GLsizei)_input._indirectBufferStride);
 #else
     // FIXME implement the slow path
 #endif
@@ -413,13 +406,22 @@ void GLBackend::do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset) {
 }
 
 
-void GLBackend::do_resetStages(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_resetStages(Batch& batch, size_t paramOffset) {
     resetStages();
 }
 
-void GLBackend::do_runLambda(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_runLambda(Batch& batch, size_t paramOffset) {
     std::function<void()> f = batch._lambdas.get(batch._params[paramOffset]._uint);
     f();
+}
+
+void GLBackend::do_startNamedCall(Batch& batch, size_t paramOffset) {
+    batch._currentNamedCall = batch._names.get(batch._params[paramOffset]._uint);
+    _currentDraw = -1;
+}
+
+void GLBackend::do_stopNamedCall(Batch& batch, size_t paramOffset) {
+    batch._currentNamedCall.clear();
 }
 
 void GLBackend::resetStages() {
@@ -455,7 +457,7 @@ void Batch::_glActiveBindTexture(GLenum unit, GLenum target, GLuint texture) {
 
     DO_IT_NOW(_glActiveBindTexture, 3);
 }
-void GLBackend::do_glActiveBindTexture(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glActiveBindTexture(Batch& batch, size_t paramOffset) {
     glActiveTexture(batch._params[paramOffset + 2]._uint);
     glBindTexture(
         batch._params[paramOffset + 1]._uint,
@@ -474,7 +476,7 @@ void Batch::_glUniform1i(GLint location, GLint v0) {
     
     DO_IT_NOW(_glUniform1i, 1);
 }
-void GLBackend::do_glUniform1i(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform1i(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -497,7 +499,7 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
 
     DO_IT_NOW(_glUniform1f, 1);
 }
-void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform1f(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -521,7 +523,7 @@ void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
     DO_IT_NOW(_glUniform2f, 1);
 }
 
-void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform2f(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -546,7 +548,7 @@ void Batch::_glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2) {
     DO_IT_NOW(_glUniform3f, 1);
 }
 
-void GLBackend::do_glUniform3f(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform3f(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -575,7 +577,7 @@ void Batch::_glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLf
 }
 
 
-void GLBackend::do_glUniform4f(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform4f(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -601,7 +603,7 @@ void Batch::_glUniform3fv(GLint location, GLsizei count, const GLfloat* value) {
 
     DO_IT_NOW(_glUniform3fv, 3);
 }
-void GLBackend::do_glUniform3fv(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform3fv(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -627,7 +629,7 @@ void Batch::_glUniform4fv(GLint location, GLsizei count, const GLfloat* value) {
 
     DO_IT_NOW(_glUniform4fv, 3);
 }
-void GLBackend::do_glUniform4fv(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform4fv(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -653,7 +655,7 @@ void Batch::_glUniform4iv(GLint location, GLsizei count, const GLint* value) {
 
     DO_IT_NOW(_glUniform4iv, 3);
 }
-void GLBackend::do_glUniform4iv(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniform4iv(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -679,7 +681,7 @@ void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpo
 
     DO_IT_NOW(_glUniformMatrix4fv, 4);
 }
-void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glUniformMatrix4fv(Batch& batch, size_t paramOffset) {
     if (_pipeline._program == 0) {
         // We should call updatePipeline() to bind the program but we are not doing that
         // because these uniform setters are deprecated and we don;t want to create side effect
@@ -704,7 +706,7 @@ void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) 
 
     DO_IT_NOW(_glColor4f, 4);
 }
-void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_glColor4f(Batch& batch, size_t paramOffset) {
 
     glm::vec4 newColor(
         batch._params[paramOffset + 3]._float,
@@ -720,14 +722,14 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
 }
 
 
-void GLBackend::do_pushProfileRange(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_pushProfileRange(Batch& batch, size_t paramOffset) {
 #if defined(NSIGHT_FOUND)
     auto name = batch._profileRanges.get(batch._params[paramOffset]._uint);
     nvtxRangePush(name.c_str());
 #endif
 }
 
-void GLBackend::do_popProfileRange(Batch& batch, uint32 paramOffset) {
+void GLBackend::do_popProfileRange(Batch& batch, size_t paramOffset) {
 #if defined(NSIGHT_FOUND)
     nvtxRangePop();
 #endif

@@ -9,22 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <functional>
+#include "DiskCacheEditor.h"
 
 #include <QDebug>
 #include <QDialog>
 #include <QGridLayout>
 #include <QPushButton>
 #include <QLabel>
-#include <QNetworkDiskCache>
+#include <QTimer>
 #include <QMessageBox>
 
-#include <NetworkAccessManager.h>
+#include <AssetClient.h>
 
-#include "DiskCacheEditor.h"
+#include "OffscreenUi.h"
 
 DiskCacheEditor::DiskCacheEditor(QWidget* parent) : QObject(parent) {
-    
 }
 
 QWindow* DiskCacheEditor::windowHandle() {
@@ -32,7 +31,6 @@ QWindow* DiskCacheEditor::windowHandle() {
 }
 
 void DiskCacheEditor::toggle() {
-    qDebug() << "DiskCacheEditor::toggle()";
     if (!_dialog) {
         makeDialog();
     }
@@ -87,17 +85,17 @@ void DiskCacheEditor::makeDialog() {
     Q_CHECK_PTR(_maxSize);
     _maxSize->setAlignment(Qt::AlignLeft);
     layout->addWidget(_maxSize, 2, 1, 1, 3);
-    
+
     refresh();
-    
-    
-    QPushButton* refreshCacheButton = new QPushButton(_dialog);
-    Q_CHECK_PTR(refreshCacheButton);
-    refreshCacheButton->setText("Refresh");
-    refreshCacheButton->setToolTip("Reload the cache stats.");
-    connect(refreshCacheButton, SIGNAL(clicked()), SLOT(refresh()));
-    layout->addWidget(refreshCacheButton, 3, 2);
-    
+
+
+    static const int REFRESH_INTERVAL = 100; // msec
+    _refreshTimer = new QTimer(_dialog);
+    _refreshTimer->setInterval(REFRESH_INTERVAL);
+    _refreshTimer->setSingleShot(false);
+    QObject::connect(_refreshTimer.data(), &QTimer::timeout, this, &DiskCacheEditor::refresh);
+    _refreshTimer->start();
+
     QPushButton* clearCacheButton = new QPushButton(_dialog);
     Q_CHECK_PTR(clearCacheButton);
     clearCacheButton->setText("Clear");
@@ -107,7 +105,11 @@ void DiskCacheEditor::makeDialog() {
 }
 
 void DiskCacheEditor::refresh() {
-    static const std::function<QString(qint64)> stringify = [](qint64 number) {
+    DependencyManager::get<AssetClient>()->cacheInfoRequest(this, "cacheInfoCallback");
+}
+
+void DiskCacheEditor::cacheInfoCallback(QString cacheDirectory, qint64 cacheSize, qint64 maximumCacheSize) {
+    static const auto stringify = [](qint64 number) {
         static const QStringList UNITS = QStringList() << "B" << "KB" << "MB" << "GB";
         static const qint64 CHUNK = 1024;
         QString unit;
@@ -121,29 +123,24 @@ void DiskCacheEditor::refresh() {
         }
         return QString("%0 %1").arg(number).arg(UNITS[i]);
     };
-    QNetworkDiskCache* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache());
     
     if (_path) {
-        _path->setText(cache->cacheDirectory());
+        _path->setText(cacheDirectory);
     }
     if (_size) {
-        _size->setText(stringify(cache->cacheSize()));
+        _size->setText(stringify(cacheSize));
     }
     if (_maxSize) {
-        _maxSize->setText(stringify(cache->maximumCacheSize()));
+        _maxSize->setText(stringify(maximumCacheSize));
     }
 }
 
 void DiskCacheEditor::clear() {
-    QMessageBox::StandardButton buttonClicked =
-                        QMessageBox::question(_dialog, "Clearing disk cache",
-                                              "You are about to erase all the content of the disk cache,"
-                                              "are you sure you want to do that?");
-    if (buttonClicked == QMessageBox::Yes) {
-        if (auto cache = NetworkAccessManager::getInstance().cache()) {
-            qDebug() << "DiskCacheEditor::clear(): Clearing disk cache.";
-            cache->clear();
-        }
+    auto buttonClicked = OffscreenUi::question(_dialog, "Clearing disk cache",
+                                               "You are about to erase all the content of the disk cache, "
+                                               "are you sure you want to do that?",
+                                               QMessageBox::Ok | QMessageBox::Cancel);
+    if (buttonClicked == QMessageBox::Ok) {
+        DependencyManager::get<AssetClient>()->clearCache();
     }
-    refresh();
 }

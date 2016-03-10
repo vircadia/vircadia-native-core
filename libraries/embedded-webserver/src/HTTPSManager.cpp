@@ -15,9 +15,9 @@
 
 #include "HTTPSManager.h"
 
-HTTPSManager::HTTPSManager(quint16 port, const QSslCertificate& certificate, const QSslKey& privateKey,
+HTTPSManager::HTTPSManager(QHostAddress listenAddress, quint16 port, const QSslCertificate& certificate, const QSslKey& privateKey,
                            const QString& documentRoot, HTTPSRequestHandler* requestHandler, QObject* parent) :
-    HTTPManager(port, documentRoot, requestHandler, parent),
+    HTTPManager(listenAddress, port, documentRoot, requestHandler, parent),
     _certificate(certificate),
     _privateKey(privateKey),
     _sslRequestHandler(requestHandler)

@@ -40,29 +40,60 @@ AssetClient::AssetClient() {
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGetInfoReply, this, "handleAssetGetInfoReply");
-    packetReceiver.registerMessageListener(PacketType::AssetGetReply, this, "handleAssetGetReply");
+    packetReceiver.registerListener(PacketType::AssetGetReply, this, "handleAssetGetReply", true);
     packetReceiver.registerListener(PacketType::AssetUploadReply, this, "handleAssetUploadReply");
 
     connect(nodeList.data(), &LimitedNodeList::nodeKilled, this, &AssetClient::handleNodeKilled);
 }
 
 void AssetClient::init() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
-    }
-    
+    Q_ASSERT(QThread::currentThread() == thread());
+
     // Setup disk cache if not already
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    auto& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
         QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
         cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
-        
+
         QNetworkDiskCache* cache = new QNetworkDiskCache();
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
         cache->setCacheDirectory(cachePath);
         networkAccessManager.setCache(cache);
-        qCDebug(asset_client) << "AssetClient disk cache setup at" << cachePath
-                                << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+        qDebug() << "ResourceManager disk cache setup at" << cachePath
+                 << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
+    }
+}
+
+
+void AssetClient::cacheInfoRequest(QObject* reciever, QString slot) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "cacheInfoRequest", Qt::QueuedConnection,
+                                  Q_ARG(QObject*, reciever), Q_ARG(QString, slot));
+        return;
+    }
+
+
+    if (auto* cache = qobject_cast<QNetworkDiskCache*>(NetworkAccessManager::getInstance().cache())) {
+        QMetaObject::invokeMethod(reciever, slot.toStdString().data(), Qt::QueuedConnection,
+                                  Q_ARG(QString, cache->cacheDirectory()),
+                                  Q_ARG(qint64, cache->cacheSize()),
+                                  Q_ARG(qint64, cache->maximumCacheSize()));
+    } else {
+        qCWarning(asset_client) << "No disk cache to get info from.";
+    }
+}
+
+void AssetClient::clearCache() {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "clearCache", Qt::QueuedConnection);
+        return;
+    }
+
+    if (auto cache = NetworkAccessManager::getInstance().cache()) {
+        qDebug() << "AssetClient::clearCache(): Clearing disk cache.";
+        cache->clear();
+    } else {
+        qCWarning(asset_client) << "No disk cache to clear.";
     }
 }
 
@@ -125,7 +156,7 @@ AssetUpload* AssetClient::createUpload(const QByteArray& data, const QString& ex
 }
 
 bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOffset start, DataOffset end,
-                           ReceivedAssetCallback callback) {
+                           ReceivedAssetCallback callback, ProgressCallback progressCallback) {
     if (hash.length() != SHA256_HASH_HEX_LENGTH) {
         qCWarning(asset_client) << "Invalid hash size";
         return false;
@@ -156,7 +187,7 @@ bool AssetClient::getAsset(const QString& hash, const QString& extension, DataOf
 
         nodeList->sendPacket(std::move(packet), *assetServer);
 
-        _pendingRequests[assetServer][messageID] = callback;
+        _pendingRequests[assetServer][messageID] = { callback, progressCallback };
 
         return true;
     }
@@ -189,18 +220,18 @@ bool AssetClient::getAssetInfo(const QString& hash, const QString& extension, Ge
     return false;
 }
 
-void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     MessageID messageID;
-    packet->readPrimitive(&messageID);
-    auto assetHash = packet->read(SHA256_HASH_LENGTH);
+    message->readPrimitive(&messageID);
+    auto assetHash = message->read(SHA256_HASH_LENGTH);
     
     AssetServerError error;
-    packet->readPrimitive(&error);
+    message->readPrimitive(&error);
 
     AssetInfo info { assetHash.toHex(), 0 };
 
     if (error == AssetServerError::NoError) {
-        packet->readPrimitive(&info.size);
+        message->readPrimitive(&info.size);
     }
 
     // Check if we have any pending requests for this node
@@ -223,25 +254,19 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<NLPacket> packet, Share
     }
 }
 
-void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
-    QByteArray data = packetList->getMessage();
-    QBuffer packet { &data };
-    packet.open(QIODevice::ReadOnly);
-
-    auto assetHash = packet.read(SHA256_HASH_LENGTH);
+void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    auto assetHash = message->read(SHA256_HASH_LENGTH);
     qCDebug(asset_client) << "Got reply for asset: " << assetHash.toHex();
 
     MessageID messageID;
-    packet.read(reinterpret_cast<char*>(&messageID), sizeof(messageID));
+    message->readHeadPrimitive(&messageID);
 
     AssetServerError error;
-    packet.read(reinterpret_cast<char*>(&error), sizeof(AssetServerError));
-    QByteArray assetData;
+    message->readHeadPrimitive(&error);
 
+    DataOffset length = 0;
     if (!error) {
-        DataOffset length;
-        packet.read(reinterpret_cast<char*>(&length), sizeof(DataOffset));
-        data = packet.read(length);
+        message->readHeadPrimitive(&length);
     } else {
         qCWarning(asset_client) << "Failure getting asset: " << error;
     }
@@ -256,8 +281,22 @@ void AssetClient::handleAssetGetReply(QSharedPointer<NLPacketList> packetList, S
         // Check if we have this pending request
         auto requestIt = messageCallbackMap.find(messageID);
         if (requestIt != messageCallbackMap.end()) {
-            auto callback = requestIt->second;
-            callback(true, error, data);
+            auto& callbacks = requestIt->second;
+
+            if (message->isComplete()) {
+                callbacks.completeCallback(true, error, message->readAll());
+            } else {
+                connect(message.data(), &ReceivedMessage::progress, this, [this, length, message, callbacks]() {
+                    callbacks.progressCallback(message->getSize(), length);
+                });
+                connect(message.data(), &ReceivedMessage::completed, this, [this, message, error, callbacks]() {
+                    if (message->failed()) {
+                        callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
+                    } else {
+                        callbacks.completeCallback(true, error, message->readAll());
+                    }
+                });
+            }
             messageCallbackMap.erase(requestIt);
         }
 
@@ -292,19 +331,19 @@ bool AssetClient::uploadAsset(const QByteArray& data, const QString& extension, 
     return false;
 }
 
-void AssetClient::handleAssetUploadReply(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     MessageID messageID;
-    packet->readPrimitive(&messageID);
+    message->readPrimitive(&messageID);
 
     AssetServerError error;
-    packet->readPrimitive(&error);
+    message->readPrimitive(&error);
 
     QString hashString;
 
     if (error) {
         qCWarning(asset_client) << "Error uploading file to asset server";
     } else {
-        auto hash = packet->read(SHA256_HASH_LENGTH);
+        auto hash = message->read(SHA256_HASH_LENGTH);
         hashString = hash.toHex();
         
         qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
@@ -339,7 +378,7 @@ void AssetClient::handleNodeKilled(SharedNodePointer node) {
         auto messageMapIt = _pendingRequests.find(node);
         if (messageMapIt != _pendingRequests.end()) {
             for (const auto& value : messageMapIt->second) {
-                value.second(false, AssetServerError::NoError, QByteArray());
+                value.second.completeCallback(false, AssetServerError::NoError, QByteArray());
             }
             messageMapIt->second.clear();
         }

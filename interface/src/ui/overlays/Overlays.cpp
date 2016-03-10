@@ -30,15 +30,23 @@
 #include "Sphere3DOverlay.h"
 #include "Grid3DOverlay.h"
 #include "TextOverlay.h"
+#include "RectangleOverlay.h"
 #include "Text3DOverlay.h"
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
 
 Overlays::Overlays() : _nextOverlayID(1) {
+    connect(qApp, &Application::beforeAboutToQuit, [=] {
+        cleanupAllOverlays();
+    });
 }
 
 Overlays::~Overlays() {
+}
+
+
+void Overlays::cleanupAllOverlays() {
     {
         QWriteLocker lock(&_lock);
         QWriteLocker deleteLock(&_deleteLock);
@@ -52,7 +60,6 @@ Overlays::~Overlays() {
         _overlaysWorld.clear();
         _panels.clear();
     }
-    
     cleanupOverlaysToDelete();
 }
 
@@ -87,7 +94,7 @@ void Overlays::cleanupOverlaysToDelete() {
                 Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
                 auto itemID = overlay->getRenderItemID();
-                if (itemID != render::Item::INVALID_ITEM_ID) {
+                if (render::Item::isValidID(itemID)) {
                     overlay->removeFromScene(overlay, scene, pendingChanges);
                 }
             } while (!_overlaysToDelete.isEmpty());
@@ -146,7 +153,7 @@ Overlay::Pointer Overlays::getOverlay(unsigned int id) const {
     return nullptr;
 }
 
-unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
+unsigned int Overlays::addOverlay(const QString& type, const QVariant& properties) {
     Overlay::Pointer thisOverlay = nullptr;
 
     if (type == ImageOverlay::TYPE) {
@@ -175,35 +182,28 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = std::make_shared<ModelOverlay>();
     } else if (type == Web3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Web3DOverlay>();
+    } else if (type == RectangleOverlay::TYPE) {
+        thisOverlay = std::make_shared<RectangleOverlay>();
     }
 
     if (thisOverlay) {
-        thisOverlay->setProperties(properties);
+        thisOverlay->setProperties(properties.toMap());
         return addOverlay(thisOverlay);
     }
     return 0;
 }
 
 unsigned int Overlays::addOverlay(Overlay::Pointer overlay) {
-    overlay->init(_scriptEngine);
-
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
     if (overlay->is3D()) {
-        auto overlay3D = std::static_pointer_cast<Base3DOverlay>(overlay);
-        if (overlay3D->getDrawOnHUD()) {
-            _overlaysHUD[thisID] = overlay;
-        } else {
-            _overlaysWorld[thisID] = overlay;
+        _overlaysWorld[thisID] = overlay;
 
-            render::ScenePointer scene = qApp->getMain3DScene();
-            render::PendingChanges pendingChanges;
-
-            overlay->addToScene(overlay, scene, pendingChanges);
-
-            scene->enqueuePendingChanges(pendingChanges);
-        }
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::PendingChanges pendingChanges;
+        overlay->addToScene(overlay, scene, pendingChanges);
+        scene->enqueuePendingChanges(pendingChanges);
     } else {
         _overlaysHUD[thisID] = overlay;
     }
@@ -226,29 +226,24 @@ unsigned int Overlays::cloneOverlay(unsigned int id) {
     return 0;  // Not found
 }
 
-bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
+bool Overlays::editOverlay(unsigned int id, const QVariant& properties) {
     QWriteLocker lock(&_lock);
 
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
+        thisOverlay->setProperties(properties.toMap());
+
         if (thisOverlay->is3D()) {
-            auto overlay3D = std::static_pointer_cast<Base3DOverlay>(thisOverlay);
-
-            bool oldDrawOnHUD = overlay3D->getDrawOnHUD();
-            thisOverlay->setProperties(properties);
-            bool drawOnHUD = overlay3D->getDrawOnHUD();
-
-            if (drawOnHUD != oldDrawOnHUD) {
-                if (drawOnHUD) {
-                    _overlaysWorld.remove(id);
-                    _overlaysHUD[id] = thisOverlay;
-                } else {
-                    _overlaysHUD.remove(id);
-                    _overlaysWorld[id] = thisOverlay;
+            auto itemID = thisOverlay->getRenderItemID();
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = qApp->getMain3DScene();
+                const render::Item& item = scene->getItem(itemID);
+                if (item.getKey() != render::payloadGetKey(thisOverlay)) {
+                    render::PendingChanges pendingChanges;
+                    pendingChanges.updateItem(itemID);
+                    scene->enqueuePendingChanges(pendingChanges);
                 }
             }
-        } else {
-            thisOverlay->setProperties(properties);
         }
 
         return true;
@@ -373,41 +368,26 @@ OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& prop
     OverlayPropertyResult result;
     Overlay::Pointer thisOverlay = getOverlay(id);
     QReadLocker lock(&_lock);
-    if (thisOverlay) {
+    if (thisOverlay && thisOverlay->supportsGetProperty()) {
         result.value = thisOverlay->getProperty(property);
     }
     return result;
 }
 
-OverlayPropertyResult::OverlayPropertyResult() :
-    value(QScriptValue())
-{
+OverlayPropertyResult::OverlayPropertyResult() {
 }
 
-QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& result)
-{
-    if (!result.value.isValid()) {
+QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& value) {
+    if (!value.value.isValid()) {
         return QScriptValue::UndefinedValue;
     }
-
-    QScriptValue object = engine->newObject();
-    if (result.value.isObject()) {
-        QScriptValueIterator it(result.value);
-        while (it.hasNext()) {
-            it.next();
-            object.setProperty(it.name(), QScriptValue(it.value().toString()));
-        }
-
-    } else {
-        object = result.value;
-    }
-    return object;
+    return engine->newVariant(value.value);
 }
 
-void OverlayPropertyResultFromScriptValue(const QScriptValue& value, OverlayPropertyResult& result)
-{
-    result.value = value;
+void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value) {
+    value.value = object.toVariant();
 }
+
 
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
     float bestDistance = std::numeric_limits<float>::max();
@@ -455,7 +435,7 @@ RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
-    QScriptValue obj = engine->newObject();
+    auto obj = engine->newObject();
     obj.setProperty("intersects", value.intersects);
     obj.setProperty("overlayID", value.overlayID);
     obj.setProperty("distance", value.distance);
@@ -487,18 +467,19 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
             break;
     }
     obj.setProperty("face", faceName);
-    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    auto intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
     obj.setProperty("extraInfo", value.extraInfo);
     return obj;
 }
 
-void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value) {
-    value.intersects = object.property("intersects").toVariant().toBool();
-    value.overlayID = object.property("overlayID").toVariant().toInt();
-    value.distance = object.property("distance").toVariant().toFloat();
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar, RayToOverlayIntersectionResult& value) {
+    QVariantMap object = objectVar.toVariant().toMap();
+    value.intersects = object["intersects"].toBool();
+    value.overlayID = object["overlayID"].toInt();
+    value.distance = object["distance"].toFloat();
 
-    QString faceName = object.property("face").toVariant().toString();
+    QString faceName = object["face"].toString();
     if (faceName == "MIN_X_FACE") {
         value.face = MIN_X_FACE;
     } else if (faceName == "MAX_X_FACE") {
@@ -514,11 +495,15 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
     } else {
         value.face = UNKNOWN_FACE;
     };
-    QScriptValue intersection = object.property("intersection");
+    auto intersection = object["intersection"];
     if (intersection.isValid()) {
-        vec3FromScriptValue(intersection, value.intersection);
+        bool valid;
+        auto newIntersection = vec3FromVariant(intersection, valid);
+        if (valid) {
+            value.intersection = newIntersection;
+        }
     }
-    value.extraInfo = object.property("extraInfo").toVariant().toString();
+    value.extraInfo = object["extraInfo"].toString();
 }
 
 bool Overlays::isLoaded(unsigned int id) {
@@ -533,15 +518,13 @@ bool Overlays::isLoaded(unsigned int id) {
 QSizeF Overlays::textSize(unsigned int id, const QString& text) const {
     Overlay::Pointer thisOverlay = _overlaysHUD[id];
     if (thisOverlay) {
-        if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return std::dynamic_pointer_cast<TextOverlay>(thisOverlay)->textSize(text);
+        if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
+            return textOverlay->textSize(text);
         }
     } else {
         thisOverlay = _overlaysWorld[id];
-        if (thisOverlay) {
-            if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-                return std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)->textSize(text);
-            }
+        if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
+            return text3dOverlay->textSize(text);
         }
     }
     return QSizeF(0.0f, 0.0f);
@@ -557,16 +540,16 @@ unsigned int Overlays::addPanel(OverlayPanel::Pointer panel) {
     return thisID;
 }
 
-unsigned int Overlays::addPanel(const QScriptValue& properties) {
+unsigned int Overlays::addPanel(const QVariant& properties) {
     OverlayPanel::Pointer panel = std::make_shared<OverlayPanel>();
     panel->init(_scriptEngine);
-    panel->setProperties(properties);
+    panel->setProperties(properties.toMap());
     return addPanel(panel);
 }
 
-void Overlays::editPanel(unsigned int panelId, const QScriptValue& properties) {
+void Overlays::editPanel(unsigned int panelId, const QVariant& properties) {
     if (_panels.contains(panelId)) {
-        _panels[panelId]->setProperties(properties);
+        _panels[panelId]->setProperties(properties.toMap());
     }
 }
 

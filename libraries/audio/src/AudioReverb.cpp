@@ -34,6 +34,7 @@ inline static int MULHI(int a, int b) {
 #endif
 
 static const float PHI = 0.6180339887f; // maximum allpass diffusion
+static const float TWOPI = 6.283185307f;
 
 static const double PI = 3.14159265358979323846;
 static const double SQRT2 = 1.41421356237309504880;
@@ -383,7 +384,7 @@ static void BQPeakAbovePi(double coef[5], double w0, double dbgain, double Q) {
 // Biquad Peaking EQ using analog matching.
 // Supports full range of w0.
 //
-static void BQPeak(double coef[5], double w0, double dbgain, double Q) {
+void BQPeak(double coef[5], double w0, double dbgain, double Q) {
     w0 = MAX(w0, 0.0);  // allow w0 > pi
 
     Q = MIN(MAX(Q, 1.0e-6), 1.0e+6);
@@ -402,7 +403,7 @@ static void BQPeak(double coef[5], double w0, double dbgain, double Q) {
 //
 // Biquad Shelf using analog matching.
 //
-static void BQShelf(double coef[5], double w0, double dbgain, double resonance, int isHigh) {
+void BQShelf(double coef[5], double w0, double dbgain, double resonance, int isHigh) {
     double G, G1;
     double wpi, wn, wd;
     double wna, wda;
@@ -499,7 +500,7 @@ static void BQShelf(double coef[5], double w0, double dbgain, double resonance, 
 // Biquad Lowpass/Highpass using analog matching.
 // Q = sqrt(0.5) = 2nd order Butterworth
 //
-static void BQFilter(double coef[5], double w0, int isHigh) {
+void BQFilter(double coef[5], double w0, int isHigh) {
     double G1;
     double wpi, wn, wd;
     double wna, wda;
@@ -587,7 +588,7 @@ static void BQFilter(double coef[5], double w0, int isHigh) {
 // PoleZero Shelf. For Lowpass/Highpass, setCoef dbgain to -100dB.
 // NOTE: w0 always sets the pole frequency (3dB corner from unity gain)
 //
-static void PZShelf(double coef[3], double w0, double dbgain, int isHigh) {
+void PZShelf(double coef[3], double w0, double dbgain, int isHigh) {
     double G, G0, G1;
     double b0, b1, a0, a1;
     double temp, scale;
@@ -653,7 +654,7 @@ public:
 
         // lowpass filter, -3dB @ freq
         double coef[5];
-        BQFilter(coef, PI * freq / (0.5 * sampleRate), 0);
+        BQFilter(coef, TWOPI * freq / sampleRate, 0);
         _b0 = (float)coef[0];
         _b1 = (float)coef[1];
         _b2 = (float)coef[2];
@@ -661,7 +662,7 @@ public:
         _a2 = (float)coef[4];
 
         // DC-blocking filter, -3dB @ 10Hz
-        _alpha = (float)(1.0 - exp(-PI * 10.0 / (0.5 * sampleRate)));
+        _alpha = 1.0f - expf(-TWOPI * 10.0f / sampleRate);
     }
 
     void process(float input0, float input1, float& output0, float& output1) {
@@ -807,11 +808,13 @@ public:
         freq = MIN(freq, 1/16.0f * sampleRate);
         freq = MAX(freq, 1/16777216.0f * sampleRate);
 
-        // amplitude slightly less than 1.0
-        _y0 = (int32_t)(0.000 * FIXQ31);
-        _y1 = (int32_t)(0.999 * cos(PI * freq / sampleRate) * FIXQ31);
+        double w = PI * (double)freq / (double)sampleRate;
 
-        _k = (int32_t)(2.0 * sin(PI * freq / sampleRate) * FIXQ32);
+        // amplitude slightly less than 1.0
+        _y0 = 0;
+        _y1 = (int32_t)(0.999 * cos(w) * FIXQ31);
+
+        _k = (int32_t)(2.0 * sin(w) * FIXQ32);
     }
 
     void setGain(int32_t gain) {
@@ -985,8 +988,8 @@ public:
         freq1 = MIN(MAX(freq1, 1.0f), 24000.0f);
 
         double coefLo[3], coefHi[3];
-        PZShelf(coefLo, PI * freq0 / (0.5 * sampleRate), dBgain0, 0);   // low shelf
-        PZShelf(coefHi, PI * freq1 / (0.5 * sampleRate), dBgain1, 1);   // high shelf
+        PZShelf(coefLo, TWOPI * freq0 / sampleRate, dBgain0, 0);    // low shelf
+        PZShelf(coefHi, TWOPI * freq1 / sampleRate, dBgain1, 1);    // high shelf
 
         // convolve into a single biquad
         _b0 = (float)(coefLo[0] * coefHi[0]);
@@ -1324,64 +1327,64 @@ static int scaleDelay(float delay, float sampleRate) {
 // input clamped to [0.0f, 100.0f]
 //
 static const float earlyMix0Table[][2] = {
-    0.0000f, 0.6000f,
-   63.3333f, 0.0800f,
-   83.3333f, 0.0200f,
-   93.3333f, 0.0048f,
-  100.0000f, 0.0048f,
+    {0.0000f, 0.6000f},
+   {63.3333f, 0.0800f},
+   {83.3333f, 0.0200f},
+   {93.3333f, 0.0048f},
+  {100.0000f, 0.0048f},
 };
 
 static const float earlyMix1Table[][2] = {
-    0.0000f, 0.3360f,
-   20.0000f, 0.6000f,
-  100.0000f, 0.0240f,
+    {0.0000f, 0.3360f},
+   {20.0000f, 0.6000f},
+  {100.0000f, 0.0240f},
 };
 
 static const float earlyMix2Table[][2] = {
-    0.0000f, 0.0480f,
-   13.3333f, 0.0960f,
-   53.3333f, 0.9600f,
-  100.0000f, 0.1200f,
+    {0.0000f, 0.0480f},
+   {13.3333f, 0.0960f},
+   {53.3333f, 0.9600f},
+  {100.0000f, 0.1200f},
 };
 
 static const float lateMix0Table[][2] = {
-    0.0000f, 0.1250f,
-   13.3333f, 0.1875f,
-   66.6666f, 0.7500f,
-  100.0000f, 0.8750f,
+    {0.0000f, 0.1250f},
+   {13.3333f, 0.1875f},
+   {66.6666f, 0.7500f},
+  {100.0000f, 0.8750f},
 };
 
 static const float lateMix1Table[][2] = {
-    0.0000f, 0.9990f,
-   33.3333f, 0.5000f,
-   66.6666f, 0.9990f,
-   93.3333f, 0.6000f,
-  100.0000f, 0.6000f,
+    {0.0000f, 0.9990f},
+   {33.3333f, 0.5000f},
+   {66.6666f, 0.9990f},
+   {93.3333f, 0.6000f},
+  {100.0000f, 0.6000f},
 };
 
 static const float lateMix2Table[][2] = {
-    0.0000f, 0.9990f,
-   33.3333f, 0.9990f,
-   63.3333f, 0.4500f,
-  100.0000f, 0.9990f,
+    {0.0000f, 0.9990f},
+   {33.3333f, 0.9990f},
+   {63.3333f, 0.4500f},
+  {100.0000f, 0.9990f},
 };
 
 static const float diffusionCoefTable[][2] = {
-    0.0000f, 0.0000f,
-   20.0000f, 0.0470f,
-   33.3333f, 0.0938f,
-   46.6666f, 0.1563f,
-   60.0000f, 0.2344f,
-   73.3333f, 0.3125f,
-   93.3333f, 0.5000f,
-  100.0000f, PHI,
+    {0.0000f, 0.0000f},
+   {20.0000f, 0.0470f},
+   {33.3333f, 0.0938f},
+   {46.6666f, 0.1563f},
+   {60.0000f, 0.2344f},
+   {73.3333f, 0.3125f},
+   {93.3333f, 0.5000f},
+  {100.0000f, PHI},
 };
 
 static const float roomSizeTable[][2] = {
-    0.0000f, 0.1500f,
-   25.0000f, 0.3000f,
-   50.0000f, 0.5000f,
-  100.0000f, 1.0000f,
+    {0.0000f, 0.1500f},
+   {25.0000f, 0.3000f},
+   {50.0000f, 0.5000f},
+  {100.0000f, 1.0000f},
 };
 
 static float interpolateTable(const float table[][2], float x) {
@@ -1407,7 +1410,7 @@ void ReverbImpl::setParameters(ReverbParameters *p) {
 
     // Modulation
     _lfo.setFreq(p->modRate, sampleRate);
-    _lfo.setGain((int32_t)MIN(MAX(p->modDepth * (1/100.0) * FIXQ31, 0.0), 0X7fffffff));
+    _lfo.setGain((int32_t)MIN(MAX((double)p->modDepth * (1/100.0) * FIXQ31, 0.0), (double)0x7fffffff));
 
     //
     // Set delays

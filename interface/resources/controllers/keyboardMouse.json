@@ -11,14 +11,14 @@
         { "from": "Keyboard.S", "when": "Keyboard.Shift", "to": "Actions.PITCH_DOWN" },
         { "from": "Keyboard.W", "when": "Keyboard.Shift", "to": "Actions.PITCH_UP" },
 
-        
+
         { "comment" : "Mouse turn need to be small continuous increments",
           "from": { "makeAxis" : [
                 [ "Keyboard.MouseMoveLeft" ],
                 [ "Keyboard.MouseMoveRight" ] 
             ]
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode", "Keyboard.RightMouseButton" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn", "Keyboard.RightMouseButton" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -34,7 +34,7 @@
                 [ "Keyboard.TouchpadRight" ] 
             ] 
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -49,7 +49,7 @@
                 ["Keyboard.D", "Keyboard.Right"]
             ]
           },
-          "when": [ "Application.InHMD", "Application.ComfortMode" ],
+          "when": [ "Application.InHMD", "Application.SnapTurn" ],
           "to": "Actions.StepYaw",
           "filters":
             [
@@ -75,7 +75,6 @@
         { "from": "Keyboard.S", "to": "Actions.LONGITUDINAL_BACKWARD" },
         { "from": "Keyboard.C", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.E", "to": "Actions.VERTICAL_UP" },
-
         { "from": "Keyboard.Left", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_LEFT" },
         { "from": "Keyboard.Right", "when": "Keyboard.RightMouseButton", "to": "Actions.LATERAL_RIGHT" },
         { "from": "Keyboard.Left", "when": "Keyboard.Shift", "to": "Actions.LATERAL_LEFT" },

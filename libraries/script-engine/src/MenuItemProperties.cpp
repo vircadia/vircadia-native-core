@@ -13,20 +13,7 @@
 #include <RegisteredMetaTypes.h>
 #include "MenuItemProperties.h"
 
-MenuItemProperties::MenuItemProperties() :
-    menuName(""),
-    menuItemName(""),
-    shortcutKey(""),
-    shortcutKeyEvent(),
-    shortcutKeySequence(),
-    position(UNSPECIFIED_POSITION),
-    beforeItem(""),
-    afterItem(""),
-    isCheckable(false),
-    isChecked(false),
-    isSeparator(false) 
-{
-};
+
 
 MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& menuItemName,
                         const QString& shortcutKey, bool checkable, bool checked, bool separator) :
@@ -35,9 +22,6 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
     shortcutKey(shortcutKey),
     shortcutKeyEvent(),
     shortcutKeySequence(shortcutKey),
-    position(UNSPECIFIED_POSITION),
-    beforeItem(""),
-    afterItem(""),
     isCheckable(checkable),
     isChecked(checked),
     isSeparator(separator)
@@ -48,12 +32,8 @@ MenuItemProperties::MenuItemProperties(const QString& menuName, const QString& m
                         const KeyEvent& shortcutKeyEvent, bool checkable, bool checked, bool separator) :
     menuName(menuName),
     menuItemName(menuItemName),
-    shortcutKey(""),
     shortcutKeyEvent(shortcutKeyEvent),
     shortcutKeySequence(shortcutKeyEvent),
-    position(UNSPECIFIED_POSITION),
-    beforeItem(""),
-    afterItem(""),
     isCheckable(checkable),
     isChecked(checked),
     isSeparator(separator)
@@ -95,6 +75,7 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
     }
     properties.beforeItem = object.property("beforeItem").toVariant().toString();
     properties.afterItem = object.property("afterItem").toVariant().toString();
+    properties.grouping = object.property("grouping").toVariant().toString();
 }
 
 

@@ -95,7 +95,7 @@ void vhacd::VHACDUtil::fattenMeshes(const FBXMesh& mesh, FBXMesh& result,
         getTrianglesInMeshPart(meshPart, triangles);
     }
 
-    unsigned int triangleCount = triangles.size() / 3;
+    auto triangleCount = triangles.size() / 3;
     if (triangleCount == 0) {
         return;
     }
@@ -230,7 +230,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
                 continue;
             }
 
-            int nPoints = vertices.size();
+            auto nPoints = vertices.size();
             AABox aaBox = getAABoxForMeshPart(mesh, meshPart);
             const float largestDimension = aaBox.getLargestDimension();
 
@@ -251,7 +251,7 @@ bool vhacd::VHACDUtil::computeVHACD(FBXGeometry& geometry,
 
 
             // compute approximate convex decomposition
-            bool res = interfaceVHACD->Compute(&vertices[0].x, 3, nPoints, &triangles[0], 3, triangleCount, params);
+            bool res = interfaceVHACD->Compute(&vertices[0].x, 3, (uint)nPoints, &triangles[0], 3, triangleCount, params);
             if (!res){
                 qDebug() << "V-HACD computation failed for Mesh : " << count;
                 count++;

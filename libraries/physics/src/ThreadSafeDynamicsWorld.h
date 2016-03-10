@@ -40,14 +40,14 @@ public:
     int stepSimulationWithSubstepCallback(btScalar timeStep, int maxSubSteps = 1,
                                           btScalar fixedTimeStep = btScalar(1.)/btScalar(60.),
                                           SubStepCallback onSubStep = []() { });
-    void synchronizeMotionStates();
+    virtual void synchronizeMotionStates() override;
 
     // btDiscreteDynamicsWorld::m_localTime is the portion of real-time that has not yet been simulated
     // but is used for MotionState::setWorldTransform() extrapolation (a feature that Bullet uses to provide
     // smoother rendering of objects when the physics simulation loop is ansynchronous to the render loop).
     float getLocalTimeAccumulation() const { return m_localTime; }
 
-    VectorOfMotionStates& getChangedMotionStates() { return _changedMotionStates; }
+    const VectorOfMotionStates& getChangedMotionStates() const { return _changedMotionStates; }
 
 private:
     // call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()

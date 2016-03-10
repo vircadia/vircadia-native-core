@@ -4,3 +4,4 @@ set(TARGET_NAME shared)
 setup_hifi_library(Gui Network Script Widgets)
 
 target_zlib()
+target_nsight()

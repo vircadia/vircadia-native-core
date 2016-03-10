@@ -21,26 +21,24 @@
 #include "EntityTreeElement.h"
 #include "LightEntityItem.h"
 
+const bool LightEntityItem::DEFAULT_IS_SPOTLIGHT = false;
+const float LightEntityItem::DEFAULT_INTENSITY = 1.0f;
+const float LightEntityItem::DEFAULT_FALLOFF_RADIUS = 0.1f;
+const float LightEntityItem::DEFAULT_EXPONENT = 0.0f;
+const float LightEntityItem::DEFAULT_CUTOFF = PI / 2.0f;
+
 bool LightEntityItem::_lightsArePickable = false;
 
 EntityItemPointer LightEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new LightEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity { new LightEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 // our non-pure virtual subclass for now...
-LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{
+LightEntityItem::LightEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Light;
-    
-    // default property values
     _color[RED_INDEX] = _color[GREEN_INDEX] = _color[BLUE_INDEX] = 0;
-    _intensity = 1.0f;
-    _exponent = 0.0f;
-    _cutoff = PI;
-
-    setProperties(properties);
 }
 
 void LightEntityItem::setDimensions(const glm::vec3& value) {
@@ -65,8 +63,13 @@ EntityItemProperties LightEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(intensity, getIntensity);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(exponent, getExponent);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(falloffRadius, getFalloffRadius);
 
     return properties;
+}
+
+void LightEntityItem::setFalloffRadius(float value) {
+    _falloffRadius = glm::max(value, 0.0f);
 }
 
 void LightEntityItem::setIsSpotlight(bool value) {
@@ -104,6 +107,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(intensity, setIntensity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(exponent, setExponent);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(cutoff, setCutoff);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(falloffRadius, setFalloffRadius);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -153,6 +157,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         READ_ENTITY_PROPERTY(PROP_INTENSITY, float, setIntensity);
         READ_ENTITY_PROPERTY(PROP_EXPONENT, float, setExponent);
         READ_ENTITY_PROPERTY(PROP_CUTOFF, float, setCutoff);
+        READ_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, float, setFalloffRadius);
     }
 
     return bytesRead;
@@ -167,6 +172,7 @@ EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_INTENSITY;
     requestedProperties += PROP_EXPONENT;
     requestedProperties += PROP_CUTOFF;
+    requestedProperties += PROP_FALLOFF_RADIUS;
     return requestedProperties;
 }
 
@@ -184,4 +190,5 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_INTENSITY, getIntensity());
     APPEND_ENTITY_PROPERTY(PROP_EXPONENT, getExponent());
     APPEND_ENTITY_PROPERTY(PROP_CUTOFF, getCutoff());
+    APPEND_ENTITY_PROPERTY(PROP_FALLOFF_RADIUS, getFalloffRadius());
 }

@@ -111,7 +111,7 @@ controller::Input::NamedPair SpacemouseDevice::makePair(SpacemouseDevice::Positi
     return controller::Input::NamedPair(makeInput(axis), name);
 }
 
-void SpacemouseDevice::update(float deltaTime, bool jointsCaptured) {
+void SpacemouseDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
     // the update is done in the SpacemouseManager class.
     // for windows in the nativeEventFilter the inputmapper is connected or registed or removed when an 3Dconnnexion device is attached or detached
     // for osx the api will call DeviceAddedHandler or DeviceRemoveHandler when a 3Dconnexion device is attached or detached

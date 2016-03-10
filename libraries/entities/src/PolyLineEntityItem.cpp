@@ -26,11 +26,12 @@ const int PolyLineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
 EntityItemPointer PolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result{ new PolyLineEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity{ new PolyLineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
+PolyLineEntityItem::PolyLineEntityItem(const EntityItemID& entityItemID) :
 EntityItem(entityItemID),
 _lineWidth(DEFAULT_LINE_WIDTH),
 _pointsChanged(true),
@@ -42,8 +43,6 @@ _strokeWidths(QVector<float>(0.0f)),
 _textures("")
 {
     _type = EntityTypes::PolyLine;
-    _created = properties.getCreated();
-    setProperties(properties);
 }
 
 EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {
@@ -90,6 +89,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     return somethingChanged;
 }
 
+
 bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     if (_points.size() > MAX_POINTS_PER_LINE - 1) {
         qDebug() << "MAX POINTS REACHED!";
@@ -104,6 +104,7 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
     _pointsChanged = true;
     return true;
 }
+
 
 bool PolyLineEntityItem::setStrokeWidths(const QVector<float>& strokeWidths) {
     _strokeWidths = strokeWidths;

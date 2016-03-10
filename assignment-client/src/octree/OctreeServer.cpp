@@ -25,9 +25,12 @@
 
 #include "../AssignmentClient.h"
 
+#include "OctreeQueryNode.h"
 #include "OctreeServerConsts.h"
+#include <QtCore/QStandardPaths>
+#include <ServerPathUtils.h>
+#include <QtCore/QDir>
 
-OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
@@ -210,8 +213,8 @@ void OctreeServer::trackProcessWaitTime(float time) {
     _averageProcessWaitTime.updateAverage(time);
 }
 
-OctreeServer::OctreeServer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+OctreeServer::OctreeServer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _argc(0),
     _argv(NULL),
     _parsedArgV(NULL),
@@ -231,19 +234,8 @@ OctreeServer::OctreeServer(NLPacket& packet) :
     _started(time(0)),
     _startedUSecs(usecTimestampNow())
 {
-    if (_instance) {
-        qDebug() << "Octree Server starting... while old instance still running _instance=["<<_instance<<"] this=[" << this << "]";
-    }
-
-    qDebug() << "Octree Server starting... setting _instance to=[" << this << "]";
-    _instance = this;
-
     _averageLoopTime.updateAverage(0);
     qDebug() << "Octree server starting... [" << this << "]";
-
-    // make sure the AccountManager has an Auth URL for payment redemptions
-
-    AccountManager::getInstance().setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 }
 
 OctreeServer::~OctreeServer() {
@@ -281,20 +273,19 @@ OctreeServer::~OctreeServer() {
     _tree.reset();
     qDebug() << qPrintable(_safeServerName) << "server DONE cleaning up octree... [" << this << "]";
 
-    if (_instance == this) {
-        _instance = NULL; // we are gone
-    }
     qDebug() << qPrintable(_safeServerName) << "server DONE shutting down... [" << this << "]";
 }
 
 void OctreeServer::initHTTPManager(int port) {
     // setup the embedded web server
 
-    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString documentRoot = QString("%1/web").arg(ServerPathUtils::getDataDirectory());
 
     // setup an httpManager with us as the request handler and the parent
-    _httpManager = new HTTPManager(port, documentRoot, this, this);
+    _httpManager = new HTTPManager(QHostAddress::AnyIPv4, port, documentRoot, this, this);
 }
+
+const QString PERSIST_FILE_DOWNLOAD_PATH = "/models.json.gz";
 
 bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
 
@@ -317,7 +308,6 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 #endif
 
     bool showStats = false;
-    QString persistFile = "/" + getPersistFilename();
 
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation) {
         if (url.path() == "/") {
@@ -327,7 +317,7 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             _tree->resetEditStats();
             resetSendingStats();
             showStats = true;
-        } else if ((url.path() == persistFile) || (url.path() == persistFile + "/")) {
+        } else if ((url.path() == PERSIST_FILE_DOWNLOAD_PATH) || (url.path() == PERSIST_FILE_DOWNLOAD_PATH + "/")) {
             if (_persistFileDownload) {
                 QByteArray persistFileContents = getPersistFileContents();
                 if (persistFileContents.length() > 0) {
@@ -381,9 +371,9 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             statsString += "\r\n";
 
             if (_persistFileDownload) {
-                statsString += QString("Persist file: <a href='%1'>%1</a>\r\n").arg(persistFile);
+                statsString += QString("Persist file: <a href='%1'>Click to Download</a>\r\n").arg(PERSIST_FILE_DOWNLOAD_PATH);
             } else {
-                statsString += QString("Persist file: %1\r\n").arg(persistFile);
+                statsString += QString("Persist file: %1\r\n").arg(_persistFilePath);
             }
 
         } else {
@@ -821,6 +811,11 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             .arg(locale.toString((uint)checkSum).rightJustified(16, ' '));
 
         statsString += "\r\n\r\n";
+
+        statsString += serverSubclassStats();
+
+        statsString += "\r\n\r\n";
+
         statsString += "</pre>\r\n";
         statsString += "</doc></html>";
 
@@ -873,31 +868,53 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::handleOctreeQueryPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    if (!_isFinished) {
+OctreeServer::UniqueSendThread OctreeServer::createSendThread(const SharedNodePointer& node) {
+    auto sendThread = std::unique_ptr<OctreeSendThread>(new OctreeSendThread(this, node));
+    
+    // we want to be notified when the thread finishes
+    connect(sendThread.get(), &GenericThread::finished, this, &OctreeServer::removeSendThread);
+    sendThread->initialize(true);
+
+    return sendThread;
+}
+
+void OctreeServer::removeSendThread() {
+    // If the object has been deleted since the event was queued, sender() will return nullptr
+    if (auto sendThread = qobject_cast<OctreeSendThread*>(sender())) {
+        // This deletes the unique_ptr, so sendThread is destructed after that line
+        _sendThreads.erase(sendThread->getNodeUuid());
+    }
+}
+
+void OctreeServer::handleOctreeQueryPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    if (!_isFinished && !_isShuttingDown) {
         // If we got a query packet, then we're talking to an agent, and we
         // need to make sure we have it in our nodeList.
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->updateNodeWithDataFromPacket(packet, senderNode);
+        nodeList->updateNodeWithDataFromPacket(message, senderNode);
         
-        OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
-        if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-            nodeData->initializeOctreeSendThread(this, senderNode);
+        auto it = _sendThreads.find(senderNode->getUUID());
+        if (it == _sendThreads.end()) {
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
+        } else if (it->second->isShuttingDown()) {
+            _sendThreads.erase(it); // Remove right away and wait on thread to be
+            
+            _sendThreads.emplace(senderNode->getUUID(), createSendThread(senderNode));
         }
     }
 }
 
-void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void OctreeServer::handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     // If we got a nack packet, then we're talking to an agent, and we
     // need to make sure we have it in our nodeList.
     OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(senderNode->getLinkedData());
     if (nodeData) {
-        nodeData->parseNackPacket(*packet);
+        nodeData->parseNackPacket(*message);
     }
 }
 
-void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
-    _jurisdictionSender->queueReceivedPacket(packet, senderNode);
+void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
+    _jurisdictionSender->queueReceivedPacket(message, senderNode);
 }
 
 bool OctreeServer::readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result) {
@@ -964,7 +981,7 @@ void OctreeServer::readConfiguration() {
     _settings = settingsSectionObject; // keep this for later
 
     if (!readOptionString(QString("statusHost"), settingsSectionObject, _statusHost) || _statusHost.isEmpty()) {
-        _statusHost = getLocalAddress().toString();
+        _statusHost = getGuessedLocalAddress().toString();
     }
     qDebug("statusHost=%s", qPrintable(_statusHost));
 
@@ -1010,12 +1027,12 @@ void OctreeServer::readConfiguration() {
     qDebug() << "wantPersist=" << _wantPersist;
 
     if (_wantPersist) {
-        QString persistFilename;
-        if (!readOptionString(QString("persistFilename"), settingsSectionObject, persistFilename)) {
-            persistFilename = getMyDefaultPersistFilename();
+        if (!readOptionString("persistFilePath", settingsSectionObject, _persistFilePath)
+            && !readOptionString("persistFilename", settingsSectionObject, _persistFilePath)) {
+            _persistFilePath = getMyDefaultPersistFilename();
         }
-        strcpy(_persistFilename, qPrintable(persistFilename));
-        qDebug("persistFilename=%s", _persistFilename);
+
+        qDebug() << "persistFilePath=" << _persistFilePath;
 
         _persistAsFileType = "json.gz";
 
@@ -1079,7 +1096,7 @@ void OctreeServer::run() {
     _tree->setIsServer(true);
     
     qDebug() << "Waiting for connection to domain to request settings from domain-server.";
-    
+   
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &OctreeServer::domainSettingsRequestComplete);
@@ -1112,8 +1129,8 @@ void OctreeServer::domainSettingsRequestComplete() {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
-    nodeList->linkedDataCreateCallback = [] (Node* node) {
-        auto queryNodeData = _instance->createOctreeQueryNode();
+    nodeList->linkedDataCreateCallback = [this](Node* node) {
+        auto queryNodeData = createOctreeQueryNode();
         queryNodeData->init();
         node->setLinkedData(std::move(queryNodeData));
     };
@@ -1122,9 +1139,71 @@ void OctreeServer::domainSettingsRequestComplete() {
     
     // if we want Persistence, set up the local file and persist thread
     if (_wantPersist) {
+        // If persist filename does not exist, let's see if there is one beside the application binary
+        // If there is, let's copy it over to our target persist directory
+        QDir persistPath { _persistFilePath };
+        QString absoluteFilePath = persistPath.absolutePath();
+
+        if (persistPath.isRelative()) {
+            // if the domain settings passed us a relative path, make an absolute path that is relative to the
+            // default data directory
+            absoluteFilePath = QDir(ServerPathUtils::getDataFilePath("entities/")).absoluteFilePath(_persistFilePath);
+        }
+
+        static const QString ENTITY_PERSIST_EXTENSION = ".json.gz";
+
+        // force the persist file to end with .json.gz
+        if (!absoluteFilePath.endsWith(ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive)) {
+            absoluteFilePath += ENTITY_PERSIST_EXTENSION;
+        } else {
+            // make sure the casing of .json.gz is correct
+            absoluteFilePath.replace(ENTITY_PERSIST_EXTENSION, ENTITY_PERSIST_EXTENSION, Qt::CaseInsensitive);
+        }
+
+        if (!QFile::exists(absoluteFilePath)) {
+            qDebug() << "Persist file does not exist, checking for existence of persist file next to application";
+
+            static const QString OLD_DEFAULT_PERSIST_FILENAME = "resources/models.json.gz";
+            QString oldResourcesDirectory = QCoreApplication::applicationDirPath();
+
+            // This is the old persist path, based on the current persist filename, which could
+            // be a custom filename set by the user.
+            auto oldPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(_persistFilePath);
+
+            // This is the old default persist path.
+            auto oldDefaultPersistPath = QDir(oldResourcesDirectory).absoluteFilePath(OLD_DEFAULT_PERSIST_FILENAME);
+
+            qDebug() << "Checking for existing persist file at " << oldPersistPath << " and " << oldDefaultPersistPath;
+
+            QString pathToCopyFrom;
+            bool shouldCopy = false;
+
+            if (QFile::exists(oldPersistPath)) {
+                shouldCopy = true;
+                pathToCopyFrom = oldPersistPath;
+            } else if (QFile::exists(oldDefaultPersistPath)) {
+                shouldCopy = true;
+                pathToCopyFrom = oldDefaultPersistPath;
+            }
+
+            QDir persistFileDirectory { QDir::cleanPath(absoluteFilePath + "/..") };
+
+            if (!persistFileDirectory.exists()) {
+                qDebug() << "Creating data directory " << persistFileDirectory.absolutePath();
+                persistFileDirectory.mkpath(".");
+            }
+
+            if (shouldCopy) {
+                qDebug() << "Old persist file found, copying from " << pathToCopyFrom << " to " << absoluteFilePath;
+
+                QFile::copy(pathToCopyFrom, absoluteFilePath);
+            } else {
+                qDebug() << "No existing persist file found";
+            }
+        }
         
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
+        _persistThread = new OctreePersistThread(_tree, absoluteFilePath, _persistInterval,
                                                  _wantBackup, _settings, _debugTimestampNow, _persistAsFileType);
         _persistThread->initialize(true);
     }
@@ -1162,6 +1241,13 @@ void OctreeServer::nodeAdded(SharedNodePointer node) {
 
 void OctreeServer::nodeKilled(SharedNodePointer node) {
     quint64 start  = usecTimestampNow();
+    
+    // Shutdown send thread
+    auto it = _sendThreads.find(node->getUUID());
+    if (it != _sendThreads.end()) {
+        auto& sendThread = *it->second;
+        sendThread.setIsShuttingDown();
+    }
 
     // calling this here since nodeKilled slot in ReceivedPacketProcessor can't be triggered by signals yet!!
     _octreeInboundPacketProcessor->nodeKilled(node);
@@ -1179,25 +1265,9 @@ void OctreeServer::nodeKilled(SharedNodePointer node) {
     if (usecsElapsed > 1000) {
         qDebug() << qPrintable(_safeServerName) << "server nodeKilled() took: " << usecsElapsed << " usecs for node:" << *node;
     }
+
+    trackViewerGone(node->getUUID());
 }
-
-void OctreeServer::forceNodeShutdown(SharedNodePointer node) {
-    quint64 start  = usecTimestampNow();
-
-    qDebug() << qPrintable(_safeServerName) << "server killed node:" << *node;
-    OctreeQueryNode* nodeData = dynamic_cast<OctreeQueryNode*>(node->getLinkedData());
-    if (nodeData) {
-        nodeData->forceNodeShutdown(); // tell our node data and sending threads that we'd like to shut down
-    } else {
-        qDebug() << qPrintable(_safeServerName) << "server node missing linked data node:" << *node;
-    }
-
-    quint64 end  = usecTimestampNow();
-    quint64 usecsElapsed = (end - start);
-    qDebug() << qPrintable(_safeServerName) << "server forceNodeShutdown() took: "
-                << usecsElapsed << " usecs for node:" << *node;
-}
-
 
 void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "server STARTING about to finish...";
@@ -1207,9 +1277,8 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
 
     // we're going down - set the NodeList linkedDataCallback to NULL so we do not create any more OctreeQueryNode objects.
-    // This ensures that when we forceNodeShutdown below for each node we don't get any more newly connecting nodes
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->linkedDataCreateCallback = NULL;
+    // This ensures that we don't get any more newly connecting nodes
+    DependencyManager::get<NodeList>()->linkedDataCreateCallback = nullptr;
 
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->terminating();
@@ -1219,21 +1288,15 @@ void OctreeServer::aboutToFinish() {
         _jurisdictionSender->terminating();
     }
     
-    QSet<SharedNodePointer> nodesToShutdown;
-
-    // Force a shutdown of all of our OctreeSendThreads.
-    // At this point it has to be impossible for a linkedDataCreateCallback to be called for a new node
-    nodeList->eachNode([&nodesToShutdown](const SharedNodePointer& node) {
-        nodesToShutdown << node;
-    });
-    
-    // What follows is a hack to force OctreeSendThreads to cleanup before the OctreeServer is gone.
-    // I would prefer to allow the SharedNodePointer ref count drop to zero to do this automatically
-    // but that isn't possible as long as the OctreeSendThread has an OctreeServer* that it uses.
-    for (auto& node : nodesToShutdown) {
-        qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
-        forceNodeShutdown(node);
+    // Shut down all the send threads
+    for (auto& it : _sendThreads) {
+        auto& sendThread = *it.second;
+        sendThread.setIsShuttingDown();
     }
+    
+    // Clear will destruct all the unique_ptr to OctreeSendThreads which will call the GenericThread's dtor
+    // which waits on the thread to be done before returning
+    _sendThreads.clear(); // Cleans up all the send threads.
 
     if (_persistThread) {
         _persistThread->aboutToFinish();
@@ -1452,15 +1515,22 @@ void OctreeServer::didCallWriteDatagram(OctreeSendThread* thread) {
 
 
 void OctreeServer::stopTrackingThread(OctreeSendThread* thread) {
-    QMutexLocker lockerA(&_threadsDidProcessMutex);
-    QMutexLocker lockerB(&_threadsDidPacketDistributorMutex);
-    QMutexLocker lockerC(&_threadsDidHandlePacketSendMutex);
-    QMutexLocker lockerD(&_threadsDidCallWriteDatagramMutex);
-
-    _threadsDidProcess.remove(thread);
-    _threadsDidPacketDistributor.remove(thread);
-    _threadsDidHandlePacketSend.remove(thread);
-    _threadsDidCallWriteDatagram.remove(thread);
+    {
+        QMutexLocker locker(&_threadsDidProcessMutex);
+        _threadsDidProcess.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidPacketDistributorMutex);
+        _threadsDidPacketDistributor.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidHandlePacketSendMutex);
+        _threadsDidHandlePacketSend.remove(thread);
+    }
+    {
+        QMutexLocker locker(&_threadsDidCallWriteDatagramMutex);
+        _threadsDidCallWriteDatagram.remove(thread);
+    }
 }
 
 int howManyThreadsDidSomething(QMutex& mutex, QMap<OctreeSendThread*, quint64>& something, quint64 since) {

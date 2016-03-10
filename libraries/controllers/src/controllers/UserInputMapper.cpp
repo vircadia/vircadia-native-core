@@ -100,7 +100,7 @@ void UserInputMapper::registerDevice(InputDevice::Pointer device) {
     }
 
     _registeredDevices[deviceID] = device;
-    auto mapping = loadMapping(device->getDefaultMappingConfig());
+    auto mapping = loadMappings(device->getDefaultMappingConfigs());
     if (mapping) {
         _mappingsByDevice[deviceID] = mapping;
         enableMapping(mapping);
@@ -139,7 +139,7 @@ void UserInputMapper::loadDefaultMapping(uint16 deviceID) {
     }
 
 
-    auto mapping = loadMapping(proxyEntry->second->getDefaultMappingConfig());
+    auto mapping = loadMappings(proxyEntry->second->getDefaultMappingConfigs());
     if (mapping) {
         auto prevMapping = _mappingsByDevice[deviceID];
         disableMapping(prevMapping);
@@ -255,6 +255,9 @@ void UserInputMapper::update(float deltaTime) {
     fixBisectedAxis(_actionStates[toInt(Action::ROTATE_Y)], _actionStates[toInt(Action::YAW_LEFT)], _actionStates[toInt(Action::YAW_RIGHT)]);
     fixBisectedAxis(_actionStates[toInt(Action::ROTATE_X)], _actionStates[toInt(Action::PITCH_UP)], _actionStates[toInt(Action::PITCH_DOWN)]);
 
+    fixBisectedAxis(_actionStates[toInt(Action::RETICLE_X)], _actionStates[toInt(Action::RETICLE_LEFT)], _actionStates[toInt(Action::RETICLE_RIGHT)]);
+    fixBisectedAxis(_actionStates[toInt(Action::RETICLE_Y)], _actionStates[toInt(Action::RETICLE_UP)], _actionStates[toInt(Action::RETICLE_DOWN)]);
+
     static const float EPSILON = 0.01f;
     for (auto i = 0; i < toInt(Action::NUM_ACTIONS); i++) {
         _actionStates[i] *= _actionScales[i];
@@ -319,41 +322,11 @@ QVector<QString> UserInputMapper::getActionNames() const {
     }
     return result;
 }
-/*
-void UserInputMapper::assignDefaulActionScales() {
-    _actionScales[toInt(Action::LONGITUDINAL_BACKWARD)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LONGITUDINAL_FORWARD)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LATERAL_LEFT)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::LATERAL_RIGHT)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::VERTICAL_DOWN)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::VERTICAL_UP)] = 1.0f; // 1m per unit
-    _actionScales[toInt(Action::YAW_LEFT)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::YAW_RIGHT)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::PITCH_DOWN)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::PITCH_UP)] = 1.0f; // 1 degree per unit
-    _actionScales[toInt(Action::BOOM_IN)] = 0.5f; // .5m per unit
-    _actionScales[toInt(Action::BOOM_OUT)] = 0.5f; // .5m per unit
-    _actionScales[toInt(Action::LEFT_HAND)] = 1.0f; // default
-    _actionScales[toInt(Action::RIGHT_HAND)] = 1.0f; // default
-    _actionScales[toInt(Action::LEFT_HAND_CLICK)] = 1.0f; // on
-    _actionScales[toInt(Action::RIGHT_HAND_CLICK)] = 1.0f; // on
-    _actionScales[toInt(Action::SHIFT)] = 1.0f; // on
-    _actionScales[toInt(Action::ACTION1)] = 1.0f; // default
-    _actionScales[toInt(Action::ACTION2)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_X)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_Y)] = 1.0f; // default
-    _actionScales[toInt(Action::TRANSLATE_Z)] = 1.0f; // default
-    _actionScales[toInt(Action::ROLL)] = 1.0f; // default
-    _actionScales[toInt(Action::PITCH)] = 1.0f; // default
-    _actionScales[toInt(Action::YAW)] = 1.0f; // default
-}
-*/
 
 static int actionMetaTypeId = qRegisterMetaType<Action>();
 static int inputMetaTypeId = qRegisterMetaType<Input>();
 static int inputPairMetaTypeId = qRegisterMetaType<Input::NamedPair>();
 static int poseMetaTypeId = qRegisterMetaType<controller::Pose>("Pose");
-
 
 QScriptValue inputToScriptValue(QScriptEngine* engine, const Input& input);
 void inputFromScriptValue(const QScriptValue& object, Input& input);
@@ -737,6 +710,21 @@ Mapping::Pointer UserInputMapper::loadMapping(const QString& jsonFile) {
     return parseMapping(json);
 }
 
+MappingPointer UserInputMapper::loadMappings(const QStringList& jsonFiles) {
+    Mapping::Pointer result;
+    for (const QString& jsonFile : jsonFiles) {
+        auto subMapping = loadMapping(jsonFile);
+        if (subMapping) {
+            if (!result) {
+                result = subMapping;
+            } else {
+                auto& routes = result->routes;
+                routes.insert(routes.end(), subMapping->routes.begin(), subMapping->routes.end());
+            }
+        }
+    }
+    return result;
+}
 
 
 static const QString JSON_NAME = QStringLiteral("name");
@@ -915,7 +903,7 @@ Endpoint::Pointer UserInputMapper::parseDestination(const QJsonValue& value) {
 
 Endpoint::Pointer UserInputMapper::parseAxis(const QJsonValue& value) {
     if (value.isObject()) {
-        auto object = value.toObject();
+        auto object = value.toObject();     
         if (object.contains("makeAxis")) {
             auto axisValue = object.value("makeAxis");
             if (axisValue.isArray()) {
@@ -1012,6 +1000,20 @@ Route::Pointer UserInputMapper::parseRoute(const QJsonValue& value) {
     return result;
 }
 
+void injectConditional(Route::Pointer& route, Conditional::Pointer& conditional) {
+    if (!conditional) {
+        return;
+    }
+
+    if (!route->conditional) {
+        route->conditional = conditional;
+        return;
+    }
+
+    route->conditional = std::make_shared<AndConditional>(conditional, route->conditional);
+}
+
+
 Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
     if (!json.isObject()) {
         return Mapping::Pointer();
@@ -1021,12 +1023,24 @@ Mapping::Pointer UserInputMapper::parseMapping(const QJsonValue& json) {
     auto mapping = std::make_shared<Mapping>("default");
     mapping->name = obj[JSON_NAME].toString();
     const auto& jsonChannels = obj[JSON_CHANNELS].toArray();
+    Conditional::Pointer globalConditional;
+    if (obj.contains(JSON_CHANNEL_WHEN)) {
+        auto conditionalsValue = obj[JSON_CHANNEL_WHEN];
+        globalConditional = parseConditional(conditionalsValue);
+    }
+
     for (const auto& channelIt : jsonChannels) {
         Route::Pointer route = parseRoute(channelIt);
+
         if (!route) {
             qWarning() << "Couldn't parse route";
             continue;
         }
+
+        if (globalConditional) {
+            injectConditional(route, globalConditional);
+        }
+
         mapping->routes.push_back(route);
     }
     _mappingsByName[mapping->name] = mapping;

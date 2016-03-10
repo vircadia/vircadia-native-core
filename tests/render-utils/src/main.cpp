@@ -14,8 +14,8 @@
 
 #include <gpu/GLBackend.h>
 
-#include <QOpenGLContext>
-#include <QOpenGLDebugLogger>
+#include <gl/QOpenGLContextWrapper.h>
+#include <gl/QOpenGLDebugLoggerWrapper.h>
 
 #include <QDir>
 #include <QElapsedTimer>
@@ -38,7 +38,7 @@ public:
     }
 
     unsigned int count() const {
-        return times.size() - 1;
+        return (unsigned int)times.size() - 1;
     }
 
     float elapsed() const {
@@ -77,7 +77,7 @@ const QString& getQmlDir() {
 class QTestWindow : public QWindow {
     Q_OBJECT
 
-    QOpenGLContext* _context{ nullptr };
+    QOpenGLContextWrapper _context;
     QSize _size;
     //TextRenderer* _textRenderer[4];
     RateCounter fps;
@@ -104,9 +104,8 @@ public:
 
         setFormat(format);
 
-        _context = new QOpenGLContext;
-        _context->setFormat(format);
-        _context->create();
+        _context.setFormat(format);
+        _context.create();
 
         show();
         makeCurrent();
@@ -114,15 +113,7 @@ public:
         gpu::Context::init<gpu::GLBackend>();
 
 
-        {
-            QOpenGLDebugLogger* logger = new QOpenGLDebugLogger(this);
-            logger->initialize(); // initializes in the current context, i.e. ctx
-            logger->enableMessages();
-            connect(logger, &QOpenGLDebugLogger::messageLogged, this, [&](const QOpenGLDebugMessage & debugMessage) {
-                qDebug() << debugMessage;
-            });
-            //        logger->startLogging(QOpenGLDebugLogger::SynchronousLogging);
-        }
+        setupDebugLogger(this);
         qDebug() << (const char*)glGetString(GL_VERSION);
 
         //_textRenderer[0] = TextRenderer::getInstance(SANS_FONT_FAMILY, 12, false);
@@ -147,7 +138,7 @@ public:
 
     void draw();
     void makeCurrent() {
-        _context->makeCurrent(this);
+        _context.makeCurrent(this);
     }
 
 protected:
@@ -170,9 +161,9 @@ static const glm::vec3 COLORS[4] = { { 1.0, 1.0, 1.0 }, { 0.5, 1.0, 0.5 }, {
 
 
 void testShaderBuild(const char* vs_src, const char * fs_src) {
-    auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(vs_src)));
-    auto fs = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(fs_src)));
-    auto pr = gpu::ShaderPointer(gpu::Shader::createProgram(vs, fs));
+    auto vs = gpu::Shader::createVertex(std::string(vs_src));
+    auto fs = gpu::Shader::createPixel(std::string(fs_src));
+    auto pr = gpu::Shader::createProgram(vs, fs);
     gpu::Shader::makeProgram(*pr);
 }
 
@@ -185,7 +176,7 @@ void QTestWindow::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glViewport(0, 0, _size.width() * devicePixelRatio(), _size.height() * devicePixelRatio());
 
-    _context->swapBuffers(this);
+    _context.swapBuffers(this);
     glFinish();
 
     fps.increment();

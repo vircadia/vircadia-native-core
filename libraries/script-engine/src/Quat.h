@@ -26,6 +26,7 @@ class Quat : public QObject {
 public slots:
     glm::quat multiply(const glm::quat& q1, const glm::quat& q2);
     glm::quat normalize(const glm::quat& q);
+    glm::quat conjugate(const glm::quat& q);
     glm::quat lookAt(const glm::vec3& eye, const glm::vec3& center, const glm::vec3& up);
     glm::quat lookAtSimple(const glm::vec3& eye, const glm::vec3& center);
     glm::quat rotationBetween(const glm::vec3& v1, const glm::vec3& v2);
@@ -45,8 +46,8 @@ public slots:
     glm::quat slerp(const glm::quat& q1, const glm::quat& q2, float alpha);
     glm::quat squad(const glm::quat& q1, const glm::quat& q2, const glm::quat& s1, const glm::quat& s2, float h);
     float dot(const glm::quat& q1, const glm::quat& q2);
-    void print(const QString& lable, const glm::quat& q);
-    bool equal(const glm::vec3& q1, const glm::vec3& q2);
+    void print(const QString& label, const glm::quat& q);
+    bool equal(const glm::quat& q1, const glm::quat& q2);
 };
 
 #endif // hifi_Quat_h

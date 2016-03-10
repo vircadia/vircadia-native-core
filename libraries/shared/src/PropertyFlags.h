@@ -201,7 +201,7 @@ inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
     clear(); // we are cleared out!
 
     size_t bytesConsumed = 0;
-    int bitCount = BITS_IN_BYTE * size;
+    int bitCount = BITS_IN_BYTE * (int)size;
 
     int encodedByteCount = 1; // there is at least 1 byte (after the leadBits)
     int leadBits = 1; // there is always at least 1 lead bit
@@ -246,7 +246,7 @@ inline size_t PropertyFlags<Enum>::decode(const uint8_t* data, size_t size) {
             break;
         }
     }
-    _encodedLength = bytesConsumed;
+    _encodedLength = (int)bytesConsumed;
     return bytesConsumed;
 }
 
@@ -258,9 +258,11 @@ template<typename Enum> inline void PropertyFlags<Enum>::debugDumpBits() {
     qDebug() << "_minFlag=" << _minFlag;
     qDebug() << "_maxFlag=" << _maxFlag;
     qDebug() << "_trailingFlipped=" << _trailingFlipped;
+    QString bits;
     for(int i = 0; i < _flags.size(); i++) {
-        qDebug() << "bit[" << i << "]=" << _flags.at(i);
+        bits += (_flags.at(i) ? "1" : "0");
     }
+    qDebug() << "bits:" << bits;
 }
 
 

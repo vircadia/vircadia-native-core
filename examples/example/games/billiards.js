@@ -128,7 +128,7 @@ function makeBalls(pos) {
               damping: 0.50,
                   shapeType: "sphere",
           collisionSoundURL: hitSound,
-              collisionsWillMove: true }));
+              dynamic: true }));
         ballPosition.z += (BALL_SIZE + BALL_GAP) * SCALE;
             ballNumber++;
     }
@@ -149,7 +149,7 @@ function makeBalls(pos) {
       ignoreCollisions: false,
       damping: 0.50,
           shapeType: "sphere",
-      collisionsWillMove: true });
+      dynamic: true });
     
 }
 
@@ -184,7 +184,7 @@ function shootCue(velocity) {
           damping: 0.10,
           density: 8000,
           ignoreCollisions: false,
-          collisionsWillMove: true
+          dynamic: true
         });
     print("Shot, velocity = " + velocity);
 }

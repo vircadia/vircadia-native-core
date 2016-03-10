@@ -27,19 +27,23 @@
 
 using namespace render;
 
-
+void DrawStatusConfig::dirtyHelper() {
+    enabled = showNetwork || showDisplay;
+    emit dirty();
+}
 
 const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
     if (!_drawItemBoundsPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemBounds_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemBounds_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(drawItemBounds_vert));
+        auto ps = gpu::Shader::createPixel(std::string(drawItemBounds_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         gpu::Shader::makeProgram(*program, slotBindings);
 
         _drawItemBoundPosLoc = program->getUniforms().findLocation("inBoundPos");
         _drawItemBoundDimLoc = program->getUniforms().findLocation("inBoundDim");
+        _drawItemCellLocLoc = program->getUniforms().findLocation("inCellLocation");
 
         auto state = std::make_shared<gpu::State>();
 
@@ -51,16 +55,16 @@ const gpu::PipelinePointer DrawStatus::getDrawItemBoundsPipeline() {
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
 
         // Good to go add the brand new pipeline
-        _drawItemBoundsPipeline.reset(gpu::Pipeline::create(program, state));
+        _drawItemBoundsPipeline = gpu::Pipeline::create(program, state);
     }
     return _drawItemBoundsPipeline;
 }
 
 const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
     if (!_drawItemStatusPipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(drawItemStatus_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawItemStatus_frag)));
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+        auto vs = gpu::Shader::createVertex(std::string(drawItemStatus_vert));
+        auto ps = gpu::Shader::createPixel(std::string(drawItemStatus_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("iconStatusMap"), 0));
@@ -81,7 +85,7 @@ const gpu::PipelinePointer DrawStatus::getDrawItemStatusPipeline() {
             gpu::State::DEST_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ZERO);
 
         // Good to go add the brand new pipeline
-        _drawItemStatusPipeline.reset(gpu::Pipeline::create(program, state));
+        _drawItemStatusPipeline = gpu::Pipeline::create(program, state);
     }
     return _drawItemStatusPipeline;
 }
@@ -94,9 +98,14 @@ const gpu::TexturePointer DrawStatus::getStatusIconMap() const {
     return _statusIconMap;
 }
 
+void DrawStatus::configure(const Config& config) {
+    _showDisplay = config.showDisplay;
+    _showNetwork = config.showNetwork;
+}
+
 void DrawStatus::run(const SceneContextPointer& sceneContext,
                      const RenderContextPointer& renderContext,
-                     const ItemIDsBounds& inItems) {
+                     const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     RenderArgs* args = renderContext->args;
@@ -113,19 +122,29 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
         if (!_itemStatus) {
             _itemStatus = std::make_shared<gpu::Buffer>();;
         }
+        if (!_itemCells) {
+            _itemCells = std::make_shared<gpu::Buffer>();;
+        }
 
         _itemBounds->resize((inItems.size() * sizeof(AABox)));
         _itemStatus->resize((inItems.size() * NUM_STATUS_VEC4_PER_ITEM * sizeof(glm::vec4)));
+        _itemCells->resize((inItems.size() * sizeof(Octree::Location)));
+
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
         for (auto& item : inItems) {
-            if (!item.bounds.isInvalid()) {
-                if (!item.bounds.isNull()) {
-                    (*itemAABox) = item.bounds;
+            if (!item.bound.isInvalid()) {
+                if (!item.bound.isNull()) {
+                    (*itemAABox) = item.bound;
                 } else {
-                    (*itemAABox).setBox(item.bounds.getCorner(), 0.1f);
+                    (*itemAABox).setBox(item.bound.getCorner(), 0.1f);
                 }
+                
+
                 auto& itemScene = scene->getItem(item.id);
+
+                (*itemCell) = scene->getSpatialTree().getCellLocation(itemScene.getCell());
 
                 auto itemStatusPointer = itemScene.getStatus();
                 if (itemStatusPointer) {
@@ -151,6 +170,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
                 nbItems++;
                 itemAABox++;
+                itemCell++;
             }
         }
     }
@@ -160,7 +180,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
     }
 
     // Allright, something to render let's do it
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         glm::mat4 projMat;
         Transform viewMat;
         args->_viewFrustum->evalProjectionMatrix(projMat);
@@ -176,15 +196,23 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
         AABox* itemAABox = reinterpret_cast<AABox*> (_itemBounds->editData());
         glm::ivec4* itemStatus = reinterpret_cast<glm::ivec4*> (_itemStatus->editData());
+        Octree::Location* itemCell = reinterpret_cast<Octree::Location*> (_itemCells->editData());
 
         const unsigned int VEC3_ADRESS_OFFSET = 3;
 
-        if ((renderContext->_drawItemStatus & showDisplayStatusFlag) > 0) {
+        if (_showDisplay) {
             for (int i = 0; i < nbItems; i++) {
                 batch._glUniform3fv(_drawItemBoundPosLoc, 1, (const float*) (itemAABox + i));
                 batch._glUniform3fv(_drawItemBoundDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);
+               
+   
+                glm::ivec4 cellLocation(itemCell->pos.x, itemCell->pos.y, itemCell->pos.z, itemCell->depth);
+
+                batch._glUniform4iv(_drawItemCellLocLoc, 1, ((const int*)(&cellLocation)));
+     
 
                 batch.draw(gpu::LINES, 24, 0);
+                itemCell++;
             }
         }
 
@@ -192,7 +220,7 @@ void DrawStatus::run(const SceneContextPointer& sceneContext,
 
         batch.setPipeline(getDrawItemStatusPipeline());
 
-        if ((renderContext->_drawItemStatus & showNetworkStatusFlag) > 0) {
+        if (_showNetwork) {
             for (int i = 0; i < nbItems; i++) {
                 batch._glUniform3fv(_drawItemStatusPosLoc, 1, (const float*) (itemAABox + i));
                 batch._glUniform3fv(_drawItemStatusDimLoc, 1, ((const float*) (itemAABox + i)) + VEC3_ADRESS_OFFSET);

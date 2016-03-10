@@ -53,7 +53,9 @@ LightOverlayManager = function() {
         if (visible != isVisible) {
             visible = isVisible;
             for (var id in entityOverlays) {
-                Overlays.editOverlay(entityOverlays[id], { visible: visible });
+                Overlays.editOverlay(entityOverlays[id], {
+                    visible: visible
+                });
             }
         }
     };
@@ -61,8 +63,7 @@ LightOverlayManager = function() {
     // Allocate or get an unused overlay
     function getOverlay() {
         if (unusedOverlays.length == 0) {
-            var overlay = Overlays.addOverlay("image3d", {
-            });
+            var overlay = Overlays.addOverlay("image3d", {});
             allOverlays.push(overlay);
         } else {
             var overlay = unusedOverlays.pop();
@@ -72,7 +73,9 @@ LightOverlayManager = function() {
 
     function releaseOverlay(overlay) {
         unusedOverlays.push(overlay);
-        Overlays.editOverlay(overlay, { visible: false });
+        Overlays.editOverlay(overlay, {
+            visible: false
+        });
     }
 
     function addEntity(entityID) {
@@ -88,7 +91,11 @@ LightOverlayManager = function() {
                 visible: visible,
                 alpha: 0.9,
                 scale: 0.5,
-                color: { red: 255, green: 255, blue: 255 }
+                color: {
+                    red: 255,
+                    green: 255,
+                    blue: 255
+                }
             });
         }
     }

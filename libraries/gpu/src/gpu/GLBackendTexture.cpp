@@ -184,8 +184,77 @@ public:
                 switch(dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::SRGB:
+                case gpu::SRGBA:
                     texel.internalFormat = GL_RED;
+                    switch (dstFormat.getType()) {
+                        case gpu::UINT32: {
+                            texel.internalFormat = GL_R32UI;
+                            break;
+                            }
+                        case gpu::INT32: {
+                            texel.internalFormat = GL_R32I;
+                            break;
+                            }
+                        case gpu::NUINT32: {
+                            texel.internalFormat = GL_RED;
+                            break;
+                            }
+                        case gpu::NINT32: {
+                            texel.internalFormat = GL_RED_SNORM;
+                            break;
+                            }
+                        case gpu::FLOAT: {
+                            texel.internalFormat = GL_R32F;
+                            break;
+                            }
+                        case gpu::UINT16: {
+                            texel.internalFormat = GL_R16UI;
+                            break;
+                            }
+                        case gpu::INT16: {
+                            texel.internalFormat = GL_R16I;
+                            break;
+                            }
+                        case gpu::NUINT16: {
+                            texel.internalFormat = GL_R16;
+                            break;
+                            }
+                        case gpu::NINT16: {
+                            texel.internalFormat = GL_R16_SNORM;
+                            break;
+                            }
+                        case gpu::HALF: {
+                            texel.internalFormat = GL_R16F;
+                            break;
+                            }
+                        case gpu::UINT8: {
+                            texel.internalFormat = GL_R8UI;
+                            break;
+                            }
+                        case gpu::INT8: {
+                            texel.internalFormat = GL_R8I;
+                            break;
+                            }
+                        case gpu::NUINT8: {
+                            if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
+                                texel.internalFormat = GL_SLUMINANCE;
+                            } else {
+                                texel.internalFormat = GL_R8;
+                            }
+                            break;
+                            }
+                        case gpu::NINT8: {
+                            texel.internalFormat = GL_R8_SNORM;
+                            break;
+                            }
+                        case gpu::NUM_TYPES: { // quiet compiler
+                            Q_UNREACHABLE();
+                            }
+                        
+                    }
                     break;
+
                 case gpu::DEPTH:
                     texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
                     texel.internalFormat = GL_DEPTH_COMPONENT;
@@ -263,6 +332,11 @@ public:
                 case gpu::SRGBA:
                     texel.internalFormat = GL_SRGB; // standard 2.2 gamma correction color
                     break;
+                case gpu::R11G11B10: {
+                    // the type should be float
+                    texel.internalFormat = GL_R11F_G11F_B10F;
+                    break;
+                }
                 default:
                     qCDebug(gpulogging) << "Unknown combination of texel format";
                 }
@@ -281,44 +355,57 @@ public:
                     texel.internalFormat = GL_RGBA;
                     switch (dstFormat.getType()) {
                     case gpu::UINT32:
-                    case gpu::NUINT32: {
+                        texel.format = GL_RGBA_INTEGER;
                         texel.internalFormat = GL_RGBA32UI;
                         break;
-                        }
                     case gpu::INT32:
-                    case gpu::NINT32: {
+                        texel.format = GL_RGBA_INTEGER;
                         texel.internalFormat = GL_RGBA32I;
                         break;
-                        }
-                    case gpu::FLOAT: {
+                    case gpu::FLOAT:
                         texel.internalFormat = GL_RGBA32F;
                         break;
-                    }
                     case gpu::UINT16:
-                    case gpu::NUINT16: {
+                        texel.format = GL_RGBA_INTEGER;
                         texel.internalFormat = GL_RGBA16UI;
                         break;
-                    }
                     case gpu::INT16:
-                    case gpu::NINT16: {
+                        texel.format = GL_RGBA_INTEGER;
                         texel.internalFormat = GL_RGBA16I;
                         break;
-                    }
-                    case gpu::HALF: {
+                    case gpu::NUINT16:
+                        texel.format = GL_RGBA;
+                        texel.internalFormat = GL_RGBA16;
+                        break;
+                    case gpu::NINT16:
+                        texel.format = GL_RGBA;
+                        texel.internalFormat = GL_RGBA16_SNORM;
+                        break;
+                    case gpu::HALF:
+                        texel.format = GL_RGBA;
                         texel.internalFormat = GL_RGBA16F;
                         break;
-                    }
                     case gpu::UINT8:
-                    case gpu::INT8:
-                    case gpu::NUINT8:
-                    case gpu::NINT8: {
+                        texel.format = GL_RGBA_INTEGER;
+                        texel.internalFormat = GL_RGBA8UI;
                         break;
-                        }
-                    case gpu::NUM_TYPES: { // quiet compiler
+                    case gpu::INT8:
+                        texel.format = GL_RGBA_INTEGER;
+                        texel.internalFormat = GL_RGBA8I;
+                        break;
+                    case gpu::NUINT8:
+                        texel.format = GL_RGBA;
+                        texel.internalFormat = GL_RGBA8;
+                        break;
+                    case gpu::NINT8:
+                        texel.format = GL_RGBA;
+                        texel.internalFormat = GL_RGBA8_SNORM;
+                        break;
+                    case gpu::NUINT32:
+                    case gpu::NINT32:
+                    case gpu::NUM_TYPES: // quiet compiler
                         Q_UNREACHABLE();
                     }
-                    }
-
                     break;
                 case gpu::SRGB:
                     texel.internalFormat = GL_SRGB;
@@ -426,7 +513,6 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
                     glGenerateMipmap(GL_TEXTURE_2D);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
                 }
-
                 object->_target = GL_TEXTURE_2D;
 
                 syncSampler(texture.getSampler(), texture.getType(), object);
@@ -436,7 +522,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = texture.getSize();
+                object->_size = (GLuint)texture.getSize();
             }
 
             glBindTexture(GL_TEXTURE_2D, boundTex);
@@ -514,7 +600,7 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
                 object->_storageStamp = texture.getStamp();
                 object->_contentStamp = texture.getDataStamp();
-                object->_size = texture.getSize();
+                object->_size = (GLuint)texture.getSize();
             }
 
             glBindTexture(GL_TEXTURE_CUBE_MAP, boundTex);
@@ -531,11 +617,16 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
 
 
-GLuint GLBackend::getTextureID(const TexturePointer& texture) {
+GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     if (!texture) {
         return 0;
     }
-    GLTexture* object = GLBackend::syncGPUObject(*texture);
+    GLTexture* object { nullptr };
+    if (sync) {
+        object = GLBackend::syncGPUObject(*texture);
+    } else {
+        object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+    }
     if (object) {
         return object->_texture;
     } else {
@@ -608,4 +699,38 @@ void GLBackend::syncSampler(const Sampler& sampler, Texture::Type type, GLTextur
     glTexParameterf(object->_target, GL_TEXTURE_MAX_LOD, (sampler.getMaxMip() == Sampler::MAX_MIP_LEVEL ? 1000.f : sampler.getMaxMip()));
     glTexParameterf(object->_target, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler.getMaxAnisotropy());
 
+}
+
+
+
+void GLBackend::do_generateTextureMips(Batch& batch, size_t paramOffset) {
+    TexturePointer resourceTexture = batch._textures.get(batch._params[paramOffset + 0]._uint);
+    if (!resourceTexture) {
+        return;
+    }
+
+    GLTexture* object = GLBackend::syncGPUObject(*resourceTexture);
+    if (!object) {
+        return;
+    }
+
+    // IN 4.1 we still need to find an available slot
+    auto freeSlot = _resource.findEmptyTextureSlot();
+    auto bindingSlot = (freeSlot < 0 ? 0 : freeSlot);
+    glActiveTexture(GL_TEXTURE0 + bindingSlot);
+    glBindTexture(object->_target, object->_texture);
+
+    glGenerateMipmap(object->_target);
+
+    if (freeSlot < 0) {
+        // If had to use slot 0 then restore state
+        GLTexture* boundObject = GLBackend::syncGPUObject(*_resource._textures[0]);
+        if (boundObject) {
+            glBindTexture(boundObject->_target, boundObject->_texture);
+        }
+    } else {
+        // clean up
+        glBindTexture(object->_target, 0);
+    }
+    (void)CHECK_GL_ERROR();
 }

@@ -31,7 +31,7 @@ public:
     float update(float measuredValue, float dt, bool resetAccumulator = false); // returns the new computedValue
     void setHistorySize(QString label = QString(""), int size = 0) { _history.reserve(size); _history.resize(0); _label = label; } // non-empty does logging
 
-    bool getIsLogging() { return _history.capacity(); }
+    bool getIsLogging() { return !_label.isEmpty(); }
     float getMeasuredValueSetpoint() const { return _measuredValueSetpoint; }
     // In normal operation (where we can easily reach setpoint), controlledValue is typcially pinned at max.
     // Defaults to [0, max float], but for 1/LODdistance, it might be, say, [0, 0.2 or 0.1]

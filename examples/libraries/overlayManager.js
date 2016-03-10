@@ -221,7 +221,7 @@
 
     var Base3DOverlay = generateOverlayClass(Overlay, ABSTRACT, [
         "position", "lineWidth", "rotation", "isSolid", "isFilled", "isWire", "isDashedLine",
-        "ignoreRayIntersection", "drawInFront", "drawOnHUD"
+        "ignoreRayIntersection", "drawInFront"
     ]);
 
     var Planar3DOverlay = generateOverlayClass(Base3DOverlay, ABSTRACT, [
@@ -236,16 +236,8 @@
         "dimensions"
     ]);
 
-    ImageOverlay = generateOverlayClass(Overlay2D, "image", [
-        "subImage", "imageURL"
-    ]);
-
     Image3DOverlay = generateOverlayClass(Billboard3DOverlay, "image3d", [
         "url", "subImage"
-    ]);
-
-    TextOverlay = generateOverlayClass(Overlay2D, "text", [
-        "font", "text", "backgroundColor", "backgroundAlpha", "leftMargin", "topMargin"
     ]);
 
     Text3DOverlay = generateOverlayClass(Billboard3DOverlay, "text3d", [
@@ -383,6 +375,9 @@
                 searchList[object._id] = object;
             });
             return searchList;
+        },
+        findRayIntersection: function(pickRay) {
+            return Overlays.findRayIntersection(pickRay);
         }
     };
 

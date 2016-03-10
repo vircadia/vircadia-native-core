@@ -9,11 +9,10 @@
 //
 #include "NullDisplayPlugin.h"
 
-const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
+#include <QtGui/QImage>
+#include <plugins/PluginContainer.h>
 
-const QString & NullDisplayPlugin::getName() const {
-    return NAME;
-}
+const QString NullDisplayPlugin::NAME("NullDisplayPlugin");
 
 glm::uvec2 NullDisplayPlugin::getRecommendedRenderSize() const {
     return glm::uvec2(100, 100);
@@ -23,8 +22,16 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-void NullDisplayPlugin::preRender() {}
-void NullDisplayPlugin::preDisplay() {}
-void NullDisplayPlugin::display(uint32_t sceneTexture, const glm::uvec2& sceneSize) {}
-void NullDisplayPlugin::finishFrame() {}
+void NullDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
+    _container->releaseSceneTexture(sceneTexture);
+}
+
+void NullDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overlayTexture) {
+    _container->releaseOverlayTexture(overlayTexture);
+}
+
 void NullDisplayPlugin::stop() {}
+
+QImage NullDisplayPlugin::getScreenshot() const {
+    return QImage();
+}

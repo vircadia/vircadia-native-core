@@ -121,7 +121,7 @@ void testPropertyFlags(uint32_t value) {
 
     {
         #ifndef QT_NO_DEBUG
-        int decodeSize = decodeNew.decode((const uint8_t*)encoded.data(), encoded.size());
+        int decodeSize = (int)decodeNew.decode((const uint8_t*)encoded.data(), (int)encoded.size());
         Q_ASSERT(originalSize == decodeSize);
         Q_ASSERT(decodeNew == original);
         #endif

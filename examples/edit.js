@@ -23,16 +23,15 @@ Script.include([
 
     "libraries/ToolTip.js",
 
-    "libraries/entityPropertyDialogBox.js",
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
+    "particle_explorer/particleExplorerTool.js",
     "libraries/lightOverlayManager.js",
 ]);
 
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
-var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var lightOverlayManager = new LightOverlayManager();
 
@@ -49,7 +48,7 @@ var entityListTool = EntityListTool();
 selectionManager.addEventListener(function() {
     selectionDisplay.updateHandles();
     lightOverlayManager.updatePositions();
-});
+}); 
 
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
@@ -90,6 +89,9 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
+
+// marketplace info, etc.  not quite ready yet.
+var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
@@ -111,11 +113,6 @@ var importingSVOImageOverlay = Overlays.addOverlay("image", {
     width: 20,
     height: 20,
     alpha: 1.0,
-    color: {
-        red: 255,
-        green: 255,
-        blue: 255
-    },
     x: Window.innerWidth - IMPORTING_SVO_OVERLAY_WIDTH,
     y: Window.innerHeight - IMPORTING_SVO_OVERLAY_HEIGHT,
     visible: false,
@@ -140,8 +137,37 @@ var importingSVOTextOverlay = Overlays.addOverlay("text", {
 });
 
 var MARKETPLACE_URL = "https://metaverse.highfidelity.com/marketplace";
-var marketplaceWindow = new WebWindow('Marketplace', MARKETPLACE_URL, 900, 700, false);
-marketplaceWindow.setVisible(false);
+var marketplaceWindow = new OverlayWebWindow({
+    title: 'Marketplace',
+    source: "about:blank",
+    width: 900,
+    height: 700,
+    visible: false
+});
+
+function showMarketplace(marketplaceID) {
+    var url = MARKETPLACE_URL;
+    if (marketplaceID) {
+        url = url + "/items/" + marketplaceID;
+    }
+    print("setting marketplace URL to " + url);
+    marketplaceWindow.setURL(url);
+    marketplaceWindow.setVisible(true);
+    marketplaceWindow.raise();
+}
+
+function hideMarketplace() {
+    marketplaceWindow.setVisible(false);
+    marketplaceWindow.setURL("about:blank");
+}
+
+function toggleMarketplace() {
+    if (marketplaceWindow.visible) {
+        hideMarketplace();
+    } else {
+        showMarketplace();
+    }
+}
 
 var toolBar = (function() {
     var that = {},
@@ -155,7 +181,7 @@ var toolBar = (function() {
         newWebButton,
         newZoneButton,
         newPolyVoxButton,
-        browseMarketplaceButton;
+        newParticleButton
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL, "highfidelity.edit.toolbar", function(windowDimensions, toolbar) {
@@ -165,13 +191,7 @@ var toolBar = (function() {
             };
         });
 
-        browseMarketplaceButton = toolBar.addTool({
-            imageURL: toolIconUrl + "marketplace.svg",
-            width: toolWidth,
-            height: toolHeight,
-            alpha: 0.9,
-            visible: true,
-        });
+
 
         activeButton = toolBar.addTool({
             imageURL: toolIconUrl + "edit-status.svg",
@@ -299,6 +319,20 @@ var toolBar = (function() {
             visible: false
         });
 
+        newParticleButton = toolBar.addTool({
+            imageURL: toolIconUrl + "particle.svg",
+            subImage: {
+                x: 0,
+                y: 0,
+                width: 256,
+                height: 256
+            },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: false
+        });
+
         that.setActive(false);
     }
 
@@ -311,6 +345,7 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
+                Messages.sendLocalMessage("edit-events", JSON.stringify({enabled: active}));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -345,6 +380,7 @@ var toolBar = (function() {
         toolBar.showTool(newWebButton, doShow);
         toolBar.showTool(newZoneButton, doShow);
         toolBar.showTool(newPolyVoxButton, doShow);
+        toolBar.showTool(newParticleButton, doShow);
     };
 
     var RESIZE_INTERVAL = 50;
@@ -386,11 +422,15 @@ var toolBar = (function() {
     }
 
     var newModelButtonDown = false;
-    var browseMarketplaceButtonDown = false;
     that.mousePressEvent = function(event) {
         var clickedOverlay,
             url,
             file;
+
+        if (!event.isLeftButton) {
+            // if another mouse button than left is pressed ignore it
+            return false;
+        }
 
         clickedOverlay = Overlays.getOverlayAtPoint({
             x: event.x,
@@ -408,14 +448,7 @@ var toolBar = (function() {
             newModelButtonDown = true;
             return true;
         }
-        if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-            if (marketplaceWindow.url != MARKETPLACE_URL) {
-                marketplaceWindow.setURL(MARKETPLACE_URL);
-            }
-            marketplaceWindow.setVisible(true);
-            marketplaceWindow.raise();
-            return true;
-        }
+
 
         if (newCubeButton === toolBar.clicked(clickedOverlay)) {
             createNewEntity({
@@ -604,6 +637,22 @@ var toolBar = (function() {
             return true;
         }
 
+        if (newParticleButton === toolBar.clicked(clickedOverlay)) {
+            createNewEntity({
+                type: "ParticleEffect",
+                isEmitting: true,
+                particleRadius: 0.1,
+                emitAcceleration: {x: 0, y: -1, z: 0},
+                accelerationSpread: {x: 5, y: 0, z: 5},
+                emitSpeed: 1,
+                lifespan: 1,
+                particleRadius: 0.025,
+                alphaFinish: 0,
+                emitRate: 100,
+                textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+            });
+        }
+
         return false;
     };
 
@@ -621,22 +670,10 @@ var toolBar = (function() {
                 }
                 handled = true;
             }
-        } else if (browseMarketplaceButtonDown) {
-            var clickedOverlay = Overlays.getOverlayAtPoint({
-                x: event.x,
-                y: event.y
-            });
-            if (browseMarketplaceButton === toolBar.clicked(clickedOverlay)) {
-                url = Window.s3Browse(".*(fbx|FBX|obj|OBJ)");
-                if (url !== null && url !== "") {
-                    addModel(url);
-                }
-                handled = true;
-            }
         }
 
         newModelButtonDown = false;
-        browseMarketplaceButtonDown = false;
+
 
         return handled;
     }
@@ -678,11 +715,30 @@ var intersection;
 
 var SCALE_FACTOR = 200.0;
 
-function rayPlaneIntersection(pickRay, point, normal) {
+function rayPlaneIntersection(pickRay, point, normal) {    //
+    //
+    //  This version of the test returns the intersection of a line with a plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+
     var d = -Vec3.dot(point, normal);
-    var t = -(Vec3.dot(pickRay.origin, normal) + d) / Vec3.dot(pickRay.direction, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
 
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+}
+
+function rayPlaneIntersection2(pickRay, point, normal) {
+    //
+    //  This version of the test returns false if the ray is directed away from the plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+    var d = -Vec3.dot(point, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
+    if (t < 0.0) {
+        return false;
+    } else {
+        return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+    }
 }
 
 function findClickedEntity(event) {
@@ -725,7 +781,8 @@ function findClickedEntity(event) {
     var foundEntity = result.entityID;
     return {
         pickRay: pickRay,
-        entityID: foundEntity
+        entityID: foundEntity,
+        intersection: result.intersection
     };
 }
 
@@ -893,6 +950,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
+    var wantDebug = false;
     if (isActive && event.isLeftButton) {
         var result = findClickedEntity(event);
         if (result === null) {
@@ -907,11 +965,15 @@ function mouseClickEvent(event) {
 
         var properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
-            print("Model locked " + properties.id);
+            if (wantDebug) {
+                print("Model locked " + properties.id);
+            }
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            if (wantDebug) {
+                print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            }
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -948,8 +1010,9 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
-
-                print("Model selected: " + foundEntity);
+                if (wantDebug) {
+                    print("Model selected: " + foundEntity);
+                }
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -963,6 +1026,9 @@ function mouseClickEvent(event) {
     } else if (event.isRightButton) {
         var result = findClickedEntity(event);
         if (result) {
+            if (SHOULD_SHOW_PROPERTY_MENU !== true) {
+                return;
+            }
             var properties = Entities.getEntityProperties(result.entityID);
             if (properties.marketplaceID) {
                 propertyMenu.marketplaceID = properties.marketplaceID;
@@ -995,9 +1061,9 @@ function setupModelMenus() {
     // adj our menuitems
     Menu.addMenuItem({
         menuName: "Edit",
-        menuItemName: "Models",
+        menuItemName: "Entities",
         isSeparator: true,
-        beforeItem: "Physics"
+        grouping: "Advanced"
     });
     if (!Menu.menuItemExists("Edit", "Delete")) {
         print("no delete... adding ours");
@@ -1007,7 +1073,8 @@ function setupModelMenus() {
             shortcutKeyEvent: {
                 text: "backspace"
             },
-            afterItem: "Models"
+            afterItem: "Entities",
+            grouping: "Advanced"
         });
         modelMenuAddedDelete = true;
     } else {
@@ -1018,7 +1085,8 @@ function setupModelMenus() {
         menuName: "Edit",
         menuItemName: "Entity List...",
         shortcutKey: "CTRL+META+L",
-        afterItem: "Models"
+        afterItem: "Entities",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
@@ -1026,7 +1094,8 @@ function setupModelMenus() {
         shortcutKey: "CTRL+META+L",
         afterItem: "Entity List...",
         isCheckable: true,
-        isChecked: true
+        isChecked: true,
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
@@ -1034,79 +1103,84 @@ function setupModelMenus() {
         shortcutKey: "CTRL+META+S",
         afterItem: "Allow Selecting of Large Models",
         isCheckable: true,
-        isChecked: true
+        isChecked: true,
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Lights",
         shortcutKey: "CTRL+SHIFT+META+L",
         afterItem: "Allow Selecting of Small Models",
-        isCheckable: true
+        isCheckable: true,
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities In Box",
         shortcutKey: "CTRL+SHIFT+META+A",
-        afterItem: "Allow Selecting of Lights"
+        afterItem: "Allow Selecting of Lights",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities Touching Box",
         shortcutKey: "CTRL+SHIFT+META+T",
-        afterItem: "Select All Entities In Box"
+        afterItem: "Select All Entities In Box",
+        grouping: "Advanced"
     });
 
     Menu.addMenuItem({
-        menuName: "File",
-        menuItemName: "Models",
-        isSeparator: true,
-        beforeItem: "Settings"
-    });
-    Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Export Entities",
         shortcutKey: "CTRL+META+E",
-        afterItem: "Models"
+        afterItem: "Entities",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Import Entities",
         shortcutKey: "CTRL+META+I",
-        afterItem: "Export Entities"
+        afterItem: "Export Entities",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "File",
+        menuName: "Edit",
         menuItemName: "Import Entities from URL",
         shortcutKey: "CTRL+META+U",
-        afterItem: "Import Entities"
+        afterItem: "Import Entities",
+        grouping: "Advanced"
     });
 
     Menu.addMenuItem({
-        menuName: "View",
+        menuName: "Edit",
         menuItemName: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true"
+        isChecked: Settings.getValue(SETTING_AUTO_FOCUS_ON_SELECT) == "true",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "View",
+        menuName: "Edit",
         menuItemName: MENU_EASE_ON_FOCUS,
         afterItem: MENU_AUTO_FOCUS_ON_SELECT,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true"
+        isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "View",
+        menuName: "Edit",
         menuItemName: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         afterItem: MENU_EASE_ON_FOCUS,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true"
+        isChecked: Settings.getValue(SETTING_SHOW_LIGHTS_IN_EDIT_MODE) == "true",
+        grouping: "Advanced"
     });
     Menu.addMenuItem({
-        menuName: "View",
+        menuName: "Edit",
         menuItemName: MENU_SHOW_ZONES_IN_EDIT_MODE,
         afterItem: MENU_SHOW_LIGHTS_IN_EDIT_MODE,
         isCheckable: true,
-        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true"
+        isChecked: Settings.getValue(SETTING_SHOW_ZONES_IN_EDIT_MODE) == "true",
+        grouping: "Advanced"
     });
 
     Entities.setLightsArePickable(false);
@@ -1115,7 +1189,7 @@ function setupModelMenus() {
 setupModelMenus(); // do this when first running our script.
 
 function cleanupModelMenus() {
-    Menu.removeSeparator("Edit", "Models");
+    Menu.removeSeparator("Edit", "Entities");
     if (modelMenuAddedDelete) {
         // delete our menuitems
         Menu.removeMenuItem("Edit", "Delete");
@@ -1128,15 +1202,14 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("Edit", "Select All Entities In Box");
     Menu.removeMenuItem("Edit", "Select All Entities Touching Box");
 
-    Menu.removeSeparator("File", "Models");
-    Menu.removeMenuItem("File", "Export Entities");
-    Menu.removeMenuItem("File", "Import Entities");
-    Menu.removeMenuItem("File", "Import Entities from URL");
+    Menu.removeMenuItem("Edit", "Export Entities");
+    Menu.removeMenuItem("Edit", "Import Entities");
+    Menu.removeMenuItem("Edit", "Import Entities from URL");
 
-    Menu.removeMenuItem("View", MENU_AUTO_FOCUS_ON_SELECT);
-    Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
-    Menu.removeMenuItem("View", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
-    Menu.removeMenuItem("View", MENU_SHOW_ZONES_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_AUTO_FOCUS_ON_SELECT);
+    Menu.removeMenuItem("Edit", MENU_EASE_ON_FOCUS);
+    Menu.removeMenuItem("Edit", MENU_SHOW_LIGHTS_IN_EDIT_MODE);
+    Menu.removeMenuItem("Edit", MENU_SHOW_ZONES_IN_EDIT_MODE);
 }
 
 Script.scriptEnding.connect(function() {
@@ -1219,7 +1292,8 @@ function selectAllEtitiesInCurrentSelectionBox(keepIfTouching) {
 
 function deleteSelectedEntities() {
     if (SelectionManager.hasSelection()) {
-        print("  Delete Entities");
+        selectedParticleEntity = 0;
+        particleExplorerTool.destroyWebView();
         SelectionManager.saveProperties();
         var savedProperties = [];
         for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -1263,9 +1337,12 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Entities" || menuItem == "Import Entities from URL") {
 
-        var importURL;
+        var importURL = null;
         if (menuItem == "Import Entities") {
-            importURL = "file:///" + Window.browse("Select models to import", "", "*.json");
+            var fullPath = Window.browse("Select models to import", "", "*.json");
+            if (fullPath) {
+                importURL = "file:///" + fullPath;
+            }
         } else {
             importURL = Window.prompt("URL of SVO to import", "");
         }
@@ -1315,6 +1392,7 @@ function getPositionToCreateEntity() {
 }
 
 function importSVO(importURL) {
+    print("Import URL requested: " + importURL)
     if (!Entities.canAdjustLocks()) {
         Window.alert(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
         return;
@@ -1487,7 +1565,11 @@ PropertiesTool = function(opts) {
     var that = {};
 
     var url = Script.resolvePath('html/entityProperties.html');
-    var webView = new WebWindow('Entity Properties', url, 200, 280, true);
+    var webView = new OverlayWebWindow({
+        title: 'Entity Properties',
+        source: url,
+        toolWindow: true
+    });
 
     var visible = false;
 
@@ -1537,6 +1619,19 @@ PropertiesTool = function(opts) {
                     Entities.editEntity(selectionManager.selections[i], properties);
                 }
             } else {
+                if (data.properties.dynamic === false) {
+                    // this object is leaving dynamic, so we zero its velocities
+                    data.properties["velocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
+                    data.properties["angularVelocity"] = {
+                        x: 0,
+                        y: 0,
+                        z: 0
+                    };
+                }
                 if (data.properties.rotation !== undefined) {
                     var rotation = data.properties.rotation;
                     data.properties.rotation = Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z);
@@ -1553,11 +1648,7 @@ PropertiesTool = function(opts) {
             pushCommandForSelections();
             selectionManager._update();
         } else if (data.type == "showMarketplace") {
-            if (marketplaceWindow.url != data.url) {
-                marketplaceWindow.setURL(data.url);
-            }
-            marketplaceWindow.setVisible(true);
-            marketplaceWindow.raise();
+            showMarketplace();
         } else if (data.type == "action") {
             if (data.action == "moveSelectionToGrid") {
                 if (selectionManager.hasSelection()) {
@@ -1643,29 +1734,6 @@ PropertiesTool = function(opts) {
                             scriptTimestamp: timestamp,
                         });
                     }
-                }
-            } else if (data.action == "centerAtmosphereToZone") {
-                if (selectionManager.hasSelection()) {
-                    selectionManager.saveProperties();
-                    for (var i = 0; i < selectionManager.selections.length; i++) {
-                        var properties = selectionManager.savedProperties[selectionManager.selections[i]];
-                        if (properties.type == "Zone") {
-                            var centerOfZone = properties.boundingBox.center;
-                            var atmosphereCenter = {
-                                x: centerOfZone.x,
-                                y: centerOfZone.y - properties.atmosphere.innerRadius,
-                                z: centerOfZone.z
-                            };
-
-                            Entities.editEntity(selectionManager.selections[i], {
-                                atmosphere: {
-                                    center: atmosphereCenter
-                                },
-                            });
-                        }
-                    }
-                    pushCommandForSelections();
-                    selectionManager._update();
                 }
             }
         }
@@ -1834,19 +1902,52 @@ PopupMenu = function() {
     return this;
 };
 
+
 var propertyMenu = PopupMenu();
 
 propertyMenu.onSelectMenuItem = function(name) {
+
     if (propertyMenu.marketplaceID) {
-        var url = MARKETPLACE_URL + "/items/" + propertyMenu.marketplaceID;
-        if (marketplaceWindow.url != url) {
-            marketplaceWindow.setURL(url);
-        }
-        marketplaceWindow.setVisible(true);
-        marketplaceWindow.raise();
+        showMarketplace(propertyMenu.marketplaceID);
     }
 };
 
 var showMenuItem = propertyMenu.addMenuItem("Show in Marketplace");
 
 propertiesTool = PropertiesTool();
+var particleExplorerTool = ParticleExplorerTool();
+var selectedParticleEntity = 0;
+entityListTool.webView.eventBridge.webEventReceived.connect(function(data) {
+    var data = JSON.parse(data);
+    if (data.type == "selectionUpdate") {
+        var ids = data.entityIds;
+        if(ids.length === 1) {
+            if (Entities.getEntityProperties(ids[0], "type").type === "ParticleEffect" ) {
+                if (JSON.stringify(selectedParticleEntity) === JSON.stringify(ids[0])) {
+                    // This particle entity is already selected, so return
+                    return;
+                }
+                // Destroy the old particles web view first
+               particleExplorerTool.destroyWebView();
+               particleExplorerTool.createWebView();
+                var properties = Entities.getEntityProperties(ids[0]);
+                var particleData = {
+                    messageType: "particle_settings",
+                    currentProperties: properties
+                };
+                selectedParticleEntity = ids[0];
+                particleExplorerTool.setActiveParticleEntity(ids[0]);
+
+                particleExplorerTool.webView.eventBridge.webEventReceived.connect(function(data) {
+                    var data = JSON.parse(data);
+                    if (data.messageType === "page_loaded") {
+                        particleExplorerTool.webView.eventBridge.emitScriptEvent(JSON.stringify(particleData));  
+                    }
+                });
+            } else {
+                selectedParticleEntity = 0;
+                particleExplorerTool.destroyWebView();
+            }
+        }
+    }
+});

@@ -19,13 +19,13 @@ public:
     ObjectActionSpring(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectActionSpring();
 
-    virtual bool updateArguments(QVariantMap arguments);
-    virtual QVariantMap getArguments();
+    virtual bool updateArguments(QVariantMap arguments) override;
+    virtual QVariantMap getArguments() override;
 
-    virtual void updateActionWorker(float deltaTimeStep);
+    virtual void updateActionWorker(float deltaTimeStep) override;
 
-    virtual QByteArray serialize() const;
-    virtual void deserialize(QByteArray serializedArguments);
+    virtual QByteArray serialize() const override;
+    virtual void deserialize(QByteArray serializedArguments) override;
 
 protected:
     static const uint16_t springVersion;

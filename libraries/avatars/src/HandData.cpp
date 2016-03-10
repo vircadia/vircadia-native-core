@@ -14,7 +14,7 @@
 #include <GeometryUtil.h>
 #include <SharedUtil.h>
 
-#include "AvatarData.h" 
+#include "AvatarData.h"
 #include "HandData.h"
 
 
@@ -38,7 +38,7 @@ PalmData& HandData::addNewPalm(Hand whichHand)  {
 PalmData HandData::getCopyOfPalmData(Hand hand) const {
     QReadLocker locker(&_palmsLock);
 
-    // the palms are not necessarily added in left-right order, 
+    // the palms are not necessarily added in left-right order,
     // so we have to search for the correct hand
     for (const auto& palm : _palms) {
         if (palm.whichHand() == hand && palm.isActive()) {
@@ -64,7 +64,7 @@ void PalmData::addToPosition(const glm::vec3& delta) {
     _rawPosition += _owningHandData->worldToLocalVector(delta);
 }
 
-bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
+bool HandData::findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration,
                                         const PalmData*& collidingPalm) const {
     QReadLocker locker(&_palmsLock);
 
@@ -93,7 +93,7 @@ glm::vec3 HandData::getBasePosition() const {
 float HandData::getBaseScale() const {
     return _owningAvatarData->getTargetScale();
 }
-        
+
 glm::vec3 PalmData::getFingerDirection() const {
     // finger points along yAxis in hand-frame
     const glm::vec3 LOCAL_FINGER_DIRECTION(0.0f, 1.0f, 0.0f);

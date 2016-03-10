@@ -22,11 +22,11 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 
-#include "../../libraries/render-utils/stars_vert.h"
-#include "../../libraries/render-utils/stars_frag.h"
+#include <stars_vert.h>
+#include <stars_frag.h>
 
-#include "../../libraries/render-utils/standardTransformPNTC_vert.h"
-#include "../../libraries/render-utils/starsGrid_frag.h"
+#include <standardTransformPNTC_vert.h>
+#include <starsGrid_frag.h>
 
 //static const float TILT = 0.23f;
 static const float TILT = 0.0f;
@@ -130,9 +130,9 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
 
     std::call_once(once, [&] {
         {
-            auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(standardTransformPNTC_vert)));
-            auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(starsGrid_frag)));
-            auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+            auto vs = gpu::Shader::createVertex(std::string(standardTransformPNTC_vert));
+            auto ps = gpu::Shader::createPixel(std::string(starsGrid_frag));
+            auto program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram((*program));
             _timeSlot = program->getBuffers().findLocation(UNIFORM_TIME_NAME);
             if (_timeSlot == gpu::Shader::INVALID_LOCATION) {
@@ -143,12 +143,12 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             state->setDepthTest(gpu::State::DepthTest(false));
             state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-            _gridPipeline.reset(gpu::Pipeline::create(program, state));
+            _gridPipeline = gpu::Pipeline::create(program, state);
         }
         {
-            auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(stars_vert)));
-            auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(stars_frag)));
-            auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
+            auto vs = gpu::Shader::createVertex(std::string(stars_vert));
+            auto ps = gpu::Shader::createPixel(std::string(stars_frag));
+            auto program = gpu::Shader::createProgram(vs, ps);
             gpu::Shader::makeProgram((*program));
             auto state = gpu::StatePointer(new gpu::State());
             // enable decal blend
@@ -156,7 +156,7 @@ void Stars::render(RenderArgs* renderArgs, float alpha) {
             state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
             state->setAntialiasedLineEnable(true); // line smoothing also smooth points
             state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
-            _starsPipeline.reset(gpu::Pipeline::create(program, state));
+            _starsPipeline = gpu::Pipeline::create(program, state);
             
         }
 

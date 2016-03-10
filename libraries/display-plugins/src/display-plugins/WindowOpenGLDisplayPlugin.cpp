@@ -7,19 +7,11 @@
 //
 #include "WindowOpenGLDisplayPlugin.h"
 
-#include <QGLWidget>
-#include <QOpenGLContext>
+#include <gl/GLWidget.h>
 
 #include "plugins/PluginContainer.h"
 
-WindowOpenGLDisplayPlugin::WindowOpenGLDisplayPlugin() {
-}
-
-glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedRenderSize() const {
-    return getSurfaceSize();
-}
-
-glm::uvec2 WindowOpenGLDisplayPlugin::getSurfaceSize() const {
+glm::uvec2 WindowOpenGLDisplayPlugin::getSurfacePixels() const {
     uvec2 result;
     if (_window) {
         result = toGlm(_window->geometry().size() * _window->devicePixelRatio());
@@ -27,8 +19,7 @@ glm::uvec2 WindowOpenGLDisplayPlugin::getSurfaceSize() const {
     return result;
 }
 
-
-glm::uvec2 WindowOpenGLDisplayPlugin::getRecommendedUiSize() const {
+glm::uvec2 WindowOpenGLDisplayPlugin::getSurfaceSize() const {
     uvec2 result;
     if (_window) {
         result = toGlm(_window->geometry().size());
@@ -41,11 +32,8 @@ bool WindowOpenGLDisplayPlugin::hasFocus() const {
 }
 
 void WindowOpenGLDisplayPlugin::activate() {
+    _window = _container->getPrimaryWidget();
     OpenGLDisplayPlugin::activate();
-    _window = _container->getPrimarySurface();
-    _window->makeCurrent();
-    customizeContext();
-    _window->doneCurrent();
 }
 
 void WindowOpenGLDisplayPlugin::deactivate() {
@@ -53,14 +41,3 @@ void WindowOpenGLDisplayPlugin::deactivate() {
     _window = nullptr;
 }
 
-void WindowOpenGLDisplayPlugin::makeCurrent() {
-    _window->makeCurrent();
-}
-
-void WindowOpenGLDisplayPlugin::doneCurrent() {
-    _window->doneCurrent();
-}
-
-void WindowOpenGLDisplayPlugin::swapBuffers() {
-    _window->swapBuffers();
-}

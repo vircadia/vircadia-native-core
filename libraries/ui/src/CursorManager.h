@@ -14,8 +14,6 @@
 namespace Cursor {
     enum class Source {
         MOUSE,
-        LEFT_HAND,
-        RIGHT_HAND,
         UNKNOWN,
     };
 
@@ -33,9 +31,6 @@ namespace Cursor {
     class Instance {
     public:
         virtual Source getType() const = 0;
-        virtual ivec2 getWindowPosition(QWidget* widget) const = 0;
-        virtual vec2 getRelativePosition(QWidget* widget) const = 0;
-        virtual ivec2 getScreenPosition() const = 0;
         virtual void setIcon(uint16_t icon);
         virtual uint16_t getIcon() const;
     private:
@@ -52,6 +47,7 @@ namespace Cursor {
         void setScale(float scale);
         Instance* getCursor(uint8_t index = 0);
         uint16_t registerIcon(const QString& path);
+        QList<uint16_t> registeredIcons() const;
         const QString& getIconImage(uint16_t icon);
     private:
         float _scale{ 1.0f };

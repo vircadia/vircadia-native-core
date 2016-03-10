@@ -8,12 +8,14 @@
 #pragma once
 
 #include <functional>
+#include <atomic>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QSize>
 #include <QtCore/QPoint>
+class QImage;
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -22,8 +24,7 @@
 
 enum Eye {
     Left,
-    Right,
-    Mono
+    Right
 };
 
 /*
@@ -49,6 +50,11 @@ class QWindow;
 
 #define AVERAGE_HUMAN_IPD 0.064f
 
+namespace gpu {
+    class Texture;
+    using TexturePointer = std::shared_ptr<Texture>;
+}
+
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
@@ -57,6 +63,7 @@ public:
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }
     virtual bool isThrottled() const { return false; }
+    virtual float getTargetFrameRate() { return 0.0f; }
 
     // Rendering support
 
@@ -66,28 +73,14 @@ public:
     virtual void stop() = 0;
 
     /**
-     *  Called by the application before the frame rendering.  Can be used for
-     *  render timing related calls (for instance, the Oculus begin frame timing
-     *  call)
-     */
-    virtual void preRender() = 0;
-    /**
-     *  Called by the application immediately before calling the display function.
-     *  For OpenGL based plugins, this is the best place to put activate the output
-     *  OpenGL context
-     */
-    virtual void preDisplay() = 0;
-
-    /**
      *  Sends the scene texture to the display plugin.
      */
-    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) = 0;
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) = 0;
 
     /**
-     *  Called by the application immeidately after display.  For OpenGL based
-     *  displays, this is the best place to put the buffer swap
-     */
-    virtual void finishFrame() = 0;
+    *  Sends the scene texture to the display plugin.
+    */
+    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) = 0;
 
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;
@@ -106,9 +99,17 @@ public:
     }
 
     // Stereo specific methods
-    virtual glm::mat4 getProjection(Eye eye, const glm::mat4& baseProjection) const {
+    virtual glm::mat4 getEyeProjection(Eye eye, const glm::mat4& baseProjection) const {
         return baseProjection;
     }
+
+    virtual glm::mat4 getCullingProjection(const glm::mat4& baseProjection) const {
+        return baseProjection;
+    }
+
+
+    // Fetch the most recently displayed image as a QImage
+    virtual QImage getScreenshot() const = 0;
 
     // HMD specific methods
     // TODO move these into another class?
@@ -116,12 +117,12 @@ public:
         static const glm::mat4 transform; return transform;
     }
 
-    virtual glm::mat4 getHeadPose() const {
+    virtual glm::mat4 getHeadPose(uint32_t frameIndex) const {
         static const glm::mat4 pose; return pose;
     }
 
     // Needed for timewarp style features
-    virtual void setEyeRenderPose(Eye eye, const glm::mat4& pose) {
+    virtual void setEyeRenderPose(uint32_t frameIndex, Eye eye, const glm::mat4& pose) {
         // NOOP
     }
 
@@ -129,12 +130,19 @@ public:
 
     virtual void abandonCalibration() {}
     virtual void resetSensors() {}
-    virtual float devicePixelRatio() { return 1.0;  }
-
+    virtual float devicePixelRatio() { return 1.0f; }
+    virtual float presentRate() { return -1.0f; }
+    uint32_t presentCount() const { return _presentedFrameIndex; }
 
     static const QString& MENU_PATH();
+
 signals:
     void recommendedFramebufferSizeChanged(const QSize & size);
-    void requestRender();
+
+protected:
+    void incrementPresentCount() { ++_presentedFrameIndex; }
+
+private:
+    std::atomic<uint32_t> _presentedFrameIndex;
 };
 

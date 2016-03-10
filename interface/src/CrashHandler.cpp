@@ -21,11 +21,9 @@
 #include <QSettings>
 #include <QStandardPaths>
 #include <QVBoxLayout>
+#include <QtCore/QUrl>
 
-#include "DataServerAccountInfo.h"
 #include "Menu.h"
-
-Q_DECLARE_METATYPE(DataServerAccountInfo)
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
 
@@ -57,7 +55,7 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
     layout->addWidget(label);
 
     QRadioButton* option1 = new QRadioButton("Reset all my settings");
-    QRadioButton* option2 = new QRadioButton("Reset my settings but retain login and avatar info.");
+    QRadioButton* option2 = new QRadioButton("Reset my settings but retain avatar info.");
     QRadioButton* option3 = new QRadioButton("Continue with my current settings");
     option3->setChecked(true);
     layout->addWidget(option1);
@@ -79,7 +77,7 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
             return CrashHandler::DELETE_INTERFACE_INI;
         }
         if (option2->isChecked()) {
-            return CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO;
+            return CrashHandler::RETAIN_AVATAR_INFO;
         }
     }
 
@@ -88,7 +86,7 @@ CrashHandler::Action CrashHandler::promptUserForAction() {
 }
 
 void CrashHandler::handleCrash(CrashHandler::Action action) {
-    if (action != CrashHandler::DELETE_INTERFACE_INI && action != CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
+    if (action != CrashHandler::DELETE_INTERFACE_INI && action != CrashHandler::RETAIN_AVATAR_INFO) {
         // CrashHandler::DO_NOTHING or unexpected value
         return;
     }
@@ -101,18 +99,13 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
     const QString DISPLAY_NAME_KEY = "displayName";
     const QString FULL_AVATAR_URL_KEY = "fullAvatarURL";
     const QString FULL_AVATAR_MODEL_NAME_KEY = "fullAvatarModelName";
-    const QString ACCOUNTS_GROUP = "accounts";
     QString displayName;
     QUrl fullAvatarURL;
     QString fullAvatarModelName;
     QUrl address;
-    QMap<QString, DataServerAccountInfo> accounts;
 
-    if (action == CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
-        // Read login and avatar info
-
-        qRegisterMetaType<DataServerAccountInfo>("DataServerAccountInfo");
-        qRegisterMetaTypeStreamOperators<DataServerAccountInfo>("DataServerAccountInfo");
+    if (action == CrashHandler::RETAIN_AVATAR_INFO) {
+        // Read avatar info
 
         // Location and orientation
         settings.beginGroup(ADDRESS_MANAGER_GROUP);
@@ -125,13 +118,6 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         fullAvatarURL = settings.value(FULL_AVATAR_URL_KEY).toUrl();
         fullAvatarModelName = settings.value(FULL_AVATAR_MODEL_NAME_KEY).toString();
         settings.endGroup();
-
-        // Accounts
-        settings.beginGroup(ACCOUNTS_GROUP);
-        foreach(const QString& key, settings.allKeys()) {
-            accounts.insert(key, settings.value(key).value<DataServerAccountInfo>());
-        }
-        settings.endGroup();
     }
 
     // Delete Interface.ini
@@ -140,8 +126,8 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         settingsFile.remove();
     }
 
-    if (action == CrashHandler::RETAIN_LOGIN_AND_AVATAR_INFO) {
-        // Write login and avatar info
+    if (action == CrashHandler::RETAIN_AVATAR_INFO) {
+        // Write avatar info
 
         // Location and orientation
         settings.beginGroup(ADDRESS_MANAGER_GROUP);
@@ -153,13 +139,6 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
         settings.setValue(DISPLAY_NAME_KEY, displayName);
         settings.setValue(FULL_AVATAR_URL_KEY, fullAvatarURL);
         settings.setValue(FULL_AVATAR_MODEL_NAME_KEY, fullAvatarModelName);
-        settings.endGroup();
-
-        // Accounts
-        settings.beginGroup(ACCOUNTS_GROUP);
-        foreach(const QString& key, accounts.keys()) {
-            settings.setValue(key, QVariant::fromValue(accounts.value(key)));
-        }
         settings.endGroup();
     }
 }

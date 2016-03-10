@@ -24,6 +24,7 @@ public:
     Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay);
     
     virtual void render(RenderArgs* args);
+    virtual const render::ShapeKey getShapeKey() override;
 
     virtual Sphere3DOverlay* createClone() const;
 };

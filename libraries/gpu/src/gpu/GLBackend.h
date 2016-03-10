@@ -83,7 +83,7 @@ public:
         ~GLTexture();
     };
     static GLTexture* syncGPUObject(const Texture& texture);
-    static GLuint getTextureID(const TexturePointer& texture);
+    static GLuint getTextureID(const TexturePointer& texture, bool sync = true);
 
     // very specific for now
     static void syncSampler(const Sampler& sampler, Texture::Type type, GLTexture* object);
@@ -173,6 +173,9 @@ public:
     public:
         GLuint _fbo = 0;
         std::vector<GLenum> _colorBuffers;
+        Stamp _depthStamp { 0 };
+        std::vector<Stamp> _colorStamps;
+
 
         GLFramebuffer();
         ~GLFramebuffer();
@@ -195,17 +198,17 @@ public:
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
-    uint32 getNumInputBuffers() const { return _input._invalidBuffers.size(); }
+    size_t getNumInputBuffers() const { return _input._invalidBuffers.size(); }
 
     // this is the maximum per shader stage on the low end apple
     // TODO make it platform dependant at init time
     static const int MAX_NUM_UNIFORM_BUFFERS = 12;
-    uint32 getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
+    size_t getMaxNumUniformBuffers() const { return MAX_NUM_UNIFORM_BUFFERS; }
 
     // this is the maximum per shader stage on the low end apple
     // TODO make it platform dependant at init time
     static const int MAX_NUM_RESOURCE_TEXTURES = 16;
-    uint32 getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
+    size_t getMaxNumResourceTextures() const { return MAX_NUM_RESOURCE_TEXTURES; }
 
     // The State setters called by the GLState::Commands when a new state is assigned
     void do_setStateFillMode(int32 mode);
@@ -248,18 +251,18 @@ protected:
     Stats _stats;
 
     // Draw Stage
-    void do_draw(Batch& batch, uint32 paramOffset);
-    void do_drawIndexed(Batch& batch, uint32 paramOffset);
-    void do_drawInstanced(Batch& batch, uint32 paramOffset);
-    void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
-    void do_multiDrawIndirect(Batch& batch, uint32 paramOffset);
-    void do_multiDrawIndexedIndirect(Batch& batch, uint32 paramOffset);
+    void do_draw(Batch& batch, size_t paramOffset);
+    void do_drawIndexed(Batch& batch, size_t paramOffset);
+    void do_drawInstanced(Batch& batch, size_t paramOffset);
+    void do_drawIndexedInstanced(Batch& batch, size_t paramOffset);
+    void do_multiDrawIndirect(Batch& batch, size_t paramOffset);
+    void do_multiDrawIndexedIndirect(Batch& batch, size_t paramOffset);
     
     // Input Stage
-    void do_setInputFormat(Batch& batch, uint32 paramOffset);
-    void do_setInputBuffer(Batch& batch, uint32 paramOffset);
-    void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
-    void do_setIndirectBuffer(Batch& batch, uint32 paramOffset);
+    void do_setInputFormat(Batch& batch, size_t paramOffset);
+    void do_setInputBuffer(Batch& batch, size_t paramOffset);
+    void do_setIndexBuffer(Batch& batch, size_t paramOffset);
+    void do_setIndirectBuffer(Batch& batch, size_t paramOffset);
 
     void initInput();
     void killInput();
@@ -310,59 +313,55 @@ protected:
     } _input;
 
     // Transform Stage
-    void do_setModelTransform(Batch& batch, uint32 paramOffset);
-    void do_setViewTransform(Batch& batch, uint32 paramOffset);
-    void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
-    void do_setViewportTransform(Batch& batch, uint32 paramOffset);
-    void do_setDepthRangeTransform(Batch& batch, uint32 paramOffset);
+    void do_setModelTransform(Batch& batch, size_t paramOffset);
+    void do_setViewTransform(Batch& batch, size_t paramOffset);
+    void do_setProjectionTransform(Batch& batch, size_t paramOffset);
+    void do_setViewportTransform(Batch& batch, size_t paramOffset);
+    void do_setDepthRangeTransform(Batch& batch, size_t paramOffset);
 
     void initTransform();
     void killTransform();
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncTransformStateCache();
-    void updateTransform() const;
+    void updateTransform(const Batch& batch);
     void resetTransformStage();
 
     struct TransformStageState {
-        using TransformObjects = std::vector<TransformObject>;
         using TransformCameras = std::vector<TransformCamera>;
 
-        TransformObject _object;
         TransformCamera _camera;
-        TransformObjects _objects;
         TransformCameras _cameras;
 
-        size_t _cameraUboSize{ 0 };
-        size_t _objectUboSize{ 0 };
-        GLuint _objectBuffer{ 0 };
-        GLuint _cameraBuffer{ 0 };
-        Transform _model;
+        mutable std::map<std::string, GLvoid*> _drawCallInfoOffsets;
+
+        GLuint _objectBuffer { 0 };
+        GLuint _cameraBuffer { 0 };
+        GLuint _drawCallInfoBuffer { 0 };
+        GLuint _objectBufferTexture { 0 };
+        size_t _cameraUboSize { 0 };
         Transform _view;
         Mat4 _projection;
-        Vec4i _viewport{ 0, 0, 1, 1 };
-        Vec2 _depthRange{ 0.0f, 1.0f };
-        bool _invalidModel{true};
-        bool _invalidView{false};
-        bool _invalidProj{false};
-        bool _invalidViewport{ false };
+        Vec4i _viewport { 0, 0, 1, 1 };
+        Vec2 _depthRange { 0.0f, 1.0f };
+        bool _invalidView { false };
+        bool _invalidProj { false };
+        bool _invalidViewport { false };
 
         using Pair = std::pair<size_t, size_t>;
         using List = std::list<Pair>;
         List _cameraOffsets;
-        List _objectOffsets;
-        mutable List::const_iterator _objectsItr;
         mutable List::const_iterator _camerasItr;
 
         void preUpdate(size_t commandIndex, const StereoState& stereo);
         void update(size_t commandIndex, const StereoState& stereo) const;
-        void transfer() const;
+        void transfer(const Batch& batch) const;
     } _transform;
 
     int32_t _uboAlignment{ 0 };
 
 
     // Uniform Stage
-    void do_setUniformBuffer(Batch& batch, uint32 paramOffset);
+    void do_setUniformBuffer(Batch& batch, size_t paramOffset);
 
     void releaseUniformBuffer(uint32_t slot);
     void resetUniformStage();
@@ -375,12 +374,16 @@ protected:
     } _uniform;
     
     // Resource Stage
-    void do_setResourceTexture(Batch& batch, uint32 paramOffset);
-    
+    void do_setResourceTexture(Batch& batch, size_t paramOffset);
+
+    // update resource cache and do the gl unbind call with the current gpu::Texture cached at slot s
     void releaseResourceTexture(uint32_t slot);
+
     void resetResourceStage();
     struct ResourceStageState {
         Textures _textures;
+
+        int findEmptyTextureSlot() const;
 
         ResourceStageState():
             _textures(MAX_NUM_RESOURCE_TEXTURES, nullptr)
@@ -390,9 +393,9 @@ protected:
     size_t _commandIndex{ 0 };
 
     // Pipeline Stage
-    void do_setPipeline(Batch& batch, uint32 paramOffset);
-    void do_setStateBlendFactor(Batch& batch, uint32 paramOffset);
-    void do_setStateScissorRect(Batch& batch, uint32 paramOffset);
+    void do_setPipeline(Batch& batch, size_t paramOffset);
+    void do_setStateBlendFactor(Batch& batch, size_t paramOffset);
+    void do_setStateScissorRect(Batch& batch, size_t paramOffset);
     
     // Standard update pipeline check that the current Program and current State or good to go for a
     void updatePipeline();
@@ -429,9 +432,10 @@ protected:
     } _pipeline;
 
     // Output stage
-    void do_setFramebuffer(Batch& batch, uint32 paramOffset);
-    void do_clearFramebuffer(Batch& batch, uint32 paramOffset);
-    void do_blit(Batch& batch, uint32 paramOffset);
+    void do_setFramebuffer(Batch& batch, size_t paramOffset);
+    void do_clearFramebuffer(Batch& batch, size_t paramOffset);
+    void do_blit(Batch& batch, size_t paramOffset);
+    void do_generateTextureMips(Batch& batch, size_t paramOffset);
 
     // Synchronize the state cache of this Backend with the actual real state of the GL Context
     void syncOutputStateCache();
@@ -446,9 +450,9 @@ protected:
     } _output;
 
     // Query section
-    void do_beginQuery(Batch& batch, uint32 paramOffset);
-    void do_endQuery(Batch& batch, uint32 paramOffset);
-    void do_getQuery(Batch& batch, uint32 paramOffset);
+    void do_beginQuery(Batch& batch, size_t paramOffset);
+    void do_endQuery(Batch& batch, size_t paramOffset);
+    void do_getQuery(Batch& batch, size_t paramOffset);
 
     void resetQueryStage();
     struct QueryStageState {
@@ -456,33 +460,38 @@ protected:
     };
 
     // Reset stages
-    void do_resetStages(Batch& batch, uint32 paramOffset);
+    void do_resetStages(Batch& batch, size_t paramOffset);
 
-    void do_runLambda(Batch& batch, uint32 paramOffset);
+    void do_runLambda(Batch& batch, size_t paramOffset);
+
+    void do_startNamedCall(Batch& batch, size_t paramOffset);
+    void do_stopNamedCall(Batch& batch, size_t paramOffset);
 
     void resetStages();
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glActiveBindTexture(Batch& batch, uint32 paramOffset);
+    void do_glActiveBindTexture(Batch& batch, size_t paramOffset);
 
-    void do_glUniform1i(Batch& batch, uint32 paramOffset);
-    void do_glUniform1f(Batch& batch, uint32 paramOffset);
-    void do_glUniform2f(Batch& batch, uint32 paramOffset);
-    void do_glUniform3f(Batch& batch, uint32 paramOffset);
-    void do_glUniform4f(Batch& batch, uint32 paramOffset);
-    void do_glUniform3fv(Batch& batch, uint32 paramOffset);
-    void do_glUniform4fv(Batch& batch, uint32 paramOffset);
-    void do_glUniform4iv(Batch& batch, uint32 paramOffset);
-    void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
+    void do_glUniform1i(Batch& batch, size_t paramOffset);
+    void do_glUniform1f(Batch& batch, size_t paramOffset);
+    void do_glUniform2f(Batch& batch, size_t paramOffset);
+    void do_glUniform3f(Batch& batch, size_t paramOffset);
+    void do_glUniform4f(Batch& batch, size_t paramOffset);
+    void do_glUniform3fv(Batch& batch, size_t paramOffset);
+    void do_glUniform4fv(Batch& batch, size_t paramOffset);
+    void do_glUniform4iv(Batch& batch, size_t paramOffset);
+    void do_glUniformMatrix4fv(Batch& batch, size_t paramOffset);
 
-    void do_glColor4f(Batch& batch, uint32 paramOffset);
+    void do_glColor4f(Batch& batch, size_t paramOffset);
 
-    void do_pushProfileRange(Batch& batch, uint32 paramOffset);
-    void do_popProfileRange(Batch& batch, uint32 paramOffset);
+    void do_pushProfileRange(Batch& batch, size_t paramOffset);
+    void do_popProfileRange(Batch& batch, size_t paramOffset);
+    
+    int _currentDraw { -1 };
 
-    typedef void (GLBackend::*CommandCall)(Batch&, uint32);
+    typedef void (GLBackend::*CommandCall)(Batch&, size_t);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
 };
 

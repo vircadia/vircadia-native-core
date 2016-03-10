@@ -90,7 +90,8 @@ public:
         DomainServerRemovedNode,
         MessagesData,
         MessagesSubscribe,
-        MessagesUnsubscribe
+        MessagesUnsubscribe,
+        ICEServerHeartbeatDenied
     };
 };
 
@@ -160,5 +161,17 @@ const PacketVersion VERSION_ENTITIES_KEYLIGHT_PROPERTIES_GROUP = 47;
 const PacketVersion VERSION_ENTITIES_KEYLIGHT_PROPERTIES_GROUP_BIS = 48;
 const PacketVersion VERSION_ENTITIES_PARTICLES_ADDITIVE_BLENDING = 49;
 const PacketVersion VERSION_ENTITIES_POLYLINE_TEXTURE = 50;
+const PacketVersion VERSION_ENTITIES_HAVE_PARENTS = 51;
+const PacketVersion VERSION_ENTITIES_REMOVED_START_AUTOMATICALLY_FROM_ANIMATION_PROPERTY_GROUP = 52;
+const PacketVersion VERSION_MODEL_ENTITIES_JOINTS_ON_WIRE = 53;
+const PacketVersion VERSION_ENTITITES_HAVE_QUERY_BOX = 54;
+const PacketVersion VERSION_ENTITITES_HAVE_COLLISION_MASK = 55;
+const PacketVersion VERSION_ATMOSPHERE_REMOVED = 56;
+const PacketVersion VERSION_LIGHT_HAS_FALLOFF_RADIUS = 57;
+
+enum class AvatarMixerPacketVersion : PacketVersion {
+    TranslationSupport = 17,
+    SoftAttachmentSupport
+};
 
 #endif // hifi_PacketHeaders_h

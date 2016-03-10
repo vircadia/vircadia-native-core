@@ -15,9 +15,7 @@
 
 using namespace gpu;
 
-Pipeline::Pipeline():
-    _program(),
-    _state()
+Pipeline::Pipeline()
 {
 }
 
@@ -25,8 +23,8 @@ Pipeline::~Pipeline()
 {
 }
 
-Pipeline* Pipeline::create(const ShaderPointer& program, const StatePointer& state) {
-    Pipeline* pipeline = new Pipeline();
+Pipeline::Pointer Pipeline::create(const ShaderPointer& program, const StatePointer& state) {
+    auto pipeline = Pointer(new Pipeline());
     pipeline->_program = program;
     pipeline->_state = state;
 

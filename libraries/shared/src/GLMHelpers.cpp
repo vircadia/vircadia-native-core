@@ -285,7 +285,14 @@ glm::quat glmExtractRotation(const glm::mat4& matrix) {
 }
 
 glm::vec3 extractScale(const glm::mat4& matrix) {
-    return glm::vec3(glm::length(matrix[0]), glm::length(matrix[1]), glm::length(matrix[2]));
+    glm::mat3 m(matrix);
+    float det = glm::determinant(m);
+    if (det < 0) {
+        // left handed matrix, flip sign to compensate.
+        return glm::vec3(-glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    } else {
+        return glm::vec3(glm::length(m[0]), glm::length(m[1]), glm::length(m[2]));
+    }
 }
 
 float extractUniformScale(const glm::mat4& matrix) {
@@ -353,6 +360,10 @@ QSize fromGlm(const glm::ivec2 & v) {
     return QSize(v.x, v.y);
 }
 
+vec4 toGlm(const xColor& color, float alpha) {
+    return vec4((float)color.red / 255.0f, (float)color.green / 255.0f, (float)color.blue / 255.0f, alpha);
+}
+
 QRectF glmToRect(const glm::vec2 & pos, const glm::vec2 & size) {
     QRectF result(pos.x, pos.y, size.x, size.y);
     return result;
@@ -363,6 +374,15 @@ glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
     glm::mat4 m = glm::mat4_cast(q);
     m[3] = glm::vec4(p, 1.0f);
     return m;
+}
+
+// create matrix from a non-uniform scale, orientation and position
+glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+    glm::vec3 xAxis = rot * glm::vec3(scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = rot * glm::vec3(0.0f, scale.y, 0.0f);
+    glm::vec3 zAxis = rot * glm::vec3(0.0f, 0.0f, scale.z);
+    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
+                     glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
 // cancel out roll and pitch
@@ -396,7 +416,14 @@ glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p) {
     return glm::vec3(temp.x / temp.w, temp.y / temp.w, temp.z / temp.w);
 }
 
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v) {
+// does not handle non-uniform scale correctly, but it's faster then transformVectorFull
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v) {
+    glm::mat3 rot(m);
+    return rot * v;
+}
+
+// handles non-uniform scale.
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v) {
     glm::mat3 rot(m);
     return glm::inverse(glm::transpose(rot)) * v;
 }
@@ -412,5 +439,35 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
         wAxisOut = glm::normalize(glm::cross(uAxisOut, glm::vec3(0, 1, 0)));
     }
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
+}
+
+glm::vec2 getFacingDir2D(const glm::quat& rot) {
+    glm::vec3 facing3D = rot * Vectors::UNIT_NEG_Z;
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+glm::vec2 getFacingDir2D(const glm::mat4& m) {
+    glm::vec3 facing3D = transformVectorFast(m, Vectors::UNIT_NEG_Z);
+    glm::vec2 facing2D(facing3D.x, facing3D.z);
+    const float ALMOST_ZERO = 0.0001f;
+    if (glm::length(facing2D) < ALMOST_ZERO) {
+        return glm::vec2(1.0f, 0.0f);
+    } else {
+        return glm::normalize(facing2D);
+    }
+}
+
+bool isNaN(glm::vec3 value) {
+    return isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
+}
+
+bool isNaN(glm::quat value) {
+    return isNaN(value.w) || isNaN(value.x) || isNaN(value.y) || isNaN(value.z);
 }
 

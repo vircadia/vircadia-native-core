@@ -45,7 +45,7 @@ public:
     // FIXME move to frame?
     static const qint64 MINIMUM_FRAME_SIZE = sizeof(FrameType) + sizeof(Frame::Time) + sizeof(FrameSize);
 protected:
-    void reset();
+    void reset() override;
     virtual FrameConstPointer readFrame(size_t index) const override;
     QJsonDocument _header;
     uchar* _data { nullptr };

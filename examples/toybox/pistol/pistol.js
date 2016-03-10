@@ -1,6 +1,5 @@
 //
 //  pistol.js
-//  examples/toybox/entityScripts
 //
 //  Created by Eric Levin on11/11/15.
 //  Copyright 2015 High Fidelity, Inc.
@@ -16,7 +15,6 @@
     Script.include("../../libraries/constants.js");
 
     var _this;
-    // if the trigger value goes below this while held, the can will stop spraying.  if it goes above, it will spray
     var DISABLE_LASER_THRESHOLD = 0.2;
     var TRIGGER_CONTROLS = [
         Controller.Standard.LT,
@@ -29,21 +27,21 @@
         this.equipped = false;
         this.forceMultiplier = 1;
         this.laserLength = 100;
-        this.laserOffsets = {
-            y: .095
-        };
-        this.firingOffsets = {
-            z: 0.16
-        }
+
         this.fireSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/GUN-SHOT2.raw");
         this.ricochetSound = SoundCache.getSound("https://s3.amazonaws.com/hifi-public/sounds/Guns/Ricochet.L.wav");
         this.playRichochetSoundChance = 0.1;
         this.fireVolume = 0.2;
         this.bulletForce = 10;
-
-
-
         this.showLaser = false;
+
+        this.laserOffsets = {
+            y: 0.095
+        };
+        this.firingOffsets = {
+            z: 0.16
+        }
+
     };
 
     Pistol.prototype = {
@@ -51,27 +49,41 @@
 
         startEquip: function(id, params) {
             this.equipped = true;
-            this.hand = JSON.parse(params[0]);
+            this.hand = params[0] == "left" ? 0 : 1;
         },
 
-        continueNearGrab: function() {
+        continueEquip: function(id, params) {
             if (!this.equipped) {
                 return;
             }
-            this.toggleWithTriggerPressure();
+            this.updateProps();
             if (this.showLaser) {
                 this.updateLaser();
             }
+            this.toggleWithTriggerPressure();
+        },
+
+        updateProps: function() {
+            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+            this.position = gunProps.position;
+            this.rotation = gunProps.rotation;
+            this.firingDirection = Quat.getFront(this.rotation);
+            var upVec = Quat.getUp(this.rotation);
+            this.barrelPoint = Vec3.sum(this.position, Vec3.multiply(upVec, this.laserOffsets.y));
+            this.laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
+            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
+            var pickRay = {
+                origin: this.barrelPoint,
+                direction: this.firingDirection
+            };
         },
         toggleWithTriggerPressure: function() {
             this.triggerValue = Controller.getValue(TRIGGER_CONTROLS[this.hand]);
 
             if (this.triggerValue < RELOAD_THRESHOLD) {
-                // print('RELOAD');
                 this.canShoot = true;
             }
             if (this.canShoot === true && this.triggerValue === 1) {
-                // print('SHOOT');
                 this.fire();
                 this.canShoot = false;
             }
@@ -91,39 +103,19 @@
 
         },
         updateLaser: function() {
-            var gunProps = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
-            var position = gunProps.position;
-            var rotation = gunProps.rotation;
-            this.firingDirection = Quat.getFront(rotation);
-            var upVec = Quat.getUp(rotation);
-            this.barrelPoint = Vec3.sum(position, Vec3.multiply(upVec, this.laserOffsets.y));
-            var laserTip = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.laserLength));
-            this.barrelPoint = Vec3.sum(this.barrelPoint, Vec3.multiply(this.firingDirection, this.firingOffsets.z))
+
             Overlays.editOverlay(this.laser, {
                 start: this.barrelPoint,
-                end: laserTip,
+                end: this.laserTip,
                 alpha: 1
             });
         },
 
-        unequip: function() {
+        releaseEquip: function(id, params) {
             this.hand = null;
             this.equipped = false;
             Overlays.editOverlay(this.laser, {
                 visible: false
-            });
-        },
-
-        preload: function(entityID) {
-            this.entityID = entityID;
-            // this.initControllerMapping();
-            this.laser = Overlays.addOverlay("line3d", {
-                start: ZERO_VECTOR,
-                end: ZERO_VECTOR,
-                color: COLORS.RED,
-                alpha: 1,
-                visible: true,
-                lineWidth: 2
             });
         },
 
@@ -135,15 +127,16 @@
         },
 
         fire: function() {
-            var pickRay = {
-                origin: this.barrelPoint,
-                direction: this.firingDirection
-            };
+
             Audio.playSound(this.fireSound, {
                 position: this.barrelPoint,
                 volume: this.fireVolume
             });
 
+            var pickRay = {
+                origin: this.barrelPoint,
+                direction: this.firingDirection
+            };
             this.createGunFireEffect(this.barrelPoint)
             var intersection = Entities.findRayIntersectionBlocking(pickRay, true);
             if (intersection.intersects) {
@@ -156,8 +149,8 @@
                         });
                     }, randFloat(10, 200));
                 }
-                if (intersection.properties.collisionsWillMove === 1) {
-                    // Any entity with collisions will move can be shot
+                if (intersection.properties.dynamic === 1) {
+                    // Any dynaic entity can be shot
                     Entities.editEntity(intersection.entityID, {
                         velocity: Vec3.multiply(this.firingDirection, this.bulletForce)
                     });
@@ -170,11 +163,11 @@
         },
 
         createEntityHitEffect: function(position) {
-            var flash = Entities.addEntity({
+            var sparks = Entities.addEntity({
                 type: "ParticleEffect",
                 position: position,
                 lifetime: 4,
-                "name": "Flash Emitter",
+                "name": "Sparks Emitter",
                 "color": {
                     red: 228,
                     green: 128,
@@ -228,7 +221,7 @@
             });
 
             Script.setTimeout(function() {
-                Entities.editEntity(flash, {
+                Entities.editEntity(sparks, {
                     isEmitting: false
                 });
             }, 100);
@@ -261,11 +254,11 @@
                     "z": 0
                 },
                 "accelerationSpread": {
-                    "x": .2,
+                    "x": 0.2,
                     "y": 0,
-                    "z": .2
+                    "z": 0.2
                 },
-                "radiusSpread": .04,
+                "radiusSpread": 0.04,
                 "particleRadius": 0.07,
                 "radiusStart": 0.07,
                 "radiusFinish": 0.07,
@@ -284,9 +277,10 @@
 
             var flash = Entities.addEntity({
                 type: "ParticleEffect",
-                position: position,
-                lifetime: 4,
+                position: this.barrelPoint,
                 "name": "Muzzle Flash",
+                lifetime: 4,
+                parentID: this.entityID,
                 "color": {
                     red: 228,
                     green: 128,
@@ -338,15 +332,25 @@
                 "additiveBlending": true,
                 "textures": "http://ericrius1.github.io/PartiArt/assets/star.png"
             });
-
             Script.setTimeout(function() {
                 Entities.editEntity(flash, {
                     isEmitting: false
                 });
             }, 100)
 
-        }
+        },
 
+        preload: function(entityID) {
+            this.entityID = entityID;
+            this.laser = Overlays.addOverlay("line3d", {
+                start: ZERO_VECTOR,
+                end: ZERO_VECTOR,
+                color: COLORS.RED,
+                alpha: 1,
+                visible: true,
+                lineWidth: 2
+            });
+        },
     };
 
     // entity scripts always need to return a newly constructed object of our type

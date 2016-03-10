@@ -23,6 +23,9 @@ class FramebufferCache : public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
+    // Shadow map size is static
+    static const int SHADOW_MAP_SIZE = 2048;
+
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
     const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
@@ -30,18 +33,29 @@ public:
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
     gpu::FramebufferPointer getPrimaryFramebuffer();
-    gpu::FramebufferPointer getPrimaryFramebufferDepthColor();
 
     gpu::TexturePointer getPrimaryDepthTexture();
     gpu::TexturePointer getPrimaryColorTexture();
-    gpu::TexturePointer getPrimaryNormalTexture();
-    gpu::TexturePointer getPrimarySpecularTexture();
+
+    gpu::FramebufferPointer getDeferredFramebuffer();
+    gpu::FramebufferPointer getDeferredFramebufferDepthColor();
+
+    gpu::TexturePointer getDeferredColorTexture();
+    gpu::TexturePointer getDeferredNormalTexture();
+    gpu::TexturePointer getDeferredSpecularTexture();
+
+    gpu::FramebufferPointer getDepthPyramidFramebuffer();
+    gpu::TexturePointer getDepthPyramidTexture();
+
+    void setAmbientOcclusionResolutionLevel(int level);
+    gpu::FramebufferPointer getOcclusionFramebuffer();
+    gpu::TexturePointer getOcclusionTexture();
+    gpu::FramebufferPointer getOcclusionBlurredFramebuffer();
+    gpu::TexturePointer getOcclusionBlurredTexture();
+    
 
     gpu::TexturePointer getLightingTexture();
     gpu::FramebufferPointer getLightingFramebuffer();
-
-    /// Returns the framebuffer object used to render shadow maps;
-    gpu::FramebufferPointer getShadowFramebuffer();
 
     /// Returns the framebuffer object used to render selfie maps;
     gpu::FramebufferPointer getSelfieFramebuffer();
@@ -59,15 +73,18 @@ private:
 
     void createPrimaryFramebuffer();
 
-    gpu::FramebufferPointer _primaryFramebufferFull;
-    gpu::FramebufferPointer _primaryFramebufferDepthColor;
+    gpu::FramebufferPointer _primaryFramebuffer;
 
     gpu::TexturePointer _primaryDepthTexture;
     gpu::TexturePointer _primaryColorTexture;
-    gpu::TexturePointer _primaryNormalTexture;
-    gpu::TexturePointer _primarySpecularTexture;
-    
-    
+
+    gpu::FramebufferPointer _deferredFramebuffer;
+    gpu::FramebufferPointer _deferredFramebufferDepthColor;
+
+    gpu::TexturePointer _deferredColorTexture;
+    gpu::TexturePointer _deferredNormalTexture;
+    gpu::TexturePointer _deferredSpecularTexture;
+
     gpu::TexturePointer _lightingTexture;
     gpu::FramebufferPointer _lightingFramebuffer;
 
@@ -75,7 +92,22 @@ private:
 
     gpu::FramebufferPointer _selfieFramebuffer;
 
+    gpu::FramebufferPointer _depthPyramidFramebuffer;
+    gpu::TexturePointer _depthPyramidTexture;
+    
+    
+    gpu::FramebufferPointer _occlusionFramebuffer;
+    gpu::TexturePointer _occlusionTexture;
+    
+    gpu::FramebufferPointer _occlusionBlurredFramebuffer;
+    gpu::TexturePointer _occlusionBlurredTexture;
+
     QSize _frameBufferSize{ 100, 100 };
+    int _AOResolutionLevel = 1; // AO perform at half res
+
+    // Resize/reallocate the buffers used for AO
+    // the size of the AO buffers is scaled by the AOResolutionScale;
+    void resizeAmbientOcclusionBuffers();
 };
 
 #endif // hifi_FramebufferCache_h

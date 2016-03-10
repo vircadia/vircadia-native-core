@@ -115,8 +115,8 @@ void ThreadSafeDynamicsWorld::synchronizeMotionState(btRigidBody* body) {
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
-    _changedMotionStates.clear();
     BT_PROFILE("synchronizeMotionStates");
+    _changedMotionStates.clear();
     if (m_synchronizeAllMotionStates) {
         //iterate  over all collision objects
         for (int i=0;i<m_collisionObjects.size();i++) {

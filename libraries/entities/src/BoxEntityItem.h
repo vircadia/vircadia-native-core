@@ -18,7 +18,7 @@ class BoxEntityItem : public EntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
-    BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
+    BoxEntityItem(const EntityItemID& entityItemID);
     
     ALLOW_INSTANTIATION // This class can be instantiated
     
@@ -53,7 +53,7 @@ public:
     }
     
     virtual ShapeType getShapeType() const { return SHAPE_TYPE_BOX; }
-    virtual bool shouldBePhysical() const { return true; }
+    virtual bool shouldBePhysical() const { return !isDead(); }
 
     virtual void debugDump() const;
 

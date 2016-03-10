@@ -26,20 +26,18 @@ const int LineEntityItem::MAX_POINTS_PER_LINE = 70;
 
 
 EntityItemPointer LineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new LineEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity { new LineEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-LineEntityItem::LineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-    EntityItem(entityItemID) ,
+LineEntityItem::LineEntityItem(const EntityItemID& entityItemID) :
+    EntityItem(entityItemID),
     _lineWidth(DEFAULT_LINE_WIDTH),
     _pointsChanged(true),
     _points(QVector<glm::vec3>(0))
 {
     _type = EntityTypes::Line;
-    setProperties(properties);
-    
-    
 }
 
 EntityItemProperties LineEntityItem::getProperties(EntityPropertyFlags desiredProperties) const {

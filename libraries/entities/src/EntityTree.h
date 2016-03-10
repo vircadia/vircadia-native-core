@@ -58,7 +58,7 @@ public:
     void createRootElement();
 
     /// Implements our type specific root element factory
-    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL);
+    virtual OctreeElementPointer createNewElement(unsigned char* octalCode = NULL) override;
 
     /// Type safe version of getRoot()
     EntityTreeElementPointer getRoot() {
@@ -68,39 +68,40 @@ public:
         return std::static_pointer_cast<EntityTreeElement>(_rootElement);
     }
 
-    virtual void eraseAllOctreeElements(bool createNewRoot = true);
+    virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
-    virtual bool getWantSVOfileVersions() const { return true; }
-    virtual PacketType expectedDataPacketType() const { return PacketType::EntityData; }
-    virtual bool canProcessVersion(PacketVersion thisVersion) const
+    virtual bool getWantSVOfileVersions() const override { return true; }
+    virtual PacketType expectedDataPacketType() const override { return PacketType::EntityData; }
+    virtual bool canProcessVersion(PacketVersion thisVersion) const override
                     { return thisVersion >= VERSION_ENTITIES_USE_METERS_AND_RADIANS; }
-    virtual bool handlesEditPacketType(PacketType packetType) const;
+    virtual bool handlesEditPacketType(PacketType packetType) const override;
     void fixupTerseEditLogging(EntityItemProperties& properties, QList<QString>& changedProperties);
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
-                                      const SharedNodePointer& senderNode);
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
+                                      const SharedNodePointer& senderNode) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         OctreeElementPointer& node, float& distance, BoxFace& face, glm::vec3& surfaceNormal,
         const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
+        const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>(),
         void** intersectedObject = NULL,
         Octree::lockType lockType = Octree::TryLock,
         bool* accurateResult = NULL,
         bool precisionPicking = false);
 
-    virtual bool rootElementHasData() const { return true; }
+    virtual bool rootElementHasData() const override { return true; }
 
     // the root at least needs to store the number of entities in the packet/buffer
-    virtual int minimumRequiredRootDataBytes() const { return sizeof(uint16_t); }
-    virtual bool suppressEmptySubtrees() const { return false; }
-    virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const;
-    virtual bool mustIncludeAllChildData() const { return false; }
+    virtual int minimumRequiredRootDataBytes() const override { return sizeof(uint16_t); }
+    virtual bool suppressEmptySubtrees() const override { return false; }
+    virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const override;
+    virtual bool mustIncludeAllChildData() const override { return false; }
 
-    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const override
                     { return thisVersion >= VERSION_ENTITIES_HAS_FILE_BREAKS; }
 
-    virtual void update();
+    virtual void update() override;
 
     // The newer API...
     void postAddEntity(EntityItemPointer entityItem);
@@ -113,8 +114,8 @@ public:
     // use this method if you have a pointer to the entity (avoid an extra entity lookup)
     bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = false);
-    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = false);
+    void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
+    void deleteEntities(QSet<EntityItemID> entityIDs, bool force = false, bool ignoreWarnings = true);
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
@@ -162,7 +163,7 @@ public:
 
     void forgetEntitiesDeletedBefore(quint64 sinceTime);
 
-    int processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityItemFBXService* getFBXService() const { return _fbxService; }
@@ -177,8 +178,8 @@ public:
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element);
     void debugDumpMap();
-    virtual void dumpTree();
-    virtual void pruneTree();
+    virtual void dumpTree() override;
+    virtual void pruneTree() override;
 
     QVector<EntityItemID> sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                        float x, float y, float z);
@@ -196,12 +197,15 @@ public:
     bool wantTerseEditLogging() const { return _wantTerseEditLogging; }
     void setWantTerseEditLogging(bool value) { _wantTerseEditLogging = value; }
 
-    bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues);
-    bool readFromMap(QVariantMap& entityDescription);
+    void remapIDs();
+
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) override;
+    virtual bool readFromMap(QVariantMap& entityDescription) override;
 
     float getContentsLargestDimension();
 
-    virtual void resetEditStats() {
+    virtual void resetEditStats() override {
         _totalEditMessages = 0;
         _totalUpdates = 0;
         _totalCreates = 0;
@@ -212,11 +216,11 @@ public:
         _totalLoggingTime = 0;
     }
 
-    virtual quint64 getAverageDecodeTime() const { return _totalEditMessages == 0 ? 0 : _totalDecodeTime / _totalEditMessages; }
-    virtual quint64 getAverageLookupTime() const { return _totalEditMessages == 0 ? 0 : _totalLookupTime / _totalEditMessages; }
-    virtual quint64 getAverageUpdateTime() const { return _totalUpdates == 0 ? 0 : _totalUpdateTime / _totalUpdates; }
-    virtual quint64 getAverageCreateTime() const { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
-    virtual quint64 getAverageLoggingTime() const { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
+    virtual quint64 getAverageDecodeTime() const override { return _totalEditMessages == 0 ? 0 : _totalDecodeTime / _totalEditMessages; }
+    virtual quint64 getAverageLookupTime() const override { return _totalEditMessages == 0 ? 0 : _totalLookupTime / _totalEditMessages; }
+    virtual quint64 getAverageUpdateTime() const override { return _totalUpdates == 0 ? 0 : _totalUpdateTime / _totalUpdates; }
+    virtual quint64 getAverageCreateTime() const override { return _totalCreates == 0 ? 0 : _totalCreateTime / _totalCreates; }
+    virtual quint64 getAverageLoggingTime() const override { return _totalEditMessages == 0 ? 0 : _totalLoggingTime / _totalEditMessages; }
 
     void trackIncomingEntityLastEdited(quint64 lastEditedTime, int bytesRead);
     quint64 getAverageEditDeltas() const
@@ -232,6 +236,13 @@ public:
         QReadLocker locker(&_deletedEntitiesLock);
         return _deletedEntityItemIDs.contains(id);
     }
+
+    // these are used to call through to EntityItems
+    Q_INVOKABLE int getJointIndex(const QUuid& entityID, const QString& name) const;
+    Q_INVOKABLE QStringList getJointNames(const QUuid& entityID) const;
+
+public slots:
+    void callLoader(EntityItemID entityID);
 
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -301,6 +312,9 @@ protected:
     quint64 _totalEditDeltas = 0;
     quint64 _maxEditDelta = 0;
     quint64 _treeResetTime = 0;
+
+    void fixupMissingParents();
+    QVector<EntityItemWeakPointer> _missingParent;
 };
 
 #endif // hifi_EntityTree_h

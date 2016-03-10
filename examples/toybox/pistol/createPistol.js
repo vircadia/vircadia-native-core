@@ -9,8 +9,8 @@ var pistol = Entities.addEntity({
     position: center,
     dimensions: {
         x: 0.05,
-        y: .23,
-        z: .36
+        y: 0.23,
+        z: 0.36
     },
     script: scriptURL,
     color: {
@@ -19,22 +19,33 @@ var pistol = Entities.addEntity({
         blue: 20
     },
     shapeType: 'box',
-    collisionsWillMove: true,
-    gravity: {x: 0, y: -5.0, z: 0},
+    dynamic: true,
+    gravity: {
+        x: 0,
+        y: -5.0,
+        z: 0
+    },
     restitution: 0,
-    collisionSoundURL: "https://s3.amazonaws.com/hifi-public/sounds/Guns/Gun_Drop_and_Metalli_1.wav",
+    damping:0.5,
+    collisionSoundURL: "http://hifi-content.s3.amazonaws.com/james/pistol/sounds/drop.wav",
     userData: JSON.stringify({
         grabbableKey: {
-            spatialKey: {
-                relativePosition: {
-                    x: 0,
-                    y: 0,
-                    z: 0
-                },
-                relativeRotation: Quat.fromPitchYawRollDegrees(45, 90, 0)
-            },
             invertSolidWhileHeld: true
-        }
+        },
+        wearable:{joints:{RightHand:[{x:0.07079616189002991,
+                                      y:0.20177987217903137,
+                                      z:0.06374628841876984},
+                                     {x:-0.5863648653030396,
+                                      y:-0.46007341146469116,
+                                      z:0.46949487924575806,
+                                      w:-0.4733745753765106}],
+                          LeftHand:[{x:0.1802254319190979,
+                                     y:0.13442856073379517,
+                                     z:0.08504903316497803},
+                                    {x:0.2198076844215393,
+                                     y:-0.7377811074256897,
+                                     z:0.2780133783817291,
+                                     w:0.574519157409668}]}}
     })
 });
 

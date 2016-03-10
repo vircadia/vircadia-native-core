@@ -28,6 +28,9 @@ public:
     /// \return true if rotation is clamped
     virtual bool apply(glm::quat& rotation) const = 0;
 
+    /// \return true if this constraint is part of lower spine
+    virtual bool isLowerSpine() const { return false; }
+
 protected:
     glm::quat _referenceRotation = glm::quat();
 };

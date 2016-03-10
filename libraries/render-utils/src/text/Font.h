@@ -27,7 +27,7 @@ public:
     // Render string to batch
     void drawString(gpu::Batch& batch, float x, float y, const QString& str,
         const glm::vec4* color, EffectType effectType,
-        const glm::vec2& bound);
+        const glm::vec2& bound, bool layered = false);
 
     static Font* load(QIODevice& fontFile);
     static Font* load(const QString& family);
@@ -61,6 +61,7 @@ private:
 
     // gpu structures
     gpu::PipelinePointer _pipeline;
+    gpu::PipelinePointer _layeredPipeline;
     gpu::TexturePointer _texture;
     gpu::Stream::FormatPointer _format;
     gpu::BufferPointer _verticesBuffer;

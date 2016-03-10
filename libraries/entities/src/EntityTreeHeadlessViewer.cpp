@@ -39,6 +39,6 @@ void EntityTreeHeadlessViewer::update() {
     }
 }
 
-void EntityTreeHeadlessViewer::processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode) {
-    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(packet, sourceNode);
+void EntityTreeHeadlessViewer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
+    std::static_pointer_cast<EntityTree>(_tree)->processEraseMessage(message, sourceNode);
 }

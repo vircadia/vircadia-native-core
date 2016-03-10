@@ -9,16 +9,15 @@
 //
 
 <@include gpu/Inputs.slh@>
-
+<@include gpu/Color.slh@>
 <@include gpu/Transform.slh@>
-
 <$declareStandardTransform()$>
 
 out vec4 _color;
 
 void main(void) {
-    // pass along the diffuse color
-    _color = inColor;
+    // pass along the color
+    _color = colorToLinearRGBA(inColor);
 
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();

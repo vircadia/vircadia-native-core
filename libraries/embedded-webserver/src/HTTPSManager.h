@@ -26,7 +26,8 @@ public:
 class HTTPSManager : public HTTPManager, public HTTPSRequestHandler {
     Q_OBJECT
 public:
-    HTTPSManager(quint16 port,
+    HTTPSManager(QHostAddress listenAddress,
+                 quint16 port,
                  const QSslCertificate& certificate,
                  const QSslKey& privateKey,
                  const QString& documentRoot,
@@ -35,12 +36,12 @@ public:
     void setCertificate(const QSslCertificate& certificate) { _certificate = certificate; }
     void setPrivateKey(const QSslKey& privateKey) { _privateKey = privateKey; }
     
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) override;
     
 protected:
-    void incomingConnection(qintptr socketDescriptor);
-    bool requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url);
+    void incomingConnection(qintptr socketDescriptor) override;
+    bool requestHandledByRequestHandler(HTTPConnection* connection, const QUrl& url) override;
 private:
     QSslCertificate _certificate;
     QSslKey _privateKey;

@@ -1,6 +1,6 @@
 //
 //  SceneScriptingInterface.cpp
-//  interface/src/scripting
+//  libraries/script-engine
 //
 //  Created by Sam Gateau on 2/24/15.
 //  Copyright 2014 High Fidelity, Inc.
@@ -11,105 +11,117 @@
 
 #include "SceneScriptingInterface.h"
 
-#include <AddressManager.h>
-
-
 #include <procedural/ProceduralSkybox.h>
 
-SceneScriptingInterface::SceneScriptingInterface() {
-    // Let's make sure the sunSkyStage is using a proceduralSKybox
-    _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
-}
-
-void SceneScriptingInterface::setStageOrientation(const glm::quat& orientation) {
-    _skyStage->setOriginOrientation(orientation);
-}
-void SceneScriptingInterface::setStageLocation(float longitude, float latitude, float altitude) {
-    _skyStage->setOriginLocation(longitude, latitude, altitude);
-}
-
-float SceneScriptingInterface::getStageLocationLongitude() const {
+float SceneScripting::Location::getLongitude() const {
     return _skyStage->getOriginLongitude();
 }
-float SceneScriptingInterface::getStageLocationLatitude() const {
+
+float SceneScripting::Location::getLatitude() const {
     return _skyStage->getOriginLatitude();
 }
-float SceneScriptingInterface::getStageLocationAltitude() const {
+
+float SceneScripting::Location::getAltitude() const {
     return _skyStage->getOriginSurfaceAltitude();
 }
 
-void SceneScriptingInterface::setStageDayTime(float hour) {
+void SceneScripting::Location::setLongitude(float longitude) {
+    _skyStage->setOriginLongitude(longitude);
+}
+
+void SceneScripting::Location::setLatitude(float latitude) {
+    _skyStage->setOriginLatitude(latitude);
+}
+
+void SceneScripting::Location::setAltitude(float altitude) {
+    _skyStage->setOriginSurfaceAltitude(altitude);
+}
+
+void SceneScripting::Time::setHour(float hour) {
     _skyStage->setDayTime(hour);
 }
 
-float SceneScriptingInterface::getStageDayTime() const {
+float SceneScripting::Time::getHour() const {
     return _skyStage->getDayTime();
 }
 
-void SceneScriptingInterface::setStageYearTime(int day) {
+void SceneScripting::Time::setDay(int day) {
     _skyStage->setYearTime(day);
 }
 
-int SceneScriptingInterface::getStageYearTime() const {
+int SceneScripting::Time::getDay() const {
     return _skyStage->getYearTime();
 }
 
-void SceneScriptingInterface::setKeyLightColor(const glm::vec3& color) {
-    _skyStage->setSunColor(color);
-}
-
-glm::vec3 SceneScriptingInterface::getKeyLightColor() const {
+glm::vec3 SceneScripting::KeyLight::getColor() const {
     return _skyStage->getSunColor();
 }
 
-void SceneScriptingInterface::setKeyLightIntensity(float intensity) {
-    _skyStage->setSunIntensity(intensity);
+void SceneScripting::KeyLight::setColor(const glm::vec3& color) {
+    _skyStage->setSunColor(color);
 }
 
-float SceneScriptingInterface::getKeyLightIntensity() const {
+float SceneScripting::KeyLight::getIntensity() const {
     return _skyStage->getSunIntensity();
 }
 
-void SceneScriptingInterface::setKeyLightAmbientIntensity(float intensity) {
-    _skyStage->setSunAmbientIntensity(intensity);
+void SceneScripting::KeyLight::setIntensity(float intensity) {
+    _skyStage->setSunIntensity(intensity);
 }
 
-float SceneScriptingInterface::getKeyLightAmbientIntensity() const {
+float SceneScripting::KeyLight::getAmbientIntensity() const {
     return _skyStage->getSunAmbientIntensity();
 }
 
-void SceneScriptingInterface::setKeyLightDirection(const glm::vec3& direction) {
-    _skyStage->setSunDirection(direction);
+void SceneScripting::KeyLight::setAmbientIntensity(float intensity) {
+    _skyStage->setSunAmbientIntensity(intensity);
 }
 
-glm::vec3 SceneScriptingInterface::getKeyLightDirection() const {
+void SceneScripting::KeyLight::setAmbientSphere(const gpu::SHPointer& sphere) {
+    _skyStage->setSunAmbientSphere(sphere);
+}
+
+void SceneScripting::KeyLight::setAmbientMap(const gpu::TexturePointer& map) {
+    _skyStage->setSunAmbientMap(map);
+}
+
+
+glm::vec3 SceneScripting::KeyLight::getDirection() const {
     return _skyStage->getSunDirection();
 }
 
-void SceneScriptingInterface::setStageSunModelEnable(bool isEnabled) {
+void SceneScripting::KeyLight::setDirection(const glm::vec3& direction) {
+    _skyStage->setSunDirection(direction);
+}
+
+void SceneScripting::Stage::setOrientation(const glm::quat& orientation) const {
+    _skyStage->setOriginOrientation(orientation);
+}
+
+void SceneScripting::Stage::setLocation(float longitude, float latitude, float altitude) {
+    _skyStage->setOriginLocation(longitude, latitude, altitude);
+}
+
+void SceneScripting::Stage::setSunModelEnable(bool isEnabled) {
     _skyStage->setSunModelEnable(isEnabled);
 }
 
-bool SceneScriptingInterface::isStageSunModelEnabled() const {
+bool SceneScripting::Stage::isSunModelEnabled() const {
     return _skyStage->isSunModelEnabled();
 }
 
-void SceneScriptingInterface::setBackgroundMode(const QString& mode) {
+void SceneScripting::Stage::setBackgroundMode(const QString& mode) {
     if (mode == QString("inherit")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::NO_BACKGROUND);
-    } else if (mode == QString("atmosphere")) {
-        _skyStage->setBackgroundMode(model::SunSkyStage::SKY_DOME);
     } else if (mode == QString("skybox")) {
         _skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
     }
 }
 
-QString SceneScriptingInterface::getBackgroundMode() const {
+QString SceneScripting::Stage::getBackgroundMode() const {
     switch (_skyStage->getBackgroundMode()) {
     case model::SunSkyStage::NO_BACKGROUND:
         return QString("inherit");
-    case model::SunSkyStage::SKY_DOME:
-        return QString("atmosphere");
     case model::SunSkyStage::SKY_BOX:
         return QString("skybox");
     default:
@@ -117,8 +129,9 @@ QString SceneScriptingInterface::getBackgroundMode() const {
     };
 }
 
-model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
-    return _skyStage;
+SceneScriptingInterface::SceneScriptingInterface() : _stage{ new SceneScripting::Stage{ _skyStage } } {
+    // Let's make sure the sunSkyStage is using a proceduralSkybox
+    _skyStage->setSkybox(model::SkyboxPointer(new ProceduralSkybox()));
 }
 
 void SceneScriptingInterface::setShouldRenderAvatars(bool shouldRenderAvatars) {
@@ -135,35 +148,6 @@ void SceneScriptingInterface::setShouldRenderEntities(bool shouldRenderEntities)
     }
 }
 
-void SceneScriptingInterface::setEngineRenderOpaque(bool renderOpaque) {
-    _engineRenderOpaque = renderOpaque;
-}
-
-void SceneScriptingInterface::setEngineRenderTransparent(bool renderTransparent) {
-    _engineRenderTransparent = renderTransparent;
-}
-
-void SceneScriptingInterface::setEngineCullOpaque(bool cullOpaque) {
-    _engineCullOpaque = cullOpaque;
-}
-
-void SceneScriptingInterface::setEngineCullTransparent(bool cullTransparent) {
-    _engineCullTransparent = cullTransparent;
-}
-
-void SceneScriptingInterface::setEngineSortOpaque(bool sortOpaque) {
-    _engineSortOpaque = sortOpaque;
-}
-
-void SceneScriptingInterface::setEngineSortTransparent(bool sortTransparent) {
-    _engineSortOpaque = sortTransparent;
-}
-
-void SceneScriptingInterface::clearEngineCounters() {
-    _numFeedOpaqueItems = 0;
-    _numDrawnOpaqueItems = 0;
-    _numFeedTransparentItems = 0;
-    _numDrawnTransparentItems = 0;
-    _numFeedOverlay3DItems = 0;
-    _numDrawnOverlay3DItems = 0;
+model::SunSkyStagePointer SceneScriptingInterface::getSkyStage() const {
+    return _skyStage;
 }

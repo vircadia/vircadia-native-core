@@ -49,6 +49,8 @@ var IDENTITY_QUAT = {
 };
 var ACTION_TTL = 10; // seconds
 
+var enabled = true;
+
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
@@ -158,10 +160,7 @@ Mouse.prototype.startRotateDrag = function() {
         x: this.current.x,
         y: this.current.y
     };
-    this.cursorRestore = {
-        x: Window.getCursorPositionX(),
-        y: Window.getCursorPositionY()
-    };
+    this.cursorRestore = Reticle.getPosition();
 }
 
 Mouse.prototype.getDrag = function() {
@@ -177,7 +176,7 @@ Mouse.prototype.getDrag = function() {
 }
 
 Mouse.prototype.restoreRotateCursor = function() {
-    Window.setCursorPosition(this.cursorRestore.x, this.cursorRestore.y);
+    Reticle.setPosition(this.cursorRestore);
     this.current = {
         x: this.rotateStart.x,
         y: this.rotateStart.y
@@ -309,7 +308,11 @@ Grabber.prototype.computeNewGrabPlane = function() {
 }
 
 Grabber.prototype.pressEvent = function(event) {
-    if (!event.isLeftButton) {
+    if (!enabled) {
+        return;
+    }
+
+    if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
         return;
     }
 
@@ -320,7 +323,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    if (!pickResults.properties.collisionsWillMove) {
+    if (!pickResults.properties.dynamic) {
         // only grab dynamic objects
         return;
     }
@@ -374,7 +377,11 @@ Grabber.prototype.pressEvent = function(event) {
     //Audio.playSound(grabSound, { position: entityProperties.position, volume: VOLUME });
 }
 
-Grabber.prototype.releaseEvent = function() {
+Grabber.prototype.releaseEvent = function(event) {
+        if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
+        return;
+    }
+
     if (this.isGrabbing) {
         this.deactivateEntity(this.entityID);
         this.isGrabbing = false
@@ -502,14 +509,14 @@ Grabber.prototype.activateEntity = function(entityID, grabbedProperties) {
     data["activated"] = true;
     data["avatarId"] = MyAvatar.sessionUUID;
     data["refCount"] = data["refCount"] ? data["refCount"] + 1 : 1;
-    // zero gravity and set ignoreForCollisions to true, but in a way that lets us put them back, after all grabs are done
+    // zero gravity and set collisionless to true, but in a way that lets us put them back, after all grabs are done
     if (data["refCount"] == 1) {
         data["gravity"] = grabbedProperties.gravity;
-        data["ignoreForCollisions"] = grabbedProperties.ignoreForCollisions;
-        data["collisionsWillMove"] = grabbedProperties.collisionsWillMove;
+        data["collisionless"] = grabbedProperties.collisionless;
+        data["dynamic"] = grabbedProperties.dynamic;
         var whileHeldProperties = {gravity: {x:0, y:0, z:0}};
         if (invertSolidWhileHeld) {
-            whileHeldProperties["ignoreForCollisions"] = ! grabbedProperties.ignoreForCollisions;
+            whileHeldProperties["collisionless"] = ! grabbedProperties.collisionless;
         }
         Entities.editEntity(entityID, whileHeldProperties);
     }
@@ -523,8 +530,8 @@ Grabber.prototype.deactivateEntity = function(entityID) {
         if (data["refCount"] < 1) {
             Entities.editEntity(entityID, {
                 gravity: data["gravity"],
-                ignoreForCollisions: data["ignoreForCollisions"],
-                collisionsWillMove: data["collisionsWillMove"]
+                collisionless: data["collisionless"],
+                dynamic: data["dynamic"]
             });
             data = null;
         }
@@ -558,8 +565,29 @@ function keyReleaseEvent(event) {
     grabber.keyReleaseEvent(event);
 }
 
+function editEvent(channel, message, sender, localOnly) {
+    if (channel != "edit-events") {
+        return;
+    }
+    if (sender != MyAvatar.sessionUUID) {
+        return;
+    }
+    if (!localOnly) {
+        return;
+    }
+    try {
+        data = JSON.parse(message);
+        if ("enabled" in data) {
+            enabled = !data["enabled"];
+        }
+    } catch(e) {
+    }
+}
+
 Controller.mousePressEvent.connect(pressEvent);
 Controller.mouseMoveEvent.connect(moveEvent);
 Controller.mouseReleaseEvent.connect(releaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Messages.subscribe("edit-events");
+Messages.messageReceived.connect(editEvent);

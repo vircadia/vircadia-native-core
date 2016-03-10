@@ -60,7 +60,7 @@
                 });
                 break;
             case 3:
-                print("Radius spread");
+                print("Radius spread - temporarily not working");
                 Entities.editEntity(particles, {
                     accelerationSpread: { x: 0.0, y: 0.0, z: 0.0 },
                     radiusSpread: 0.035
@@ -71,6 +71,7 @@
                 Entities.editEntity(particles, {
                     radiusSpread: 0.0,
                     radiusStart: 0.0,
+                    particleRadius: PARTICLE_RADIUS,
                     radiusFinish: 0.0
                 });
                 break;
@@ -78,12 +79,13 @@
                 print("Alpha 0.5");
                 Entities.editEntity(particles, {
                     radiusStart: PARTICLE_RADIUS,
+                    particleRadius: PARTICLE_RADIUS,
                     radiusFinish: PARTICLE_RADIUS,
                     alpha: 0.5
                 });
                 break;
             case 6:
-                print("Alpha spread");
+                print("Alpha spread - temporarily not working");
                 Entities.editEntity(particles, {
                     alpha: 0.5,
                     alphaSpread: 0.5
@@ -99,7 +101,7 @@
                 });
                 break;
             case 8:
-                print("Color spread");
+                print("Color spread - temporarily not working");
                 Entities.editEntity(particles, {
                     alpha: 1.0,
                     alphaStart: 1.0,
@@ -255,7 +257,6 @@
             textures: "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
             color: { red: 255, green: 255, blue: 255 },
             lifespan: 5.0,
-            visible: false,
             locked: false,
             isEmitting: false,
             lifetime: 3600  // 1 hour; just in case

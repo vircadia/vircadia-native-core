@@ -23,6 +23,8 @@
 #include "DomainServer.h"
 
 int main(int argc, char* argv[]) {
+    disableQtBearerPoll(); // Fixes wifi ping spikes
+
 #ifndef WIN32
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif

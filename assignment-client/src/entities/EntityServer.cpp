@@ -16,13 +16,14 @@
 #include "EntityServer.h"
 #include "EntityServerConsts.h"
 #include "EntityNodeData.h"
+#include "AssignmentParentFinder.h"
 
 const char* MODEL_SERVER_NAME = "Entity";
 const char* MODEL_SERVER_LOGGING_TARGET_NAME = "entity-server";
 const char* LOCAL_MODELS_PERSIST_FILE = "resources/models.svo";
 
-EntityServer::EntityServer(NLPacket& packet) :
-    OctreeServer(packet),
+EntityServer::EntityServer(ReceivedMessage& message) :
+    OctreeServer(message),
     _entitySimulation(NULL)
 {
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -40,9 +41,9 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
-void EntityServer::handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
-        _octreeInboundPacketProcessor->queueReceivedPacket(packet, senderNode);
+        _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
     }
 }
 
@@ -60,6 +61,10 @@ OctreePointer EntityServer::createTree() {
         tree->setSimulation(simpleSimulation);
         _entitySimulation = simpleSimulation;
     }
+
+    DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
+    DependencyManager::set<AssignmentParentFinder>(tree);
+
     return tree;
 }
 
@@ -265,4 +270,76 @@ void EntityServer::readAdditionalConfiguration(const QJsonObject& settingsSectio
     EntityTreePointer tree = std::static_pointer_cast<EntityTree>(_tree);
     tree->setWantEditLogging(wantEditLogging);
     tree->setWantTerseEditLogging(wantTerseEditLogging);
+}
+
+
+// FIXME - this stats tracking is somewhat temporary to debug the Whiteboard issues. It's not a bad
+// set of stats to have, but we'd probably want a different data structure if we keep it very long.
+// Since this version uses a single shared QMap for all senders, there could be some lock contention 
+// on this QWriteLocker
+void EntityServer::trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) {
+    QWriteLocker locker(&_viewerSendingStatsLock);
+    _viewerSendingStats[sessionID][dataID] = { usecTimestampNow(), dataLastEdited };
+}
+
+void EntityServer::trackViewerGone(const QUuid& sessionID) {
+    QWriteLocker locker(&_viewerSendingStatsLock);
+    _viewerSendingStats.remove(sessionID);
+    if (_entitySimulation) {
+        _entitySimulation->clearOwnership(sessionID);
+    }
+}
+
+QString EntityServer::serverSubclassStats() {
+    QLocale locale(QLocale::English);
+    QString statsString;
+
+    // display memory usage stats
+    statsString += "<b>Entity Server Memory Statistics</b>\r\n";
+    statsString += QString().sprintf("EntityTreeElement size... %ld bytes\r\n", sizeof(EntityTreeElement));
+    statsString += QString().sprintf("       EntityItem size... %ld bytes\r\n", sizeof(EntityItem));
+    statsString += "\r\n\r\n";
+
+    statsString += "<b>Entity Server Sending to Viewer Statistics</b>\r\n";
+    statsString += "----- Viewer Node ID -----------------    ----- Entity ID ----------------------    "
+                   "---------- Last Sent To ----------    ---------- Last Edited -----------\r\n";
+
+    int viewers = 0;
+    const int COLUMN_WIDTH = 24;
+
+    {
+        QReadLocker locker(&_viewerSendingStatsLock);
+        quint64 now = usecTimestampNow();
+
+        for (auto viewerID : _viewerSendingStats.keys()) {
+            statsString += viewerID.toString() + "\r\n";
+
+            auto viewerData = _viewerSendingStats[viewerID];
+            for (auto entityID : viewerData.keys()) {
+                ViewerSendingStats stats = viewerData[entityID];
+
+                quint64 elapsedSinceSent = now - stats.lastSent;
+                double sentMsecsAgo = (double)(elapsedSinceSent / USECS_PER_MSEC);
+
+                quint64 elapsedSinceEdit = now - stats.lastEdited;
+                double editMsecsAgo = (double)(elapsedSinceEdit / USECS_PER_MSEC);
+
+                statsString += "                                          "; // the viewerID spacing
+                statsString += entityID.toString();
+                statsString += "    ";
+                statsString += QString("%1 msecs ago")
+                    .arg(locale.toString((double)sentMsecsAgo).rightJustified(COLUMN_WIDTH, ' '));
+                statsString += QString("%1 msecs ago")
+                    .arg(locale.toString((double)editMsecsAgo).rightJustified(COLUMN_WIDTH, ' '));
+                statsString += "\r\n";
+            }
+            viewers++;
+        }
+    }
+    if (viewers < 1) {
+        statsString += "    no viewers... \r\n";
+    }
+    statsString += "\r\n\r\n";
+
+    return statsString;
 }

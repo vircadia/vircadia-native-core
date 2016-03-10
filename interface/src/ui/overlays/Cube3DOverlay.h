@@ -24,6 +24,7 @@ public:
     Cube3DOverlay(const Cube3DOverlay* cube3DOverlay);
     
     virtual void render(RenderArgs* args);
+    virtual const render::ShapeKey getShapeKey() override;
 
     virtual Cube3DOverlay* createClone() const;
 
@@ -31,8 +32,8 @@ public:
 
     void setBorderSize(float value) { _borderSize = value; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
 private:
     float _borderSize;

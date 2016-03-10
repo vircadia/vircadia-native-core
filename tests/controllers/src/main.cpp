@@ -81,18 +81,16 @@ class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
 public:
     virtual ~PluginContainerProxy() {}
-    virtual void addMenu(const QString& menuName) override {}
-    virtual void removeMenu(const QString& menuName) override {}
-    virtual QAction* addMenuItem(const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override { return nullptr;  }
-    virtual void removeMenuItem(const QString& menuName, const QString& menuItem) override {}
-    virtual bool isOptionChecked(const QString& name) override { return false;  }
-    virtual void setIsOptionChecked(const QString& path, bool checked) override {}
-    virtual void setFullscreen(const QScreen* targetScreen, bool hideMenu = true) override {}
-    virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) override {}
     virtual void showDisplayPluginsTools() override {}
     virtual void requestReset() override {}
-    virtual QGLWidget* getPrimarySurface() override { return nullptr; }
-    virtual bool isForeground() override { return true;  }
+    virtual bool makeRenderingContextCurrent() override { return true; }
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override {}
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override {}
+    virtual GLWidget* getPrimaryWidget() override { return nullptr; }
+    virtual MainWindow* getPrimaryWindow() override { return nullptr; }
+    virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
+    virtual ui::Menu* getPrimaryMenu() { return nullptr; }
+    virtual bool isForeground() override { return true; }
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
 };
 
@@ -116,8 +114,14 @@ int main(int argc, char** argv) {
         float delta = now - last;
         last = now;
 
+        InputCalibrationData calibrationData = {
+            glm::mat4(),
+            glm::mat4(),
+            glm::mat4()
+        };
+
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-            inputPlugin->pluginUpdate(delta, false);
+            inputPlugin->pluginUpdate(delta, calibrationData, false);
         }
 
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -126,6 +130,12 @@ int main(int argc, char** argv) {
     timer.start(50);
 
     {
+        InputCalibrationData calibrationData = {
+            glm::mat4(),
+            glm::mat4(),
+            glm::mat4()
+        };
+
         DependencyManager::set<controller::UserInputMapper>();
         foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
             QString name = inputPlugin->getName();
@@ -134,7 +144,7 @@ int main(int argc, char** argv) {
             if (name == KeyboardMouseDevice::NAME) {
                 userInputMapper->registerDevice(std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin)->getInputDevice());
             }
-            inputPlugin->pluginUpdate(0, false);
+            inputPlugin->pluginUpdate(0, calibrationData, false);
         }
         rootContext->setContextProperty("Controllers", new MyControllerScriptingInterface());
     }

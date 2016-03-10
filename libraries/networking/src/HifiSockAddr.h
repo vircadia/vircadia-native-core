@@ -92,7 +92,7 @@ namespace std {
 }
 
 
-QHostAddress getLocalAddress();
+QHostAddress getGuessedLocalAddress();
 
 Q_DECLARE_METATYPE(HifiSockAddr);
 

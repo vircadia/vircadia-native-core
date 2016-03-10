@@ -235,7 +235,12 @@ var usersWindow = (function () {
         FRIENDS_BUTTON_HEIGHT = FRIENDS_BUTTON_SVG_HEIGHT,
         FRIENDS_BUTTON_COLOR = { red: 225, green: 225, blue: 225 },
         FRIENDS_BUTTON_ALPHA = 0.95,
+        FRIENDS_WINDOW_URL = "https://metaverse.highfidelity.com/user/friends",
+    	FRIENDS_WINDOW_WIDTH = 290,
+    	FRIENDS_WINDOW_HEIGHT = 500,
+        FRIENDS_WINDOW_TITLE = "Add/Remove Friends",
         friendsButton,
+        friendsWindow,
 
         OPTION_BACKGROUND_COLOR = { red: 60, green: 60, blue: 60 },
         OPTION_BACKGROUND_ALPHA = 0.1,
@@ -643,7 +648,17 @@ var usersWindow = (function () {
         }
 
         if (clickedOverlay === friendsButton) {
-            GlobalServices.editFriends();
+	    	if (!friendsWindow) {
+	    		friendsWindow = new OverlayWebWindow({
+				    title: FRIENDS_WINDOW_TITLE, 
+				    width: FRIENDS_WINDOW_WIDTH, 
+				    height: FRIENDS_WINDOW_HEIGHT,
+				    visible: false
+				});
+			}
+			friendsWindow.setURL(FRIENDS_WINDOW_URL);
+		    friendsWindow.setVisible(true);
+    		friendsWindow.raise();
         }
     }
 

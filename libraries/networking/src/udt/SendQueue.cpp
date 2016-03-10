@@ -12,12 +12,14 @@
 #include "SendQueue.h"
 
 #include <algorithm>
+#include <random>
 #include <thread>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QDateTime>
 #include <QtCore/QThread>
 
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "../NetworkLogging.h"
@@ -56,7 +58,7 @@ std::unique_ptr<SendQueue> SendQueue::create(Socket* socket, HifiSockAddr destin
     Q_ASSERT_X(socket, "SendQueue::create", "Must be called with a valid Socket*");
     
     auto queue = std::unique_ptr<SendQueue>(new SendQueue(socket, destination));
-    
+
     // Setup queue private thread
     QThread* thread = new QThread;
     thread->setObjectName("Networking: SendQueue " + destination.objectName()); // Name thread for easier debug
@@ -78,6 +80,19 @@ SendQueue::SendQueue(Socket* socket, HifiSockAddr dest) :
     _socket(socket),
     _destination(dest)
 {
+
+    // setup psuedo-random number generation for all instances of SendQueue
+    static std::random_device rd;
+    static std::mt19937 generator(rd());
+    static std::uniform_int_distribution<> distribution(0, SequenceNumber::MAX);
+
+    // randomize the intial sequence number
+    _initialSequenceNumber = SequenceNumber(distribution(generator));
+
+    // set our member variables from randomized initial number
+    _currentSequenceNumber = _initialSequenceNumber - 1;
+    _atomicCurrentSequenceNumber = uint32_t(_currentSequenceNumber);
+    _lastACKSequenceNumber = uint32_t(_currentSequenceNumber) - 1;
 }
 
 void SendQueue::queuePacket(std::unique_ptr<Packet> packet) {
@@ -187,7 +202,11 @@ void SendQueue::sendHandshake() {
     std::unique_lock<std::mutex> handshakeLock { _handshakeMutex };
     if (!_hasReceivedHandshakeACK) {
         // we haven't received a handshake ACK from the client, send another now
-        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, 0);
+        static const auto handshakePacket = ControlPacket::create(ControlPacket::Handshake, sizeof(SequenceNumber));
+
+        handshakePacket->seek(0);
+
+        handshakePacket->writePrimitive(_initialSequenceNumber);
         _socket->writeBasePacket(*handshakePacket, _destination);
         
         // we wait for the ACK or the re-send interval to expire
@@ -196,14 +215,16 @@ void SendQueue::sendHandshake() {
     }
 }
 
-void SendQueue::handshakeACK() {
-    {
-        std::lock_guard<std::mutex> locker { _handshakeMutex };
-        _hasReceivedHandshakeACK = true;
+void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
+    if (initialSequenceNumber == _initialSequenceNumber) {
+        {
+            std::lock_guard<std::mutex> locker { _handshakeMutex };
+            _hasReceivedHandshakeACK = true;
+        }
+
+        // Notify on the handshake ACK condition
+        _handshakeACKCondition.notify_one();
     }
-    
-    // Notify on the handshake ACK condition
-    _handshakeACKCondition.notify_one();
 }
 
 SequenceNumber SendQueue::getNextSequenceNumber() {
@@ -223,7 +244,9 @@ void SendQueue::sendNewPacketAndAddToSentList(std::unique_ptr<Packet> newPacket,
     {
         // Insert the packet we have just sent in the sent list
         QWriteLocker locker(&_sentLock);
-        _sentPackets[newPacket->getSequenceNumber()].swap(newPacket);
+        auto& entry = _sentPackets[newPacket->getSequenceNumber()];
+        entry.first = 0; // No resend
+        entry.second.swap(newPacket);
     }
     Q_ASSERT_X(!newPacket, "SendQueue::sendNewPacketAndAddToSentList()", "Overriden packet in sent list");
     
@@ -352,14 +375,46 @@ bool SendQueue::maybeResendPacket() {
             auto it = _sentPackets.find(resendNumber);
             
             if (it != _sentPackets.end()) {
+                auto& entry = it->second;
                 // we found the packet - grab it
-                auto& resendPacket = *(it->second);
-                
-                // send it off
-                sendPacket(resendPacket);
-                
-                // unlock the sent packets
-                sentLocker.unlock();
+                auto& resendPacket = *(entry.second);
+                ++entry.first; // Add 1 resend
+
+                Packet::ObfuscationLevel level = (Packet::ObfuscationLevel)(entry.first < 2 ? 0 : (entry.first - 2) % 4);
+
+                if (level != Packet::NoObfuscation) {
+#ifdef UDT_CONNECTION_DEBUG
+                    QString debugString = "Obfuscating packet %1 with level %2";
+                    debugString = debugString.arg(QString::number((uint32_t)resendPacket.getSequenceNumber()),
+                                                  QString::number(level));
+                    if (resendPacket.isPartOfMessage()) {
+                        debugString += "\n";
+                        debugString += "    Message Number: %1, Part Number: %2.";
+                        debugString = debugString.arg(QString::number(resendPacket.getMessageNumber()),
+                                                      QString::number(resendPacket.getMessagePartNumber()));
+                    }
+                    static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex("^Obfuscating packet .*");
+                    qCritical() << qPrintable(debugString);
+#endif
+
+                    // Create copy of the packet
+                    auto packet = Packet::createCopy(resendPacket);
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+
+                    // Obfuscate packet
+                    packet->obfuscate(level);
+
+                    // send it off
+                    sendPacket(*packet);
+                } else {
+                    // send it off
+                    sendPacket(resendPacket);
+
+                    // unlock the sent packets
+                    sentLocker.unlock();
+                }
                 
                 emit packetRetransmitted();
                 
@@ -389,6 +444,7 @@ bool SendQueue::isInactive(bool sentAPacket) {
         static const int NUM_TIMEOUTS_BEFORE_INACTIVE = 16;
         static const int MIN_SECONDS_BEFORE_INACTIVE_MS = 5 * 1000;
         if (_timeoutExpiryCount >= NUM_TIMEOUTS_BEFORE_INACTIVE &&
+            _lastReceiverResponse > 0 &&
             (QDateTime::currentMSecsSinceEpoch() - _lastReceiverResponse) > MIN_SECONDS_BEFORE_INACTIVE_MS) {
             // If the flow window has been full for over CONSIDER_INACTIVE_AFTER,
             // then signal the queue is inactive and return so it can be cleaned up

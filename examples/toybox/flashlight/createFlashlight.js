@@ -18,14 +18,41 @@ var scriptURL = Script.resolvePath('flashlight.js');
 
 var modelURL = "https://hifi-public.s3.amazonaws.com/models/props/flashlight.fbx";
 
-var center = Vec3.sum(Vec3.sum(MyAvatar.position, {x: 0, y: 0.5, z: 0}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
+var center = Vec3.sum(Vec3.sum(MyAvatar.position, {
+    x: 0,
+    y: 0.5,
+    z: 0
+}), Vec3.multiply(0.5, Quat.getFront(Camera.getOrientation())));
 
 var flashlight = Entities.addEntity({
     type: "Model",
     modelURL: modelURL,
     position: center,
-    dimensions: { x: 0.08, y: 0.30, z: 0.08},
-    collisionsWillMove: true,
+    dimensions: {
+        x: 0.08,
+        y: 0.30,
+        z: 0.08
+    },
+    dynamic: true,
     shapeType: 'box',
-    script: scriptURL
+    script: scriptURL,
+    userData: JSON.stringify({
+        grabbableKey: {
+            invertSolidWhileHeld: true
+        },
+        wearable:{joints:{RightHand:[{x:0.0717092975974083,
+                                      y:0.1166968047618866,
+                                      z:0.07085515558719635},
+                                     {x:-0.7195770740509033,
+                                      y:0.175227552652359,
+                                      z:0.5953742265701294,
+                                      w:0.31150275468826294}],
+                          LeftHand:[{x:0.0806504637002945,
+                                     y:0.09710478782653809,
+                                     z:0.08610185235738754},
+                                    {x:0.5630447864532471,
+                                     y:-0.2545935809612274,
+                                     z:0.7855332493782043,
+                                     w:0.033170729875564575}]}}
+    })
 });

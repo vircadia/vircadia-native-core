@@ -21,6 +21,7 @@ Framebuffer::~Framebuffer() {
 Framebuffer* Framebuffer::create() {
     auto framebuffer = new Framebuffer();
     framebuffer->_renderBuffers.resize(MAX_NUM_RENDER_BUFFERS);
+    framebuffer->_colorStamps.resize(MAX_NUM_RENDER_BUFFERS, 0);
     return framebuffer;
 }
 
@@ -49,7 +50,9 @@ Framebuffer* Framebuffer::create( const Format& colorBufferFormat, const Format&
 
 Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     auto framebuffer = Framebuffer::create();
-    auto depthTexture = TexturePointer(Texture::create2D(Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH), width, width));
+
+    auto depthFormat = Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH); // Depth32 texel format
+    auto depthTexture = TexturePointer(Texture::create2D(depthFormat, width, width));
         
     Sampler::Desc samplerDesc;
     samplerDesc._borderColor = glm::vec4(1.0f);
@@ -59,8 +62,7 @@ Framebuffer* Framebuffer::createShadowmap(uint16 width) {
     samplerDesc._comparisonFunc = LESS_EQUAL;
 
     depthTexture->setSampler(Sampler(samplerDesc));
-
-    framebuffer->setDepthStencilBuffer(depthTexture, Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH));
+    framebuffer->setDepthStencilBuffer(depthTexture, depthFormat);
 
     return framebuffer;
 }
@@ -173,6 +175,8 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
         }
     }
 
+    ++_colorStamps[slot];
+
     updateSize(texture);
 
     // assign the new one
@@ -189,6 +193,7 @@ int Framebuffer::setRenderBuffer(uint32 slot, const TexturePointer& texture, uin
 }
 
 void Framebuffer::removeRenderBuffers() {
+
     if (isSwapchain()) {
         return;
     }
@@ -229,6 +234,7 @@ uint32 Framebuffer::getRenderBufferSubresource(uint32 slot) const {
 }
 
 bool Framebuffer::setDepthStencilBuffer(const TexturePointer& texture, const Format& format, uint32 subresource) {
+    ++_depthStamp;
     if (isSwapchain()) {
         return false;
     }

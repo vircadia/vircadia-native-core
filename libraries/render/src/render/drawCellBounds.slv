@@ -1,0 +1,67 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  drawCellBounds.slv
+//  Vertex shader
+//
+//  Created by Sam Gateau on 1/25/2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+<@include SceneOctree.slh@>
+
+uniform ivec4 inCellLocation;
+
+out vec4 varColor;
+
+
+void main(void) {
+    const vec4 UNIT_BOX[8] = vec4[8](
+        vec4(0.0, 0.0, 0.0, 1.0),
+        vec4(1.0, 0.0, 0.0, 1.0),
+        vec4(0.0, 1.0, 0.0, 1.0),
+        vec4(1.0, 1.0, 0.0, 1.0),
+        vec4(0.0, 0.0, 1.0, 1.0),
+        vec4(1.0, 0.0, 1.0, 1.0),
+        vec4(0.0, 1.0, 1.0, 1.0),
+        vec4(1.0, 1.0, 1.0, 1.0)
+    );
+    const int UNIT_BOX_LINE_INDICES[24] = int[24](
+        0, 1,
+        1, 3,
+        3, 2,
+        2, 0,
+        4, 5,
+        5, 7,
+        7, 6,
+        6, 4,
+        2, 6,
+        3, 7,
+        0, 4,
+        1, 5
+    );
+    vec4 pos = UNIT_BOX[UNIT_BOX_LINE_INDICES[gl_VertexID]];
+
+    int cellIsEmpty = sign(inCellLocation.w);
+    ivec4 cellLocation = ivec4(inCellLocation.xyz, (inCellLocation.w < 0  ? -inCellLocation.w : inCellLocation.w));
+    vec4 cellBound = evalBound(cellLocation);
+
+    pos.xyz = cellBound.xyz + vec3(cellBound.w) * pos.xyz;
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, pos, gl_Position)$>
+
+    varColor = vec4(colorWheel(fract(float(inCellLocation.w) / 5.0)), 0.8 + 0.2 * cellIsEmpty);
+}

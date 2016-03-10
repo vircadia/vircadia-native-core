@@ -8,15 +8,6 @@
 
 #include "InterleavedStereoDisplayPlugin.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
-
-#include <gl/GlWindow.h>
-#include <ViewFrustum.h>
-#include <MatrixStack.h>
-
-#include <gpu/GLBackend.h>
-
 static const char * INTERLEAVED_TEXTURED_VS = R"VS(#version 410 core
 #pragma line __LINE__
 
@@ -53,19 +44,17 @@ void main() {
 
 )FS";
 
-const QString InterleavedStereoDisplayPlugin::NAME("Interleaved Stereo Display");
-
-const QString & InterleavedStereoDisplayPlugin::getName() const {
-    return NAME;
-}
-
-InterleavedStereoDisplayPlugin::InterleavedStereoDisplayPlugin() {
-}
+const QString InterleavedStereoDisplayPlugin::NAME("3D TV - Interleaved");
 
 void InterleavedStereoDisplayPlugin::customizeContext() {
     StereoDisplayPlugin::customizeContext();
     // Set up the stencil buffers?  Or use a custom shader?
-    compileProgram(_program, INTERLEAVED_TEXTURED_VS, INTERLEAVED_TEXTURED_FS);
+    compileProgram(_interleavedProgram, INTERLEAVED_TEXTURED_VS, INTERLEAVED_TEXTURED_FS);
+}
+
+void InterleavedStereoDisplayPlugin::uncustomizeContext() {
+    _interleavedProgram.reset();
+    StereoDisplayPlugin::uncustomizeContext();
 }
 
 glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
@@ -75,10 +64,16 @@ glm::uvec2 InterleavedStereoDisplayPlugin::getRecommendedRenderSize() const {
     return result;
 }
 
-void InterleavedStereoDisplayPlugin::display(
-    GLuint finalTexture, const glm::uvec2& sceneSize) {
+void InterleavedStereoDisplayPlugin::internalPresent() {
     using namespace oglplus;
-    _program->Bind();
-    Uniform<ivec2>(*_program, "textureSize").SetValue(sceneSize);
-    WindowOpenGLDisplayPlugin::display(finalTexture, sceneSize);
+    auto sceneSize = getRecommendedRenderSize();
+    _interleavedProgram->Bind();
+    Uniform<ivec2>(*_interleavedProgram, "textureSize").SetValue(sceneSize);
+    auto surfaceSize = getSurfacePixels();
+    Context::Viewport(0, 0, surfaceSize.x, surfaceSize.y);
+    glBindTexture(GL_TEXTURE_2D, GetName(_compositeFramebuffer->color));
+    _plane->Use();
+    _plane->Draw();
+    swapBuffers();
 }
+

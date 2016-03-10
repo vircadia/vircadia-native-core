@@ -23,8 +23,6 @@ layout(location = 0) out vec4 _fragColor0;
 layout(location = 1) out vec4 _fragColor1;
 layout(location = 2) out vec4 _fragColor2;
 
-// the glow intensity
-uniform float glowIntensity;
 // the alpha threshold
 uniform float alphaThreshold;
 uniform sampler2D normalFittingMap;
@@ -318,8 +316,8 @@ const QString SHADER_TEMPLATE_V1 = SHADER_COMMON + R"SCRIBE(
 void main(void) {
     vec4 emissive = getProceduralColor();
 
-    float alpha = glowIntensity * emissive.a;
-    if (alpha != glowIntensity) {
+    float alpha = emissive.a;
+    if (alpha != 1.0) {
         discard;
     }
 

@@ -32,7 +32,6 @@ class UDTTest;
 namespace udt {
 
 class BasePacket;
-class ControlSender;
 class Packet;
 class PacketList;
 class SequenceNumber;
@@ -41,7 +40,8 @@ using PacketFilterOperator = std::function<bool(const Packet&)>;
 
 using BasePacketHandler = std::function<void(std::unique_ptr<BasePacket>)>;
 using PacketHandler = std::function<void(std::unique_ptr<Packet>)>;
-using PacketListHandler = std::function<void(std::unique_ptr<PacketList>)>;
+using MessageHandler = std::function<void(std::unique_ptr<Packet>)>;
+using MessageFailureHandler = std::function<void(HifiSockAddr, udt::Packet::MessageNumber)>;
 
 class Socket : public QObject {
     Q_OBJECT
@@ -65,14 +65,16 @@ public:
     
     void setPacketFilterOperator(PacketFilterOperator filterOperator) { _packetFilterOperator = filterOperator; }
     void setPacketHandler(PacketHandler handler) { _packetHandler = handler; }
-    void setPacketListHandler(PacketListHandler handler) { _packetListHandler = handler; }
+    void setMessageHandler(MessageHandler handler) { _messageHandler = handler; }
+    void setMessageFailureHandler(MessageFailureHandler handler) { _messageFailureHandler = handler; }
     
     void addUnfilteredHandler(const HifiSockAddr& senderSockAddr, BasePacketHandler handler)
         { _unfilteredHandlers[senderSockAddr] = handler; }
     
     void setCongestionControlFactory(std::unique_ptr<CongestionControlVirtualFactory> ccFactory);
 
-    void messageReceived(std::unique_ptr<PacketList> packetList);
+    void messageReceived(std::unique_ptr<Packet> packet);
+    void messageFailed(Connection* connection, Packet::MessageNumber messageNumber);
     
     StatsVector sampleStatsForAllConnections();
 
@@ -100,7 +102,8 @@ private:
     QUdpSocket _udpSocket { this };
     PacketFilterOperator _packetFilterOperator;
     PacketHandler _packetHandler;
-    PacketListHandler _packetListHandler;
+    MessageHandler _messageHandler;
+    MessageFailureHandler _messageFailureHandler;
     
     std::unordered_map<HifiSockAddr, BasePacketHandler> _unfilteredHandlers;
     std::unordered_map<HifiSockAddr, SequenceNumber> _unreliableSequenceNumbers;

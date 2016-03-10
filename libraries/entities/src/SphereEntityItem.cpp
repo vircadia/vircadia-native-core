@@ -24,16 +24,14 @@
 #include "SphereEntityItem.h"
 
 EntityItemPointer SphereEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    EntityItemPointer result { new SphereEntityItem(entityID, properties) };
-    return result;
+    EntityItemPointer entity { new SphereEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
 // our non-pure virtual subclass for now...
-SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID) 
-{ 
+SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID) {
     _type = EntityTypes::Sphere;
-    setProperties(properties);
     _volumeMultiplier *= PI / 6.0f;
 }
 
@@ -112,7 +110,11 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
         // then translate back to work coordinates
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
         distance = glm::distance(origin, hitAt);
-        surfaceNormal = glm::normalize(hitAt - getCenterPosition());
+        bool success;
+        surfaceNormal = glm::normalize(hitAt - getCenterPosition(success));
+        if (!success) {
+            return false;
+        }
         return true;
     }
     return false;

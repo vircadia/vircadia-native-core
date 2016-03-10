@@ -25,7 +25,7 @@
     //we are creating lights that we don't want to get stranded so lets make sure that we can get rid of them
     var startTime = Date.now();
     //if you're going to be using this in a dungeon or something and holding it for a long time, increase this lifetime value.
-    var LIFETIME = 25;
+    var LIFETIME = 100;
     var MSEC_PER_SEC = 1000.0;
 
     // this is the "constructor" for the entity as a JS object we don't do much here, but we do want to remember
@@ -77,16 +77,17 @@
         whichHand: null,
         hasSpotlight: false,
         spotlight: null,
-        setRightHand: function() {
-            this.hand = 'RIGHT';
-        },
 
-        setLeftHand: function() {
-            this.hand = 'LEFT';
-        },
+        startNearGrab: function(entityID, args) {
+            this.hand = args[0];
 
-        startNearGrab: function() {
+            print("FLASHLIGHT startNearGrab");
             if (!this.hasSpotlight) {
+
+                var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
+                var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
+                var glowLightTransform = glowLightWorldTransform(modelProperties.position, modelProperties.rotation);
+
 
                 //this light casts the beam
                 this.spotlight = Entities.addEntity({
@@ -97,15 +98,19 @@
                         y: 2,
                         z: 20
                     },
+                    parentID: this.entityID,
                     color: {
                         red: 255,
                         green: 255,
                         blue: 255
                     },
-                    intensity: 2,
-                    exponent: 0.3,
+                    intensity:  1,
+                    falloffRadius:0.9,
+                    exponent: 0.5,
                     cutoff: 20,
-                    lifetime: LIFETIME
+                    lifetime: LIFETIME,
+                    position: lightTransform.p,
+                    rotation: lightTransform.q,
                 });
 
                 //this light creates the effect of a bulb at the end of the flashlight
@@ -116,6 +121,7 @@
                         y: 0.25,
                         z: 0.25
                     },
+                    parentID: this.entityID,
                     isSpotlight: false,
                     color: {
                         red: 255,
@@ -123,14 +129,22 @@
                         blue: 255
                     },
                     exponent: 0,
+                    intensity:1.0,
+                    falloffRadius:0.3,
+                    lifetime: LIFETIME,
                     cutoff: 90, // in degrees
-                    lifetime: LIFETIME
+                    position: glowLightTransform.p,
+                    rotation: glowLightTransform.q,
+
                 });
 
                 this.hasSpotlight = true;
 
             }
 
+        },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
         },
 
         setWhichHand: function() {
@@ -142,12 +156,14 @@
                 //only set the active hand once -- if we always read the current hand, our 'holding' hand will get overwritten
                 this.setWhichHand();
             } else {
-                this.updateLightPositions();
                 this.changeLightWithTriggerPressure(this.whichHand);
             }
         },
+        continueEquip: function(entityID, args) {
+            this.continueNearGrab(entityID, args);
+        },
 
-        releaseGrab: function() {
+        releaseGrab: function(entityID, args) {
             //delete the lights and reset state
             if (this.hasSpotlight) {
                 Entities.deleteEntity(this.spotlight);
@@ -159,29 +175,10 @@
                 this.lightOn = false;
             }
         },
-
-        updateLightPositions: function() {
-            var modelProperties = Entities.getEntityProperties(this.entityID, ['position', 'rotation']);
-
-            //move the two lights along the vectors we set above
-            var lightTransform = evalLightWorldTransform(modelProperties.position, modelProperties.rotation);
-            var glowLightTransform = glowLightWorldTransform(modelProperties.position, modelProperties.rotation);
-
-            //move them with the entity model
-            Entities.editEntity(this.spotlight, {
-                position: lightTransform.p,
-                rotation: lightTransform.q,
-                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
-            });
-
-            Entities.editEntity(this.glowLight, {
-                position: glowLightTransform.p,
-                rotation: glowLightTransform.q,
-                lifetime: (Date.now() - startTime) / MSEC_PER_SEC + LIFETIME
-            });
-
+        releaseEquip: function(entityID, args) {
+            this.releaseGrab(entityID, args);
         },
-
+        
         changeLightWithTriggerPressure: function(flashLightHand) {
 
             if (flashLightHand === 'LEFT') {

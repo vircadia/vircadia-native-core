@@ -30,6 +30,7 @@ struct AnimPose {
     AnimPose operator*(const AnimPose& rhs) const;
 
     AnimPose inverse() const;
+    AnimPose mirror() const;
     operator glm::mat4() const;
 
     glm::vec3 scale;

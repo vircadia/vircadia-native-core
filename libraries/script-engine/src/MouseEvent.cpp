@@ -29,10 +29,9 @@ MouseEvent::MouseEvent() :
 }
 
 
-MouseEvent::MouseEvent(const QMouseEvent& event, const unsigned int deviceID) :
+MouseEvent::MouseEvent(const QMouseEvent& event) :
     x(event.x()),
     y(event.y()),
-    deviceID(deviceID),
     isLeftButton(event.buttons().testFlag(Qt::LeftButton)),
     isRightButton(event.buttons().testFlag(Qt::RightButton)),
     isMiddleButton(event.buttons().testFlag(Qt::MiddleButton)),
@@ -66,7 +65,6 @@ QScriptValue MouseEvent::toScriptValue(QScriptEngine* engine, const MouseEvent& 
     obj.setProperty("x", event.x);
     obj.setProperty("y", event.y);
     obj.setProperty("button", event.button);
-    obj.setProperty("deviceID", event.deviceID);
     obj.setProperty("isLeftButton", event.isLeftButton);
     obj.setProperty("isRightButton", event.isRightButton);
     obj.setProperty("isMiddleButton", event.isMiddleButton);

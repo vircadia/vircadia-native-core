@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef gpu__GPUConfig__
-#define gpu__GPUConfig__
+#ifndef hifi_gpu_GPUConfig_h
+#define hifi_gpu_GPUConfig_h
 
 
 #define GL_GLEXT_PROTOTYPES 1
@@ -19,6 +19,7 @@
 #define GPU_LEGACY 0
 #define GPU_CORE_41 410
 #define GPU_CORE_43 430
+#define GPU_CORE_MINIMUM GPU_CORE_41
 
 #if defined(__APPLE__)
 
@@ -37,8 +38,6 @@
 #define GPU_FEATURE_PROFILE GPU_CORE
 #define GPU_INPUT_PROFILE GPU_CORE_43
 
-#elif defined(ANDROID)
-
 #else
 
 #include <GL/glew.h>
@@ -49,4 +48,11 @@
 #endif
 
 
+#if (GPU_INPUT_PROFILE == GPU_CORE_43)
+// Deactivate SSBO for now, we've run into some issues
+// on GL 4.3 capable GPUs not behaving as expected
+//#define GPU_SSBO_DRAW_CALL_INFO
 #endif
+
+
+#endif // hifi_gpu_GPUConfig_h

@@ -34,6 +34,7 @@
 #include "ArrayBufferClass.h"
 #include "AudioScriptingInterface.h"
 #include "Quat.h"
+#include "Mat4.h"
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
@@ -42,7 +43,14 @@ const QString NO_SCRIPT("");
 
 const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0f / 60.0f) * 1000 * 1000) + 0.5f);
 
-typedef QHash<QString, QScriptValueList> RegisteredEventHandlers;
+class CallbackData {
+public:
+    QScriptValue function;
+    EntityItemID definingEntityIdentifier;
+};
+
+typedef QList<CallbackData> CallbackList;
+typedef QHash<QString, CallbackList> RegisteredEventHandlers;
 
 class EntityScriptDetails {
 public:
@@ -67,7 +75,7 @@ public:
 
     /// run the script in the callers thread, exit when stop() is called.
     void run();
-    
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - these are NOT intended to be public interfaces available to scripts, the are only Q_INVOKABLE so we can
     //        properly ensure they are only called on the correct thread
@@ -77,14 +85,14 @@ public:
 
     /// registers a global getter/setter
     Q_INVOKABLE void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
-                            QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
-    
+                                          QScriptEngine::FunctionSignature setter, const QString& parent = QString(""));
+
     /// register a global function
     Q_INVOKABLE void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     /// register a function as a method on a previously registered global object
     Q_INVOKABLE void registerFunction(const QString& parent, const QString& name, QScriptEngine::FunctionSignature fun,
-                          int numArguments = -1);
+                                      int numArguments = -1);
 
     /// registers a global object by name
     Q_INVOKABLE void registerValue(const QString& valueName, QScriptValue value);
@@ -93,12 +101,12 @@ public:
     Q_INVOKABLE QScriptValue evaluate(const QString& program, const QString& fileName, int lineNumber = 1); // this is also used by the script tool widget
 
     /// if the script engine is not already running, this will download the URL and start the process of seting it up
-    /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed 
+    /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // NOTE - these are intended to be public interfaces available to scripts 
+    // NOTE - these are intended to be public interfaces available to scripts
     Q_INVOKABLE void addEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
     Q_INVOKABLE void removeEventHandler(const EntityItemID& entityID, const QString& eventName, QScriptValue handler);
 
@@ -129,7 +137,6 @@ public:
     bool isRunning() const { return _isRunning; } // used by ScriptWidget
 
     void disconnectNonEssentialSignals();
-    static void stopAllScripts(QObject* application); // used by Application on shutdown
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // NOTE - These are the callback implementations for ScriptUser the get called by ScriptCache when the contents
@@ -153,7 +160,7 @@ signals:
     void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
-    void finished(const QString& fileNameString);
+    void finished(const QString& fileNameString, ScriptEngine* engine);
     void cleanupMenuItem(const QString& menuItemString);
     void printedMessage(const QString& message);
     void errorMessage(const QString& message);
@@ -166,11 +173,11 @@ signals:
 protected:
     QString _scriptContents;
     QString _parentURL;
-    bool _isFinished { false };
-    bool _isRunning { false };
+    std::atomic<bool> _isFinished { false };
+    std::atomic<bool> _isRunning { false };
     int _evaluatesPending { 0 };
     bool _isInitialized { false };
-    QHash<QTimer*, QScriptValue> _timerFunctionMap;
+    QHash<QTimer*, CallbackData> _timerFunctionMap;
     QSet<QUrl> _includedURLs;
     bool _wantSignals { true };
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
@@ -182,6 +189,7 @@ protected:
     bool evaluatePending() const { return _evaluatesPending > 0; }
     void timerFired();
     void stopAllTimers();
+    void stopAllTimersForEntityScript(const EntityItemID& entityID);
     void refreshFileScript(const EntityItemID& entityID);
 
     void setParentURL(const QString& parentURL) { _parentURL = parentURL; }
@@ -192,8 +200,9 @@ protected:
     QString _fileNameString;
     Quat _quatLibrary;
     Vec3 _vec3Library;
+    Mat4 _mat4Library;
     ScriptUUID _uuidLibrary;
-    bool _isUserLoaded { false };
+    std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
 
     ArrayBufferClass* _arrayBufferClass;
@@ -204,9 +213,12 @@ protected:
     void forwardHandlerCall(const EntityItemID& entityID, const QString& eventName, QScriptValueList eventHanderArgs);
     Q_INVOKABLE void entityScriptContentAvailable(const EntityItemID& entityID, const QString& scriptOrURL, const QString& contents, bool isURL, bool success);
 
-    static QSet<ScriptEngine*> _allKnownScriptEngines;
-    static QMutex _allScriptsMutex;
-    static bool _stoppingAllScripts;
+    EntityItemID currentEntityIdentifier {}; // Contains the defining entity script entity id during execution, if any. Empty for interface script execution.
+    void doWithEnvironment(const EntityItemID& entityID, std::function<void()> operation);
+    void callWithEnvironment(const EntityItemID& entityID, QScriptValue function, QScriptValue thisObject, QScriptValueList args);
+
+    friend class ScriptEngines;
+    static std::atomic<bool> _stoppingAllScripts;
 };
 
 #endif // hifi_ScriptEngine_h

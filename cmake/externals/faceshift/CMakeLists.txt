@@ -21,10 +21,23 @@ ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE FILEPATH "Path to Faceshift include directory")
 
+set(LIBRARY_DEBUG_PATH "lib/Debug")
+set(LIBRARY_RELEASE_PATH "lib/Release")
+
 if (WIN32)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/faceshift.lib CACHE FILEPATH "Faceshift libraries")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/Release/faceshift.lib CACHE FILEPATH "Faceshift libraries")
+  set(LIBRARY_PREFIX "")
+  set(LIBRARY_EXT "lib")
 elseif (APPLE)
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG ${INSTALL_DIR}/lib/Debug/libfaceshift.a CACHE FILEPATH "Faceshift libraries")
-    set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE ${INSTALL_DIR}/lib/Release/libfaceshift.a CACHE FILEPATH "Faceshift libraries")
+  set(LIBRARY_EXT "a")
+  set(LIBRARY_PREFIX "lib")
+
+  if (CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    set(LIBRARY_DEBUG_PATH "build")
+    set(LIBRARY_RELEASE_PATH "build")
+  endif ()
 endif()
+
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_DEBUG
+  ${INSTALL_DIR}/${LIBRARY_DEBUG_PATH}/${LIBRARY_PREFIX}faceshift.${LIBRARY_EXT} CACHE FILEPATH "Faceshift libraries")
+set(${EXTERNAL_NAME_UPPER}_LIBRARY_RELEASE
+${INSTALL_DIR}/${LIBRARY_RELEASE_PATH}/${LIBRARY_PREFIX}faceshift.${LIBRARY_EXT} CACHE FILEPATH "Faceshift libraries")

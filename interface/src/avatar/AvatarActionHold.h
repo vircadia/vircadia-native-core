@@ -25,35 +25,48 @@ public:
     AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~AvatarActionHold();
 
-    virtual bool updateArguments(QVariantMap arguments);
-    virtual QVariantMap getArguments();
+    virtual bool updateArguments(QVariantMap arguments) override;
+    virtual QVariantMap getArguments() override;
 
-    virtual void updateActionWorker(float deltaTimeStep);
+    virtual void updateActionWorker(float deltaTimeStep) override;
 
-    QByteArray serialize() const;
-    virtual void deserialize(QByteArray serializedArguments);
+    QByteArray serialize() const override;
+    virtual void deserialize(QByteArray serializedArguments) override;
 
-    virtual bool shouldSuppressLocationEdits() { return _active && !_ownerEntity.expired(); }
+    virtual bool shouldSuppressLocationEdits() override { return _active && !_ownerEntity.expired(); }
 
-    std::shared_ptr<Avatar> getTarget(glm::quat& rotation, glm::vec3& position);
+    bool getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation);
+    std::shared_ptr<Avatar> getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
+                                      glm::vec3& linearVelocity, glm::vec3& angularVelocity);
+
+    virtual void prepareForPhysicsSimulation() override;
 
 private:
+    void doKinematicUpdate(float deltaTimeStep);
+
     static const uint16_t holdVersion;
 
-    glm::vec3 _relativePosition;
-    glm::quat _relativeRotation;
-    QString _hand;
+    glm::vec3 _relativePosition { Vectors::ZERO };
+    glm::quat _relativeRotation { Quaternions::IDENTITY };
+    QString _hand { "right" };
     QUuid _holderID;
 
-    void doKinematicUpdate(float deltaTimeStep);
+    glm::vec3 _linearVelocityTarget;
+    glm::vec3 _angularVelocityTarget;
+
     bool _kinematic { false };
     bool _kinematicSetVelocity { false };
     bool _previousSet { false };
+    bool _ignoreIK { false };
     glm::vec3 _previousPositionalTarget;
     glm::quat _previousRotationalTarget;
 
-    float _previousDeltaTimeStep = 0.0f;
+    float _previousDeltaTimeStep { 0.0f };
     glm::vec3 _previousPositionalDelta;
+
+    glm::vec3 _palmOffsetFromRigidBody;
+    // leaving this here for future refernece.
+    // glm::quat _palmRotationFromRigidBody;
 };
 
 #endif // hifi_AvatarActionHold_h

@@ -13,6 +13,7 @@
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
+#include <glm/gtx/transform.hpp>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
@@ -25,17 +26,17 @@ const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
 const QString ModelEntityItem::DEFAULT_COMPOUND_SHAPE_URL = QString("");
 
 EntityItemPointer ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<ModelEntityItem>(entityID, properties);
+    EntityItemPointer entity { new ModelEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID)
+ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(entityItemID)
 {
     _animationProperties.associateWithAnimationLoop(&_animationLoop);
     _animationLoop.setResetOnRunning(false);
 
     _type = EntityTypes::Model;
-    setProperties(properties);
     _jointMappingCompleted = false;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
@@ -49,6 +50,11 @@ EntityItemProperties ModelEntityItem::getProperties(EntityPropertyFlags desiredP
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(shapeType, getShapeType);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotationsSet, getJointRotationsSet);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointRotations, getJointRotations);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslationsSet, getJointTranslationsSet);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(jointTranslations, getJointTranslations);
+
     _animationProperties.getProperties(properties);
     return properties;
 }
@@ -62,6 +68,10 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(compoundShapeURL, setCompoundShapeURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(shapeType, updateShapeType);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotationsSet, setJointRotationsSet);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointRotations, setJointRotations);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslationsSet, setJointTranslationsSet);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(jointTranslations, setJointTranslations);
 
     bool somethingChangedInAnimations = _animationProperties.setProperties(properties);
 
@@ -132,6 +142,11 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         somethingChanged = true;
     }
 
+    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, QVector<bool>, setJointRotationsSet);
+    READ_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, QVector<glm::quat>, setJointRotations);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, QVector<bool>, setJointTranslationsSet);
+    READ_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, QVector<glm::vec3>, setJointTranslations);
+
     return bytesRead;
 }
 
@@ -144,6 +159,10 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_TEXTURES;
     requestedProperties += PROP_SHAPE_TYPE;
     requestedProperties += _animationProperties.getEntityProperties(params);
+    requestedProperties += PROP_JOINT_ROTATIONS_SET;
+    requestedProperties += PROP_JOINT_ROTATIONS;
+    requestedProperties += PROP_JOINT_TRANSLATIONS_SET;
+    requestedProperties += PROP_JOINT_TRANSLATIONS;
 
     return requestedProperties;
 }
@@ -167,6 +186,11 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
         propertyFlags, propertiesDidntFit, propertyCount, appendState);
 
     APPEND_ENTITY_PROPERTY(PROP_SHAPE_TYPE, (uint32_t)getShapeType());
+
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS_SET, getJointRotationsSet());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_ROTATIONS, getJointRotations());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS_SET, getJointTranslationsSet());
+    APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
 
 
@@ -194,7 +218,7 @@ AnimationPointer ModelEntityItem::getAnimation(const QString& url) {
 
 void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
     // if we don't have animation, or we're already joint mapped then bail early
-    if (!hasAnimation() || _jointMappingCompleted) {
+    if (!hasAnimation() || jointsMapped()) {
         return;
     }
 
@@ -208,55 +232,9 @@ void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
                 _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
             }
             _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
         }
     }
-}
-
-void ModelEntityItem::getAnimationFrame(bool& newFrame,
-                                        QVector<glm::quat>& rotationsResult, QVector<glm::vec3>& translationsResult) {
-    newFrame = false;
-
-    if (!hasAnimation() || !_jointMappingCompleted) {
-        rotationsResult = _lastKnownFrameDataRotations;
-        translationsResult = _lastKnownFrameDataTranslations;
-    }
-    AnimationPointer myAnimation = getAnimation(_animationProperties.getURL()); // FIXME: this could be optimized
-    if (myAnimation && myAnimation->isLoaded()) {
-
-        const QVector<FBXAnimationFrame>&  frames = myAnimation->getFramesReference(); // NOTE: getFrames() is too heavy
-        auto& fbxJoints = myAnimation->getGeometry().joints;
-
-        int frameCount = frames.size();
-        if (frameCount > 0) {
-            int animationCurrentFrame = (int)(glm::floor(getAnimationCurrentFrame())) % frameCount;
-            if (animationCurrentFrame < 0 || animationCurrentFrame > frameCount) {
-                animationCurrentFrame = 0;
-            }
-
-            if (animationCurrentFrame != _lastKnownCurrentFrame) {
-                _lastKnownCurrentFrame = animationCurrentFrame;
-                newFrame = true;
-
-                const QVector<glm::quat>& rotations = frames[animationCurrentFrame].rotations;
-                const QVector<glm::vec3>& translations = frames[animationCurrentFrame].translations;
-
-                _lastKnownFrameDataRotations.resize(_jointMapping.size());
-                _lastKnownFrameDataTranslations.resize(_jointMapping.size());
-                for (int j = 0; j < _jointMapping.size(); j++) {
-                    int index = _jointMapping[j];
-                    if (index != -1 && index < rotations.size()) {
-                        _lastKnownFrameDataRotations[j] = fbxJoints[index].preRotation * rotations[index];
-                    }
-                    if (index != -1 && index < translations.size()) {
-                        _lastKnownFrameDataTranslations[j] = translations[index];
-                    }
-                }
-            }
-        }
-    }
-
-    rotationsResult = _lastKnownFrameDataRotations;
-    translationsResult = _lastKnownFrameDataTranslations;
 }
 
 bool ModelEntityItem::isAnimatingSomething() const {
@@ -384,11 +362,6 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
-    if (settingsMap.contains("startAutomatically")) {
-        bool startAutomatically = settingsMap["startAutomatically"].toBool();
-        setAnimationStartAutomatically(startAutomatically);
-    }
-
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 
@@ -404,5 +377,90 @@ void ModelEntityItem::setAnimationFPS(float value) {
 
 // virtual
 bool ModelEntityItem::shouldBePhysical() const {
-    return getShapeType() != SHAPE_TYPE_NONE;
+    return !isDead() && getShapeType() != SHAPE_TYPE_NONE;
+}
+
+void ModelEntityItem::resizeJointArrays(int newSize) {
+    if (newSize >= 0 && newSize > _absoluteJointRotationsInObjectFrame.size()) {
+        _absoluteJointRotationsInObjectFrame.resize(newSize);
+        _absoluteJointRotationsInObjectFrameSet.resize(newSize);
+        _absoluteJointRotationsInObjectFrameDirty.resize(newSize);
+        _absoluteJointTranslationsInObjectFrame.resize(newSize);
+        _absoluteJointTranslationsInObjectFrameSet.resize(newSize);
+        _absoluteJointTranslationsInObjectFrameDirty.resize(newSize);
+    }
+}
+
+void ModelEntityItem::setJointRotations(const QVector<glm::quat>& rotations) {
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays(rotations.size());
+        for (int index = 0; index < rotations.size(); index++) {
+            if (_absoluteJointRotationsInObjectFrameSet[index]) {
+                _absoluteJointRotationsInObjectFrame[index] = rotations[index];
+                _absoluteJointRotationsInObjectFrameDirty[index] = true;
+            }
+        }
+    });
+}
+
+void ModelEntityItem::setJointRotationsSet(const QVector<bool>& rotationsSet) {
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays(rotationsSet.size());
+        for (int index = 0; index < rotationsSet.size(); index++) {
+            _absoluteJointRotationsInObjectFrameSet[index] = rotationsSet[index];
+        }
+    });
+}
+
+void ModelEntityItem::setJointTranslations(const QVector<glm::vec3>& translations) {
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays(translations.size());
+        for (int index = 0; index < translations.size(); index++) {
+            if (_absoluteJointTranslationsInObjectFrameSet[index]) {
+                _absoluteJointTranslationsInObjectFrame[index] = translations[index];
+                _absoluteJointTranslationsInObjectFrameSet[index] = true;
+            }
+        }
+    });
+}
+
+void ModelEntityItem::setJointTranslationsSet(const QVector<bool>& translationsSet) {
+    _jointDataLock.withWriteLock([&] {
+        resizeJointArrays(translationsSet.size());
+        for (int index = 0; index < translationsSet.size(); index++) {
+            _absoluteJointTranslationsInObjectFrameSet[index] = translationsSet[index];
+        }
+    });
+}
+
+QVector<glm::quat> ModelEntityItem::getJointRotations() const {
+    QVector<glm::quat> result;
+    _jointDataLock.withReadLock([&] {
+        result = _absoluteJointRotationsInObjectFrame;
+    });
+    return result;
+}
+
+QVector<bool> ModelEntityItem::getJointRotationsSet() const {
+    QVector<bool> result;
+    _jointDataLock.withReadLock([&] {
+        result = _absoluteJointRotationsInObjectFrameSet;
+    });
+    return result;
+}
+
+QVector<glm::vec3> ModelEntityItem::getJointTranslations() const {
+    QVector<glm::vec3> result;
+    _jointDataLock.withReadLock([&] {
+        result = _absoluteJointTranslationsInObjectFrame;
+    });
+    return result;
+}
+
+QVector<bool> ModelEntityItem::getJointTranslationsSet() const {
+    QVector<bool> result;
+    _jointDataLock.withReadLock([&] {
+        result = _absoluteJointTranslationsInObjectFrameSet;
+    });
+    return result;
 }

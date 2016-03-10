@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SharedUtil.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -33,7 +35,6 @@
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
-#include "SharedUtil.h"
 
 static int usecTimestampNowAdjust = 0; // in usec
 void usecTimestampNowForceClockSkew(int clockSkew) {
@@ -334,8 +335,8 @@ unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r,
         voxelSizeInOctets++;
     }
 
-    unsigned int voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
-    unsigned int voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
+    auto voxelSizeInBytes = bytesRequiredForCodeLength(voxelSizeInOctets); // (voxelSizeInBits/8)+1;
+    auto voxelBufferSize = voxelSizeInBytes + sizeof(rgbColor); // 3 for color
 
     // allocate our resulting buffer
     unsigned char* voxelOut = new unsigned char[voxelBufferSize];
@@ -624,8 +625,8 @@ void debug::checkDeadBeef(void* memoryVoid, int size) {
     assert(memcmp((unsigned char*)memoryVoid, DEADBEEF, std::min(size, DEADBEEF_SIZE)) != 0);
 }
 
-bool isNaN(float value) { 
-    return value != value; 
+bool isNaN(float value) {
+    return value != value;
 }
 
 QString formatUsecTime(float usecs, int prec) {
@@ -683,5 +684,11 @@ bool similarStrings(const QString& stringA, const QString& stringB) {
     float similarity = 0.5f * (aWordsInB / (float)bWords.size()) + 0.5f * (bWordsInA / (float)aWords.size());
     const float SIMILAR_ENOUGH = 0.5f; // half the words the same is similar enough for us
     return similarity >= SIMILAR_ENOUGH;
+}
+
+void disableQtBearerPoll() {
+    // to work around the Qt constant wireless scanning, set the env for polling interval very high
+    const QByteArray EXTREME_BEARER_POLL_TIMEOUT = QString::number(INT_MAX).toLocal8Bit();
+    qputenv("QT_BEARER_POLL_TIMEOUT", EXTREME_BEARER_POLL_TIMEOUT);
 }
 

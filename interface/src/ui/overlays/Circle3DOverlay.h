@@ -25,8 +25,9 @@ public:
     Circle3DOverlay(const Circle3DOverlay* circle3DOverlay);
     
     virtual void render(RenderArgs* args);
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    virtual const render::ShapeKey getShapeKey() override;
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     float getStartAt() const { return _startAt; }
     float getEndAt() const { return _endAt; }

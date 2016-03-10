@@ -27,8 +27,8 @@ void MenuScriptingInterface::menuItemTriggered() {
     }
 }
 
-void MenuScriptingInterface::addMenu(const QString& menu) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "addMenu", Q_ARG(const QString&, menu));
+void MenuScriptingInterface::addMenu(const QString& menu, const QString& grouping) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "addMenu", Q_ARG(const QString&, menu), Q_ARG(const QString&, grouping));
 }
 
 void MenuScriptingInterface::removeMenu(const QString& menu) {
@@ -82,6 +82,22 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
                 Q_ARG(const QString&, menu),
                 Q_ARG(const QString&, menuitem));
     return result;
+}
+
+void MenuScriptingInterface::addActionGroup(const QString& groupName, const QStringList& actionList,
+                                            const QString& selected) {
+    static const char* slot = SLOT(menuItemTriggered());
+    QMetaObject::invokeMethod(Menu::getInstance(), "addActionGroup",
+                              Q_ARG(const QString&, groupName),
+                              Q_ARG(const QStringList&, actionList),
+                              Q_ARG(const QString&, selected),
+                              Q_ARG(QObject*, this),
+                              Q_ARG(const char*, slot));
+}
+
+void MenuScriptingInterface::removeActionGroup(const QString& groupName) {
+    QMetaObject::invokeMethod(Menu::getInstance(), "removeActionGroup",
+                              Q_ARG(const QString&, groupName));
 }
 
 bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {

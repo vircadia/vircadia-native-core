@@ -17,34 +17,34 @@
     }
 
     Target.prototype = {
-        hasPlayedSound: false,
+        hasBecomeActive: false,
         preload: function(entityID) {
             this.entityID = entityID;
             var SOUND_URL = "http://hifi-public.s3.amazonaws.com/sounds/Clay_Pigeon_02.L.wav";
             this.hitSound = SoundCache.getSound(SOUND_URL);
         },
         collisionWithEntity: function(me, otherEntity) {
-            var position = Entities.getEntityProperties(me, "position").position;
-            Entities.editEntity(me, {
-                gravity: {
-                    x: 0,
-                    y: -9.8,
-                    z: 0
-                },
-                velocity: {
-                    x: 0,
-                    y: -0.01,
-                    z: 0
-                }
-            });
+            if (this.hasBecomeActive === false) {
+                var position = Entities.getEntityProperties(me, "position").position;
+                Entities.editEntity(me, {
+                    gravity: {
+                        x: 0,
+                        y: -9.8,
+                        z: 0
+                    },
+                    velocity: {
+                        x: 0,
+                        y: -0.01,
+                        z: 0
+                    }
+                });
 
-            if (this.hasPlayedSound === false) {
                 this.audioInjector = Audio.playSound(this.hitSound, {
                     position: position,
                     volume: 0.5
                 });
 
-                this.hasPlayedSound = true;
+                this.hasBecomeActive = true;
 
             }
 

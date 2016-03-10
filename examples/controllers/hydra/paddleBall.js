@@ -59,7 +59,7 @@ function createEntities() {
                   gravity: {  x: 0, y: GRAVITY, z: 0 },
                 ignoreCollisions: false,
                 damping: 0.50,
-                collisionsWillMove: true });
+                dynamic: true });
 
     paddle = Entities.addEntity(
                 { type: "Box",
@@ -71,7 +71,7 @@ function createEntities() {
                 damping: 0.10,
                 visible: false,
 				rotation : leftHanded ? MyAvatar.leftHandPose.rotation : MyAvatar.rightHandPose.rotation,
-				collisionsWillMove: false });
+				dynamic: false });
 
     modelURL = "http://public.highfidelity.io/models/attachments/pong_paddle.fbx";
     paddleModel = Entities.addEntity(
@@ -84,7 +84,7 @@ function createEntities() {
                 modelURL: modelURL,
                 damping: 0.10,
                 rotation : leftHanded ? MyAvatar.leftHandPose.rotation : MyAvatar.rightHandPose.rotation,
-				collisionsWillMove: false });
+				dynamic: false });
 
     line = Overlays.addOverlay("line3d", {
                 start: { x: 0, y: 0, z: 0 },

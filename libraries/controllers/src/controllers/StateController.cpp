@@ -25,7 +25,7 @@ StateController::StateController() : InputDevice("Application") {
 StateController::~StateController() {
 }
 
-void StateController::update(float deltaTime, bool jointsCaptured) {}
+void StateController::update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) {}
 
 void StateController::focusOutEvent() {}
 

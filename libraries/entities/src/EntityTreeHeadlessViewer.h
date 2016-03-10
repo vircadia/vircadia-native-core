@@ -38,7 +38,7 @@ public:
 
     EntityTreePointer getTree() { return std::static_pointer_cast<EntityTree>(_tree); }
 
-    void processEraseMessage(NLPacket& packet, const SharedNodePointer& sourceNode);
+    void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
     virtual void init();
 

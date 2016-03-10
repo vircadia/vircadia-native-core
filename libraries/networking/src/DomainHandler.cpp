@@ -92,12 +92,16 @@ void DomainHandler::softReset() {
     disconnect();
     
     clearSettings();
-    
+
+    _connectionDenialsSinceKeypairRegen = 0;
+
     // cancel the failure timeout for any pending requests for settings
-    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::AutoConnection);
+    QMetaObject::invokeMethod(&_settingsTimer, "stop");
 }
 
 void DomainHandler::hardReset() {
+    emit resetting();
+
     softReset();
 
     qCDebug(networking) << "Hard reset in NodeList DomainHandler.";
@@ -105,6 +109,9 @@ void DomainHandler::hardReset() {
     _iceServerSockAddr = HifiSockAddr();
     _hostname = QString();
     _sockAddr.clear();
+
+    _hasCheckedForAccessToken = false;
+    _domainConnectionRefusals.clear();
 
     // clear any pending path we may have wanted to ask the previous DS about
     _pendingPath.clear();
@@ -276,7 +283,7 @@ void DomainHandler::requestDomainSettings() {
     }
 }
 
-void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packetList) {
+void DomainHandler::processSettingsPacketList(QSharedPointer<ReceivedMessage> packetList) {
     // stop our settings timer since we successfully requested the settings we need
     _settingsTimer.stop();
     
@@ -291,8 +298,8 @@ void DomainHandler::processSettingsPacketList(QSharedPointer<NLPacketList> packe
     emit settingsReceived(_settingsObject);
 }
 
-void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
-    const HifiSockAddr& senderSockAddr = packet->getSenderSockAddr();
+void DomainHandler::processICEPingReplyPacket(QSharedPointer<ReceivedMessage> message) {
+    const HifiSockAddr& senderSockAddr = message->getSenderSockAddr();
     qCDebug(networking) << "Received reply from domain-server on" << senderSockAddr;
 
     if (getIP().isNull()) {
@@ -309,10 +316,10 @@ void DomainHandler::processICEPingReplyPacket(QSharedPointer<NLPacket> packet) {
     }
 }
 
-void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRequirementPacket) {
+void DomainHandler::processDTLSRequirementPacket(QSharedPointer<ReceivedMessage> message) {
     // figure out the port that the DS wants us to use for us to talk to them with DTLS
     unsigned short dtlsPort;
-    dtlsRequirementPacket->readPrimitive(&dtlsPort);
+    message->readPrimitive(&dtlsPort);
 
     qCDebug(networking) << "domain-server DTLS port changed to" << dtlsPort << "- Enabling DTLS.";
 
@@ -321,14 +328,14 @@ void DomainHandler::processDTLSRequirementPacket(QSharedPointer<NLPacket> dtlsRe
 //    initializeDTLSSession();
 }
 
-void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket) {
+void DomainHandler::processICEResponsePacket(QSharedPointer<ReceivedMessage> message) {
     if (_icePeer.hasSockets()) {
         qDebug() << "Received an ICE peer packet for domain-server but we already have sockets. Not processing.";
         // bail on processing this packet if our ice peer doesn't have sockets
         return;
     }
 
-    QDataStream iceResponseStream(icePacket.data());
+    QDataStream iceResponseStream(message->getMessage());
 
     iceResponseStream >> _icePeer;
 
@@ -345,5 +352,37 @@ void DomainHandler::processICEResponsePacket(QSharedPointer<NLPacket> icePacket)
 
         // emit our signal so the NodeList knows to send a ping immediately
         emit icePeerSocketsReceived();
+    }
+}
+
+void DomainHandler::processDomainServerConnectionDeniedPacket(QSharedPointer<ReceivedMessage> message) {
+    // Read deny reason from packet
+    quint16 reasonSize;
+    message->readPrimitive(&reasonSize);
+    QString reason = QString::fromUtf8(message->readWithoutCopy(reasonSize));
+
+    // output to the log so the user knows they got a denied connection request
+    // and check and signal for an access token so that we can make sure they are logged in
+    qCWarning(networking) << "The domain-server denied a connection request: " << reason;
+    qCWarning(networking) << "Make sure you are logged in.";
+
+    if (!_domainConnectionRefusals.contains(reason)) {
+        _domainConnectionRefusals.append(reason);
+        emit domainConnectionRefused(reason);
+    }
+
+    auto& accountManager = AccountManager::getInstance();
+
+    if (!_hasCheckedForAccessToken) {
+        accountManager.checkAndSignalForAccessToken();
+        _hasCheckedForAccessToken = true;
+    }
+
+    static const int CONNECTION_DENIALS_FOR_KEYPAIR_REGEN = 3;
+
+    // force a re-generation of key-pair after CONNECTION_DENIALS_FOR_KEYPAIR_REGEN failed connection attempts
+    if (++_connectionDenialsSinceKeypairRegen >= CONNECTION_DENIALS_FOR_KEYPAIR_REGEN) {
+        accountManager.generateNewUserKeypair();
+        _connectionDenialsSinceKeypairRegen = 0;
     }
 }

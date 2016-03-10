@@ -36,7 +36,7 @@ void SwingTwistConstraint::SwingLimitFunction::setCone(float maxAngle) {
 }
 
 void SwingTwistConstraint::SwingLimitFunction::setMinDots(const std::vector<float>& minDots) {
-    uint32_t numDots = minDots.size();
+    uint32_t numDots = (uint32_t)minDots.size();
     _minDots.clear();
     if (numDots == 0) {
         // push two copies of MIN_MINDOT
@@ -90,7 +90,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     };
     std::vector<SwingLimitData> limits;
 
-    uint32_t numLimits = swungDirections.size();
+    uint32_t numLimits = (uint32_t)swungDirections.size();
     limits.reserve(numLimits);
 
     // compute the limit pairs: <theta, minDot>
@@ -108,7 +108,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     }
 
     std::vector<float> minDots;
-    numLimits = limits.size();
+    numLimits = (uint32_t)limits.size();
     if (numLimits == 0) {
         // trivial case: nearly free constraint
         std::vector<float> minDots;
@@ -123,7 +123,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
 
         // sort limits by theta
         std::sort(limits.begin(), limits.end());
-    
+
         // extrapolate evenly distributed limits for fast lookup table
         float deltaTheta = TWO_PI / (float)(numLimits);
         uint32_t rightIndex = 0;
@@ -182,49 +182,52 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
     glm::vec3 twistedX = twistRotation * xAxis;
     twistAngle *= copysignf(1.0f, glm::dot(glm::cross(xAxis, twistedX), yAxis));
 
-    // adjust measured twistAngle according to clamping history
-    switch (_lastTwistBoundary) {
-        case LAST_CLAMP_LOW_BOUNDARY:
-            // clamp to min
-            if (twistAngle > _maxTwist) {
-                twistAngle -= TWO_PI;
-            }
-            break;
-        case LAST_CLAMP_HIGH_BOUNDARY:
-            // clamp to max
-            if (twistAngle < _minTwist) {
-                twistAngle += TWO_PI;
-            }
-            break;
-        default: // LAST_CLAMP_NO_BOUNDARY
-            // clamp to nearest boundary
-            float midBoundary = 0.5f * (_maxTwist + _minTwist + TWO_PI);
-            if (twistAngle > midBoundary) {
-                // lower boundary is closer --> phase down one cycle
-                twistAngle -= TWO_PI;
-            } else if (twistAngle < midBoundary - TWO_PI) {
-                // higher boundary is closer --> phase up one cycle
-                twistAngle += TWO_PI;
-            }
-            break;
+    bool somethingClamped = false;
+    if (_minTwist != _maxTwist) {
+        // adjust measured twistAngle according to clamping history
+        switch (_lastTwistBoundary) {
+            case LAST_CLAMP_LOW_BOUNDARY:
+                // clamp to min
+                if (twistAngle > _maxTwist) {
+                    twistAngle -= TWO_PI;
+                }
+                break;
+            case LAST_CLAMP_HIGH_BOUNDARY:
+                // clamp to max
+                if (twistAngle < _minTwist) {
+                    twistAngle += TWO_PI;
+                }
+                break;
+            default: // LAST_CLAMP_NO_BOUNDARY
+                // clamp to nearest boundary
+                float midBoundary = 0.5f * (_maxTwist + _minTwist + TWO_PI);
+                if (twistAngle > midBoundary) {
+                    // lower boundary is closer --> phase down one cycle
+                    twistAngle -= TWO_PI;
+                } else if (twistAngle < midBoundary - TWO_PI) {
+                    // higher boundary is closer --> phase up one cycle
+                    twistAngle += TWO_PI;
+                }
+                break;
+        }
+
+        // clamp twistAngle
+        float clampedTwistAngle = glm::clamp(twistAngle, _minTwist, _maxTwist);
+        somethingClamped = (twistAngle != clampedTwistAngle);
+
+        // remember twist's clamp boundary history
+        if (somethingClamped) {
+            _lastTwistBoundary = (twistAngle > clampedTwistAngle) ? LAST_CLAMP_HIGH_BOUNDARY : LAST_CLAMP_LOW_BOUNDARY;
+            twistAngle = clampedTwistAngle;
+        } else {
+            _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
+        }
     }
 
-    // clamp twistAngle
-    float clampedTwistAngle = glm::clamp(twistAngle, _minTwist, _maxTwist);
-    bool twistWasClamped = (twistAngle != clampedTwistAngle);
-
-    // remember twist's clamp boundary history
-    if (twistWasClamped) {
-        _lastTwistBoundary = (twistAngle > clampedTwistAngle) ? LAST_CLAMP_HIGH_BOUNDARY : LAST_CLAMP_LOW_BOUNDARY;
-    } else {
-        _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
-    }
-    
     // clamp the swing
     // The swingAxis is always perpendicular to the reference axis (yAxis in the constraint's frame).
     glm::vec3 swungY = swingRotation * yAxis;
     glm::vec3 swingAxis = glm::cross(yAxis, swungY);
-    bool swingWasClamped = false;
     float axisLength = glm::length(swingAxis);
     if (axisLength > EPSILON) {
         // The limit of swing is a function of "theta" which can be computed from the swingAxis
@@ -232,17 +235,17 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
         float theta = atan2f(-swingAxis.z, swingAxis.x);
         float minDot = _swingLimitFunction.getMinDot(theta);
         if (glm::dot(swungY, yAxis) < minDot) {
-            // The swing limits are violated so we extract the angle from midDot and 
+            // The swing limits are violated so we extract the angle from midDot and
             // use it to supply a new rotation.
             swingAxis /= axisLength;
             swingRotation = glm::angleAxis(acosf(minDot), swingAxis);
-            swingWasClamped = true;
+            somethingClamped = true;
         }
     }
 
-    if (swingWasClamped || twistWasClamped) {
+    if (somethingClamped) {
         // update the rotation
-        twistRotation = glm::angleAxis(clampedTwistAngle, yAxis);
+        twistRotation = glm::angleAxis(twistAngle, yAxis);
         rotation = swingRotation * twistRotation * _referenceRotation;
         return true;
     }

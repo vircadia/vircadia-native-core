@@ -11,9 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "Cube3DOverlay.h"
 
-#include <QScriptValue>
-
-#include <DeferredLightingEffect.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 #include <GeometryCache.h>
@@ -47,21 +44,17 @@ void Cube3DOverlay::render(RenderArgs* args) {
         Transform transform;
         transform.setTranslation(position);
         transform.setRotation(rotation);
-        if (_isSolid) {
-            // if (_borderSize > 0) {
-            //     // Draw a cube at a larger size behind the main cube, creating
-            //     // a border effect.
-            //     // Disable writing to the depth mask so that the "border" cube will not
-            //     // occlude the main cube.  This means the border could be covered by
-            //     // overlays that are further back and drawn later, but this is good
-            //     // enough for the use-case.
-            //     transform.setScale(dimensions * _borderSize);
-            //     batch->setModelTransform(transform);
-            //     DependencyManager::get<GeometryCache>()->renderSolidCube(*batch, 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, alpha));
-            // }
 
+        auto geometryCache = DependencyManager::get<GeometryCache>();
+        auto pipeline = args->_pipeline;
+        if (!pipeline) {
+            pipeline = geometryCache->getShapePipeline();
+        }
+
+        if (_isSolid) {
             transform.setScale(dimensions);
-            DependencyManager::get<DeferredLightingEffect>()->renderSolidCubeInstance(*batch, transform, cubeColor);
+            batch->setModelTransform(transform);
+            geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
         } else {
 
             if (getIsDashedLine()) {
@@ -79,8 +72,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 glm::vec3 topLeftFar(-halfDimensions.x, halfDimensions.y, halfDimensions.z);
                 glm::vec3 topRightFar(halfDimensions.x, halfDimensions.y, halfDimensions.z);
 
-                auto geometryCache = DependencyManager::get<GeometryCache>();
-
                 geometryCache->renderDashedLine(*batch, bottomLeftNear, bottomRightNear, cubeColor);
                 geometryCache->renderDashedLine(*batch, bottomRightNear, bottomRightFar, cubeColor);
                 geometryCache->renderDashedLine(*batch, bottomRightFar, bottomLeftFar, cubeColor);
@@ -97,30 +88,38 @@ void Cube3DOverlay::render(RenderArgs* args) {
                 geometryCache->renderDashedLine(*batch, bottomRightFar, topRightFar, cubeColor);
 
             } else {
-                batch->setModelTransform(Transform());
                 transform.setScale(dimensions);
-                DependencyManager::get<DeferredLightingEffect>()->renderWireCubeInstance(*batch, transform, cubeColor);
+                batch->setModelTransform(transform);
+                geometryCache->renderWireCubeInstance(*batch, cubeColor, pipeline);
             }
         }
     }
+}
+
+const render::ShapeKey Cube3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
 }
 
 Cube3DOverlay* Cube3DOverlay::createClone() const {
     return new Cube3DOverlay(this);
 }
 
-void Cube3DOverlay::setProperties(const QScriptValue& properties) {
+void Cube3DOverlay::setProperties(const QVariantMap& properties) {
     Volume3DOverlay::setProperties(properties);
 
-    QScriptValue borderSize = properties.property("borderSize");
+    auto borderSize = properties["borderSize"];
 
     if (borderSize.isValid()) {
-        float value = borderSize.toVariant().toFloat();
+        float value = borderSize.toFloat();
         setBorderSize(value);
     }
 }
 
-QScriptValue Cube3DOverlay::getProperty(const QString& property) {
+QVariant Cube3DOverlay::getProperty(const QString& property) {
     if (property == "borderSize") {
         return _borderSize;
     }

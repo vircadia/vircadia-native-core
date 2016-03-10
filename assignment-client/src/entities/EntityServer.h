@@ -21,10 +21,18 @@
 #include "EntityTree.h"
 
 /// Handles assignments of type EntityServer - sending entities to various clients.
+
+struct ViewerSendingStats {
+    quint64 lastSent;
+    quint64 lastEdited;
+};
+
+class SimpleEntitySimulation;
+
 class EntityServer : public OctreeServer, public NewlyCreatedEntityHook {
     Q_OBJECT
 public:
-    EntityServer(NLPacket& packet);
+    EntityServer(ReceivedMessage& message);
     ~EntityServer();
 
     // Subclasses must implement these methods
@@ -44,6 +52,10 @@ public:
 
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) override;
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) override;
+    virtual QString serverSubclassStats() override;
+
+    virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& sessionID) override;
+    virtual void trackViewerGone(const QUuid& sessionID) override;
 
 public slots:
     void pruneDeletedEntities();
@@ -52,11 +64,14 @@ protected:
     virtual OctreePointer createTree() override;
 
 private slots:
-    void handleEntityPacket(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode);
+    void handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
 
 private:
-    EntitySimulation* _entitySimulation;
+    SimpleEntitySimulation* _entitySimulation;
     QTimer* _pruneDeletedEntitiesTimer = nullptr;
+
+    QReadWriteLock _viewerSendingStatsLock;
+    QMap<QUuid, QMap<QUuid, ViewerSendingStats>> _viewerSendingStats;
 };
 
 #endif // hifi_EntityServer_h

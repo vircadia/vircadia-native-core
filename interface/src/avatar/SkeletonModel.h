@@ -39,6 +39,9 @@ public:
     /// Returns the index of the right hand joint, or -1 if not found.
     int getRightHandJointIndex() const { return isActive() ? _geometry->getFBXGeometry().rightHandJointIndex : -1; }
 
+    bool getLeftGrabPosition(glm::vec3& position) const;
+    bool getRightGrabPosition(glm::vec3& position) const;
+
     /// Retrieve the position of the left hand
     /// \return true whether or not the position was found
     bool getLeftHandPosition(glm::vec3& position) const;
@@ -89,7 +92,7 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    void renderBoundingCollisionShapes(gpu::Batch& batch, float alpha);
+    void renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha);
     float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
     float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
     const glm::vec3 getBoundingCapsuleOffset() const { return _boundingCapsuleLocalOffset; }

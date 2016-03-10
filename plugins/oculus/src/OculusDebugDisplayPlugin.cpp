@@ -10,10 +10,6 @@
 
 const QString OculusDebugDisplayPlugin::NAME("Oculus Rift (Simulator)");
 
-const QString & OculusDebugDisplayPlugin::getName() const {
-    return NAME;
-}
-
 static const QString DEBUG_FLAG("HIFI_DEBUG_OCULUS");
 static bool enableDebugOculus = QProcessEnvironment::systemEnvironment().contains("HIFI_DEBUG_OCULUS");
 
@@ -23,18 +19,3 @@ bool OculusDebugDisplayPlugin::isSupported() const {
     }
     return OculusBaseDisplayPlugin::isSupported();
 }
-
-void OculusDebugDisplayPlugin::customizeContext() {
-    OculusBaseDisplayPlugin::customizeContext();
-    enableVsync(false);
-}
-
-void OculusDebugDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    WindowOpenGLDisplayPlugin::display(finalTexture, sceneSize);
-    OculusBaseDisplayPlugin::display(finalTexture, sceneSize);
-}
-
-void OculusDebugDisplayPlugin::finishFrame() {
-    swapBuffers();
-    doneCurrent();
-};

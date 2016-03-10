@@ -101,7 +101,7 @@ for (var i = 0; i < NUM_BLOCKS; i++) {
             ignoreCollisions: false,
             damping: DAMPING,
             lifetime: LIFETIME,
-            collisionsWillMove: true })); 
+            dynamic: true })); 
 }
 
 function scriptEnding() {

@@ -13,14 +13,16 @@
 #ifndef hifi_AbstractControllerScriptingInterface_h
 #define hifi_AbstractControllerScriptingInterface_h
 
-#include <unordered_map>
-#include <unordered_set>
+#include <atomic>
 #include <map>
 #include <set>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QCursor>
 #include <QThread>
 #include <QtCore/QObject>
 #include <QtCore/QVariant>
@@ -29,6 +31,7 @@
 #include <QtScript/QScriptValue>
 
 #include <DependencyManager.h>
+#include <StreamUtils.h>
 
 #include "UserInputMapper.h"
 #include "StandardControls.h"
@@ -87,25 +90,6 @@ namespace controller {
         Q_INVOKABLE QObject* parseMapping(const QString& json);
         Q_INVOKABLE QObject* loadMapping(const QString& jsonUrl);
 
-
-        //Q_INVOKABLE bool isPrimaryButtonPressed() const;
-        //Q_INVOKABLE glm::vec2 getPrimaryJoystickPosition() const;
-
-        //Q_INVOKABLE int getNumberOfButtons() const;
-        //Q_INVOKABLE bool isButtonPressed(int buttonIndex) const;
-
-        //Q_INVOKABLE int getNumberOfTriggers() const;
-        //Q_INVOKABLE float getTriggerValue(int triggerIndex) const;
-
-        //Q_INVOKABLE int getNumberOfJoysticks() const;
-        //Q_INVOKABLE glm::vec2 getJoystickPosition(int joystickIndex) const;
-
-        //Q_INVOKABLE int getNumberOfSpatialControls() const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlPosition(int controlIndex) const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlVelocity(int controlIndex) const;
-        //Q_INVOKABLE glm::vec3 getSpatialControlNormal(int controlIndex) const;
-        //Q_INVOKABLE glm::quat getSpatialControlRawRotation(int controlIndex) const;
-
         Q_INVOKABLE const QVariantMap& getHardware() { return _hardware; }
         Q_INVOKABLE const QVariantMap& getActions() { return _actions; }
         Q_INVOKABLE const QVariantMap& getStandard() { return _standard; }
@@ -142,10 +126,10 @@ namespace controller {
         QVariantMap _actions;
         QVariantMap _standard;
 
-        bool _mouseCaptured{ false };
-        bool _touchCaptured{ false };
-        bool _wheelCaptured{ false };
-        bool _actionsCaptured{ false };
+        std::atomic<bool> _mouseCaptured{ false };
+        std::atomic<bool> _touchCaptured { false };
+        std::atomic<bool> _wheelCaptured { false };
+        std::atomic<bool> _actionsCaptured { false };
     };
 
 

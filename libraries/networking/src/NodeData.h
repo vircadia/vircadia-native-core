@@ -17,20 +17,24 @@
 #include <QtCore/QSharedPointer>
 
 #include "NLPacket.h"
+#include "ReceivedMessage.h"
 
 class Node;
 
 class NodeData : public QObject {
     Q_OBJECT
 public:
-    NodeData();
+    NodeData(const QUuid& nodeID = QUuid());
     virtual ~NodeData() = 0;
-    virtual int parseData(NLPacket& packet) { return 0; }
+    virtual int parseData(ReceivedMessage& message) { return 0; }
+
+    const QUuid& getNodeID() const { return _nodeID; }
     
     QMutex& getMutex() { return _mutex; }
 
 private:
     QMutex _mutex;
+    QUuid _nodeID;
 };
 
 #endif // hifi_NodeData_h

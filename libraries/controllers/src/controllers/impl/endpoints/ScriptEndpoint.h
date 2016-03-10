@@ -27,13 +27,26 @@ public:
     virtual float peek() const override;
     virtual void apply(float newValue, const Pointer& source) override;
 
+
+    virtual Pose peekPose() const override;
+    virtual void apply(const Pose& newValue, const Pointer& source) override;
+
+    virtual bool isPose() const override { return _returnPose; }
+
 protected:
     Q_INVOKABLE void updateValue();
     Q_INVOKABLE virtual void internalApply(float newValue, int sourceID);
+
+    Q_INVOKABLE void updatePose();
+    Q_INVOKABLE virtual void internalApply(const Pose& newValue, int sourceID);
 private:
     QScriptValue _callable;
     float _lastValueRead { 0.0f };
     float _lastValueWritten { 0.0f };
+
+    bool _returnPose { false };
+    Pose _lastPoseRead;
+    Pose _lastPoseWritten;
 };
 
 }

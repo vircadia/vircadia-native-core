@@ -255,7 +255,7 @@ void Faceshift::receive(const QByteArray& buffer) {
             }
             case fsMsg::MSG_OUT_BLENDSHAPE_NAMES: {
                 const vector<string>& names = static_pointer_cast<fsMsgBlendshapeNames>(msg)->blendshape_names();
-                for (size_t i = 0; i < names.size(); i++) {
+                for (int i = 0; i < (int)names.size(); i++) {
                     if (names[i] == "EyeBlink_L") {
                         _leftBlinkIndex = i;
 

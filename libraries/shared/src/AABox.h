@@ -24,6 +24,7 @@
 
 class AACube;
 class Extents;
+class Transform;
 
 class AABox {
 
@@ -38,9 +39,9 @@ public:
     void setBox(const glm::vec3& corner, const glm::vec3& scale);
 
     void setBox(const glm::vec3& corner, float scale);
-    glm::vec3 getVertexP(const glm::vec3& normal) const;
-    glm::vec3 getVertexN(const glm::vec3& normal) const;
-    void scale(float scale);
+    glm::vec3 getFarthestVertex(const glm::vec3& normal) const; // return vertex most parallel to normal
+    glm::vec3 getNearestVertex(const glm::vec3& normal) const; // return vertex most anti-parallel to normal
+
     const glm::vec3& getCorner() const { return _corner; }
     const glm::vec3& getScale() const { return _scale; }
     const glm::vec3& getDimensions() const { return _scale; }
@@ -67,11 +68,12 @@ public:
 
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                 BoxFace& face, glm::vec3& surfaceNormal) const;
+    bool touchesSphere(const glm::vec3& center, float radius) const; // fast but may generate false positives
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
-    
+
     bool isNull() const { return _scale == glm::vec3(0.0f, 0.0f, 0.0f); }
 
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
@@ -79,6 +81,20 @@ public:
 
     AABox& operator += (const glm::vec3& point);
     AABox& operator += (const AABox& box);
+
+    // Translate the AABox just moving the corner
+    void translate(const glm::vec3& translation) { _corner += translation; }
+
+    // Rotate the AABox around its frame origin
+    // meaning rotating the corners of the AABox around the point {0,0,0} and reevaluating the min max
+    void rotate(const glm::quat& rotation);
+
+    /// Scale the AABox
+    void scale(float scale);
+    void scale(const glm::vec3& scale);
+
+    // Transform the extents with transform
+    void transform(const Transform& transform);
 
     bool isInvalid() const { return _corner == glm::vec3(std::numeric_limits<float>::infinity()); }
 
@@ -98,7 +114,7 @@ inline bool operator==(const AABox& a, const AABox& b) {
 }
 
 inline QDebug operator<<(QDebug debug, const AABox& box) {
-    debug << "AABox[ (" 
+    debug << "AABox[ ("
             << box.getCorner().x << "," << box.getCorner().y << "," << box.getCorner().z << " ) to ("
             << box.calcTopFarLeft().x << "," << box.calcTopFarLeft().y << "," << box.calcTopFarLeft().z << ") size: ("
             << box.getDimensions().x << "," << box.getDimensions().y << "," << box.getDimensions().z << ")"

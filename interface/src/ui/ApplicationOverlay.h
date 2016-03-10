@@ -14,6 +14,7 @@
 
 #include <gpu/Texture.h>
 
+
 // Handles the drawing of the overlays to the screen
 // TODO, move divide up the rendering, displaying and input handling
 // facilities of this class
@@ -25,7 +26,8 @@ public:
 
     void renderOverlay(RenderArgs* renderArgs);
 
-    gpu::FramebufferPointer getOverlayFramebuffer() const { return _overlayFramebuffer; }
+    gpu::TexturePointer acquireOverlay(); 
+    void releaseOverlay(gpu::TexturePointer pointer);
 
 private:
     void renderStatsAndLogs(RenderArgs* renderArgs);

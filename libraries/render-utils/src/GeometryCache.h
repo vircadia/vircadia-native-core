@@ -16,7 +16,6 @@
 
 #include <array>
 
-
 #include <QMap>
 #include <QRunnable>
 
@@ -25,12 +24,15 @@
 #include <gpu/Batch.h>
 #include <gpu/Stream.h>
 
+#include <render/ShapePipeline.h>
 
 #include <model/Material.h>
 #include <model/Asset.h>
 
-typedef glm::vec3 Vec3Key;
+class SimpleProgramKey;
 
+typedef QPair<glm::vec2, float> Vec2FloatPair;
+typedef QPair<Vec2FloatPair, Vec2FloatPair> Vec2FloatPairPair;
 typedef QPair<glm::vec2, glm::vec2> Vec2Pair;
 typedef QPair<Vec2Pair, Vec2Pair> Vec2PairPair;
 typedef QPair<glm::vec3, glm::vec3> Vec3Pair;
@@ -41,9 +43,10 @@ typedef QPair<Vec3Pair, Vec4Pair> Vec3PairVec4Pair;
 typedef QPair<Vec4Pair, glm::vec4> Vec4PairVec4;
 typedef QPair<Vec4Pair, Vec4Pair> Vec4PairVec4Pair;
 
-inline uint qHash(const glm::vec2& v, uint seed) {
+inline uint qHash(const Vec2FloatPairPair& v, uint seed) {
     // multiply by prime numbers greater than the possible size
-    return qHash(v.x + 5009 * v.y, seed);
+    return qHash(v.first.first.x + 5009 * v.first.first.y + 5011 * v.first.second +
+        5021 * v.second.first.x + 5023 * v.second.first.y + 5039 * v.second.second);
 }
 
 inline uint qHash(const Vec2Pair& v, uint seed) {
@@ -146,24 +149,69 @@ public:
 
     int allocateID() { return _nextID++; }
     static const int UNKNOWN_ID;
+    
+    
+    // Bind the pipeline and get the state to render static geometry
+    void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool culled = true,
+                                          bool emissive = false, bool depthBias = false);
+    // Get the pipeline to render static geometry
+    gpu::PipelinePointer getSimplePipeline(bool textured = false, bool culled = true,
+                                          bool emissive = false, bool depthBias = false);
+    render::ShapePipelinePointer getShapePipeline() { return GeometryCache::_simplePipeline; }
+    
+    // Static (instanced) geometry
+    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
+    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
 
-    void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
-    void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& transformBuffer, gpu::BufferPointer& colorBuffer);
+    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderSolidSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
+    }
+    
+    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderWireSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
+    }
+    
+    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderSolidCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
+    }
+    
+    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline);
+    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color,
+                                    const render::ShapePipelinePointer& pipeline = _simplePipeline) {
+        renderWireCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
+    }
+    
+    // Dynamic geometry
     void renderShape(gpu::Batch& batch, Shape shape);
     void renderWireShape(gpu::Batch& batch, Shape shape);
+    size_t getShapeTriangleCount(Shape shape);
 
-    void renderCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
-    void renderWireCubeInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderCube(gpu::Batch& batch);
     void renderWireCube(gpu::Batch& batch);
+    size_t getCubeTriangleCount();
 
-    void renderSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
-    void renderWireSphereInstances(gpu::Batch& batch, size_t count, gpu::BufferPointer transformBuffer, gpu::BufferPointer colorBuffer);
     void renderSphere(gpu::Batch& batch);
     void renderWireSphere(gpu::Batch& batch);
+    size_t getSphereTriangleCount();
 
-    void renderGrid(gpu::Batch& batch, int xDivisions, int yDivisions, const glm::vec4& color);
-    void renderGrid(gpu::Batch& batch, int x, int y, int width, int height, int rows, int cols, const glm::vec4& color, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+        int majorRows, int majorCols, float majorEdge,
+        int minorRows, int minorCols, float minorEdge,
+        const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID);
+    void renderGrid(gpu::Batch& batch, const glm::vec2& minCorner, const glm::vec2& maxCorner,
+        int rows, int cols, float edge, const glm::vec4& color, bool isLayered, int id = UNKNOWN_ID) {
+        renderGrid(batch, minCorner, maxCorner, rows, cols, edge, 0, 0, 0.0f, color, isLayered, id);
+    }
 
     void renderBevelCornersRect(gpu::Batch& batch, int x, int y, int width, int height, int bevelDistance, const glm::vec4& color, int id = UNKNOWN_ID);
 
@@ -269,6 +317,19 @@ private:
     gpu::BufferPointer _shapeVertices{ std::make_shared<gpu::Buffer>() };
     gpu::BufferPointer _shapeIndices{ std::make_shared<gpu::Buffer>() };
 
+    class GridSchema {
+    public:
+        // data is arranged as majorRow, majorCol, minorRow, minorCol
+        glm::vec4 period;
+        glm::vec4 offset;
+        glm::vec4 edge;
+    };
+    using GridBuffer = gpu::BufferView;
+    void useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bool isLayered);
+    gpu::PipelinePointer _gridPipeline;
+    gpu::PipelinePointer _gridPipelineLayered;
+    int _gridSlot;
+
     class BatchItemDetails {
     public:
         static int population;
@@ -325,13 +386,16 @@ private:
     QHash<Vec3PairVec2Pair, BatchItemDetails> _dashedLines;
     QHash<int, BatchItemDetails> _registeredDashedLines;
 
-    QHash<IntPair, gpu::BufferPointer> _gridBuffers;
-    QHash<Vec3Pair, gpu::BufferPointer> _alternateGridBuffers;
-    QHash<int, gpu::BufferPointer> _registeredAlternateGridBuffers;
-    QHash<int, Vec3Pair> _lastRegisteredAlternateGridBuffers;
-    QHash<Vec3Pair, gpu::BufferPointer> _gridColors;
+    QHash<int, Vec2FloatPairPair> _lastRegisteredGridBuffer;
+    QHash<Vec2FloatPairPair, GridBuffer> _gridBuffers;
+    QHash<int, GridBuffer> _registeredGridBuffers;
 
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
+    
+    gpu::ShaderPointer _simpleShader;
+    gpu::ShaderPointer _emissiveShader;
+    static render::ShapePipelinePointer _simplePipeline;
+    QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 };
 
 #endif // hifi_GeometryCache_h

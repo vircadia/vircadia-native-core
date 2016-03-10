@@ -31,12 +31,14 @@ public:
 
     virtual void update(float deltatime);
 
+    virtual const render::ShapeKey getShapeKey() override;
+
     // setters
     void setURL(const QString& url);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal);
@@ -46,6 +48,7 @@ public:
 private:
     QString _url;
     NetworkTexturePointer _texture;
+    bool _emissive;
 
     QRect _fromImage; // where from in the image to sample
 };

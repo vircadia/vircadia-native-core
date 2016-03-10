@@ -24,15 +24,11 @@
     Doll.prototype = {
         audioInjector: null,
         isGrabbed: false,
-        setLeftHand: function() {
-            this.hand = 'left';
-        },
 
-        setRightHand: function() {
-            this.hand = 'right';
-        },
+        startNearGrab: function(entityID, args) {
+            this.hand = args[0];
+            avatarID = args[1];
 
-        startNearGrab: function() {
             Entities.editEntity(this.entityID, {
                 animation: {
                     url: "https://hifi-public.s3.amazonaws.com/models/Bboys/zombie_scream.fbx",
@@ -49,16 +45,22 @@
             this.isGrabbed = true;
             this.initialHand = this.hand;
         },
+        startEquip: function(id, params) {
+            this.startNearGrab(id, params);
+        },
 
-        continueNearGrab: function() {
+        continueNearGrab: function(entityID, args) {
             var props = Entities.getEntityProperties(this.entityID, ["position"]);
             var audioOptions = {
                 position: props.position
             };
             this.audioInjector.options = audioOptions;
         },
+        continueEquip: function(entityID, args) {
+            this.continueNearGrab(entityID, args);
+        },
 
-        releaseGrab: function() {
+        releaseGrab: function(entityID, args) {
             if (this.isGrabbed === true && this.hand === this.initialHand) {
                 this.audioInjector.stop();
                 Entities.editEntity(this.entityID, {
@@ -72,6 +74,9 @@
 
                 this.isGrabbed = false;
             }
+        },
+        releaseEquip: function(entityID, args) {
+            this.releaseGrab(entityID, args);
         },
 
         preload: function(entityID) {

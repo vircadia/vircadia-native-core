@@ -12,10 +12,8 @@
 #include <QtWidgets/QMainWindow>
 #include <QtOpenGL/QGLWidget>
 #include <GLMHelpers.h>
-#include <gl/GlWindow.h>
 #include <QEvent>
 #include <QtGui/QResizeEvent>
-#include <QtGui/QOpenGLContext>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QScreen>
 
@@ -28,43 +26,24 @@
 
 using namespace oglplus;
 
-const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5)");
-
-const QString & OculusLegacyDisplayPlugin::getName() const {
-    return NAME;
-}
+const QString OculusLegacyDisplayPlugin::NAME("Oculus Rift (0.5) (Legacy)");
 
 OculusLegacyDisplayPlugin::OculusLegacyDisplayPlugin() {
-}
-
-uvec2 OculusLegacyDisplayPlugin::getRecommendedRenderSize() const {
-    return _desiredFramebufferSize;
-}
-
-void OculusLegacyDisplayPlugin::preRender() {
-    ovrHmd_GetEyePoses(_hmd, _frameIndex, _eyeOffsets, _eyePoses, &_trackingState);
-    ovrHmd_BeginFrame(_hmd, _frameIndex);
-    WindowOpenGLDisplayPlugin::preRender();
-}
-
-glm::mat4 OculusLegacyDisplayPlugin::getProjection(Eye eye, const glm::mat4& baseProjection) const {
-    return _eyeProjections[eye];
 }
 
 void OculusLegacyDisplayPlugin::resetSensors() {
     ovrHmd_RecenterPose(_hmd);
 }
 
-glm::mat4 OculusLegacyDisplayPlugin::getEyeToHeadTransform(Eye eye) const {
-    return toGlm(_eyePoses[eye]);
-}
-
-// Should NOT be used for rendering as this will mess up timewarp.  Use the getModelview() method above for
-// any use of head poses for rendering, ensuring you use the correct eye
-glm::mat4 OculusLegacyDisplayPlugin::getHeadPose() const {
+glm::mat4 OculusLegacyDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
+    static uint32_t lastFrameSeen = 0;
+    if (frameIndex > lastFrameSeen) {
+        Lock lock(_mutex);
+        _trackingState = ovrHmd_GetTrackingState(_hmd, ovr_GetTimeInSeconds());
+        lastFrameSeen = frameIndex;
+    }
     return toGlm(_trackingState.HeadPose.ThePose);
 }
-
 
 bool OculusLegacyDisplayPlugin::isSupported() const {
     if (!ovr_Initialize(nullptr)) {
@@ -94,16 +73,21 @@ bool OculusLegacyDisplayPlugin::isSupported() const {
 }
 
 void OculusLegacyDisplayPlugin::activate() {
+    HmdDisplayPlugin::activate();
+    
     if (!(ovr_Initialize(nullptr))) {
         Q_ASSERT(false);
         qFatal("Failed to Initialize SDK");
     }
+    
     _hswDismissed = false;
     _hmd = ovrHmd_Create(0);
     if (!_hmd) {
         qFatal("Failed to acquire HMD");
     }
     
+    _ipd = ovrHmd_GetFloat(_hmd, OVR_KEY_IPD, _ipd);
+
     glm::uvec2 eyeSizes[2];
     ovr_for_each_eye([&](ovrEyeType eye) {
         _eyeFovs[eye] = _hmd->MaxEyeFov[eye];
@@ -111,50 +95,48 @@ void OculusLegacyDisplayPlugin::activate() {
         ovrMatrix4f ovrPerspectiveProjection =
             ovrMatrix4f_Projection(erd.Fov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
         _eyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        ovrPerspectiveProjection =
-            ovrMatrix4f_Projection(erd.Fov, 0.001f, 10.0f, ovrProjection_RightHanded);
-        _compositeEyeProjections[eye] = toGlm(ovrPerspectiveProjection);
-
-        _eyeOffsets[eye] = erd.HmdToEyeViewOffset;
+        _eyeOffsets[eye] = glm::translate(mat4(), toGlm(erd.HmdToEyeViewOffset));
         eyeSizes[eye] = toGlm(ovrHmd_GetFovTextureSize(_hmd, eye, erd.Fov, 1.0f));
     });
-    ovrFovPort combined = _eyeFovs[Left];
-    combined.LeftTan = std::max(_eyeFovs[Left].LeftTan, _eyeFovs[Right].LeftTan);
-    combined.RightTan = std::max(_eyeFovs[Left].RightTan, _eyeFovs[Right].RightTan);
-    ovrMatrix4f ovrPerspectiveProjection =
-        ovrMatrix4f_Projection(combined, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded);
-    _eyeProjections[Mono] = toGlm(ovrPerspectiveProjection);
+    
+    auto combinedFov = _eyeFovs[0];
+    combinedFov.LeftTan = combinedFov.RightTan = std::max(combinedFov.LeftTan, combinedFov.RightTan);
+    _cullingProjection = toGlm(ovrMatrix4f_Projection(combinedFov, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP, ovrProjection_RightHanded));
 
-    _desiredFramebufferSize = uvec2(
+    _renderTargetSize = uvec2(
         eyeSizes[0].x + eyeSizes[1].x,
         std::max(eyeSizes[0].y, eyeSizes[1].y));
-
-    _frameIndex = 0;
-
+    
     if (!ovrHmd_ConfigureTracking(_hmd,
-        ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
+                                  ovrTrackingCap_Orientation | ovrTrackingCap_Position | ovrTrackingCap_MagYawCorrection, 0)) {
         qFatal("Could not attach to sensor device");
     }
+}
 
-    WindowOpenGLDisplayPlugin::activate();
+void OculusLegacyDisplayPlugin::deactivate() {
+    HmdDisplayPlugin::deactivate();
+    ovrHmd_Destroy(_hmd);
+    _hmd = nullptr;
+    ovr_Shutdown();
+}
 
-    int screen = getHmdScreen();
-    if (screen != -1) {
-        _container->setFullscreen(qApp->screens()[screen]);
-    }
-    
-    _window->installEventFilter(this);
-    _window->makeCurrent();
+// DLL based display plugins MUST initialize GLEW inside the DLL code.
+void OculusLegacyDisplayPlugin::customizeContext() {
+    static std::once_flag once;
+    std::call_once(once, []{
+        glewExperimental = true;
+        glewInit();
+        glGetError();
+    });
+    HmdDisplayPlugin::customizeContext();
+#if 0
     ovrGLConfig config; memset(&config, 0, sizeof(ovrRenderAPIConfig));
     auto& header = config.Config.Header;
     header.API = ovrRenderAPI_OpenGL;
     header.BackBufferSize = _hmd->Resolution;
     header.Multisample = 1;
-    int distortionCaps = 0
-        | ovrDistortionCap_TimeWarp
-        ;
-
+    int distortionCaps = ovrDistortionCap_TimeWarp;
+    
     memset(_eyeTextures, 0, sizeof(ovrTexture) * 2);
     ovr_for_each_eye([&](ovrEyeType eye) {
         auto& header = _eyeTextures[eye].Header;
@@ -166,71 +148,37 @@ void OculusLegacyDisplayPlugin::activate() {
             header.RenderViewport.Pos.x = header.RenderViewport.Size.w;
         }
     });
-
-    ovrBool result = ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
-    Q_ASSERT(result);
-}
-
-void OculusLegacyDisplayPlugin::deactivate() {
-    _window->removeEventFilter(this);
-
-    WindowOpenGLDisplayPlugin::deactivate();
     
-    QScreen* riftScreen = nullptr;
-    if (_hmdScreen >= 0) {
-        riftScreen = qApp->screens()[_hmdScreen];
-    }
-    _container->unsetFullscreen(riftScreen);
+#ifndef NDEBUG
+    ovrBool result =
+#endif
+    ovrHmd_ConfigureRendering(_hmd, &config.Config, distortionCaps, _eyeFovs, _eyeRenderDescs);
+    assert(result);
+#endif
     
-    ovrHmd_Destroy(_hmd);
-    _hmd = nullptr;
-    ovr_Shutdown();
 }
 
-// DLL based display plugins MUST initialize GLEW inside the DLL code.
-void OculusLegacyDisplayPlugin::customizeContext() {
-    glewExperimental = true;
-    glewInit();
-    glGetError();
-    WindowOpenGLDisplayPlugin::customizeContext();
+#if 0
+void OculusLegacyDisplayPlugin::uncustomizeContext() {
+    HmdDisplayPlugin::uncustomizeContext();
 }
 
-void OculusLegacyDisplayPlugin::preDisplay() {
-    _window->makeCurrent();
-}
-
-void OculusLegacyDisplayPlugin::display(GLuint finalTexture, const glm::uvec2& sceneSize) {
-    ++_frameIndex;
+void OculusLegacyDisplayPlugin::internalPresent() {
+    ovrHmd_BeginFrame(_hmd, 0);
     ovr_for_each_eye([&](ovrEyeType eye) {
-        reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = finalTexture;
+        reinterpret_cast<ovrGLTexture&>(_eyeTextures[eye]).OGL.TexId = _currentSceneTexture;
     });
     ovrHmd_EndFrame(_hmd, _eyePoses, _eyeTextures);
 }
 
-// Pass input events on to the application
-bool OculusLegacyDisplayPlugin::eventFilter(QObject* receiver, QEvent* event) {
-    if (!_hswDismissed && (event->type() == QEvent::KeyPress)) {
-        static ovrHSWDisplayState hswState;
-        ovrHmd_GetHSWDisplayState(_hmd, &hswState);
-        if (hswState.Displayed) {
-            ovrHmd_DismissHSWDisplay(_hmd);
-        } else {
-            _hswDismissed = true;
-        }
-    }    
-    return WindowOpenGLDisplayPlugin::eventFilter(receiver, event);
-}
-
-// FIXME mirroring tot he main window is diffucult on OSX because it requires that we
-// trigger a swap, which causes the client to wait for the v-sync of the main screen running
-// at 60 Hz.  This would introduce judder.  Perhaps we can push mirroring to a separate
-// thread
-// FIXME If we move to the 'batch rendering on a different thread' we can possibly do this.  
-// however, we need to make sure it doesn't block the event handling.
-void OculusLegacyDisplayPlugin::finishFrame() {
-    _window->doneCurrent();
-};
+#endif
 
 int OculusLegacyDisplayPlugin::getHmdScreen() const {
     return _hmdScreen;
 }
+
+float OculusLegacyDisplayPlugin::getTargetFrameRate() {
+    return TARGET_RATE_OculusLegacy;
+}
+
+

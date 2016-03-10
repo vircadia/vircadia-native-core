@@ -13,12 +13,12 @@
 
 #include "AvatarMixerClientData.h"
 
-int AvatarMixerClientData::parseData(NLPacket& packet) {
+int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // pull the sequence number from the data first
-    packet.readPrimitive(&_lastReceivedSequenceNumber);
-
+    message.readPrimitive(&_lastReceivedSequenceNumber);
+    
     // compute the offset to the data payload
-    return _avatar.parseDataFromBuffer(packet.readWithoutCopy(packet.bytesLeftToRead()));
+    return _avatar->parseDataFromBuffer(message.readWithoutCopy(message.getBytesLeftToRead()));
 }
 
 bool AvatarMixerClientData::checkAndSetHasReceivedFirstPacketsFrom(const QUuid& uuid) {
@@ -40,7 +40,7 @@ uint16_t AvatarMixerClientData::getLastBroadcastSequenceNumber(const QUuid& node
 }
 
 void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
-    jsonObject["display_name"] = _avatar.getDisplayName();
+    jsonObject["display_name"] = _avatar->getDisplayName();
     jsonObject["full_rate_distance"] = _fullRateDistance;
     jsonObject["max_av_distance"] = _maxAvatarDistance;
     jsonObject["num_avs_sent_last_frame"] = _numAvatarsSentLastFrame;
@@ -49,7 +49,7 @@ void AvatarMixerClientData::loadJSONStats(QJsonObject& jsonObject) const {
     jsonObject["total_num_out_of_order_sends"] = _numOutOfOrderSends;
 
     jsonObject[OUTBOUND_AVATAR_DATA_STATS_KEY] = getOutboundAvatarDataKbps();
-    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar.getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
+    jsonObject[INBOUND_AVATAR_DATA_STATS_KEY] = _avatar->getAverageBytesReceivedPerSecond() / (float) BYTES_PER_KILOBIT;
 
-    jsonObject["av_data_receive_rate"] = _avatar.getReceiveRate();
+    jsonObject["av_data_receive_rate"] = _avatar->getReceiveRate();
 }

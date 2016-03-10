@@ -15,6 +15,8 @@
 #include <RegisteredMetaTypes.h>
 #include "AnimVariant.h" // which has AnimVariant/AnimVariantMap
 
+const AnimVariant AnimVariant::False = AnimVariant();
+
 QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, const QStringList& names, bool useNames) const {
     if (QThread::currentThread() != engine->thread()) {
         qCWarning(animation) << "Cannot create Javacript object from non-script thread" << QThread::currentThread();
@@ -50,9 +52,11 @@ QScriptValue AnimVariantMap::animVariantMapToScriptValue(QScriptEngine* engine, 
     if (useNames) { // copy only the requested names
         for (const QString& name : names) {
             auto search = _map.find(name);
-            if (search != _map.end()) { // scripts are allowed to request names that do not exist
+            if (search != _map.end()) {
                 setOne(name, search->second);
-            }
+            } else if (_triggers.count(name) == 1) {
+                target.setProperty(name, true);
+            } // scripts are allowed to request names that do not exist
         }
 
     } else {  // copy all of them

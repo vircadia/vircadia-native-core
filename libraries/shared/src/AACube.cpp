@@ -79,32 +79,32 @@ void AACube::setBox(const glm::vec3& corner, float scale) {
     _scale = scale;
 }
 
-glm::vec3 AACube::getVertexP(const glm::vec3& normal) const {
+glm::vec3 AACube::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-    if (normal.x > 0) {
+    if (normal.x > 0.0f) {
         result.x += _scale;
     }
-    if (normal.y > 0) {
+    if (normal.y > 0.0f) {
         result.y += _scale;
     }
-    if (normal.z > 0) {
+    if (normal.z > 0.0f) {
         result.z += _scale;
     }
     return result;
 }
 
-glm::vec3 AACube::getVertexN(const glm::vec3& normal) const {
+glm::vec3 AACube::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
 
-    if (normal.x < 0) {
+    if (normal.x < 0.0f) {
         result.x += _scale;
     }
 
-    if (normal.y < 0) {
+    if (normal.y < 0.0f) {
         result.y += _scale;
     }
 
-    if (normal.z < 0) {
+    if (normal.z < 0.0f) {
         result.z += _scale;
     }
 
@@ -282,6 +282,12 @@ bool AACube::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
         return true;
     }
     return false;
+}
+
+bool AACube::touchesSphere(const glm::vec3& center, float radius) const {
+    // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
+    glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - glm::vec3(_scale), Vectors::ZERO);
+    return glm::length2(e) <= radius * radius;
 }
 
 bool AACube::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {
@@ -465,3 +471,20 @@ AABox AACube::clamp(float min, float max) const {
     return temp.clamp(min, max);
 }
 
+AACube& AACube::operator += (const glm::vec3& point) {
+    glm::vec3 oldMaximumPoint = getMaximumPoint();
+    _corner = glm::vec3(glm::min(_corner.x, point.x),
+                        glm::min(_corner.y, point.y),
+                        glm::min(_corner.z, point.z));
+
+    glm::vec3 scaleOld = oldMaximumPoint - _corner;
+    glm::vec3 scalePoint = point - _corner;
+    _scale = glm::max(_scale, scalePoint.x, scalePoint.y, scalePoint.z);
+    _scale = glm::max(_scale, scaleOld.x, scaleOld.y, scaleOld.z);
+
+    return (*this);
+}
+
+bool AACube::containsNaN() const {
+    return isNaN(_corner) || isNaN(_scale);
+}

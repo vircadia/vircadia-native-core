@@ -37,7 +37,6 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
     bool getDrawInFront() const { return _drawInFront; }
-    bool getDrawOnHUD() const { return _drawOnHUD; }
 
     // setters
     void setPosition(const glm::vec3& value) { _transform.setTranslation(value); }
@@ -50,12 +49,11 @@ public:
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
     void setDrawInFront(bool value) { _drawInFront = value; }
-    void setDrawOnHUD(bool value) { _drawOnHUD = value; }
 
     virtual AABox getBounds() const = 0;
 
-    virtual void setProperties(const QScriptValue& properties);
-    virtual QScriptValue getProperty(const QString& property);
+    void setProperties(const QVariantMap& properties) override;
+    QVariant getProperty(const QString& property) override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                         BoxFace& face, glm::vec3& surfaceNormal);
@@ -73,7 +71,6 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
     bool _drawInFront;
-    bool _drawOnHUD;
 };
  
 #endif // hifi_Base3DOverlay_h

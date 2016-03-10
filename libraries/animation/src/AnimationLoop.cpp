@@ -18,7 +18,7 @@ const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
 AnimationLoop::AnimationLoop() :
     _fps(30.0f),
-    _loop(false),
+    _loop(true),
     _hold(false),
     _startAutomatically(false),
     _firstFrame(0.0f),

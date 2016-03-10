@@ -10,7 +10,8 @@ Original.CheckBox {
         }
         label: Text {
             text: control.text
+            renderType: Text.QtRendering
         }
     }
-    
+
 }

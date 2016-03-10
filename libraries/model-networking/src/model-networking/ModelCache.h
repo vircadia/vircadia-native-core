@@ -48,9 +48,6 @@ public:
     /// \param delayLoad if true, don't load the geometry immediately; wait until load is first requested
     QSharedPointer<NetworkGeometry> getGeometry(const QUrl& url, const QUrl& fallback = QUrl(), bool delayLoad = false);
 
-    /// Set a batch to the simple pipeline, returning the previous pipeline
-    void useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend = false);
-
 private:
     ModelCache();
     virtual ~ModelCache();
@@ -108,6 +105,9 @@ signals:
     // Fired when something went wrong.
     void onFailure(NetworkGeometry& networkGeometry, Error error);
 
+public slots:
+    void textureLoaded(const QWeakPointer<NetworkTexture>& networkTexture);
+
 protected slots:
     void mappingRequestDone(const QByteArray& data);
     void mappingRequestError(QNetworkReply::NetworkError error);
@@ -117,6 +117,7 @@ protected slots:
 
     void modelParseSuccess(FBXGeometry* geometry);
     void modelParseError(int error, QString str);
+
 
 protected:
     void attemptRequestInternal();
@@ -136,6 +137,7 @@ protected:
     QUrl _modelUrl;
     QVariantHash _mapping;
     QUrl _textureBaseUrl;
+    int numTextureLoaded = 0;
 
     Resource* _resource = nullptr;
     std::unique_ptr<FBXGeometry> _geometry; // This should go away evenutally once we can put everything we need in the model::AssetPointer
@@ -176,15 +178,23 @@ public:
 
 class NetworkMaterial {
 public:
+
     model::MaterialPointer _material;
-    QString diffuseTextureName;
-    QSharedPointer<NetworkTexture> diffuseTexture;
-    QString normalTextureName;
-    QSharedPointer<NetworkTexture> normalTexture;
-    QString specularTextureName;
-    QSharedPointer<NetworkTexture> specularTexture;
     QString emissiveTextureName;
     QSharedPointer<NetworkTexture> emissiveTexture;
+    QString albedoTextureName;
+    QSharedPointer<NetworkTexture> albedoTexture;
+    QString normalTextureName;
+    QSharedPointer<NetworkTexture> normalTexture;
+    QString roughnessTextureName;
+    QSharedPointer<NetworkTexture> roughnessTexture;
+    QString metallicTextureName;
+    QSharedPointer<NetworkTexture> metallicTexture;
+    QString occlusionTextureName;
+    QSharedPointer<NetworkTexture> occlusionTexture;
+    QString lightmapTextureName;
+    QSharedPointer<NetworkTexture> lightmapTexture;
+
 };
 
 

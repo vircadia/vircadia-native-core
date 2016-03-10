@@ -184,6 +184,9 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
+    if (!netReply) {
+        return false;
+    }
     bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
     netReply->deleteLater();
     return isValid;
@@ -217,7 +220,6 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
             materials[matName] = currentMaterial;
             matName = tokenizer.getDatum();
             currentMaterial = materials[matName];
-            currentMaterial.diffuseTextureFilename = "test";
             #ifdef WANT_DEBUG
             qCDebug(modelformat) << "OBJ Reader Starting new material definition " << matName;
             #endif
@@ -258,13 +260,28 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
 }
 
 QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
+    if (!qApp) {
+        return nullptr;
+    }
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);
+    if (!qApp) {
+        return netReply;
+    }
     QEventLoop loop; // Create an event loop that will quit when we get the finished signal
     QObject::connect(netReply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();                    // Nothing is going to happen on this whole run thread until we get this
-    netReply->waitForReadyRead(-1); // so we might as well block this thread waiting for the response, rather than
+
+    bool aboutToQuit { false };
+    auto connection = QObject::connect(qApp, &QCoreApplication::aboutToQuit, [&] {
+        aboutToQuit = true;
+    });
+    static const int WAIT_TIMEOUT_MS = 500;
+    while (qApp && !aboutToQuit && !netReply->isReadable()) {
+        netReply->waitForReadyRead(WAIT_TIMEOUT_MS); // so we might as well block this thread waiting for the response, rather than
+    }
+    QObject::disconnect(connection);
     return netReply;                // trying to sync later on.
 }
 
@@ -461,6 +478,9 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
             }
 
             if (!textName.isEmpty()) {
+                #ifdef WANT_DEBUG
+                qCDebug(modelformat) << "OBJ Reader found a default texture: " << textName;
+                #endif
                 preDefinedMaterial.diffuseTextureFilename = textName;
             }
             materials[SMART_DEFAULT_MATERIAL_NAME] = preDefinedMaterial;
@@ -544,7 +564,6 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         geometry.materials[materialID] = FBXMaterial(objMaterial.diffuseColor,
                                                      objMaterial.specularColor,
                                                      glm::vec3(0.0f),
-                                                     glm::vec2(0.0f, 1.0f),
                                                      objMaterial.shininess,
                                                      objMaterial.opacity);
         FBXMaterial& fbxMaterial = geometry.materials[materialID];
@@ -553,15 +572,13 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
         model::MaterialPointer modelMaterial = fbxMaterial._material;
 
         if (!objMaterial.diffuseTextureFilename.isEmpty()) {
-            FBXTexture texture;
-            QUrl url = _url.resolved(QUrl(objMaterial.diffuseTextureFilename));
-            // TODO -- something to get textures working again
+            fbxMaterial.albedoTexture.filename = objMaterial.diffuseTextureFilename;
         }
 
         modelMaterial->setEmissive(fbxMaterial.emissiveColor);
-        modelMaterial->setDiffuse(fbxMaterial.diffuseColor);
+        modelMaterial->setAlbedo(fbxMaterial.diffuseColor);
         modelMaterial->setMetallic(glm::length(fbxMaterial.specularColor));
-        modelMaterial->setGloss(fbxMaterial.shininess);
+        modelMaterial->setRoughness(model::Material::shininessToRoughness(fbxMaterial.shininess));
 
         if (fbxMaterial.opacity <= 0.0f) {
             modelMaterial->setOpacity(1.0f);
@@ -605,7 +622,7 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
             qCDebug(modelformat) << "        specularColor =" << meshPart.specularColor << "mat =" << meshPart._material->getMetallic();
             qCDebug(modelformat) << "        emissiveColor =" << meshPart.emissiveColor << "mat =" << meshPart._material->getEmissive();
             qCDebug(modelformat) << "        emissiveParams =" << meshPart.emissiveParams;
-            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getGloss();
+            qCDebug(modelformat) << "        gloss =" << meshPart.shininess << "mat =" << meshPart._material->getRoughness();
             qCDebug(modelformat) << "        opacity =" << meshPart.opacity << "mat =" << meshPart._material->getOpacity();
             */
             qCDebug(modelformat) << "        materialID =" << meshPart.materialID;

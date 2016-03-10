@@ -82,6 +82,7 @@ public:
     static const vec3& RIGHT;
     static const vec3& UP;
     static const vec3& FRONT;
+    static const vec3 ZERO4;
 };
 
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
@@ -156,6 +157,7 @@ vec2 toGlm(const QPointF& pt);
 vec3 toGlm(const xColor& color);
 vec4 toGlm(const QColor& color);
 ivec4 toGlm(const QRect& rect);
+vec4 toGlm(const xColor& color, float alpha);
 
 QSize fromGlm(const glm::ivec2 & v);
 QMatrix4x4 fromGlm(const glm::mat4 & m);
@@ -210,10 +212,12 @@ glm::detail::tvec4<T, P> lerp(const glm::detail::tvec4<T, P>& x, const glm::deta
 }
 
 glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p);
+glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans);
 glm::quat cancelOutRollAndPitch(const glm::quat& q);
 glm::mat4 cancelOutRollAndPitch(const glm::mat4& m);
 glm::vec3 transformPoint(const glm::mat4& m, const glm::vec3& p);
-glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFast(const glm::mat4& m, const glm::vec3& v);
+glm::vec3 transformVectorFull(const glm::mat4& m, const glm::vec3& v);
 
 // Calculate an orthogonal basis from a primary and secondary axis.
 // The uAxis, vAxis & wAxis will form an orthognal basis.
@@ -221,5 +225,11 @@ glm::vec3 transformVector(const glm::mat4& m, const glm::vec3& v);
 // The vAxis will be as close as possible to to the secondary axis.
 void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& secondaryAxis,
                           glm::vec3& uAxisOut, glm::vec3& vAxisOut, glm::vec3& wAxisOut);
+
+glm::vec2 getFacingDir2D(const glm::quat& rot);
+glm::vec2 getFacingDir2D(const glm::mat4& m);
+
+bool isNaN(glm::vec3 value);
+bool isNaN(glm::quat value);
 
 #endif // hifi_GLMHelpers_h

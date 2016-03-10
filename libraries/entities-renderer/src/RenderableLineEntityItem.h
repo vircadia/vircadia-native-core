@@ -19,13 +19,12 @@
 class RenderableLineEntityItem : public LineEntityItem {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
-
-    RenderableLineEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        LineEntityItem(entityItemID, properties),
+    RenderableLineEntityItem(const EntityItemID& entityItemID) :
+        LineEntityItem(entityItemID),
        _lineVerticesID(GeometryCache::UNKNOWN_ID)
     { }
 
-    virtual void render(RenderArgs* args);
+    virtual void render(RenderArgs* args) override;
 
     SIMPLE_RENDERABLE();
 

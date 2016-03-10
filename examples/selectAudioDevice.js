@@ -48,8 +48,8 @@ var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
 function setupAudioMenus() {
-    Menu.addMenu("Tools > Audio");
-    Menu.addSeparator("Tools > Audio","Output Audio Device");
+    Menu.addMenu("Audio > Devices", "Advanced");
+    Menu.addSeparator("Audio > Devices","Output Audio Device");
 
     var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
     var outputDevices = AudioDevice.getOutputDevices();
@@ -63,7 +63,7 @@ function setupAudioMenus() {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
         Menu.addMenuItem({ 
-                            menuName: "Tools > Audio", 
+                            menuName: "Audio > Devices", 
                             menuItemName: menuItem, 
                             isCheckable: true, 
                             isChecked: thisDeviceSelected 
@@ -73,7 +73,7 @@ function setupAudioMenus() {
         }
     }
 
-    Menu.addSeparator("Tools > Audio","Input Audio Device");
+    Menu.addSeparator("Audio > Devices","Input Audio Device");
 
     var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
     var inputDevices = AudioDevice.getInputDevices();
@@ -87,7 +87,7 @@ function setupAudioMenus() {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
         Menu.addMenuItem({ 
-                            menuName: "Tools > Audio", 
+                            menuName: "Audio > Devices", 
                             menuItemName: menuItem, 
                             isCheckable: true, 
                             isChecked: thisDeviceSelected 
@@ -99,7 +99,7 @@ function setupAudioMenus() {
 }
 
 function onDevicechanged() {
-    Menu.removeMenu("Tools > Audio");
+    Menu.removeMenu("Audio > Devices");
     setupAudioMenus();
 }
 
@@ -110,7 +110,7 @@ Script.setTimeout(function () {
 }, 5000);
 
 function scriptEnding() {
-    Menu.removeMenu("Tools > Audio");
+    Menu.removeMenu("Audio > Devices");
 }
 Script.scriptEnding.connect(scriptEnding);
 

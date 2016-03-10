@@ -38,7 +38,7 @@ public:
 
     HandData(AvatarData* owningAvatar);
     virtual ~HandData() {}
-    
+
     // position conversion
     glm::vec3 localToWorldPosition(const glm::vec3& localPosition) {
         return getBasePosition() + getBaseOrientation() * localPosition * getBaseScale();
@@ -60,7 +60,7 @@ public:
     /// \param penetration[out] the vector in which to store the penetration
     /// \param collidingPalm[out] a const PalmData* to the palm that was collided with
     /// \return whether or not the sphere penetrated
-    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration, 
+    bool findSpherePenetration(const glm::vec3& penetratorCenter, float penetratorRadius, glm::vec3& penetration,
         const PalmData*& collidingPalm) const;
 
     glm::quat getBaseOrientation() const;
@@ -74,7 +74,7 @@ protected:
     AvatarData* _owningAvatarData;
     std::vector<PalmData> _palms;
     mutable QReadWriteLock _palmsLock{ QReadWriteLock::Recursive };
-    
+
     glm::vec3 getBasePosition() const;
     float getBaseScale() const;
 
@@ -93,6 +93,7 @@ public:
     PalmData(HandData* owningHandData = nullptr, HandData::Hand hand = HandData::UnknownHand);
     glm::vec3 getPosition() const { return _owningHandData->localToWorldPosition(_rawPosition); }
     glm::vec3 getVelocity() const { return _owningHandData->localToWorldDirection(_rawVelocity); }
+    glm::vec3 getAngularVelocity() const { return _owningHandData->localToWorldDirection(_rawAngularVelocity); }
 
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     bool isActive() const { return _isActive; }
@@ -112,13 +113,12 @@ public:
 
     void setRawAngularVelocity(const glm::vec3& angularVelocity) { _rawAngularVelocity = angularVelocity; }
     const glm::vec3& getRawAngularVelocity() const { return _rawAngularVelocity; }
-    glm::quat getRawAngularVelocityAsQuat() const { return glm::quat(_rawAngularVelocity); }
 
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
     void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.0f); }
-    
+
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
     const glm::vec3 getTipPosition() const { return _owningHandData->localToWorldPosition(_tipPosition); }
     const glm::vec3& getTipRawPosition() const { return _tipPosition; }
@@ -126,16 +126,16 @@ public:
     void setTipVelocity(const glm::vec3& velocity) { _tipVelocity = velocity; }
     const glm::vec3 getTipVelocity() const { return _owningHandData->localToWorldDirection(_tipVelocity); }
     const glm::vec3& getTipRawVelocity() const { return _tipVelocity; }
-    
+
     void incrementFramesWithoutData() { _numFramesWithoutData++; }
     void resetFramesWithoutData() { _numFramesWithoutData = 0; }
     int  getFramesWithoutData() const { return _numFramesWithoutData; }
-    
+
     // FIXME - these are used in SkeletonModel::updateRig() the skeleton/rig should probably get this information
     // from an action and/or the UserInputMapper instead of piping it through here.
     void setTrigger(float trigger) { _trigger = trigger; }
     float getTrigger() const { return _trigger; }
-    
+
     // return world-frame:
     glm::vec3 getFingerDirection() const;
     glm::vec3 getNormal() const;
@@ -148,13 +148,13 @@ private:
     glm::vec3 _rawAngularVelocity;
     glm::quat _rawDeltaRotation;
     glm::quat _lastRotation;
-    
+
     glm::vec3 _tipPosition;
     glm::vec3 _tipVelocity;
     glm::vec3 _totalPenetration; /// accumulator for per-frame penetrations
 
     float _trigger;
-    
+
     bool _isActive; /// This has current valid data
     int _numFramesWithoutData; /// after too many frames without data, this tracked object assumed lost.
     HandData* _owningHandData;

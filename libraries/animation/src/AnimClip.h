@@ -25,7 +25,9 @@ class AnimClip : public AnimNode {
 public:
     friend class AnimTests;
 
-    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag);
+    static bool usePreAndPostPoseFromAnim;
+
+    AnimClip(const QString& id, const QString& url, float startFrame, float endFrame, float timeScale, bool loopFlag, bool mirrorFlag);
     virtual ~AnimClip() override;
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, float dt, Triggers& triggersOut) override;
@@ -34,6 +36,7 @@ public:
     void setEndFrameVar(const QString& endFrameVar) { _endFrameVar = endFrameVar; }
     void setTimeScaleVar(const QString& timeScaleVar) { _timeScaleVar = timeScaleVar; }
     void setLoopFlagVar(const QString& loopFlagVar) { _loopFlagVar = loopFlagVar; }
+    void setMirrorFlagVar(const QString& mirrorFlagVar) { _mirrorFlagVar = mirrorFlagVar; }
     void setFrameVar(const QString& frameVar) { _frameVar = frameVar; }
 
     float getStartFrame() const { return _startFrame; }
@@ -47,12 +50,16 @@ public:
     bool getLoopFlag() const { return _loopFlag; }
     void setLoopFlag(bool loopFlag) { _loopFlag = loopFlag; }
 
+    bool getMirrorFlag() const { return _mirrorFlag; }
+    void setMirrorFlag(bool mirrorFlag) { _mirrorFlag = mirrorFlag; }
+
     void loadURL(const QString& url);
 protected:
 
     virtual void setCurrentFrameInternal(float frame) override;
 
     void copyFromNetworkAnim();
+    void buildMirrorAnim();
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override;
@@ -62,18 +69,21 @@ protected:
 
     // _anim[frame][joint]
     std::vector<AnimPoseVec> _anim;
+    std::vector<AnimPoseVec> _mirrorAnim;
 
     QString _url;
     float _startFrame;
     float _endFrame;
     float _timeScale;
     bool _loopFlag;
+    bool _mirrorFlag;
     float _frame;
 
     QString _startFrameVar;
     QString _endFrameVar;
     QString _timeScaleVar;
     QString _loopFlagVar;
+    QString _mirrorFlagVar;
     QString _frameVar;
 
     // no copies

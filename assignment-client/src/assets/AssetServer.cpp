@@ -24,11 +24,12 @@
 #include "NodeType.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
+#include <ServerPathUtils.h>
 
 const QString ASSET_SERVER_LOGGING_TARGET_NAME = "asset-server";
 
-AssetServer::AssetServer(NLPacket& packet) :
-    ThreadedAssignment(packet),
+AssetServer::AssetServer(ReceivedMessage& message) :
+    ThreadedAssignment(message),
     _taskPool(this)
 {
 
@@ -40,19 +41,93 @@ AssetServer::AssetServer(NLPacket& packet) :
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListener(PacketType::AssetGet, this, "handleAssetGet");
     packetReceiver.registerListener(PacketType::AssetGetInfo, this, "handleAssetGetInfo");
-    packetReceiver.registerMessageListener(PacketType::AssetUpload, this, "handleAssetUpload");
+    packetReceiver.registerListener(PacketType::AssetUpload, this, "handleAssetUpload");
 }
 
 void AssetServer::run() {
+
+    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+
+    // wait until we have the domain-server settings, otherwise we bail
+    DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
+    connect(&domainHandler, &DomainHandler::settingsReceived, this, &AssetServer::completeSetup);
+    connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AssetServer::domainSettingsRequestFailed);
+
     ThreadedAssignment::commonInit(ASSET_SERVER_LOGGING_TARGET_NAME, NodeType::AssetServer);
+}
 
+void AssetServer::completeSetup() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 
-    _resourcesDirectory = QDir(QCoreApplication::applicationDirPath()).filePath("resources/assets");
-    if (!_resourcesDirectory.exists()) {
-        qDebug() << "Creating resources directory";
-        _resourcesDirectory.mkpath(".");
+    auto& domainHandler = nodeList->getDomainHandler();
+    const QJsonObject& settingsObject = domainHandler.getSettingsObject();
+
+    static const QString ASSET_SERVER_SETTINGS_KEY = "asset_server";
+
+    if (!settingsObject.contains(ASSET_SERVER_SETTINGS_KEY)) {
+        qCritical() << "Received settings from the domain-server with no asset-server section. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
+
+    auto assetServerObject = settingsObject[ASSET_SERVER_SETTINGS_KEY].toObject();
+
+    // get the path to the asset folder from the domain server settings
+    static const QString ASSETS_PATH_OPTION = "assets_path";
+    auto assetsJSONValue = assetServerObject[ASSETS_PATH_OPTION];
+
+    if (!assetsJSONValue.isString()) {
+        qCritical() << "Received an assets path from the domain-server that could not be parsed. Stopping assignment.";
+        setFinished(true);
+        return;
+    }
+
+    auto assetsPathString = assetsJSONValue.toString();
+    QDir assetsPath { assetsPathString };
+    QString absoluteFilePath = assetsPath.absolutePath();
+
+    if (assetsPath.isRelative()) {
+        // if the domain settings passed us a relative path, make an absolute path that is relative to the
+        // default data directory
+        absoluteFilePath = ServerPathUtils::getDataFilePath("assets/" + assetsPathString);
+    }
+
+    _resourcesDirectory = QDir(absoluteFilePath);
+
+    qDebug() << "Creating resources directory";
+    _resourcesDirectory.mkpath(".");
+
+    bool noExistingAssets = !_resourcesDirectory.exists() || _resourcesDirectory.entryList(QDir::Files).size() == 0;
+
+    if (noExistingAssets) {
+        qDebug() << "Asset resources directory empty, searching for existing asset resources to migrate";
+        QString oldDataDirectory = QCoreApplication::applicationDirPath();
+
+        const QString OLD_RESOURCES_PATH = "assets";
+
+        auto oldResourcesDirectory = QDir(oldDataDirectory).filePath("resources/" + OLD_RESOURCES_PATH);
+
+
+        if (QDir(oldResourcesDirectory).exists()) {
+            qDebug() << "Existing assets found in " << oldResourcesDirectory << ", copying to " << _resourcesDirectory;
+
+
+            QDir resourcesParentDirectory = _resourcesDirectory.filePath("..");
+            if (!resourcesParentDirectory.exists()) {
+                qDebug() << "Creating data directory " << resourcesParentDirectory.absolutePath();
+                resourcesParentDirectory.mkpath(".");
+            }
+
+            auto files = QDir(oldResourcesDirectory).entryList(QDir::Files);
+
+            for (auto& file : files) {
+                auto from = oldResourcesDirectory + QDir::separator() + file;
+                auto to = _resourcesDirectory.absoluteFilePath(file);
+                qDebug() << "\tCopying from " << from << " to " << to;
+                QFile::copy(from, to);
+            }
+
+        }
     }
     qDebug() << "Serving files from: " << _resourcesDirectory.path();
 
@@ -78,26 +153,28 @@ void AssetServer::run() {
             auto hexHash = hash.toHex();
 
             qDebug() << "\tMoving " << filename << " to " << hexHash;
-
+            
             file.rename(_resourcesDirectory.absoluteFilePath(hexHash) + "." + fileInfo.suffix());
         }
     }
+
+    nodeList->addNodeTypeToInterestSet(NodeType::Agent);
 }
 
-void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     QByteArray assetHash;
     MessageID messageID;
     uint8_t extensionLength;
 
-    if (packet->getPayloadSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
+    if (message->getSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID) + sizeof(extensionLength))) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
-    packet->readPrimitive(&messageID);
-    assetHash = packet->readWithoutCopy(SHA256_HASH_LENGTH);
-    packet->readPrimitive(&extensionLength);
-    QByteArray extension = packet->read(extensionLength);
+    message->readPrimitive(&messageID);
+    assetHash = message->readWithoutCopy(SHA256_HASH_LENGTH);
+    message->readPrimitive(&extensionLength);
+    QByteArray extension = message->read(extensionLength);
 
     auto replyPacket = NLPacket::create(PacketType::AssetGetInfoReply);
 
@@ -122,26 +199,26 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<NLPacket> packet, SharedNode
     nodeList->sendPacket(std::move(replyPacket), *senderNode);
 }
 
-void AssetServer::handleAssetGet(QSharedPointer<NLPacket> packet, SharedNodePointer senderNode) {
+void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
     auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(uint8_t) + sizeof(DataOffset) + sizeof(DataOffset));
     
-    if (packet->getPayloadSize() < minSize) {
+    if (message->getSize() < minSize) {
         qDebug() << "ERROR bad file request";
         return;
     }
 
     // Queue task
-    auto task = new SendAssetTask(packet, senderNode, _resourcesDirectory);
+    auto task = new SendAssetTask(message, senderNode, _resourcesDirectory);
     _taskPool.start(task);
 }
 
-void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, SharedNodePointer senderNode) {
+void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     
     if (senderNode->getCanRez()) {
         qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
         
-        auto task = new UploadAssetTask(packetList, senderNode, _resourcesDirectory);
+        auto task = new UploadAssetTask(message, senderNode, _resourcesDirectory);
         _taskPool.start(task);
     } else {
         // this is a node the domain told us is not allowed to rez entities
@@ -151,7 +228,7 @@ void AssetServer::handleAssetUpload(QSharedPointer<NLPacketList> packetList, Sha
         auto permissionErrorPacket = NLPacket::create(PacketType::AssetUploadReply, sizeof(MessageID) + sizeof(AssetServerError));
         
         MessageID messageID;
-        packetList->readPrimitive(&messageID);
+        message->readPrimitive(&messageID);
         
         // write the message ID and a permission denied error
         permissionErrorPacket->writePrimitive(messageID);

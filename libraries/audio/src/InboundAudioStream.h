@@ -15,6 +15,7 @@
 #include <NodeData.h>
 #include <NumericalConstants.h>
 #include <udt/PacketHeaders.h>
+#include <ReceivedMessage.h>
 #include <StDev.h>
 
 #include "AudioRingBuffer.h"
@@ -107,13 +108,15 @@ public:
     virtual void resetStats();
     void clearBuffer();
 
-    virtual int parseData(NLPacket& packet);
+    virtual int parseData(ReceivedMessage& packet) override;
 
     int popFrames(int maxFrames, bool allOrNothing, bool starveIfNoFramesPopped = true);
     int popSamples(int maxSamples, bool allOrNothing, bool starveIfNoSamplesPopped = true);
 
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
+
+    quint64 usecsSinceLastPacket() { return usecTimestampNow() - _lastPacketReceivedTime; }
 
     void setToStarved();
 
@@ -170,7 +173,7 @@ public:
     float getWetLevel() const { return _wetLevel; }
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
-    
+
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.

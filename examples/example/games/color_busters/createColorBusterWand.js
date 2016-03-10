@@ -71,7 +71,7 @@ function createColorBusterWand() {
 		dimensions: COLOR_WAND_DIMENSIONS,
 		position: center,
 		script: COLOR_WAND_SCRIPT_URL,
-		collisionsWillMove: true,
+		dynamic: true,
 		userData: JSON.stringify({
 			hifiColorBusterWandKey: {
 				owner: MyAvatar.sessionUUID,

@@ -28,7 +28,6 @@
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
 
-class CoverageMap;
 class ReadBitstreamToTreeParams;
 class Octree;
 class OctreeElement;
@@ -53,12 +52,8 @@ typedef QHash<uint, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
-const bool NO_COLOR               = false;
-const bool WANT_COLOR             = true;
 const bool COLLAPSE_EMPTY_TREE    = true;
 const bool DONT_COLLAPSE          = false;
-const bool NO_OCCLUSION_CULLING   = false;
-const bool WANT_OCCLUSION_CULLING = true;
 
 const int DONT_CHOP              = 0;
 const int NO_BOUNDARY_ADJUST     = 0;
@@ -75,18 +70,15 @@ public:
     int maxEncodeLevel;
     int maxLevelReached;
     const ViewFrustum* viewFrustum;
-    bool includeColor;
     bool includeExistsBits;
     int chopLevels;
     bool deltaViewFrustum;
     const ViewFrustum* lastViewFrustum;
-    bool wantOcclusionCulling;
     int boundaryLevelAdjust;
     float octreeElementSizeScale;
     quint64 lastViewFrustumSent;
     bool forceSendScene;
     OctreeSceneStats* stats;
-    CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
     OctreeElementExtraEncodeData* extraEncodeData;
 
@@ -108,13 +100,10 @@ public:
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX,
         const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         int  chopLevels = 0,
         bool deltaViewFrustum = false,
         const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM,
-        bool wantOcclusionCulling = NO_OCCLUSION_CULLING,
-        CoverageMap* map = IGNORE_COVERAGE_MAP,
         int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         float octreeElementSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
         quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
@@ -125,18 +114,15 @@ public:
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
             viewFrustum(viewFrustum),
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             chopLevels(chopLevels),
             deltaViewFrustum(deltaViewFrustum),
             lastViewFrustum(lastViewFrustum),
-            wantOcclusionCulling(wantOcclusionCulling),
             boundaryLevelAdjust(boundaryLevelAdjust),
             octreeElementSizeScale(octreeElementSizeScale),
             lastViewFrustumSent(lastViewFrustumSent),
             forceSendScene(forceSendScene),
             stats(stats),
-            map(map),
             jurisdictionMap(jurisdictionMap),
             extraEncodeData(extraEncodeData),
             stopReason(UNKNOWN)
@@ -176,6 +162,8 @@ public:
             case OCCLUDED: return QString("OCCLUDED"); break;
         }
     }
+
+    std::function<void(const QUuid& dataID, quint64 itemLastEdited)> trackSend { [](const QUuid&, quint64){} };
 };
 
 class ReadElementBufferToTreeArgs {
@@ -188,7 +176,6 @@ public:
 
 class ReadBitstreamToTreeParams {
 public:
-    bool includeColor;
     bool includeExistsBits;
     OctreeElementPointer destinationElement;
     QUuid sourceUUID;
@@ -199,14 +186,12 @@ public:
     int entitiesPerPacket = 0;
 
     ReadBitstreamToTreeParams(
-        bool includeColor = WANT_COLOR,
         bool includeExistsBits = WANT_EXISTS_BITS,
         OctreeElementPointer destinationElement = NULL,
         QUuid sourceUUID = QUuid(),
         SharedNodePointer sourceNode = SharedNodePointer(),
         bool wantImportProgress = false,
         PacketVersion bitstreamVersion = 0) :
-            includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationElement(destinationElement),
             sourceUUID(sourceUUID),
@@ -233,7 +218,7 @@ public:
                     return thisVersion == versionForPacketType(expectedDataPacketType()); }
     virtual PacketVersion expectedVersion() const { return versionForPacketType(expectedDataPacketType()); }
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
-    virtual int processEditPacketData(NLPacket& packet, const unsigned char* editData, int maxLength,
+    virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
                     
     virtual bool recurseChildrenWithData() const { return true; }
@@ -313,13 +298,14 @@ public:
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
 
     // Note: this assumes the fileFormat is the HIO individual voxels code files
-    void loadOctreeFile(const char* fileName, bool wantColorRandomizer);
+    void loadOctreeFile(const char* fileName);
 
     // Octree exporters
     void writeToFile(const char* filename, OctreeElementPointer element = NULL, QString persistAsFileType = "svo");
     void writeToJSONFile(const char* filename, OctreeElementPointer element = NULL, bool doGzip = false);
     void writeToSVOFile(const char* filename, OctreeElementPointer element = NULL);
-    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues) = 0;
+    virtual bool writeToMap(QVariantMap& entityDescription, OctreeElementPointer element, bool skipDefaultValues,
+                            bool skipThoseWithBadParents) = 0;
 
     // Octree importers
     bool readFromFile(const char* filename);
@@ -381,7 +367,7 @@ protected:
     int encodeTreeBitstreamRecursion(OctreeElementPointer element,
                                      OctreePacketData* packetData, OctreeElementBag& bag,
                                      EncodeBitstreamParams& params, int& currentEncodeLevel,
-                                     const ViewFrustum::location& parentLocationThisView) const;
+                                     const ViewFrustum::intersection& parentLocationThisView) const;
 
     static bool countOctreeElementsOperation(OctreeElementPointer element, void* extraData);
 
@@ -399,7 +385,5 @@ protected:
     bool _isViewing;
     bool _isServer;
 };
-
-float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_Octree_h

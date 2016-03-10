@@ -75,7 +75,7 @@ var playerSphere = Entities.addEntity({
         y: -9.8,
         z: 0
     },
-    collisionsWillMove: true,
+    dynamic: true,
     damping: 0.2
 });
 

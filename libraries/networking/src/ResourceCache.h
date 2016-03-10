@@ -177,13 +177,14 @@ public:
     const QByteArray& getData() const { return _data; }
 
 signals:
-    /// Fired when the resource has been loaded.
+    /// Fired when the resource has been downloaded.
+    /// This can be used instead of downloadFinished to access data before it is processed.
     void loaded(const QByteArray& request);
 
-    /// Fired when resource failed to load.
+    /// Fired when the resource failed to load.
     void failed(QNetworkReply::NetworkError error);
 
-    /// Fired when resource is refreshed.
+    /// Fired when the resource is refreshed.
     void onRefresh();
 
 protected slots:
@@ -192,10 +193,15 @@ protected slots:
 protected:
     virtual void init();
 
-    /// Called when the download has finished
-    virtual void downloadFinished(const QByteArray& data);
+    /// Checks whether the resource is cacheable.
+    virtual bool isCacheable() const { return true; }
 
-    /// Should be called by subclasses when all the loading that will be done has been done.
+    /// Called when the download has finished.
+    /// This should be overridden by subclasses that need to process the data once it is downloaded.
+    virtual void downloadFinished(const QByteArray& data) { finishedLoading(true); }
+
+    /// Called when the download is finished and processed.
+    /// This should be called by subclasses that override downloadFinished to mark the end of processing.
     Q_INVOKABLE void finishedLoading(bool success);
 
     /// Reinserts this resource into the cache.

@@ -16,5 +16,12 @@
 
     this.collisionWithEntity = function(myID, otherID, collisionInfo) { 
         Entities.editEntity(myID, { color: { red: getRandomInt(128,255), green: getRandomInt(128,255), blue: getRandomInt(128,255)} });
+        print("collisionWithEntity() myID:" + myID + ", otherID:" + otherID);
+        print("    collisionInfo.type:" + collisionInfo.type);
+        print("    collisionInfo.idA:" + collisionInfo.idA);
+        print("    collisionInfo.idB:" + collisionInfo.idB);
+        Vec3.print("    collisionInfo.penetration:", collisionInfo.penetration);
+        Vec3.print("    collisionInfo.contactPoint:", collisionInfo.contactPoint);
+        Vec3.print("    collisionInfo.velocityChange:", collisionInfo.velocityChange);
     }; 
 })

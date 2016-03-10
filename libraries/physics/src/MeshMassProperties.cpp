@@ -271,7 +271,7 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
 
     // create some variables to hold temporary results
     #ifndef NDEBUG
-    uint32_t numPoints = points.size();
+    uint32_t numPoints = (uint32_t)points.size();
     #endif
     const btVector3 p0(0.0f, 0.0f, 0.0f);
     btMatrix3x3 tetraInertia;
@@ -280,7 +280,7 @@ void MeshMassProperties::computeMassProperties(const VectorOfPoints& points, con
     btVector3 center;
     
     // loop over triangles
-    uint32_t numTriangles = triangleIndices.size() / 3;
+    uint32_t numTriangles = (uint32_t)triangleIndices.size() / 3;
     for (uint32_t i = 0; i < numTriangles; ++i) {
         uint32_t t = 3 * i;
         #ifndef NDEBUG

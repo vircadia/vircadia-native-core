@@ -51,6 +51,11 @@ AnimPose AnimPose::inverse() const {
     return AnimPose(glm::inverse(static_cast<glm::mat4>(*this)));
 }
 
+// mirror about x-axis without applying negative scale.
+AnimPose AnimPose::mirror() const {
+    return AnimPose(scale, glm::quat(rot.w, rot.x, -rot.y, -rot.z), glm::vec3(-trans.x, trans.y, trans.z));
+}
+
 AnimPose::operator glm::mat4() const {
     glm::vec3 xAxis = rot * glm::vec3(scale.x, 0.0f, 0.0f);
     glm::vec3 yAxis = rot * glm::vec3(0.0f, scale.y, 0.0f);

@@ -20,82 +20,8 @@
 
 #include "OctreeSendThread.h"
 
-OctreeQueryNode::OctreeQueryNode() :
-    _viewSent(false),
-    _octreePacket(),
-    _octreePacketWaiting(false),
-    _lastOctreePayload(new char[udt::MAX_PACKET_SIZE]),
-    _lastOctreePacketLength(0),
-    _duplicatePacketCount(0),
-    _firstSuppressedPacket(usecTimestampNow()),
-    _maxSearchLevel(1),
-    _maxLevelReachedInLastSearch(1),
-    _lastTimeBagEmpty(0),
-    _viewFrustumChanging(false),
-    _viewFrustumJustStoppedChanging(true),
-    _currentPacketIsColor(true),
-    _currentPacketIsCompressed(false),
-    _octreeSendThread(NULL),
-    _lastClientBoundaryLevelAdjust(0),
-    _lastClientOctreeSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
-    _lodChanged(false),
-    _lodInitialized(false),
-    _sequenceNumber(0),
-    _lastRootTimestamp(0),
-    _myPacketType(PacketType::Unknown),
-    _isShuttingDown(false),
-    _sentPacketHistory()
-{
-}
-
-OctreeQueryNode::~OctreeQueryNode() {
-    _isShuttingDown = true;
-    if (_octreeSendThread) {
-        forceNodeShutdown();
-    }
-
-    delete[] _lastOctreePayload;
-}
-
 void OctreeQueryNode::nodeKilled() {
     _isShuttingDown = true;
-    if (_octreeSendThread) {
-        // just tell our thread we want to shutdown, this is asynchronous, and fast, we don't need or want it to block
-        // while the thread actually shuts down
-        _octreeSendThread->setIsShuttingDown();
-    }
-}
-
-void OctreeQueryNode::forceNodeShutdown() {
-    _isShuttingDown = true;
-    if (_octreeSendThread) {
-        // we really need to force our thread to shutdown, this is synchronous, we will block while the thread actually
-        // shuts down because we really need it to shutdown, and it's ok if we wait for it to complete
-        OctreeSendThread* sendThread = _octreeSendThread;
-        _octreeSendThread = NULL;
-        sendThread->setIsShuttingDown();
-        sendThread->terminate();
-        delete sendThread;
-    }
-}
-
-void OctreeQueryNode::sendThreadFinished() {
-    // We've been notified by our thread that it is shutting down. So we can clean up our reference to it, and
-    // delete the actual thread object. Cleaning up our thread will correctly unroll all refereces to shared
-    // pointers to our node as well as the octree server assignment
-    if (_octreeSendThread) {
-        OctreeSendThread* sendThread = _octreeSendThread;
-        _octreeSendThread = NULL;
-        delete sendThread;
-    }
-}
-
-void OctreeQueryNode::initializeOctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) {
-    _octreeSendThread = new OctreeSendThread(myServer, node);
-
-    // we want to be notified when the thread finishes
-    connect(_octreeSendThread, &GenericThread::finished, this, &OctreeQueryNode::sendThreadFinished);
-    _octreeSendThread->initialize(true);
 }
 
 bool OctreeQueryNode::packetIsDuplicate() const {
@@ -107,7 +33,7 @@ bool OctreeQueryNode::packetIsDuplicate() const {
     // of the entire packet, we need to compare only the packet content...
 
     if (_lastOctreePacketLength == _octreePacket->getPayloadSize()) {
-        if (memcmp(_lastOctreePayload + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
+        if (memcmp(_lastOctreePayload.data() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayload() + OCTREE_PACKET_EXTRA_HEADERS_SIZE,
                    _octreePacket->getPayloadSize() - OCTREE_PACKET_EXTRA_HEADERS_SIZE) == 0) {
             return true;
@@ -175,19 +101,13 @@ void OctreeQueryNode::resetOctreePacket() {
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
     _lastOctreePacketLength = _octreePacket->getPayloadSize();
-    memcpy(_lastOctreePayload, _octreePacket->getPayload(), _lastOctreePacketLength);
+    memcpy(_lastOctreePayload.data(), _octreePacket->getPayload(), _lastOctreePacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
     // the clients requested color state.
-    _currentPacketIsColor = getWantColor();
-    _currentPacketIsCompressed = getWantCompression();
     OCTREE_PACKET_FLAGS flags = 0;
-    if (_currentPacketIsColor) {
-        setAtBit(flags, PACKET_IS_COLOR_BIT);
-    }
-    if (_currentPacketIsCompressed) {
-        setAtBit(flags, PACKET_IS_COMPRESSED_BIT);
-    }
+    setAtBit(flags, PACKET_IS_COLOR_BIT); // always color
+    setAtBit(flags, PACKET_IS_COMPRESSED_BIT); // always compressed
 
     _octreePacket->reset();
 
@@ -212,10 +132,9 @@ void OctreeQueryNode::writeToPacket(const unsigned char* buffer, unsigned int by
 
     // compressed packets include lead bytes which contain compressed size, this allows packing of
     // multiple compressed portions together
-    if (_currentPacketIsCompressed) {
-        OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
-        _octreePacket->writePrimitive(sectionSize);
-    }
+    OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionSize = bytes;
+    _octreePacket->writePrimitive(sectionSize);
+
     if (bytes <= _octreePacket->bytesAvailableForWrite()) {
         _octreePacket->write(reinterpret_cast<const char*>(buffer), bytes);
         _octreePacketWaiting = true;
@@ -233,6 +152,8 @@ bool OctreeQueryNode::updateCurrentViewFrustum() {
     // get position and orientation details from the camera
     newestViewFrustum.setPosition(getCameraPosition());
     newestViewFrustum.setOrientation(getCameraOrientation());
+
+    newestViewFrustum.setCenterRadius(getCameraCenterRadius());
 
     // Also make sure it's got the correct lens details from the camera
     float originalFOV = getCameraFov();
@@ -371,11 +292,11 @@ const NLPacket* OctreeQueryNode::getNextNackedPacket() {
     return nullptr;
 }
 
-void OctreeQueryNode::parseNackPacket(NLPacket& packet) {
+void OctreeQueryNode::parseNackPacket(ReceivedMessage& message) {
     // read sequence numbers
-    while (packet.bytesLeftToRead()) {
+    while (message.getBytesLeftToRead()) {
         OCTREE_PACKET_SEQUENCE sequenceNumber;
-        packet.readPrimitive(&sequenceNumber);
+        message.readPrimitive(&sequenceNumber);
         _nackedSequenceNumbers.enqueue(sequenceNumber);
     }
 }

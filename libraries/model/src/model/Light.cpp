@@ -12,19 +12,18 @@
 
 using namespace model;
 
-Light::Light() :
-    _flags(0),
-    _schemaBuffer(),
-    _transform() {
+Light::Light() {
     // only if created from nothing shall we create the Buffer to store the properties
     Schema schema;
-    _schemaBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema));
+    _schemaBuffer = std::make_shared<gpu::Buffer>(sizeof(Schema), (const gpu::Byte*) &schema);
+    updateLightRadius();
 }
 
 Light::Light(const Light& light) :
     _flags(light._flags),
     _schemaBuffer(light._schemaBuffer),
-    _transform(light._transform) {
+    _transform(light._transform)
+{
 }
 
 Light& Light::operator= (const Light& light) {
@@ -70,18 +69,36 @@ void Light::setAmbientIntensity(float intensity) {
     editSchema()._ambientIntensity = intensity;
 }
 
+void Light::setFalloffRadius(float radius) {
+    if (radius <= 0.0f) {
+        radius = 0.1f;
+    }
+    editSchema()._attenuation.x = radius;
+    updateLightRadius();
+}
 void Light::setMaximumRadius(float radius) {
     if (radius <= 0.f) {
         radius = 1.0f;
     }
-    editSchema()._attenuation.w = radius;
+    editSchema()._attenuation.y = radius;
     updateLightRadius();
 }
 
 void Light::updateLightRadius() {
-    float CutOffIntensityRatio = 0.05f;
-    float surfaceRadius = getMaximumRadius() / (sqrtf((getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z)) / CutOffIntensityRatio) - 1.0f);
-    editSchema()._attenuation = Vec4(surfaceRadius, 1.0f/surfaceRadius, CutOffIntensityRatio, getMaximumRadius());
+    // This function relies on the attenuation equation:
+    // I = Li / (1 + (d + Lr)/Lr)^2
+    // where I = calculated intensity, Li = light intensity, Lr = light falloff radius, d = distance from surface 
+    // see: https://imdoingitwrong.wordpress.com/2011/01/31/light-attenuation/
+    // note that falloff radius replaces surface radius in linked example
+    // This equation is biased back by Lr so that all lights act as true points, regardless of surface radii
+
+    const float MIN_CUTOFF_INTENSITY = 0.001f;
+    // Get cutoff radius at minimum intensity
+    float intensity = getIntensity() * std::max(std::max(getColor().x, getColor().y), getColor().z);
+    float cutoffRadius = getFalloffRadius() * ((glm::sqrt(intensity / MIN_CUTOFF_INTENSITY) - 1) - 1);
+
+    // If it is less than max radius, store it to buffer to avoid extra shading
+    editSchema()._attenuation.z = std::min(getMaximumRadius(), cutoffRadius);
 }
 
 #include <math.h>
@@ -113,8 +130,26 @@ void Light::setShowContour(float show) {
     if (show <= 0.f) {
         show = 0.0f;
     }
-    editSchema()._control.w = show;
+    editSchema()._control.z = show;
 }
 
+void Light::setAmbientSphere(const gpu::SphericalHarmonics& sphere) {
+    editSchema()._ambientSphere = sphere;
+}
 
+void Light::setAmbientSpherePreset(gpu::SphericalHarmonics::Preset preset) {
+    editSchema()._ambientSphere.assignPreset(preset);
+}
 
+void Light::setAmbientMap(gpu::TexturePointer ambientMap) {
+    _ambientMap = ambientMap;
+    if (ambientMap) {
+        setAmbientMapNumMips(_ambientMap->evalNumMips());
+    } else {
+        setAmbientMapNumMips(0);
+    }
+}
+
+void Light::setAmbientMapNumMips(uint16_t numMips) {
+    editSchema()._ambientMapNumMips = (float)numMips;
+}

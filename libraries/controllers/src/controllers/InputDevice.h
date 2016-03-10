@@ -52,12 +52,12 @@ public:
     float getValue(const Input& input) const;
     float getValue(ChannelType channelType, uint16_t channel) const;
     Pose getPoseValue(uint16_t channel) const;
-    
+
     const QString& getName() const { return _name; }
 
     // Update call MUST be called once per simulation loop
     // It takes care of updating the action states and deltas
-    virtual void update(float deltaTime, bool jointsCaptured) = 0;
+    virtual void update(float deltaTime, const InputCalibrationData& inputCalibrationData, bool jointsCaptured) = 0;
 
     virtual void focusOutEvent() = 0;
 
@@ -83,6 +83,7 @@ protected:
     friend class UserInputMapper;
 
     virtual Input::NamedVector getAvailableInputs() const = 0;
+    virtual QStringList getDefaultMappingConfigs() const { return QStringList() << getDefaultMappingConfig(); }
     virtual QString getDefaultMappingConfig() const { return QString(); }
     virtual EndpointPointer createEndpoint(const Input& input) const;
 

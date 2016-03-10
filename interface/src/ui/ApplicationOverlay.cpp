@@ -12,7 +12,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <avatar/AvatarManager.h>
-#include <DeferredLightingEffect.h>
 #include <GLMHelpers.h>
 #include <gpu/GLBackendShared.h>
 #include <FramebufferCache.h>
@@ -59,10 +58,6 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     CHECK_GL_ERROR();
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    // TODO move to Application::idle()?
-    Stats::getInstance()->updateStats();
-    AvatarInputs::getInstance()->update();
-
     buildFramebufferObject();
     
     if (!_overlayFramebuffer) {
@@ -70,7 +65,7 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
     }
 
     // Execute the batch into our framebuffer
-    doInBatch(renderArgs->_context, [=](gpu::Batch& batch) {
+    doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
         renderArgs->_batch = &batch;
 
         int width = _overlayFramebuffer->getWidth();
@@ -86,10 +81,10 @@ void ApplicationOverlay::renderOverlay(RenderArgs* renderArgs) {
 
         // Now render the overlay components together into a single texture
         renderDomainConnectionStatusBorder(renderArgs); // renders the connected domain line
-        renderAudioScope(renderArgs); // audio scope in the very back
+        renderAudioScope(renderArgs); // audio scope in the very back - NOTE: this is the debug audio scope, not the VU meter
         renderRearView(renderArgs); // renders the mirror view selfie
-        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderOverlays(renderArgs); // renders Scripts Overlay and AudioScope
+        renderQmlUi(renderArgs); // renders a unit quad with the QML UI texture, and the text overlays from scripts
         renderStatsAndLogs(renderArgs);  // currently renders nothing
     });
 
@@ -158,7 +153,7 @@ void ApplicationOverlay::renderRearViewToFbo(RenderArgs* renderArgs) {
 }
 
 void ApplicationOverlay::renderRearView(RenderArgs* renderArgs) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (!qApp->isHMDMode() && Menu::getInstance()->isOptionChecked(MenuOption::MiniMirror)) {
         gpu::Batch& batch = *renderArgs->_batch;
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -249,37 +244,69 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder(RenderArgs* renderAr
     }
 }
 
+static const auto COLOR_FORMAT = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
+static const auto DEFAULT_SAMPLER = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
+static const auto DEPTH_FORMAT = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
+
+std::mutex _textureGuard;
+using Lock = std::unique_lock<std::mutex>;
+std::queue<gpu::TexturePointer> _availableTextures;
+
 void ApplicationOverlay::buildFramebufferObject() {
     PROFILE_RANGE(__FUNCTION__);
 
-    QSize desiredSize = qApp->getDeviceSize();
-    int currentWidth = _overlayFramebuffer ? _overlayFramebuffer->getWidth() : 0;
-    int currentHeight = _overlayFramebuffer ? _overlayFramebuffer->getHeight() : 0;
-    QSize frameBufferCurrentSize(currentWidth, currentHeight);
-    
-    if (_overlayFramebuffer && desiredSize == frameBufferCurrentSize) {
-        // Already built
-        return;
-    }
-    
-    if (_overlayFramebuffer) {
-        _overlayFramebuffer.reset();
-        _overlayDepthTexture.reset();
-        _overlayColorTexture.reset();
+    auto uiSize = qApp->getUiSize();
+    if (!_overlayFramebuffer || uiSize != _overlayFramebuffer->getSize()) {
+        _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
     }
 
-    _overlayFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create());
+    auto width = uiSize.x;
+    auto height = uiSize.y;
+    if (!_overlayFramebuffer->getDepthStencilBuffer()) {
+        auto overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(DEPTH_FORMAT, width, height, DEFAULT_SAMPLER));
+        _overlayFramebuffer->setDepthStencilBuffer(overlayDepthTexture, DEPTH_FORMAT);
+    }
 
-   auto colorFormat = gpu::Element(gpu::VEC4, gpu::NUINT8, gpu::RGBA);
-   auto width = desiredSize.width();
-   auto height = desiredSize.height();
+    if (!_overlayFramebuffer->getRenderBuffer(0)) {
+        gpu::TexturePointer newColorAttachment;
+        {
+            Lock lock(_textureGuard);
+            if (!_availableTextures.empty()) {
+                newColorAttachment = _availableTextures.front();
+                _availableTextures.pop();
+            }
+        }
+        if (newColorAttachment) {
+            newColorAttachment->resize2D(width, height, newColorAttachment->getNumSamples());
+            _overlayFramebuffer->setRenderBuffer(0, newColorAttachment);
+        }
+    }
+    
+    // If the overlay framebuffer still has no color attachment, no textures were available for rendering, so build a new one
+    if (!_overlayFramebuffer->getRenderBuffer(0)) {
+        auto colorBuffer = gpu::TexturePointer(gpu::Texture::create2D(COLOR_FORMAT, width, height, DEFAULT_SAMPLER));
+        _overlayFramebuffer->setRenderBuffer(0, colorBuffer);
+    }
+}
 
-   auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_LINEAR);
-   _overlayColorTexture = gpu::TexturePointer(gpu::Texture::create2D(colorFormat, width, height, defaultSampler));
-   _overlayFramebuffer->setRenderBuffer(0, _overlayColorTexture);
+gpu::TexturePointer ApplicationOverlay::acquireOverlay() {
+    if (!_overlayFramebuffer) {
+        return gpu::TexturePointer();
+    }
+    auto result = _overlayFramebuffer->getRenderBuffer(0);
+    auto textureId = gpu::GLBackend::getTextureID(result, false);
+    if (!textureId) {
+        qDebug() << "Missing texture";
+    }
+    _overlayFramebuffer->setRenderBuffer(0, gpu::TexturePointer());
+    return result;
+}
 
-   auto depthFormat = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::DEPTH);
-   _overlayDepthTexture = gpu::TexturePointer(gpu::Texture::create2D(depthFormat, width, height, defaultSampler));
-
-   _overlayFramebuffer->setDepthStencilBuffer(_overlayDepthTexture, depthFormat);
+void ApplicationOverlay::releaseOverlay(gpu::TexturePointer texture) {
+    if (texture) {
+        Lock lock(_textureGuard);
+        _availableTextures.push(texture);
+    } else {
+        qWarning() << "Attempted to release null texture";
+    }
 }

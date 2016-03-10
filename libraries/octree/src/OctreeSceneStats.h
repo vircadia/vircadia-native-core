@@ -89,13 +89,13 @@ public:
     void existsInPacketBitsWritten();
 
     /// Fix up tracking statistics in case where bitmasks were removed for some reason
-    void childBitsRemoved(bool includesExistsBits, bool includesColors);
+    void childBitsRemoved(bool includesExistsBits);
 
     /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoPacket();
 
     /// Unpack the details of the statistics from a network packet
-    int unpackFromPacket(NLPacket& packet);
+    int unpackFromPacket(ReceivedMessage& packet);
 
     /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
@@ -149,6 +149,7 @@ public:
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
 
     bool isMoving() const { return _isMoving; }
+    bool isFullScene() const { return _isFullScene; }
     quint64 getTotalElements() const { return _totalElements; }
     quint64 getTotalInternal() const { return _totalInternal; }
     quint64 getTotalLeaves() const { return _totalLeaves; }
@@ -161,7 +162,7 @@ public:
     quint64 getLastFullTotalBytes() const { return _lastFullTotalBytes; }
 
     // Used in client implementations to track individual octree packets
-    void trackIncomingOctreePacket(NLPacket& packet, bool wasStatsPacket, int nodeClockSkewUsec);
+    void trackIncomingOctreePacket(ReceivedMessage& message, bool wasStatsPacket, int nodeClockSkewUsec);
 
     quint32 getIncomingPackets() const { return _incomingPacket; }
     quint64 getIncomingBytes() const { return _incomingBytes; }

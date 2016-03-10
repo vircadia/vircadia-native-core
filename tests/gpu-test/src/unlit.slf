@@ -22,7 +22,7 @@ in vec3 _color;
 void main(void) {
     packDeferredFragment(
         normalize(_normal.xyz), 
-        glowIntensity,
+        1.0,
         _color.rgb,
-        DEFAULT_SPECULAR, DEFAULT_SHININESS);
+        DEFAULT_ROUGHNESS, DEFAULT_METALLIC, DEFAULT_EMISSIVE, DEFAULT_OCCLUSION);
 }

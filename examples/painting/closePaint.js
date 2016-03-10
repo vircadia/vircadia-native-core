@@ -43,6 +43,8 @@ var MAX_STROKE_WIDTH = 0.04;
 
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(Camera.getOrientation())));
 
+var textureURL = "https://s3.amazonaws.com/hifi-public/eric/textures/paintStrokes/paintStroke.png";
+
 
 
 function MyController(hand, triggerAction) {
@@ -148,7 +150,8 @@ function MyController(hand, triggerAction) {
                 y: 50,
                 z: 50
             },
-            lifetime: 200
+            lifetime: 200,
+            textures: textureURL
         });
         this.strokePoints = [];
         this.strokeNormals = [];

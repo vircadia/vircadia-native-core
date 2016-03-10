@@ -4,11 +4,12 @@
 //  render-utils/src/
 //
 //  Created by Sam Gateau on 5/29/15.
-//  Copyright 20154 High Fidelity, Inc.
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
 #include "RenderDeferredTask.h"
 
 #include <PerfStat.h>
@@ -16,126 +17,141 @@
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
-#include <gpu/StandardShaderLib.h>
 
-#include "FramebufferCache.h"
+#include <render/CullTask.h>
+#include <render/SortTask.h>
+#include <render/DrawTask.h>
+#include <render/DrawStatus.h>
+#include <render/DrawSceneOctree.h>
+
+#include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
-#include "TextureCache.h"
+#include "FramebufferCache.h"
 #include "HitEffect.h"
+#include "TextureCache.h"
 
-#include "render/DrawStatus.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
-
-#include "overlay3D_vert.h"
-#include "overlay3D_frag.h"
-
-#include "drawOpaqueStencil_frag.h"
+#include "ToneMappingEffect.h"
 
 using namespace render;
 
-void SetupDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-
-        auto primaryFbo = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-
-        batch.enableStereo(false);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setFramebuffer(primaryFbo);
-        batch.clearFramebuffer(
-            gpu::Framebuffer::BUFFER_COLOR0 |
-            gpu::Framebuffer::BUFFER_DEPTH |
-            gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 1), 1.0, 0.0, true);
-    });
-}
+extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
+extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void PrepareDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
     DependencyManager::get<DeferredLightingEffect>()->prepare(renderContext->args);
 }
 
 void RenderDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    DependencyManager::get<DeferredLightingEffect>()->render(renderContext->args);
+    DependencyManager::get<DeferredLightingEffect>()->render(renderContext);
 }
 
-void ResolveDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    PerformanceTimer perfTimer("ResolveDeferred");
-    DependencyManager::get<DeferredLightingEffect>()->copyBack(renderContext->args);
-}
+RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
+    cullFunctor = cullFunctor ? cullFunctor : [](const RenderArgs*, const AABox&){ return true; };
 
-RenderDeferredTask::RenderDeferredTask() : Task() {
-    _jobs.push_back(Job(new SetupDeferred::JobModel("SetupFramebuffer")));
+    // Prepare the ShapePipelines
+    ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
+    initDeferredPipelines(*shapePlumber);
 
-    _jobs.push_back(Job(new PrepareDeferred::JobModel("PrepareDeferred")));
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchOpaque",
-        FetchItems(
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedOpaqueItems = count; 
-            }
-        )
-    )));
-    _jobs.push_back(Job(new CullItemsOpaque::JobModel("CullOpaque", _jobs.back().getOutput())));
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortOpaque", _jobs.back().getOutput())));
-    auto& renderedOpaques = _jobs.back().getOutput();
-    _jobs.push_back(Job(new DrawOpaqueDeferred::JobModel("DrawOpaqueDeferred", _jobs.back().getOutput())));
+    // CPU jobs:
+    // Fetch and cull the items from the scene
+    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
+    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
 
-    _jobs.push_back(Job(new DrawStencilDeferred::JobModel("DrawOpaqueStencil")));
-    _jobs.push_back(Job(new DrawBackgroundDeferred::JobModel("DrawBackgroundDeferred")));
+    // Overlays are not culled
+    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
 
-    _jobs.push_back(Job(new DrawLight::JobModel("DrawLight")));
-    _jobs.push_back(Job(new RenderDeferred::JobModel("RenderDeferred")));
-    _jobs.push_back(Job(new ResolveDeferred::JobModel("ResolveDeferred")));
-    _jobs.push_back(Job(new AmbientOcclusion::JobModel("AmbientOcclusion")));
+    // Multi filter visible items into different buckets
+    const int NUM_FILTERS = 3;
+    const int OPAQUE_SHAPE_BUCKET = 0;
+    const int TRANSPARENT_SHAPE_BUCKET = 1;
+    const int LIGHT_BUCKET = 2;
+    const int BACKGROUND_BUCKET = 2;
+    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
+            ItemFilter::Builder::opaqueShape(),
+            ItemFilter::Builder::transparentShape(),
+            ItemFilter::Builder::light()
+    } };
+    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
+            ItemFilter::Builder::opaqueShape(),
+            ItemFilter::Builder::transparentShape(),
+            ItemFilter::Builder::background()
+    } };
+    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
+    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
 
-    _jobs.back().setEnabled(false);
-    _occlusionJobIndex = _jobs.size() - 1;
+    // Extract / Sort opaques / Transparents / Lights / Overlays
+    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
+    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
+    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
 
-    _jobs.push_back(Job(new Antialiasing::JobModel("Antialiasing")));
+    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
+    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
+    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    _jobs.back().setEnabled(false);
-    _antialiasingJobIndex = _jobs.size() - 1;
+    // GPU jobs: Start preparing the deferred and lighting buffer
+    addJob<PrepareDeferred>("PrepareDeferred");
 
-    _jobs.push_back(Job(new FetchItems::JobModel("FetchTransparent",
-         FetchItems(
-            ItemFilter::Builder::transparentShape().withoutLayered(),
-            [] (const RenderContextPointer& context, int count) {
-                context->_numFeedTransparentItems = count; 
-            }
-         )
-     )));
-    _jobs.push_back(Job(new CullItemsTransparent::JobModel("CullTransparent", _jobs.back().getOutput())));
+    // Render opaque objects in DeferredBuffer
+    addJob<DrawDeferred>("DrawOpaqueDeferred", opaques, shapePlumber);
 
+    // Once opaque is all rendered create stencil background
+    addJob<DrawStencilDeferred>("DrawOpaqueStencil");
 
-    _jobs.push_back(Job(new DepthSortItems::JobModel("DepthSortTransparent", _jobs.back().getOutput(), DepthSortItems(false))));
-    _jobs.push_back(Job(new DrawTransparentDeferred::JobModel("TransparentDeferred", _jobs.back().getOutput())));
+    // Use Stencil and start drawing background in Lighting buffer
+    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
+
+    // AO job
+    addJob<AmbientOcclusionEffect>("AmbientOcclusion");
+
+    // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
+    addJob<DrawLight>("DrawLight", lights);
+
+    // DeferredBuffer is complete, now let's shade it into the LightingBuffer
+    addJob<RenderDeferred>("RenderDeferred");
+
+    // AA job to be revisited
+    addJob<Antialiasing>("Antialiasing");
+
+    // Render transparent objects forward in LightingBuffer
+    addJob<DrawDeferred>("DrawTransparentDeferred", transparents, shapePlumber);
     
-    // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
-    auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+    // Lighting Buffer ready for tone mapping
+    addJob<ToneMappingDeferred>("ToneMapping");
 
-    auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
-    _jobs.push_back(Job(new render::DrawStatus::JobModel("DrawStatus", renderedOpaques, DrawStatus(statusIconMap))));
-
-    _jobs.back().setEnabled(false);
-    _drawStatusJobIndex = _jobs.size() - 1;
-
-    _jobs.push_back(Job(new DrawOverlay3D::JobModel("DrawOverlay3D")));
-
-    _jobs.push_back(Job(new HitEffect::JobModel("HitEffect")));
-    _jobs.back().setEnabled(false);
-    _drawHitEffectJobIndex = _jobs.size() -1;
+    // Overlays
+    addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaques, true);
+    addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparents, false);
 
 
-    // Give ourselves 3 frmaes of timer queries
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _timerQueries.push_back(std::make_shared<gpu::Query>());
-    _currentTimerQueryIndex = 0;
-}
+    // Debugging stages
+    {
+        // Debugging Deferred buffer job
+        addJob<DebugDeferredBuffer>("DebugDeferredBuffer");
 
-RenderDeferredTask::~RenderDeferredTask() {
+        // Scene Octree Debuging job
+        {
+            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
+        }
+
+        // Status icon rendering job
+        {
+            // Grab a texture map representing the different status icons and assign that to the drawStatsuJob
+            auto iconMapPath = PathUtils::resourcesPath() + "icons/statusIconAtlas.svg";
+            auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath);
+            addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
+        }
+    }
+
+    // FIXME: Hit effect is never used, let's hide it for now, probably a more generic way to add custom post process effects
+    // addJob<HitEffect>("HitEffect");
+
+    // Blit!
+    addJob<Blit>("Blit");
 }
 
 void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
@@ -151,37 +167,26 @@ void RenderDeferredTask::run(const SceneContextPointer& sceneContext, const Rend
         return;
     }
 
-    // Make sure we turn the displayItemStatus on/off
-    setDrawItemStatus(renderContext->_drawItemStatus);
-    
-    //Make sure we display hit effect on screen, as desired from a script
-    setDrawHitEffect(renderContext->_drawHitEffect);
-    
-
-    // TODO: turn on/off AO through menu item
-    setOcclusionStatus(renderContext->_occlusionStatus);
-
-    setAntialiasingStatus(renderContext->_fxaaStatus);
-
-    renderContext->args->_context->syncCache();
-
     for (auto job : _jobs) {
         job.run(sceneContext, renderContext);
     }
-
 };
 
-void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
+
     RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+
+    gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        args->_batch = &batch;
 
-        renderContext->_numDrawnOpaqueItems = inItems.size();
+        config->setNumDrawn((int)inItems.size());
+        emit config->numDrawnChanged();
 
         glm::mat4 projMat;
         Transform viewMat;
@@ -191,79 +196,26 @@ void DrawOpaqueDeferred::run(const SceneContextPointer& sceneContext, const Rend
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewMat);
 
-        {
-            const float OPAQUE_ALPHA_THRESHOLD = 0.5f;
-            args->_alphaThreshold = OPAQUE_ALPHA_THRESHOLD;
-        }
-        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOpaqueItems);
+        renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
         args->_batch = nullptr;
     });
 }
 
-void DrawTransparentDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemIDsBounds& inItems) {
+DrawOverlay3D::DrawOverlay3D(bool opaque) :
+    _shapePlumber(std::make_shared<ShapePlumber>()),
+    _opaquePass(opaque) {
+    initOverlay3DPipelines(*_shapePlumber);
+}
+
+void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const render::ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    RenderArgs* args = renderContext->args;
-    gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-        args->_batch = &batch;
-    
-        renderContext->_numDrawnTransparentItems = inItems.size();
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->_viewFrustum->evalProjectionMatrix(projMat);
-        args->_viewFrustum->evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-    
-        const float TRANSPARENT_ALPHA_THRESHOLD = 0.0f;
-        args->_alphaThreshold = TRANSPARENT_ALPHA_THRESHOLD;
-    
-        renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnTransparentItems);
-        args->_batch = nullptr;
-    });
-}
-
-gpu::PipelinePointer DrawOverlay3D::_opaquePipeline;
-const gpu::PipelinePointer& DrawOverlay3D::getOpaquePipeline() {
-    if (!_opaquePipeline) {
-        auto vs = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(overlay3D_vert)));
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(overlay3D_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
-        
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(false);
-        // additive blending
-        state->setBlendFunction(true, gpu::State::ONE, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
-    }
-    return _opaquePipeline;
-}
-
-void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::opaqueShape().withLayered());
+    auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
 
 
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        auto& item = scene->getItem(id);
-        if (item.getKey().isVisible() && (item.getLayer() == 1)) {
-            inItems.emplace_back(id);
-        }
-    }
-    renderContext->_numFeedOverlay3DItems = inItems.size();
-    renderContext->_numDrawnOverlay3DItems = inItems.size();
+    config->setNumDrawn((int)inItems.size());
+    emit config->numDrawnChanged();
 
     if (!inItems.empty()) {
         RenderArgs* args = renderContext->args;
@@ -271,7 +223,7 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         // Clear the framebuffer without stereo
         // Needs to be distinct from the other batch because using the clear call 
         // while stereo is enabled triggers a warning
-        {
+        if (_opaquePass) {
             gpu::Batch batch;
             batch.enableStereo(false);
             batch.clearFramebuffer(gpu::Framebuffer::BUFFER_DEPTH, glm::vec4(), 1.f, 0, true);
@@ -279,9 +231,10 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         }
 
         // Render the items
-        gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
-            args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
             glm::mat4 projMat;
             Transform viewMat;
@@ -290,35 +243,17 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
 
-            batch.setPipeline(getOpaquePipeline());
-            batch.setResourceTexture(0, args->_whiteTexture);
-            renderItems(sceneContext, renderContext, inItems, renderContext->_maxDrawnOverlay3DItems);
+            renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            args->_batch = nullptr;
         });
-        args->_batch = nullptr;
-        args->_whiteTexture.reset();
     }
 }
 
 gpu::PipelinePointer DrawStencilDeferred::_opaquePipeline;
 const gpu::PipelinePointer& DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag)));
-        auto program = gpu::ShaderPointer(gpu::Shader::createProgram(vs, ps));
-        
-
-        gpu::Shader::makeProgram((*program));
-
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_REPLACE)); 
-        state->setColorWriteMask(0);
-
-        _opaquePipeline.reset(gpu::Pipeline::create(program, state));
+        initStencilPipeline(_opaquePipeline);
     }
     return _opaquePipeline;
 }
@@ -329,14 +264,14 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
 
     // from the touched pixel generate the stencil buffer 
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
+        auto deferredFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getDeferredFramebufferDepthColor();
 
         batch.enableStereo(false);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(deferredFboColorDepthStencil);
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
 
@@ -349,30 +284,19 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     args->_batch = nullptr;
 }
 
-void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
-
-
-    ItemIDsBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(id);
-    }
     RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [=](gpu::Batch& batch) {
+    doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
 
-        auto primaryFboColorDepthStencil = DependencyManager::get<FramebufferCache>()->getPrimaryFramebufferDepthColor();
-        auto primaryFboFull = DependencyManager::get<FramebufferCache>()->getPrimaryFramebuffer();
+        auto lightingFBO = DependencyManager::get<FramebufferCache>()->getLightingFramebuffer();
 
         batch.enableSkybox(true);
 
-        batch.setFramebuffer(primaryFboColorDepthStencil);
+        batch.setFramebuffer(lightingFBO);
 
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
@@ -386,9 +310,77 @@ void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const 
         batch.setViewTransform(viewMat);
 
         renderItems(sceneContext, renderContext, inItems);
-
-        batch.setFramebuffer(primaryFboFull);
-
     });
     args->_batch = nullptr;
+}
+
+void Blit::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+    assert(renderContext->args);
+    assert(renderContext->args->_context);
+
+    RenderArgs* renderArgs = renderContext->args;
+    auto blitFbo = renderArgs->_blitFramebuffer;
+
+    if (!blitFbo) {
+        return;
+    }
+
+    // Determine size from viewport
+    int width = renderArgs->_viewport.z;
+    int height = renderArgs->_viewport.w;
+
+    // Blit primary to blit FBO
+    auto framebufferCache = DependencyManager::get<FramebufferCache>();
+    auto primaryFbo = framebufferCache->getPrimaryFramebuffer();
+
+    gpu::doInBatch(renderArgs->_context, [&](gpu::Batch& batch) {
+        batch.setFramebuffer(blitFbo);
+
+        if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
+            if (renderArgs->_context->isStereo()) {
+                gpu::Vec4i srcRectLeft;
+                srcRectLeft.z = width / 2;
+                srcRectLeft.w = height;
+
+                gpu::Vec4i srcRectRight;
+                srcRectRight.x = width / 2;
+                srcRectRight.z = width;
+                srcRectRight.w = height;
+
+                gpu::Vec4i destRectLeft;
+                destRectLeft.x = srcRectLeft.z;
+                destRectLeft.z = srcRectLeft.x;
+                destRectLeft.y = srcRectLeft.y;
+                destRectLeft.w = srcRectLeft.w;
+
+                gpu::Vec4i destRectRight;
+                destRectRight.x = srcRectRight.z;
+                destRectRight.z = srcRectRight.x;
+                destRectRight.y = srcRectRight.y;
+                destRectRight.w = srcRectRight.w;
+
+                // Blit left to right and right to left in stereo
+                batch.blit(primaryFbo, srcRectRight, blitFbo, destRectLeft);
+                batch.blit(primaryFbo, srcRectLeft, blitFbo, destRectRight);
+            } else {
+                gpu::Vec4i srcRect;
+                srcRect.z = width;
+                srcRect.w = height;
+
+                gpu::Vec4i destRect;
+                destRect.x = width;
+                destRect.y = 0;
+                destRect.z = 0;
+                destRect.w = height;
+
+                batch.blit(primaryFbo, srcRect, blitFbo, destRect);
+            }
+        } else {
+            gpu::Vec4i rect;
+            rect.z = width;
+            rect.w = height;
+
+            batch.blit(primaryFbo, rect, blitFbo, rect);
+        }
+    });
 }

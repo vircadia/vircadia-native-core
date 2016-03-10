@@ -47,17 +47,10 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         Skybox::render(batch, viewFrustum, skybox);
     }
 
-    static gpu::BufferPointer theBuffer;
-    static gpu::Stream::FormatPointer theFormat;
-
     if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
-        if (!theBuffer) {
-            const float CLIP = 1.0f;
-            const glm::vec2 vertices[4] = { { -CLIP, -CLIP }, { CLIP, -CLIP }, { -CLIP, CLIP }, { CLIP, CLIP } };
-            theBuffer = std::make_shared<gpu::Buffer>(sizeof(vertices), (const gpu::Byte*) vertices);
-            theFormat = std::make_shared<gpu::Stream::Format>();
-            theFormat->setAttribute(gpu::Stream::POSITION, gpu::Stream::POSITION, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::XYZ));
-        }
+        gpu::TexturePointer skymap = skybox.getCubemap();
+        // FIXME: skymap->isDefined may not be threadsafe
+        assert(skymap && skymap->isDefined());
 
         glm::mat4 projMat;
         viewFrustum.evalProjectionMatrix(projMat);
@@ -67,12 +60,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewTransform);
         batch.setModelTransform(Transform()); // only for Mac
-        batch.setInputBuffer(gpu::Stream::POSITION, theBuffer, 0, 8);
-        batch.setInputFormat(theFormat);
-
-        if (skybox.getCubemap() && skybox.getCubemap()->isDefined()) {
-            batch.setResourceTexture(0, skybox.getCubemap());
-        }
+        batch.setResourceTexture(0, skybox.getCubemap());
 
         skybox._procedural->prepare(batch, glm::vec3(0), glm::vec3(1));
         batch.draw(gpu::TRIANGLE_STRIP, 4);

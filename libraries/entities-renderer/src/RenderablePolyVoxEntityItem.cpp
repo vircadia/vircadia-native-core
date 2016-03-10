@@ -27,16 +27,22 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include <DeferredLightingEffect.h>
 #include <Model.h>
 #include <PerfStat.h>
 #include <render/Scene.h>
 
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning( disable : 4267 )
+#endif
 #include <PolyVoxCore/CubicSurfaceExtractorWithNormals.h>
 #include <PolyVoxCore/MarchingCubesSurfaceExtractor.h>
 #include <PolyVoxCore/SurfaceMesh.h>
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Material.h>
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 #include "model/Geometry.h"
 #include "EntityTreeRenderer.h"
@@ -50,12 +56,13 @@ gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
 EntityItemPointer RenderablePolyVoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return std::make_shared<RenderablePolyVoxEntityItem>(entityID, properties);
+    EntityItemPointer entity{ new RenderablePolyVoxEntityItem(entityID) };
+    entity->setProperties(properties);
+    return entity;
 }
 
-RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID,
-                                                         const EntityItemProperties& properties) :
-    PolyVoxEntityItem(entityItemID, properties),
+RenderablePolyVoxEntityItem::RenderablePolyVoxEntityItem(const EntityItemID& entityItemID) :
+    PolyVoxEntityItem(entityItemID),
     _mesh(new model::Mesh()),
     _meshDirty(true),
     _xTexture(nullptr),
@@ -134,9 +141,11 @@ glm::vec3 RenderablePolyVoxEntityItem::getSurfacePositionAdjustment() const {
 
 glm::mat4 RenderablePolyVoxEntityItem::voxelToLocalMatrix() const {
     glm::vec3 scale = getDimensions() / _voxelVolumeSize; // meters / voxel-units
-    glm::vec3 center = getCenterPosition();
-    glm::vec3 position = getPosition();
+    bool success; // TODO -- Does this actually have to happen in world space?
+    glm::vec3 center = getCenterPosition(success); // this handles registrationPoint changes
+    glm::vec3 position = getPosition(success);
     glm::vec3 positionToCenter = center - position;
+
     positionToCenter -= getDimensions() * Vectors::HALF - getSurfacePositionAdjustment();
     glm::mat4 centerToCorner = glm::translate(glm::mat4(), positionToCenter);
     glm::mat4 scaled = glm::scale(centerToCorner, scale);
@@ -421,6 +430,13 @@ ShapeType RenderablePolyVoxEntityItem::getShapeType() const {
     return SHAPE_TYPE_COMPOUND;
 }
 
+void RenderablePolyVoxEntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        _meshDirty = true;
+        EntityItem::updateRegistrationPoint(value);
+    }
+}
+
 bool RenderablePolyVoxEntityItem::isReadyToComputeShape() {
     _meshLock.lockForRead();
     if (_meshDirty) {
@@ -477,8 +493,8 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     _meshLock.unlock();
 
     if (!_pipeline) {
-        gpu::ShaderPointer vertexShader = gpu::ShaderPointer(gpu::Shader::createVertex(std::string(polyvox_vert)));
-        gpu::ShaderPointer pixelShader = gpu::ShaderPointer(gpu::Shader::createPixel(std::string(polyvox_frag)));
+        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
+        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
@@ -486,14 +502,14 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
 
-        gpu::ShaderPointer program = gpu::ShaderPointer(gpu::Shader::createProgram(vertexShader, pixelShader));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
         gpu::Shader::makeProgram(*program, slotBindings);
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
 
-        _pipeline = gpu::PipelinePointer(gpu::Pipeline::create(program, state));
+        _pipeline = gpu::Pipeline::create(program, state);
     }
 
     gpu::Batch& batch = *args->_batch;
@@ -538,7 +554,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     int voxelVolumeSizeLocation = _pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, _voxelVolumeSize.x, _voxelVolumeSize.y, _voxelVolumeSize.z);
 
-    batch.drawIndexed(gpu::TRIANGLES, mesh->getNumIndices(), 0);
+    batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
 bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
@@ -546,12 +562,12 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
                                              render::PendingChanges& pendingChanges) {
     _myItem = scene->allocateID();
 
-    auto renderItem = std::make_shared<PolyVoxPayload>(shared_from_this());
+    auto renderItem = std::make_shared<PolyVoxPayload>(getThisPointer());
     auto renderData = PolyVoxPayload::Pointer(renderItem);
     auto renderPayload = std::make_shared<PolyVoxPayload::Payload>(renderData);
 
     render::Item::Status::Getters statusGetters;
-    makeEntityItemStatusGetters(shared_from_this(), statusGetters);
+    makeEntityItemStatusGetters(getThisPointer(), statusGetters);
     renderPayload->addStatusGetters(statusGetters);
 
     pendingChanges.resetItem(_myItem, renderPayload);
@@ -563,6 +579,7 @@ void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
                                                   std::shared_ptr<render::Scene> scene,
                                                   render::PendingChanges& pendingChanges) {
     pendingChanges.removeItem(_myItem);
+    render::Item::clearID(_myItem);
 }
 
 namespace render {
@@ -573,7 +590,12 @@ namespace render {
     template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload) {
         if (payload && payload->_owner) {
             auto polyVoxEntity = std::dynamic_pointer_cast<RenderablePolyVoxEntityItem>(payload->_owner);
-            return polyVoxEntity->getAABox();
+            bool success;
+            auto result = polyVoxEntity->getAABox(success);
+            if (!success) {
+                return render::Item::Bound();
+            }
+            return result;
         }
         return render::Item::Bound();
     }
@@ -1209,10 +1231,16 @@ void RenderablePolyVoxEntityItem::computeShapeInfoWorkerAsync() {
     }
 
     glm::vec3 collisionModelDimensions = box.getDimensions();
-    QByteArray b64 = _voxelData.toBase64();
+    // include the registrationPoint in the shape key, because the offset is already
+    // included in the points and the shapeManager wont know that the shape has changed.
+    QString shapeKey = QString(_voxelData.toBase64()) + "," +
+        QString::number(_registrationPoint.x) + "," +
+        QString::number(_registrationPoint.y) + "," +
+        QString::number(_registrationPoint.z);
     _shapeInfoLock.lockForWrite();
-    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, QString(b64));
+    _shapeInfo.setParams(SHAPE_TYPE_COMPOUND, collisionModelDimensions, shapeKey);
     _shapeInfo.setConvexHulls(points);
+    // adjustShapeInfoByRegistration(_shapeInfo);
     _shapeInfoLock.unlock();
 
     _meshLock.lockForWrite();

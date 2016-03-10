@@ -104,8 +104,6 @@ public:
     const Vec3& getScale() const;
     Transform& setScale(float scale);
     Transform& setScale(const Vec3& scale);  // [new this] = [this.translation] * [this.rotation] * [scale]
-    Transform& preScale(float scale);
-    Transform& preScale(const Vec3& scale);
     Transform& postScale(float scale);       // [new this] = [this] * [scale] equivalent to:glScale
     Transform& postScale(const Vec3& scale); // [new this] = [this] * [scale] equivalent to:glScale
 
@@ -146,6 +144,8 @@ public:
 
     Vec4 transform(const Vec4& pos) const;
     Vec3 transform(const Vec3& pos) const;
+
+    bool containsNaN() const;
 
 protected:
 
@@ -350,14 +350,6 @@ inline Transform& Transform::setScale(const Vec3& scale) {
     return *this;
 }
 
-inline Transform& Transform::preScale(float scale) {
-    return setScale(getScale() * scale);
-}
-
-inline Transform& Transform::preScale(const Vec3& scale) {
-    return setScale(getScale() * scale);
-}
-
 inline Transform& Transform::postScale(float scale) {
     if (!isValidScale(scale) || scale == 1.0f) {
         return *this;
@@ -376,6 +368,9 @@ inline Transform& Transform::postScale(const Vec3& scale) {
         return *this;
     }
     invalidCache();
+    if ((scale.x != scale.y) || (scale.x != scale.z)) {
+        flagNonUniform();
+    }
     if (isScaling()) {
         _scale *= scale;
     } else {

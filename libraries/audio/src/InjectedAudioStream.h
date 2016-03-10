@@ -23,15 +23,15 @@ public:
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
 
-    QUuid getStreamIdentifier() const { return _streamIdentifier; }
+    virtual const QUuid& getStreamIdentifier() const override { return _streamIdentifier; }
 
 private:
     // disallow copying of InjectedAudioStream objects
     InjectedAudioStream(const InjectedAudioStream&);
     InjectedAudioStream& operator= (const InjectedAudioStream&);
 
-    AudioStreamStats getAudioStreamStats() const;
-    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    AudioStreamStats getAudioStreamStats() const override;
+    int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) override;
 
     const QUuid _streamIdentifier;
     float _radius;

@@ -27,11 +27,14 @@
 #include "OctreeConstants.h"
 #include "OctreeProjectedPolygon.h"
 
-const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
+const float DEFAULT_CENTER_SPHERE_RADIUS = 3.0f;
 const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_ASPECT_RATIO = 16.0f/9.0f;
 const float DEFAULT_NEAR_CLIP = 0.08f;
 const float DEFAULT_FAR_CLIP = (float)HALF_TREE_SCALE;
+
+// the "ViewFrustum" has a "keyhole" shape: a regular frustum for stuff that is "visible" with
+// a central sphere for stuff that is nearby (for physics simulation).
 
 class ViewFrustum {
 public:
@@ -48,7 +51,7 @@ public:
 
     // setters for lens attributes
     void setProjection(const glm::mat4 & projection);
-    void getFocalLength(float focalLength) { _focalLength = focalLength; }
+    void setFocalLength(float focalLength) { _focalLength = focalLength; }
 
     // getters for lens attributes
     const glm::mat4& getProjection() const { return _projection; }
@@ -61,28 +64,48 @@ public:
     float getFarClip() const { return _farClip; }
     float getFocalLength() const { return _focalLength; }
 
+    class Corners {
+    public:
+        Corners(glm::vec3&& topLeft, glm::vec3&& topRight, glm::vec3&& bottomLeft, glm::vec3&& bottomRight)
+            : topLeft{ topLeft }, topRight{ topRight }, bottomLeft{ bottomLeft }, bottomRight{ bottomRight } {}
+        glm::vec3 topLeft;
+        glm::vec3 topRight;
+        glm::vec3 bottomLeft;
+        glm::vec3 bottomRight;
+    // Get the corners depth units from frustum position, along frustum orientation
+    };
+    const Corners getCorners(const float& depth);
+
+    // getters for corners
     const glm::vec3& getFarTopLeft() const { return _cornersWorld[TOP_LEFT_FAR]; }
     const glm::vec3& getFarTopRight() const { return _cornersWorld[TOP_RIGHT_FAR]; }
     const glm::vec3& getFarBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_FAR]; }
     const glm::vec3& getFarBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_FAR]; }
-
     const glm::vec3& getNearTopLeft() const { return _cornersWorld[TOP_LEFT_NEAR]; }
     const glm::vec3& getNearTopRight() const { return _cornersWorld[TOP_RIGHT_NEAR]; }
     const glm::vec3& getNearBottomLeft() const { return _cornersWorld[BOTTOM_LEFT_NEAR]; }
     const glm::vec3& getNearBottomRight() const { return _cornersWorld[BOTTOM_RIGHT_NEAR]; }
 
-    // get/set for keyhole attribute
-    void  setKeyholeRadius(float keyholdRadius) { _keyholeRadius = keyholdRadius; }
-    float getKeyholeRadius() const { return _keyholeRadius; }
+    // get/set for central spherek attribute
+    void  setCenterRadius(float radius) { _centerSphereRadius = radius; }
+    float getCenterRadius() const { return _centerSphereRadius; }
 
     void calculate();
 
-    typedef enum {OUTSIDE, INTERSECT, INSIDE} location;
+    typedef enum { OUTSIDE = 0, INTERSECT, INSIDE } intersection;
 
-    ViewFrustum::location pointInFrustum(const glm::vec3& point, bool ignoreKeyhole = false) const;
-    ViewFrustum::location sphereInFrustum(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInFrustum(const AACube& cube) const;
-    ViewFrustum::location boxInFrustum(const AABox& box) const;
+    /// @return INSIDE, INTERSECT, or OUTSIDE depending on how cube intersects the keyhole shape
+    ViewFrustum::intersection calculateCubeFrustumIntersection(const AACube& cube) const;
+    ViewFrustum::intersection calculateCubeKeyholeIntersection(const AACube& cube) const;
+
+    bool pointIntersectsFrustum(const glm::vec3& point) const;
+    bool sphereIntersectsFrustum(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsFrustum(const AACube& box) const;
+    bool boxIntersectsFrustum(const AABox& box) const;
+
+    bool sphereIntersectsKeyhole(const glm::vec3& center, float radius) const;
+    bool cubeIntersectsKeyhole(const AACube& cube) const;
+    bool boxIntersectsKeyhole(const AABox& box) const;
 
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
@@ -102,19 +125,23 @@ public:
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     OctreeProjectedPolygon getProjectedPolygon(const AACube& box) const;
     void getFurthestPointFromCamera(const AACube& box, glm::vec3& furthestPoint) const;
-    
+
     float distanceToCamera(const glm::vec3& point) const;
-    
+
     void evalProjectionMatrix(glm::mat4& proj) const;
     void evalViewTransform(Transform& view) const;
 
-private:
-    // Used for keyhole calculations
-    ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
-    ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
-    ViewFrustum::location cubeInKeyhole(const AACube& cube) const;
-    ViewFrustum::location boxInKeyhole(const AABox& box) const;
+    /// renderAccuracy represents a floating point "visibility" of an object based on it's view from the camera. At a simple
+    /// level it returns 0.0f for things that are so small for the current settings that they could not be visible.
+    float calculateRenderAccuracy(const AABox& bounds, float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE,
+                                  int boundaryLevelAdjust = 0) const;
 
+    float getAccuracyAngle(float octreeSizeScale = DEFAULT_OCTREE_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
+
+    enum PlaneIndex { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE, NUM_PLANES };
+
+    const ::Plane* getPlanes() const { return _planes; }
+private:
     // camera location/orientation attributes
     glm::vec3 _position; // the position in world-frame
     glm::quat _orientation;
@@ -128,9 +155,7 @@ private:
     glm::vec3 _up = IDENTITY_UP;
     glm::vec3 _right = IDENTITY_RIGHT;
 
-    // keyhole attributes
-    float _keyholeRadius = DEFAULT_KEYHOLE_RADIUS;
-    AACube _keyholeBoundingCube;
+    float _centerSphereRadius = DEFAULT_CENTER_SPHERE_RADIUS;
 
     // Calculated values
     glm::mat4 _inverseProjection;
@@ -143,14 +168,15 @@ private:
     float _fieldOfView = DEFAULT_FIELD_OF_VIEW_DEGREES;
     glm::vec4 _corners[8];
     glm::vec3 _cornersWorld[8];
-    enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
-    ::Plane _planes[6]; // How will this be used?
+    ::Plane _planes[6]; // plane normals point inside frustum
 
     const char* debugPlaneName (int plane) const;
 
     // Used to project points
     glm::mat4 _ourModelViewProjectionMatrix;
 };
+using ViewFrustumPointer = std::shared_ptr<ViewFrustum>;
 
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif // hifi_ViewFrustum_h

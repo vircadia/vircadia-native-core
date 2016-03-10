@@ -1,4 +1,4 @@
-<!-- Copyright 2015 High Fidelity, Inc. -->
+﻿<!-- Copyright 2015 High Fidelity, Inc. -->
 <html>
     <head>
         <meta charset="utf-8"/>
@@ -14,7 +14,7 @@
 
             body {
                 background: white;
-                width: 839px;
+                width: 100%;
                 overflow-x: hidden;
             }
 
@@ -99,8 +99,7 @@
                 <p>
                     Use your best headphones<br/>
                     and microphone for high<br/>
-                    fidelity audio. Chat via text by<br/>
-                    pressing the \ key.
+                    fidelity audio.
                 </p>
             </div>
             <div class="grid-unit">
@@ -181,7 +180,7 @@
         function overrideBodyWidth() {
             document.body.style.width = "100%";
             <!-- Force reset layout after body resized-->
-            container.style.width = "0";
+            <!-- container.style.width = "0"; -->
         }
 //]]></script>
 

@@ -9,55 +9,157 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "QVariantGLM.h"
-#include "avatar/AvatarManager.h"
-
 #include "AvatarActionHold.h"
+
+#include <QVariantGLM.h>
+
+#include "avatar/AvatarManager.h"
+#include "CharacterController.h"
 
 const uint16_t AvatarActionHold::holdVersion = 1;
 
 AvatarActionHold::AvatarActionHold(const QUuid& id, EntityItemPointer ownerEntity) :
-    ObjectActionSpring(id, ownerEntity),
-    _relativePosition(glm::vec3(0.0f)),
-    _relativeRotation(glm::quat()),
-    _hand("right"),
-    _holderID(QUuid()) {
+    ObjectActionSpring(id, ownerEntity)
+{
     _type = ACTION_TYPE_HOLD;
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::AvatarActionHold";
-    #endif
+#endif
 }
 
 AvatarActionHold::~AvatarActionHold() {
-    #if WANT_DEBUG
+#if WANT_DEBUG
     qDebug() << "AvatarActionHold::~AvatarActionHold";
-    #endif
+#endif
 }
 
-std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::vec3& position) {
-    std::shared_ptr<Avatar> holdingAvatar = nullptr;
+bool AvatarActionHold::getAvatarRigidBodyLocation(glm::vec3& avatarRigidBodyPosition, glm::quat& avatarRigidBodyRotation) {
+    MyAvatar* myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+    MyCharacterController* controller = myAvatar ? myAvatar->getCharacterController() : nullptr;
+    if (!controller) {
+        qDebug() << "AvatarActionHold::getAvatarRigidBodyLocation failed to get character controller";
+        return false;
+    }
+    controller->getRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+    return true;
+}
 
-    withTryReadLock([&]{
-        QSharedPointer<AvatarManager> avatarManager = DependencyManager::get<AvatarManager>();
-        AvatarSharedPointer holdingAvatarData = avatarManager->getAvatarBySessionID(_holderID);
-        holdingAvatar = std::static_pointer_cast<Avatar>(holdingAvatarData);
+void AvatarActionHold::prepareForPhysicsSimulation() {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
 
-        if (holdingAvatar) {
-            glm::vec3 offset;
-            glm::vec3 palmPosition;
-            glm::quat palmRotation;
-            if (_hand == "right") {
+    if (!holdingAvatar || !holdingAvatar->isMyAvatar()) {
+        return;
+    }
+
+    withWriteLock([&]{
+        if (_ignoreIK) {
+            return;
+        }
+
+        glm::vec3 palmPosition;
+        glm::quat palmRotation;
+        if (_hand == "right") {
+            palmPosition = holdingAvatar->getUncachedRightPalmPosition();
+            palmRotation = holdingAvatar->getUncachedRightPalmRotation();
+        } else {
+            palmPosition = holdingAvatar->getUncachedLeftPalmPosition();
+            palmRotation = holdingAvatar->getUncachedLeftPalmRotation();
+        }
+
+        glm::vec3 avatarRigidBodyPosition;
+        glm::quat avatarRigidBodyRotation;
+        getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+        // determine the difference in translation and rotation between the avatar's
+        // rigid body and the palm position.  The avatar's rigid body will be moved by bullet
+        // between this call and the call to getTarget, below.  A call to get*PalmPosition in
+        // getTarget would get the palm position of the previous location of the avatar (because
+        // bullet has moved the av's rigid body but the rigid body's location has not yet been
+        // copied out into the Avatar class.
+        //glm::quat avatarRotationInverse = glm::inverse(avatarRigidBodyRotation);
+
+        // the offset should be in the frame of the avatar, but something about the order
+        // things are updated makes this wrong:
+        //   _palmOffsetFromRigidBody = avatarRotationInverse * (palmPosition - avatarRigidBodyPosition);
+        // I'll leave it here as a comment in case avatar handling changes.
+        _palmOffsetFromRigidBody = palmPosition - avatarRigidBodyPosition;
+
+        // rotation should also be needed, but again, the order of updates makes this unneeded.  leaving
+        // code here for future reference.
+        // _palmRotationFromRigidBody = avatarRotationInverse * palmRotation;
+    });
+
+    activateBody(true);
+}
+
+std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::vec3& position,
+                                                    glm::vec3& linearVelocity, glm::vec3& angularVelocity) {
+    auto avatarManager = DependencyManager::get<AvatarManager>();
+    auto holdingAvatar = std::static_pointer_cast<Avatar>(avatarManager->getAvatarBySessionID(_holderID));
+
+    if (!holdingAvatar) {
+        return holdingAvatar;
+    }
+
+    withReadLock([&]{
+        bool isRightHand = (_hand == "right");
+        glm::vec3 palmPosition;
+        glm::quat palmRotation;
+
+        PalmData palmData = holdingAvatar->getHand()->getCopyOfPalmData(isRightHand ? HandData::RightHand : HandData::LeftHand);
+
+        if (palmData.isValid()) {
+            // TODO: adjust according to _relativePosition and _relativeRotation?
+            linearVelocity = palmData.getVelocity();
+            angularVelocity = palmData.getAngularVelocity();
+        }
+
+        if (_ignoreIK && holdingAvatar->isMyAvatar() && palmData.isValid()) {
+            // We cannot ignore other avatars IK and this is not the point of this option
+            // This is meant to make the grabbing behavior more reactive.
+            palmPosition = palmData.getPosition();
+            palmRotation = palmData.getRotation();
+        } else if (holdingAvatar->isMyAvatar()) {
+            glm::vec3 avatarRigidBodyPosition;
+            glm::quat avatarRigidBodyRotation;
+            getAvatarRigidBodyLocation(avatarRigidBodyPosition, avatarRigidBodyRotation);
+
+            // the offset and rotation between the avatar's rigid body and the palm were determined earlier
+            // in prepareForPhysicsSimulation.  At this point, the avatar's rigid body has been moved by bullet
+            // and the data in the Avatar class is stale.  This means that the result of get*PalmPosition will
+            // be stale.  Instead, determine the current palm position with the current avatar's rigid body
+            // location and the saved offsets.
+
+            // this line is more correct but breaks for the current way avatar data is updated.
+            // palmPosition = avatarRigidBodyPosition + avatarRigidBodyRotation * _palmOffsetFromRigidBody;
+            // instead, use this for now:
+            palmPosition = avatarRigidBodyPosition + _palmOffsetFromRigidBody;
+
+            // the item jitters the least by getting the rotation based on the opinion of Avatar.h rather
+            // than that of the rigid body.  leaving this next line here for future reference:
+            // palmRotation = avatarRigidBodyRotation * _palmRotationFromRigidBody;
+
+            if (isRightHand) {
+                palmRotation = holdingAvatar->getRightPalmRotation();
+            } else {
+                palmRotation = holdingAvatar->getLeftPalmRotation();
+            }
+        } else {
+            if (isRightHand) {
                 palmPosition = holdingAvatar->getRightPalmPosition();
                 palmRotation = holdingAvatar->getRightPalmRotation();
             } else {
                 palmPosition = holdingAvatar->getLeftPalmPosition();
                 palmRotation = holdingAvatar->getLeftPalmRotation();
             }
-
-            rotation = palmRotation * _relativeRotation;
-            offset = rotation * _relativePosition;
-            position = palmPosition + offset;
         }
+
+        rotation = palmRotation * _relativeRotation;
+        position = palmPosition + rotation * _relativePosition;
+
+        // update linearVelocity based on offset via _relativePosition;
+        linearVelocity = linearVelocity + glm::cross(angularVelocity, position - palmPosition);
     });
 
     return holdingAvatar;
@@ -66,6 +168,8 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(glm::quat& rotation, glm::ve
 void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
     glm::quat rotation;
     glm::vec3 position;
+    glm::vec3 linearVelocity;
+    glm::vec3 angularVelocity;
     bool valid = false;
     int holdCount = 0;
 
@@ -78,7 +182,8 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
         std::shared_ptr<AvatarActionHold> holdAction = std::static_pointer_cast<AvatarActionHold>(action);
         glm::quat rotationForAction;
         glm::vec3 positionForAction;
-        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(rotationForAction, positionForAction);
+        glm::vec3 linearVelocityForAction, angularVelocityForAction;
+        std::shared_ptr<Avatar> holdingAvatar = holdAction->getTarget(deltaTimeStep, rotationForAction, positionForAction,  linearVelocityForAction, angularVelocityForAction);
         if (holdingAvatar) {
             holdCount ++;
             if (holdAction.get() == this) {
@@ -88,27 +193,30 @@ void AvatarActionHold::updateActionWorker(float deltaTimeStep) {
             }
 
             position += positionForAction;
+            linearVelocity += linearVelocityForAction;
+            angularVelocity += angularVelocityForAction;
         }
     }
 
     if (valid && holdCount > 0) {
         position /= holdCount;
+        linearVelocity /= holdCount;
+        angularVelocity /= holdCount;
 
-        bool gotLock = withTryWriteLock([&]{
+        withWriteLock([&]{
             _positionalTarget = position;
             _rotationalTarget = rotation;
+            _linearVelocityTarget = linearVelocity;
+            _angularVelocityTarget = angularVelocity;
             _positionalTargetSet = true;
             _rotationalTargetSet = true;
             _active = true;
         });
-        if (gotLock) {
-            if (_kinematic) {
-                doKinematicUpdate(deltaTimeStep);
-            } else {
-                activateBody();
-                forceBodyNonStatic();
-                ObjectActionSpring::updateActionWorker(deltaTimeStep);
-            }
+        if (_kinematic) {
+            doKinematicUpdate(deltaTimeStep);
+        } else {
+            forceBodyNonStatic();
+            ObjectActionSpring::updateActionWorker(deltaTimeStep);
         }
     }
 }
@@ -133,15 +241,8 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
     withWriteLock([&]{
         if (_kinematicSetVelocity) {
-            if (_previousSet) {
-                // smooth velocity over 2 frames
-                glm::vec3 positionalDelta = _positionalTarget - _previousPositionalTarget;
-                glm::vec3 positionalVelocity =
-                    (positionalDelta + _previousPositionalDelta) / (deltaTimeStep + _previousDeltaTimeStep);
-                rigidBody->setLinearVelocity(glmToBullet(positionalVelocity));
-                _previousPositionalDelta = positionalDelta;
-                _previousDeltaTimeStep = deltaTimeStep;
-            }
+            rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget));
+            rigidBody->setAngularVelocity(glmToBullet(_angularVelocityTarget));
         }
 
         btTransform worldTrans = rigidBody->getWorldTransform();
@@ -153,11 +254,12 @@ void AvatarActionHold::doKinematicUpdate(float deltaTimeStep) {
 
         _previousPositionalTarget = _positionalTarget;
         _previousRotationalTarget = _rotationalTarget;
+        _previousDeltaTimeStep = deltaTimeStep;
         _previousSet = true;
     });
 
-    activateBody();
     forceBodyNonStatic();
+    activateBody(true);
 }
 
 bool AvatarActionHold::updateArguments(QVariantMap arguments) {
@@ -168,6 +270,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
     QUuid holderID;
     bool kinematic;
     bool kinematicSetVelocity;
+    bool ignoreIK;
     bool needUpdate = false;
 
     bool somethingChanged = ObjectAction::updateArguments(arguments);
@@ -203,14 +306,20 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
         ok = true;
         kinematic = EntityActionInterface::extractBooleanArgument("hold", arguments, "kinematic", ok, false);
         if (!ok) {
-            _kinematic = false;
+            kinematic = _kinematic;
         }
 
         ok = true;
         kinematicSetVelocity = EntityActionInterface::extractBooleanArgument("hold", arguments,
                                                                              "kinematicSetVelocity", ok, false);
         if (!ok) {
-            _kinematicSetVelocity = false;
+            kinematicSetVelocity = _kinematicSetVelocity;
+        }
+
+        ok = true;
+        ignoreIK = EntityActionInterface::extractBooleanArgument("hold", arguments, "ignoreIK", ok, false);
+        if (!ok) {
+            ignoreIK = _ignoreIK;
         }
 
         if (somethingChanged ||
@@ -220,7 +329,8 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             hand != _hand ||
             holderID != _holderID ||
             kinematic != _kinematic ||
-            kinematicSetVelocity != _kinematicSetVelocity) {
+            kinematicSetVelocity != _kinematicSetVelocity ||
+            ignoreIK != _ignoreIK) {
             needUpdate = true;
         }
     });
@@ -236,6 +346,7 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
             _holderID = holderID;
             _kinematic = kinematic;
             _kinematicSetVelocity = kinematicSetVelocity;
+            _ignoreIK = ignoreIK;
             _active = true;
 
             auto ownerEntity = _ownerEntity.lock();
@@ -244,7 +355,6 @@ bool AvatarActionHold::updateArguments(QVariantMap arguments) {
                 ownerEntity->setActionDataNeedsTransmit(true);
             }
         });
-        activateBody();
     }
 
     return true;
@@ -260,6 +370,7 @@ QVariantMap AvatarActionHold::getArguments() {
         arguments["hand"] = _hand;
         arguments["kinematic"] = _kinematic;
         arguments["kinematicSetVelocity"] = _kinematicSetVelocity;
+        arguments["ignoreIK"] = _ignoreIK;
     });
     return arguments;
 }
@@ -330,6 +441,5 @@ void AvatarActionHold::deserialize(QByteArray serializedArguments) {
         _active = true;
     });
 
-    activateBody();
     forceBodyNonStatic();
 }

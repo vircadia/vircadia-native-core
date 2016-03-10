@@ -25,8 +25,8 @@ ball = Entities.addEntity(
     position: basePosition,
     dimensions: { x: 0.1, y: 0.1, z: 0.1 },  
     color: { red: 255, green: 0, blue: 255 },
-    collisionsWillMove: false,
-    ignoreForCollisions: true
+    dynamic: false,
+    collisionless: true
   });
 
 disc = Entities.addEntity(

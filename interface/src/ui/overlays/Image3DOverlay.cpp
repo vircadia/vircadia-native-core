@@ -12,9 +12,6 @@
 
 #include "Image3DOverlay.h"
 
-#include <QScriptValue>
-
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <gpu/Batch.h>
@@ -26,13 +23,15 @@
 QString const Image3DOverlay::TYPE = "image3d";
 
 Image3DOverlay::Image3DOverlay() {
-      _isLoaded = false;
+    _isLoaded = false;
+    _emissive = false;
 }
 
 Image3DOverlay::Image3DOverlay(const Image3DOverlay* image3DOverlay) :
     Billboard3DOverlay(image3DOverlay),
     _url(image3DOverlay->_url),
     _texture(image3DOverlay->_texture),
+    _emissive(image3DOverlay->_emissive),
     _fromImage(image3DOverlay->_fromImage)
 {
 }
@@ -93,8 +92,7 @@ void Image3DOverlay::render(RenderArgs* args) {
 
     batch->setModelTransform(transform);
     batch->setResourceTexture(0, _texture->getGPUTexture());
-    
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(*batch, true, false, false, true);
+
     DependencyManager::get<GeometryCache>()->renderQuad(
         *batch, topLeft, bottomRight, texCoordTopLeft, texCoordBottomRight,
         glm::vec4(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha)
@@ -103,58 +101,78 @@ void Image3DOverlay::render(RenderArgs* args) {
     batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
-void Image3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Image3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    if (_emissive) {
+        builder.withEmissive();
+    }
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Image3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue urlValue = properties.property("url");
+    auto urlValue = properties["url"];
     if (urlValue.isValid()) {
-        QString newURL = urlValue.toVariant().toString();
+        QString newURL = urlValue.toString();
         if (newURL != _url) {
             setURL(newURL);
         }
     }
 
-    QScriptValue subImageBounds = properties.property("subImage");
-    if (subImageBounds.isValid()) {
-        if (subImageBounds.isNull()) {
+    auto subImageBoundsVar = properties["subImage"];
+    if (subImageBoundsVar.isValid()) {
+        if (subImageBoundsVar.isNull()) {
             _fromImage = QRect();
         } else {
             QRect oldSubImageRect = _fromImage;
             QRect subImageRect = _fromImage;
-            if (subImageBounds.property("x").isValid()) {
-                subImageRect.setX(subImageBounds.property("x").toVariant().toInt());
+            auto subImageBounds = subImageBoundsVar.toMap();
+            if (subImageBounds["x"].isValid()) {
+                subImageRect.setX(subImageBounds["x"].toInt());
             } else {
                 subImageRect.setX(oldSubImageRect.x());
             }
-            if (subImageBounds.property("y").isValid()) {
-                subImageRect.setY(subImageBounds.property("y").toVariant().toInt());
+            if (subImageBounds["y"].isValid()) {
+                subImageRect.setY(subImageBounds["y"].toInt());
             } else {
                 subImageRect.setY(oldSubImageRect.y());
             }
-            if (subImageBounds.property("width").isValid()) {
-                subImageRect.setWidth(subImageBounds.property("width").toVariant().toInt());
+            if (subImageBounds["width"].isValid()) {
+                subImageRect.setWidth(subImageBounds["width"].toInt());
             } else {
                 subImageRect.setWidth(oldSubImageRect.width());
             }
-            if (subImageBounds.property("height").isValid()) {
-                subImageRect.setHeight(subImageBounds.property("height").toVariant().toInt());
+            if (subImageBounds["height"].isValid()) {
+                subImageRect.setHeight(subImageBounds["height"].toInt());
             } else {
                 subImageRect.setHeight(oldSubImageRect.height());
             }
             setClipFromSource(subImageRect);
         }
     }
+
+    auto emissiveValue = properties["emissive"];
+    if (emissiveValue.isValid()) {
+        _emissive = emissiveValue.toBool();
+    }
 }
 
-QScriptValue Image3DOverlay::getProperty(const QString& property) {
+QVariant Image3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }
     if (property == "subImage") {
-        return qRectToScriptValue(_scriptEngine, _fromImage);
+        return _fromImage;
     }
     if (property == "offsetPosition") {
-        return vec3toScriptValue(_scriptEngine, getOffsetPosition());
+        return vec3toVariant(getOffsetPosition());
+    }
+    if (property == "emissive") {
+        return _emissive;
     }
 
     return Billboard3DOverlay::getProperty(property);

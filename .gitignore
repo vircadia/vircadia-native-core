@@ -36,7 +36,7 @@ interface/external/*/*
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
 
-# ignore audio-client externals 
+# ignore audio-client externals
 libraries/audio-client/external/*/*
 !libraries/audio-client/external/*/readme.txt
 
@@ -46,3 +46,7 @@ gvr-interface/libs/*
 # ignore files for various dev environments
 TAGS
 *.swp
+
+# ignore node files for the console
+node_modules
+npm-debug.log

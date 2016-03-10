@@ -72,7 +72,8 @@ ObjectMotionState::ObjectMotionState(btCollisionShape* shape) :
 
 ObjectMotionState::~ObjectMotionState() {
     assert(!_body);
-    assert(!_shape);
+    releaseShape();
+    _type = MOTIONSTATE_TYPE_INVALID;
 }
 
 void ObjectMotionState::setBodyLinearVelocity(const glm::vec3& velocity) const {
@@ -119,7 +120,7 @@ void ObjectMotionState::releaseShape() {
     }
 }
 
-void ObjectMotionState::setMotionType(MotionType motionType) {
+void ObjectMotionState::setMotionType(PhysicsMotionType motionType) {
     _motionType = motionType;
 }
 
@@ -140,6 +141,7 @@ void ObjectMotionState::updateCCDConfiguration() {
             // TODO: Ideally the swept sphere radius would be contained by the object. Using the bounding sphere
             // radius works well for spherical objects, but may cause issues with other shapes. For arbitrary
             // objects we may want to consider a different approach, such as grouping rigid bodies together.
+
             _body->setCcdSweptSphereRadius(radius);
         } else {
             // Disable CCD
@@ -162,7 +164,7 @@ void ObjectMotionState::setRigidBody(btRigidBody* body) {
     }
 }
 
-bool ObjectMotionState::handleEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+bool ObjectMotionState::handleEasyChanges(uint32_t& flags) {
     if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans = _body->getWorldTransform();
         btVector3 newPosition = glmToBullet(getObjectPosition());
@@ -249,7 +251,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
             if ((flags & HARD_DIRTY_PHYSICS_FLAGS) == 0) {
                 // no HARD flags remain, so do any EASY changes
                 if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-                    handleEasyChanges(flags, engine);
+                    handleEasyChanges(flags);
                 }
                 return true;
             }
@@ -266,7 +268,7 @@ bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine*
         }
     }
     if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        handleEasyChanges(flags, engine);
+        handleEasyChanges(flags);
     }
     // it is possible there are no HARD flags at this point (if DIRTY_SHAPE was removed)
     // so we check again before we reinsert:

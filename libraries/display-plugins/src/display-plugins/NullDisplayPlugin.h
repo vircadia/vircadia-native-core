@@ -13,17 +13,16 @@ class NullDisplayPlugin : public DisplayPlugin {
 public:
 
     virtual ~NullDisplayPlugin() final {}
-    virtual const QString & getName() const override;
+    virtual const QString& getName() const override { return NAME; }
+    virtual grouping getGrouping() const override { return DEVELOPER; }
 
     void stop() override;
 
     virtual glm::uvec2 getRecommendedRenderSize() const override;
     virtual bool hasFocus() const override;
-    virtual void preRender() override;
-    virtual void preDisplay() override;
-    virtual void display(uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
-    virtual void finishFrame() override;
-
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
+    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
+    virtual QImage getScreenshot() const override;
 private:
     static const QString NAME;
 };

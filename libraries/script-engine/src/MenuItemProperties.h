@@ -14,35 +14,37 @@
 
 #include <QtScript/QScriptEngine>
 
+#include <ui/Menu.h>
 #include "KeyEvent.h"
 
-const int UNSPECIFIED_POSITION = -1;
 
 class MenuItemProperties {
 public:
-    MenuItemProperties(); 
-    MenuItemProperties(const QString& menuName, const QString& menuItemName, 
+    MenuItemProperties() {}
+    MenuItemProperties(const QString& menuName, const QString& menuItemName,
                        const QString& shortcutKey = QString(""), bool checkable = false, bool checked = false, bool separator = false);
-    MenuItemProperties(const QString& menuName, const QString& menuItemName, 
+    MenuItemProperties(const QString& menuName, const QString& menuItemName,
                        const KeyEvent& shortcutKeyEvent, bool checkable = false, bool checked = false, bool separator = false);
 
     QString menuName;
     QString menuItemName;
-    
+
     // Shortcut key items: in order of priority
     QString shortcutKey;
     KeyEvent shortcutKeyEvent;
     QKeySequence shortcutKeySequence; // this is what we actually use, it's set from one of the above
 
     // location related items: in order of priority
-    int position;
+    int position { ui::Menu::UNSPECIFIED_POSITION };
     QString beforeItem;
     QString afterItem;
 
     // other properties
-    bool isCheckable;
-    bool isChecked;
-    bool isSeparator;
+    bool isCheckable { false };
+    bool isChecked { false };
+    bool isSeparator { false };
+
+    QString grouping; /// Either: "", "Advanced", or "Developer"
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
 QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);

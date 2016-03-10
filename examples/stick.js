@@ -37,7 +37,7 @@ function makeNewStick() {
             damping: .1,
             collisionSoundURL: "http://public.highfidelity.io/sounds/Collisions-hitsandslaps/67LCollision07.wav",
             restitution: 0.01,
-            collisionsWillMove: true
+            dynamic: true
         });
         actionID = Entities.addAction("hold", stickID, {relativePosition: {x: 0.0, y: 0.0, z: -0.9},
                                                         hand: hand,

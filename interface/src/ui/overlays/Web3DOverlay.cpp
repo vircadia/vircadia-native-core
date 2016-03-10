@@ -12,12 +12,9 @@
 
 #include "Web3DOverlay.h"
 
-#include <QtScript/QScriptValue>
 #include <QtGui/QOpenGLContext>
 #include <QtQuick/QQuickItem>
 
-
-#include <DeferredLightingEffect.h>
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
@@ -103,35 +100,46 @@ void Web3DOverlay::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transform);
-    DependencyManager::get<DeferredLightingEffect>()->bindSimpleProgram(batch, true, false, false, true);
     DependencyManager::get<GeometryCache>()->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color);
     batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
 }
 
-void Web3DOverlay::setProperties(const QScriptValue &properties) {
+const render::ShapeKey Web3DOverlay::getShapeKey() {
+    auto builder = render::ShapeKey::Builder().withoutCullFace().withDepthBias();
+    if (getAlpha() != 1.0f) {
+        builder.withTranslucent();
+    }
+    return builder.build();
+}
+
+void Web3DOverlay::setProperties(const QVariantMap& properties) {
     Billboard3DOverlay::setProperties(properties);
 
-    QScriptValue urlValue = properties.property("url");
+    auto urlValue = properties["url"];
     if (urlValue.isValid()) {
-        QString newURL = urlValue.toVariant().toString();
+        QString newURL = urlValue.toString();
         if (newURL != _url) {
             setURL(newURL);
         }
     }
 
-    QScriptValue resolution = properties.property("resolution");
+    auto resolution = properties["resolution"];
     if (resolution.isValid()) {
-        vec2FromScriptValue(resolution, _resolution);
+        bool valid;
+        auto res = vec2FromVariant(resolution, valid);
+        if (valid) {
+            _resolution = res;
+        }
     }
 
 
-    QScriptValue dpi = properties.property("dpi");
+    auto dpi = properties["dpi"];
     if (dpi.isValid()) {
-        _dpi = dpi.toVariant().toFloat();
+        _dpi = dpi.toFloat();
     }
 }
 
-QScriptValue Web3DOverlay::getProperty(const QString& property) {
+QVariant Web3DOverlay::getProperty(const QString& property) {
     if (property == "url") {
         return _url;
     }

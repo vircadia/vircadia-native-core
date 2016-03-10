@@ -34,8 +34,8 @@ public:
     ~AACube() {};
 
     void setBox(const glm::vec3& corner, float scale);
-    glm::vec3 getVertexP(const glm::vec3& normal) const;
-    glm::vec3 getVertexN(const glm::vec3& normal) const;
+    glm::vec3 getFarthestVertex(const glm::vec3& normal) const; // return vertex most parallel to normal
+    glm::vec3 getNearestVertex(const glm::vec3& normal) const; // return vertex most anti-parallel to normal
     void scale(float scale);
     const glm::vec3& getCorner() const { return _corner; }
     float getScale() const { return _scale; }
@@ -56,13 +56,18 @@ public:
     bool touches(const AABox& otherBox) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                 BoxFace& face, glm::vec3& surfaceNormal) const;
+    bool touchesSphere(const glm::vec3& center, float radius) const;
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const;
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
 
     AABox clamp(const glm::vec3& min, const glm::vec3& max) const;
     AABox clamp(float min, float max) const;
+
+    AACube& operator += (const glm::vec3& point);
+
+    bool containsNaN() const;
 
 private:
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
@@ -84,7 +89,7 @@ inline bool operator!=(const AACube& a, const AACube& b) {
 }
 
 inline QDebug operator<<(QDebug debug, const AACube& cube) {
-    debug << "AACube[ (" 
+    debug << "AACube[ ("
             << cube.getCorner().x << "," << cube.getCorner().y << "," << cube.getCorner().z << " ) to ("
             << cube.calcTopFarLeft().x << "," << cube.calcTopFarLeft().y << "," << cube.calcTopFarLeft().z << ") size: ("
             << cube.getDimensions().x << "," << cube.getDimensions().y << "," << cube.getDimensions().z << ")"

@@ -148,7 +148,7 @@ for (var i = 0; i < NUM_BALLS; i++) {
             ignoreCollisions: false,
             damping: DAMPING,
             lifetime: LIFETIME,
-            collisionsWillMove: true })); 
+            dynamic: true })); 
 }
 
 var VEL_MAG = 2.0;

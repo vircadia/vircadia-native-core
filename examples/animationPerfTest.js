@@ -53,7 +53,7 @@ for (var i = 0; i < NUM_MOONS; i++) {
         dimensions: { x: radius, y: radius, z: radius }, 
         color: color,
         ignoreCollisions: true,
-        collisionsWillMove: false
+        dynamic: false
 
     })); 
 }

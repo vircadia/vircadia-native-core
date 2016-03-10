@@ -58,11 +58,11 @@ bool JurisdictionListener::queueJurisdictionRequest() {
     return isStillRunning();
 }
 
-void JurisdictionListener::processPacket(QSharedPointer<NLPacket> packet, SharedNodePointer sendingNode) {
-    if (packet->getType() == PacketType::Jurisdiction) {
+void JurisdictionListener::processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
+    if (message->getType() == PacketType::Jurisdiction) {
         JurisdictionMap map;
-        map.unpackFromPacket(*packet);
-        _jurisdictions[packet->getSourceID()] = map;
+        map.unpackFromPacket(*message);
+        _jurisdictions[message->getSourceID()] = map;
     }
 }
 

@@ -25,7 +25,7 @@ StandardController::StandardController() : InputDevice("Standard") {
 StandardController::~StandardController() {
 }
 
-void StandardController::update(float deltaTime, bool jointsCaptured) {
+void StandardController::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData, bool jointsCaptured) {
 }
 
 void StandardController::focusOutEvent() {
@@ -131,10 +131,10 @@ EndpointPointer StandardController::createEndpoint(const Input& input) const {
     return std::make_shared<StandardEndpoint>(input);
 }
 
-QString StandardController::getDefaultMappingConfig() const {
+QStringList StandardController::getDefaultMappingConfigs() const {
     static const QString DEFAULT_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard.json";
-    return DEFAULT_MAPPING_JSON;
+    static const QString DEFAULT_NAV_MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/standard_navigation.json";
+    return QStringList() << DEFAULT_NAV_MAPPING_JSON << DEFAULT_MAPPING_JSON;
 }
-
 
 }

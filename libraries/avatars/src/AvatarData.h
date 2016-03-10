@@ -51,12 +51,12 @@ typedef unsigned long long quint64;
 #include <Node.h>
 #include <RegisteredMetaTypes.h>
 #include <SimpleMovingAverage.h>
+#include <SpatiallyNestable.h>
 
 #include "AABox.h"
 #include "HandData.h"
 #include "HeadData.h"
 #include "PathUtils.h"
-#include "Referential.h"
 
 using AvatarSharedPointer = std::shared_ptr<AvatarData>;
 using AvatarWeakPointer = std::weak_ptr<AvatarData>;
@@ -135,7 +135,7 @@ class AttachmentData;
 class Transform;
 using TransformPointer = std::shared_ptr<Transform>;
 
-class AvatarData : public QObject {
+class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
@@ -150,6 +150,9 @@ class AvatarData : public QObject {
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
     Q_PROPERTY(float headRoll READ getHeadRoll WRITE setHeadRoll)
+
+    Q_PROPERTY(glm::vec3 velocity READ getVelocity WRITE setVelocity)
+    Q_PROPERTY(glm::vec3 angularVelocity READ getAngularVelocity WRITE setAngularVelocity)
 
     Q_PROPERTY(float audioLoudness READ getAudioLoudness WRITE setAudioLoudness)
     Q_PROPERTY(float audioAverageLoudness READ getAudioAverageLoudness WRITE setAudioAverageLoudness)
@@ -172,15 +175,12 @@ public:
 
     AvatarData();
     virtual ~AvatarData();
-    
+
     static const QUrl& defaultFullAvatarModelUrl();
 
     virtual bool isMyAvatar() const { return false; }
 
-    const QUuid& getSessionUUID() const { return _sessionUUID; }
-
-    const glm::vec3& getPosition() const;
-    virtual void setPosition(const glm::vec3 position, bool overideReferential = false);
+    const QUuid getSessionUUID() const { return getID(); }
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -196,16 +196,18 @@ public:
     /// \return number of bytes parsed
     virtual int parseDataFromBuffer(const QByteArray& buffer);
 
-    //  Body Rotation (degrees)
-    float getBodyYaw() const { return _bodyYaw; }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
-    float getBodyPitch() const { return _bodyPitch; }
-    void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
-    float getBodyRoll() const { return _bodyRoll; }
-    void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
+    // Body Rotation (degrees)
+    float getBodyYaw() const;
+    void setBodyYaw(float bodyYaw);
+    float getBodyPitch() const;
+    void setBodyPitch(float bodyPitch);
+    float getBodyRoll() const;
+    void setBodyRoll(float bodyRoll);
 
-    glm::quat getOrientation() const;
-    virtual void setOrientation(const glm::quat& orientation, bool overideReferential = false);
+    using SpatiallyNestable::setPosition;
+    virtual void setPosition(const glm::vec3& position) override;
+    using SpatiallyNestable::setOrientation;
+    virtual void setOrientation(const glm::quat& orientation) override;
 
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void startCapture();    // start/end of the period in which the latest values are about to be captured for camera, etc.
@@ -239,8 +241,8 @@ public:
 
     //  Scale
     float getTargetScale() const;
-    void setTargetScale(float targetScale, bool overideReferential = false);
-    void setClampedTargetScale(float targetScale, bool overideReferential = false);
+    void setTargetScale(float targetScale);
+    void setTargetScaleVerbose(float targetScale);
 
     //  Hand State
     Q_INVOKABLE void setHandState(char s) { _handState = s; }
@@ -264,19 +266,22 @@ public:
     Q_INVOKABLE bool isJointDataValid(const QString& name) const;
     Q_INVOKABLE glm::quat getJointRotation(const QString& name) const;
     Q_INVOKABLE glm::vec3 getJointTranslation(const QString& name) const;
-    
+
     Q_INVOKABLE virtual QVector<glm::quat> getJointRotations() const;
     Q_INVOKABLE virtual void setJointRotations(QVector<glm::quat> jointRotations);
     Q_INVOKABLE virtual void setJointTranslations(QVector<glm::vec3> jointTranslations);
-    
+
     Q_INVOKABLE virtual void clearJointsData();
-    
+
     /// Returns the index of the joint with the specified name, or -1 if not found/unknown.
     Q_INVOKABLE virtual int getJointIndex(const QString& name) const { return _jointIndices.value(name) - 1; }
 
     Q_INVOKABLE virtual QStringList getJointNames() const { return _jointNames; }
 
     Q_INVOKABLE void setBlendshape(QString name, float val) { _headData->setBlendshape(name, val); }
+
+    Q_INVOKABLE QVariantList getAttachmentsVariant() const;
+    Q_INVOKABLE void setAttachmentsVariant(const QVariantList& variant);
 
     void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
@@ -287,89 +292,79 @@ public:
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
 
-    bool hasIdentityChangedAfterParsing(NLPacket& packet);
+    bool hasIdentityChangedAfterParsing(const QByteArray& data);
     QByteArray identityByteArray();
-    
-    bool hasBillboardChangedAfterParsing(NLPacket& packet);
-    
+
+    bool hasBillboardChangedAfterParsing(const QByteArray& data);
+
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     QString getFaceModelURLString() const { return _faceModelURL.toString(); }
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
-    
+
     virtual void setDisplayName(const QString& displayName);
-    
+
     Q_INVOKABLE QVector<AttachmentData> getAttachmentData() const;
     Q_INVOKABLE virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
-    
+
     Q_INVOKABLE virtual void attach(const QString& modelURL, const QString& jointName = QString(),
-        const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
-        bool allowDuplicates = false, bool useSaved = true);
-    
+                                    const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(),
+                                    float scale = 1.0f, bool isSoft = false,
+                                    bool allowDuplicates = false, bool useSaved = true);
+
     Q_INVOKABLE void detachOne(const QString& modelURL, const QString& jointName = QString());
     Q_INVOKABLE void detachAll(const QString& modelURL, const QString& jointName = QString());
-    
+
     virtual void setBillboard(const QByteArray& billboard);
     const QByteArray& getBillboard() const { return _billboard; }
-    
+
     void setBillboardFromURL(const QString& billboardURL);
     const QString& getBillboardURL() { return _billboardURL; }
-    
+
     QString getFaceModelURLFromScript() const { return _faceModelURL.toString(); }
     void setFaceModelURLFromScript(const QString& faceModelString) { setFaceModelURL(faceModelString); }
-    
+
     QString getSkeletonModelURLFromScript() const { return _skeletonModelURL.toString(); }
     void setSkeletonModelURLFromScript(const QString& skeletonModelString) { setSkeletonModelURL(QUrl(skeletonModelString)); }
-    
+
     void setOwningAvatarMixer(const QWeakPointer<Node>& owningAvatarMixer) { _owningAvatarMixer = owningAvatarMixer; }
-    
+
     const AABox& getLocalAABox() const { return _localAABox; }
-    const Referential* getReferential() const { return _referential; }
 
     int getUsecsSinceLastUpdate() const { return _averageBytesReceived.getUsecsSinceLastEvent(); }
     int getAverageBytesReceivedPerSecond() const;
     int getReceiveRate() const;
 
-    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
-    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     const glm::vec3& getTargetVelocity() const { return _targetVelocity; }
 
     bool shouldDie() const { return _owningAvatarMixer.isNull() || getUsecsSinceLastUpdate() > AVATAR_SILENCE_THRESHOLD_USECS; }
 
-    Transform getTransform() const;
     void clearRecordingBasis();
     TransformPointer getRecordingBasis() const;
     void setRecordingBasis(TransformPointer recordingBasis = TransformPointer());
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json);
 
+    glm::vec3 getClientGlobalPosition() { return _globalPosition; }
+
 public slots:
     void sendAvatarDataPacket();
     void sendIdentityPacket();
     void sendBillboardPacket();
-    
+
     void setBillboardFromNetworkReply();
     void setJointMappingsFromNetworkReply();
-    void setSessionUUID(const QUuid& sessionUUID) { _sessionUUID = sessionUUID; }
-    bool hasReferential();
+    void setSessionUUID(const QUuid& sessionUUID) { setID(sessionUUID); }
+
+    virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
+    virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
+    virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }
+    virtual bool setAbsoluteJointTranslationInObjectFrame(int index, const glm::vec3& translation) override { return false; }
 
 protected:
-    QUuid _sessionUUID;
-    glm::vec3 _position = START_LOCATION;
     glm::vec3 _handPosition;
-    
-    Referential* _referential;
-
-    //  Body rotation
-    float _bodyYaw;     // degrees
-    float _bodyPitch;   // degrees
-    float _bodyRoll;    // degrees
-
-    glm::vec3 _nextPosition {};
-    glm::quat _nextOrientation {};
-    bool _nextAllowed {true};
 
     // Body scale
     float _targetScale;
@@ -401,19 +396,17 @@ protected:
 
     QByteArray _billboard;
     QString _billboardURL;
-    
+
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
-    
+
     QWeakPointer<Node> _owningAvatarMixer;
-    
+
     /// Loads the joint indices, names from the FST file (if any)
     virtual void updateJointMappings();
-    void changeReferential(Referential* ref);
 
-    glm::vec3 _velocity;
     glm::vec3 _targetVelocity;
 
     AABox _localAABox;
@@ -421,10 +414,15 @@ protected:
     SimpleMovingAverage _averageBytesReceived;
 
     QMutex avatarLock; // Name is redundant, but it aids searches.
-    
+
     // During recording, this holds the starting position, orientation & scale of the recorded avatar
     // During playback, it holds the origin from which to play the relative positions in the clip
     TransformPointer _recordingBasis;
+
+    // _globalPosition is sent along with localPosition + parent because the avatar-mixer doesn't know
+    // where Entities are located.  This is currently only used by the mixer to decide how often to send
+    // updates about one avatar to another.
+    glm::vec3 _globalPosition;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);
@@ -445,13 +443,17 @@ public:
     glm::vec3 translation;
     glm::quat rotation;
     float scale { 1.0f };
-    
+    bool isSoft { false };
+
     bool isValid() const { return modelURL.isValid(); }
-    
+
     bool operator==(const AttachmentData& other) const;
 
     QJsonObject toJson() const;
     void fromJson(const QJsonObject& json);
+
+    QVariant toVariant() const;
+    void fromVariant(const QVariant& variant);
 };
 
 QDataStream& operator<<(QDataStream& out, const AttachmentData& attachment);
@@ -468,23 +470,27 @@ class AttachmentDataObject : public QObject, protected QScriptable {
     Q_PROPERTY(glm::vec3 translation READ getTranslation WRITE setTranslation)
     Q_PROPERTY(glm::quat rotation READ getRotation WRITE setRotation)
     Q_PROPERTY(float scale READ getScale WRITE setScale)
+    Q_PROPERTY(bool isSoft READ getIsSoft WRITE setIsSoft)
 
 public:
-    
-    Q_INVOKABLE void setModelURL(const QString& modelURL) const;
+
+    Q_INVOKABLE void setModelURL(const QString& modelURL);
     Q_INVOKABLE QString getModelURL() const;
-    
-    Q_INVOKABLE void setJointName(const QString& jointName) const;
+
+    Q_INVOKABLE void setJointName(const QString& jointName);
     Q_INVOKABLE QString getJointName() const;
-    
-    Q_INVOKABLE void setTranslation(const glm::vec3& translation) const;
+
+    Q_INVOKABLE void setTranslation(const glm::vec3& translation);
     Q_INVOKABLE glm::vec3 getTranslation() const;
-    
-    Q_INVOKABLE void setRotation(const glm::quat& rotation) const;
+
+    Q_INVOKABLE void setRotation(const glm::quat& rotation);
     Q_INVOKABLE glm::quat getRotation() const;
-    
-    Q_INVOKABLE void setScale(float scale) const;
+
+    Q_INVOKABLE void setScale(float scale);
     Q_INVOKABLE float getScale() const;
+
+    Q_INVOKABLE void setIsSoft(bool scale);
+    Q_INVOKABLE bool getIsSoft() const;
 };
 
 void registerAvatarTypes(QScriptEngine* engine);

@@ -18,7 +18,7 @@
 #include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
-#include <NLPacket.h>
+#include <ReceivedMessage.h>
 
 const QString SETTINGS_PATHS_KEY = "paths";
 
@@ -42,11 +42,11 @@ public:
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 
 private slots:
-    void processSettingsRequestPacket(QSharedPointer<NLPacket> packet);
+    void processSettingsRequestPacket(QSharedPointer<ReceivedMessage> message);
 
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
-    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant);
+    void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject);
 
     void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
                        const QJsonObject& settingDescription);
@@ -56,6 +56,8 @@ private:
     double _descriptionVersion;
     QJsonArray _descriptionArray;
     HifiConfigVariantMap _configMap;
+
+    friend class DomainServer;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

@@ -14,12 +14,14 @@
 
 #include <QtCore/QSharedPointer>
 
+#include "ReceivedMessage.h"
+
 #include "Assignment.h"
 
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
-    ThreadedAssignment(NLPacket& packet);
+    ThreadedAssignment(ReceivedMessage& message);
     ~ThreadedAssignment() { stop(); }
 
     void setFinished(bool isFinished);
@@ -31,22 +33,22 @@ public slots:
     virtual void run() = 0;
     Q_INVOKABLE virtual void stop() { setFinished(true); }
     virtual void sendStatsPacket();
+    void clearQueuedCheckIns() { _numQueuedCheckIns = 0; }
 
 signals:
     void finished();
 
 protected:
-    void commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats = true);
+    void commonInit(const QString& targetName, NodeType_t nodeType);
     bool _isFinished;
-    QTimer* _domainServerTimer = nullptr;
-    QTimer* _statsTimer = nullptr;
+    QTimer _domainServerTimer;
+    QTimer _statsTimer;
+    int _numQueuedCheckIns { 0 };
     
 protected slots:
     void domainSettingsRequestFailed();
     
 private slots:
-    void startSendingStats();
-    void stopSendingStats();
     void checkInWithDomainServerOrExit();
 };
 

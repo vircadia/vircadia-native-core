@@ -39,7 +39,7 @@ BALL_PROTOTYPE = {
     dimensions: BALL_DIMENSIONS,
     color: BALL_COLOR,
     ignoreCollisions: true,
-    collisionsWillMove: false
+    dynamic: false
 };
 
 // 2 millimeters
@@ -62,7 +62,7 @@ LINE_PROTOTYPE = {
     lineWidth: 5,
     visible: true,
     ignoreCollisions: true,
-    collisionsWillMove: false,
+    dynamic: false,
 }
 
 EDGE_PROTOTYPE = LINE_PROTOTYPE;
@@ -76,7 +76,7 @@ EDGE_PROTOTYPE = LINE_PROTOTYPE;
 // rotation: rotation,
 // visible: true,
 // ignoreCollisions: true,
-// collisionsWillMove: false
+// dynamic: false
 // }
 
 
