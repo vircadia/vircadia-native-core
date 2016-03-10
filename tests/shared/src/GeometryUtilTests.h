@@ -21,6 +21,7 @@ private slots:
     void testLocalRayRectangleIntersection();
     void testWorldRayRectangleIntersection();
     void testTwistSwingDecomposition();
+    void testSphereCapsulePenetration();
 };
 
 float getErrorDifference(const float& a, const float& b);
