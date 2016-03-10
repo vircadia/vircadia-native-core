@@ -143,7 +143,7 @@ void AssetMappingModel::refresh() {
 
             existingPaths.removeOne(mapping.first);
 
-            QString fullPath = "";// parts[0];
+            QString fullPath = "";
 
             QStandardItem* lastItem = nullptr;
 
