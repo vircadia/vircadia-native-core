@@ -236,8 +236,6 @@ void AssetMappingModel::refresh() {
                 //removeitem->index();
             }
         } else {
-            qDebug() << "THE ERROR IS" << request->getError();
-            qDebug() << "Casted error is" << static_cast<int>(request->getError());
             emit errorGettingMappings(static_cast<int>(request->getError()));
         }
     });
