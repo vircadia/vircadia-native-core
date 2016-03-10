@@ -173,6 +173,8 @@ Window {
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
+            destinationPath = destinationPath.trim();
+
             if (path == destinationPath) {
                 return;
             }
