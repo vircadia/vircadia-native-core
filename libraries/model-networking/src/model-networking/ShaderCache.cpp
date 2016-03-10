@@ -15,6 +15,7 @@ NetworkShader::NetworkShader(const QUrl& url, bool delayLoad)
 
 void NetworkShader::downloadFinished(const QByteArray& data) {
     _source = QString::fromUtf8(data);
+    finishedLoading(true);
 }
 
 ShaderCache& ShaderCache::instance() {

@@ -348,4 +348,3 @@ void NetworkTexture::setImage(const QImage& image, void* voidTexture, int origin
 
     emit networkTextureCreated(qWeakPointerCast<NetworkTexture, Resource> (_self));
 }
-

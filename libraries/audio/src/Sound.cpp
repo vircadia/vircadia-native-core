@@ -80,6 +80,8 @@ void Sound::downloadFinished(const QByteArray& data) {
         qCDebug(audio) << "Unknown sound file type";
     }
 
+    finishedLoading(true);
+
     _isReady = true;
     emit ready();
 }
