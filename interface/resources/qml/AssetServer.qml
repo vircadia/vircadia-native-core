@@ -33,7 +33,7 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var scriptsModel: scripts.scriptsModelFilter
+    property var scriptsModel: Assets.mappingModel;
     property var currentDirectory;
     property alias currentFileUrl: fileUrlTextField.text;
 
@@ -47,6 +47,11 @@ Window {
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
+        Assets.deleteMappings(path, function(err) {
+            print("Finished deleting path: ", path, err);
+            reload();
+        });
+
     }
     function doUploadFile(path, mapping, addToWorld) {
         console.log("Uploading " + path + " to " + mapping + " (addToWorld: " + addToWorld + ")");
@@ -56,6 +61,10 @@ Window {
     function doRenameFile(oldPath, newPath) {
         console.log("Renaming " + oldPath + " to " + newPath);
 
+        Assets.renameMapping(oldPath, newPath, function(err) {
+            print("Finished rename: ", err);
+            reload();
+        });
     }
 
     function fileExists(destinationPath) {
@@ -89,6 +98,7 @@ Window {
 
     function reload() {
         print("reload");
+        scriptsModel.refresh();
     }
     function addToWorld() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
@@ -111,7 +121,7 @@ Window {
         });
         object.selected.connect(function(destinationPath) {
             if (fileExists(destinationPath)) {
-                askForOverride(path, function() {
+                askForOverride(destinationPath, function() {
                     doRenameFile(path, destinationPath);
                 });
             } else {

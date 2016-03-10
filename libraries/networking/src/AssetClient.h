@@ -12,6 +12,8 @@
 #ifndef hifi_AssetClient_h
 #define hifi_AssetClient_h
 
+#include <QStandardItemModel>
+#include <QtQml/QJSEngine>
 #include <QString>
 
 #include <map>

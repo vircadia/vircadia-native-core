@@ -76,12 +76,12 @@ void GetAllMappingsRequest::doStart() {
         }
 
 
-        if (!error) {
+        if (!_error) {
             int numberOfMappings;
             message->readPrimitive(&numberOfMappings);
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
-                auto hash = message->readString();
+                auto hash = message->read(SHA256_HASH_LENGTH).toHex();
                 _mappings[path] = hash;
             }
         }
