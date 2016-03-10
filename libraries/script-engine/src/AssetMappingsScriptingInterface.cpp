@@ -140,102 +140,96 @@ void AssetMappingModel::refresh() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    if (request) {
-        connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
-            if (request->getError() == MappingRequest::NoError) {
-                auto mappings = request->getMappings();
-                auto existingPaths = _pathToItemMap.keys();
-                for (auto& mapping : mappings) {
-                    auto& path = mapping.first;
-                    auto parts = path.split("/");
-                    auto length = parts.length();
+    connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
+        if (request->getError() == MappingRequest::NoError) {
+            auto mappings = request->getMappings();
+            auto existingPaths = _pathToItemMap.keys();
+            for (auto& mapping : mappings) {
+                auto& path = mapping.first;
+                auto parts = path.split("/");
+                auto length = parts.length();
 
-                    existingPaths.removeOne(mapping.first);
+                existingPaths.removeOne(mapping.first);
 
-                    QString fullPath = "/";
+                QString fullPath = "/";
 
-                    QStandardItem* lastItem = nullptr;
+                QStandardItem* lastItem = nullptr;
 
-                    // start index at 1 to avoid empty string from leading slash
-                    for (int i = 1; i < length; ++i) {
-                        fullPath += (i == 1 ? "" : "/") + parts[i];
+                // start index at 1 to avoid empty string from leading slash
+                for (int i = 1; i < length; ++i) {
+                    fullPath += (i == 1 ? "" : "/") + parts[i];
 
-                        auto it = _pathToItemMap.find(fullPath);
-                        if (it == _pathToItemMap.end()) {
-                            qDebug() << "prefix not found: " << fullPath;
-                            auto item = new QStandardItem(parts[i]);
-                            bool isFolder = i < length - 1;
-                            item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
-                            item->setData(isFolder, Qt::UserRole + 1);
-                            item->setData(parts[i], Qt::UserRole + 2);
-                            item->setData("atp:" + fullPath, Qt::UserRole + 3);
-                            if (lastItem) {
-                                lastItem->setChild(lastItem->rowCount(), 0, item);
-                            } else {
-                                appendRow(item);
-                            }
-
-                            lastItem = item;
-                            _pathToItemMap[fullPath] = lastItem;
-                        }
-                        else {
-                            lastItem = it.value();
-                        }
-                    }
-
-                    Q_ASSERT(fullPath == path);
-                }
-
-                // Remove folders from list
-                auto it = existingPaths.begin();
-                while (it != existingPaths.end()) {
-                    auto item = _pathToItemMap[*it];
-                    if (item->data(Qt::UserRole + 1).toBool()) {
-                        it = existingPaths.erase(it);
-                    } else {
-                        ++it;
-                    }
-                }
-
-                for (auto& path : existingPaths) {
-                    Q_ASSERT(_pathToItemMap.contains(path));
-                    qDebug() << "removing existing: " << path;
-
-                    auto item = _pathToItemMap[path];
-
-                    while (item) {
-                        // During each iteration, delete item
-                        QStandardItem* nextItem = nullptr;
-
-                        auto parent = item->parent();
-                        if (parent) {
-                            parent->removeRow(item->row());
-                            if (parent->rowCount() > 0) {
-                                // The parent still contains children, set the nextItem to null so we stop processing
-                                nextItem = nullptr;
-                            } else {
-                                nextItem = parent;
-                            }
+                    auto it = _pathToItemMap.find(fullPath);
+                    if (it == _pathToItemMap.end()) {
+                        qDebug() << "prefix not found: " << fullPath;
+                        auto item = new QStandardItem(parts[i]);
+                        bool isFolder = i < length - 1;
+                        item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
+                        item->setData(isFolder, Qt::UserRole + 1);
+                        item->setData(parts[i], Qt::UserRole + 2);
+                        item->setData("atp:" + fullPath, Qt::UserRole + 3);
+                        if (lastItem) {
+                            lastItem->setChild(lastItem->rowCount(), 0, item);
                         } else {
-                            removeRow(item->row());
+                            appendRow(item);
                         }
-                        
-                        _pathToItemMap.remove(path);
-                        //delete item;
-                        
-                        item = nextItem;
-                    }
-                    //removeitem->index();
-                }
-            } else {
-                emit errorGettingMappings(uint8_t(request->getError()));
-            }
-        });
 
-        request->start();
-    } else {
-        qDebug() << "NO CONNECTED ASSET SERVER";
-        // not connected to an Asset Server, emit network error
-        emit errorGettingMappings(uint8_t(MappingRequest::NetworkError));
-    }
+                        lastItem = item;
+                        _pathToItemMap[fullPath] = lastItem;
+                    }
+                    else {
+                        lastItem = it.value();
+                    }
+                }
+
+                Q_ASSERT(fullPath == path);
+            }
+
+            // Remove folders from list
+            auto it = existingPaths.begin();
+            while (it != existingPaths.end()) {
+                auto item = _pathToItemMap[*it];
+                if (item->data(Qt::UserRole + 1).toBool()) {
+                    it = existingPaths.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            for (auto& path : existingPaths) {
+                Q_ASSERT(_pathToItemMap.contains(path));
+                qDebug() << "removing existing: " << path;
+
+                auto item = _pathToItemMap[path];
+
+                while (item) {
+                    // During each iteration, delete item
+                    QStandardItem* nextItem = nullptr;
+
+                    auto parent = item->parent();
+                    if (parent) {
+                        parent->removeRow(item->row());
+                        if (parent->rowCount() > 0) {
+                            // The parent still contains children, set the nextItem to null so we stop processing
+                            nextItem = nullptr;
+                        } else {
+                            nextItem = parent;
+                        }
+                    } else {
+                        removeRow(item->row());
+                    }
+
+                    _pathToItemMap.remove(path);
+                    //delete item;
+
+                    item = nextItem;
+                }
+                //removeitem->index();
+            }
+        } else {
+            emit errorGettingMappings(uint8_t(request->getError()));
+        }
+    });
+
+    request->start();
 }

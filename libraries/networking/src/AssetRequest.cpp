@@ -38,7 +38,7 @@ void AssetRequest::start() {
 
     // in case we haven't parsed a valid hash, return an error now
     if (isValidHash(_hash)) {
-        _result = InvalidHash;
+        _error = InvalidHash;
         _state = Finished;
 
         emit finished(this);
