@@ -133,16 +133,22 @@ Window {
         Entities.addModelEntity(url, MyAvatar.position);
     }
 
-    function copyURLToClipboard() {
-        var path = assetProxyModel.data(treeView.currentIndex, 0x103);
+    function copyURLToClipboard(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetProxyModel.data(index, 0x103);
         if (!path) {
             return;
         }
         Window.copyToClipboard(path);
     }
 
-    function renameFile() {
-        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
+    function renameFile(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
         }
@@ -165,8 +171,11 @@ Window {
             }
         });
     }
-    function deleteFile() {
-        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
+    function deleteFile(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
         }
@@ -259,16 +268,6 @@ Window {
                     onClicked: root.reload()
                 }
 
-                HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.reload
-                    color: hifi.buttons.white
-                    colorScheme: root.colorScheme
-                    height: 26
-                    width: 26
-
-                    onClicked: root.copyURLToClipboard()
-                }
-
                 HifiControls.Button {
                     text: "ADD TO WORLD"
                     color: hifi.buttons.white
@@ -304,6 +303,34 @@ Window {
                 }
             }
 
+            Menu {
+                id: contextMenu
+                title: "Edit"
+                property var url: ""
+                property var currentIndex: null
+
+                MenuItem {
+                    text: "Copy URL"
+                    onTriggered: {
+                        copyURLToClipboard(contextMenu.currentIndex);
+                    }
+                }
+
+                MenuItem {
+                    text: "Rename"
+                    onTriggered: {
+                        renameFile(contextMenu.currentIndex);
+                    }
+                }
+
+                MenuItem {
+                    text: "Delete"
+                    onTriggered: {
+                        deleteFile(contextMenu.currentIndex);
+                    }
+                }
+            }
+
             HifiControls.Tree {
                 id: treeView
                 height: 400
@@ -311,6 +338,16 @@ Window {
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
+                MouseArea {
+                    propagateComposedEvents: true
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: {
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
+                }
             }
         }
 
