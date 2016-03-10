@@ -130,7 +130,8 @@ Menu::Menu() {
     editMenu->addSeparator();
 
     // Edit > My Asset Server
-    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, 0, qApp, SLOT(toggleAssetServerWidget()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                  qApp, SLOT(toggleAssetServerWidget()));
 
     // Edit > Reload All Content [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
