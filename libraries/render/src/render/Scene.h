@@ -60,19 +60,25 @@ public:
     // This call is thread safe, can be called from anywhere to allocate a new ID
     ItemID allocateID();
 
+    // Check that the ID is valid and allocated for this scene, this a threadsafe call
+    bool isAllocatedID(const ItemID& id);
+
+    // THis is the total number of allocated items, this a threadsafe call
+    size_t getNumItems() const { return _numAllocatedItems.load(); }
+
     // Enqueue change batch to the scene
     void enqueuePendingChanges(const PendingChanges& pendingChanges);
 
     // Process the penging changes equeued
     void processPendingChangesQueue();
 
+    // This next call are  NOT threadsafe, you have to call them from the correct thread to avoid any potential issues
+
     // Access a particular item form its ID
     // WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
 
-    size_t getNumItems() const { return _items.size(); }
-
-    // Access the spatialized items
+        // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }
 
     // Access non-spatialized items (overlays, backgrounds)
@@ -81,6 +87,7 @@ public:
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
+    std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
     std::mutex _changeQueueMutex;
     PendingChangesQueue _changeQueue;
 
