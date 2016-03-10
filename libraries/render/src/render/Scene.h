@@ -78,7 +78,7 @@ public:
     // WARNING, There is No check on the validity of the ID, so this could return a bad Item
     const Item& getItem(const ItemID& id) const { return _items[id]; }
 
-        // Access the spatialized items
+    // Access the spatialized items
     const ItemSpatialTree& getSpatialTree() const { return _masterSpatialTree; }
 
     // Access non-spatialized items (overlays, backgrounds)
