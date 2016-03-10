@@ -93,7 +93,7 @@ protected:
 
 private:
     // This should only be called from the render thread, as it shares data with Procedural::prepare
-    void parse(QJsonObject);
+    void parse(const QJsonObject&);
     bool parseVersion(const QJsonValue& version);
     bool parseUrl(const QUrl& url);
     bool parseUniforms(const QJsonObject& uniforms);

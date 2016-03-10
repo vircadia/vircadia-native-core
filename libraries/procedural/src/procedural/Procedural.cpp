@@ -142,7 +142,7 @@ bool Procedural::parseTextures(const QJsonArray& channels) {
     return true;
 }
 
-void Procedural::parse(QJsonObject proceduralData) {
+void Procedural::parse(const QJsonObject& proceduralData) {
     _enabled = false;
 
     if (proceduralData.isEmpty()) {
