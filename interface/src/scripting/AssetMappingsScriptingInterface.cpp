@@ -88,6 +88,8 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         return;
     }
     mapping = result.toString();
+    mapping = mapping.trimmed();
+
     if (mapping[0] != '/') {
         mapping = "/" + mapping;
     }
