@@ -235,16 +235,6 @@ Window {
                     onClicked: root.reload()
                 }
 
-                HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.reload
-                    color: hifi.buttons.white
-                    colorScheme: root.colorScheme
-                    height: 26
-                    width: 26
-
-                    onClicked: root.copyURLToClipboard()
-                }
-
                 HifiControls.Button {
                     text: "ADD TO WORLD"
                     color: hifi.buttons.white
