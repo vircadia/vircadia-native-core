@@ -33,7 +33,7 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var scriptsModel: Assets.getAssetMappingModel()
+    property var scriptsModel: Assets.mappingModel;
     property var currentDirectory;
 
     Settings {
@@ -52,6 +52,7 @@ Window {
     }
     function renameFile() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        print(path);
         if (!path) {
             return;
         }
@@ -63,16 +64,15 @@ Window {
         });
         object.selected.connect(function(destinationPath) {
             console.log("Renaming " + path + " to " + destinationPath);
-
-
-
-
-
+            Assets.renameMapping(path, destinationPath, function(err) {
+                print("Finished rename: ", err);
+                reload();
+            });
         });
     }
     function deleteFile() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
-        print(path);
+        print(treeView.currentIndex, path);
         if (!path) {
             return;
         }
@@ -94,8 +94,6 @@ Window {
                     print("Finished deleting path: ", path, err);
                     reload();
                 });
-
-
             }
         });
     }
