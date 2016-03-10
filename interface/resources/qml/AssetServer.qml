@@ -338,15 +338,6 @@ Window {
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
-                rowDelegate: Rectangle {
-                    height: hifi.dimensions.tableRowHeight
-                    color: styleData.selected
-                        ? hifi.colors.primaryHighlight
-                        : treeView.isLightColorScheme
-                        ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
-                    : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
-
-                }
                 MouseArea {
                     propagateComposedEvents: true
                     anchors.fill: parent
