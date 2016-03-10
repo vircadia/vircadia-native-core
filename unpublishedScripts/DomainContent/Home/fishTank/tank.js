@@ -642,7 +642,7 @@
                     damping: FISH_DAMPING,
                     angularDamping: FISH_ANGULAR_DAMPING,
                     dynamic: false,
-                    lifetime: LIFETIME,
+                    // lifetime: LIFETIME,
                     color: {
                         red: 0,
                         green: 255,
