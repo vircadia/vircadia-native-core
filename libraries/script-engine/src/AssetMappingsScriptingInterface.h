@@ -48,9 +48,6 @@ class AssetMappingsScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
 public:
-    AssetMappingsScriptingInterface();
-    ~AssetMappingsScriptingInterface();
-
     Q_INVOKABLE AssetMappingModel* getAssetMappingModel() { return &_assetMappingModel; }
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);

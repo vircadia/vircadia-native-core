@@ -18,12 +18,6 @@
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
 
-AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
-}
-AssetMappingsScriptingInterface::~AssetMappingsScriptingInterface() {
-    qDebug() << "Destroying mapping interface";
-}
-
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
