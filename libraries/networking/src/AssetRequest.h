@@ -34,6 +34,7 @@ public:
         NoError,
         NotFound,
         InvalidByteRange,
+        InvalidHash,
         HashVerificationFailed,
         NetworkError,
         UnknownError

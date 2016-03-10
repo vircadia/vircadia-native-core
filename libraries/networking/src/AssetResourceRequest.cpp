@@ -109,15 +109,6 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 
 void AssetResourceRequest::requestHash(const AssetHash& hash) {
 
-    // in case we haven't parsed a valid hash, return an error now
-    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        _result = InvalidURL;
-        _state = Finished;
-
-        emit finished();
-        return;
-    }
-
     // Make request to atp
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash);
@@ -132,6 +123,9 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
             case AssetRequest::Error::NoError:
                 _data = req->getData();
                 _result = Success;
+                break;
+            case AssetRequest::InvalidHash:
+                _result = InvalidURL;
                 break;
             case AssetRequest::Error::NotFound:
                 _result = NotFound;

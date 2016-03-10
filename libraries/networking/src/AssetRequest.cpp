@@ -35,6 +35,15 @@ void AssetRequest::start() {
         qCWarning(asset_client) << "AssetRequest already started.";
         return;
     }
+
+    // in case we haven't parsed a valid hash, return an error now
+    if (isValidHash(_hash)) {
+        _result = InvalidHash;
+        _state = Finished;
+
+        emit finished(this);
+        return;
+    }
     
     // Try to load from cache
     _data = loadFromCache(getUrl());
