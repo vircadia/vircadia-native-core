@@ -33,7 +33,8 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var assetMappingsModel: Assets.proxyModel;
+    property var assetProxyModel: Assets.proxyModel;
+    property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property alias currentFileUrl: fileUrlTextField.text;
 
@@ -44,11 +45,22 @@ Window {
         property alias directory: root.currentDirectory
     }
 
+    Component.onCompleted: {
+        assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError)
+        reload()
+    }
+
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
         Assets.deleteMappings(path, function(err) {
-            print("Finished deleting path: ", path, err);
+            if (err) {
+                console.log("Error deleting path: ", path, err);
+                errorMessage("There was an error deleting:\n" + path + "\n\nPlease try again.");
+            } else {
+                console.log("Finished deleting path: ", path);
+            }
+
             reload();
         });
 
@@ -62,7 +74,13 @@ Window {
         console.log("Renaming " + oldPath + " to " + newPath);
 
         Assets.renameMapping(oldPath, newPath, function(err) {
-            print("Finished rename: ", err);
+            if (err) {
+                console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
+                errorMessage("There was an error renaming:\n" + oldPath + " to " + newPath + "\n\nPlease try again.");
+            } else {
+                console.log("Finished rename: ", oldPath, "=>", newPath);
+            }
+
             reload();
         });
     }
@@ -89,7 +107,7 @@ Window {
 
     function canAddToWorld() {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
 
         return supportedExtensions.reduce(function(total, current) {
             return total | new RegExp(current).test(path);
@@ -100,6 +118,12 @@ Window {
         print("reload");
         Assets.mappingModel.refresh();
     }
+
+    function handleGetMappingsError() {
+        errorMessage("There was a problem retreiving the list of assets from your Asset Server.\n"
+                     + "Please make sure you are connected to the Asset Server and try again. ");
+    }
+
     function addToWorld() {
         var url = assetMappingsModel.data(treeView.currentIndex, 0x102);
         if (!url) {
@@ -113,7 +137,7 @@ Window {
         if (!index) {
             index = treeView.currentIndex;
         }
-        var path = assetMappingsModel.data(index, 0x103);
+        var path = assetProxyModel.data(index, 0x103);
         if (!path) {
             return;
         }
@@ -124,7 +148,7 @@ Window {
         if (!index) {
             index = treeView.currentIndex;
         }
-        var path = assetMappingsModel.data(index, 0x100);
+        var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
         }
@@ -151,12 +175,12 @@ Window {
         if (!index) {
             index = treeView.currentIndex;
         }
-        var path = assetMappingsModel.data(index, 0x100);
+        var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
         }
 
-        var isFolder = assetMappingsModel.data(treeView.currentIndex, 0x101);
+        var isFolder = assetProxyModel.data(treeView.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
@@ -190,7 +214,7 @@ Window {
         var fileUrl = fileUrlTextField.text
         var addToWorld = addToWorldCheckBox.checked
 
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
@@ -207,6 +231,15 @@ Window {
             } else {
                 doUploadFile(fileUrl, destinationPath, addToWorld);
             }
+        });
+    }
+
+    function errorMessage(message) {
+        desktop.messageBox({
+            icon: OriginalDialogs.StandardIcon.Error,
+            buttons: OriginalDialogs.StandardButton.Ok,
+            text: "Error",
+            informativeText: message
         });
     }
 
@@ -301,7 +334,7 @@ Window {
             HifiControls.Tree {
                 id: treeView
                 height: 400
-                treeModel: assetMappingsModel
+                treeModel: assetProxyModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right

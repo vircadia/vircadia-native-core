@@ -126,10 +126,10 @@ namespace controller {
         QVariantMap _actions;
         QVariantMap _standard;
 
-        bool _mouseCaptured{ false };
-        bool _touchCaptured{ false };
-        bool _wheelCaptured{ false };
-        bool _actionsCaptured{ false };
+        std::atomic<bool> _mouseCaptured{ false };
+        std::atomic<bool> _touchCaptured { false };
+        std::atomic<bool> _wheelCaptured { false };
+        std::atomic<bool> _actionsCaptured { false };
     };
 
 

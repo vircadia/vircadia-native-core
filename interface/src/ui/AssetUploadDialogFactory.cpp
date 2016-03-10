@@ -44,20 +44,12 @@ void AssetUploadDialogFactory::showDialog() {
             
             auto assetClient = DependencyManager::get<AssetClient>();
             auto upload = assetClient->createUpload(filename);
-            
-            if (upload) {
-                // connect to the finished signal so we know when the AssetUpload is done
-                QObject::connect(upload, &AssetUpload::finished, this, &AssetUploadDialogFactory::handleUploadFinished);
-                
-                // start the upload now
-                upload->start();
-            } else {
-                // show a QMessageBox to say that there is no local asset server
-                QString messageBoxText = QString("Could not upload \n\n%1\n\nbecause you are currently not connected" \
-                                                 " to a local asset-server.").arg(QFileInfo(filename).fileName());
-                
-                QMessageBox::information(_dialogParent, "Failed to Upload", messageBoxText);
-            }
+
+            // connect to the finished signal so we know when the AssetUpload is done
+            QObject::connect(upload, &AssetUpload::finished, this, &AssetUploadDialogFactory::handleUploadFinished);
+
+            // start the upload now
+            upload->start();
         }
     } else {
         // we don't have permission to upload to asset server in this domain - show the permission denied error

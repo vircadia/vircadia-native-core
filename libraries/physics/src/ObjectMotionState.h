@@ -50,7 +50,7 @@ const uint32_t HARD_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_MOTION_TY
                                                      Simulation::DIRTY_COLLISION_GROUP);
 const uint32_t EASY_DIRTY_PHYSICS_FLAGS = (uint32_t)(Simulation::DIRTY_TRANSFORM | Simulation::DIRTY_VELOCITIES |
                                                      Simulation::DIRTY_MASS | Simulation::DIRTY_MATERIAL |
-                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATOR_OWNERSHIP);
+                                                     Simulation::DIRTY_SIMULATOR_ID | Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
 
 // These are the set of incoming flags that the PhysicsEngine needs to hear about:
 const uint32_t DIRTY_PHYSICS_FLAGS = (uint32_t)(HARD_DIRTY_PHYSICS_FLAGS | EASY_DIRTY_PHYSICS_FLAGS |

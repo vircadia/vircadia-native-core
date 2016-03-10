@@ -41,7 +41,7 @@ QString AssetUpload::getErrorString() const {
         case AssetUpload::FileOpenError:
             return "The file could not be opened. Please check your permissions and try again.";
         case AssetUpload::NetworkError:
-            return "The file could not be opened. Please check your network connectivity.";
+            return "There was a problem reaching your Asset Server. Please check your network connectivity.";
         default:
             // not handled, do not show a message box
             return QString();
