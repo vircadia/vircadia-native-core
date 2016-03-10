@@ -44,6 +44,8 @@ Window {
         property alias directory: root.currentDirectory
     }
 
+    Component.onCompleted: reload()
+
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
