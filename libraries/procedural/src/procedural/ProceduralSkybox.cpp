@@ -25,16 +25,6 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
-ProceduralSkybox::ProceduralSkybox(const ProceduralSkybox& skybox) :
-    model::Skybox(skybox),
-    _procedural(skybox._procedural) {
-
-}
-
-void ProceduralSkybox::setProcedural(const QString& userData) {
-    _procedural.parse(userData);
-}
-
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
     ProceduralSkybox::render(batch, frustum, (*this));
 }

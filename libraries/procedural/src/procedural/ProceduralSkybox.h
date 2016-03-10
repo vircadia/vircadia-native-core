@@ -20,11 +20,9 @@
 class ProceduralSkybox: public model::Skybox {
 public:
     ProceduralSkybox();
-    ProceduralSkybox(const ProceduralSkybox& skybox); 
-    ProceduralSkybox& operator= (const ProceduralSkybox& skybox);
     virtual ~ProceduralSkybox() {};
 
-    void setProcedural(const QString& userData);
+    void parse(const QString& userData) { _procedural.parse(userData); }
 
     virtual void render(gpu::Batch& batch, const ViewFrustum& frustum) const;
     static void render(gpu::Batch& batch, const ViewFrustum& frustum, const ProceduralSkybox& skybox);

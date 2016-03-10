@@ -341,7 +341,7 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
             static QString userData;
             if (userData != zone->getUserData()) {
                 userData = zone->getUserData();
-                skybox->setProcedural(userData);
+                skybox->parse(userData);
             }
             if (zone->getSkyboxProperties().getURL().isEmpty()) {
                 skybox->setCubemap(gpu::TexturePointer());
