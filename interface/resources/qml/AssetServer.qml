@@ -305,9 +305,6 @@ Window {
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
-                onClicked: {
-                    print('here');
-                }
                 rowDelegate: Rectangle {
                     height: hifi.dimensions.tableRowHeight
                     color: styleData.selected
