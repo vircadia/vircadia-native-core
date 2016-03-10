@@ -73,6 +73,10 @@ Window {
     function doRenameFile(oldPath, newPath) {
         console.log("Renaming " + oldPath + " to " + newPath);
 
+        if (newPath[0] != "/") {
+            newPath = "/" + newPath;
+        }
+
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
