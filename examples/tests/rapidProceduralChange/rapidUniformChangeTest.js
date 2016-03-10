@@ -1,5 +1,5 @@
-//  rapidUniformChangeTest.js
-//  examples
+//  rapidProceduralChangeTest.js
+//  examples/tests/rapidProceduralChange
 //
 //  Created by Eric Levin on  3/9/2016.
 //  Copyright 2016 High Fidelity, Inc.
@@ -25,32 +25,40 @@ centerUp.y += 0.5;
 var centerDown = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 centerDown.y -= 0.5;
 
-var SHADER_URL = "https://s3-us-west-1.amazonaws.com/hifi-content/eric/shaders/rapidUniformChangeTest.fs";
+var ENTITY_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidUniformChange/uniformTest.fs";
+var SKYBOX_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidUniformChange/timerTest.fs";
 
-var userData = {
+var entityData = {
     ProceduralEntity: {
-        shaderUrl: SHADER_URL,
+        shaderUrl: ENTITY_SHADER_URL,
         uniforms: { red: 0.0 }
     }
-}
-var edit = JSON.stringify(userData);
+};
+var skyboxData = {
+    ProceduralEntity: {
+        shaderUrl: SKYBOX_SHADER_URL,
+        uniforms: { red: 0.0 }
+    }
+};
 var testBox = Entities.addEntity({
     type: "Box",
     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
     position: centerUp,
-    userData: edit
+    userData: JSON.stringify(entityData)
 });
 var testSphere = Entities.addEntity({
     type: "Sphere",
     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
     position: centerDown,
-    userData: edit
+    userData: JSON.stringify(entityData)
 });
 var testZone = Entities.addEntity({
     type: "Zone",
-    dimensions: { x: 3, y: 3, z: 3 },
+    dimensions: { x: 50, y: 50, z: 50 },
     position: MyAvatar.position,
-    userData: edit
+    userData: JSON.stringify(skyboxData),
+    backgroundMode: "skybox",
+    skybox: { url: "http://kyoub.googlecode.com/svn/trunk/KYouB/textures/skybox_test.png" }
 });
 
 
@@ -58,11 +66,13 @@ var currentTime = 0;
 
 function update(deltaTime) {
     var red = (Math.sin(currentTime) + 1) / 2;
-    userData.ProceduralEntity.uniforms.red = red;
-    edit = { userData: JSON.stringify(userData) };
-    Entities.editEntity(testBox, edit);
-    Entities.editEntity(testSphere, edit);
-    Entities.editEntity(testZone, edit);
+    entityData.ProceduralEntity.uniforms.red = red;
+    skyboxData.ProceduralEntity.uniforms.red = red;
+    entityEdit = { userData: JSON.stringify(entityData) };
+    skyboxEdit = { userData: JSON.stringify(skyboxData) };
+    Entities.editEntity(testBox, entityEdit);
+    Entities.editEntity(testSphere, entityEdit);
+    Entities.editEntity(testZone, skyboxEdit);
 
     currentTime += deltaTime;
 }
