@@ -109,16 +109,22 @@ Window {
         Entities.addModelEntity(url, MyAvatar.position);
     }
 
-    function copyURLToClipboard() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x103);
+    function copyURLToClipboard(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetMappingsModel.data(index, 0x103);
         if (!path) {
             return;
         }
         Window.copyToClipboard(path);
     }
 
-    function renameFile() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+    function renameFile(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetMappingsModel.data(index, 0x100);
         if (!path) {
             return;
         }
@@ -141,8 +147,11 @@ Window {
             }
         });
     }
-    function deleteFile() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+    function deleteFile(index) {
+        if (!index) {
+            index = treeView.currentIndex;
+        }
+        var path = assetMappingsModel.data(index, 0x100);
         if (!path) {
             return;
         }
@@ -271,6 +280,34 @@ Window {
                 }
             }
 
+            Menu {
+                id: contextMenu
+                title: "Edit"
+                property var url: ""
+                property var currentIndex: null
+
+                MenuItem {
+                    text: "Copy URL"
+                    onTriggered: {
+                        copyURLToClipboard(contextMenu.currentIndex);
+                    }
+                }
+
+                MenuItem {
+                    text: "Rename"
+                    onTriggered: {
+                        renameFile(contextMenu.currentIndex);
+                    }
+                }
+
+                MenuItem {
+                    text: "Delete"
+                    onTriggered: {
+                        deleteFile(contextMenu.currentIndex);
+                    }
+                }
+            }
+
             HifiControls.Tree {
                 id: treeView
                 height: 400
@@ -278,6 +315,28 @@ Window {
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
+                onClicked: {
+                    print('here');
+                }
+                rowDelegate: Rectangle {
+                    height: hifi.dimensions.tableRowHeight
+                    color: styleData.selected
+                        ? hifi.colors.primaryHighlight
+                        : treeView.isLightColorScheme
+                        ? (styleData.alternate ? hifi.colors.tableRowLightEven : hifi.colors.tableRowLightOdd)
+                    : (styleData.alternate ? hifi.colors.tableRowDarkEven : hifi.colors.tableRowDarkOdd)
+
+                }
+                MouseArea {
+                    propagateComposedEvents: true
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: {
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
+                }
             }
         }
 
