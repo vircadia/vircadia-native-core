@@ -18,6 +18,13 @@
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
 
+AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
+    _proxyModel.setSourceModel(&_assetMappingModel);
+    _proxyModel.setSortRole(Qt::DisplayRole);
+    _proxyModel.setDynamicSortFilter(true);
+    _proxyModel.sort(0);
+}
+
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
@@ -152,6 +159,8 @@ void AssetMappingModel::refresh() {
                     bool isFolder = i < length - 1;
                     item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
                     item->setData(isFolder, Qt::UserRole + 1);
+                    item->setData(parts[i], Qt::UserRole + 2);
+                    item->setData("atp:" + fullPath, Qt::UserRole + 3);
                     if (lastItem) {
                         lastItem->setChild(lastItem->rowCount(), 0, item);
                     } else {
