@@ -48,6 +48,10 @@ ItemID Scene::allocateID() {
     return _IDAllocator.fetch_add(1);
 }
 
+bool Scene::isAllocatedID(const ItemID& id) {
+    return Item::isValidID(id) && (id < _numAllocatedItems.load());
+}
+
 /// Enqueue change batch to the scene
 void Scene::enqueuePendingChanges(const PendingChanges& pendingChanges) {
     _changeQueueMutex.lock();
@@ -82,6 +86,9 @@ void Scene::processPendingChangesQueue() {
         resetItems(consolidatedPendingChanges._resetItems, consolidatedPendingChanges._resetPayloads);
         updateItems(consolidatedPendingChanges._updatedItems, consolidatedPendingChanges._updateFunctors);
         removeItems(consolidatedPendingChanges._removedItems);
+
+        // Update the numItemsAtomic counter AFTER the pending changes went through
+        _numAllocatedItems.exchange(maxID);
 
      // ready to go back to rendering activities
     _itemsMutex.unlock();

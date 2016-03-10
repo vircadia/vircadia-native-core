@@ -402,9 +402,9 @@ namespace render {
         // Clamp a position expressed in a depth space to make sure it is in the valid space for that Depth
         glm::vec3 clampRelPosToTreeRange(const glm::vec3& pos) const {
             return glm::vec3(
-                std::min(std::max(pos.x, 0.0f), _size),
-                std::min(std::max(pos.y, 0.0f), _size),
-                std::min(std::max(pos.z, 0.0f), _size));
+                std::min(std::max(pos.x, 1.0f), _size - 1.0f),
+                std::min(std::max(pos.y, 1.0f), _size - 1.0f),
+                std::min(std::max(pos.z, 1.0f), _size - 1.0f));
         }
         Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
             auto npos = clampRelPosToTreeRange((pos - getOrigin()));

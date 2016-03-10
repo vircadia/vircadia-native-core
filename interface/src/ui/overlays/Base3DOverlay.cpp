@@ -11,6 +11,7 @@
 
 #include "Base3DOverlay.h"
 
+#include "Application.h"
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
 
@@ -42,11 +43,14 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 void Base3DOverlay::setProperties(const QVariantMap& properties) {
     Overlay::setProperties(properties);
 
+    bool needRenderItemUpdate = false;
+
     auto drawInFront = properties["drawInFront"];
 
     if (drawInFront.isValid()) {
         bool value = drawInFront.toBool();
         setDrawInFront(value);
+        needRenderItemUpdate = true;
     }
 
     auto position = properties["position"];
@@ -60,16 +64,19 @@ void Base3DOverlay::setProperties(const QVariantMap& properties) {
     }
     if (position.isValid()) {
         setPosition(vec3FromVariant(position));
+        needRenderItemUpdate = true;
     }
 
     if (properties["lineWidth"].isValid()) {
         setLineWidth(properties["lineWidth"].toFloat());
+        needRenderItemUpdate = true;
     }
 
     auto rotation = properties["rotation"];
 
     if (rotation.isValid()) {
         setRotation(quatFromVariant(rotation));
+        needRenderItemUpdate = true;
     }
 
     if (properties["isSolid"].isValid()) {
@@ -99,6 +106,18 @@ void Base3DOverlay::setProperties(const QVariantMap& properties) {
     }
     if (properties["ignoreRayIntersection"].isValid()) {
         setIgnoreRayIntersection(properties["ignoreRayIntersection"].toBool());
+    }
+
+
+
+    if (needRenderItemUpdate) {
+        auto itemID = getRenderItemID();
+        if (render::Item::isValidID(itemID)) {
+            render::ScenePointer scene = qApp->getMain3DScene();
+            render::PendingChanges pendingChanges;
+            pendingChanges.updateItem(itemID);
+            scene->enqueuePendingChanges(pendingChanges);
+        }
     }
 }
 
