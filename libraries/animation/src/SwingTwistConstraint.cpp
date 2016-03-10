@@ -24,15 +24,8 @@ const int LAST_CLAMP_NO_BOUNDARY = 0;
 const int LAST_CLAMP_HIGH_BOUNDARY = 1;
 
 SwingTwistConstraint::SwingLimitFunction::SwingLimitFunction() {
-    setCone(PI);
-}
-
-void SwingTwistConstraint::SwingLimitFunction::setCone(float maxAngle) {
-    _minDots.clear();
-    float minDot = glm::clamp(maxAngle, MIN_MINDOT, MAX_MINDOT);
-    _minDots.push_back(minDot);
-    // push the first value to the back to establish cyclic boundary conditions
-    _minDots.push_back(minDot);
+    _minDots.push_back(-1.0f);
+    _minDots.push_back(-1.0f);
 }
 
 void SwingTwistConstraint::SwingLimitFunction::setMinDots(const std::vector<float>& minDots) {

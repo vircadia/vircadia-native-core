@@ -59,9 +59,6 @@ public:
     public:
         SwingLimitFunction();
 
-        /// \brief use a uniform conical swing limit
-        void setCone(float maxAngle);
-
         /// \brief use a vector of lookup values for swing limits
         void setMinDots(const std::vector<float>& minDots);
 
