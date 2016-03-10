@@ -126,6 +126,7 @@ var GRABBABLE_PROPERTIES = [
 
 var GRABBABLE_DATA_KEY = "grabbableKey"; // shared with grab.js
 var GRAB_USER_DATA_KEY = "grabKey"; // shared with grab.js
+var GRAB_CONSTRAINTS_USER_DATA_KEY = "grabConstraintsKey"
 
 var DEFAULT_GRABBABLE_DATA = {
     disableReleaseVelocity: false
@@ -999,6 +1000,8 @@ function MyController(hand) {
                         intersectionPointToCenterDistance *
                         FAR_TO_NEAR_GRAB_PADDING_FACTOR);
                 }
+
+
                 this.setState(this.state == STATE_SEARCHING ? STATE_DISTANCE_HOLDING : STATE_EQUIP);
                 this.searchSphereOff();
                 return;
@@ -1305,7 +1308,23 @@ function MyController(hand) {
         }
     }
 
+    this.getGrabConstraints = function() {
+        var defaultConstraints = {
+            positionLocked: false,
+            rotationLocked: false,
+            positionMod: false,
+            rotationMod: {
+                pitch: false,
+                yaw: false,
+                roll: false
+            }
+        }
+        var constraints = getEntityCustomData(GRAB_CONSTRAINTS_USER_DATA_KEY, this.grabbedEntity,defaultConstraints);
+        return constraints;
+    }
+
     this.nearGrabbing = function() {
+                print('NEAR GRAB')
         var now = Date.now();
         var grabbableData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
 
@@ -1373,6 +1392,7 @@ function MyController(hand) {
                 reparentProps["localRotation"] = this.offsetRotation;
             }
             Entities.editEntity(this.grabbedEntity, reparentProps);
+
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
                 grabbedEntity: this.grabbedEntity
@@ -1395,6 +1415,7 @@ function MyController(hand) {
     };
 
     this.continueNearGrabbing = function() {
+        print('CONTINUE NEAR GRAB')
         if (this.state == STATE_CONTINUE_NEAR_GRABBING && this.triggerSmoothedReleased()) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("releaseGrab");
@@ -1460,7 +1481,19 @@ function MyController(hand) {
             this.callEntityMethodOnGrabbed("continueNearGrab");
         }
 
+
+        var constraints = this.getGrabConstraints();
+        if(constraints.positionLocked===true){
+            print('IT HAS ITS POSITION LOCKED!!')
+        }
+        if(constraints.rotationMod!==false){
+            print('IT HAS A ROTATION MOD!!!')
+        }
+
+
+        // so it never seems to hit this currently
         if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSEC_PER_SEC) {
+
             // if less than a 5 seconds left, refresh the actions ttl
             var success = Entities.updateAction(this.grabbedEntity, this.actionID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
@@ -1496,6 +1529,9 @@ function MyController(hand) {
         }
         this.callEntityMethodOnGrabbed("startNearTrigger");
         this.setState(STATE_CONTINUE_NEAR_TRIGGER);
+      print('START NEAR TRIGGER')
+
+
     };
 
     this.farTrigger = function() {
@@ -1513,6 +1549,74 @@ function MyController(hand) {
             this.setState(STATE_RELEASE);
             this.callEntityMethodOnGrabbed("stopNearTrigger");
             return;
+        }
+
+   
+      var constraints = this.getGrabConstraints();
+        if (constraints.rotationMod !== false) {
+            //implement the rotation modifier
+            var grabbedProps = Entities.getEntityProperties(this.grabbedEntity);
+
+            var handPosition = this.getHandPosition();
+
+            var modTypes = [];
+
+            print('rotation constrained')
+            if (constraints.rotationMod.pitch !== false) {
+                print('HAS PITCH MOD')
+                modTypes.push('pitch')
+            }
+            if (constraints.rotationMod.yaw !== false) {
+                modTypes.push('yaw')
+            }
+            if (constraints.rotationMod.roll !== false) {
+                modTypes.push('roll')
+            }
+
+
+            finalRotation = {
+                x: 0,
+                y: 0,
+                z: 0
+            }
+            modTypes.forEach(function(modType) {
+
+                var value = handPosition[constraints.rotationMod[modType].startingAxis];
+                var min1 = constraints.rotationMod[modType].startingPoint;
+
+                var finalAngle = scale(value, min1, constraints.rotationMod[modType].distanceToMax, constraints.rotationMod[modType].min, constraints.rotationMod[modType].max)
+                print('VARS: ')
+                print('CONSTRAINTS:: ' + JSON.stringify(constraints))
+                print('value: ' + value)
+                print('min1:' + min1)
+                print('max1:' + constraints.rotationMod[modType].distanceToMax)
+                print('min2: ' + constraints.rotationMod[modType].min)
+                print('max2: ' + constraints.rotationMod[modType].max)
+                print('FINAL ANGLE::' + finalAngle)
+                if (finalAngle < constraints.rotationMod[modType].min) {
+                    finalAngle = constraints.rotationMod[modType].min;
+                }
+
+                if (finalAngle > constraints.rotationMod[modType].max) {
+                    finalAngle = constraints.rotationMod[modType].max;
+                }
+
+                if (modType === 'pitch') {
+                    finalRotation.x = finalAngle
+                }
+                if (modType === 'yaw') {
+                    finalRotation.y = finalAngle
+                }
+                if (modType === 'roll') {
+                    finalRotation.z = finalAngle
+                }
+            });
+            print('FINAL ROTATION::' + JSON.stringify(finalRotation))
+
+            Entities.editEntity(this.grabbedEntity, {
+                rotation: Quat.fromPitchYawRollDegrees(finalRotation.x, finalRotation.y, finalRotation.z)
+            })
+
         }
         this.callEntityMethodOnGrabbed("continueNearTrigger");
     };
@@ -1627,6 +1731,7 @@ function MyController(hand) {
                 // sometimes we want things to stay right where they are when we let go.
                 var grabData = getEntityCustomData(GRAB_USER_DATA_KEY, this.grabbedEntity, {});
                 var releaseVelocityData = getEntityCustomData(GRABBABLE_DATA_KEY, this.grabbedEntity, DEFAULT_GRABBABLE_DATA);
+                print('RELEASE DATA::'+ JSON.stringify(releaseVelocityData))
                 if (releaseVelocityData.disableReleaseVelocity === true ||
                     // this next line allowed both:
                     // (1) far-grab, pull to self, near grab, then throw
@@ -1641,6 +1746,7 @@ function MyController(hand) {
         this.actionID = null;
         this.setState(STATE_OFF);
 
+        print('HAS VELOCITY AT RELEASE?? ' + noVelocity)
         Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
             action: 'release',
             grabbedEntity: this.grabbedEntity,
@@ -1709,6 +1815,7 @@ function MyController(hand) {
                     // when using string values
                     "collidesWith": COLLIDES_WITH_WHILE_GRABBED
                 };
+                print('ACTIVATING ENTITY')
                 Entities.editEntity(entityID, whileHeldProperties);
             } else if (data["refCount"] > 1) {
                 if (data["heartBeat"] === undefined ||
@@ -1729,6 +1836,7 @@ function MyController(hand) {
                 Entities.editEntity(entityID, {"collidesWith": COLLIDES_WITH_WHILE_MULTI_GRABBED});
             }
         }
+        print('ACTIVATED ENTITY!!!')
         setEntityCustomData(GRAB_USER_DATA_KEY, entityID, data);
         return data;
     };
@@ -1920,3 +2028,8 @@ function cleanup() {
 }
 Script.scriptEnding.connect(cleanup);
 Script.update.connect(update);
+
+
+function scale(value, min1, max1, min2, max2) {
+    return min2 + (max2 - min2) * ((value - min1) / (max1 - min1));
+}
