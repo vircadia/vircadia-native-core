@@ -244,6 +244,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
 void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
+
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
 
         if (setMapping(assetPath, assetHash)) {
@@ -511,6 +512,12 @@ bool AssetServer::writeMappingsToFile() {
 }
 
 bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
+
+    if (path[0] != '/') {
+        qWarning() << "Cannot set a mapping that does not have a leading forward slash:" << path;
+        return false;
+    }
+
     // remember what the old mapping was in case persistence fails
     auto oldMapping = _fileMappings.value(path).toString();
 
@@ -593,6 +600,13 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
+    if (oldPath[0] != '/' || newPath[0] != '/') {
+        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
+            << oldPath << "=>" << newPath;
+
+        return false;
+    }
+
     // figure out if this rename is for a file or folder
     if (pathIsFolder(oldPath)) {
         if (!pathIsFolder(newPath)) {
