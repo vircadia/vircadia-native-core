@@ -129,7 +129,7 @@ Window {
     }
 
     function addToWorld() {
-        var url = assetMappingsModel.data(treeView.currentIndex, 0x102);
+        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
         if (!url) {
             return;
         }
@@ -137,15 +137,16 @@ Window {
         Entities.addModelEntity(url, MyAvatar.position);
     }
 
-    function copyURLToClipboard(index) {
+    function copyURLToClipboard() {
         if (!index) {
             index = treeView.currentIndex;
         }
-        var path = assetProxyModel.data(index, 0x103);
-        if (!path) {
+
+        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
+        if (!url) {
             return;
         }
-        Window.copyToClipboard(path);
+        Window.copyToClipboard(url);
     }
 
     function renameFile(index) {
@@ -188,13 +189,11 @@ Window {
         var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Question,
-            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-            defaultButton: OriginalDialogs.StandardButton.No,
-            text: "Deleting",
-            informativeText: "You are about to delete the following " + typeString + ":\n" +
-                             path +
-                             "\nDo you want to continue?"
+            icon: hifi.icons.question,
+            buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.Yes,
+            title: "Delete",
+            text: "You are about to delete the following " + typeString + ":\n" + path + "\nDo you want to continue?"
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
