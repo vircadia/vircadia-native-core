@@ -41,14 +41,9 @@ public:
     }
 
 private:
-    MenuWrapper(QMenu* menu);
-
-    static MenuWrapper* fromMenu(QMenu* menu) {
-        return _backMap[menu];
-    }
-
+    MenuWrapper(ui::Menu& rootMenu, QMenu* menu);
+    ui::Menu& _rootMenu;
     QMenu* const _realMenu;
-    static QHash<QMenu*, MenuWrapper*> _backMap;
     friend class ui::Menu;
 };
 
@@ -60,7 +55,6 @@ public:
     static const int UNSPECIFIED_POSITION = -1;
 
     Menu();
-    static Menu* getInstance();
 
     void loadSettings();
     void saveSettings();
@@ -146,8 +140,10 @@ protected:
     bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }
     QHash<QString, bool> _groupingVisible;
     QHash<QString, QSet<QAction*>> _groupingActions;
+    QHash<QMenu*, MenuWrapper*> _backMap;
 
     static bool _isSomeSubmenuShown;
+    friend class ::MenuWrapper;
 };
 
 } // namespace ui

@@ -247,6 +247,7 @@ public:
 
     // Set the heartbeat on launch
     DeadlockWatchdogThread() {
+        setObjectName("Deadlock Watchdog");
         QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
         _heartbeat = usecTimestampNow();
@@ -254,6 +255,9 @@ public:
             _heartbeat = usecTimestampNow();
         });
         heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
+        connect(qApp, &QCoreApplication::aboutToQuit, [this] {
+            _quit = true;
+        });
     }
 
     void deadlockDetectionCrash() {
@@ -262,7 +266,7 @@ public:
     }
 
     void run() override {
-        while (!qApp->isAboutToQuit()) {
+        while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
             auto now = usecTimestampNow();
             auto lastHeartbeatAge = now - _heartbeat;
@@ -273,6 +277,7 @@ public:
     }
 
     static std::atomic<uint64_t> _heartbeat;
+    bool _quit { false };
 };
 
 std::atomic<uint64_t> DeadlockWatchdogThread::_heartbeat;
@@ -1122,8 +1127,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _entityEditSender.terminate();
 
-    Menu::getInstance()->deleteLater();
-
     _physicsEngine->setCharacterController(NULL);
 
     ModelEntityItem::cleanupLoadedAnimations();
@@ -1168,6 +1171,10 @@ Application::~Application() {
 #if 0
     ConnexionClient::getInstance().destroy();
 #endif
+    // The window takes ownership of the menu, so this has the side effect of destroying it.
+    _window->setMenuBar(nullptr);
+    
+    _window->deleteLater();
 
     qInstallMessageHandler(NULL); // NOTE: Do this as late as possible so we continue to get our log messages
 }
@@ -1334,7 +1341,7 @@ void Application::initializeUi() {
             _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
         }
     }
-    Menu::setInstance();
+    _window->setMenuBar(new Menu());
     updateInputModes();
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
