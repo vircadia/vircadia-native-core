@@ -21,7 +21,7 @@ import "dialogs"
 Window {
     id: root
     objectName: "AssetServer"
-    title: "Asset Server"
+    title: "My Asset Server"
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40
@@ -56,12 +56,13 @@ Window {
         Assets.deleteMappings(path, function(err) {
             if (err) {
                 console.log("Error deleting path: ", path, err);
-                errorMessage("There was an error deleting:\n" + path + "\n\nPlease try again.");
+
+                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + Assets.getErrorString(err));
+                box.selected.connect(reload);
             } else {
                 console.log("Finished deleting path: ", path);
+                reload();
             }
-
-            reload();
         });
 
     }
@@ -76,7 +77,8 @@ Window {
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
-                errorMessage("There was an error renaming:\n" + oldPath + " to " + newPath + "\n\nPlease try again.");
+                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + Assets.getErrorString(err));
+                box.selected.connect(reload);
             } else {
                 console.log("Finished rename: ", oldPath, "=>", newPath);
             }
@@ -91,12 +93,11 @@ Window {
 
     function askForOverride(path, callback) {
         var object = desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Question,
+            icon: hifi.icons.question,
             buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-            defaultButton: OriginalDialogs.StandardButton.No,
-            text: "Override?",
-            informativeText: "The following file already exists:\n" + path +
-                             "\nDo you want to override it?"
+            defaultButton: OriginalDialogs.StandardButton.Yes,
+            title: "Overwrite File",
+            text: path + "\n" + "This file already exists. Do you want to overwrite it?"
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
@@ -119,29 +120,32 @@ Window {
         Assets.mappingModel.refresh();
     }
 
-    function handleGetMappingsError() {
-        errorMessage("There was a problem retreiving the list of assets from your Asset Server.\n"
-                     + "Please make sure you are connected to the Asset Server and try again. ");
+    function handleGetMappingsError(errorCode) {
+        errorMessageBox(
+            "There was a problem retreiving the list of assets from your Asset Server.\n"
+            + Assets.getErrorString(errorCode)
+        );
     }
 
     function addToWorld() {
-        var url = assetMappingsModel.data(treeView.currentIndex, 0x102);
+        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
         if (!url) {
             return;
         }
-
-        Entities.addModelEntity(url, MyAvatar.position);
+        var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+        Entities.addModelEntity(url, addPosition);
     }
 
-    function copyURLToClipboard(index) {
+    function copyURLToClipboard() {
         if (!index) {
             index = treeView.currentIndex;
         }
-        var path = assetProxyModel.data(index, 0x103);
-        if (!path) {
+
+        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
+        if (!url) {
             return;
         }
-        Window.copyToClipboard(path);
+        Window.copyToClipboard(url);
     }
 
     function renameFile(index) {
@@ -184,13 +188,11 @@ Window {
         var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Question,
-            buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-            defaultButton: OriginalDialogs.StandardButton.No,
-            text: "Deleting",
-            informativeText: "You are about to delete the following " + typeString + ":\n" +
-                             path +
-                             "\nDo you want to continue?"
+            icon: hifi.icons.question,
+            buttons: OriginalDialogs.StandardButton.Yes + OriginalDialogs.StandardButton.No,
+            defaultButton: OriginalDialogs.StandardButton.Yes,
+            title: "Delete",
+            text: "You are about to delete the following " + typeString + ":\n" + path + "\nDo you want to continue?"
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
@@ -234,12 +236,12 @@ Window {
         });
     }
 
-    function errorMessage(message) {
-        desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Error,
-            buttons: OriginalDialogs.StandardButton.Ok,
-            text: "Error",
-            informativeText: message
+    function errorMessageBox(message) {
+        return desktop.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
         });
     }
 

@@ -25,6 +25,27 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.sort(0);
 }
 
+QString AssetMappingsScriptingInterface::getErrorString(int errorCode) const {
+    switch (errorCode) {
+        case MappingRequest::NoError:
+            return "No error";
+        case MappingRequest::NotFound:
+            return "Asset not found";
+        case MappingRequest::NetworkError:
+            return "Unable to communicate with Asset Server";
+        case MappingRequest::PermissionDenied:
+            return "Permission denied";
+        case MappingRequest::InvalidPath:
+            return "Path is invalid";
+        case MappingRequest::InvalidHash:
+            return "Hash is invalid";
+        case MappingRequest::UnknownError:
+            return "Asset Server internal error";
+        default:
+            return QString();
+    }
+}
+
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
@@ -113,21 +134,15 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 }
 
 
-AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder)
-    : name(name),
+AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder) :
+    name(name),
     fullPath(fullPath),
-    isFolder(isFolder) {
+    isFolder(isFolder)
+{
 
 }
 
 static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
-
-AssetMappingModel::AssetMappingModel() {
-}
-
-AssetMappingModel::~AssetMappingModel() {
-    qDebug() << " DEST";
-}
 
 void AssetMappingModel::refresh() {
     qDebug() << "Refreshing asset mapping model";
@@ -221,7 +236,7 @@ void AssetMappingModel::refresh() {
                 //removeitem->index();
             }
         } else {
-            emit errorGettingMappings(uint8_t(request->getError()));
+            emit errorGettingMappings(static_cast<int>(request->getError()));
         }
     });
 

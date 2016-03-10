@@ -33,17 +33,12 @@
  class AssetMappingModel : public QStandardItemModel {
      Q_OBJECT
  public:
-     AssetMappingModel();
-     ~AssetMappingModel();
-
-//     QVariant AssetMappingModel::data(const QModelIndex& index, int role) const;
-
      Q_INVOKABLE void refresh();
 
      bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); };
 
  signals:
-     void errorGettingMappings(uint8_t error);
+     void errorGettingMappings(int error);
 
  private:
      QHash<QString, QStandardItem*> _pathToItemMap;
@@ -61,6 +56,8 @@ public:
     Q_INVOKABLE QAbstractProxyModel* getProxyModel() { return &_proxyModel; }
 
     Q_INVOKABLE bool isKnownMapping(QString path) const { return _assetMappingModel.isKnownMapping(path); };
+
+    Q_INVOKABLE QString getErrorString(int errorCode) const;
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);
     Q_INVOKABLE void getMapping(QString path, QJSValue callback);

@@ -464,7 +464,6 @@ void AssetServer::loadMappingsFromFile() {
                         shouldDrop = true;
                     }
 
-
                     if (!isValidHash(it.value().toString())) {
                         qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
                         shouldDrop = true;
