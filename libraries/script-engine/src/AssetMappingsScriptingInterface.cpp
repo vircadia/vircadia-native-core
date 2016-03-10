@@ -173,14 +173,23 @@ void AssetMappingModel::refresh() {
 
             Q_ASSERT(fullPath == path);
         }
+
+        // Remove folders from list
+        auto it = existingPaths.begin();
+        while (it != existingPaths.end()) {
+            auto item = _pathToItemMap[*it];
+            if (item->data(Qt::UserRole + 1).toBool()) {
+                it = existingPaths.erase(it);
+            } else {
+                ++it;
+            }
+        }
+
         for (auto& path : existingPaths) {
             Q_ASSERT(_pathToItemMap.contains(path));
-            auto item = _pathToItemMap[path];
-            if (item->data(Qt::UserRole + 1).toBool()) {
-                continue;
-            }
-
             qDebug() << "removing existing: " << path;
+
+            auto item = _pathToItemMap[path];
 
             while (item) {
                 // During each iteration, delete item
