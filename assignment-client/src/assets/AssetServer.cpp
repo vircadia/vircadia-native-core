@@ -453,6 +453,30 @@ void AssetServer::loadMappingsFromFile() {
             if (error.error == QJsonParseError::NoError) {
                 _fileMappings = jsonDocument.object().toVariantHash();
 
+                // remove any mappings that don't match the expected format
+                auto it = _fileMappings.begin();
+                while (it != _fileMappings.end()) {
+                    bool shouldDrop = false;
+
+                    if (it.key()[0] != '/') {
+                        qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a leading forward slash.";
+                        shouldDrop = true;
+                    }
+
+                    QRegExp hashFileRegex { "^[A-Fa-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
+
+                    if (!hashFileRegex.exactMatch(it.value().toString())) {
+                        qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
+                        shouldDrop = true;
+                    }
+
+                    if (shouldDrop) {
+                        it = _fileMappings.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+
                 qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
                 return;
             }
