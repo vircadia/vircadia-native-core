@@ -91,11 +91,11 @@ Window {
         return Assets.isKnownMapping(path);
     }
 
-    function askForOverride(path, callback) {
+    function askForOverwrite(path, callback) {
         var object = desktop.messageBox({
             icon: hifi.icons.question,
             buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-            defaultButton: OriginalDialogs.StandardButton.Yes,
+            defaultButton: OriginalDialogs.StandardButton.No,
             title: "Overwrite File",
             text: path + "\n" + "This file already exists. Do you want to overwrite it?"
         });
@@ -167,7 +167,7 @@ Window {
                 return;
             }
             if (fileExists(destinationPath)) {
-                askForOverride(destinationPath, function() {
+                askForOverwrite(destinationPath, function() {
                     doRenameFile(path, destinationPath);
                 });
             } else {
@@ -229,7 +229,7 @@ Window {
         Assets.uploadFile(fileUrl, directory + filename, function(err) {
             if (err) {
                 console.log("Error uploading: ", fileUrl, " - error ", err);
-                errorMessage("There was an error uploading:\n" + fileUrl + "\n\nPlease try again.");
+                errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
             } else {
                 console.log("Finished uploading: ", fileUrl);
             }
