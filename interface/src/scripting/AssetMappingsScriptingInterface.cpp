@@ -94,7 +94,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
 
     // Check for override
     if (isKnownMapping(mapping)) {
-        auto message = path + "\n" + "This file already exists. Do you want to overwrite it?";
+        auto message = mapping + "\n" + "This file already exists. Do you want to overwrite it?";
         auto button = offscreenUi->messageBox(OffscreenUi::ICON_QUESTION, "Overwrite File", message,
                                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (button == QMessageBox::No) {
