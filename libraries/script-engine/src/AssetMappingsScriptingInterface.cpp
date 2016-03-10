@@ -137,12 +137,13 @@ void AssetMappingModel::refresh() {
 
             existingPaths.removeOne(mapping.first);
 
-            QString fullPath = "";
+            QString fullPath = "/";
 
             QStandardItem* lastItem = nullptr;
 
-            for (int i = 0; i < length; ++i) {
-                fullPath += (i == 0 ? "" : "/") + parts[i];
+            // start index at 1 to avoid empty string from leading slash
+            for (int i = 1; i < length; ++i) {
+                fullPath += (i == 1 ? "" : "/") + parts[i];
 
                 auto it = _pathToItemMap.find(fullPath);
                 if (it == _pathToItemMap.end()) {
