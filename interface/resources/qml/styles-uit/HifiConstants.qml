@@ -70,6 +70,7 @@ Item {
         readonly property color baseGrayHighlight40: "#66575757"
         readonly property color baseGrayHighlight15: "#26575757"
         readonly property color lightGrayText80: "#ccafafaf"
+        readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"
 
         // Other colors
@@ -135,6 +136,7 @@ Item {
         readonly property real modalDialogTitleHeight: 40
         readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor
         readonly property real controlInterlineHeight: 22  // 75% of controlLineHeight
+        readonly property real menuPadding: 12
     }
 
     Item {

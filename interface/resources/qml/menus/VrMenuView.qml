@@ -12,33 +12,35 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
 
-import "../styles"
+import "../styles-uit"
 
 FocusScope {
     id: root
-    implicitHeight: border.height
-    implicitWidth: border.width
+    implicitHeight: background.height
+    implicitWidth: background.width
 
     property alias currentItem: listView.currentItem
     property alias model: listView.model
+    property bool isSubMenu: false
     signal selected(var item)
 
+    HifiConstants { id: hifi }
 
-    Border {
-        id: border
+    Rectangle {
+        id: background
         anchors.fill: listView
-        anchors.margins: -8
-        border.color: hifi.colors.hifiBlue
-        color: hifi.colors.window
-        // color: "#7f7f7f7f"
+        radius: hifi.dimensions.borderRadius
+        border.width: hifi.dimensions.borderWidth
+        border.color: hifi.colors.lightGrayText80
+        color: isSubMenu ? hifi.colors.faintGray : hifi.colors.faintGray80
     }
 
     ListView {
         id: listView
         x: 8; y: 8
-        HifiConstants { id: hifi }
         width: 128
         height: count * 32
+        topMargin: hifi.dimensions.menuPadding
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
@@ -84,6 +86,7 @@ FocusScope {
                     newHeight += currentItem.implicitHeight
                 }
             }
+            newHeight += 2 * hifi.dimensions.menuPadding;  // White space at top and bottom.
             if (maxWidth > width) {
                 width = maxWidth;
             }

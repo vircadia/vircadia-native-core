@@ -104,8 +104,8 @@ Item {
 
         function buildMenu(items, targetPosition) {
             var model = toModel(items);
-            // Menu's must be childed to desktop for Z-ordering
-            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu });
+            // Menus must be childed to desktop for Z-ordering
+            var newMenu = menuViewMaker.createObject(desktop, { model: model, z: topMenu ? topMenu.z + 1 : desktop.zLevels.menu, isSubMenu: topMenu !== null });
             if (targetPosition) {
                 newMenu.x = targetPosition.x
                 newMenu.y = targetPosition.y - newMenu.height / 3 * 1
