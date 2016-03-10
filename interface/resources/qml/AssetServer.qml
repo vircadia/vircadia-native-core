@@ -55,23 +55,20 @@ Window {
 
         Assets.deleteMappings(path, function(err) {
             if (err) {
-                console.log("Error deleting path: ", path, err);
+                console.log("Asset browser - error deleting path: ", path, err);
 
                 box = errorMessageBox("There was an error deleting:\n" + path + "\n" + Assets.getErrorString(err));
                 box.selected.connect(reload);
             } else {
-                console.log("Finished deleting path: ", path);
+                console.log("Asset browser - finished deleting path: ", path);
                 reload();
             }
         });
 
     }
-    function doUploadFile(path, mapping, addToWorld) {
-        console.log("Uploading " + path + " to " + mapping + " (addToWorld: " + addToWorld + ")");
 
-
-    }
     function doRenameFile(oldPath, newPath) {
+
         if (newPath[0] != "/") {
             newPath = "/" + newPath;
         }
@@ -81,14 +78,15 @@ Window {
             box.selected.connect(reload);
         }
 
-        console.log("Renaming " + oldPath + " to " + newPath);
+        console.log("Asset browser - renaming " + oldPath + " to " + newPath);
+
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
-                console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
+                console.log("Asset browser - error renaming: ", oldPath, "=>", newPath, " - error ", err);
                 box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + Assets.getErrorString(err));
                 box.selected.connect(reload);
             } else {
-                console.log("Finished rename: ", oldPath, "=>", newPath);
+                console.log("Asset browser - finished rename: ", oldPath, "=>", newPath);
             }
 
             reload();
@@ -123,7 +121,6 @@ Window {
     }
 
     function reload() {
-        print("reload");
         Assets.mappingModel.refresh();
     }
 
@@ -134,16 +131,22 @@ Window {
         );
     }
 
-    function addToWorld() {
-        var url = assetProxyModel.data(treeView.currentIndex, 0x103);
+    function addToWorld(url) {
+        if (!url) {
+            url = assetProxyModel.data(treeView.currentIndex, 0x103);
+        }
+
         if (!url || !canAddToWorld(url)) {
             return;
         }
+
+        console.log("Asset browser - adding asset " + url + " to world.");
+
         var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
         Entities.addModelEntity(url, addPosition);
     }
 
-    function copyURLToClipboard() {
+    function copyURLToClipboard(index) {
         if (!index) {
             index = treeView.currentIndex;
         }
@@ -227,7 +230,7 @@ Window {
         uploadOpen = true;
 
         var fileUrl = fileUrlTextField.text
-        var addToWorld = addToWorldCheckBox.checked
+        var shouldAddToWorld = addToWorldCheckBox.checked
 
         var path = assetProxyModel.data(treeView.currentIndex, 0x100);
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
@@ -235,13 +238,18 @@ Window {
 
         Assets.uploadFile(fileUrl, directory + filename, function(err) {
             if (err) {
-                console.log("Error uploading: ", fileUrl, " - error ", err);
-                errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
+                console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
+                var box = errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
+                box.selected.connect(reload);
             } else {
-                console.log("Finished uploading: ", fileUrl);
-            }
+                console.log("Asset Browser - finished uploading: ", fileUrl);
 
-            reload();
+                if (shouldAddToWorld) {
+                    addToWorld("atp:" + directory + filename);
+                }
+
+                reload();
+            }
         });
         uploadOpen = false;
     }
