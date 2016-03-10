@@ -66,7 +66,6 @@
 #include <BuildInfo.h>
 #include <AssetClient.h>
 #include <AssetUpload.h>
-#include <AssetMappingsScriptingInterface.h>
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
@@ -142,6 +141,7 @@
 #include "ModelPackager.h"
 #include "PluginContainerProxy.h"
 #include "scripting/AccountScriptingInterface.h"
+#include "scripting/AssetMappingsScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"

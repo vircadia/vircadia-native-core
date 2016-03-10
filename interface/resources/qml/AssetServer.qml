@@ -159,7 +159,7 @@ Window {
 
         var object = desktop.inputDialog({
             label: "Enter new path:",
-            prefilledText: path,
+            current: path,
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
@@ -220,18 +220,12 @@ Window {
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
-        var object = desktop.inputDialog({
-            label: "Enter asset path:",
-            prefilledText: directory + filename,
-            placeholderText: "Enter path here"
-        });
-        object.selected.connect(function(destinationPath) {
-            if (fileExists(destinationPath)) {
-                askForOverride(fileUrl, function() {
-                    doUploadFile(fileUrl, destinationPath, addToWorld);
-                });
+        Assets.uploadFile(fileUrl, directory + filename, function(err) {
+            if (err) {
+                console.log("Error uploading: ", fileUrl, " - error ", err);
+                errorMessage("There was an error uploading:\n" + fileUrl + "\n\nPlease try again.");
             } else {
-                doUploadFile(fileUrl, destinationPath, addToWorld);
+                console.log("Finished uploading: ", fileUrl);
             }
         });
     }
