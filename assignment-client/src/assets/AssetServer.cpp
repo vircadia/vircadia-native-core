@@ -117,7 +117,7 @@ void AssetServer::completeSetup() {
     // Check the asset directory to output some information about what we have
     auto files = _filesDirectory.entryList(QDir::Files);
 
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
+    QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
     auto hashedFiles = files.filter(hashFileRegex);
 
     qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
@@ -459,14 +459,13 @@ void AssetServer::loadMappingsFromFile() {
                 while (it != _fileMappings.end()) {
                     bool shouldDrop = false;
 
-                    if (it.key()[0] != '/') {
-                        qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a leading forward slash.";
+                    if (!isValidPath(it.key())) {
+                        qWarning() << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
                         shouldDrop = true;
                     }
 
-                    QRegExp hashFileRegex { "^[A-Fa-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
 
-                    if (!hashFileRegex.exactMatch(it.value().toString())) {
+                    if (!isValidHash(it.value().toString())) {
                         qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
                         shouldDrop = true;
                     }
@@ -513,8 +512,13 @@ bool AssetServer::writeMappingsToFile() {
 
 bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
 
-    if (path[0] != '/') {
-        qWarning() << "Cannot set a mapping that does not have a leading forward slash:" << path;
+    if (!isValidPath(path)) {
+        qWarning() << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
+        return false;
+    }
+
+    if (!isValidHash(hash)) {
+        qWarning() << "Cannot set a mapping for invalid hash" << path << "=>" << hash;
         return false;
     }
 

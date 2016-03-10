@@ -30,7 +30,7 @@ private slots:
     void onDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
 
 private:
-    bool urlIsAssetPath() const;
+    bool urlIsAssetHash() const;
 
     void requestMappingForPath(const AssetPath& path);
     void requestHash(const AssetHash& hash);
