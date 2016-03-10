@@ -61,7 +61,7 @@ Window {
     function doRenameFile(oldPath, newPath) {
         console.log("Renaming " + oldPath + " to " + newPath);
 
-        Assets.renameMapping(oldPath, destinationPath, function(err) {
+        Assets.renameMapping(oldPath, newPath, function(err) {
             print("Finished rename: ", err);
             reload();
         });
@@ -121,7 +121,7 @@ Window {
         });
         object.selected.connect(function(destinationPath) {
             if (fileExists(destinationPath)) {
-                askForOverride(path, function() {
+                askForOverride(destinationPath, function() {
                     doRenameFile(path, destinationPath);
                 });
             } else {
