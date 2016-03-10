@@ -56,6 +56,7 @@ public:
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);
     Q_INVOKABLE void getMapping(QString path, QJSValue callback);
     Q_INVOKABLE void deleteMappings(QStringList paths, QJSValue callback);
+    Q_INVOKABLE void deleteMapping(QString path, QJSValue callback) { deleteMappings(QStringList(path), callback); }
     Q_INVOKABLE void getAllMappings(QJSValue callback);
     Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QJSValue callback);
 protected:

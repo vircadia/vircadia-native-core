@@ -155,7 +155,7 @@ void AssetServer::performMappingMigration() {
 
                 // add a new mapping with the old extension and a truncated version of the hash
                 static const int TRUNCATED_HASH_NUM_CHAR = 16;
-                auto fakeFileName = hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
+                auto fakeFileName = "/" + hash.left(TRUNCATED_HASH_NUM_CHAR) + fullExtension;
 
                 qDebug() << "\tAdding a migration mapping from" << fakeFileName << "to" << hash;
 
@@ -220,12 +220,10 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
     auto it = _fileMappings.find(assetPath);
     if (it != _fileMappings.end()) {
         auto assetHash = it->toString();
-        qDebug() << "Found mapping for: " << assetPath << "=>" << assetHash;
         replyPacket.writePrimitive(AssetServerError::NoError);
         replyPacket.write(QByteArray::fromHex(assetHash.toUtf8()));
     }
     else {
-        qDebug() << "Mapping not found for: " << assetPath;
         replyPacket.writePrimitive(AssetServerError::AssetNotFound);
     }
 }
@@ -314,7 +312,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     replyPacket->write(assetHash);
 
     QString fileName = QString(hexHash);
-    QFileInfo fileInfo { _resourcesDirectory.filePath(fileName) };
+    QFileInfo fileInfo { _filesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
         qDebug() << "Opening file: " << fileInfo.filePath();
@@ -498,6 +496,7 @@ bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
     // attempt to write to file
     if (writeMappingsToFile()) {
         // persistence succeeded, we are good to go
+        qDebug() << "Set mapping:" << path << "=>" << hash;
         return true;
     } else {
         // failed to persist this mapping to file - put back the old one in our in-memory representation
@@ -507,8 +506,14 @@ bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
             _fileMappings[path] = oldMapping;
         }
 
+        qWarning() << "Failed to persist mapping:" << path << "=>" << hash;
+
         return false;
     }
+}
+
+bool pathIsFolder(const AssetPath& path) {
+    return path.endsWith('/');
 }
 
 bool AssetServer::deleteMappings(const AssetPathList& paths) {
@@ -517,11 +522,35 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 
     // enumerate the paths to delete and remove them all
     for (auto& path : paths) {
-        auto oldMapping = _fileMappings.take(path);
-        if (!oldMapping.isNull()) {
-            qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+
+        // figure out if this path will delete a file or folder
+        if (pathIsFolder(path)) {
+            // enumerate the in memory file mappings and remove anything that matches
+            auto it = _fileMappings.begin();
+            auto sizeBefore = _fileMappings.size();
+
+            while (it != _fileMappings.end()) {
+                if (it.key().startsWith(path)) {
+                    it = _fileMappings.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            auto sizeNow = _fileMappings.size();
+            if (sizeBefore != sizeNow) {
+                qDebug() << "Deleted" << sizeBefore - sizeNow << "mappings in folder: " << path;
+            } else {
+                qDebug() << "Did not find any mappings in folder:" << path;
+            }
+
         } else {
-            qDebug() << "Unable to delete a mapping that was not found:" << path;
+            auto oldMapping = _fileMappings.take(path);
+            if (!oldMapping.isNull()) {
+                qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+            } else {
+                qDebug() << "Unable to delete a mapping that was not found:" << path;
+            }
         }
     }
 
@@ -530,6 +559,8 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
         // persistence succeeded we are good to go
         return true;
     } else {
+        qWarning() << "Failed to persist deleted mappings, rolling back";
+
         // we didn't delete the previous mapping, put it back in our in-memory representation
         _fileMappings = oldMappings;
 
@@ -538,23 +569,88 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
-    // take the old hash to remove the old mapping
-    auto oldMapping = _fileMappings[oldPath].toString();
+    // figure out if this rename is for a file or folder
+    if (pathIsFolder(oldPath)) {
+        if (!pathIsFolder(newPath)) {
+            // we were asked to rename a path to a folder to a path that isn't a folder, this is a fail
+            qWarning() << "Cannot rename mapping from folder path" << oldPath << "to file path" << newPath;
 
-    if (!oldMapping.isEmpty()) {
-        _fileMappings[newPath] = oldMapping;
+            return false;
+        }
+
+        // take a copy of the old mappings
+        auto oldMappings = _fileMappings;
+
+        // iterate the current mappings and adjust any that matches the renamed folder
+        auto it = oldMappings.begin();
+
+        while (it != oldMappings.end()) {
+            if (it.key().startsWith(oldPath)) {
+                auto newKey = it.key();
+                newKey.replace(0, oldPath.size(), newPath);
+
+                // remove the old version from the in memory file mappings
+                _fileMappings.remove(it.key());
+                _fileMappings.insert(newKey, it.value());
+            }
+
+            ++it;
+        }
 
         if (writeMappingsToFile()) {
-            // persisted the renamed mapping, return success
+            // persisted the changed mappings, return success
+            qDebug() << "Renamed folder mapping:" << oldPath << "=>" << newPath;
+            
             return true;
         } else {
-            // we couldn't persist the renamed mapping, rollback and return failure
-            _fileMappings[oldPath] = oldMapping;
+            // couldn't persist the renamed paths, rollback and return failure
+            _fileMappings = oldMappings;
+
+            qWarning() << "Failed to persist renamed folder mapping:" << oldPath << "=>" << newPath;
 
             return false;
         }
     } else {
-        // failed to find a mapping that was to be renamed, return failure
-        return false;
+        if (pathIsFolder(newPath)) {
+            // we were asked to rename a path to a file to a path that is a folder, this is a fail
+            qWarning() << "Cannot rename mapping from file path" << oldPath << "to folder path" << newPath;
+
+            return false;
+        }
+
+        // take the old hash to remove the old mapping
+        auto oldSourceMapping = _fileMappings.take(oldPath).toString();
+
+        // in case we're overwriting, keep the current destination mapping for potential rollback
+        auto oldDestinationMapping = _fileMappings.value(newPath);
+
+        if (!oldSourceMapping.isEmpty()) {
+            _fileMappings[newPath] = oldSourceMapping;
+
+            if (writeMappingsToFile()) {
+                // persisted the renamed mapping, return success
+                qDebug() << "Renamed mapping:" << oldPath << "=>" << newPath;
+
+                return true;
+            } else {
+                // we couldn't persist the renamed mapping, rollback and return failure
+                _fileMappings[oldPath] = oldSourceMapping;
+
+                if (!oldDestinationMapping.isNull()) {
+                    // put back the overwritten mapping for the destination path
+                    _fileMappings[newPath] = oldDestinationMapping.toString();
+                } else {
+                    // clear the new mapping
+                    _fileMappings.remove(newPath);
+                }
+
+                qDebug() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
+
+                return false;
+            }
+        } else {
+            // failed to find a mapping that was to be renamed, return failure
+            return false;
+        }
     }
 }

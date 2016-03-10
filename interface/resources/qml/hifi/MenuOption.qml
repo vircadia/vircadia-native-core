@@ -155,7 +155,6 @@ QtObject {
     readonly property string toolWindow: "Tool Window";
     readonly property string transmitterDrive: "Transmitter Drive";
     readonly property string turnWithHead: "Turn using Head";
-    readonly property string uploadAsset: "Upload File to Asset Server";
     readonly property string useAudioForMouth: "Use Audio for Mouth";
     readonly property string useCamera: "Use Camera";
     readonly property string velocityFilter: "Velocity Filter";

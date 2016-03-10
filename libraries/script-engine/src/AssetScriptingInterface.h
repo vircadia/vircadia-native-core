@@ -26,6 +26,7 @@ public:
 
     Q_INVOKABLE void uploadData(QString data, QScriptValue callback);
     Q_INVOKABLE void downloadData(QString url, QScriptValue downloadComplete);
+
 protected:
     QSet<AssetRequest*> _pendingRequests;
     QScriptEngine* _engine;
