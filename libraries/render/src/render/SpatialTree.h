@@ -117,7 +117,6 @@ namespace render {
             return depth;
         }
 
-
         class Location {
             void assertValid() {
                 assert((pos.x >= 0) && (pos.y >= 0) && (pos.z >= 0));
@@ -156,6 +155,7 @@ namespace render {
 
             // Eval the location best fitting the specified range
             static Location evalFromRange(const Coord3& minCoord, const Coord3& maxCoord, Depth rangeDepth = MAX_DEPTH);
+
 
             // Eval the intersection test against a frustum
             enum Intersection {
@@ -398,12 +398,25 @@ namespace render {
             return getOrigin() + glm::vec3(coord) * cellWidth;
         }
 
+
+        // Clamp a position expressed in a depth space to make sure it is in the valid space for that Depth
+        glm::vec3 clampRelPosToTreeRange(const glm::vec3& pos) const {
+            return glm::vec3(
+                std::min(std::max(pos.x, 0.0f), _size),
+                std::min(std::max(pos.y, 0.0f), _size),
+                std::min(std::max(pos.z, 0.0f), _size));
+        }
         Coord3 evalCoord(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
-            auto npos = (pos - getOrigin());
+            auto npos = clampRelPosToTreeRange((pos - getOrigin()));
+            
             return Coord3(npos * getInvCellWidth(depth)); // Truncate fractional part
         }
         Coord3f evalCoordf(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
-            auto npos = (pos - getOrigin());
+            auto npos = clampRelPosToTreeRange((pos - getOrigin()));
+            return Coord3f(npos * getInvCellWidth(depth));
+        }
+        Coord3f evalCoordNoClampf(const glm::vec3& pos, Depth depth = Octree::METRIC_COORD_DEPTH) const {
+            auto npos = ((pos - getOrigin()));
             return Coord3f(npos * getInvCellWidth(depth));
         }
 
@@ -412,6 +425,8 @@ namespace render {
             float cellWidth = getCellWidth(loc.depth);
             return AABox(evalPos(loc.pos, cellWidth), cellWidth);
         }
+
+
         Location evalLocation(const AABox& bound) const {
             return Location::evalFromRange(evalCoord(bound.getMinimumPoint()), evalCoord(bound.getMaximumPoint()));
         }

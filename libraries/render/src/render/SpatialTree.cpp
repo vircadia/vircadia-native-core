@@ -554,11 +554,11 @@ int ItemSpatialTree::selectCells(CellSelection& selection, const ViewFrustum& fr
     FrustumSelector selector;
     for (int i = 0; i < ViewFrustum::NUM_PLANES; i++) {
         ::Plane octPlane;
-        octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordf(worldPlanes[i].getPoint(), ROOT_DEPTH));
+        octPlane.setNormalAndPoint(worldPlanes[i].getNormal(), evalCoordNoClampf(worldPlanes[i].getPoint(), ROOT_DEPTH));
         selector.frustum[i] = Coord4f(octPlane.getNormal(), octPlane.getDCoefficient());
     }
 
-    selector.eyePos = evalCoordf(frustum.getPosition(), ROOT_DEPTH);
+    selector.eyePos = evalCoordNoClampf(frustum.getPosition(), ROOT_DEPTH);
     selector.setAngle(glm::radians(lodAngle));
 
     return Octree::select(selection, selector);
