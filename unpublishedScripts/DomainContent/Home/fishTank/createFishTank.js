@@ -1,4 +1,4 @@
-var fishTank, tankBase, bubbleSystem, secondBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, rocks;
+var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
 
 var CLEANUP = true;
 
@@ -44,7 +44,7 @@ var BASE_VERTICAL_OFFSET = 0.42;
 var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
 //depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
-var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.25;
+var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.30;
 
 var BUBBLE_SYSTEM_DIMENSIONS = {
     x: TANK_DIMENSIONS.x / 8,
@@ -55,17 +55,17 @@ var BUBBLE_SYSTEM_DIMENSIONS = {
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
-var URCHIN_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
+var URCHIN_FORWARD_OFFSET = TANK_DIMENSIONS.x-0.35;
 //depth of tank
-var URCHIN_LATERAL_OFFSET = -0.15;
-var URCHIN_VERTICAL_OFFSET = -0.17;
+var URCHIN_LATERAL_OFFSET = -0.05;
+var URCHIN_VERTICAL_OFFSET = -0.12;
 
 var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
 
 var URCHIN_DIMENSIONS = {
-    x: 0.35,
-    y: 0.35,
-    z: 0.35
+    x: 0.4,
+    y: 0.4,
+    z: 0.4
 }
 
 var ROCKS_FORWARD_OFFSET = 0;
@@ -80,6 +80,19 @@ var ROCK_DIMENSIONS = {
     y: 0.33,
     z: 1.64
 }
+
+var TREASURE_FORWARD_OFFSET = -TANK_DIMENSIONS.x;
+var TREASURE_LATERAL_OFFSET = -0.15;
+var TREASURE_VERTICAL_OFFSET = -0.23;
+
+var TREASURE_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Treasure-Chest2-SM.fbx';
+
+var TREASURE_DIMENSIONS = {
+    x: 0.1199,
+    y: 0.1105,
+    z: 0.1020
+}
+
 
 function createFishTank() {
     var tankProperties = {
@@ -125,18 +138,18 @@ function createBubbleSystems() {
         "azimuthFinish": 0.1,
         "emitAcceleration": {
             "x": 0,
-            "y": 0.4,
+            "y": 0.3,
             "z": 0
         },
         "accelerationSpread": {
-            "x": 0.1,
-            "y": 0.1,
-            "z": 0.1
+            "x": 0.01,
+            "y": 0.01,
+            "z": 0.01
         },
-        "particleRadius": 0.02,
+        "particleRadius": 0.005,
         "radiusSpread": 0,
-        "radiusStart": 0.043,
-        "radiusFinish": 0.02,
+        "radiusStart": 0.01,
+        "radiusFinish": 0.01,
         "alpha": 0.2,
         "alphaSpread": 0,
         "alphaStart": 0.3,
@@ -154,8 +167,11 @@ function createBubbleSystems() {
     bubbleProperties.position = finalOffset;
     bubbleSystem = Entities.addEntity(bubbleProperties);
 
-    bubbleProperties.position.z += -0.076;
+    bubbleProperties.position.x += -0.076;
     secondBubbleSystem = Entities.addEntity(bubbleProperties)
+
+    bubbleProperties.position.x += -0.076;
+    thirdBubbleSystem = Entities.addEntity(bubbleProperties)
 
     createBubbleSound(finalOffset);
 }
@@ -293,6 +309,22 @@ function createUrchin() {
 
 }
 
+function createTreasureChest() {
+    var finalPosition = getOffsetFromTankCenter(TREASURE_VERTICAL_OFFSET, TREASURE_FORWARD_OFFSET, TREASURE_LATERAL_OFFSET);
+
+    var properties = {
+        name: 'hifi-home-fishtank-treasure-chest',
+        type: 'Model',
+        parentID: fishTank,
+        modelURL: TREASURE_MODEL_URL,
+        position: finalPosition,
+        dimensions: TREASURE_DIMENSIONS,
+        rotation:Quat.fromPitchYawRollDegrees(10,-45,10)
+    }
+
+    treasure = Entities.addEntity(properties);
+}
+
 function createTankBase() {
     var properties = {
         name: 'hifi-home-fishtank-base',
@@ -324,6 +356,8 @@ createUrchin();
 createRocks();
 
 createTankBase();
+
+createTreasureChest();
 var customKey = 'hifi-home-fishtank';
 
 
@@ -357,6 +391,7 @@ function cleanup() {
     Entities.deleteEntity(tankBase);
     Entities.deleteEntity(bubbleSystem);
     Entities.deleteEntity(secondBubbleSystem);
+    Entities.deleteEntity(thirdBubbleSystem);
     Entities.deleteEntity(innerContainer);
     Entities.deleteEntity(lowerCorner);
     Entities.deleteEntity(upperCorner);
