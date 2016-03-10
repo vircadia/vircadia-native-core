@@ -132,8 +132,8 @@ Window {
         if (!url) {
             return;
         }
-
-        Entities.addModelEntity(url, MyAvatar.position);
+        var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
+        Entities.addModelEntity(url, addPosition);
     }
 
     function copyURLToClipboard() {
