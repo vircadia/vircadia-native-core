@@ -47,7 +47,7 @@ Window {
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
-        Assets.deleteMappings([path], function(err) {
+        Assets.deleteMappings(path, function(err) {
             print("Finished deleting path: ", path, err);
             reload();
         });
@@ -61,8 +61,7 @@ Window {
     function doRenameFile(oldPath, newPath) {
         console.log("Renaming " + oldPath + " to " + newPath);
 
-        console.log("Renaming " + path + " to " + destinationPath);
-        Assets.renameMapping(path, destinationPath, function(err) {
+        Assets.renameMapping(oldPath, destinationPath, function(err) {
             print("Finished rename: ", err);
             reload();
         });
@@ -111,7 +110,6 @@ Window {
     }
     function renameFile() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
-        print(path);
         if (!path) {
             return;
         }
@@ -133,7 +131,6 @@ Window {
     }
     function deleteFile() {
         var path = scriptsModel.data(treeView.currentIndex, 0x100);
-        print(treeView.currentIndex, path);
         if (!path) {
             return;
         }
