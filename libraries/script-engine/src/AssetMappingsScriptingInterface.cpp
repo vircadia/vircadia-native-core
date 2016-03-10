@@ -29,22 +29,16 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
 
-    if (request) {
-        connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
-            QJSValueList args { uint8_t(request->getError()) };
+    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+        QJSValueList args { uint8_t(request->getError()) };
 
-            callback.call(args);
-
-            request->deleteLater();
-
-        });
-        
-        request->start();
-    } else {
-        // not connected to an Asset Server, return network error
-        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-    }
+
+        request->deleteLater();
+
+    });
+
+    request->start();
 }
 
 void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback) {
