@@ -93,12 +93,11 @@ Window {
 
     function askForOverride(path, callback) {
         var object = desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Question,
+            icon: hifi.icons.question,
             buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
-            defaultButton: OriginalDialogs.StandardButton.No,
-            text: "Override?",
-            informativeText: "The following file already exists:\n" + path +
-                             "\nDo you want to override it?"
+            defaultButton: OriginalDialogs.StandardButton.Yes,
+            title: "Overwrite File",
+            text: path + "\n" + "This file already exists. Do you want to overwrite it?"
         });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
