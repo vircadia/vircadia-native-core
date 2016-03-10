@@ -44,11 +44,19 @@ Window {
         property alias directory: root.currentDirectory
     }
 
+    Component.onCompleted: reload()
+
     function doDeleteFile(path) {
         console.log("Deleting " + path);
 
         Assets.deleteMappings(path, function(err) {
-            print("Finished deleting path: ", path, err);
+            if (err) {
+                console.log("Error deleting path: ", path, err);
+                errorMessage("There was an error deleting:\n" + path + "\n\nPlease try again.");
+            } else {
+                console.log("Finished deleting path: ", path);
+            }
+
             reload();
         });
 
@@ -62,7 +70,13 @@ Window {
         console.log("Renaming " + oldPath + " to " + newPath);
 
         Assets.renameMapping(oldPath, newPath, function(err) {
-            print("Finished rename: ", err);
+            if (err) {
+                console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
+                errorMessage("There was an error renaming:\n" + oldPath + " to " + newPath + "\n\nPlease try again.");
+            } else {
+                console.log("Finished rename: ", oldPath, "=>", newPath);
+            }
+
             reload();
         });
     }
@@ -196,6 +210,15 @@ Window {
             } else {
                 doUploadFile(fileUrl, destinationPath, addToWorld);
             }
+        });
+    }
+
+    function errorMessage(message) {
+        desktop.messageBox({
+            icon: OriginalDialogs.StandardIcon.Error,
+            buttons: OriginalDialogs.StandardButton.Ok,
+            text: "Error",
+            informativeText: message
         });
     }
 
