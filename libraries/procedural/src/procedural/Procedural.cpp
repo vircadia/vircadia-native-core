@@ -75,6 +75,7 @@ void Procedural::parse(const QString& userDataJson) {
     auto proceduralData = getProceduralData(userDataJson);
     // Instead of parsing, prep for a parse on the rendering thread
     // This will be called by Procedural::ready
+    std::lock_guard<std::mutex> lock(_proceduralDataMutex);
     _proceduralData = proceduralData.toObject();
     _proceduralDataDirty = true;
 }
@@ -165,6 +166,7 @@ void Procedural::parse(QJsonObject proceduralData) {
 bool Procedural::ready() {
     // Load any changes to the procedural
     if (_proceduralDataDirty) {
+        std::lock_guard<std::mutex> lock(_proceduralDataMutex);
         parse(_proceduralData);
         _proceduralDataDirty = false;
     }

@@ -65,6 +65,7 @@ protected:
 
     // Rendering object descriptions, from userData
     QJsonObject _proceduralData;
+    std::mutex _proceduralDataMutex;
     QString _shaderSource;
     QString _shaderPath;
     QUrl _shaderUrl;
