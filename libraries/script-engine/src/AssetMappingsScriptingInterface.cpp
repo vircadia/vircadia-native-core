@@ -29,87 +29,117 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
 
-    connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
+    if (request) {
+        connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
+            QJSValueList args { uint8_t(request->getError()) };
 
+            callback.call(args);
+
+            request->deleteLater();
+
+        });
+        
+        request->start();
+    } else {
+        // not connected to an Asset Server, return network error
+        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-
-        request->deleteLater();
-         
-    });
-
-    request->start();
+    }
 }
 
 void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetMappingRequest(path);
 
-    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()), request->getHash() };
+    if (request) {
+        connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+            QJSValueList args { uint8_t(request->getError()), request->getHash() };
 
+            callback.call(args);
+
+            request->deleteLater();
+
+        });
+        
+        request->start();
+    } else {
+        // not connected to an Asset Server, return network error
+        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-
-        request->deleteLater();
-         
-    });
-
-    request->start();
+    }
 }
 
 void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createDeleteMappingsRequest(paths);
 
-    connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
+    if (request) {
+        connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
+            QJSValueList args { uint8_t(request->getError()) };
 
+            callback.call(args);
+
+            request->deleteLater();
+
+        });
+        
+        request->start();
+    } else {
+        // not connected to an Asset Server, return network error
+        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-
-        request->deleteLater();
-         
-    });
-
-    request->start();
+    }
 }
 
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
-        auto mappings = request->getMappings();
-        auto map = callback.engine()->newObject();
+    if (request) {
+        connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
+            auto mappings = request->getMappings();
+            auto map = callback.engine()->newObject();
 
-        for (auto& kv : mappings ) {
-            map.setProperty(kv.first, kv.second);
-        }
+            for (auto& kv : mappings ) {
+                map.setProperty(kv.first, kv.second);
+            }
 
-        QJSValueList args { uint8_t(request->getError()), map };
+            QJSValueList args { uint8_t(request->getError()), map };
 
+            callback.call(args);
+
+            request->deleteLater();
+            
+        });
+        
+        request->start();
+    } else {
+        // not connected to an Asset Server, return network error
+        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-
-        request->deleteLater();
-         
-    });
-
-    request->start();
+    }
 }
 
 void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString newPath, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
 
-    connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
+    if (request) {
+        connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
+            QJSValueList args { uint8_t(request->getError()) };
+
+            callback.call(args);
+
+            request->deleteLater();
+
+        });
         
+        request->start();
+    } else {
+        // not connected to an Asset Server, return network error
+        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-        
-        request->deleteLater();
-        
-    });
-    
-    request->start();
+    }
 }
 
 
@@ -134,92 +164,102 @@ void AssetMappingModel::refresh() {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
-        auto mappings = request->getMappings();
-        auto existingPaths = _pathToItemMap.keys();
-        for (auto& mapping : mappings) {
-            auto& path = mapping.first;
-            auto parts = path.split("/");
-            auto length = parts.length();
+    if (request) {
+        connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
+            if (request->getError() == MappingRequest::NoError) {
+                auto mappings = request->getMappings();
+                auto existingPaths = _pathToItemMap.keys();
+                for (auto& mapping : mappings) {
+                    auto& path = mapping.first;
+                    auto parts = path.split("/");
+                    auto length = parts.length();
 
-            existingPaths.removeOne(mapping.first);
+                    existingPaths.removeOne(mapping.first);
 
-            QString fullPath = "/";
+                    QString fullPath = "/";
 
-            QStandardItem* lastItem = nullptr;
+                    QStandardItem* lastItem = nullptr;
 
-            // start index at 1 to avoid empty string from leading slash
-            for (int i = 1; i < length; ++i) {
-                fullPath += (i == 1 ? "" : "/") + parts[i];
+                    // start index at 1 to avoid empty string from leading slash
+                    for (int i = 1; i < length; ++i) {
+                        fullPath += (i == 1 ? "" : "/") + parts[i];
 
-                auto it = _pathToItemMap.find(fullPath);
-                if (it == _pathToItemMap.end()) {
-                    qDebug() << "prefix not found: " << fullPath;
-                    auto item = new QStandardItem(parts[i]);
-                    bool isFolder = i < length - 1;
-                    item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
-                    item->setData(isFolder, Qt::UserRole + 1);
-                    item->setData(parts[i], Qt::UserRole + 2);
-                    item->setData("atp:" + fullPath, Qt::UserRole + 3);
-                    if (lastItem) {
-                        lastItem->setChild(lastItem->rowCount(), 0, item);
-                    } else {
-                        appendRow(item);
+                        auto it = _pathToItemMap.find(fullPath);
+                        if (it == _pathToItemMap.end()) {
+                            qDebug() << "prefix not found: " << fullPath;
+                            auto item = new QStandardItem(parts[i]);
+                            bool isFolder = i < length - 1;
+                            item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
+                            item->setData(isFolder, Qt::UserRole + 1);
+                            item->setData(parts[i], Qt::UserRole + 2);
+                            item->setData("atp:" + fullPath, Qt::UserRole + 3);
+                            if (lastItem) {
+                                lastItem->setChild(lastItem->rowCount(), 0, item);
+                            } else {
+                                appendRow(item);
+                            }
+
+                            lastItem = item;
+                            _pathToItemMap[fullPath] = lastItem;
+                        }
+                        else {
+                            lastItem = it.value();
+                        }
                     }
 
-                    lastItem = item;
-                    _pathToItemMap[fullPath] = lastItem;
+                    Q_ASSERT(fullPath == path);
                 }
-                else {
-                    lastItem = it.value();
+
+                // Remove folders from list
+                auto it = existingPaths.begin();
+                while (it != existingPaths.end()) {
+                    auto item = _pathToItemMap[*it];
+                    if (item->data(Qt::UserRole + 1).toBool()) {
+                        it = existingPaths.erase(it);
+                    } else {
+                        ++it;
+                    }
                 }
-            }
 
-            Q_ASSERT(fullPath == path);
-        }
+                for (auto& path : existingPaths) {
+                    Q_ASSERT(_pathToItemMap.contains(path));
+                    qDebug() << "removing existing: " << path;
 
-        // Remove folders from list
-        auto it = existingPaths.begin();
-        while (it != existingPaths.end()) {
-            auto item = _pathToItemMap[*it];
-            if (item->data(Qt::UserRole + 1).toBool()) {
-                it = existingPaths.erase(it);
+                    auto item = _pathToItemMap[path];
+
+                    while (item) {
+                        // During each iteration, delete item
+                        QStandardItem* nextItem = nullptr;
+
+                        auto parent = item->parent();
+                        if (parent) {
+                            parent->removeRow(item->row());
+                            if (parent->rowCount() > 0) {
+                                // The parent still contains children, set the nextItem to null so we stop processing
+                                nextItem = nullptr;
+                            } else {
+                                nextItem = parent;
+                            }
+                        } else {
+                            removeRow(item->row());
+                        }
+                        
+                        _pathToItemMap.remove(path);
+                        //delete item;
+                        
+                        item = nextItem;
+                    }
+                    //removeitem->index();
+                }
             } else {
-                ++it;
+                emit errorGettingMappings(uint8_t(request->getError()));
             }
-        }
+        });
 
-        for (auto& path : existingPaths) {
-            Q_ASSERT(_pathToItemMap.contains(path));
-            qDebug() << "removing existing: " << path;
-
-            auto item = _pathToItemMap[path];
-
-            while (item) {
-                // During each iteration, delete item
-                QStandardItem* nextItem = nullptr;
-
-                auto parent = item->parent();
-                if (parent) {
-                    parent->removeRow(item->row());
-                    if (parent->rowCount() > 0) {
-                        // The parent still contains children, set the nextItem to null so we stop processing
-                        nextItem = nullptr;
-                    } else {
-                        nextItem = parent;
-                    }
-                } else {
-                    removeRow(item->row());
-                }
-
-                _pathToItemMap.remove(path);
-                //delete item;
-
-                item = nextItem;
-            }
-            //removeitem->index();
-        }
-    });
-
-    request->start();
+        request->start();
+    } else {
+        qDebug() << "NO CONNECTED ASSET SERVER";
+        // not connected to an Asset Server, emit network error
+        emit errorGettingMappings(uint8_t(MappingRequest::NetworkError));
+    }
 }

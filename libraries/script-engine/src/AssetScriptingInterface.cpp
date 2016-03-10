@@ -34,7 +34,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
 
     QObject::connect(upload, &AssetUpload::finished, this, [this, callback](AssetUpload* upload, const QString& hash) mutable {
         if (callback.isFunction()) {
-            QString url = "atp://" + hash;
+            QString url = "atp:" + hash;
             QScriptValueList args { url };
             callback.call(_engine->currentContext()->thisObject(), args);
         }
@@ -43,7 +43,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
 }
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
-    const QString ATP_SCHEME { "atp://" };
+    const QString ATP_SCHEME { "atp:" };
 
     if (!urlString.startsWith(ATP_SCHEME)) {
         return;

@@ -604,7 +604,7 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
-    if (oldPath[0] != '/' || newPath[0] != '/') {
+    if (!isValidPath(oldPath) || !isValidPath(newPath)) {
         qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
             << oldPath << "=>" << newPath;
 

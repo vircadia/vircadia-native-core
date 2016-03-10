@@ -26,6 +26,8 @@ public:
         NotFound,
         NetworkError,
         PermissionDenied,
+        InvalidPath,
+        InvalidHash,
         UnknownError
     };
 

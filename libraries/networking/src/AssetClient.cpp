@@ -138,6 +138,7 @@ bool haveAssetServer() {
     
     return true;
 }
+
 GetMappingRequest* AssetClient::createGetMappingRequest(const AssetPath& path) {
     return new GetMappingRequest(path);
 }
@@ -159,8 +160,8 @@ RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& o
 }
 
 AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
-    if (hash.length() != SHA256_HASH_HEX_LENGTH) {
-        qCWarning(asset_client) << "Invalid hash size";
+    if (isValidHash(hash)) {
+        qCWarning(asset_client) << "Invalid hash";
         return nullptr;
     }
 
@@ -364,9 +365,10 @@ bool AssetClient::getAssetMapping(const AssetPath& path, MappingOperationCallbac
         _pendingMappingRequests[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+        return false;
     }
-
-    return false;
 }
 
 bool AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
@@ -386,9 +388,10 @@ bool AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
         _pendingMappingRequests[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+        return false;
     }
-
-    return false;
 }
 
 bool AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback) {
@@ -414,9 +417,10 @@ bool AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOperati
         _pendingMappingRequests[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+        return false;
     }
-
-    return false;
 }
 
 bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, MappingOperationCallback callback) {
@@ -439,9 +443,10 @@ bool AssetClient::setAssetMapping(const QString& path, const AssetHash& hash, Ma
         _pendingMappingRequests[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+        return false;
     }
-
-    return false;
 }
 
 bool AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetPath& newPath, MappingOperationCallback callback) {
@@ -465,9 +470,10 @@ bool AssetClient::renameAssetMapping(const AssetPath& oldPath, const AssetPath& 
 
         return true;
 
+    } else {
+        callback(false, AssetServerError::NoError, QSharedPointer<ReceivedMessage>());
+        return false;
     }
-
-    return false;
 }
 
 bool AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback callback) {

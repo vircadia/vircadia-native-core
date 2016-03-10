@@ -30,6 +30,13 @@ GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path) {
 
 void GetMappingRequest::doStart() {
 
+    // short circuit the request if the path is invalid
+    if (!isValidPath(_path)) {
+        _error = MappingRequest::InvalidPath;
+        emit finished(this);
+        return;
+    }
+
     auto assetClient = DependencyManager::get<AssetClient>();
 
     assetClient->getAssetMapping(_path, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
@@ -89,11 +96,26 @@ void GetAllMappingsRequest::doStart() {
     });
 };
 
-SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) : _path(path), _hash(hash) {
+SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) :
+    _path(path),
+    _hash(hash)
+{
+
 };
 
 void SetMappingRequest::doStart() {
+
+    // short circuit the request if the hash or path are invalid
+    auto validPath = isValidPath(_path);
+    auto validHash = isValidHash(_hash);
+    if (!validPath || !validHash) {
+        _error = validPath ? MappingRequest::InvalidPath : MappingRequest::InvalidHash;
+        emit finished(this);
+        return;
+    }
+
     auto assetClient = DependencyManager::get<AssetClient>();
+
     assetClient->setAssetMapping(_path, _hash, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
             _error = NetworkError;
@@ -119,7 +141,18 @@ DeleteMappingsRequest::DeleteMappingsRequest(const AssetPathList& paths) : _path
 };
 
 void DeleteMappingsRequest::doStart() {
+
+    // short circuit the request if any of the paths are invalid
+    for (auto& path : _paths) {
+        if (!isValidPath(path)) {
+            _error = MappingRequest::InvalidPath;
+            emit finished(this);
+            return;
+        }
+    }
+
     auto assetClient = DependencyManager::get<AssetClient>();
+
     assetClient->deleteAssetMappings(_paths, [this, assetClient](bool responseReceived, AssetServerError error, QSharedPointer<ReceivedMessage> message) {
         if (!responseReceived) {
             _error = NetworkError;
@@ -142,14 +175,23 @@ void DeleteMappingsRequest::doStart() {
 };
 
 RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) :
-_oldPath(oldPath),
-_newPath(newPath)
+    _oldPath(oldPath),
+    _newPath(newPath)
 {
 
 }
 
 void RenameMappingRequest::doStart() {
+
+    // short circuit the request if either of the paths are invalid
+    if (!isValidPath(_oldPath) || !isValidPath(_newPath)) {
+        _error = InvalidPath;
+        emit finished(this);
+        return;
+    }
+
     auto assetClient = DependencyManager::get<AssetClient>();
+
     assetClient->renameAssetMapping(_oldPath, _newPath, [this, assetClient](bool responseReceived,
                                                                             AssetServerError error,
                                                                             QSharedPointer<ReceivedMessage> message) {

@@ -42,6 +42,9 @@
 
      bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); };
 
+ signals:
+     void errorGettingMappings(uint8_t error);
+
  private:
      QHash<QString, QStandardItem*> _pathToItemMap;
  };
@@ -65,6 +68,7 @@ public:
     Q_INVOKABLE void deleteMapping(QString path, QJSValue callback) { deleteMappings(QStringList(path), callback); }
     Q_INVOKABLE void getAllMappings(QJSValue callback);
     Q_INVOKABLE void renameMapping(QString oldPath, QString newPath, QJSValue callback);
+
 protected:
     QSet<AssetRequest*> _pendingRequests;
     AssetMappingModel _assetMappingModel;
