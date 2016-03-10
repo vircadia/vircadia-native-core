@@ -12,11 +12,13 @@
 #include "AssetMappingsScriptingInterface.h"
 
 #include <QtScript/QScriptEngine>
+#include <QtCore/QFile>
 
 #include <AssetRequest.h>
 #include <AssetUpload.h>
 #include <MappingRequest.h>
 #include <NetworkLogging.h>
+#include <OffscreenUi.h>
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
@@ -25,17 +27,38 @@ AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.sort(0);
 }
 
+QString AssetMappingsScriptingInterface::getErrorString(int errorCode) const {
+    switch (errorCode) {
+        case MappingRequest::NoError:
+            return "No error";
+        case MappingRequest::NotFound:
+            return "Asset not found";
+        case MappingRequest::NetworkError:
+            return "Unable to communicate with Asset Server";
+        case MappingRequest::PermissionDenied:
+            return "Permission denied";
+        case MappingRequest::InvalidPath:
+            return "Path is invalid";
+        case MappingRequest::InvalidHash:
+            return "Hash is invalid";
+        case MappingRequest::UnknownError:
+            return "Asset Server internal error";
+        default:
+            return QString();
+    }
+}
+
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createSetMappingRequest(path, hash);
 
     connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
-
-        callback.call(args);
+        if (callback.isCallable()) {
+            QJSValueList args { uint8_t(request->getError()) };
+            callback.call(args);
+        }
 
         request->deleteLater();
-
     });
 
     request->start();
@@ -46,15 +69,51 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
     auto request = assetClient->createGetMappingRequest(path);
 
     connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()), request->getHash() };
-
-        callback.call(args);
+        if (callback.isCallable()) {
+            QJSValueList args { uint8_t(request->getError()) };
+            callback.call(args);
+        }
 
         request->deleteLater();
-
     });
 
     request->start();
+}
+
+void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue callback) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto result = offscreenUi->inputDialog(OffscreenUi::ICON_NONE, "Enter asset path:", "", mapping);
+
+    if (!result.isValid()) {
+        return;
+    }
+    mapping = result.toString();
+
+    // Check for override
+    if (isKnownMapping(mapping)) {
+        auto message = path + "\n" + "This file already exists. Do you want to overwrite it?";
+        auto button = offscreenUi->messageBox(OffscreenUi::ICON_QUESTION, "Overwrite File", message,
+                                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (button == QMessageBox::No) {
+            return;
+        }
+    }
+
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
+    QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
+        if (upload->getError() != AssetUpload::NoError) {
+            if (callback.isCallable()) {
+                QJSValueList args { uint8_t(upload->getError()) };
+                callback.call(args);
+            }
+        } else {
+            setMapping(mapping, hash, callback);
+        }
+
+        upload->deleteLater();
+    });
+
+    upload->start();
 }
 
 void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue callback) {
@@ -62,12 +121,12 @@ void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue
     auto request = assetClient->createDeleteMappingsRequest(paths);
 
     connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
-
-        callback.call(args);
+        if (callback.isCallable()) {
+            QJSValueList args { uint8_t(request->getError()) };
+            callback.call(args);
+        }
 
         request->deleteLater();
-
     });
 
     request->start();
@@ -85,12 +144,12 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
             map.setProperty(kv.first, kv.second);
         }
 
-        QJSValueList args { uint8_t(request->getError()), map };
-
-        callback.call(args);
+        if (callback.isCallable()) {
+            QJSValueList args { uint8_t(request->getError()) };
+            callback.call(args);
+        }
 
         request->deleteLater();
-
     });
 
     request->start();
@@ -101,33 +160,27 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
 
     connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
-        QJSValueList args { uint8_t(request->getError()) };
-
-        callback.call(args);
+        if (callback.isCallable()) {
+            QJSValueList args { uint8_t(request->getError()) };
+            callback.call(args);
+        }
 
         request->deleteLater();
-
     });
 
     request->start();
 }
 
 
-AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder)
-    : name(name),
+AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder) :
+    name(name),
     fullPath(fullPath),
-    isFolder(isFolder) {
+    isFolder(isFolder)
+{
 
 }
 
 static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
-
-AssetMappingModel::AssetMappingModel() {
-}
-
-AssetMappingModel::~AssetMappingModel() {
-    qDebug() << " DEST";
-}
 
 void AssetMappingModel::refresh() {
     qDebug() << "Refreshing asset mapping model";
@@ -184,7 +237,7 @@ void AssetMappingModel::refresh() {
             while (it != existingPaths.end()) {
                 Q_ASSERT(_pathToItemMap.contains(*it));
                 auto item = _pathToItemMap[*it];
-                if (item->data(Qt::UserRole + 1).toBool()) {
+                if (item && item->data(Qt::UserRole + 1).toBool()) {
                     it = existingPaths.erase(it);
                 } else {
                     ++it;
@@ -222,7 +275,7 @@ void AssetMappingModel::refresh() {
                 }
             }
         } else {
-            emit errorGettingMappings(uint8_t(request->getError()));
+            emit errorGettingMappings(static_cast<int>(request->getError()));
         }
     });
 
