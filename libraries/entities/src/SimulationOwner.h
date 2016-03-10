@@ -18,8 +18,6 @@
 #include <SharedUtil.h>
 #include <UUID.h>
 
-const quint8 ZERO_SIMULATION_PRIORITY = 0x00;
-
 // Simulation observers will bid to simulate unowned active objects at the lowest possible priority
 // which is VOLUNTEER.  If the server accepts a VOLUNTEER bid it will automatically bump it
 // to RECRUIT priority so that other volunteers don't accidentally take over.
@@ -27,11 +25,12 @@ const quint8 VOLUNTEER_SIMULATION_PRIORITY = 0x01;
 const quint8 RECRUIT_SIMULATION_PRIORITY = VOLUNTEER_SIMULATION_PRIORITY + 1;
 
 // When poking objects with scripts an observer will bid at SCRIPT_EDIT priority.
-const quint8 SCRIPT_EDIT_SIMULATION_PRIORITY = 0x80;
+const quint8 SCRIPT_GRAB_SIMULATION_PRIORITY = 0x80;
+const quint8 SCRIPT_POKE_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY - 1;
 
-// PERSONAL priority (needs a better name) is the level at which a simulation observer will bid for
-// objects that collide its MyAvatar.
-const quint8 PERSONAL_SIMULATION_PRIORITY = SCRIPT_EDIT_SIMULATION_PRIORITY - 1;
+// PERSONAL priority (needs a better name) is the level at which a simulation observer owns its own avatar
+// which really just means: things that collide with it will be bid at a priority level one lower
+const quint8 PERSONAL_SIMULATION_PRIORITY = SCRIPT_GRAB_SIMULATION_PRIORITY;
 
 
 class SimulationOwner {
