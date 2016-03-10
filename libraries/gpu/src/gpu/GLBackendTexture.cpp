@@ -117,45 +117,6 @@ public:
                     break;
                 case gpu::RGBA:
                     texel.internalFormat = GL_RGBA;
-                                        switch (dstFormat.getType()) {
-                    case gpu::UINT32:
-                    case gpu::NUINT32: {
-                        texel.internalFormat = GL_RGBA32UI;
-                        break;
-                        }
-                    case gpu::INT32:
-                    case gpu::NINT32: {
-                        texel.internalFormat = GL_RGBA32I;
-                        break;
-                        }
-                    case gpu::FLOAT: {
-                        texel.internalFormat = GL_RGBA32F;
-                        break;
-                    }
-                    case gpu::UINT16:
-                    case gpu::NUINT16: {
-                        texel.internalFormat = GL_RGBA16UI;
-                        break;
-                    }
-                    case gpu::INT16:
-                    case gpu::NINT16: {
-                        texel.internalFormat = GL_RGBA16I;
-                        break;
-                    }
-                    case gpu::HALF: {
-                        texel.internalFormat = GL_RGBA16F;
-                        break;
-                    }
-                    case gpu::UINT8:
-                    case gpu::INT8:
-                    case gpu::NUINT8:
-                    case gpu::NINT8: {
-                        break;
-                        }
-                    case gpu::NUM_TYPES: { // quiet compiler
-                        Q_UNREACHABLE();
-                    }
-                    }
                     break;
                 case gpu::SRGB:
                     texel.internalFormat = GL_SRGB;
