@@ -24,7 +24,7 @@
 
     this.initialize = function(entityId) {
         var properties = Entities.getEntityProperties(entityId);
-        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false) {
+        if (properties.userData.length === 0 || properties.hasOwnProperty('userData') === false || properties.userData==="") {
             self.initTimeout = Script.setTimeout(function() {
                 //    print(' no user data yet, try again in one second')
                 self.initialize(entityId);

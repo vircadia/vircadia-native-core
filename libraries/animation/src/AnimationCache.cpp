@@ -132,6 +132,7 @@ void Animation::animationParseSuccess(FBXGeometry* geometry) {
 void Animation::animationParseError(int error, QString str) {
     qCCritical(animation) << "Animation failure parsing " << _url.toDisplayString() << "code =" << error << str;
     emit failed(QNetworkReply::UnknownContentError);
+    finishedLoading(false);
 }
 
 AnimationDetails::AnimationDetails() :

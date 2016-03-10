@@ -45,15 +45,8 @@
 
 #include "Menu.h"
 
-// Fixme make static member of Menu
-static const char* const MENU_PROPERTY_NAME = "com.highfidelity.Menu";
-
-void Menu::setInstance() {
-    globalInstance<Menu>(MENU_PROPERTY_NAME);
-}
-
 Menu* Menu::getInstance() {
-    return static_cast<Menu*>(ui::Menu::getInstance());
+    return static_cast<Menu*>(qApp->getWindow()->menuBar());
 }
 
 Menu::Menu() {

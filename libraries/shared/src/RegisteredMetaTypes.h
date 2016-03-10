@@ -28,12 +28,17 @@ Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
 Q_DECLARE_METATYPE(glm::vec2)
 Q_DECLARE_METATYPE(glm::quat)
+Q_DECLARE_METATYPE(glm::mat4)
 Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 Q_DECLARE_METATYPE(QVector<float>)
 Q_DECLARE_METATYPE(AACube)
 
 void registerMetaTypes(QScriptEngine* engine);
+
+// Mat4
+QScriptValue mat4toScriptValue(QScriptEngine* engine, const glm::mat4& mat4);
+void mat4FromScriptValue(const QScriptValue& object, glm::mat4& mat4);
 
 // Vec4
 QScriptValue vec4toScriptValue(QScriptEngine* engine, const glm::vec4& vec4);

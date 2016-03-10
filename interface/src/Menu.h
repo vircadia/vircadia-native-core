@@ -20,7 +20,6 @@ class Menu : public ui::Menu {
     Q_OBJECT
 
 public:
-    static void setInstance();
     static Menu* getInstance();
     Menu();
     Q_INVOKABLE void addMenuItem(const MenuItemProperties& properties);

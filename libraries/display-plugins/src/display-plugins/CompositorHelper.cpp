@@ -286,32 +286,39 @@ glm::vec2 CompositorHelper::getReticleMaximumPosition() const {
     return result;
 }
 
+void CompositorHelper::sendFakeMouseEvent() {
+    if (qApp->thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "sendFakeMouseEvent", Qt::BlockingQueuedConnection);
+        return;
+    }
+
+        // in HMD mode we need to fake our mouse moves...
+    QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
+    auto button = Qt::NoButton;
+    auto buttons = QApplication::mouseButtons();
+    auto modifiers = QApplication::keyboardModifiers();
+    static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
+    QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
+    _fakeMouseEvent = true;
+    qApp->sendEvent(renderingWidget, &event);
+    _fakeMouseEvent = false;
+}
+
 void CompositorHelper::setReticlePosition(const glm::vec2& position, bool sendFakeEvent) {
     if (isHMD()) {
-        QMutexLocker locker(&_reticleLock);
         glm::vec2 maxOverlayPosition = _currentDisplayPlugin->getRecommendedUiSize();
         // FIXME don't allow negative mouseExtra
         glm::vec2 mouseExtra = (MOUSE_EXTENTS_PIXELS - maxOverlayPosition) / 2.0f;
         glm::vec2 minMouse = vec2(0) - mouseExtra;
         glm::vec2 maxMouse = maxOverlayPosition + mouseExtra;
 
-        _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+        {
+            QMutexLocker locker(&_reticleLock);
+            _reticlePositionInHMD = glm::clamp(position, minMouse, maxMouse);
+        }
 
         if (sendFakeEvent) {
-            // in HMD mode we need to fake our mouse moves...
-            QPoint globalPos(_reticlePositionInHMD.x, _reticlePositionInHMD.y);
-            auto button = Qt::NoButton;
-            auto buttons = QApplication::mouseButtons();
-            auto modifiers = QApplication::keyboardModifiers();
-            static auto renderingWidget = PluginContainer::getInstance().getPrimaryWidget();
-            if (qApp->thread() == QThread::currentThread()) {
-                QMouseEvent event(QEvent::MouseMove, globalPos, button, buttons, modifiers);
-                _fakeMouseEvent = true;
-                qApp->sendEvent(renderingWidget, &event);
-                _fakeMouseEvent = false;
-            } else {
-                qApp->postEvent(renderingWidget, new QMouseEvent(QEvent::MouseMove, globalPos, button, buttons, modifiers));
-            }
+            sendFakeMouseEvent();
         }
     } else {
         // NOTE: This is some debugging code we will leave in while debugging various reticle movement strategies,
