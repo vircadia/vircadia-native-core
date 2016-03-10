@@ -482,7 +482,7 @@ void AssetServer::loadMappingsFromFile() {
             }
         }
 
-        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
+        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment will not continue.";
         setFinished(true);
     } else {
         qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
@@ -604,7 +604,7 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
-    if (oldPath[0] != '/' || newPath[0] != '/') {
+    if (!isValidPath(oldPath) || !isValidPath(newPath)) {
         qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
             << oldPath << "=>" << newPath;
 

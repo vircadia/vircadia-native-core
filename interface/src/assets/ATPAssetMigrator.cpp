@@ -143,25 +143,17 @@ void ATPAssetMigrator::migrateResource(ResourceRequest* request) {
     QFileInfo assetInfo { request->getUrl().fileName() };
     
     auto upload = assetClient->createUpload(request->getData());
-    
-    if (upload) {
-        // add this URL to our hash of AssetUpload to original URL
-        _originalURLs.insert(upload, request->getUrl());
-        
-        qCDebug(asset_migrator) << "Starting upload of asset from" << request->getUrl();
-        
-        // connect to the finished signal so we know when the AssetUpload is done
-        QObject::connect(upload, &AssetUpload::finished, this, &ATPAssetMigrator::assetUploadFinished);
-        
-        // start the upload now
-        upload->start();
-    } else {
-        // show a QMessageBox to say that there is no local asset server
-        QString messageBoxText = QString("Could not upload \n\n%1\n\nbecause you are currently not connected" \
-                                         " to a local asset-server.").arg(assetInfo.fileName());
-        
-        QMessageBox::information(_dialogParent, "Failed to Upload", messageBoxText);
-    }
+
+    // add this URL to our hash of AssetUpload to original URL
+    _originalURLs.insert(upload, request->getUrl());
+
+    qCDebug(asset_migrator) << "Starting upload of asset from" << request->getUrl();
+
+    // connect to the finished signal so we know when the AssetUpload is done
+    QObject::connect(upload, &AssetUpload::finished, this, &ATPAssetMigrator::assetUploadFinished);
+
+    // start the upload now
+    upload->start();
 }
 
 void ATPAssetMigrator::assetUploadFinished(AssetUpload *upload, const QString& hash) {

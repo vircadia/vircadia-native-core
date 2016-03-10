@@ -33,7 +33,8 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var assetMappingsModel: Assets.proxyModel;
+    property var assetProxyModel: Assets.proxyModel;
+    property var assetMappingsModel: Assets.mappingModel;
     property var currentDirectory;
     property alias currentFileUrl: fileUrlTextField.text;
 
@@ -44,7 +45,10 @@ Window {
         property alias directory: root.currentDirectory
     }
 
-    Component.onCompleted: reload()
+    Component.onCompleted: {
+        assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError)
+        reload()
+    }
 
     function doDeleteFile(path) {
         console.log("Deleting " + path);
@@ -103,7 +107,7 @@ Window {
 
     function canAddToWorld() {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
 
         return supportedExtensions.reduce(function(total, current) {
             return total | new RegExp(current).test(path);
@@ -114,6 +118,12 @@ Window {
         print("reload");
         Assets.mappingModel.refresh();
     }
+
+    function handleGetMappingsError() {
+        errorMessage("There was a problem retreiving the list of assets from your Asset Server.\n"
+                     + "Please make sure you are connected to the Asset Server and try again. ");
+    }
+
     function addToWorld() {
         var url = assetMappingsModel.data(treeView.currentIndex, 0x102);
         if (!url) {
@@ -124,7 +134,7 @@ Window {
     }
 
     function copyURLToClipboard() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x103);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x103);
         if (!path) {
             return;
         }
@@ -132,7 +142,7 @@ Window {
     }
 
     function renameFile() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
         if (!path) {
             return;
         }
@@ -156,12 +166,12 @@ Window {
         });
     }
     function deleteFile() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
         if (!path) {
             return;
         }
 
-        var isFolder = assetMappingsModel.data(treeView.currentIndex, 0x101);
+        var isFolder = assetProxyModel.data(treeView.currentIndex, 0x101);
         var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
@@ -195,7 +205,7 @@ Window {
         var fileUrl = fileUrlTextField.text
         var addToWorld = addToWorldCheckBox.checked
 
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
+        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
@@ -297,7 +307,7 @@ Window {
             HifiControls.Tree {
                 id: treeView
                 height: 400
-                treeModel: assetMappingsModel
+                treeModel: assetProxyModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right

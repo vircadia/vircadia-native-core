@@ -27,14 +27,10 @@ AssetScriptingInterface::AssetScriptingInterface(QScriptEngine* engine) :
 void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
     QByteArray dataByteArray = data.toUtf8();
     auto upload = DependencyManager::get<AssetClient>()->createUpload(dataByteArray);
-    if (!upload) {
-        qCWarning(asset_client) << "Error uploading file to asset server";
-        return;
-    }
 
     QObject::connect(upload, &AssetUpload::finished, this, [this, callback](AssetUpload* upload, const QString& hash) mutable {
         if (callback.isFunction()) {
-            QString url = "atp://" + hash;
+            QString url = "atp:" + hash;
             QScriptValueList args { url };
             callback.call(_engine->currentContext()->thisObject(), args);
         }
@@ -43,7 +39,7 @@ void AssetScriptingInterface::uploadData(QString data, QScriptValue callback) {
 }
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
-    const QString ATP_SCHEME { "atp://" };
+    const QString ATP_SCHEME { "atp:" };
 
     if (!urlString.startsWith(ATP_SCHEME)) {
         return;
@@ -60,10 +56,6 @@ void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callb
 
     auto assetClient = DependencyManager::get<AssetClient>();
     auto assetRequest = assetClient->createRequest(hash);
-
-    if (!assetRequest) {
-        return;
-    }
 
     _pendingRequests << assetRequest;
 

@@ -35,6 +35,15 @@ void AssetRequest::start() {
         qCWarning(asset_client) << "AssetRequest already started.";
         return;
     }
+
+    // in case we haven't parsed a valid hash, return an error now
+    if (!isValidHash(_hash)) {
+        _error = InvalidHash;
+        _state = Finished;
+
+        emit finished(this);
+        return;
+    }
     
     // Try to load from cache
     _data = loadFromCache(getUrl());
@@ -53,7 +62,7 @@ void AssetRequest::start() {
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
         _info = info;
-        
+
         if (!responseReceived) {
             _error = NetworkError;
         } else if (serverError != AssetServerError::NoError) {
