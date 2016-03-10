@@ -69,7 +69,6 @@
 #include <AutoUpdater.h>
 #include <AudioInjectorManager.h>
 #include <CursorManager.h>
-#include <DebugDraw.h>
 #include <DeferredLightingEffect.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <EntityScriptingInterface.h>
