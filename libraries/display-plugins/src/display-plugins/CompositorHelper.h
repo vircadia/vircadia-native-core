@@ -116,6 +116,9 @@ public:
 signals:
     void allowMouseCaptureChanged();
 
+protected slots:
+    void sendFakeMouseEvent();
+
 private:
     glm::mat4 getUiTransform() const;
     void updateTooltips();
