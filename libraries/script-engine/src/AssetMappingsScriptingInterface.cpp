@@ -51,95 +51,71 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetMappingRequest(path);
 
-    if (request) {
-        connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
-            QJSValueList args { uint8_t(request->getError()), request->getHash() };
+    connect(request, &GetMappingRequest::finished, this, [this, callback](GetMappingRequest* request) mutable {
+        QJSValueList args { uint8_t(request->getError()), request->getHash() };
 
-            callback.call(args);
-
-            request->deleteLater();
-
-        });
-        
-        request->start();
-    } else {
-        // not connected to an Asset Server, return network error
-        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-    }
+
+        request->deleteLater();
+
+    });
+
+    request->start();
 }
 
 void AssetMappingsScriptingInterface::deleteMappings(QStringList paths, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createDeleteMappingsRequest(paths);
 
-    if (request) {
-        connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
-            QJSValueList args { uint8_t(request->getError()) };
+    connect(request, &DeleteMappingsRequest::finished, this, [this, callback](DeleteMappingsRequest* request) mutable {
+        QJSValueList args { uint8_t(request->getError()) };
 
-            callback.call(args);
-
-            request->deleteLater();
-
-        });
-        
-        request->start();
-    } else {
-        // not connected to an Asset Server, return network error
-        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-    }
+
+        request->deleteLater();
+
+    });
+
+    request->start();
 }
 
 void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createGetAllMappingsRequest();
 
-    if (request) {
-        connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
-            auto mappings = request->getMappings();
-            auto map = callback.engine()->newObject();
+    connect(request, &GetAllMappingsRequest::finished, this, [this, callback](GetAllMappingsRequest* request) mutable {
+        auto mappings = request->getMappings();
+        auto map = callback.engine()->newObject();
 
-            for (auto& kv : mappings ) {
-                map.setProperty(kv.first, kv.second);
-            }
+        for (auto& kv : mappings ) {
+            map.setProperty(kv.first, kv.second);
+        }
 
-            QJSValueList args { uint8_t(request->getError()), map };
+        QJSValueList args { uint8_t(request->getError()), map };
 
-            callback.call(args);
-
-            request->deleteLater();
-            
-        });
-        
-        request->start();
-    } else {
-        // not connected to an Asset Server, return network error
-        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-    }
+
+        request->deleteLater();
+
+    });
+
+    request->start();
 }
 
 void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString newPath, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
     auto request = assetClient->createRenameMappingRequest(oldPath, newPath);
 
-    if (request) {
-        connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
-            QJSValueList args { uint8_t(request->getError()) };
+    connect(request, &RenameMappingRequest::finished, this, [this, callback](RenameMappingRequest* request) mutable {
+        QJSValueList args { uint8_t(request->getError()) };
 
-            callback.call(args);
-
-            request->deleteLater();
-
-        });
-        
-        request->start();
-    } else {
-        // not connected to an Asset Server, return network error
-        QJSValueList args { uint8_t(MappingRequest::NetworkError) };
         callback.call(args);
-    }
+
+        request->deleteLater();
+
+    });
+
+    request->start();
 }
 
 
