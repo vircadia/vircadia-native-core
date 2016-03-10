@@ -38,20 +38,15 @@ void ProceduralSkybox::setProcedural(const ProceduralPointer& procedural) {
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
-    ProceduralSkybox::render(batch, frustum, (*this));
+    if (_procedural) {
+        ProceduralSkybox::render(batch, frustum, (*this));
+    } else {
+        Skybox::render(batch, frustum);
+    }
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox) {
-    if (!(skybox._procedural)) {
-        skybox.updateDataBuffer();
-        Skybox::render(batch, viewFrustum, skybox);
-    }
-
     if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
-        gpu::TexturePointer skymap = skybox.getCubemap();
-        // FIXME: skymap->isDefined may not be threadsafe
-        assert(skymap && skymap->isDefined());
-
         glm::mat4 projMat;
         viewFrustum.evalProjectionMatrix(projMat);
 
@@ -60,10 +55,8 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         batch.setProjectionTransform(projMat);
         batch.setViewTransform(viewTransform);
         batch.setModelTransform(Transform()); // only for Mac
-        batch.setResourceTexture(0, skybox.getCubemap());
 
         skybox._procedural->prepare(batch, glm::vec3(0), glm::vec3(1));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     }
 }
-
