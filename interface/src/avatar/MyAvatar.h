@@ -267,6 +267,7 @@ public slots:
     void setEnableDebugDrawDefaultPose(bool isEnabled);
     void setEnableDebugDrawAnimPose(bool isEnabled);
     void setEnableDebugDrawPosition(bool isEnabled);
+    void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     bool getEnableMeshVisible() const { return _skeletonModel.isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
@@ -429,6 +430,7 @@ private:
 
     bool _enableDebugDrawDefaultPose { false };
     bool _enableDebugDrawAnimPose { false };
+    bool _enableDebugDrawSensorToWorldMatrix { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;

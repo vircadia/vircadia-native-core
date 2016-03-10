@@ -471,6 +471,8 @@ Menu::Menu() {
         avatar, SLOT(setUseAnimPreAndPostRotations(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::EnableInverseKinematics, 0, true,
         avatar, SLOT(setEnableInverseKinematics(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderSensorToWorldMatrix, 0, false,
+        avatar, SLOT(setEnableDebugDrawSensorToWorldMatrix(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::KeyboardMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehaviorFromMenu()),

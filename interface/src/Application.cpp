@@ -3288,14 +3288,6 @@ void Application::update(float deltaTime) {
 
     // update sensorToWorldMatrix for rendering camera.
     myAvatar->updateSensorToWorldMatrix();
-
-    // AJT: TODO: make this a menu item.
-    const bool DRAW_SENSOR_TO_WORLD_MATRIX = true;
-    if (DRAW_SENSOR_TO_WORLD_MATRIX) {
-        // draw the origin of the room in world space.
-        glm::mat4 m = myAvatar->getSensorToWorldMatrix();
-        DebugDraw::getInstance().addMarker("room", glmExtractRotation(m), extractTranslation(m), glm::vec4(1));
-    }
 }
 
 
