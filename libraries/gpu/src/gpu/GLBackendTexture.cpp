@@ -578,11 +578,16 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
 
 
-GLuint GLBackend::getTextureID(const TexturePointer& texture) {
+GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     if (!texture) {
         return 0;
     }
-    GLTexture* object = GLBackend::syncGPUObject(*texture);
+    GLTexture* object { nullptr };
+    if (sync) {
+        object = GLBackend::syncGPUObject(*texture);
+    } else {
+        object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+    }
     if (object) {
         return object->_texture;
     } else {

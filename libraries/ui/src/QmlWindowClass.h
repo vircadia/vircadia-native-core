@@ -67,17 +67,23 @@ public slots:
 
     void setTitle(const QString& title);
 
+
     // Ugh.... do not want to do
     Q_INVOKABLE void raise();
     Q_INVOKABLE void close();
     Q_INVOKABLE int getWindowId() const { return _windowId; };
     Q_INVOKABLE QmlScriptEventBridge* getEventBridge() const { return _eventBridge; };
 
+    // Scripts can use this to send a message to the QML object
+    void sendToQml(const QVariant& message);
+
 signals:
     void visibilityChanged(bool visible);  // Tool window
     void moved(glm::vec2 position);
     void resized(QSizeF size);
     void closed();
+    // Scripts can connect to this signal to receive messages from the QML object
+    void fromQml(const QVariant& message);
 
 protected slots:
     void hasClosed();

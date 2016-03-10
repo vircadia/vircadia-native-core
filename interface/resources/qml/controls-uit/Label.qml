@@ -12,7 +12,7 @@ import QtQuick 2.5
 
 import "../styles-uit"
 
-RalewaySemibold {
+RalewaySemiBold {
     property int colorScheme: hifi.colorSchemes.light
 
     size: hifi.fontSizes.inputLabel

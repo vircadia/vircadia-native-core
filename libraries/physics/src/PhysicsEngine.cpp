@@ -291,8 +291,8 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // NOTE: we might own the simulation of a kinematic object (A)
         // but we don't claim ownership of kinematic objects (B) based on collisions here.
         if (!objectB->isStaticOrKinematicObject() && motionStateB->getSimulatorID() != _sessionID) {
-            quint8 priority = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
-            motionStateB->bump(priority);
+            quint8 priorityA = motionStateA ? motionStateA->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateB->bump(priorityA);
         }
     } else if (motionStateA &&
                ((motionStateB && motionStateB->getSimulatorID() == _sessionID && !objectB->isStaticObject()) ||
@@ -300,8 +300,8 @@ void PhysicsEngine::doOwnershipInfection(const btCollisionObject* objectA, const
         // SIMILARLY: we might own the simulation of a kinematic object (B)
         // but we don't claim ownership of kinematic objects (A) based on collisions here.
         if (!objectA->isStaticOrKinematicObject() && motionStateA->getSimulatorID() != _sessionID) {
-            quint8 priority = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
-            motionStateA->bump(priority);
+            quint8 priorityB = motionStateB ? motionStateB->getSimulationPriority() : PERSONAL_SIMULATION_PRIORITY;
+            motionStateA->bump(priorityB);
         }
     }
 }

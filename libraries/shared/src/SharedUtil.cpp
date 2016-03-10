@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "SharedUtil.h"
+
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -33,7 +35,6 @@
 #include "NumericalConstants.h"
 #include "OctalCode.h"
 #include "SharedLogging.h"
-#include "SharedUtil.h"
 
 static int usecTimestampNowAdjust = 0; // in usec
 void usecTimestampNowForceClockSkew(int clockSkew) {

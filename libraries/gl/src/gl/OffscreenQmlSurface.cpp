@@ -326,6 +326,10 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 
 void OffscreenQmlSurface::onAboutToQuit() {
     QObject::disconnect(&_updateTimer);
+    // Disconnecting the update timer is insufficient, since the renderer
+    // may attempting to render already, so we need to explicitly tell the renderer 
+    // to stop
+    _renderer->aboutToQuit(); 
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
@@ -485,7 +489,12 @@ void OffscreenQmlSurface::updateQuick() {
     if (_render) {
         QMutexLocker lock(&(_renderer->_mutex));
         _renderer->post(RENDER);
-        _renderer->_cond.wait(&(_renderer->_mutex));
+        while (!_renderer->_cond.wait(&(_renderer->_mutex), 100)) {
+            if (_renderer->_quit) {
+                return;
+            }
+            qApp->processEvents();
+        }
         _render = false;
     }
 

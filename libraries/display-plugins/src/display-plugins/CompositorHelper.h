@@ -6,28 +6,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ApplicationCompositor_h
-#define hifi_ApplicationCompositor_h
+#ifndef hifi_display_plugins_Compositor_h
+#define hifi_display_plugins_Compositor_h
 
 #include <atomic>
 #include <cstdint>
 
-#include <QCursor>
-#include <QMouseEvent>
-#include <QObject>
-#include <QPropertyAnimation>
+#include <QtCore/QObject>
+#include <QtCore/QMutex>
+#include <QtCore/QPropertyAnimation>
+#include <QtGui/QCursor>
+#include <QtGui/QMouseEvent>
 
-#include <EntityItemID.h>
-#include <GeometryCache.h>
 #include <GLMHelpers.h>
-#include <gpu/Batch.h>
-#include <gpu/Texture.h>
+#include <Transform.h>
+#include <DependencyManager.h>
 
-class Camera;
-class PalmData;
-class RenderArgs;
+#include "DisplayPlugin.h"
+
 class ReticleInterface;
-
 
 const float DEFAULT_RETICLE_DEPTH = 1.0f; // FIXME - probably should be based on UI radius
 
@@ -35,30 +32,29 @@ const float MAGNIFY_WIDTH = 220.0f;
 const float MAGNIFY_HEIGHT = 100.0f;
 const float MAGNIFY_MULT = 2.0f;
 
-const int VIRTUAL_SCREEN_SIZE_X = 3960; // ~10% more pixel density than old version, 72dx240d FOV
-const int VIRTUAL_SCREEN_SIZE_Y = 1188; // ~10% more pixel density than old version, 72dx240d FOV
-const float DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE = 240.0f;
-const float DEFAULT_HMD_UI_VERT_ANGULAR_SIZE = DEFAULT_HMD_UI_HORZ_ANGULAR_SIZE * (float)VIRTUAL_SCREEN_SIZE_Y / (float)VIRTUAL_SCREEN_SIZE_X;
-
 // Handles the drawing of the overlays to the screen
 // TODO, move divide up the rendering, displaying and input handling
 // facilities of this class
-class ApplicationCompositor : public QObject {
+class CompositorHelper : public QObject, public Dependency {
     Q_OBJECT
 
     Q_PROPERTY(float alpha READ getAlpha WRITE setAlpha)
     Q_PROPERTY(bool reticleOverDesktop READ getReticleOverDesktop WRITE setReticleOverDesktop)
 public:
-    ApplicationCompositor();
-    ~ApplicationCompositor();
+    static const uvec2 VIRTUAL_SCREEN_SIZE;
+    static const float VIRTUAL_UI_ASPECT_RATIO;
+    static const vec2 VIRTUAL_UI_TARGET_FOV;
+    static const vec2 MOUSE_EXTENTS_ANGULAR_SIZE;
+    static const vec2 MOUSE_EXTENTS_PIXELS;
 
-    void displayOverlayTexture(RenderArgs* renderArgs);
-    void displayOverlayTextureHmd(RenderArgs* renderArgs, int eye);
+    CompositorHelper();
 
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
 
     float getHmdUIAngularSize() const { return _hmdUIAngularSize; }
     void setHmdUIAngularSize(float hmdUIAngularSize) { _hmdUIAngularSize = hmdUIAngularSize; }
+    bool isHMD() const;
+    bool fakeEventActive() const { return _fakeMouseEvent; }
 
     // Converter from one frame of reference to another.
     // Frame of reference:
@@ -66,8 +62,7 @@ public:
     // Overlay: Position on the overlay (x,y)
     glm::vec2 sphericalToOverlay(const glm::vec2 & sphericalPos) const;
     glm::vec2 overlayToSpherical(const glm::vec2 & overlayPos) const;
-    void computeHmdPickRay(glm::vec2 cursorPos, glm::vec3& origin, glm::vec3& direction) const;
-    uint32_t getOverlayTexture() const;
+    void computeHmdPickRay(const glm::vec2& cursorPos, glm::vec3& origin, glm::vec3& direction) const;
 
     glm::vec2 overlayFromSphereSurface(const glm::vec3& sphereSurfacePoint) const;
     glm::vec3 sphereSurfaceFromOverlay(const glm::vec2& overlay) const;
@@ -93,9 +88,11 @@ public:
     void resetReticleDepth() { _reticleDepth = DEFAULT_RETICLE_DEPTH; }
 
     glm::vec2 getReticlePosition() const;
-    void setReticlePosition(glm::vec2 position, bool sendFakeEvent = true);
+    void setReticlePosition(const glm::vec2& position, bool sendFakeEvent = true);
 
     glm::vec2 getReticleMaximumPosition() const;
+
+    glm::mat4 getReticleTransform(const glm::mat4& eyePose = glm::mat4(), const glm::vec3& headPosition = glm::vec3()) const;
 
     ReticleInterface* getReticleInterface() { return _reticleInterface; }
 
@@ -113,33 +110,40 @@ public:
     bool getReticleOverDesktop() const;
     void setReticleOverDesktop(bool value) { _isOverDesktop = value; }
 
-private:
-    bool _isOverDesktop { true };
+    void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
+    void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; _currentFrame = frame;  }
 
-    void displayOverlayTextureStereo(RenderArgs* renderArgs, float aspectRatio, float fov);
-    void bindCursorTexture(gpu::Batch& batch, uint8_t cursorId = 0);
-    void buildHemiVertices(const float fov, const float aspectRatio, const int slices, const int stacks);
-    void drawSphereSection(gpu::Batch& batch);
+signals:
+    void allowMouseCaptureChanged();
+
+protected slots:
+    void sendFakeMouseEvent();
+
+private:
+    glm::mat4 getUiTransform() const;
     void updateTooltips();
 
-    // Support for hovering and tooltips
-    static EntityItemID _noItemId;
-    EntityItemID _hoverItemId { _noItemId };
-    QString _hoverItemTitle;
-    QString _hoverItemDescription;
-    quint64 _hoverItemEnterUsecs { 0 };
+    DisplayPluginPointer _currentDisplayPlugin;
+    glm::mat4 _currentCamera;
+    uint32_t _currentFrame { 0 };
 
-    float _hmdUIAngularSize { DEFAULT_HMD_UI_VERT_ANGULAR_SIZE };
-    float _textureFov { glm::radians(DEFAULT_HMD_UI_VERT_ANGULAR_SIZE) };
-    float _textureAspectRatio { 1.0f };
-    int _hemiVerticesID { GeometryCache::UNKNOWN_ID };
+    //// Support for hovering and tooltips
+    //static EntityItemID _noItemId;
+    //EntityItemID _hoverItemId { _noItemId };
 
-    float _alpha { 0.0f }; // hidden by default
+    //QString _hoverItemTitle;
+    //QString _hoverItemDescription;
+    //quint64 _hoverItemEnterUsecs { 0 };
+
+    bool _isOverDesktop { true };
+    float _hmdUIAngularSize { glm::degrees(VIRTUAL_UI_TARGET_FOV.y) };
+    float _textureFov { VIRTUAL_UI_TARGET_FOV.y };
+    float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
+
+    float _alpha { 1.0f };
     float _prevAlpha { 1.0f };
     float _fadeInAlpha { true };
     float _oculusUIRadius { 1.0f };
-
-    QMap<uint16_t, gpu::TexturePointer> _cursors;
 
     int _reticleQuad;
 
@@ -167,7 +171,9 @@ private:
 
     bool _allowMouseCapture { true };
 
-    ReticleInterface* _reticleInterface;
+    bool _fakeMouseEvent { false };
+
+    ReticleInterface* _reticleInterface { nullptr };
 };
 
 // Scripting interface available to control the Reticle
@@ -182,7 +188,7 @@ class ReticleInterface : public QObject {
     Q_PROPERTY(bool pointingAtSystemOverlay READ isPointingAtSystemOverlay)
 
 public:
-    ReticleInterface(ApplicationCompositor* outer) : QObject(outer), _compositor(outer) {}
+    ReticleInterface(CompositorHelper* outer) : QObject(outer), _compositor(outer) {}
 
     Q_INVOKABLE bool isMouseCaptured() { return _compositor->shouldCaptureMouse(); }
 
@@ -203,9 +209,7 @@ public:
     Q_INVOKABLE glm::vec2 getMaximumPosition() { return _compositor->getReticleMaximumPosition(); }
 
 private:
-    ApplicationCompositor* _compositor;
+    CompositorHelper* _compositor;
 };
 
-
-
-#endif // hifi_ApplicationCompositor_h
+#endif // hifi_CompositorHelper_h

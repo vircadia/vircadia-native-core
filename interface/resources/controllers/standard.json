@@ -27,14 +27,11 @@
 
         { "from": "Standard.RY", "to": "Actions.Up", "filters": "invert"}, 
 
+        { "from": "Standard.Back", "to": "Actions.CycleCamera" },
+        { "from": "Standard.Start", "to": "Actions.ContextMenu" },
+
         { "from": [ "Standard.DU", "Standard.DL", "Standard.DR", "Standard.DD" ], "to": "Standard.LeftPrimaryThumb" },
-        { "from": "Standard.Back", "to": "Standard.LeftSecondaryThumb" },
-
         { "from": [ "Standard.A", "Standard.B", "Standard.X", "Standard.Y" ], "to": "Standard.RightPrimaryThumb" },
-        { "from": "Standard.Start", "to": "Standard.RightSecondaryThumb" },
-
-        { "from": "Standard.LeftSecondaryThumb", "to": "Actions.CycleCamera" }, 
-        { "from": "Standard.RightSecondaryThumb", "to": "Actions.ContextMenu" },
 
         { "from": "Standard.LT", "to": "Actions.LeftHandClick" }, 
         { "from": "Standard.RT", "to": "Actions.RightHandClick" },

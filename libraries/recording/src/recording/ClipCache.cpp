@@ -23,6 +23,7 @@ void NetworkClip::init(const QByteArray& clipData) {
 
 void NetworkClipLoader::downloadFinished(const QByteArray& data) {
     _clip->init(data);
+    finishedLoading(true);
 }
 
 ClipCache& ClipCache::instance() {

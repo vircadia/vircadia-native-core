@@ -70,13 +70,15 @@ bool SimulationOwner::setID(const QUuid& id) {
 }
 
 bool SimulationOwner::set(const QUuid& id, quint8 priority) {
+    uint8_t oldPriority = _priority;
     setPriority(priority);
-    return setID(id);
+    return setID(id) || oldPriority != _priority;
 }
 
 bool SimulationOwner::set(const SimulationOwner& owner) {
+    uint8_t oldPriority = _priority;
     setPriority(owner._priority);
-    return setID(owner._id);
+    return setID(owner._id) || oldPriority != _priority;
 }
 
 void SimulationOwner::updateExpiry() {

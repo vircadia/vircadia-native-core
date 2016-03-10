@@ -138,19 +138,22 @@ public:
         opacity(opacity)  {}
 
     glm::vec3 diffuseColor{ 1.0f };
-    float diffuseFactor = 1.0f;
+    float diffuseFactor{ 1.0f };
     glm::vec3 specularColor{ 0.02f };
-    float specularFactor = 1.0f;
+    float specularFactor{ 1.0f };
 
     glm::vec3 emissiveColor{ 0.0f };
-    float shininess = 23.0f;
-    float opacity = 1.0f;
+    float emissiveFactor{ 0.0f };
+
+    float shininess{ 23.0f };
+    float opacity{ 1.0f };
 
     float metallic{ 0.0f };
     float roughness{ 1.0f };
     float emissiveIntensity{ 1.0f };
 
     QString materialID;
+    QString name;
     model::MaterialPointer _material;
 
     FBXTexture normalTexture;
@@ -411,12 +414,17 @@ public:
     FBXTexture getTexture(const QString& textureID);
 
     QHash<QString, QString> _textureNames;
+    // Hashes the original RelativeFilename of textures
+    QHash<QString, QByteArray> _textureFilepaths;
+    // Hashes the place to look for textures, in case they are not inlined
     QHash<QString, QByteArray> _textureFilenames;
+    // Hashes texture content by filepath, in case they are inlined
     QHash<QByteArray, QByteArray> _textureContent;
     QHash<QString, TextureParam> _textureParams;
 
 
     QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> diffuseFactorTextures;
     QHash<QString, QString> transparentTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> normalTextures;

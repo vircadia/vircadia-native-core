@@ -49,6 +49,8 @@ var IDENTITY_QUAT = {
 };
 var ACTION_TTL = 10; // seconds
 
+var enabled = true;
+
 function getTag() {
     return "grab-" + MyAvatar.sessionUUID;
 }
@@ -306,6 +308,10 @@ Grabber.prototype.computeNewGrabPlane = function() {
 }
 
 Grabber.prototype.pressEvent = function(event) {
+    if (!enabled) {
+        return;
+    }
+
     if (event.isLeftButton!==true ||event.isRightButton===true || event.isMiddleButton===true) {
         return;
     }
@@ -559,8 +565,29 @@ function keyReleaseEvent(event) {
     grabber.keyReleaseEvent(event);
 }
 
+function editEvent(channel, message, sender, localOnly) {
+    if (channel != "edit-events") {
+        return;
+    }
+    if (sender != MyAvatar.sessionUUID) {
+        return;
+    }
+    if (!localOnly) {
+        return;
+    }
+    try {
+        data = JSON.parse(message);
+        if ("enabled" in data) {
+            enabled = !data["enabled"];
+        }
+    } catch(e) {
+    }
+}
+
 Controller.mousePressEvent.connect(pressEvent);
 Controller.mouseMoveEvent.connect(moveEvent);
 Controller.mouseReleaseEvent.connect(releaseEvent);
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
+Messages.subscribe("edit-events");
+Messages.messageReceived.connect(editEvent);

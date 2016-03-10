@@ -144,7 +144,10 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         } else {
             handParams.isRightEnabled = false;
         }
+
         handParams.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
+        handParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
+        handParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
 
         _rig->updateFromHandParameters(handParams, deltaTime);
 

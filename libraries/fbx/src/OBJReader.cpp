@@ -184,6 +184,9 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
     QNetworkReply *netReply = request(candidateUrl, true);
+    if (!netReply) {
+        return false;
+    }
     bool isValid = netReply->isFinished() && (netReply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 200);
     netReply->deleteLater();
     return isValid;
@@ -257,6 +260,9 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
 }
 
 QNetworkReply* OBJReader::request(QUrl& url, bool isTest) {
+    if (!qApp) {
+        return nullptr;
+    }
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest netRequest(url);
     QNetworkReply* netReply = isTest ? networkAccessManager.head(netRequest) : networkAccessManager.get(netRequest);

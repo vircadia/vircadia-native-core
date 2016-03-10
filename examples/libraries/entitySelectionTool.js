@@ -4316,16 +4316,23 @@ SelectionDisplay = (function() {
         return false;
     };
 
+
     that.updateHandleSizes = function() {
         if (selectionManager.hasSelection()) {
             var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
             var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
+            var dimensions = SelectionManager.worldDimensions;
+            var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
+            grabberSize = Math.min(grabberSize, avgDimension / 10);
+
             for (var i = 0; i < stretchHandles.length; i++) {
                 Overlays.editOverlay(stretchHandles[i], {
                     size: grabberSize,
                 });
             }
-            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 10;
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 7;
+            handleSize = Math.min(handleSize, avgDimension / 3);
+
             Overlays.editOverlay(yawHandle, {
                 scale: handleSize,
             });
@@ -4342,7 +4349,7 @@ SelectionDisplay = (function() {
             });
             Overlays.editOverlay(grabberMoveUp, {
                 position: pos,
-                scale: handleSize / 2,
+                scale: handleSize / 1.25,
             });
         }
     }

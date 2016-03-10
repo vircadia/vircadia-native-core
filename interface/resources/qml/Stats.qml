@@ -115,7 +115,7 @@ Item {
                         color: root.fontColor
                         font.pixelSize: root.fontSize
                         visible: root.expanded;
-                        text: "Voxel max ping: " + 0
+                        text: "Messages max ping: " + root.messagePing
                     }
                 }
             }

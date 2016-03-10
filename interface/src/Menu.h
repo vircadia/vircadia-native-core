@@ -9,144 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <ui/Menu.h>
+
 #ifndef hifi_Menu_h
 #define hifi_Menu_h
 
-#include <QDir>
-#include <QMenuBar>
-#include <QHash>
-#include <QKeySequence>
-#include <QPointer>
-#include <QStandardPaths>
+class MenuItemProperties;
 
-#include <MenuItemProperties.h>
-
-#include "DiscoverabilityManager.h"
-
-class Settings;
-
-class MenuWrapper : public QObject {
-public:
-    QList<QAction*> actions();
-    MenuWrapper* addMenu(const QString& menuName);
-    void setEnabled(bool enabled = true);
-    QAction* addSeparator();
-    void addAction(QAction* action);
-
-    QAction* addAction(const QString& menuName);
-    void insertAction(QAction* before, QAction* menuName);
-
-    QAction* addAction(const QString& menuName, const QObject* receiver, const char* member, const QKeySequence& shortcut = 0);
-    void removeAction(QAction* action);
-
-    QAction* newAction() {
-        return new QAction(_realMenu);
-    }
-
-private:
-    MenuWrapper(QMenu* menu);
-
-    static MenuWrapper* fromMenu(QMenu* menu) {
-        return _backMap[menu];
-    }
-
-    QMenu* const _realMenu;
-    static QHash<QMenu*, MenuWrapper*> _backMap;
-    friend class Menu;
-};
-
-class Menu : public QMenuBar {
+class Menu : public ui::Menu {
     Q_OBJECT
+
 public:
-    Menu();
     static Menu* getInstance();
-
-    void loadSettings();
-    void saveSettings();
-
-    MenuWrapper* getMenu(const QString& menuName);
-    MenuWrapper* getSubMenuFromName(const QString& menuName, MenuWrapper* menu);
-
-    void triggerOption(const QString& menuOption);
-    QAction* getActionForOption(const QString& menuOption);
-
-    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                           const QString& actionName,
-                                           const QKeySequence& shortcut = 0,
-                                           const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION,
-                                           const QString& grouping = QString());
-
-    QAction* addActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                           QAction* action,
-                                           const QString& actionName = QString(),
-                                           const QKeySequence& shortcut = 0,
-                                           QAction::MenuRole role = QAction::NoRole,
-                                           int menuItemLocation = UNSPECIFIED_POSITION,
-                                           const QString& grouping = QString());
-
-    QAction* addCheckableActionToQMenuAndActionHash(MenuWrapper* destinationMenu,
-                                                    const QString& actionName,
-                                                    const QKeySequence& shortcut = 0,
-                                                    const bool checked = false,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
-                                                    int menuItemLocation = UNSPECIFIED_POSITION,
-                                                    const QString& grouping = QString());
-
-    void removeAction(MenuWrapper* menu, const QString& actionName);
-
-public slots:
-    MenuWrapper* addMenu(const QString& menuName, const QString& grouping = QString());
-    void removeMenu(const QString& menuName);
-    bool menuExists(const QString& menuName);
-    void addSeparator(const QString& menuName, const QString& separatorName, const QString& grouping = QString());
-    void removeSeparator(const QString& menuName, const QString& separatorName);
-    void addMenuItem(const MenuItemProperties& properties);
-    void removeMenuItem(const QString& menuName, const QString& menuitem);
-    bool menuItemExists(const QString& menuName, const QString& menuitem);
-    void addActionGroup(const QString& groupName, const QStringList& actionList, const QString& selected = QString());
-    void removeActionGroup(const QString& groupName);
-    bool isOptionChecked(const QString& menuOption) const;
-    void setIsOptionChecked(const QString& menuOption, bool isChecked);
-
-    bool getGroupingIsVisible(const QString& grouping);
-    void setGroupingIsVisible(const QString& grouping, bool isVisible); /// NOTE: the "" grouping is always visible
-
-    void toggleDeveloperMenus();
-    void toggleAdvancedMenus();
-
-    static bool isSomeSubmenuShown() { return _isSomeSubmenuShown; }
-
-private:
-    typedef void(*settingsAction)(Settings&, QAction&);
-    static void loadAction(Settings& settings, QAction& action);
-    static void saveAction(Settings& settings, QAction& action);
-    void scanMenuBar(settingsAction modifySetting);
-    void scanMenu(QMenu& menu, settingsAction modifySetting, Settings& settings);
-
-    /// helper method to have separators with labels that are also compatible with OS X
-    void addDisabledActionAndSeparator(MenuWrapper* destinationMenu, 
-                                       const QString& actionName,
-                                       int menuItemLocation = UNSPECIFIED_POSITION, 
-                                       const QString& grouping = QString());
-
-    QAction* getActionFromName(const QString& menuName, MenuWrapper* menu);
-    MenuWrapper* getMenuParent(const QString& menuName, QString& finalMenuPart);
-
-    QAction* getMenuAction(const QString& menuName);
-    int findPositionOfMenuItem(MenuWrapper* menu, const QString& searchMenuItem);
-    int positionBeforeSeparatorIfNeeded(MenuWrapper* menu, int requestedPosition);
-
-    QHash<QString, QAction*> _actionHash;
-
-    bool isValidGrouping(const QString& grouping) const { return grouping == "Advanced" || grouping == "Developer"; }
-    QHash<QString, bool> _groupingVisible;
-    QHash<QString, QSet<QAction*>> _groupingActions;
-
-    static bool _isSomeSubmenuShown;
+    Menu();
+    Q_INVOKABLE void addMenuItem(const MenuItemProperties& properties);
 };
 
 namespace MenuOption {
@@ -189,6 +65,7 @@ namespace MenuOption {
     const QString CopyPath = "Copy Path to Clipboard";
     const QString CoupleEyelids = "Couple Eyelids";
     const QString CrashInterface = "Crash Interface";
+    const QString DeadlockInterface = "Deadlock Interface";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DeleteBookmark = "Delete Bookmark...";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -302,3 +179,4 @@ namespace MenuOption {
 }
 
 #endif // hifi_Menu_h
+

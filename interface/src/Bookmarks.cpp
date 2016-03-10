@@ -88,11 +88,11 @@ void Bookmarks::persistToFile() {
 
 void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     // Add menus/actions
-    menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation, 0,
-                                           this, SLOT(bookmarkLocation()));
+    auto bookmarkAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::BookmarkLocation);
+    QObject::connect(bookmarkAction, SIGNAL(triggered()), this, SLOT(bookmarkLocation()), Qt::QueuedConnection);
     _bookmarksMenu = menu->addMenu(MenuOption::Bookmarks);
-    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark, 0,
-                                                                    this, SLOT(deleteBookmark()));
+    _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteBookmark);
+    QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
     
     // Enable/Disable menus as needed
     enableMenuItems(_bookmarks.count() > 0);
@@ -107,7 +107,7 @@ void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
 
 void Bookmarks::bookmarkLocation() {
     bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(nullptr, "Bookmark Location", "Name:", QLineEdit::Normal, QString(), &ok);
+    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
     if (!ok) {
         return;
     }
@@ -123,7 +123,7 @@ void Bookmarks::bookmarkLocation() {
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(QMessageBox::Warning, "Duplicate Bookmark",
+        auto duplicateBookmarkMessage = offscreenUi->createMessageBox(OffscreenUi::ICON_WARNING, "Duplicate Bookmark",
             "The bookmark name you entered already exists in your list.",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
@@ -156,7 +156,7 @@ void Bookmarks::deleteBookmark() {
     }
     
     bool ok = false;
-    auto bookmarkName = OffscreenUi::getItem(nullptr, "Delete Bookmark", "Select the bookmark to delete", bookmarkList, 0, false, &ok);
+    auto bookmarkName = OffscreenUi::getItem(OffscreenUi::ICON_PLACEMARK, "Delete Bookmark", "Select the bookmark to delete", bookmarkList, 0, false, &ok);
     if (!ok) {
         return;
     }

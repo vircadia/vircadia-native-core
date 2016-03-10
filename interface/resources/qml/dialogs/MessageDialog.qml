@@ -1,8 +1,8 @@
 //
-//  Desktop.qml
+//  MessageDialog.qml
 //
-//  Created by Bradley Austin Davis on 25 Apr 2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Created by Bradley Austin Davis on 15 Jan 2016
+//  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -42,10 +42,11 @@ ModalWindow {
     property alias detailedText: detailedText.text
     property alias text: mainTextContainer.text
     property alias informativeText: informativeTextContainer.text
-    onIconChanged: updateIcon();
     property int buttons: OriginalDialogs.StandardButton.Ok
     property int icon: OriginalDialogs.StandardIcon.NoIcon
     property string iconText: ""
+    property int iconSize: 50
+    onIconChanged: updateIcon();
     property int defaultButton: OriginalDialogs.StandardButton.NoButton;
     property int clickedButton: OriginalDialogs.StandardButton.NoButton;
     focus: defaultButton === OriginalDialogs.StandardButton.NoButton
@@ -54,22 +55,7 @@ ModalWindow {
         if (!root) {
             return;
         }
-        switch (root.icon) {
-            case OriginalDialogs.StandardIcon.Information:
-                iconText = "\uF05A";
-                break;
-            case OriginalDialogs.StandardIcon.Question:
-                iconText = "\uF059"
-                break;
-            case OriginalDialogs.StandardIcon.Warning:
-                iconText = "\uF071"
-                break;
-            case OriginalDialogs.StandardIcon.Critical:
-                iconText = "\uF057"
-                break;
-            default:
-                iconText = ""
-        }
+        iconText = hifi.glyphForIcon(root.icon);
     }
 
     Item {
@@ -80,8 +66,6 @@ ModalWindow {
 
         QtObject {
             id: d
-            readonly property real spacing: hifi.dimensions.contentSpacing.x
-            readonly property real outerSpacing: hifi.dimensions.contentSpacing.y
             readonly property int minWidth: 480
             readonly property int maxWdith: 1280
             readonly property int minHeight: 120
@@ -98,9 +82,9 @@ ModalWindow {
             }
         }
 
-        RalewaySemibold {
+        RalewaySemiBold {
             id: mainTextContainer
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            onTextChanged: d.resize();
             wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
@@ -114,9 +98,9 @@ ModalWindow {
             lineHeightMode: Text.ProportionalHeight
         }
 
-        RalewaySemibold {
+        RalewaySemiBold {
             id: informativeTextContainer
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
+            onTextChanged: d.resize();
             wrapMode: Text.WordWrap
             size: hifi.fontSizes.menuItem
             color: hifi.colors.baseGrayHighlight
@@ -132,7 +116,7 @@ ModalWindow {
         Flow {
             id: buttons
             focus: true
-            spacing: d.spacing
+            spacing: hifi.dimensions.contentSpacing.x
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
             anchors {
@@ -186,8 +170,8 @@ ModalWindow {
                 id: flickable
                 contentHeight: detailedText.height
                 anchors.fill: parent
-                anchors.topMargin: root.spacing
-                anchors.bottomMargin: root.outerSpacing
+                anchors.topMargin: hifi.dimensions.contentSpacing.x
+                anchors.bottomMargin: hifi.dimensions.contentSpacing.y
                 TextEdit {
                     id: detailedText
                     size: hifi.fontSizes.menuItem
@@ -210,7 +194,10 @@ ModalWindow {
             }
         ]
 
-        Component.onCompleted: updateIcon();
+        Component.onCompleted: {
+            updateIcon();
+            d.resize();
+        }
         onStateChanged: d.resize()
     }
 

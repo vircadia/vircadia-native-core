@@ -428,17 +428,17 @@ FBXLight extractLight(const FBXNode& object) {
     return light;
 }
 
-QByteArray fileOnUrl(const QByteArray& filenameString, const QString& url) {
+QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
     QString path = QFileInfo(url).path();
-    QByteArray filename = filenameString;
-    QFileInfo checkFile(path + "/" + filename.replace('\\', '/'));
-    //check if the file exists at the RelativeFileName
-    if (checkFile.exists() && checkFile.isFile()) {
-        filename = filename.replace('\\', '/');
-    } else {
-        // there is no texture at the fbx dir with the filename added. Assume it is in the fbx dir.
-        filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+    QByteArray filename = filepath;
+    QFileInfo checkFile(path + "/" + filepath);
+
+    // check if the file exists at the RelativeFilename
+    if (!(checkFile.exists() && checkFile.isFile())) {
+        // if not, assume it is in the fbx directory
+        filename = filename.mid(filename.lastIndexOf('/') + 1);
     }
+
     return filename;
 }
 
@@ -765,7 +765,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             QByteArray filename = subobject.properties.at(0).toByteArray();
-                            filename = fileOnUrl(filename, url);
+                            QByteArray filepath = filename.replace('\\', '/');
+                            filename = fileOnUrl(filepath, url);
+                            _textureFilepaths.insert(getID(object.properties), filepath);
                             _textureFilenames.insert(getID(object.properties), filename);
                         } else if (subobject.name == "TextureName") {
                             // trim the name from the timestamp
@@ -849,27 +851,26 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                         _textureParams.insert(getID(object.properties), tex);
                     }
                 } else if (object.name == "Video") {
-                    QByteArray filename;
+                    QByteArray filepath;
                     QByteArray content;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            filename = subobject.properties.at(0).toByteArray();
-                            filename = fileOnUrl(filename, url);
+                            filepath= subobject.properties.at(0).toByteArray();
+                            filepath = filepath.replace('\\', '/');
 
                         } else if (subobject.name == "Content" && !subobject.properties.isEmpty()) {
                             content = subobject.properties.at(0).toByteArray();
                         }
                     }
                     if (!content.isEmpty()) {
-                        _textureContent.insert(filename, content);
+                        _textureContent.insert(filepath, content);
                     }
                 } else if (object.name == "Material") {
                     FBXMaterial material;
-                    if (object.properties.at(1).toByteArray().contains("StingrayPBS")) {
-                        material.isPBSMaterial = true;
-                    }
+                    material.name = (object.properties.at(1).toString());
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
+
                         QByteArray propertyName;
                         int index;
                         if (subobject.name == "Properties60") {
@@ -882,25 +883,36 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                             propertyName = "P";
                             index = 4;
                         }
-                        if (!material.isPBSMaterial && properties) {
-                            foreach (const FBXNode& property, subobject.children) {
+                        if (properties) {
+                            std::vector<std::string> unknowns;
+                            foreach(const FBXNode& property, subobject.children) {
                                 if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
                                         material.diffuseColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "Diffuse") {
-                                        material.diffuseColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "DiffuseFactor") {
                                         material.diffuseFactor = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Diffuse") {
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.diffuseColor = getVec3(property.properties, index);
+                                        //  material.diffuseFactor = 1.0;
 
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specularColor = getVec3(property.properties, index);
-                                    } else if (property.properties.at(0) == "Specular") {
-                                        material.specularColor = getVec3(property.properties, index);
                                     } else if (property.properties.at(0) == "SpecularFactor") {
                                         material.specularFactor = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Specular") {
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.specularColor = getVec3(property.properties, index);
+                                        //  material.specularFactor = 1.0;
 
-                                    } else if (property.properties.at(0) == "Emissive") {
+                                    } else if (property.properties.at(0) == "EmissiveColor") {
                                         material.emissiveColor = getVec3(property.properties, index);
+                                    } else if (property.properties.at(0) == "EmissiveFactor") {
+                                        material.emissiveFactor = property.properties.at(index).value<double>();
+                                    } else if (property.properties.at(0) == "Emissive") {
+                                        // NOTE: this is uneeded but keep it for now for debug
+                                        //  material.emissiveColor = getVec3(property.properties, index);
+                                        //  material.emissiveFactor = 1.0;
 
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
@@ -908,45 +920,50 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                                     } else if (property.properties.at(0) == "Opacity") {
                                         material.opacity = property.properties.at(index).value<double>();
                                     }
-#if defined(DEBUG_FBXREADER)
-                                    else {
-                                        const QString propname = property.properties.at(0).toString();
-                                        if (propname == "EmissiveFactor") {
-                                        }
-                                    }
-#endif
-                                }
-                            }
-                        } else if (material.isPBSMaterial && properties) {
-                            std::vector<std::string> unknowns;
-                            foreach(const FBXNode& property, subobject.children) {
-                                if (property.name == propertyName) {
-                                    if (property.properties.at(0) == "Maya|use_normal_map") {
+
+                                    // Sting Ray Material Properties!!!!
+                                    else if (property.properties.at(0) == "Maya|use_normal_map") {
+                                        material.isPBSMaterial = true;
                                         material.useNormalMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|base_color") {
+                                        material.isPBSMaterial = true;
                                         material.diffuseColor = getVec3(property.properties, index);
+
                                     } else if (property.properties.at(0) == "Maya|use_color_map") {
+                                        material.isPBSMaterial = true;
                                         material.useAlbedoMap = (bool) property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|roughness") {
+                                        material.isPBSMaterial = true;
                                         material.roughness = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_roughness_map") {
+                                        material.isPBSMaterial = true;
                                         material.useRoughnessMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|metallic") {
+                                        material.isPBSMaterial = true;
                                         material.metallic = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_metallic_map") {
+                                        material.isPBSMaterial = true;
                                         material.useMetallicMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|emissive") {
+                                        material.isPBSMaterial = true;
                                         material.emissiveColor = getVec3(property.properties, index);
+
                                     } else if (property.properties.at(0) == "Maya|emissive_intensity") {
+                                        material.isPBSMaterial = true;
                                         material.emissiveIntensity = property.properties.at(index).value<double>();
+
                                     } else if (property.properties.at(0) == "Maya|use_emissive_map") {
+                                        material.isPBSMaterial = true;
                                         material.useEmissiveMap = (bool)property.properties.at(index).value<double>();
 
                                     } else if (property.properties.at(0) == "Maya|use_ao_map") {
+                                        material.isPBSMaterial = true;
                                         material.useOcclusionMap = (bool)property.properties.at(index).value<double>();
 
                                     } else {
@@ -1071,7 +1088,9 @@ FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QS
                     if (connection.properties.at(0) == "OP") {
                         int counter = 0;
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
-                        if ((type.contains("diffuse") && !type.contains("tex_global_diffuse"))) {
+                        if (type.contains("DiffuseFactor")) {
+                            diffuseFactorTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
+                        } else if ((type.contains("diffuse") && !type.contains("tex_global_diffuse"))) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else if (type.contains("tex_color_map")) {
                             diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));

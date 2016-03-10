@@ -81,26 +81,17 @@ class PluginContainerProxy : public QObject, PluginContainer {
     Q_OBJECT
 public:
     virtual ~PluginContainerProxy() {}
-    virtual void addMenu(const QString& menuName) override {}
-    virtual void removeMenu(const QString& menuName) override {}
-    virtual QAction* addMenuItem(PluginType type, const QString& path, const QString& name, std::function<void(bool)> onClicked, bool checkable = false, bool checked = false, const QString& groupName = "") override { return nullptr;  }
-    virtual void removeMenuItem(const QString& menuName, const QString& menuItem) override {}
-    virtual bool isOptionChecked(const QString& name) override { return false;  }
-    virtual void setIsOptionChecked(const QString& path, bool checked) override {}
-    virtual void setFullscreen(const QScreen* targetScreen, bool hideMenu = true) override {}
-    virtual void unsetFullscreen(const QScreen* avoidScreen = nullptr) override {}
     virtual void showDisplayPluginsTools() override {}
     virtual void requestReset() override {}
     virtual bool makeRenderingContextCurrent() override { return true; }
-    virtual void releaseSceneTexture(uint32_t texture) override {}
-    virtual void releaseOverlayTexture(uint32_t texture) override {}
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) override {}
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) override {}
     virtual GLWidget* getPrimaryWidget() override { return nullptr; }
-    virtual QWindow* getPrimaryWindow() override { return nullptr; }
+    virtual MainWindow* getPrimaryWindow() override { return nullptr; }
     virtual QOpenGLContext* getPrimaryContext() override { return nullptr; }
-    virtual bool isForeground() override { return true;  }
+    virtual ui::Menu* getPrimaryMenu() { return nullptr; }
+    virtual bool isForeground() override { return true; }
     virtual const DisplayPlugin* getActiveDisplayPlugin() const override { return nullptr;  }
-    virtual bool getBoolSetting(const QString& settingName, bool defaultValue) override { return defaultValue; }
-    virtual void setBoolSetting(const QString& settingName, bool value) override { }
 };
 
 class MyControllerScriptingInterface : public controller::ScriptingInterface {

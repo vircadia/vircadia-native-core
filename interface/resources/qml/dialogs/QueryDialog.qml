@@ -1,10 +1,20 @@
+//
+//  QueryDialog.qml
+//
+//  Created by Bradley Austin Davis on 22 Jan 2016
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 import QtQuick 2.5
-import QtQuick.Controls 1.2
+import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.2 as OriginalDialogs
 
-import "../controls" as VrControls
-import "../styles"
-import "../windows"
+import "../controls-uit"
+import "../styles-uit"
+import "../windows-uit"
 
 ModalWindow {
     id: root
@@ -16,8 +26,13 @@ ModalWindow {
     signal selected(var result);
     signal canceled();
 
+    property int icon: hifi.icons.none
+    property string iconText: ""
+    property int iconSize: 35
+    onIconChanged: updateIcon();
+
     property var items;
-    property alias label: mainTextContainer.text
+    property string label
     property var result;
     // FIXME not current honored
     property var current;
@@ -28,66 +43,85 @@ ModalWindow {
     // For combo boxes
     property bool editable: true;
 
-    Rectangle {
+    function updateIcon() {
+        if (!root) {
+            return;
+        }
+        iconText = hifi.glyphForIcon(root.icon);
+    }
+
+    Item {
         clip: true
-        anchors.fill: parent
-        radius: 4
-        color: "white"
+        width: pane.width
+        height: pane.height
+        anchors.margins: 0
 
         QtObject {
             id: d
-            readonly property real spacing: hifi.layout.spacing
-            readonly property real outerSpacing: hifi.layout.spacing * 2
             readonly property int minWidth: 480
             readonly property int maxWdith: 1280
             readonly property int minHeight: 120
             readonly property int maxHeight: 720
 
             function resize() {
-                var targetWidth = mainTextContainer.width + d.spacing * 6
-                var targetHeight = mainTextContainer.implicitHeight + textResult.height + d.spacing  + buttons.height
+                var targetWidth = pane.width
+                var targetHeight = (items ? comboBox.controlHeight : textResult.controlHeight) + 5 * hifi.dimensions.contentSpacing.y + buttons.height
                 root.width = (targetWidth < d.minWidth) ? d.minWidth : ((targetWidth > d.maxWdith) ? d.maxWidth : targetWidth)
                 root.height = (targetHeight < d.minHeight) ? d.minHeight: ((targetHeight > d.maxHeight) ? d.maxHeight : targetHeight)
             }
         }
 
-        Text {
-            id: mainTextContainer
-            onHeightChanged: d.resize(); onWidthChanged: d.resize();
-            wrapMode: Text.WordWrap
-            font { pointSize: 14; weight: Font.Bold }
-            anchors { left: parent.left; top: parent.top; margins: d.spacing }
-        }
-
         Item {
-            anchors { top: mainTextContainer.bottom; bottom: buttons.top; left: parent.left; right: parent.right; margins: d.spacing }
+            anchors {
+                top: parent.top
+                bottom: buttons.top;
+                left: parent.left;
+                right: parent.right;
+                margins: 0
+                bottomMargin: 2 * hifi.dimensions.contentSpacing.y
+            }
+
             // FIXME make a text field type that can be bound to a history for autocompletion
-            VrControls.TextField {
+            TextField {
                 id: textResult
+                label: root.label
                 focus: items ? false : true
                 visible: items ? false : true
-                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+                anchors {
+                    left: parent.left;
+                    right: parent.right;
+                    bottom: parent.bottom
+                }
             }
 
-            VrControls.ComboBox {
+            ComboBox {
                 id: comboBox
+                label: root.label
                 focus: true
                 visible: items ? true : false
-                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    bottom: parent.bottom
+                }
                 model: items ? items : []
             }
-
         }
 
         Flow {
             id: buttons
             focus: true
-            spacing: d.spacing
+            spacing: hifi.dimensions.contentSpacing.x
             onHeightChanged: d.resize(); onWidthChanged: d.resize();
             layoutDirection: Qt.RightToLeft
-            anchors { bottom: parent.bottom; right: parent.right; margins: d.spacing; }
-            Button { action: acceptAction }
+            anchors {
+                bottom: parent.bottom
+                right: parent.right
+                margins: 0
+                bottomMargin: hifi.dimensions.contentSpacing.y
+            }
             Button { action: cancelAction }
+            Button { action: acceptAction }
         }
 
         Action {
@@ -129,5 +163,11 @@ ModalWindow {
             event.accepted = true;
             break;
         }
+    }
+
+    Component.onCompleted: {
+        updateIcon();
+        d.resize();
+        textResult.forceActiveFocus();
     }
 }

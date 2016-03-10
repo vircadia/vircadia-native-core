@@ -136,10 +136,12 @@ void Stats::updateStats(bool force) {
     SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
     SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
     SharedNodePointer assetServerNode = nodeList->soloNodeOfType(NodeType::AssetServer);
+    SharedNodePointer messageMixerNode = nodeList->soloNodeOfType(NodeType::MessagesMixer);
     STAT_UPDATE(audioPing, audioMixerNode ? audioMixerNode->getPingMs() : -1);
     STAT_UPDATE(avatarPing, avatarMixerNode ? avatarMixerNode->getPingMs() : -1);
     STAT_UPDATE(assetPing, assetServerNode ? assetServerNode->getPingMs() : -1);
-    
+    STAT_UPDATE(messagePing, messageMixerNode ? messageMixerNode->getPingMs() : -1);
+
     //// Now handle entity servers, since there could be more than one, we average their ping times
     int totalPingOctree = 0;
     int octreeServerCount = 0;
@@ -223,6 +225,12 @@ void Stats::updateStats(bool force) {
                 movingServerCount++;
             } else {
                 sendingModeStream << "S";
+            }
+            if (stats.isFullScene()) {
+                sendingModeStream << "F";
+            }
+            else {
+                sendingModeStream << "p";
             }
         }
 

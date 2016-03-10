@@ -24,7 +24,7 @@ public:
 
     virtual void activate() override;
 
-    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) override;
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
 
     virtual void internalPresent() override;
 
