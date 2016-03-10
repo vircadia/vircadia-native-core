@@ -31,7 +31,9 @@ EntityItemPointer RenderableBoxEntityItem::factory(const EntityItemID& entityID,
 void RenderableBoxEntityItem::setUserData(const QString& value) {
     if (value != getUserData()) {
         BoxEntityItem::setUserData(value);
-        _procedural.reset();
+        if (_procedural) {
+            _procedural->parse(value);
+        }
     }
 }
 
@@ -39,7 +41,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     Q_ASSERT(getType() == EntityTypes::Box);
     Q_ASSERT(args->_batch);
-
 
     if (!_procedural) {
         _procedural.reset(new Procedural(this->getUserData()));
@@ -62,7 +63,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     }
 
     batch.setModelTransform(transToCenter); // we want to include the scale as well
-    if (_procedural && _procedural->ready()) {
+    if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions());
         auto color = _procedural->getColor(cubeColor);
         batch._glColor4f(color.r, color.g, color.b, color.a);
