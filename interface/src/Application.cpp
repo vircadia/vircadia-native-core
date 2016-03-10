@@ -250,14 +250,18 @@ public:
         setObjectName("Deadlock Watchdog");
         QTimer* heartbeatTimer = new QTimer();
         // Give the heartbeat an initial value
-        _heartbeat = usecTimestampNow();
+        updateHeartbeat();
         connect(heartbeatTimer, &QTimer::timeout, [this] {
-            _heartbeat = usecTimestampNow();
+            updateHeartbeat();
         });
         heartbeatTimer->start(HEARTBEAT_UPDATE_INTERVAL_SECS * MSECS_PER_SECOND);
         connect(qApp, &QCoreApplication::aboutToQuit, [this] {
             _quit = true;
         });
+    }
+
+    void updateHeartbeat() {
+        _heartbeat = usecTimestampNow();
     }
 
     void deadlockDetectionCrash() {
@@ -505,7 +509,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     auto nodeList = DependencyManager::get<NodeList>();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
-    (new DeadlockWatchdogThread())->start();
+    auto deadlockWatchdog = new DeadlockWatchdogThread();
+    deadlockWatchdog->start();
 
     qCDebug(interfaceapp) << "[VERSION] Build sequence:" << qPrintable(applicationVersion());
 
@@ -539,7 +544,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioThread->setObjectName("Audio Thread");
 
     auto audioIO = DependencyManager::get<AudioClient>();
-
     audioIO->setPositionGetter([this]{ return getMyAvatar()->getPositionForAudio(); });
     audioIO->setOrientationGetter([this]{ return getMyAvatar()->getOrientationForAudio(); });
 
@@ -557,7 +561,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     });
 
     auto& audioScriptingInterface = AudioScriptingInterface::getInstance();
-
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
@@ -580,6 +583,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     audioThread->start();
 
     ResourceManager::init();
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::get<MessagesClient>();
@@ -634,6 +639,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setIsAgent(true);
     accountManager.setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
     UserActivityLogger::getInstance().launch(applicationVersion());
 
     // once the event loop has started, check and signal for an access token
@@ -723,8 +729,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _offscreenContext->create(_glWidget->context()->contextHandle());
     _offscreenContext->makeCurrent();
     initializeGL();
-
     _offscreenContext->makeCurrent();
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -735,6 +742,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
     _overlays.init(); // do this before scripts load
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
@@ -886,8 +895,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
     // do this as late as possible so that all required subsystems are initialized
     scriptEngines->loadScripts();
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
 
     loadSettings();
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
+
     int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
     connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
     connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
@@ -999,6 +1013,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
             _keyboardFocusHighlight->setVisible(false);
         }
     });
+
+    // Make sure we don't time out during slow operations at startup
+    deadlockWatchdog->updateHeartbeat();
 
     connect(this, &Application::applicationStateChanged, this, &Application::activeChanged);
     qCDebug(interfaceapp, "Startup time: %4.2f seconds.", (double)startupTimer.elapsed() / 1000.0);
