@@ -140,8 +140,8 @@ void EntityTreeRenderer::update() {
         // If we haven't already updated and previously attempted to load a texture,
         // check if the texture loaded and apply it
         if (!updated && (
-            (_pendingSkyboxTexture && _skyboxTexture && _skyboxTexture->isLoaded()) ||
-            (_pendingAmbientTexture && _ambientTexture && _ambientTexture->isLoaded()))) {
+            (_pendingSkyboxTexture && (!_skyboxTexture || _skyboxTexture->isLoaded())) ||
+            (_pendingAmbientTexture && (!_ambientTexture && _ambientTexture->isLoaded())))) {
             applyZonePropertiesToScene(_bestZone);
         }
 
@@ -326,15 +326,19 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
         _ambientTexture.clear();
     } else {
         _ambientTexture = textureCache->getTexture(zone->getKeyLightProperties().getAmbientURL(), CUBE_TEXTURE);
-        if (_ambientTexture && _ambientTexture->isLoaded() && _ambientTexture->getGPUTexture()) {
+        _pendingAmbientTexture = true;
+
+        if (_ambientTexture && _ambientTexture->isLoaded()) {
             _pendingAmbientTexture = false;
-            if (_ambientTexture->getGPUTexture()->getIrradiance()) {
-                sceneKeyLight->setAmbientSphere(_ambientTexture->getGPUTexture()->getIrradiance());
-                sceneKeyLight->setAmbientMap(_ambientTexture->getGPUTexture());
+
+            auto texture = _ambientTexture->getGPUTexture();
+            if (texture) {
+                sceneKeyLight->setAmbientSphere(texture->getIrradiance());
+                sceneKeyLight->setAmbientMap(texture);
                 isAmbientTextureSet = true;
+            } else {
+                qCDebug(entitiesrenderer) << "Failed to load ambient texture:" << zone->getKeyLightProperties().getAmbientURL();
             }
-        } else {
-            _pendingAmbientTexture = true;
         }
     }
 
@@ -353,24 +357,27 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                 }
             }
             if (zone->getSkyboxProperties().getURL().isEmpty()) {
-                skybox->setCubemap(gpu::TexturePointer());
+                skybox->setCubemap(nullptr);
                 _pendingSkyboxTexture = false;
                 _skyboxTexture.clear();
             } else {
                 // Update the Texture of the Skybox with the one pointed by this zone
                 _skyboxTexture = textureCache->getTexture(zone->getSkyboxProperties().getURL(), CUBE_TEXTURE);
+                _pendingSkyboxTexture = true;
 
-                if (_skyboxTexture && _skyboxTexture->isLoaded() && _skyboxTexture->getGPUTexture()) {
+                if (_skyboxTexture && _skyboxTexture->isLoaded()) {
+                    _pendingSkyboxTexture = false;
+
                     auto texture = _skyboxTexture->getGPUTexture();
                     skybox->setCubemap(texture);
-                    _pendingSkyboxTexture = false;
-                    if (!isAmbientTextureSet && texture->getIrradiance()) {
+                    if (!isAmbientTextureSet) {
                         sceneKeyLight->setAmbientSphere(texture->getIrradiance());
                         sceneKeyLight->setAmbientMap(texture);
                         isAmbientTextureSet = true;
                     }
                 } else {
-                    _pendingSkyboxTexture = true;
+                    skybox->setCubemap(nullptr);
+                    qCDebug(entitiesrenderer) << "Failed to load skybox:" << zone->getSkyboxProperties().getURL();
                 }
             }
 
