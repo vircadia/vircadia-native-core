@@ -25,8 +25,8 @@ centerUp.y += 0.5;
 var centerDown = Vec3.sum(MyAvatar.position, Vec3.multiply(3, Quat.getFront(orientation)));
 centerDown.y -= 0.5;
 
-var ENTITY_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidUniformChange/uniformTest.fs";
-var SKYBOX_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidUniformChange/timerTest.fs";
+var ENTITY_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidProceduralChange/uniformTest.fs";
+var SKYBOX_SHADER_URL = "file:///C:/Users/User/Code/hifi-master/examples/tests/rapidProceduralChange/timerTest.fs";
 
 var entityData = {
     ProceduralEntity: {
