@@ -56,12 +56,13 @@ Window {
         Assets.deleteMappings(path, function(err) {
             if (err) {
                 console.log("Error deleting path: ", path, err);
-                errorMessage("There was an error deleting:\n" + path + "\n\nPlease try again.");
+
+                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + Assets.getErrorString(err));
+                box.selected.connect(reload);
             } else {
                 console.log("Finished deleting path: ", path);
+                reload();
             }
-
-            reload();
         });
 
     }
@@ -76,7 +77,8 @@ Window {
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
-                errorMessage("There was an error renaming:\n" + oldPath + " to " + newPath + "\n\nPlease try again.");
+                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + Assets.getErrorString(err));
+                box.selected.connect(reload);
             } else {
                 console.log("Finished rename: ", oldPath, "=>", newPath);
             }
@@ -119,9 +121,11 @@ Window {
         Assets.mappingModel.refresh();
     }
 
-    function handleGetMappingsError() {
-        errorMessage("There was a problem retreiving the list of assets from your Asset Server.\n"
-                     + "Please make sure you are connected to the Asset Server and try again. ");
+    function handleGetMappingsError(errorCode) {
+        errorMessageBox(
+            "There was a problem retreiving the list of assets from your Asset Server.\n"
+            + Assets.getErrorString(errorCode)
+        );
     }
 
     function addToWorld() {
@@ -234,12 +238,12 @@ Window {
         });
     }
 
-    function errorMessage(message) {
-        desktop.messageBox({
-            icon: OriginalDialogs.StandardIcon.Error,
-            buttons: OriginalDialogs.StandardButton.Ok,
-            text: "Error",
-            informativeText: message
+    function errorMessageBox(message) {
+        return desktop.messageBox({
+            icon: hifi.icons.warning,
+            defaultButton: OriginalDialogs.StandardButton.Ok,
+            title: "Error",
+            text: message
         });
     }
 
