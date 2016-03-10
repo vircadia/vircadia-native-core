@@ -155,7 +155,7 @@ void Procedural::parse(QJsonObject proceduralData) {
     auto uniforms = proceduralData[UNIFORMS_KEY].toObject();
     auto channels = proceduralData[CHANNELS_KEY].toArray();
 
-    if (parseVersion(proceduralData[VERSION_KEY]) &&
+    if (parseVersion(version) &&
         parseUrl(shaderUrl) &&
         parseUniforms(uniforms) &&
         parseTextures(channels)) {
