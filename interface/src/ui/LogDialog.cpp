@@ -127,7 +127,7 @@ void LogDialog::resizeEvent(QResizeEvent*) {
 void LogDialog::appendLogLine(QString logLine) {
     if (isVisible()) {
         if (logLine.contains(_searchTerm, Qt::CaseInsensitive)) {
-            _logTextBox->appendPlainText(logLine.simplified());
+            _logTextBox->appendPlainText(logLine.trimmed());
         }
     }
 }
