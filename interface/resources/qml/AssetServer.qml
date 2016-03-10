@@ -115,10 +115,12 @@ Window {
         Assets.mappingModel.refresh();
     }
     function addToWorld() {
-        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
-        if (!path) {
+        var url = assetMappingsModel.data(treeView.currentIndex, 0x102);
+        if (!url) {
             return;
         }
+
+        Entities.addModelEntity(url, MyAvatar.position);
     }
 
     function copyURLToClipboard() {
