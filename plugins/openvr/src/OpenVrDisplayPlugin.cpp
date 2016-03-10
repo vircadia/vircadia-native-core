@@ -79,7 +79,7 @@ void OpenVrDisplayPlugin::activate() {
         float xSize, zSize;
         chaperone->GetPlayAreaSize(&xSize, &zSize);
         glm::vec3 uiPos(0.0f, UI_HEIGHT, 0.5f * zSize - UI_RADIUS + UI_Z_OFFSET);
-        _sensorResetMat = glm::inverse(createMatFromQuatAndPos(Quaternions::Y_180, uiPos));
+        _sensorResetMat = glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
     } else {
         qDebug() << "OpenVR: error could not get chaperone pointer";
     }
