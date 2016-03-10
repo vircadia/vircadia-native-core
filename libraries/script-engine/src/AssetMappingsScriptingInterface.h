@@ -32,7 +32,8 @@
  class AssetMappingModel : public QStandardItemModel {
      Q_OBJECT
  public:
-     AssetMappingModel(QObject* parent = nullptr);
+     AssetMappingModel();
+     ~AssetMappingModel();
 
 //     QVariant AssetMappingModel::data(const QModelIndex& index, int role) const;
 
@@ -45,8 +46,10 @@
 
 class AssetMappingsScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
+    Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
 public:
     AssetMappingsScriptingInterface();
+    ~AssetMappingsScriptingInterface();
 
     Q_INVOKABLE AssetMappingModel* getAssetMappingModel() { return &_assetMappingModel; }
 

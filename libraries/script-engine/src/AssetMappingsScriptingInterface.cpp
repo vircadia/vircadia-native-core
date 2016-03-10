@@ -20,6 +20,9 @@
 
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
 }
+AssetMappingsScriptingInterface::~AssetMappingsScriptingInterface() {
+    qDebug() << "Destroying mapping interface";
+}
 
 void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJSValue callback) {
     auto assetClient = DependencyManager::get<AssetClient>();
@@ -118,7 +121,11 @@ AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath,
 
 static int assetMappingModelMetatypeId = qRegisterMetaType<AssetMappingModel*>("AssetMappingModel*");
 
-AssetMappingModel::AssetMappingModel(QObject* parent) {
+AssetMappingModel::AssetMappingModel() {
+}
+
+AssetMappingModel::~AssetMappingModel() {
+    qDebug() << " DEST";
 }
 
 void AssetMappingModel::refresh() {
@@ -128,48 +135,76 @@ void AssetMappingModel::refresh() {
 
     connect(request, &GetAllMappingsRequest::finished, this, [this](GetAllMappingsRequest* request) mutable {
         auto mappings = request->getMappings();
+        auto existingPaths = _pathToItemMap.keys();
         for (auto& mapping : mappings) {
             auto& path = mapping.first;
             auto parts = path.split("/");
             auto length = parts.length();
 
-            QString fullPath = parts[0];
+            existingPaths.removeOne(mapping.first);
+
+            QString fullPath = "";// parts[0];
 
             QStandardItem* lastItem = nullptr;
 
-            auto it = _pathToItemMap.find(fullPath);
-            if (it == _pathToItemMap.end()) {
-                lastItem = new QStandardItem(parts[0]);
-                lastItem->setData(parts[0], Qt::UserRole + 1);
-                lastItem->setData(fullPath, Qt::UserRole + 2);
-                _pathToItemMap[fullPath] = lastItem;
-                appendRow(lastItem);
-            }
-            else {
-                lastItem = it.value();
-            }
+            for (int i = 0; i < length; ++i) {
+                fullPath += (i == 0 ? "" : "/") + parts[i];
 
-            if (length > 1) {
-                for (int i = 1; i < length; ++i) {
-                    fullPath += "/" + parts[i];
-
-                    auto it = _pathToItemMap.find(fullPath);
-                    if (it == _pathToItemMap.end()) {
-                        qDebug() << "prefix not found: " << fullPath;
-                        auto item = new QStandardItem(parts[i]);
-                        bool isFolder = i < length - 1;
-                        item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
+                auto it = _pathToItemMap.find(fullPath);
+                if (it == _pathToItemMap.end()) {
+                    qDebug() << "prefix not found: " << fullPath;
+                    auto item = new QStandardItem(parts[i]);
+                    bool isFolder = i < length - 1;
+                    item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
+                    item->setData(isFolder, Qt::UserRole + 1);
+                    if (lastItem) {
                         lastItem->setChild(lastItem->rowCount(), 0, item);
-                        lastItem = item;
-                        _pathToItemMap[fullPath] = lastItem;
+                    } else {
+                        appendRow(item);
                     }
-                    else {
-                        lastItem = it.value();
-                    }
+
+                    lastItem = item;
+                    _pathToItemMap[fullPath] = lastItem;
+                }
+                else {
+                    lastItem = it.value();
                 }
             }
 
             Q_ASSERT(fullPath == path);
+        }
+        for (auto& path : existingPaths) {
+            Q_ASSERT(_pathToItemMap.contains(path));
+            auto item = _pathToItemMap[path];
+            if (item->data(Qt::UserRole + 1).toBool()) {
+                continue;
+            }
+
+            qDebug() << "removing existing: " << path;
+
+            while (item) {
+                // During each iteration, delete item
+                QStandardItem* nextItem = nullptr;
+
+                auto parent = item->parent();
+                if (parent) {
+                    parent->removeRow(item->row());
+                    if (parent->rowCount() > 0) {
+                        // The parent still contains children, set the nextItem to null so we stop processing
+                        nextItem = nullptr;
+                    } else {
+                        nextItem = parent;
+                    }
+                } else {
+                    removeRow(item->row());
+                }
+
+                _pathToItemMap.remove(path);
+                //delete item;
+
+                item = nextItem;
+            }
+            //removeitem->index();
         }
     });
 
