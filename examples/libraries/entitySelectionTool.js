@@ -894,7 +894,7 @@ SelectionDisplay = (function() {
         alpha: handleAlpha,
         visible: false,
         size: 0.1,
-        scale: 0.025,
+        scale: 0.1,
         isFacingAvatar: false,
         drawInFront: true,
     });
