@@ -21,7 +21,7 @@ import "dialogs"
 Window {
     id: root
     objectName: "AssetServer"
-    title: "Asset Server"
+    title: "My Asset Server"
     resizable: true
     destroyOnInvisible: true
     x: 40; y: 40

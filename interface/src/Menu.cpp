@@ -95,10 +95,6 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
         qApp, SLOT(toggleRunningScriptsWidget()));
 
-    // Edit > Asset Server
-    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, 0,
-        qApp, SLOT(toggleAssetServerWidget()));
-
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
         qApp, SLOT(loadDialog()),
@@ -131,10 +127,15 @@ Menu::Menu() {
         SLOT(toggleConsole()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
+    editMenu->addSeparator();
+
+    // Edit > My Asset Server
+    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, 0, qApp, SLOT(toggleAssetServerWidget()));
+
     // Edit > Reload All Content [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
-
+    
 
     // Edit > Package Model... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::PackageModel, 0,
