@@ -83,6 +83,7 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue callback) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_NONE, "Enter asset path:", "", mapping);
+
     if (!result.isValid()) {
         return;
     }

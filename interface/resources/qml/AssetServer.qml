@@ -212,7 +212,13 @@ Window {
         });
     }
 
+    property var uploadOpen: false;
     function uploadClicked() {
+        if(uploadOpen) {
+            return;
+        }
+        uploadOpen = true;
+
         var fileUrl = fileUrlTextField.text
         var addToWorld = addToWorldCheckBox.checked
 
@@ -230,6 +236,7 @@ Window {
 
             reload();
         });
+        uploadOpen = false;
     }
 
     function errorMessageBox(message) {
