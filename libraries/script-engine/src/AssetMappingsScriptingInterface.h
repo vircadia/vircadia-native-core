@@ -18,6 +18,7 @@
 #include <QtScript/QScriptValue>
 
 #include <AssetClient.h>
+#include <QSortFilterProxyModel>
 
  class AssetMappingItem : public QStandardItem {
  public:
@@ -39,6 +40,8 @@
 
      Q_INVOKABLE void refresh();
 
+     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); };
+
  private:
      QHash<QString, QStandardItem*> _pathToItemMap;
  };
@@ -47,8 +50,14 @@
 class AssetMappingsScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
+    Q_PROPERTY(QAbstractProxyModel* proxyModel READ getProxyModel CONSTANT)
 public:
+    AssetMappingsScriptingInterface();
+
     Q_INVOKABLE AssetMappingModel* getAssetMappingModel() { return &_assetMappingModel; }
+    Q_INVOKABLE QAbstractProxyModel* getProxyModel() { return &_proxyModel; }
+
+    Q_INVOKABLE bool isKnownMapping(QString path) const { return _assetMappingModel.isKnownMapping(path); };
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback);
     Q_INVOKABLE void getMapping(QString path, QJSValue callback);
@@ -59,6 +68,7 @@ public:
 protected:
     QSet<AssetRequest*> _pendingRequests;
     AssetMappingModel _assetMappingModel;
+    QSortFilterProxyModel _proxyModel;
 };
 
 

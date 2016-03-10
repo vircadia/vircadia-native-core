@@ -33,7 +33,7 @@ Window {
     HifiConstants { id: hifi }
 
     property var scripts: ScriptDiscoveryService;
-    property var scriptsModel: Assets.mappingModel;
+    property var assetMappingsModel: Assets.proxyModel;
     property var currentDirectory;
     property alias currentFileUrl: fileUrlTextField.text;
 
@@ -67,8 +67,8 @@ Window {
         });
     }
 
-    function fileExists(destinationPath) {
-        return true; // TODO get correct value
+    function fileExists(path) {
+        return Assets.isKnownMapping(path);
     }
 
     function askForOverride(path, callback) {
@@ -89,7 +89,7 @@ Window {
 
     function canAddToWorld() {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
-        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
 
         return supportedExtensions.reduce(function(total, current) {
             return total | new RegExp(current).test(path);
@@ -98,18 +98,25 @@ Window {
 
     function reload() {
         print("reload");
-        scriptsModel.refresh();
+        Assets.mappingModel.refresh();
     }
     function addToWorld() {
-        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
         if (!path) {
             return;
         }
-
-        print("addToWorld");
     }
+
+    function copyURLToClipboard() {
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x103);
+        if (!path) {
+            return;
+        }
+        Window.copyToClipboard(path);
+    }
+
     function renameFile() {
-        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
         if (!path) {
             return;
         }
@@ -120,6 +127,9 @@ Window {
             placeholderText: "Enter path here"
         });
         object.selected.connect(function(destinationPath) {
+            if (path == destinationPath) {
+                return;
+            }
             if (fileExists(destinationPath)) {
                 askForOverride(destinationPath, function() {
                     doRenameFile(path, destinationPath);
@@ -130,17 +140,20 @@ Window {
         });
     }
     function deleteFile() {
-        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
         if (!path) {
             return;
         }
+
+        var isFolder = assetMappingsModel.data(treeView.currentIndex, 0x101);
+        var typeString = isFolder ? 'folder' : 'file';
 
         var object = desktop.messageBox({
             icon: OriginalDialogs.StandardIcon.Question,
             buttons: OriginalDialogs.StandardButton.Yes | OriginalDialogs.StandardButton.No,
             defaultButton: OriginalDialogs.StandardButton.No,
             text: "Deleting",
-            informativeText: "You are about to delete the following file:\n" +
+            informativeText: "You are about to delete the following " + typeString + ":\n" +
                              path +
                              "\nDo you want to continue?"
         });
@@ -166,7 +179,7 @@ Window {
         var fileUrl = fileUrlTextField.text
         var addToWorld = addToWorldCheckBox.checked
 
-        var path = scriptsModel.data(treeView.currentIndex, 0x100);
+        var path = assetMappingsModel.data(treeView.currentIndex, 0x100);
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
@@ -211,6 +224,16 @@ Window {
                     onClicked: root.reload()
                 }
 
+                HifiControls.GlyphButton {
+                    glyph: hifi.glyphs.reload
+                    color: hifi.buttons.white
+                    colorScheme: root.colorScheme
+                    height: 26
+                    width: 26
+
+                    onClicked: root.copyURLToClipboard()
+                }
+
                 HifiControls.Button {
                     text: "ADD TO WORLD"
                     color: hifi.buttons.white
@@ -249,7 +272,7 @@ Window {
             HifiControls.Tree {
                 id: treeView
                 height: 400
-                treeModel: scriptsModel
+                treeModel: assetMappingsModel
                 colorScheme: root.colorScheme
                 anchors.left: parent.left
                 anchors.right: parent.right
