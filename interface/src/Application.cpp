@@ -4857,6 +4857,9 @@ void Application::updateDisplayMode() {
     }
     emit activeDisplayPluginChanged();
 
+    // reset the avatar, to set head and hand palms back to a resonable default pose.
+    getMyAvatar()->reset(false);
+
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
