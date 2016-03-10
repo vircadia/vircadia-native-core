@@ -117,7 +117,7 @@ void AssetServer::completeSetup() {
     // Check the asset directory to output some information about what we have
     auto files = _filesDirectory.entryList(QDir::Files);
 
-    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}$" };
+    QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
     auto hashedFiles = files.filter(hashFileRegex);
 
     qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
@@ -244,6 +244,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
 void AssetServer::handleSetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     if (senderNode->getCanRez()) {
         QString assetPath = message.readString();
+
         auto assetHash = message.read(SHA256_HASH_LENGTH).toHex();
 
         if (setMapping(assetPath, assetHash)) {
@@ -453,6 +454,29 @@ void AssetServer::loadMappingsFromFile() {
             if (error.error == QJsonParseError::NoError) {
                 _fileMappings = jsonDocument.object().toVariantHash();
 
+                // remove any mappings that don't match the expected format
+                auto it = _fileMappings.begin();
+                while (it != _fileMappings.end()) {
+                    bool shouldDrop = false;
+
+                    if (!isValidPath(it.key())) {
+                        qWarning() << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
+                        shouldDrop = true;
+                    }
+
+
+                    if (!isValidHash(it.value().toString())) {
+                        qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
+                        shouldDrop = true;
+                    }
+
+                    if (shouldDrop) {
+                        it = _fileMappings.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+
                 qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
                 return;
             }
@@ -487,6 +511,17 @@ bool AssetServer::writeMappingsToFile() {
 }
 
 bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
+
+    if (!isValidPath(path)) {
+        qWarning() << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
+        return false;
+    }
+
+    if (!isValidHash(hash)) {
+        qWarning() << "Cannot set a mapping for invalid hash" << path << "=>" << hash;
+        return false;
+    }
+
     // remember what the old mapping was in case persistence fails
     auto oldMapping = _fileMappings.value(path).toString();
 
@@ -569,6 +604,13 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
 }
 
 bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
+    if (oldPath[0] != '/' || newPath[0] != '/') {
+        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
+            << oldPath << "=>" << newPath;
+
+        return false;
+    }
+
     // figure out if this rename is for a file or folder
     if (pathIsFolder(oldPath)) {
         if (!pathIsFolder(newPath)) {

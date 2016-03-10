@@ -25,11 +25,11 @@ AssetResourceRequest::~AssetResourceRequest() {
     }
 }
 
-bool AssetResourceRequest::urlIsAssetPath() const {
+bool AssetResourceRequest::urlIsAssetHash() const {
     static const QString ATP_HASH_REGEX_STRING = "^atp:([A-Fa-f0-9]{64})(\\.[\\w]+)?$";
 
     QRegExp hashRegex { ATP_HASH_REGEX_STRING };
-    return !hashRegex.exactMatch(_url.toString());
+    return hashRegex.exactMatch(_url.toString());
 }
 
 void AssetResourceRequest::doSend() {
@@ -39,18 +39,18 @@ void AssetResourceRequest::doSend() {
 
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
 
-    if (urlIsAssetPath()) {
-        // This is an ATP path, we'll need to figure out what the mapping is.
-        // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
-
-        auto path = _url.path();
-        requestMappingForPath(path);
-    } else {
+    if (urlIsAssetHash()) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
         auto parts = _url.path().split(".", QString::SkipEmptyParts);
         auto hash = parts.length() > 0 ? parts[0] : "";
 
         requestHash(hash);
+    } else {
+        // This is an ATP path, we'll need to figure out what the mapping is.
+        // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
+
+        auto path = _url.path();
+        requestMappingForPath(path);
     }
 }
 

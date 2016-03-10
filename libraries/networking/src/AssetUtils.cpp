@@ -63,3 +63,13 @@ bool saveToCache(const QUrl& url, const QByteArray& file) {
     }
     return false;
 }
+
+bool isValidPath(const AssetPath& path) {
+    QRegExp pathRegex { ASSET_PATH_REGEX_STRING };
+    return pathRegex.exactMatch(path);
+}
+
+bool isValidHash(const AssetHash& hash) {
+    QRegExp hashRegex { ASSET_HASH_REGEX_STRING };
+    return hashRegex.exactMatch(hash);
+}
