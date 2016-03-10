@@ -174,6 +174,19 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     request->start();
 }
 
+bool AssetMappingModel::isKnownFolder(QString path) const {
+    if (!path.endsWith("/")) {
+        return false;
+    }
+
+    auto existingPaths = _pathToItemMap.keys();
+    for (auto& entry : existingPaths) {
+        if (entry.startsWith(path)) {
+            return true;
+        }
+    }
+    return false;
+}
 
 AssetMappingItem::AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder) :
     name(name),

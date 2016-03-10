@@ -35,7 +35,8 @@
  public:
      Q_INVOKABLE void refresh();
 
-     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); };
+     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
+     bool isKnownFolder(QString path) const;
 
  signals:
      void errorGettingMappings(int error);
@@ -55,7 +56,8 @@ public:
     Q_INVOKABLE AssetMappingModel* getAssetMappingModel() { return &_assetMappingModel; }
     Q_INVOKABLE QAbstractProxyModel* getProxyModel() { return &_proxyModel; }
 
-    Q_INVOKABLE bool isKnownMapping(QString path) const { return _assetMappingModel.isKnownMapping(path); };
+    Q_INVOKABLE bool isKnownMapping(QString path) const { return _assetMappingModel.isKnownMapping(path); }
+    Q_INVOKABLE bool isKnownFolder(QString path) const { return _assetMappingModel.isKnownFolder(path); }
 
     Q_INVOKABLE QString getErrorString(int errorCode) const;
 
