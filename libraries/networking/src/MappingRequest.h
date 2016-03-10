@@ -64,6 +64,7 @@ class SetMappingRequest : public MappingRequest {
 public:
     SetMappingRequest(const AssetPath& path, const AssetHash& hash);
 
+    AssetPath getPath() const { return _path;  }
     AssetHash getHash() const { return _hash;  }
 
 signals:
