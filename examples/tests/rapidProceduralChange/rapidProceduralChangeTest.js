@@ -41,7 +41,6 @@ var skyboxData = {
     }
 };
 
-print("ABOUT TO ADD ENTITY");
 var testBox = Entities.addEntity({
     type: "Box",
     dimensions: { x: 0.5, y: 0.5, z: 0.5 },
@@ -73,7 +72,6 @@ function update(deltaTime) {
     entityEdit = { userData: JSON.stringify(entityData) };
     skyboxEdit = { userData: JSON.stringify(skyboxData) };
 
-    print("ABOUT TO EDIT ENTITIES");
     Entities.editEntity(testBox, entityEdit);
     Entities.editEntity(testSphere, entityEdit);
     Entities.editEntity(testZone, skyboxEdit);
