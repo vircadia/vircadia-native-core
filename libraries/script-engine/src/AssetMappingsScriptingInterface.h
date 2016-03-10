@@ -1,5 +1,5 @@
 //
-//  AssetScriptingInterface.h
+//  AssetMappingsScriptingInterface.h
 //  libraries/script-engine/src
 //
 //  Created by Ryan Huffman on 2016-03-09.
