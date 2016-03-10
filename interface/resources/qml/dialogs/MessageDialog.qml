@@ -96,6 +96,7 @@ ModalWindow {
             }
             lineHeight: 2
             lineHeightMode: Text.ProportionalHeight
+            horizontalAlignment: Text.AlignHCenter
         }
 
         RalewaySemiBold {
