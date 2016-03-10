@@ -64,6 +64,7 @@ void EntityTreeElement::debugExtraEncodeData(EncodeBitstreamParams& params) cons
 }
 
 void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params) {
+
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     // Check to see if this element yet has encode data... if it doesn't create it
@@ -85,7 +86,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
         forEachEntity([&](EntityItemPointer entity) {
             entityTreeElementExtraEncodeData->entities.insert(entity->getEntityItemID(), entity->getEntityProperties(params));
         });
-        
+
         // TODO: some of these inserts might be redundant!!!
         extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
     }
@@ -96,39 +97,39 @@ bool EntityTreeElement::shouldIncludeChildData(int childIndex, EncodeBitstreamPa
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
+        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
                         = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
-                        
+
         bool childCompleted = entityTreeElementExtraEncodeData->childCompleted[childIndex];
-        
+
         // If we haven't completely sent the child yet, then we should include it
         return !childCompleted;
     }
-    
+
     // I'm not sure this should ever happen, since we should have the extra encode data if we're considering
     // the child data for this element
     assert(false);
     return false;
 }
 
-bool EntityTreeElement::shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const { 
+bool EntityTreeElement::shouldRecurseChildTree(int childIndex, EncodeBitstreamParams& params) const {
     EntityTreeElementPointer childElement = getChildAtIndex(childIndex);
     if (childElement->alreadyFullyEncoded(params)) {
         return false;
     }
-    
+
     return true; // if we don't know otherwise than recurse!
 }
 
-bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const { 
+bool EntityTreeElement::alreadyFullyEncoded(EncodeBitstreamParams& params) const {
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
 
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
+        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
                         = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
 
-        // If we know that ALL subtrees below us have already been recursed, then we don't 
+        // If we know that ALL subtrees below us have already been recursed, then we don't
         // need to recurse this child.
         return entityTreeElementExtraEncodeData->subtreeCompleted;
     }
@@ -139,7 +140,7 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     assert(extraEncodeData); // EntityTrees always require extra encode data on their encoding passes
     if (extraEncodeData->contains(this)) {
-        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData 
+        EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData
                         = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
 
         if (childAppendState == OctreeElement::COMPLETED) {
@@ -155,7 +156,7 @@ void EntityTreeElement::updateEncodedData(int childIndex, AppendState childAppen
 
 void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) const {
     const bool wantDebug = false;
-    
+
     if (wantDebug) {
         qCDebug(entities) << "EntityTreeElement::elementEncodeComplete() element:" << _cube;
     }
@@ -188,7 +189,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
             // If we've encoding this element before... but we're coming back a second time in an attempt to
             // encoud our parent... this might happen.
             if (extraEncodeData->contains(childElement.get())) {
-                EntityTreeElementExtraEncodeData* childExtraEncodeData 
+                EntityTreeElementExtraEncodeData* childExtraEncodeData
                     = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(childElement.get()));
 
                 if (wantDebug) {
@@ -197,7 +198,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
                     qCDebug(entities) << "    childExtraEncodeData->elementCompleted:" << childExtraEncodeData->elementCompleted;
                     qCDebug(entities) << "    childExtraEncodeData->subtreeCompleted:" << childExtraEncodeData->subtreeCompleted;
                 }
-                
+
                 if (childElement->isLeaf() && childExtraEncodeData->elementCompleted) {
                     if (wantDebug) {
                         qCDebug(entities) << "    CHILD IS LEAF -- AND CHILD ELEMENT DATA COMPLETED!!!";
@@ -217,24 +218,24 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
         qCDebug(entities) << "    WAS elementCompleted:" << thisExtraEncodeData->elementCompleted;
         qCDebug(entities) << "    WAS subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
     }
-    
+
     thisExtraEncodeData->subtreeCompleted = !someChildTreeNotComplete;
 
     if (wantDebug) {
         qCDebug(entities) << "    NOW elementCompleted:" << thisExtraEncodeData->elementCompleted;
         qCDebug(entities) << "    NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
-    
+
         if (thisExtraEncodeData->subtreeCompleted) {
             qCDebug(entities) << "    YEAH!!!!! >>>>>>>>>>>>>> NOW subtreeCompleted:" << thisExtraEncodeData->subtreeCompleted;
         }
     }
 }
 
-OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
+OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData,
                                                                     EncodeBitstreamParams& params) const {
 
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
-    
+
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
     OctreeElementExtraEncodeData* extraEncodeData = params.extraEncodeData;
     EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData = NULL;
@@ -280,7 +281,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         QVector<uint16_t> indexesOfEntitiesToInclude;
 
         // It's possible that our element has been previous completed. In this case we'll simply not include any of our
-        // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we 
+        // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we
         // need to handle the case where our sibling elements need encoding but we don't.
         if (!entityTreeElementExtraEncodeData->elementCompleted) {
             for (uint16_t i = 0; i < _entityItems.size(); i++) {
@@ -304,15 +305,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // frustum culling on rendering.
                     bool success;
                     AACube entityCube = entity->getQueryAACube(success);
-                    if (!success || params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
+                    if (!success || !params.viewFrustum->cubeIntersectsKeyhole(entityCube)) {
                         includeThisEntity = false; // out of view, don't include it
-                    }
-
-                    // Now check the size of the entity, it's possible that a "too small to see" entity is included in a
-                    // larger octree cell because of its position (for example if it crosses the boundary of a cell it
-                    // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
-                    // before we consider including it.
-                    if (includeThisEntity) {
+                    } else {
+                        // Check the size of the entity, it's possible that a "too small to see" entity is included in a
+                        // larger octree cell because of its position (for example if it crosses the boundary of a cell it
+                        // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
+                        // before we consider including it.
                         success = true;
                         // we can't cull a parent-entity by its dimensions because the child may be larger.  we need to
                         // avoid sending details about a child but not the parent.  the parent's queryAACube should have
@@ -349,6 +348,10 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     #endif
                     indexesOfEntitiesToInclude << i;
                     numberOfEntities++;
+                } else {
+                    // if the extra data included this entity, and we've decided to not include the entity, then
+                    // we can treat it as if it was completed.
+                    entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
                 }
             }
         }
@@ -397,9 +400,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     // this octree element.
     if (extraEncodeData && entityTreeElementExtraEncodeData) {
 
-        // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data. 
+        // After processing, if we are PARTIAL or COMPLETED then we need to re-include our extra data.
         // Only our parent can remove our extra data in these cases and only after it knows that all of its
         // children have been encoded.
+        //
+        // FIXME -- this comment seems wrong....
+        //
         // If we weren't able to encode ANY data about ourselves, then we go ahead and remove our element data
         // since that will signal that the entire element needs to be encoded on the next attempt
         if (appendElementState == OctreeElement::NONE) {
@@ -412,7 +418,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
             }
         } else {
-        
+
             // If we weren't previously completed, check to see if we are
             if (!entityTreeElementExtraEncodeData->elementCompleted) {
                 // If all of our items have been encoded, then we are complete as an element.
@@ -426,9 +432,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         }
     }
 
-    // Determine if no entities at all were able to fit    
+    // Determine if no entities at all were able to fit
     bool noEntitiesFit = (numberOfEntities > 0 && actualNumberOfEntities == 0);
-    
+
     // If we wrote fewer entities than we expected, update the number of entities in our packet
     bool successUpdateEntityCount = true;
     if (numberOfEntities != actualNumberOfEntities) {
@@ -443,9 +449,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         appendElementState = OctreeElement::NONE;
     } else {
         if (noEntitiesFit) {
-            appendElementState = OctreeElement::PARTIAL;
+            //appendElementState = OctreeElement::PARTIAL;
+            packetData->discardLevel(elementLevel);
+            appendElementState = OctreeElement::NONE;
+        } else {
+            packetData->endLevel(elementLevel);
         }
-        packetData->endLevel(elementLevel);
     }
     return appendElementState;
 }
@@ -504,7 +513,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
     glm::vec3 clampedMax = glm::clamp(maxPoint, (float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_cube.contains(clampedMin) && _cube.contains(clampedMax)) {
-        
+
         // If our child would be smaller than our smallest reasonable element, then we are the best fit.
         float childScale = _cube.getScale() / 2.0f;
         if (childScale <= SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE) {
@@ -524,7 +533,7 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 
 bool EntityTreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
     bool& keepSearching, OctreeElementPointer& element, float& distance,
-    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude, 
+    BoxFace& face, glm::vec3& surfaceNormal, const QVector<EntityItemID>& entityIdsToInclude,
     const QVector<EntityItemID>& entityIdsToDiscard, void** intersectedObject, bool precisionPicking) {
 
     keepSearching = true; // assume that we will continue searching after this.
@@ -607,7 +616,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
         // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
         // and testing intersection there.
-        if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, 
+        if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance,
                                                 localFace, localSurfaceNormal)) {
             if (localDistance < distance) {
                 // now ask the entity if we actually intersect
@@ -862,12 +871,12 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
     if (this == _myTree->getRoot().get() && args.bitstreamVersion < VERSION_ROOT_ELEMENT_HAS_DATA) {
         return 0;
     }
-    
+
     const unsigned char* dataAt = data;
     int bytesRead = 0;
     uint16_t numberOfEntities = 0;
     int expectedBytesPerEntity = EntityItem::expectedBytes();
-    
+
     args.elementsPerPacket++;
 
     if (bytesLeftToRead >= (int)sizeof(numberOfEntities)) {
@@ -947,7 +956,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                                 entityItem->recordCreationTime();
                             }
                         } else {
-                            qDebug() << "Recieved packet for previously deleted entity [" << 
+                            qDebug() << "Recieved packet for previously deleted entity [" <<
                                         entityItem->getID() << "] ignoring. (inside " << __FUNCTION__ << ")";
                         }
                     }
@@ -959,7 +968,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
             }
         }
     }
-    
+
     return bytesRead;
 }
 
@@ -990,7 +999,7 @@ bool EntityTreeElement::pruneChildren() {
     bool somethingPruned = false;
     for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
         EntityTreeElementPointer child = getChildAtIndex(childIndex);
-        
+
         // if my child is a leaf, but has no entities, then it's safe to delete my child
         if (child && child->isLeaf() && !child->hasEntities()) {
             deleteChildAtIndex(childIndex);
@@ -1040,4 +1049,4 @@ void EntityTreeElement::debugDump() {
         }
     });
 }
-    
+

@@ -23,6 +23,11 @@ class QWindow;
 
 class DisplayPlugin;
 
+namespace gpu {
+    class Texture;
+    using TexturePointer = std::shared_ptr<Texture>;
+}
+
 class PluginContainer {
 public:
     static PluginContainer& getInstance();
@@ -39,8 +44,8 @@ public:
     virtual void showDisplayPluginsTools() = 0;
     virtual void requestReset() = 0;
     virtual bool makeRenderingContextCurrent() = 0;
-    virtual void releaseSceneTexture(uint32_t texture) = 0;
-    virtual void releaseOverlayTexture(uint32_t texture) = 0;
+    virtual void releaseSceneTexture(const gpu::TexturePointer& texture) = 0;
+    virtual void releaseOverlayTexture(const gpu::TexturePointer& texture) = 0;
     virtual GLWidget* getPrimaryWidget() = 0;
     virtual QWindow* getPrimaryWindow() = 0;
     virtual QOpenGLContext* getPrimaryContext() = 0;

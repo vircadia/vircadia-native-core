@@ -11,10 +11,7 @@
 
 #include "Grid3DOverlay.h"
 
-#include <QScriptValue>
-
 #include <OctreeConstants.h>
-
 #include <DependencyManager.h>
 #include <GeometryCache.h>
 #include <PathUtils.h>
@@ -92,24 +89,24 @@ const render::ShapeKey Grid3DOverlay::getShapeKey() {
     return render::ShapeKey::Builder().withOwnPipeline();
 }
 
-void Grid3DOverlay::setProperties(const QScriptValue& properties) {
+void Grid3DOverlay::setProperties(const QVariantMap& properties) {
     Planar3DOverlay::setProperties(properties);
-    if (properties.property("followCamera").isValid()) {
-        _followCamera = properties.property("followCamera").toVariant().toBool();
+    if (properties["followCamera"].isValid()) {
+        _followCamera = properties["followCamera"].toBool();
     }
 
-    if (properties.property("majorGridEvery").isValid()) {
-        _majorGridEvery = properties.property("majorGridEvery").toVariant().toInt();
+    if (properties["majorGridEvery"].isValid()) {
+        _majorGridEvery = properties["majorGridEvery"].toInt();
     }
 
-    if (properties.property("minorGridEvery").isValid()) {
-        _minorGridEvery = properties.property("minorGridEvery").toVariant().toFloat();
+    if (properties["minorGridEvery"].isValid()) {
+        _minorGridEvery = properties["minorGridEvery"].toFloat();
     }
 
     updateGrid();
 }
 
-QScriptValue Grid3DOverlay::getProperty(const QString& property) {
+QVariant Grid3DOverlay::getProperty(const QString& property) {
     if (property == "followCamera") {
         return _followCamera;
     }

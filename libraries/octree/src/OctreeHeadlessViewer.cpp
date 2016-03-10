@@ -27,9 +27,9 @@ void OctreeHeadlessViewer::init() {
 void OctreeHeadlessViewer::queryOctree() {
     char serverType = getMyNodeType();
     PacketType packetType = getMyQueryMessageType();
-    
+
     NodeToJurisdictionMap& jurisdictions = *_jurisdictionListener->getJurisdictions();
-    
+
     bool wantExtraDebugging = false;
 
     if (wantExtraDebugging) {
@@ -52,7 +52,7 @@ void OctreeHeadlessViewer::queryOctree() {
     _octreeQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _octreeQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _octreeQuery.setCameraEyeOffsetPosition(glm::vec3());
-    _octreeQuery.setKeyholeRadius(_viewFrustum.getKeyholeRadius());
+    _octreeQuery.setCameraCenterRadius(_viewFrustum.getCenterRadius());
     _octreeQuery.setOctreeSizeScale(_voxelSizeScale);
     _octreeQuery.setBoundaryLevelAdjust(_boundaryLevelAdjust);
 
@@ -77,7 +77,7 @@ void OctreeHeadlessViewer::queryOctree() {
                 if (jurisdictions.find(nodeUUID) == jurisdictions.end()) {
                     unknownJurisdictionServers++;
                     return;
-                } 
+                }
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
 
                 unsigned char* rootCode = map.getRootOctalCode();
@@ -91,9 +91,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                if ((bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds))) {
                     inViewServers++;
                 }
             }
@@ -164,13 +162,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             if (foundRootDetails) {
                 AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    inView = true;
-                } else {
-                    inView = false;
-                }
+                inView = (bool)(_viewFrustum.calculateCubeKeyholeIntersection(serverBounds));
             }
 
             if (inView) {
@@ -208,7 +200,7 @@ void OctreeHeadlessViewer::queryOctree() {
 
             // setup the query packet
             auto queryPacket = NLPacket::create(packetType);
-            
+
             // read the data to our packet and set the payload size to fit the query
             int querySize = _octreeQuery.getBroadcastData(reinterpret_cast<unsigned char*>(queryPacket->getPayload()));
             queryPacket->setPayloadSize(querySize);

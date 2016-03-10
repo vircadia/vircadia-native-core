@@ -75,32 +75,32 @@ void AABox::setBox(const glm::vec3& corner, const glm::vec3& scale) {
     _scale = scale;
 }
 
-glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
+glm::vec3 AABox::getFarthestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
-    if (normal.x > 0) {
+    if (normal.x > 0.0f) {
         result.x += _scale.x;
     }
-    if (normal.y > 0) {
+    if (normal.y > 0.0f) {
         result.y += _scale.y;
     }
-    if (normal.z > 0) {
+    if (normal.z > 0.0f) {
         result.z += _scale.z;
     }
     return result;
 }
 
-glm::vec3 AABox::getVertexN(const glm::vec3& normal) const {
+glm::vec3 AABox::getNearestVertex(const glm::vec3& normal) const {
     glm::vec3 result = _corner;
 
-    if (normal.x < 0) {
+    if (normal.x < 0.0f) {
         result.x += _scale.x;
     }
 
-    if (normal.y < 0) {
+    if (normal.y < 0.0f) {
         result.y += _scale.y;
     }
 
-    if (normal.z < 0) {
+    if (normal.z < 0.0f) {
         result.z += _scale.z;
     }
 
@@ -217,7 +217,7 @@ bool AABox::expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& e
                 isWithin(start.x + axisDistance*direction.x, expandedCorner.x, expandedSize.x));
 }
 
-bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                 BoxFace& face, glm::vec3& surfaceNormal) const {
     // handle the trivial case where the box contains the origin
     if (contains(origin)) {
@@ -279,6 +279,12 @@ bool AABox::findRayIntersection(const glm::vec3& origin, const glm::vec3& direct
         return true;
     }
     return false;
+}
+
+bool AABox::touchesSphere(const glm::vec3& center, float radius) const {
+    // Avro's algorithm from this paper: http://www.mrtc.mdh.se/projects/3Dgraphics/paperF.pdf
+    glm::vec3 e = glm::max(_corner - center, Vectors::ZERO) + glm::max(center - _corner - _scale, Vectors::ZERO);
+    return glm::length2(e) <= radius * radius;
 }
 
 bool AABox::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) const {

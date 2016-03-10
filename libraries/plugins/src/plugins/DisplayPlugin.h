@@ -50,6 +50,11 @@ class QWindow;
 
 #define AVERAGE_HUMAN_IPD 0.064f
 
+namespace gpu {
+    class Texture;
+    using TexturePointer = std::shared_ptr<Texture>;
+}
+
 class DisplayPlugin : public Plugin {
     Q_OBJECT
 public:
@@ -70,12 +75,12 @@ public:
     /**
      *  Sends the scene texture to the display plugin.
      */
-    virtual void submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) = 0;
+    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) = 0;
 
     /**
     *  Sends the scene texture to the display plugin.
     */
-    virtual void submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) = 0;
+    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) = 0;
 
     // Does the rendering surface have current focus?
     virtual bool hasFocus() const = 0;

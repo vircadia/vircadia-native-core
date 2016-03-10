@@ -99,8 +99,8 @@ Frame {
         DropShadow {
             source: titleText
             anchors.fill: titleText
-            horizontalOffset: 1
-            verticalOffset: 1
+            horizontalOffset: 2
+            verticalOffset: 2
             samples: 2
             color: hifi.colors.baseGrayShadow60
             visible: (window && window.focus)

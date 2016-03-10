@@ -231,8 +231,6 @@ public:
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::quat& worldHeadOrientation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
-    void computeEyesInRootFrame(const AnimPoseVec& poses);
-
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
 
@@ -304,6 +302,8 @@ public:
 
     bool _lastEnableInverseKinematics { true };
     bool _enableInverseKinematics { true };
+
+    mutable uint32_t _jointNameWarningCount { 0 };
 
 private:
     QMap<int, StateHandler> _stateHandlers;

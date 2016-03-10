@@ -34,6 +34,7 @@ public:
 
 protected:
     virtual void customizeContext() override;
+    void hmdPresent() override {}
 #if 0
     virtual void uncustomizeContext() override;
     virtual void internalPresent() override;

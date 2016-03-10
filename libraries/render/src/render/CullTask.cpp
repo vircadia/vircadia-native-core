@@ -29,7 +29,7 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     ViewFrustum* frustum = args->_viewFrustum;
 
     details._considered += (int)inItems.size();
-    
+
     // Culling / LOD
     for (auto item : inItems) {
         if (item.bound.isNull()) {
@@ -39,12 +39,12 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
 
         // TODO: some entity types (like lights) might want to be rendered even
         // when they are outside of the view frustum...
-        bool outOfView;
+        bool inView;
         {
-            PerformanceTimer perfTimer("boxInFrustum");
-            outOfView = frustum->boxInFrustum(item.bound) == ViewFrustum::OUTSIDE;
+            PerformanceTimer perfTimer("boxIntersectsFrustum");
+            inView = frustum->boxIntersectsFrustum(item.bound);
         }
-        if (!outOfView) {
+        if (inView) {
             bool bigEnoughToRender;
             {
                 PerformanceTimer perfTimer("shouldRender");
@@ -62,98 +62,20 @@ void render::cullItems(const RenderContextPointer& renderContext, const CullFunc
     details._rendered += (int)outItems.size();
 }
 
-struct ItemBoundSort {
-    float _centerDepth = 0.0f;
-    float _nearDepth = 0.0f;
-    float _farDepth = 0.0f;
-    ItemID _id = 0;
-    AABox _bounds;
-
-    ItemBoundSort() {}
-    ItemBoundSort(float centerDepth, float nearDepth, float farDepth, ItemID id, const AABox& bounds) : _centerDepth(centerDepth), _nearDepth(nearDepth), _farDepth(farDepth), _id(id), _bounds(bounds) {}
-};
-
-struct FrontToBackSort {
-    bool operator() (const ItemBoundSort& left, const ItemBoundSort& right) {
-        return (left._centerDepth < right._centerDepth);
-    }
-};
-
-struct BackToFrontSort {
-    bool operator() (const ItemBoundSort& left, const ItemBoundSort& right) {
-        return (left._centerDepth > right._centerDepth);
-    }
-};
-
-void render::depthSortItems(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, bool frontToBack, const ItemBounds& inItems, ItemBounds& outItems) {
-    assert(renderContext->args);
-    assert(renderContext->args->_viewFrustum);
-    
-    auto& scene = sceneContext->_scene;
-    RenderArgs* args = renderContext->args;
-    
-
-    // Allocate and simply copy
-    outItems.clear();
-    outItems.reserve(inItems.size());
-
-
-    // Make a local dataset of the center distance and closest point distance
-    std::vector<ItemBoundSort> itemBoundSorts;
-    itemBoundSorts.reserve(outItems.size());
-
-    for (auto itemDetails : inItems) {
-        auto item = scene->getItem(itemDetails.id);
-        auto bound = itemDetails.bound; // item.getBound();
-        float distance = args->_viewFrustum->distanceToCamera(bound.calcCenter());
-
-        itemBoundSorts.emplace_back(ItemBoundSort(distance, distance, distance, itemDetails.id, bound));
-    }
-
-    // sort against Z
-    if (frontToBack) {
-        FrontToBackSort frontToBackSort;
-        std::sort(itemBoundSorts.begin(), itemBoundSorts.end(), frontToBackSort);
-    } else {
-        BackToFrontSort  backToFrontSort;
-        std::sort(itemBoundSorts.begin(), itemBoundSorts.end(), backToFrontSort);
-    }
-
-    // FInally once sorted result to a list of itemID
-    for (auto& item : itemBoundSorts) {
-       outItems.emplace_back(ItemBound(item._id, item._bounds));
-    }
-}
-
-void DepthSortItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    depthSortItems(sceneContext, renderContext, _frontToBack, inItems, outItems);
-}
-
-
-void FetchItems::configure(const Config& config) {
-}
-
-void FetchItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
+void FetchNonspatialItems::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, ItemBounds& outItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
     auto& scene = sceneContext->_scene;
 
     outItems.clear();
 
-    const auto& bucket = scene->getMasterBucket();
-    const auto& items = bucket.find(_filter);
-    if (items != bucket.end()) {
-        outItems.reserve(items->second.size());
-        for (auto& id : items->second) {
-            auto& item = scene->getItem(id);
-            outItems.emplace_back(ItemBound(id, item.getBound()));
-        }
+    const auto& items = scene->getNonspatialSet();
+    outItems.reserve(items.size());
+    for (auto& id : items) {
+        auto& item = scene->getItem(id);
+        outItems.emplace_back(ItemBound(id, item.getBound()));
     }
-
-    std::static_pointer_cast<Config>(renderContext->jobConfig)->numItems = (int)outItems.size();
 }
-
-
 
 void FetchSpatialTree::configure(const Config& config) {
     _justFrozeFrustum = _justFrozeFrustum || (config.freezeFrustum && !_freezeFrustum);
@@ -238,7 +160,7 @@ void CullSpatialSelection::run(const SceneContextPointer& sceneContext, const Re
         }
 
         bool frustumTest(const AABox& bound) {
-            if (_args->_viewFrustum->boxInFrustum(bound) == ViewFrustum::OUTSIDE) {
+            if (!_args->_viewFrustum->boxIntersectsFrustum(bound)) {
                 _renderDetails._outOfView++;
                 return false;
             }

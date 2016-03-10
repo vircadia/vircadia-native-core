@@ -9,6 +9,7 @@
 //
 
 #include <OffscreenUi.h>
+#include <display-plugins/CompositorHelper.h>
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
@@ -110,19 +111,12 @@ void OverlayConductor::setEnabled(bool enabled) {
         return;
     }
 
+    Menu::getInstance()->setIsOptionChecked(MenuOption::Overlays, enabled);
+
+    _enabled = enabled; // set the new value
+
+    // if the new state is visible/enabled...
     if (_enabled) {
-        // alpha fadeOut the overlay mesh.
-        qApp->getApplicationCompositor().fadeOut();
-
-        // disable mouse clicks from script
-        qApp->getOverlays().disable();
-
-        // disable QML events
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->getRootItem()->setEnabled(false);
-
-        _enabled = false;
-    } else {
         // alpha fadeIn the overlay mesh.
         qApp->getApplicationCompositor().fadeIn();
 
@@ -142,8 +136,16 @@ void OverlayConductor::setEnabled(bool enabled) {
             t.setRotation(glm::quat_cast(camMat));
             qApp->getApplicationCompositor().setModelTransform(t);
         }
+    } else { // other wise, if the new state is hidden/not enabled
+        // alpha fadeOut the overlay mesh.
+        qApp->getApplicationCompositor().fadeOut();
 
-        _enabled = true;
+        // disable mouse clicks from script
+        qApp->getOverlays().disable();
+
+        // disable QML events
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        offscreenUi->getRootItem()->setEnabled(false);
     }
 }
 

@@ -124,7 +124,7 @@ AtomicUIntStat OctreeSendThread::_totalSpecialPackets { 0 };
 
 
 int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent,
-                                       int& truePacketsSent) {
+                                       int& truePacketsSent, bool dontSuppressDuplicate) {
     OctreeServer::didHandlePacketSend(this);
 
     // if we're shutting down, then exit early
@@ -141,7 +141,7 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
-    if (nodeData->shouldSuppressDuplicatePacket()) {
+    if (!dontSuppressDuplicate && nodeData->shouldSuppressDuplicatePacket()) {
         nodeData->resetOctreePacket(); // we still need to reset it though!
         return packetsSent; // without sending...
     }
@@ -356,7 +356,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         //unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
         //unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
-        int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent, isFullScene);
         packetsSentThisInterval += packetsJustSent;
 
         // If we're starting a full scene, then definitely we want to empty the elementBag
@@ -582,6 +582,18 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         if (nodeData->elementBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
+
+            // If this was a full scene then make sure we really send out a stats packet at this point so that
+            // the clients will know the scene is stable
+            if (isFullScene) {
+                int thisTrueBytesSent = 0;
+                int thisTruePacketsSent = 0;
+                nodeData->stats.sceneCompleted();
+                int packetsJustSent = handlePacketSend(node, nodeData, thisTrueBytesSent, thisTruePacketsSent, true);
+                _totalBytes += thisTrueBytesSent;
+                _totalPackets += thisTruePacketsSent;
+                truePacketsSent += packetsJustSent;
+            }
         }
 
     } // end if bag wasn't empty, and so we sent stuff...

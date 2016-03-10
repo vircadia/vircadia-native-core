@@ -145,6 +145,8 @@ public:
                 switch(dstFormat.getSemantic()) {
                 case gpu::RGB:
                 case gpu::RGBA:
+                case gpu::SRGB:
+                case gpu::SRGBA:
                     texel.internalFormat = GL_RED;
                     switch (dstFormat.getType()) {
                         case gpu::UINT32: {
@@ -196,7 +198,11 @@ public:
                             break;
                             }
                         case gpu::NUINT8: {
-                            texel.internalFormat = GL_R8;
+                            if ((dstFormat.getSemantic() == gpu::SRGB || dstFormat.getSemantic() == gpu::SRGBA)) {
+                                texel.internalFormat = GL_SLUMINANCE;
+                            } else {
+                                texel.internalFormat = GL_R8;
+                            }
                             break;
                             }
                         case gpu::NINT8: {
@@ -209,6 +215,7 @@ public:
                         
                     }
                     break;
+
                 case gpu::DEPTH:
                     texel.format = GL_DEPTH_COMPONENT; // It's depth component to load it
                     texel.internalFormat = GL_DEPTH_COMPONENT;
@@ -571,11 +578,16 @@ GLBackend::GLTexture* GLBackend::syncGPUObject(const Texture& texture) {
 
 
 
-GLuint GLBackend::getTextureID(const TexturePointer& texture) {
+GLuint GLBackend::getTextureID(const TexturePointer& texture, bool sync) {
     if (!texture) {
         return 0;
     }
-    GLTexture* object = GLBackend::syncGPUObject(*texture);
+    GLTexture* object { nullptr };
+    if (sync) {
+        object = GLBackend::syncGPUObject(*texture);
+    } else {
+        object = Backend::getGPUObject<GLBackend::GLTexture>(*texture);
+    }
     if (object) {
         return object->_texture;
     } else {

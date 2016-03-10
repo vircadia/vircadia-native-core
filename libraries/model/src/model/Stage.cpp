@@ -142,6 +142,8 @@ SunSkyStage::SunSkyStage() :
     _skybox(std::make_shared<Skybox>())
 {
     _sunLight->setType(Light::SUN);
+    // Default ambient sphere (for lack of skybox)
+    _sunLight->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
  
     setSunIntensity(1.0f);
     setSunAmbientIntensity(0.5f);
@@ -209,6 +211,9 @@ void SunSkyStage::setSunAmbientSphere(const gpu::SHPointer& sphere) {
         const gpu::SphericalHarmonics::Preset DEFAULT_AMBIENT_SPHERE = gpu::SphericalHarmonics::OLD_TOWN_SQUARE;
         _sunLight->setAmbientSpherePreset(DEFAULT_AMBIENT_SPHERE);
     }
+}
+void SunSkyStage::setSunAmbientMap(const gpu::TexturePointer& map) {
+    _sunLight->setAmbientMap(map);
 }
 
 void SunSkyStage::setSunDirection(const Vec3& direction) {

@@ -15,6 +15,7 @@
 #include "SpatiallyNestable.h"
 
 const float defaultAACubeSize = 1.0f;
+const int maxParentingChain = 30;
 
 SpatiallyNestable::SpatiallyNestable(NestableType nestableType, QUuid id) :
     _nestableType(nestableType),
@@ -56,14 +57,14 @@ void SpatiallyNestable::setParentID(const QUuid& parentID) {
     });
 }
 
-Transform SpatiallyNestable::getParentTransform(bool& success) const {
+Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const {
     Transform result;
     SpatiallyNestablePointer parent = getParentPointer(success);
     if (!success) {
         return result;
     }
     if (parent) {
-        Transform parentTransform = parent->getTransform(_parentJointIndex, success);
+        Transform parentTransform = parent->getTransform(_parentJointIndex, success, depth + 1);
         result = parentTransform.setScale(1.0f); // TODO: scaling
     }
     return result;
@@ -393,11 +394,11 @@ void SpatiallyNestable::setOrientation(const glm::quat& orientation) {
 
 glm::vec3 SpatiallyNestable::getVelocity(bool& success) const {
     glm::vec3 result;
-    glm::vec3 parentVelocity = getParentVelocity(success);
+    Transform parentTransform = getParentTransform(success);
     if (!success) {
         return result;
     }
-    Transform parentTransform = getParentTransform(success);
+    glm::vec3 parentVelocity = getParentVelocity(success);
     if (!success) {
         return result;
     }
@@ -448,11 +449,11 @@ glm::vec3 SpatiallyNestable::getParentVelocity(bool& success) const {
 
 glm::vec3 SpatiallyNestable::getAngularVelocity(bool& success) const {
     glm::vec3 result;
-    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
+    Transform parentTransform = getParentTransform(success);
     if (!success) {
         return result;
     }
-    Transform parentTransform = getParentTransform(success);
+    glm::vec3 parentAngularVelocity = getParentAngularVelocity(success);
     if (!success) {
         return result;
     }
@@ -499,22 +500,36 @@ glm::vec3 SpatiallyNestable::getParentAngularVelocity(bool& success) const {
     return result;
 }
 
-const Transform SpatiallyNestable::getTransform(bool& success) const {
-    // return a world-space transform for this object's location
-    Transform parentTransform = getParentTransform(success);
+const Transform SpatiallyNestable::getTransform(bool& success, int depth) const {
     Transform result;
+    // return a world-space transform for this object's location
+    Transform parentTransform = getParentTransform(success, depth);
     _transformLock.withReadLock([&] {
         Transform::mult(result, parentTransform, _transform);
     });
     return result;
 }
 
-const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success) const {
+const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, int depth) const {
     // this returns the world-space transform for this object.  It finds its parent's transform (which may
     // cause this object's parent to query its parent, etc) and multiplies this object's local transform onto it.
     Transform jointInWorldFrame;
 
-    Transform worldTransform = getTransform(success);
+    if (depth > maxParentingChain) {
+        success = false;
+        // someone created a loop.  break it...
+        qDebug() << "Parenting loop detected.";
+        SpatiallyNestablePointer _this = getThisPointer();
+        _this->setParentID(QUuid());
+        bool setPositionSuccess;
+        AACube aaCube = getQueryAACube(setPositionSuccess);
+        if (setPositionSuccess) {
+            _this->setPosition(aaCube.calcCenter());
+        }
+        return jointInWorldFrame;
+    }
+
+    Transform worldTransform = getTransform(success, depth);
     worldTransform.setScale(1.0f); // TODO -- scale;
     if (!success) {
         return jointInWorldFrame;
@@ -682,7 +697,7 @@ QList<SpatiallyNestablePointer> SpatiallyNestable::getChildren() const {
     _childrenLock.withReadLock([&] {
         foreach(SpatiallyNestableWeakPointer childWP, _children.values()) {
             SpatiallyNestablePointer child = childWP.lock();
-            if (child) {
+            if (child && child->_parentKnowsMe && child->getParentID() == getID()) {
                 children << child;
             }
         }

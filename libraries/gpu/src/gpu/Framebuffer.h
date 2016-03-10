@@ -135,10 +135,15 @@ public:
     static uint32 getMaxNumRenderBuffers() { return MAX_NUM_RENDER_BUFFERS; }
 
     const GPUObjectPointer gpuObject {};
-    
+
+    Stamp getDepthStamp() const { return _depthStamp; }
+    const std::vector<Stamp>& getColorStamps() const { return _colorStamps; }
+
 protected:
     SwapchainPointer _swapchain;
 
+    Stamp _depthStamp { 0 };
+    std::vector<Stamp> _colorStamps;
     TextureViews _renderBuffers;
     TextureView _depthStencilBuffer;
 

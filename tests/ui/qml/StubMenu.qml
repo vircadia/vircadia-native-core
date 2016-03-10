@@ -529,10 +529,6 @@ Menu {
                 checkable: true
             }
             MenuItem {
-                text: menuOption.comfortMode;
-                checkable: true
-            }
-            MenuItem {
                 text: menuOption.keyboardMotorControl;
                 checkable: true
             }

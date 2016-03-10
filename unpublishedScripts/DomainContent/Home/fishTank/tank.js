@@ -1,6 +1,19 @@
+//
+//  tank.js
+//  
+//
+//  created by James b. Pollack @imgntn on 3/9/2016
+//  Copyright 2016 High Fidelity, Inc.   
+// 
+//  looks for fish to swim around, if there are none it makes some.  adds an attractor where the person simulating it is looking. 
+//  
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 (function() {
 
-    Script.include('../../../../examples/libraries/virtualBaton.js?' + Math.random());
+    Script.include('../../../../examples/libraries/virtualBaton.js');
 
     //only one person should simulate the tank at a time -- we pass around a virtual baton
     var baton;
@@ -293,16 +306,16 @@
 
     };
 
-    //
-    //  flockOfFish.js
-    //  examples
-    //
-    //  Philip Rosedale
-    //  Copyright 2016 High Fidelity, Inc.   
-    //  Fish smimming around in a space in front of you 
-    //   
-    //  Distributed under the Apache License, Version 2.0.
-    //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+//  flockOfFish.js
+//  examples
+//
+//  Philip Rosedale
+//  Copyright 2016 High Fidelity, Inc.   
+//  Fish smimming around in a space in front of you 
+//   
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
     var FISHTANK_USERDATA_KEY = 'hifi-home-fishtank'
 

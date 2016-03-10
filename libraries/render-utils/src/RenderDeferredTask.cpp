@@ -10,11 +10,19 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RenderDeferredTask.h"
+
 #include <PerfStat.h>
 #include <PathUtils.h>
 #include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
+
+#include <render/CullTask.h>
+#include <render/SortTask.h>
+#include <render/DrawTask.h>
+#include <render/DrawStatus.h>
+#include <render/DrawSceneOctree.h>
 
 #include "DebugDeferredBuffer.h"
 #include "DeferredLightingEffect.h"
@@ -22,14 +30,9 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 
-#include "render/DrawTask.h"
-#include "render/DrawStatus.h"
-#include "render/DrawSceneOctree.h"
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
-
-#include "RenderDeferredTask.h"
 
 using namespace render;
 
@@ -54,34 +57,42 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
     // CPU jobs:
     // Fetch and cull the items from the scene
-    auto sceneFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
-    const auto sceneSelection = addJob<FetchSpatialTree>("FetchSceneSelection", sceneFilter);
-    const auto culledSceneSelection = addJob<CullSpatialSelection>("CullSceneSelection", sceneSelection, cullFunctor, RenderDetails::ITEM, sceneFilter);
+    auto spatialFilter = ItemFilter::Builder::visibleWorldItems().withoutLayered();
+    const auto spatialSelection = addJob<FetchSpatialTree>("FetchSceneSelection", spatialFilter);
+    const auto culledSpatialSelection = addJob<CullSpatialSelection>("CullSceneSelection", spatialSelection, cullFunctor, RenderDetails::ITEM, spatialFilter);
+
+    // Overlays are not culled
+    const auto nonspatialSelection = addJob<FetchNonspatialItems>("FetchOverlaySelection");
 
     // Multi filter visible items into different buckets
     const int NUM_FILTERS = 3;
     const int OPAQUE_SHAPE_BUCKET = 0;
     const int TRANSPARENT_SHAPE_BUCKET = 1;
     const int LIGHT_BUCKET = 2;
-    MultiFilterItem<NUM_FILTERS>::ItemFilterArray triageFilters = { {
+    const int BACKGROUND_BUCKET = 2;
+    MultiFilterItem<NUM_FILTERS>::ItemFilterArray spatialFilters = { {
             ItemFilter::Builder::opaqueShape(),
             ItemFilter::Builder::transparentShape(),
             ItemFilter::Builder::light()
     } };
-    const auto filteredItemsBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSceneSelection, triageFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
+    MultiFilterItem<NUM_FILTERS>::ItemFilterArray nonspatialFilters = { {
+            ItemFilter::Builder::opaqueShape(),
+            ItemFilter::Builder::transparentShape(),
+            ItemFilter::Builder::background()
+    } };
+    const auto filteredSpatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterSceneSelection", culledSpatialSelection, spatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
+    const auto filteredNonspatialBuckets = addJob<MultiFilterItem<NUM_FILTERS>>("FilterOverlaySelection", nonspatialSelection, nonspatialFilters).get<MultiFilterItem<NUM_FILTERS>::ItemBoundsArray>();
 
     // Extract / Sort opaques / Transparents / Lights / Overlays
-    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredItemsBuckets[OPAQUE_SHAPE_BUCKET]);
-    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredItemsBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
-    const auto lights = filteredItemsBuckets[LIGHT_BUCKET];
+    const auto opaques = addJob<DepthSortItems>("DepthSortOpaque", filteredSpatialBuckets[OPAQUE_SHAPE_BUCKET]);
+    const auto transparents = addJob<DepthSortItems>("DepthSortTransparent", filteredSpatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
+    const auto lights = filteredSpatialBuckets[LIGHT_BUCKET];
 
-    // Overlays are not culled because we want to make sure they are seen
-    // Could be considered  a bug in the current cullfunctor
-    const auto overlayOpaques = addJob<FetchItems>("FetchOverlayOpaque", ItemFilter::Builder::opaqueShapeLayered());
-    const auto fetchedOverlayOpaques = addJob<FetchItems>("FetchOverlayTransparents", ItemFilter::Builder::transparentShapeLayered());
-    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortTransparentOverlay", fetchedOverlayOpaques, DepthSortItems(false));
+    const auto overlayOpaques = addJob<DepthSortItems>("DepthSortOverlayOpaque", filteredNonspatialBuckets[OPAQUE_SHAPE_BUCKET]);
+    const auto overlayTransparents = addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
+    const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    // GPU Jobs: Start preparing the deferred and lighting buffer
+    // GPU jobs: Start preparing the deferred and lighting buffer
     addJob<PrepareDeferred>("PrepareDeferred");
 
     // Render opaque objects in DeferredBuffer
@@ -91,7 +102,7 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
     addJob<DrawStencilDeferred>("DrawOpaqueStencil");
 
     // Use Stencil and start drawing background in Lighting buffer
-    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred");
+    addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", background);
 
     // AO job
     addJob<AmbientOcclusionEffect>("AmbientOcclusion");
@@ -123,8 +134,8 @@ RenderDeferredTask::RenderDeferredTask(CullFunctor cullFunctor) {
 
         // Scene Octree Debuging job
         {
-            addJob<DrawSceneOctree>("DrawSceneOctree", sceneSelection);
-            addJob<DrawItemSelection>("DrawItemSelection", sceneSelection);
+            addJob<DrawSceneOctree>("DrawSceneOctree", spatialSelection);
+            addJob<DrawItemSelection>("DrawItemSelection", spatialSelection);
         }
 
         // Status icon rendering job
@@ -170,9 +181,9 @@ void DrawDeferred::run(const SceneContextPointer& sceneContext, const RenderCont
     RenderArgs* args = renderContext->args;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+        args->_batch = &batch;
         batch.setViewportTransform(args->_viewport);
         batch.setStateScissorRect(args->_viewport);
-        args->_batch = &batch;
 
         config->setNumDrawn((int)inItems.size());
         emit config->numDrawnChanged();
@@ -222,7 +233,8 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
         // Render the items
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
-            args->_whiteTexture = DependencyManager::get<TextureCache>()->getWhiteTexture();
+            batch.setViewportTransform(args->_viewport);
+            batch.setStateScissorRect(args->_viewport);
 
             glm::mat4 projMat;
             Transform viewMat;
@@ -231,14 +243,10 @@ void DrawOverlay3D::run(const SceneContextPointer& sceneContext, const RenderCon
 
             batch.setProjectionTransform(projMat);
             batch.setViewTransform(viewMat);
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-            batch.setResourceTexture(0, args->_whiteTexture);
 
             renderShapes(sceneContext, renderContext, _shapePlumber, inItems, _maxDrawn);
+            args->_batch = nullptr;
         });
-        args->_batch = nullptr;
-        args->_whiteTexture.reset();
     }
 }
 
@@ -276,20 +284,10 @@ void DrawStencilDeferred::run(const SceneContextPointer& sceneContext, const Ren
     args->_batch = nullptr;
 }
 
-void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext) {
+void DrawBackgroundDeferred::run(const SceneContextPointer& sceneContext, const RenderContextPointer& renderContext, const ItemBounds& inItems) {
     assert(renderContext->args);
     assert(renderContext->args->_viewFrustum);
 
-    // render backgrounds
-    auto& scene = sceneContext->_scene;
-    auto& items = scene->getMasterBucket().at(ItemFilter::Builder::background());
-
-
-    ItemBounds inItems;
-    inItems.reserve(items.size());
-    for (auto id : items) {
-        inItems.emplace_back(id);
-    }
     RenderArgs* args = renderContext->args;
     doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;

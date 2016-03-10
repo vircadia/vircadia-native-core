@@ -89,6 +89,9 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_IN_EDIT_MODE = "showLightsInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
+
+// marketplace info, etc.  not quite ready yet.
+var SHOULD_SHOW_PROPERTY_MENU = false;
 var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissions to edit on this domain."
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain."
 
@@ -342,6 +345,7 @@ var toolBar = (function() {
             if (active && !Entities.canAdjustLocks()) {
                 Window.alert(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
             } else {
+                Messages.sendLocalMessage("edit-events", JSON.stringify({enabled: active}));
                 isActive = active;
                 if (!isActive) {
                     entityListTool.setVisible(false);
@@ -711,11 +715,30 @@ var intersection;
 
 var SCALE_FACTOR = 200.0;
 
-function rayPlaneIntersection(pickRay, point, normal) {
+function rayPlaneIntersection(pickRay, point, normal) {    //
+    //
+    //  This version of the test returns the intersection of a line with a plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+
     var d = -Vec3.dot(point, normal);
-    var t = -(Vec3.dot(pickRay.origin, normal) + d) / Vec3.dot(pickRay.direction, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
 
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+}
+
+function rayPlaneIntersection2(pickRay, point, normal) {
+    //
+    //  This version of the test returns false if the ray is directed away from the plane
+    //
+    var collides = Vec3.dot(pickRay.direction, normal);
+    var d = -Vec3.dot(point, normal);
+    var t = -(Vec3.dot(pickRay.origin, normal) + d) / collides;
+    if (t < 0.0) {
+        return false;
+    } else {
+        return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
+    }
 }
 
 function findClickedEntity(event) {
@@ -758,7 +781,8 @@ function findClickedEntity(event) {
     var foundEntity = result.entityID;
     return {
         pickRay: pickRay,
-        entityID: foundEntity
+        entityID: foundEntity,
+        intersection: result.intersection
     };
 }
 
@@ -926,6 +950,7 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
+    var wantDebug = false;
     if (isActive && event.isLeftButton) {
         var result = findClickedEntity(event);
         if (result === null) {
@@ -940,11 +965,15 @@ function mouseClickEvent(event) {
 
         var properties = Entities.getEntityProperties(foundEntity);
         if (isLocked(properties)) {
-            print("Model locked " + properties.id);
+            if (wantDebug) {
+                print("Model locked " + properties.id);
+            }
         } else {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            if (wantDebug) {
+                print("Checking properties: " + properties.id + " " + " - Half Diagonal:" + halfDiagonal);
+            }
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -981,8 +1010,9 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
-
-                print("Model selected: " + foundEntity);
+                if (wantDebug) {
+                    print("Model selected: " + foundEntity);
+                }
                 selectionDisplay.select(selectedEntityID, event);
 
                 if (Menu.isOptionChecked(MENU_AUTO_FOCUS_ON_SELECT)) {
@@ -996,6 +1026,9 @@ function mouseClickEvent(event) {
     } else if (event.isRightButton) {
         var result = findClickedEntity(event);
         if (result) {
+            if (SHOULD_SHOW_PROPERTY_MENU !== true) {
+                return;
+            }
             var properties = Entities.getEntityProperties(result.entityID);
             if (properties.marketplaceID) {
                 propertyMenu.marketplaceID = properties.marketplaceID;
@@ -1869,9 +1902,11 @@ PopupMenu = function() {
     return this;
 };
 
+
 var propertyMenu = PopupMenu();
 
 propertyMenu.onSelectMenuItem = function(name) {
+
     if (propertyMenu.marketplaceID) {
         showMarketplace(propertyMenu.marketplaceID);
     }

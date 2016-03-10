@@ -28,7 +28,7 @@ public:
     // Cannot fetch properties from QML based overlays due to race conditions
     bool supportsGetProperty() const override { return false; }
 
-    void setProperties(const QScriptValue& properties) override;
+    void setProperties(const QVariantMap& properties) override;
     void render(RenderArgs* args) override;
 
 private:

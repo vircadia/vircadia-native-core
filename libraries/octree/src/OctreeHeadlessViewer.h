@@ -46,7 +46,8 @@ public slots:
     // setters for camera attributes
     void setPosition(const glm::vec3& position) { _viewFrustum.setPosition(position); }
     void setOrientation(const glm::quat& orientation) { _viewFrustum.setOrientation(orientation); }
-    void setKeyholeRadius(float keyholdRadius) { _viewFrustum.setKeyholeRadius(keyholdRadius); }
+    void setCenterRadius(float radius) { _viewFrustum.setCenterRadius(radius); }
+    void setKeyholeRadius(float radius) { _viewFrustum.setCenterRadius(radius); } // TODO: remove this legacy support
 
     // setters for LOD and PPS
     void setVoxelSizeScale(float sizeScale) { _voxelSizeScale = sizeScale; }

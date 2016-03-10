@@ -66,14 +66,6 @@ vec3 getLightColor(Light l) { return l._color.rgb; }
 float getLightIntensity(Light l) { return l._color.w; }
 float getLightAmbientIntensity(Light l) { return l._direction.w; }
 
-float evalLightAttenuation(Light l, float r) {
-    float d = max(r - l._attenuation.x, 0.0);
-    float denom = d * l._attenuation.y + 1.0;
-    float attenuation = 1.0 / (denom * denom);
-    return max((attenuation - l._attenuation.z)/(1.0 - l._attenuation.z), 0.0);
-  //  return clamp(1.0/(l._attenuation.x + l._attenuation.y * r + l._attenuation.z * r * r), 0.0, 1.0);
-}
-
 float getLightSpotAngleCos(Light l) {
     return l._spot.x;
 }
@@ -86,24 +78,39 @@ float evalLightSpotAttenuation(Light l, float cosA) {
     return pow(cosA, l._spot.w);
 }
 
-float getLightSquareRadius(Light l) {
-    return l._attenuation.w * l._attenuation.w;
-}
-
 float getLightRadius(Light l) {
-    return l._attenuation.w;
+    return l._attenuation.x;
 }
 
-float getLightAttenuationCutoff(Light l) {
+float getLightSquareRadius(Light l) {
+    return getLightRadius(l) * getLightRadius(l);
+}
+
+float getLightCutoffRadius(Light l) {
     return l._attenuation.z;
+}
+
+float getLightCutoffSquareRadius(Light l) {
+    return getLightCutoffRadius(l) * getLightCutoffRadius(l);
 }
 
 float getLightShowContour(Light l) {
     return l._control.w;
 }
 
+float evalLightAttenuation(Light l, float d) {
+    float radius = getLightRadius(l);
+    float denom = d / radius + 1.0;
+    float attenuation = min(1.0, 1.0 / (denom * denom));
+    return attenuation;
+}
+
 SphericalHarmonics getLightAmbientSphere(Light l) {
     return l._ambientSphere;
+}
+
+float getLightAmbientMapNumMips(Light l) {
+    return l._control.x;
 }
 
 <@if GPU_FEATURE_PROFILE == GPU_CORE @>

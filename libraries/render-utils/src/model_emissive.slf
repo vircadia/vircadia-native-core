@@ -15,7 +15,7 @@
 <@include DeferredBufferWrite.slh@>
 <@include model/Material.slh@>
 
-uniform sampler2D diffuseMap;
+uniform sampler2D albedoMap;
 
 in vec2 _texCoord0;
 in vec3 _normal;
@@ -23,16 +23,17 @@ in vec3 _color;
 in float _alpha;
 
 void main(void) {
-    vec4 texel = texture(diffuseMap, _texCoord0);
+    vec4 texel = texture(albedoMap, _texCoord0);
 
     Material mat = getMaterial();
-    vec3 fragColor = getMaterialDiffuse(mat) * texel.rgb * _color;
+    vec3 fragColor = getMaterialAlbedo(mat) * texel.rgb * _color;
 
     packDeferredFragmentLightmap(
         normalize(_normal), 
         texel.a,
         vec3(1.0),
-        getMaterialSpecular(mat),
-        getMaterialShininess(mat),
+        getMaterialRoughness(mat),
+        getMaterialMetallic(mat),
+        getMaterialFresnel(mat),
         fragColor);
 }

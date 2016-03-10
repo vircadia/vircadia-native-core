@@ -22,11 +22,11 @@ bool NullDisplayPlugin::hasFocus() const {
     return false;
 }
 
-void NullDisplayPlugin::submitSceneTexture(uint32_t frameIndex, uint32_t sceneTexture, const glm::uvec2& sceneSize) {
+void NullDisplayPlugin::submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) {
     _container->releaseSceneTexture(sceneTexture);
 }
 
-void NullDisplayPlugin::submitOverlayTexture(uint32_t overlayTexture, const glm::uvec2& overlaySize) {
+void NullDisplayPlugin::submitOverlayTexture(const gpu::TexturePointer& overlayTexture) {
     _container->releaseOverlayTexture(overlayTexture);
 }
 

@@ -142,6 +142,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
 
 OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packetData, EncodeBitstreamParams& params,
                                             EntityTreeElementExtraEncodeData* entityTreeElementExtraEncodeData) const {
+
     // ALL this fits...
     //    object ID [16 bytes]
     //    ByteCountCoded(type code) [~1 byte]
@@ -677,7 +678,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_LIFETIME, float, updateLifetime);
     READ_ENTITY_PROPERTY(PROP_SCRIPT, QString, setScript);
     READ_ENTITY_PROPERTY(PROP_SCRIPT_TIMESTAMP, quint64, setScriptTimestamp);
-    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, updateRegistrationPoint);
 
     READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, updateAngularDamping);
     READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, setVisible);
@@ -1120,7 +1121,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     // these (along with "position" above) affect tree structure
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, updateRegistrationPoint);
 
     // these (along with all properties above) affect the simulation
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(density, updateDensity);
@@ -1340,6 +1341,15 @@ float EntityItem::getRadius() const {
     return 0.5f * glm::length(getDimensions());
 }
 
+void EntityItem::adjustShapeInfoByRegistration(ShapeInfo& info) const {
+    if (_registrationPoint != ENTITY_ITEM_DEFAULT_REGISTRATION_POINT) {
+        glm::mat4 scale = glm::scale(getDimensions());
+        glm::mat4 registration = scale * glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT - getRegistrationPoint());
+        glm::vec3 regTransVec = glm::vec3(registration[3]); // extract position component from matrix
+        info.setOffset(regTransVec);
+    }
+}
+
 bool EntityItem::contains(const glm::vec3& point) const {
     if (getShapeType() == SHAPE_TYPE_COMPOUND) {
         bool success;
@@ -1348,12 +1358,21 @@ bool EntityItem::contains(const glm::vec3& point) const {
     } else {
         ShapeInfo info;
         info.setParams(getShapeType(), glm::vec3(0.5f));
+        adjustShapeInfoByRegistration(info);
         return info.contains(worldToEntity(point));
     }
 }
 
 void EntityItem::computeShapeInfo(ShapeInfo& info) {
     info.setParams(getShapeType(), 0.5f * getDimensions());
+    adjustShapeInfoByRegistration(info);
+}
+
+void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
+    if (value != _registrationPoint) {
+        setRegistrationPoint(value);
+        _dirtyFlags |= Simulation::DIRTY_SHAPE;
+    }
 }
 
 void EntityItem::updatePosition(const glm::vec3& value) {

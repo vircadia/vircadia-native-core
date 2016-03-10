@@ -305,6 +305,7 @@ public:
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
 
+    virtual void adjustShapeInfoByRegistration(ShapeInfo& info) const;
     virtual bool contains(const glm::vec3& point) const;
 
     virtual bool isReadyToComputeShape() { return !isDead(); }
@@ -319,6 +320,7 @@ public:
     virtual void setRotation(glm::quat orientation) { setOrientation(orientation); }
 
     // updateFoo() methods to be used when changes need to be accumulated in the _dirtyFlags
+    virtual void updateRegistrationPoint(const glm::vec3& value);
     void updatePosition(const glm::vec3& value);
     void updatePositionFromNetwork(const glm::vec3& value);
     void updateDimensions(const glm::vec3& value);

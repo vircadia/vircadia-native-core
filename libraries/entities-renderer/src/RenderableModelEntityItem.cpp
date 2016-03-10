@@ -336,6 +336,33 @@ bool RenderableModelEntityItem::getAnimationFrame() {
     return newFrame;
 }
 
+void RenderableModelEntityItem::updateModelBounds() {
+    if (!hasModel() || !_model) {
+        return;
+    }
+    bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
+    if ((movingOrAnimating ||
+         _needsInitialSimulation ||
+         _model->getTranslation() != getPosition() ||
+         _model->getRotation() != getRotation() ||
+         _model->getRegistrationPoint() != getRegistrationPoint())
+        && _model->isActive() && _dimensionsInitialized) {
+        _model->setScaleToFit(true, getDimensions());
+        _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
+        _model->setRotation(getRotation());
+        _model->setTranslation(getPosition());
+
+        // make sure to simulate so everything gets set up correctly for rendering
+        {
+            PerformanceTimer perfTimer("_model->simulate");
+            _model->simulate(0.0f);
+        }
+
+        _needsInitialSimulation = false;
+    }
+}
+
+
 // NOTE: this only renders the "meta" portion of the Model, namely it renders debugging items, and it handles
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
@@ -414,27 +441,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                         }
                     }
                 });
-
-                bool movingOrAnimating = isMovingRelativeToParent() || isAnimatingSomething();
-                if ((movingOrAnimating ||
-                     _needsInitialSimulation ||
-                     _model->getTranslation() != getPosition() ||
-                     _model->getRotation() != getRotation() ||
-                     _model->getRegistrationPoint() != getRegistrationPoint())
-                    && _model->isActive() && _dimensionsInitialized) {
-                    _model->setScaleToFit(true, getDimensions());
-                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
-                    _model->setRotation(getRotation());
-                    _model->setTranslation(getPosition());
-
-                    // make sure to simulate so everything gets set up correctly for rendering
-                    {
-                        PerformanceTimer perfTimer("_model->simulate");
-                        _model->simulate(0.0f);
-                    }
-
-                    _needsInitialSimulation = false;
-                }
+                updateModelBounds();
             }
         }
     } else {
@@ -598,7 +605,9 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
     if (type != SHAPE_TYPE_COMPOUND) {
         ModelEntityItem::computeShapeInfo(info);
         info.setParams(type, 0.5f * getDimensions());
+        adjustShapeInfoByRegistration(info);
     } else {
+        updateModelBounds();
         const QSharedPointer<NetworkGeometry> collisionNetworkGeometry = _model->getCollisionGeometry();
 
         // should never fall in here when collision model not fully loaded
@@ -690,10 +699,13 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         AABox box;
         for (int i = 0; i < _points.size(); i++) {
             for (int j = 0; j < _points[i].size(); j++) {
-                // compensate for registraion
+                // compensate for registration
                 _points[i][j] += _model->getOffset();
                 // scale so the collision points match the model points
                 _points[i][j] *= scale;
+                // this next subtraction is done so we can give info the offset, which will cause
+                // the shape-key to change.
+                _points[i][j] -= _model->getOffset();
                 box += _points[i][j];
             }
         }
@@ -701,6 +713,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& info) {
         glm::vec3 collisionModelDimensions = box.getDimensions();
         info.setParams(type, collisionModelDimensions, _compoundShapeURL);
         info.setConvexHulls(_points);
+        info.setOffset(_model->getOffset());
     }
 }
 

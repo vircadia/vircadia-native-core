@@ -6,7 +6,7 @@ import "../../dialogs"
 PreferencesDialog {
     id: root
     objectName: "LodPreferencesDialog"
-    title: "Level of Detail preferences"
+    title: "LOD Settings"
     showCategories: ["Level of Detail Tuning"]
     property var settings: Settings {
         category: root.objectName

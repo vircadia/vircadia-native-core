@@ -36,11 +36,12 @@ public:
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(0.0f, 0.0f, 0.0f),
-        float intensity = 0.5f);
+        float intensity = 0.5f, float falloffRadius = 0.01f);
         
     /// Adds a spot light to render for the current frame.
     void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color = glm::vec3(1.0f, 1.0f, 1.0f),
-        float intensity = 0.5f, const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
+        float intensity = 0.5f, float falloffRadius = 0.01f,
+        const glm::quat& orientation = glm::quat(), float exponent = 0.0f, float cutoff = PI);
     
     void prepare(RenderArgs* args);
     void render(const render::RenderContextPointer& renderContext);
@@ -48,11 +49,12 @@ public:
     void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int skyboxCubemapUnit);
 
     // update global lighting
-    void setGlobalLight(const model::LightPointer& light, const gpu::TexturePointer& skyboxTexture);
+    void setGlobalLight(const model::LightPointer& light);
 
     const LightStage& getLightStage() { return _lightStage; }
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
+    bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
 
 private:
     DeferredLightingEffect() = default;
@@ -94,15 +96,12 @@ private:
     std::vector<int> _pointLights;
     std::vector<int> _spotLights;
 
-    int _ambientLightMode = 0;
-    gpu::TexturePointer _skyboxTexture;
-
     // Class describing the uniform buffer with all the parameters common to the deferred shaders
     class DeferredTransform {
     public:
         glm::mat4 projection;
         glm::mat4 viewInverse;
-        float stereoSide{ 0.f };
+        float stereoSide { 0.f };
         float spareA, spareB, spareC;
 
         DeferredTransform() {}

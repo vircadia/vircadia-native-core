@@ -1,5 +1,18 @@
-var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
+//
+//  createTank.js
+//  
+//
+//  created by James b. Pollack @imgntn on 3/9/2016
+//  Copyright 2016 High Fidelity, Inc.   
+//  
+//  Adds a fish tank and base, decorations, particle bubble systems, and a bubble sound.  Attaches a script that does fish swimming.  
+// 
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
+
+var fishTank, tankBase, bubbleSystem, secondBubbleSystem, thirdBubbleSystem, innerContainer, bubbleInjector, lowerCorner, upperCorner, urchin, treasure, rocks;
 var CLEANUP = true;
 
 var TANK_DIMENSIONS = {
@@ -42,7 +55,6 @@ var TANK_BASE_DIMENSIONS = {
 var BASE_VERTICAL_OFFSET = 0.42;
 
 var BUBBLE_SYSTEM_FORWARD_OFFSET = TANK_DIMENSIONS.x + 0.06;
-//depth of tank
 var BUBBLE_SYSTEM_LATERAL_OFFSET = 0.025;
 var BUBBLE_SYSTEM_VERTICAL_OFFSET = -0.30;
 
@@ -55,10 +67,11 @@ var BUBBLE_SYSTEM_DIMENSIONS = {
 var BUBBLE_SOUND_URL = "http://hifi-content.s3.amazonaws.com/DomainContent/Home/Sounds/aquarium_small.L.wav";
 var bubbleSound = SoundCache.getSound(BUBBLE_SOUND_URL);
 
-var URCHIN_FORWARD_OFFSET = TANK_DIMENSIONS.x-0.35;
-//depth of tank
+
+var URCHIN_FORWARD_OFFSET = TANK_DIMENSIONS.x - 0.35;
 var URCHIN_LATERAL_OFFSET = -0.05;
 var URCHIN_VERTICAL_OFFSET = -0.12;
+
 
 var URCHIN_MODEL_URL = 'http://hifi-content.s3.amazonaws.com/DomainContent/Home/fishTank/Urchin.fbx';
 
@@ -69,7 +82,6 @@ var URCHIN_DIMENSIONS = {
 }
 
 var ROCKS_FORWARD_OFFSET = 0;
-//depth of tank
 var ROCKS_LATERAL_OFFSET = 0.0;
 var ROCKS_VERTICAL_OFFSET = (-TANK_DIMENSIONS.y / 2) + 0.25;
 
@@ -175,8 +187,6 @@ function createBubbleSystems() {
 
     createBubbleSound(finalOffset);
 }
-
-
 
 function getOffsetFromTankCenter(VERTICAL_OFFSET, FORWARD_OFFSET, LATERAL_OFFSET) {
 
@@ -319,7 +329,7 @@ function createTreasureChest() {
         modelURL: TREASURE_MODEL_URL,
         position: finalPosition,
         dimensions: TREASURE_DIMENSIONS,
-        rotation:Quat.fromPitchYawRollDegrees(10,-45,10)
+        rotation: Quat.fromPitchYawRollDegrees(10, -45, 10)
     }
 
     treasure = Entities.addEntity(properties);
@@ -340,6 +350,7 @@ function createTankBase() {
         },
         dimensions: TANK_BASE_DIMENSIONS
     }
+
     tankBase = Entities.addEntity(properties);
 }
 
@@ -373,16 +384,8 @@ var data = {
 
 }
 
-//fisthank initialize has a different UUID than the model that i see
 Script.setTimeout(function() {
-    print('CREATE TIMEOUT!!!')
-    print('TANK AT CREATE IS::: ' + fishTank)
-    print('DATA AT CREATE IS:::' + JSON.stringify(data));
-
     setEntityCustomData(customKey, fishTank, data);
-    // setEntityCustomData('grabbableKey', id, {
-    //     grabbable: false
-    // });
 }, 2000)
 
 
@@ -406,13 +409,6 @@ if (CLEANUP === true) {
     Script.scriptEnding.connect(cleanup);
 }
 
-//  Copyright 2016 High Fidelity, Inc.
-//
-//
-//  Distributed under the Apache License, Version 2.0.
-//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-//
-
 function setEntityUserData(id, data) {
     var json = JSON.stringify(data)
     Entities.editEntity(id, {
@@ -420,7 +416,6 @@ function setEntityUserData(id, data) {
     });
 }
 
-// FIXME do non-destructive modification of the existing user data
 function getEntityUserData(id) {
     var results = null;
     var properties = Entities.getEntityProperties(id, "userData");
