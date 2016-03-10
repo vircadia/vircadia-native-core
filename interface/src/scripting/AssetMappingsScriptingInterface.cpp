@@ -81,22 +81,15 @@ void AssetMappingsScriptingInterface::getMapping(QString path, QJSValue callback
 }
 
 void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, QJSValue callback) {
-    QFile file(path);
-    if (!file.open(QFile::ReadOnly)) {
-        qCWarning(asset_client) << "Error uploading file to asset server:\n"
-                                << "Could not open" << qPrintable(path);
-        OffscreenUi::warning("File Error", "Could not open file: " + path, QMessageBox::Ok);
-        return;
-    }
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto result = offscreenUi->inputDialog(OffscreenUi::ICON_NONE, "Enter asset path:", "", mapping);
     if (!result.isValid()) {
         return;
     }
+    mapping = result.toString();
 
     // Check for override
-    if (isKnownMapping(result.toString())) {
+    if (isKnownMapping(mapping)) {
         auto message = "The following file already exists:\n" + path + "\nDo you want to override it?";
         auto button = offscreenUi->messageBox(OffscreenUi::ICON_QUESTION, "", message,
                                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -105,7 +98,7 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         }
     }
 
-    auto upload = DependencyManager::get<AssetClient>()->createUpload(file.readAll());
+    auto upload = DependencyManager::get<AssetClient>()->createUpload(path);
     QObject::connect(upload, &AssetUpload::finished, this, [=](AssetUpload* upload, const QString& hash) mutable {
         if (upload->getError() != AssetUpload::NoError) {
             if (callback.isCallable()) {
@@ -242,7 +235,7 @@ void AssetMappingModel::refresh() {
             auto it = existingPaths.begin();
             while (it != existingPaths.end()) {
                 auto item = _pathToItemMap[*it];
-                if (item->data(Qt::UserRole + 1).toBool()) {
+                if (item && item->data(Qt::UserRole + 1).toBool()) {
                     it = existingPaths.erase(it);
                 } else {
                     ++it;

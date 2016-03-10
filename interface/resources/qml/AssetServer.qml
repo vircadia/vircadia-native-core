@@ -217,7 +217,7 @@ Window {
         var addToWorld = addToWorldCheckBox.checked
 
         var path = assetProxyModel.data(treeView.currentIndex, 0x100);
-        var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "";
+        var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
         Assets.uploadFile(fileUrl, directory + filename, function(err) {
@@ -227,6 +227,8 @@ Window {
             } else {
                 console.log("Finished uploading: ", fileUrl);
             }
+
+            reload();
         });
     }
 

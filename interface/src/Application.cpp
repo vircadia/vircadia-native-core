@@ -426,7 +426,6 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<MessagesClient>();
     DependencyManager::set<UserInputMapper>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
-    DependencyManager::set<AssetMappingsScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);
     DependencyManager::set<CompositorHelper>();
@@ -1296,7 +1295,7 @@ void Application::initializeUi() {
     rootContext->setContextProperty("Quat", new Quat());
     rootContext->setContextProperty("Vec3", new Vec3());
     rootContext->setContextProperty("Uuid", new ScriptUUID());
-    rootContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+    rootContext->setContextProperty("Assets", new AssetMappingsScriptingInterface());
 
     rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
 

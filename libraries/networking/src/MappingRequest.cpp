@@ -109,7 +109,7 @@ void SetMappingRequest::doStart() {
     auto validPath = isValidPath(_path);
     auto validHash = isValidHash(_hash);
     if (!validPath || !validHash) {
-        _error = validPath ? MappingRequest::InvalidPath : MappingRequest::InvalidHash;
+        _error = !validPath ? MappingRequest::InvalidPath : MappingRequest::InvalidHash;
         emit finished(this);
         return;
     }

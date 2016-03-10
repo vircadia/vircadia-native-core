@@ -45,7 +45,7 @@
  };
 
 
-class AssetMappingsScriptingInterface : public QObject, public Dependency {
+class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(AssetMappingModel* mappingModel READ getAssetMappingModel CONSTANT)
     Q_PROPERTY(QAbstractProxyModel* proxyModel READ getProxyModel CONSTANT)
