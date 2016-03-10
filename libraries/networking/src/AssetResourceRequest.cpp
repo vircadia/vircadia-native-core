@@ -58,15 +58,6 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetMappingRequest = assetClient->createGetMappingRequest(path);
 
-    // if we get a nullptr for createGetMappingRequest assume that there is no currently available asset-server
-    if (!_assetMappingRequest) {
-        _result = ServerUnavailable;
-        _state = Finished;
-
-        emit finished();
-        return;
-    }
-
     // make sure we'll hear about the result of the get mapping request
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
         Q_ASSERT(_state == InProgress);
@@ -80,24 +71,27 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 requestHash(request->getHash());
 
                 break;
-            case MappingRequest::NotFound:
-                // no result for the mapping request, set error to not found
-                _result = NotFound;
+            default: {
+                switch (request->getError()) {
+                    case MappingRequest::NotFound:
+                        // no result for the mapping request, set error to not found
+                        _result = NotFound;
+                        break;
+                    case MappingRequest::NetworkError:
+                        // didn't hear back from the server, mark it unavailable
+                        _result = ServerUnavailable;
+                        break;
+                    default:
+                        _result = Error;
+                        break;
+                }
 
                 // since we've failed we know we are finished
                 _state = Finished;
                 emit finished();
 
                 break;
-            default:
-                // these are unexpected errors for a GetMappingRequest object
-                _result = Error;
-
-                // since we've failed we know we are finished
-                _state = Finished;
-                emit finished();
-                
-                break;
+            }
         }
 
         _assetMappingRequest->deleteLater();

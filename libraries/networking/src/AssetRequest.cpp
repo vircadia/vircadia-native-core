@@ -37,7 +37,7 @@ void AssetRequest::start() {
     }
 
     // in case we haven't parsed a valid hash, return an error now
-    if (isValidHash(_hash)) {
+    if (!isValidHash(_hash)) {
         _error = InvalidHash;
         _state = Finished;
 
@@ -62,7 +62,7 @@ void AssetRequest::start() {
     auto assetClient = DependencyManager::get<AssetClient>();
     assetClient->getAssetInfo(_hash, [this](bool responseReceived, AssetServerError serverError, AssetInfo info) {
         _info = info;
-        
+
         if (!responseReceived) {
             _error = NetworkError;
         } else if (serverError != AssetServerError::NoError) {

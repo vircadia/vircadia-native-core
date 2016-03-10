@@ -482,7 +482,7 @@ void AssetServer::loadMappingsFromFile() {
             }
         }
 
-        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment with not continue.";
+        qCritical() << "Failed to read mapping file at" << mapFilePath << "- assignment will not continue.";
         setFinished(true);
     } else {
         qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
