@@ -214,7 +214,7 @@ Window {
 
     property var uploadOpen: false;
     function uploadClicked() {
-        if(uploadOpen) {
+        if (uploadOpen) {
             return;
         }
         uploadOpen = true;
