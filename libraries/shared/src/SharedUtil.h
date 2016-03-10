@@ -24,12 +24,33 @@
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
 
+// Access to the global instance pointer to enable setting / unsetting
+template <typename T>
+std::unique_ptr<T>& globalInstancePointer() {
+    static std::unique_ptr<T> instancePtr;
+    return instancePtr;
+}
+
+template <typename T>
+void setGlobalInstance(const char* propertyName, T* instance) {
+    globalInstancePointer<T>().reset(instance);
+}
+
+template <typename T>
+bool destroyGlobalInstance() {
+    std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
+    if (instancePtr.get()) {
+        instancePtr.reset();
+        return true;
+    }
+    return false;
+}
+
 // Provides efficient access to a named global type.  By storing the value
 // in the QApplication by name we can implement the singleton pattern and 
 // have the single instance function across DLL boundaries.  
 template <typename T, typename... Args>
 T* globalInstance(const char* propertyName, Args&&... args) {
-    static std::unique_ptr<T> instancePtr;
     static T* resultInstance { nullptr };
     static std::mutex mutex;
     if (!resultInstance) {
@@ -37,10 +58,12 @@ T* globalInstance(const char* propertyName, Args&&... args) {
         if (!resultInstance) {
             auto variant = qApp->property(propertyName);
             if (variant.isNull()) {
-                // Since we're building the object, store it in a shared_ptr so it's 
-                // destroyed by the destructor of the static instancePtr
-                instancePtr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-
+                std::unique_ptr<T>& instancePtr = globalInstancePointer<T>();
+                if (!instancePtr.get()) {
+                    // Since we're building the object, store it in a shared_ptr so it's 
+                    // destroyed by the destructor of the static instancePtr
+                    instancePtr = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+                }
                 void* voidInstance = &(*instancePtr);
                 variant = QVariant::fromValue(voidInstance);
                 qApp->setProperty(propertyName, variant);
@@ -51,6 +74,7 @@ T* globalInstance(const char* propertyName, Args&&... args) {
     }
     return resultInstance;
 }
+
 
 const int BYTES_PER_COLOR = 3;
 const int BYTES_PER_FLAGS = 1;

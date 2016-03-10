@@ -82,12 +82,12 @@ public:
 
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
-    // eternal logic can suggest a simuator priority bid for the next outgoing update
-    void setOutgoingPriority(uint8_t priority);
-
     friend class PhysicalEntitySimulation;
 
 protected:
+    // changes _outgoingPriority only if priority is larger
+    void upgradeOutgoingPriority(uint8_t priority);
+
     #ifdef WANT_DEBUG_ENTITY_TREE_LOCKS
     bool entityTreeIsLocked() const;
     #endif
@@ -125,7 +125,7 @@ protected:
     uint8_t _loopsWithoutOwner;
     uint8_t _accelerationNearlyGravityCount;
     uint8_t _numInactiveUpdates { 1 };
-    uint8_t _outgoingPriority { ZERO_SIMULATION_PRIORITY };
+    uint8_t _outgoingPriority { 0 };
 };
 
 #endif // hifi_EntityMotionState_h

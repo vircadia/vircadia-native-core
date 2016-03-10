@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "MainWindow.h"
+
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QEvent>
@@ -20,10 +22,8 @@
 #include <QDragEnterEvent>
 #include <QDropEvent>
 #include <QMimeData>
+#include <QDebug>
 
-#include "MainWindow.h"
-#include "Menu.h"
-#include "Util.h"
 
 MainWindow::MainWindow(QWidget* parent) :
     QMainWindow(parent),
@@ -31,6 +31,10 @@ MainWindow::MainWindow(QWidget* parent) :
     _windowState("WindowState", 0)
 {
     setAcceptDrops(true);
+}
+
+MainWindow::~MainWindow() {
+    qDebug() << "Destroying main window";
 }
 
 void MainWindow::restoreGeometry() {

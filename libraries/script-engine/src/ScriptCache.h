@@ -12,6 +12,7 @@
 #ifndef hifi_ScriptCache_h
 #define hifi_ScriptCache_h
 
+#include <mutex>
 #include <ResourceCache.h>
 
 class ScriptUser {
@@ -26,6 +27,9 @@ using contentAvailableCallback = std::function<void(const QString& scriptOrURL, 
 class ScriptCache : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
+
+    using Mutex = std::mutex;
+    using Lock = std::unique_lock<Mutex>;
 
 public:
     void clearCache();
@@ -46,6 +50,7 @@ private slots:
 private:
     ScriptCache(QObject* parent = NULL);
     
+    Mutex _containerLock;
     QMultiMap<QUrl, contentAvailableCallback> _contentCallbacks;
     
     QHash<QUrl, QString> _scriptCache;

@@ -416,8 +416,9 @@ void MyAvatar::simulate(float deltaTime) {
     }
 }
 
+// thread-safe
 glm::mat4 MyAvatar::getSensorToWorldMatrix() const {
-    return _sensorToWorldMatrix;
+    return _sensorToWorldMatrixCache.get();
 }
 
 // Pass a recent sample of the HMD to the avatar.
@@ -442,6 +443,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
     lateUpdatePalms();
+
+    _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
 }
 
 //  Update avatar head rotation with sensor data

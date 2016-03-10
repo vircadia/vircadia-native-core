@@ -376,6 +376,15 @@ glm::mat4 createMatFromQuatAndPos(const glm::quat& q, const glm::vec3& p) {
     return m;
 }
 
+// create matrix from a non-uniform scale, orientation and position
+glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& rot, const glm::vec3& trans) {
+    glm::vec3 xAxis = rot * glm::vec3(scale.x, 0.0f, 0.0f);
+    glm::vec3 yAxis = rot * glm::vec3(0.0f, scale.y, 0.0f);
+    glm::vec3 zAxis = rot * glm::vec3(0.0f, 0.0f, scale.z);
+    return glm::mat4(glm::vec4(xAxis, 0.0f), glm::vec4(yAxis, 0.0f),
+                     glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
+}
+
 // cancel out roll and pitch
 glm::quat cancelOutRollAndPitch(const glm::quat& q) {
     glm::vec3 zAxis = q * glm::vec3(0.0f, 0.0f, 1.0f);
