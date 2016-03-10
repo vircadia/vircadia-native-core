@@ -144,62 +144,60 @@ GetMappingRequest* AssetClient::createGetMappingRequest(const AssetPath& path) {
 }
 
 GetAllMappingsRequest* AssetClient::createGetAllMappingsRequest() {
-    return new GetAllMappingsRequest();
+    auto request = new GetAllMappingsRequest();
+
+    request->moveToThread(thread());
+
+    return request;
 }
 
 DeleteMappingsRequest* AssetClient::createDeleteMappingsRequest(const AssetPathList& paths) {
-    return new DeleteMappingsRequest(paths);
+    auto request = new DeleteMappingsRequest(paths);
+
+    request->moveToThread(thread());
+
+    return request;
 }
 
 SetMappingRequest* AssetClient::createSetMappingRequest(const AssetPath& path, const AssetHash& hash) {
-    return new SetMappingRequest(path, hash);
+    auto request = new SetMappingRequest(path, hash);
+
+    request->moveToThread(thread());
+
+    return request;
 }
 
 RenameMappingRequest* AssetClient::createRenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) {
-    return new RenameMappingRequest(oldPath, newPath);
+    auto request = new RenameMappingRequest(oldPath, newPath);
+
+    request->moveToThread(thread());
+
+    return request;
 }
 
 AssetRequest* AssetClient::createRequest(const AssetHash& hash) {
-    if (isValidHash(hash)) {
-        qCWarning(asset_client) << "Invalid hash";
-        return nullptr;
-    }
+    auto request = new AssetRequest(hash);
 
-    if (haveAssetServer()) {
-        auto request = new AssetRequest(hash);
-        
-        // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
-        request->moveToThread(thread());
-        
-        return request;
-    } else {
-        return nullptr;
-    }
+    // Move to the AssetClient thread in case we are not currently on that thread (which will usually be the case)
+    request->moveToThread(thread());
+
+    return request;
 }
 
 AssetUpload* AssetClient::createUpload(const QString& filename) {
-    
-    if (haveAssetServer()) {
-        auto upload = new AssetUpload(filename);
-        
-        upload->moveToThread(thread());
-        
-        return upload;
-    } else {
-        return nullptr;
-    }
+    auto upload = new AssetUpload(filename);
+
+    upload->moveToThread(thread());
+
+    return upload;
 }
 
 AssetUpload* AssetClient::createUpload(const QByteArray& data) {
-    if (haveAssetServer()) {
-        auto upload = new AssetUpload(data);
-        
-        upload->moveToThread(thread());
-        
-        return upload;
-    } else {
-        return nullptr;
-    }
+    auto upload = new AssetUpload(data);
+
+    upload->moveToThread(thread());
+
+    return upload;
 }
 
 bool AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end,
@@ -233,9 +231,12 @@ bool AssetClient::getAsset(const QString& hash, DataOffset start, DataOffset end
         _pendingRequests[assetServer][messageID] = { callback, progressCallback };
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QByteArray());
+        return false;
     }
 
-    return false;
+
 }
 
 bool AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {
@@ -256,9 +257,10 @@ bool AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callback) {
         _pendingInfoRequests[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, { "", 0 });
+        return false;
     }
-
-    return false;
 }
 
 void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
@@ -495,8 +497,10 @@ bool AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback callb
         _pendingUploads[assetServer][messageID] = callback;
 
         return true;
+    } else {
+        callback(false, AssetServerError::NoError, QString());
+        return false;
     }
-    return false;
 }
 
 void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {

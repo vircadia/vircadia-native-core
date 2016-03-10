@@ -122,14 +122,6 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetRequest = assetClient->createRequest(hash);
 
-    if (!_assetRequest) {
-        _result = ServerUnavailable;
-        _state = Finished;
-
-        emit finished();
-        return;
-    }
-
     connect(_assetRequest, &AssetRequest::progress, this, &AssetResourceRequest::progress);
     connect(_assetRequest, &AssetRequest::finished, this, [this](AssetRequest* req) {
         Q_ASSERT(_state == InProgress);
