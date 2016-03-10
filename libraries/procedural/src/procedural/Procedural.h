@@ -31,6 +31,7 @@ struct Procedural {
 public:
     static QJsonValue getProceduralData(const QString& proceduralJson);
 
+    Procedural();
     Procedural(const QString& userDataJson);
     void parse(const QString& userDataJson);
 
@@ -39,7 +40,6 @@ public:
 
     glm::vec4 getColor(const glm::vec4& entityColor);
 
-    bool _enabled { false };
     uint8_t _version { 1 };
 
     std::string _vertexSource;
@@ -59,8 +59,9 @@ public:
 
 protected:
     // Procedural metadata
-    uint64_t _start{ 0 };
-    int32_t _frameCount{ 0 };
+    bool _enabled { false };
+    uint64_t _start { 0 };
+    int32_t _frameCount { 0 };
 
     // Rendering object descriptions, from userData
     QJsonObject _proceduralData;
