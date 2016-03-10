@@ -1074,14 +1074,13 @@ void Rig::updateFromHandParameters(const HandParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
 
         const float HAND_RADIUS = 0.05f;
-        const float MIN_LENGTH = 1.0e-4f;
-
-        // project the hips onto the xz plane.
         int hipsIndex = indexOfJoint("Hips");
         glm::vec3 hipsTrans;
         if (hipsIndex >= 0) {
             hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans;
         }
+
+        // Use this capsule to represent the avatar body.
         const float bodyCapsuleRadius = params.bodyCapsuleRadius;
         const glm::vec3 bodyCapsuleCenter = hipsTrans - params.bodyCapsuleLocalOffset;
         const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
