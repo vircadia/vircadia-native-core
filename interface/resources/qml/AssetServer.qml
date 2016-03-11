@@ -57,7 +57,7 @@ Window {
             if (err) {
                 console.log("Asset browser - error deleting path: ", path, err);
 
-                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + Assets.getErrorString(err));
+                box = errorMessageBox("There was an error deleting:\n" + path + "\n" + err);
                 box.selected.connect(reload);
             } else {
                 console.log("Asset browser - finished deleting path: ", path);
@@ -88,7 +88,7 @@ Window {
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Asset browser - error renaming: ", oldPath, "=>", newPath, " - error ", err);
-                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + Assets.getErrorString(err));
+                box = errorMessageBox("There was an error renaming:\n" + oldPath + " to " + newPath + "\n" + err);
                 box.selected.connect(reload);
             } else {
                 console.log("Asset browser - finished rename: ", oldPath, "=>", newPath);
@@ -130,10 +130,10 @@ Window {
         treeView.selection.clear();
     }
 
-    function handleGetMappingsError(errorCode) {
+    function handleGetMappingsError(errorString) {
         errorMessageBox(
             "There was a problem retreiving the list of assets from your Asset Server.\n"
-            + Assets.getErrorString(errorCode)
+            + errorString
         );
     }
 
@@ -168,7 +168,7 @@ Window {
         if (!index) {
             index = treeView.selection.currentIndex;
         }
-        
+
         var path = assetProxyModel.data(index, 0x100);
         if (!path) {
             return;
@@ -248,7 +248,7 @@ Window {
         Assets.uploadFile(fileUrl, directory + filename, function(err, path) {
             if (err) {
                 console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
-                var box = errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
+                var box = errorMessageBox("There was an error uploading:\n" + fileUrl + "\n" + err);
                 box.selected.connect(reload);
             } else {
                 console.log("Asset Browser - finished uploading: ", fileUrl);

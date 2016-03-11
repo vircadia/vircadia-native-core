@@ -25,6 +25,27 @@ void MappingRequest::start() {
     doStart();
 };
 
+QString MappingRequest::getErrorString() const {
+    switch (_error) {
+        case MappingRequest::NoError:
+            return "No error";
+        case MappingRequest::NotFound:
+            return "Asset not found";
+        case MappingRequest::NetworkError:
+            return "Unable to communicate with Asset Server";
+        case MappingRequest::PermissionDenied:
+            return "Permission denied";
+        case MappingRequest::InvalidPath:
+            return "Path is invalid";
+        case MappingRequest::InvalidHash:
+            return "Hash is invalid";
+        case MappingRequest::UnknownError:
+            return "Asset Server internal error";
+        default:
+            return QString();
+    }
+}
+
 GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path.trimmed()) {
 };
 

@@ -65,16 +65,19 @@ void UploadAssetTask::run() {
             replyPacket->writePrimitive(AssetServerError::NoError);
             replyPacket->write(hash);
         } else if (file.open(QIODevice::WriteOnly) && file.write(fileData) == qint64(fileSize)) {
+            qDebug() << "Wrote file" << hash << "to disk. Upload complete";
             file.close();
 
             replyPacket->writePrimitive(AssetServerError::NoError);
             replyPacket->write(hash);
         } else {
+            qWarning() << "Failed to upload or write to file" << hexHash << " - upload failed.";
+
             // upload has failed - remove the file and return an error
             auto removed = file.remove();
 
             if (!removed) {
-                qWarning() << "Removal of failed upload file" << hash << "failed.";
+                qWarning() << "Removal of failed upload file" << hexHash << "failed.";
             }
 
             replyPacket->writePrimitive(AssetServerError::FileOperationFailed);
