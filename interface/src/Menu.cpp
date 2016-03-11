@@ -130,8 +130,12 @@ Menu::Menu() {
     editMenu->addSeparator();
 
     // Edit > My Asset Server
-    addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer, Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                  qApp, SLOT(toggleAssetServerWidget()));
+    auto assetServerAction = addActionToQMenuAndActionHash(editMenu, MenuOption::AssetServer,
+                                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
+                                                           qApp, SLOT(toggleAssetServerWidget()));
+    auto nodeList = DependencyManager::get<NodeList>();
+    QObject::connect(nodeList.data(), &NodeList::canRezChanged, assetServerAction, &QAction::setEnabled);
+    assetServerAction->setEnabled(nodeList->getThisNodeCanRez());
 
     // Edit > Reload All Content [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
