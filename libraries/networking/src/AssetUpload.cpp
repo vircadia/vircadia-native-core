@@ -34,6 +34,8 @@ AssetUpload::AssetUpload(const QString& filename) :
 QString AssetUpload::getErrorString() const {
     // figure out the right error message for error
     switch (_error) {
+        case AssetUpload::NoError:
+            return QString();
         case AssetUpload::PermissionDenied:
             return PERMISSION_DENIED_ERROR;
         case AssetUpload::TooLarge:
@@ -42,9 +44,10 @@ QString AssetUpload::getErrorString() const {
             return "The file could not be opened. Please check your permissions and try again.";
         case AssetUpload::NetworkError:
             return "There was a problem reaching your Asset Server. Please check your network connectivity.";
+        case AssetUpload::ServerFileError:
+            return "The Asset Server failed to store the asset. Please try again.";
         default:
-            // not handled, do not show a message box
-            return QString();
+            return QString("Unknown error with code %1").arg(_error);
     }
 }
 
@@ -89,6 +92,9 @@ void AssetUpload::start() {
                     break;
                 case AssetServerError::PermissionDenied:
                     _error = PermissionDenied;
+                    break;
+                case AssetServerError::FileOperationFailed:
+                    _error = ServerFileError;
                     break;
                 default:
                     _error = FileOpenError;

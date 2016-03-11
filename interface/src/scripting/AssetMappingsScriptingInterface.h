@@ -39,7 +39,7 @@
      bool isKnownFolder(QString path) const;
 
  signals:
-     void errorGettingMappings(int error);
+     void errorGettingMappings(QString errorString);
 
  private:
      QHash<QString, QStandardItem*> _pathToItemMap;
@@ -58,8 +58,6 @@ public:
 
     Q_INVOKABLE bool isKnownMapping(QString path) const { return _assetMappingModel.isKnownMapping(path); }
     Q_INVOKABLE bool isKnownFolder(QString path) const { return _assetMappingModel.isKnownFolder(path); }
-
-    Q_INVOKABLE QString getErrorString(int errorCode) const;
 
     Q_INVOKABLE void setMapping(QString path, QString hash, QJSValue callback = QJSValue());
     Q_INVOKABLE void getMapping(QString path, QJSValue callback = QJSValue());

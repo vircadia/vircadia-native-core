@@ -33,6 +33,7 @@ public:
 
     Q_INVOKABLE void start();
     Error getError() const { return _error; }
+    Q_INVOKABLE QString getErrorString() const;
 
 protected:
     Error _error { NoError };
