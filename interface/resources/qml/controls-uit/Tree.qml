@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+import QtQml.Models 2.2
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtQuick.Controls.Styles 1.4
@@ -22,6 +23,9 @@ TreeView {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
 
     model: treeModel
+    selection: ItemSelectionModel {
+        model: treeModel
+    }
 
     TableViewColumn {
         role: "display";
