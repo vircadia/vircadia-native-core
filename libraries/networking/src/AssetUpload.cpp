@@ -69,6 +69,8 @@ void AssetUpload::start() {
             
             // emit that we are done
             emit finished(this, QString());
+
+            return;
         }
     }
     
