@@ -73,6 +73,11 @@ Window {
             newPath = "/" + newPath;
         }
 
+        if (oldPath[oldPath.length - 1] == '/' && newPath[newPath.length - 1] != '/') {
+            // this is a folder rename but the user neglected to add a trailing slash when providing a new path
+            newPath = newPath + "/";
+        }
+
         if (Assets.isKnownFolder(newPath)) {
             box = errorMessageBox("Cannot overwrite existing directory.");
             box.selected.connect(reload);
