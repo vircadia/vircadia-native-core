@@ -1307,8 +1307,7 @@ AACube EntityItem::getQueryAACube(bool& success) const {
     // this is for when we've loaded an older json file that didn't have queryAACube properties.
     result = getMaximumAACube(success);
     if (success) {
-        _queryAACube = result;
-        _queryAACubeSet = true;
+        getThisPointer()->setQueryAACube(result);
     }
     return result;
 }

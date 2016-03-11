@@ -75,6 +75,23 @@ void RenderableModelEntityItem::loader() {
 void RenderableModelEntityItem::setDimensions(const glm::vec3& value) {
     _dimensionsInitialized = true;
     ModelEntityItem::setDimensions(value);
+
+    bool success;
+    AACube maxAACube = getMaximumAACube(success);
+    if (!success) {
+        return;
+    }
+    AACube queryAACube = getQueryAACube(success);
+
+    if (!success || !queryAACube.contains(maxAACube)) {
+        EntityItemProperties properties;
+        properties.setQueryAACube(maxAACube);
+        qCDebug(entitiesrenderer) << "Auto-setting queryAACube:" << (!getName().isEmpty() ? getName() : getModelURL());
+        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                  Qt::QueuedConnection,
+                                  Q_ARG(QUuid, getEntityItemID()),
+                                  Q_ARG(EntityItemProperties, properties));
+    }
 }
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -512,15 +529,17 @@ bool RenderableModelEntityItem::needsToCallUpdate() const {
 
 void RenderableModelEntityItem::update(const quint64& now) {
     if (!_dimensionsInitialized && _model && _model->isActive()) {
-        EntityItemProperties properties;
-        auto extents = _model->getMeshExtents();
-        properties.setDimensions(extents.maximum - extents.minimum);
-
-        qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
-        QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QUuid, getEntityItemID()),
-                                  Q_ARG(EntityItemProperties, properties));
+        const QSharedPointer<NetworkGeometry> renderNetworkGeometry = _model->getGeometry();
+        if (renderNetworkGeometry && renderNetworkGeometry->isLoaded()) {
+            EntityItemProperties properties;
+            auto extents = _model->getMeshExtents();
+            properties.setDimensions(extents.maximum - extents.minimum);
+            qCDebug(entitiesrenderer) << "Autoresizing:" << (!getName().isEmpty() ? getName() : getModelURL());
+            QMetaObject::invokeMethod(DependencyManager::get<EntityScriptingInterface>().data(), "editEntity",
+                                      Qt::QueuedConnection,
+                                      Q_ARG(QUuid, getEntityItemID()),
+                                      Q_ARG(EntityItemProperties, properties));
+        }
     }
 
     ModelEntityItem::update(now);
