@@ -51,7 +51,7 @@ Item {
     RalewaySemiBold {
         id: label
         size: hifi.fontSizes.rootMenu
-        font.capitalization: Font.AllUppercase
+        font.capitalization: isSubMenu ? Font.MixedCase : Font.AllUppercase
         anchors.left: check.right
         anchors.verticalCenter: parent.verticalCenter
         verticalAlignment: Text.AlignVCenter
