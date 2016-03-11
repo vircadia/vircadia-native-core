@@ -20,31 +20,32 @@
 #include <AssetClient.h>
 #include <QSortFilterProxyModel>
 
- class AssetMappingItem : public QStandardItem {
- public:
-     AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder);
+class AssetMappingItem : public QStandardItem {
+public:
+    AssetMappingItem(const QString& name, const QString& fullPath, bool isFolder);
 
-     QString name;
-     QString fullPath;
-     bool isFolder;
- };
+    QString name;
+    QString fullPath;
+    bool isFolder;
+};
 
 
- class AssetMappingModel : public QStandardItemModel {
-     Q_OBJECT
- public:
-     Q_INVOKABLE void refresh();
+class AssetMappingModel : public QStandardItemModel {
+    Q_OBJECT
+public:
+    Q_INVOKABLE void refresh();
 
-     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
-     bool isKnownFolder(QString path) const;
+    bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
+    bool isKnownFolder(QString path) const;
 
- signals:
-     void errorGettingMappings(int error);
+signals:
+    void errorGettingMappings(int error);
 
- private:
-     QHash<QString, QStandardItem*> _pathToItemMap;
- };
+private:
+    QHash<QString, QStandardItem*> _pathToItemMap;
+};
 
+Q_DECLARE_METATYPE(AssetMappingModel*);
 
 class AssetMappingsScriptingInterface : public QObject {
     Q_OBJECT
