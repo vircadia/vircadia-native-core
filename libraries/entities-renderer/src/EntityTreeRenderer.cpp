@@ -364,8 +364,9 @@ void EntityTreeRenderer::applyZonePropertiesToScene(std::shared_ptr<ZoneEntityIt
                     _pendingSkyboxTexture = true;
                 }
             }
-
-            skyStage->setBackgroundMode(model::SunSkyStage::SKY_BOX);
+            // Visibility does not effect other side effects such as ambient light or the selection of "best" zone.
+            // The skyStage backgroundMode is the hammer used (e.g., in Application.cpp) to control the visiblity of the sky box.
+            skyStage->setBackgroundMode(zone->getVisible() ? model::SunSkyStage::SKY_BOX : model::SunSkyStage::SKY_DOME);
             break;
         }
 
