@@ -138,7 +138,7 @@ Item {
         readonly property real modalDialogTitleHeight: 40
         readonly property real controlLineHeight: 29  // Height of spinbox control on 1920 x 1080 monitor
         readonly property real controlInterlineHeight: 22  // 75% of controlLineHeight
-        readonly property vector2d menuPadding: Qt.vector2d(12, 12)
+        readonly property vector2d menuPadding: Qt.vector2d(14, 12)
     }
 
     Item {

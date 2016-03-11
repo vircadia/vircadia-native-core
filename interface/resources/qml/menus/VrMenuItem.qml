@@ -26,31 +26,25 @@ Item {
     visible: source.visible
     width: parent.width
 
-    FontAwesome {
-        clip: true
+    CheckBox {
         id: check
-        verticalAlignment: Text.AlignVCenter
+        // FIXME: Shouild use radio buttons if source.exclusiveGroup.
         anchors {
-            verticalCenter: parent.verticalCenter
             left: parent.left
             leftMargin: hifi.dimensions.menuPadding.x
+            top: label.top
+            topMargin: 0
         }
-        width: 1.5 * hifi.dimensions.menuPadding.x
-        color: label.color
-        text: checkText()
-        size: label.height
-        visible: source.visible
-        font.pixelSize: size
-        function checkText() {
+        width: 20
+        visible: source.visible && source.type === 1 && source.checkable
+        checked: setChecked()
+        function setChecked() {
             if (!source || source.type !== 1 || !source.checkable) {
-                return ""
+                return false;
             }
             // FIXME this works for native QML menus but I don't think it will
             // for proxied QML menus
-            if (source.exclusiveGroup) {
-                return source.checked ? "\uF05D" : "\uF10C"
-            }
-            return source.checked ? "\uF046" : "\uF096"
+            return source.checked;
         }
     }
 
@@ -69,7 +63,7 @@ Item {
     Item {
         // Space for shortcut key or disclosure icon.
         id: tail
-        width: 4 * hifi.dimensions.menuPadding.x
+        width: 48
         anchors {
             verticalCenter: parent.verticalCenter
             right: parent.right
