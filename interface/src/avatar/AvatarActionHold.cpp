@@ -113,9 +113,9 @@ std::shared_ptr<Avatar> AvatarActionHold::getTarget(float deltaTimeStep, glm::qu
             // fetch the hand controller pose
             controller::Pose pose;
             if (isRightHand) {
-                pose = avatarManager->getMyAvatar()->getRightHandControllerPose();
+                pose = avatarManager->getMyAvatar()->getRightHandControllerPoseInWorldFrame();
             } else {
-                pose = avatarManager->getMyAvatar()->getLeftHandControllerPose();
+                pose = avatarManager->getMyAvatar()->getLeftHandControllerPoseInWorldFrame();
             }
 
             if (pose.isValid()) {

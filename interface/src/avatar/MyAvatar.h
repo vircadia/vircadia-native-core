@@ -249,9 +249,11 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
-    void setHandControllerPoses(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose MyAvatar::getLeftHandControllerPose() const;
-    controller::Pose MyAvatar::getRightHandControllerPose() const;
+    void setHandControllerPosesInWorldFrame(const controller::Pose& left, const controller::Pose& right);
+    controller::Pose getLeftHandControllerPoseInWorldFrame() const;
+    controller::Pose getRightHandControllerPoseInWorldFrame() const;
+    controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
+    controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
 public slots:
     void increaseSize();
@@ -450,8 +452,9 @@ private:
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
-    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseCache { controller::Pose() };
+    // These are stored in WORLD frame
+    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInWorldFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInWorldFrameCache { controller::Pose() };
 
     float AVATAR_MOVEMENT_ENERGY_CONSTANT { 0.001f };
     float AUDIO_ENERGY_CONSTANT { 0.000001f };

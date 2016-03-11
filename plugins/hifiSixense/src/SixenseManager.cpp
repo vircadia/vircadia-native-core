@@ -481,6 +481,12 @@ void SixenseManager::InputDevice::handlePoseEvent(float deltaTime, const control
     // transform pose into avatar frame.
     auto nextPose = controller::Pose(pos, rot, velocity, angularVelocity).transform(controllerToAvatar);
 
+    if (!left) {
+        // AJT: HACK TO DEBUG IK
+        nextPose.translation = glm::vec3(0.25f, 0.7f, -0.5f);
+        nextPose.rotation = glm::quat();
+    }
+
     if (prevPose.isValid() && (deltaTime > std::numeric_limits<float>::epsilon())) {
         nextPose.velocity = (nextPose.getTranslation() - prevPose.getTranslation()) / deltaTime;
 

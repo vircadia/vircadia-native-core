@@ -126,7 +126,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HandParameters handParams;
 
-        auto leftPose = myAvatar->getLeftHandControllerPose();
+        auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
         if (leftPose.isValid()) {
             handParams.isLeftEnabled = true;
             handParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
@@ -135,7 +135,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
             handParams.isLeftEnabled = false;
         }
 
-        auto rightPose = myAvatar->getRightHandControllerPose();
+        auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
         if (rightPose.isValid()) {
             handParams.isRightEnabled = true;
             handParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();

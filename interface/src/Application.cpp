@@ -3218,12 +3218,11 @@ void Application::update(float deltaTime) {
 
     controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
     controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    myAvatar->setHandControllerPoses(leftHandPose, rightHandPose);
+    auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+    myAvatar->setHandControllerPosesInWorldFrame(leftHandPose.transform(myAvatarMatrix), rightHandPose.transform(myAvatarMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
-
-    _avatarUpdate->synchronousProcess();
 
     if (_physicsEnabled) {
         PerformanceTimer perfTimer("physics");
@@ -3295,6 +3294,8 @@ void Application::update(float deltaTime) {
             }
         }
     }
+
+    _avatarUpdate->synchronousProcess();
 
     {
         PerformanceTimer perfTimer("overlays");
