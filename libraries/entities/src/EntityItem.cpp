@@ -1300,16 +1300,22 @@ AABox EntityItem::getAABox(bool& success) const {
 }
 
 AACube EntityItem::getQueryAACube(bool& success) const {
-    AACube result = SpatiallyNestable::getQueryAACube(success);
+    AACube queryAACube = SpatiallyNestable::getQueryAACube(success);
+    bool maxAACubeSuccess;
+    AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
     if (success) {
-        return result;
+        // allow server to patch up broken queryAACubes
+        if (maxAACubeSuccess && !queryAACube.contains(maxAACube)) {
+            getThisPointer()->setQueryAACube(maxAACube);
+        }
+        return _queryAACube;
     }
     // this is for when we've loaded an older json file that didn't have queryAACube properties.
-    result = getMaximumAACube(success);
-    if (success) {
-        getThisPointer()->setQueryAACube(result);
+    success = maxAACubeSuccess;
+    if (maxAACubeSuccess) {
+        getThisPointer()->setQueryAACube(maxAACube);
     }
-    return result;
+    return _queryAACube;
 }
 
 
