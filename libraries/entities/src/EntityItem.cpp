@@ -1210,7 +1210,6 @@ void EntityItem::checkAndAdjustQueryAACube() {
             // allow server to patch up broken queryAACubes
             EntityTreePointer tree = getTree();
             if (tree) {
-                qDebug() << "EntityItem::checkAndAdjustQueryAACube" << getName();
                 EntityItemProperties properties;
                 properties.setQueryAACube(maxAACube);
                 tree->updateEntity(getID(), properties);
