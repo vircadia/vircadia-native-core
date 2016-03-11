@@ -39,6 +39,9 @@ void main(void) {
      color = pow(color, vec3(2.2));
     _fragColor = vec4(color, 0.0);
 
+    // FIXME: scribe does not yet scrub out else statements
+    return;
+
 #else 
     vec3 coord = normalize(_normal);
     vec3 color = skybox.color.rgb;
