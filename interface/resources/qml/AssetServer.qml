@@ -272,6 +272,10 @@ Window {
         });
     }
 
+    function itemSelected() {
+        return treeView.selection.hasSelection()
+    }
+
     Column {
         width: pane.contentWidth
 
@@ -317,6 +321,7 @@ Window {
                     width: 80
 
                     onClicked: root.renameFile()
+                    enabled: treeView.selection.hasSelection
                 }
 
                 HifiControls.Button {
@@ -329,6 +334,7 @@ Window {
                     width: 80
 
                     onClicked: root.deleteFile()
+                    enabled: treeView.selection.hasSelection
                 }
             }
 
