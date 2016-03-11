@@ -419,9 +419,6 @@ static const float FADE_IN_ALPHA = 1.0f;
 static const float FADE_OUT_ALPHA = 0.0f;
 
 void CompositorHelper::startFadeFailsafe(float endValue) {
-    return;
-
-    qDebug() << __FUNCTION__;
     _fadeStarted = usecTimestampNow();
     _fadeFailsafeEndValue = endValue;
 
@@ -432,9 +429,6 @@ void CompositorHelper::startFadeFailsafe(float endValue) {
 }
 
 void CompositorHelper::checkFadeFailsafe() {
-    return;
-
-    qDebug() << __FUNCTION__;
     auto elapsedInFade = usecTimestampNow() - _fadeStarted;
     if (elapsedInFade > FADE_DURATION) {
         setAlpha(_fadeFailsafeEndValue);
