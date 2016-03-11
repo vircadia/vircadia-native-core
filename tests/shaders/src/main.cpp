@@ -23,83 +23,77 @@
 #include <gl/QOpenGLDebugLoggerWrapper.h>
 #include <gl/QOpenGLContextWrapper.h>
 
-#include "../model/Skybox_vert.h"
-#include "../model/Skybox_frag.h"
+#include <render-utils/simple_vert.h>
+#include <render-utils/simple_frag.h>
+#include <render-utils/simple_textured_frag.h>
+#include <render-utils/simple_textured_emisive_frag.h>
 
-#include "simple_vert.h"
-#include "simple_frag.h"
-#include "simple_textured_frag.h"
-#include "simple_textured_emisive_frag.h"
+#include <render-utils/deferred_light_vert.h>
+#include <render-utils/deferred_light_limited_vert.h>
 
-#include "deferred_light_vert.h"
-#include "deferred_light_limited_vert.h"
+#include <render-utils/directional_light_frag.h>
+#include <render-utils/directional_ambient_light_frag.h>
+#include <render-utils/directional_skybox_light_frag.h>
 
-#include "directional_light_frag.h"
+#include <render-utils/point_light_frag.h>
+#include <render-utils/spot_light_frag.h>
 
-#include "directional_ambient_light_frag.h"
+#include <render-utils/standardTransformPNTC_vert.h>
+#include <render-utils/standardDrawTexture_frag.h>
 
-#include "directional_skybox_light_frag.h"
+#include <render-utils/model_vert.h>
+#include <render-utils/model_shadow_vert.h>
+#include <render-utils/model_normal_map_vert.h>
+#include <render-utils/model_lightmap_vert.h>
+#include <render-utils/model_lightmap_normal_map_vert.h>
+#include <render-utils/skin_model_vert.h>
+#include <render-utils/skin_model_shadow_vert.h>
+#include <render-utils/skin_model_normal_map_vert.h>
 
-#include "point_light_frag.h"
-#include "spot_light_frag.h"
+#include <render-utils/model_frag.h>
+#include <render-utils/model_shadow_frag.h>
+#include <render-utils/model_normal_map_frag.h>
+#include <render-utils/model_normal_specular_map_frag.h>
+#include <render-utils/model_specular_map_frag.h>
+#include <render-utils/model_lightmap_frag.h>
+#include <render-utils/model_lightmap_normal_map_frag.h>
+#include <render-utils/model_lightmap_normal_specular_map_frag.h>
+#include <render-utils/model_lightmap_specular_map_frag.h>
+#include <render-utils/model_translucent_frag.h>
 
-#include "standardTransformPNTC_vert.h"
-#include "standardDrawTexture_frag.h"
+#include <entities-renderer/untextured_particle_frag.h>
+#include <entities-renderer/untextured_particle_vert.h>
+#include <entities-renderer/textured_particle_frag.h>
+#include <entities-renderer/textured_particle_vert.h>
 
-#include "model_vert.h"
-#include "model_shadow_vert.h"
-#include "model_normal_map_vert.h"
-#include "model_lightmap_vert.h"
-#include "model_lightmap_normal_map_vert.h"
-#include "skin_model_vert.h"
-#include "skin_model_shadow_vert.h"
-#include "skin_model_normal_map_vert.h"
+#include <render-utils/hit_effect_vert.h>
+#include <render-utils/hit_effect_frag.h>
 
-#include "model_frag.h"
-#include "model_shadow_frag.h"
-#include "model_normal_map_frag.h"
-#include "model_normal_specular_map_frag.h"
-#include "model_specular_map_frag.h"
-#include "model_lightmap_frag.h"
-#include "model_lightmap_normal_map_frag.h"
-#include "model_lightmap_normal_specular_map_frag.h"
-#include "model_lightmap_specular_map_frag.h"
-#include "model_translucent_frag.h"
+#include <render-utils/overlay3D_vert.h>
+#include <render-utils/overlay3D_frag.h>
 
-#include "untextured_particle_frag.h"
-#include "untextured_particle_vert.h"
-#include "textured_particle_frag.h"
-#include "textured_particle_vert.h"
+#include <model/skybox_vert.h>
+#include <model/skybox_frag.h>
 
+#include <render-utils/stars_vert.h>
+#include <render-utils/stars_frag.h>
+#include <render-utils/starsGrid_frag.h>
 
-#include "hit_effect_vert.h"
-#include "hit_effect_frag.h"
+#include <gpu/DrawTransformUnitQuad_vert.h>
+#include <gpu/DrawTexcoordRectTransformUnitQuad_vert.h>
+#include <gpu/DrawViewportQuadTransformTexcoord_vert.h>
+#include <gpu/DrawTexture_frag.h>
+#include <gpu/DrawTextureOpaque_frag.h>
+#include <gpu/DrawColoredTexture_frag.h>
 
-#include "overlay3D_vert.h"
-#include "overlay3D_frag.h"
+#include <render-utils/sdf_text3D_vert.h>
+#include <render-utils/sdf_text3D_frag.h>
 
-#include "Skybox_vert.h"
-#include "Skybox_frag.h"
+#include <entities-renderer/paintStroke_vert.h>
+#include <entities-renderer/paintStroke_frag.h>
 
-#include "stars_vert.h"
-#include "stars_frag.h"
-#include "starsGrid_frag.h"
-
-#include "DrawTransformUnitQuad_vert.h"
-#include "DrawTexcoordRectTransformUnitQuad_vert.h"
-#include "DrawViewportQuadTransformTexcoord_vert.h"
-#include "DrawTexture_frag.h"
-#include "DrawTextureOpaque_frag.h"
-#include "DrawColoredTexture_frag.h"
-
-#include "sdf_text3D_vert.h"
-#include "sdf_text3D_frag.h"
-
-#include "paintStroke_vert.h"
-#include "paintStroke_frag.h"
-
-#include "polyvox_vert.h"
-#include "polyvox_frag.h"
+#include <entities-renderer/polyvox_vert.h>
+#include <entities-renderer/polyvox_frag.h>
 
 // Create a simple OpenGL window that renders text in various ways
 class QTestWindow : public QWindow {
@@ -163,7 +157,7 @@ void QTestWindow::draw() {
         testShaderBuild(DrawTransformUnitQuad_vert, DrawTextureOpaque_frag);
         testShaderBuild(DrawTransformUnitQuad_vert, DrawColoredTexture_frag);
 
-        testShaderBuild(Skybox_vert, Skybox_frag);
+        testShaderBuild(skybox_vert, skybox_frag);
         testShaderBuild(simple_vert, simple_frag);
         testShaderBuild(simple_vert, simple_textured_frag);
         testShaderBuild(simple_vert, simple_textured_emisive_frag);
@@ -209,8 +203,6 @@ void QTestWindow::draw() {
 
         testShaderBuild(overlay3D_vert, overlay3D_frag);
 
-        testShaderBuild(Skybox_vert, Skybox_frag);
-        
         testShaderBuild(paintStroke_vert,paintStroke_frag);
         testShaderBuild(polyvox_vert, polyvox_frag);
 

@@ -3757,19 +3757,19 @@ namespace render {
         switch (backgroundMode) {
             case model::SunSkyStage::SKY_BOX: {
                 auto skybox = skyStage->getSkybox();
-                if (skybox && skybox->getCubemap() && skybox->getCubemap()->isDefined()) {
+                if (skybox) {
                     PerformanceTimer perfTimer("skybox");
                     skybox->render(batch, *(args->_viewFrustum));
                     break;
                 }
-                // If no skybox texture is available, render the SKY_DOME while it loads
             }
-                // fall through to next case
+
+            // Fall through: if no skybox is available, render the SKY_DOME
             case model::SunSkyStage::SKY_DOME:  {
                 if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
                     PerformanceTimer perfTimer("stars");
                     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                        "Application::payloadRender<BackgroundRenderData>() ... stars...");
+                        "Application::payloadRender<BackgroundRenderData>() ... My god, it's full of stars...");
                     // should be the first rendering pass - w/o depth buffer / lighting
 
                     static const float alpha = 1.0f;
@@ -3777,6 +3777,7 @@ namespace render {
                 }
             }
                 break;
+
             case model::SunSkyStage::NO_BACKGROUND:
             default:
                 // this line intentionally left blank
@@ -4880,7 +4881,10 @@ void Application::updateDisplayMode() {
         }
     }
     emit activeDisplayPluginChanged();
-    resetSensors();
+
+    // reset the avatar, to set head and hand palms back to a resonable default pose.
+    getMyAvatar()->reset(false);
+
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
