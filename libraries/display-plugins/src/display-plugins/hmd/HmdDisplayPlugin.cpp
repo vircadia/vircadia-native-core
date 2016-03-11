@@ -62,53 +62,49 @@ void HmdDisplayPlugin::uncustomizeContext() {
 
 void HmdDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
-
-    // set the alpha
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
+    // check the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
+    if (overlayAlpha > 0.0f) {
+        // set the alpha
+        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
 
-    if (overlayAlpha <= 0.0f) {
-        return; // don't render the overlay at all.
+        _sphereSection->Use();
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
+            auto modelView = glm::inverse(_currentRenderEyePoses[eye]); // *glm::translate(mat4(), vec3(0, 0, -1));
+            auto mvp = _eyeProjections[eye] * modelView;
+            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
+            _sphereSection->Draw();
+        });
     }
-    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-
-    _sphereSection->Use();
-    for_each_eye([&](Eye eye) {
-        eyeViewport(eye);
-        auto modelView = glm::inverse(_currentRenderEyePoses[eye]); // *glm::translate(mat4(), vec3(0, 0, -1));
-        auto mvp = _eyeProjections[eye] * modelView;
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
-        _sphereSection->Draw();
-    });
     Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::compositePointer() {
     using namespace oglplus;
 
-    //Mouse Pointer
-
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
 
-    // set the alpha
+    // check the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
-    if (overlayAlpha <= 0.0f) {
-        return; // don't render the overlay at all.
+    if (overlayAlpha > 0.0f) {
+        // set the alpha
+        Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
+        // Mouse pointer
+        _plane->Use();
+        // Reconstruct the headpose from the eye poses
+        auto headPosition = (vec3(_currentRenderEyePoses[Left][3]) + vec3(_currentRenderEyePoses[Right][3])) / 2.0f;
+        for_each_eye([&](Eye eye) {
+            eyeViewport(eye);
+            auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], headPosition);
+            auto mvp = _eyeProjections[eye] * reticleTransform;
+            Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
+            _plane->Draw();
+        });
     }
-    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
-
-    _plane->Use();
-    // Reconstruct the headpose from the eye poses
-    auto headPosition = (vec3(_currentRenderEyePoses[Left][3]) + vec3(_currentRenderEyePoses[Right][3])) / 2.0f;
-    for_each_eye([&](Eye eye) {
-        eyeViewport(eye);
-        auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], headPosition);
-        auto mvp = _eyeProjections[eye] * reticleTransform;
-        Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
-        _plane->Draw();
-    });
     Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
