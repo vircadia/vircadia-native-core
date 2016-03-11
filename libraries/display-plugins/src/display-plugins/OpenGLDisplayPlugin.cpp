@@ -415,11 +415,8 @@ void OpenGLDisplayPlugin::compositeOverlay() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     auto overlayAlpha = compositorHelper->getAlpha();
 
-    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
-
     if (overlayAlpha <= 0.0f) {
-        //return; // don't render the overlay at all.
-        qDebug() << "would bail early...";
+        return; // don't render the overlay at all.
     }
     Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
 
@@ -445,12 +442,9 @@ void OpenGLDisplayPlugin::compositePointer() {
     // set the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
     if (overlayAlpha <= 0.0f) {
-        //return; // don't render the overlay at all.
-        qDebug() << "would bail early...";
+        return; // don't render the overlay at all.
     }
-    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
     Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
-
 
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
     if (isStereo()) {
