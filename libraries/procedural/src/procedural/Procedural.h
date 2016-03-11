@@ -37,6 +37,7 @@ public:
 
     bool ready();
     void prepare(gpu::Batch& batch, const glm::vec3& position, const glm::vec3& size);
+    const gpu::ShaderPointer& getShader() const { return _shader; }
 
     glm::vec4 getColor(const glm::vec4& entityColor);
 

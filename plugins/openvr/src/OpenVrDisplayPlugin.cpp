@@ -154,4 +154,10 @@ void OpenVrDisplayPlugin::hmdPresent() {
 
     vr::TrackedDevicePose_t currentTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
     _compositor->WaitGetPoses(currentTrackedDevicePose, vr::k_unMaxTrackedDeviceCount, nullptr, 0);
+    _hmdActivityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
 }
+
+bool OpenVrDisplayPlugin::isHmdMounted() const {
+    return _hmdActivityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+}
+

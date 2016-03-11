@@ -24,6 +24,8 @@ public:
 
 protected:
     void hmdPresent() override;
+    // FIXME update with Oculus API call once it's available in the SDK
+    bool isHmdMounted() const override { return true; }
     void customizeContext() override;
     void uncustomizeContext() override;
     void updateFrameData() override;

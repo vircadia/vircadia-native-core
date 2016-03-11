@@ -17,6 +17,7 @@ public:
 
 protected:
     void hmdPresent() override {}
+    bool isHmdMounted() const override { return true; }
 
 private:
     static const QString NAME;
