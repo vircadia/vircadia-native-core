@@ -152,6 +152,7 @@ function maybeMoveOverlay() {
 
 // MAIN CONTROL
 var wasMuted, isAway;
+var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
 
@@ -168,6 +169,13 @@ function goAway() {
     MyAvatar.setEnableMeshVisible(false);  // just for our own display, without changing point of view
     playAwayAnimation(); // animation is still seen by others
     showOverlay();
+
+    // remember the View > Overlays state...
+    wasOverlaysVisible = Menu.isOptionChecked("Overlays");
+    print("wasOverlaysVisible:" + wasOverlaysVisible);
+
+    // show overlays so that people can see the "Away" message
+    Menu.setIsOptionChecked("Overlays", true);
 
     // tell the Reticle, we want to stop capturing the mouse until we come back
     Reticle.allowMouseCapture = false;
@@ -187,6 +195,9 @@ function goActive() {
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();
     hideOverlay();
+
+    // restore overlays state to what it was when we went "away"
+    Menu.setIsOptionChecked("Overlays", wasOverlaysVisible);
 
     // tell the Reticle, we are ready to capture the mouse again and it should be visible
     Reticle.allowMouseCapture = true;
