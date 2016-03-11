@@ -55,7 +55,7 @@ private:
     bool setMapping(AssetPath path, AssetHash hash);
 
     /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
-    bool deleteMappings(const AssetPathList& paths);
+    bool deleteMappings(AssetPathList& paths);
 
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);

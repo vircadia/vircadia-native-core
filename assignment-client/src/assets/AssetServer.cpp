@@ -551,12 +551,12 @@ bool pathIsFolder(const AssetPath& path) {
     return path.endsWith('/');
 }
 
-bool AssetServer::deleteMappings(const AssetPathList& paths) {
+bool AssetServer::deleteMappings(AssetPathList& paths) {
     // take a copy of the current mappings in case persistence of these deletes fails
     auto oldMappings = _fileMappings;
 
     // enumerate the paths to delete and remove them all
-    for (auto path : paths) {
+    for (auto& path : paths) {
 
         path = path.trimmed();
 
