@@ -88,6 +88,9 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         return;
     }
     mapping = result.toString();
+    if (mapping[0] != '/') {
+        mapping = "/" + mapping;
+    }
 
     // Check for override
     if (isKnownMapping(mapping)) {
@@ -208,13 +211,13 @@ void AssetMappingModel::refresh() {
 
                     auto it = _pathToItemMap.find(fullPath);
                     if (it == _pathToItemMap.end()) {
-                        qDebug() << "prefix not found: " << fullPath;
                         auto item = new QStandardItem(parts[i]);
                         bool isFolder = i < length - 1;
                         item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
                         item->setData(isFolder, Qt::UserRole + 1);
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
+                        item->setData(fullPath, Qt::UserRole + 4);
                         if (lastItem) {
                             lastItem->setChild(lastItem->rowCount(), 0, item);
                         } else {
@@ -235,6 +238,7 @@ void AssetMappingModel::refresh() {
             // Remove folders from list
             auto it = existingPaths.begin();
             while (it != existingPaths.end()) {
+                Q_ASSERT(_pathToItemMap.contains(*it));
                 auto item = _pathToItemMap[*it];
                 if (item && item->data(Qt::UserRole + 1).toBool()) {
                     it = existingPaths.erase(it);
@@ -245,7 +249,6 @@ void AssetMappingModel::refresh() {
 
             for (auto& path : existingPaths) {
                 Q_ASSERT(_pathToItemMap.contains(path));
-                qDebug() << "removing existing: " << path;
 
                 auto item = _pathToItemMap[path];
 
@@ -253,6 +256,7 @@ void AssetMappingModel::refresh() {
                     // During each iteration, delete item
                     QStandardItem* nextItem = nullptr;
 
+                    auto fullPath = item->data(Qt::UserRole + 4).toString();
                     auto parent = item->parent();
                     if (parent) {
                         parent->removeRow(item->row());
@@ -263,15 +267,15 @@ void AssetMappingModel::refresh() {
                             nextItem = parent;
                         }
                     } else {
-                        removeRow(item->row());
+                        auto removed = removeRow(item->row());
+                        Q_ASSERT(removed);
                     }
 
-                    _pathToItemMap.remove(path);
-                    //delete item;
+                    Q_ASSERT(_pathToItemMap.contains(fullPath));
+                    _pathToItemMap.remove(fullPath);
 
                     item = nextItem;
                 }
-                //removeitem->index();
             }
         } else {
             emit errorGettingMappings(static_cast<int>(request->getError()));
