@@ -55,7 +55,7 @@ public:
 
     /// \param rotation rotation to allow
     /// \brief clear previous adjustment and adjust constraint limits to allow rotation
-    void dynamicallyAdjustLimits(const glm::quat& rotation);
+    virtual void dynamicallyAdjustLimits(const glm::quat& rotation) override;
 
     // for testing purposes
     const std::vector<float>& getMinDots() { return _swingLimitFunction.getMinDots(); }
