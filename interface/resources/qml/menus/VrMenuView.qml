@@ -40,16 +40,20 @@ FocusScope {
         x: 8; y: 8
         width: 128
         height: count * 32
-        topMargin: hifi.dimensions.menuPadding
+        topMargin: hifi.dimensions.menuPadding.y
         onEnabledChanged: recalcSize();
         onVisibleChanged: recalcSize();
         onCountChanged: recalcSize();
         focus: true
 
         highlight: Rectangle {
-            width: listView.currentItem ? listView.currentItem.width : 0
-            height: listView.currentItem ? listView.currentItem.height : 0
-            color: "lightsteelblue"; radius: 3
+            anchors {
+                left: parent ? parent.left : undefined
+                right: parent ? parent.right : undefined
+                leftMargin: hifi.dimensions.borderWidth
+                rightMargin: hifi.dimensions.borderWidth
+            }
+            color: hifi.colors.white
         }
 
         delegate: VrMenuItem {
@@ -86,7 +90,7 @@ FocusScope {
                     newHeight += currentItem.implicitHeight
                 }
             }
-            newHeight += 2 * hifi.dimensions.menuPadding;  // White space at top and bottom.
+            newHeight += 2 * hifi.dimensions.menuPadding.y;  // White space at top and bottom.
             if (maxWidth > width) {
                 width = maxWidth;
             }
