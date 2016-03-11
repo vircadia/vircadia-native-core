@@ -511,7 +511,11 @@ void MenuWrapper::setEnabled(bool enabled) {
 }
 
 QAction* MenuWrapper::addSeparator() {
-    return _realMenu->addSeparator();
+    QAction* action = _realMenu->addSeparator();
+    VrMenu::executeOrQueue([=](VrMenu* vrMenu) {
+        vrMenu->addSeparator(_realMenu);
+    });
+    return action;
 }
 
 void MenuWrapper::addAction(QAction* action) {

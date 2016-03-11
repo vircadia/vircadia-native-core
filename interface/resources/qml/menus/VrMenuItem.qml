@@ -28,7 +28,7 @@ Item {
 
     CheckBox {
         id: check
-        // FIXME: Shouild use radio buttons if source.exclusiveGroup.
+        // FIXME: Should use radio buttons if source.exclusiveGroup.
         anchors {
             left: parent.left
             leftMargin: hifi.dimensions.menuPadding.x
@@ -58,6 +58,26 @@ Item {
         color: source.enabled ? hifi.colors.baseGrayShadow : hifi.colors.baseGrayShadow50
         enabled: source.visible && (source.type !== 0 ? source.enabled : false)
         visible: source.visible
+    }
+
+    Item {
+        id: separator
+        anchors {
+            fill: parent
+            leftMargin: hifi.dimensions.menuPadding.x + check.width
+            rightMargin: hifi.dimensions.menuPadding.x + tail.width
+        }
+        visible: source.type === MenuItemType.Separator
+
+        Rectangle {
+            anchors {
+                left: parent.left
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
+            height: 1
+            color: hifi.colors.lightGray50
+        }
     }
 
     Item {

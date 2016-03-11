@@ -71,6 +71,7 @@ Item {
         readonly property color baseGrayShadow25: "#40252525"
         readonly property color baseGrayHighlight40: "#66575757"
         readonly property color baseGrayHighlight15: "#26575757"
+        readonly property color lightGray50: "#806a6a6a"
         readonly property color lightGrayText80: "#ccafafaf"
         readonly property color faintGray80: "#cce3e3e3"
         readonly property color faintGray50: "#80e3e3e3"

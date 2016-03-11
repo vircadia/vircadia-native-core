@@ -190,6 +190,20 @@ void VrMenu::addAction(QMenu* menu, QAction* action) {
     bindActionToQmlAction(result, action);
 }
 
+void VrMenu::addSeparator(QMenu* menu) {
+    Q_ASSERT(MenuUserData::forObject(menu));
+    MenuUserData* userData = MenuUserData::forObject(menu);
+    if (!userData) {
+        return;
+    }
+    QObject* menuQml = findMenuObject(userData->uuid.toString());
+    Q_ASSERT(menuQml);
+
+    bool invokeResult = QMetaObject::invokeMethod(menuQml, "addSeparator", Qt::DirectConnection);
+    Q_ASSERT(invokeResult);
+    Q_UNUSED(invokeResult); // FIXME - apparently we haven't upgraded the Qt on our unix Jenkins environments to 5.5.x
+}
+
 void VrMenu::insertAction(QAction* before, QAction* action) {
     QObject* beforeQml{ nullptr };
     {
