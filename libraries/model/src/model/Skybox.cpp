@@ -50,12 +50,16 @@ void Skybox::updateSchemaBuffer() const {
 }
 
 void Skybox::prepare(gpu::Batch& batch, int textureSlot, int bufferSlot) const {
-    batch.setUniformBuffer(bufferSlot, _schemaBuffer);
+    if (bufferSlot > -1) {
+        batch.setUniformBuffer(bufferSlot, _schemaBuffer);
+    }
 
-    gpu::TexturePointer skymap = getCubemap();
-    // FIXME: skymap->isDefined may not be threadsafe
-    if (skymap && skymap->isDefined()) {
-        batch.setResourceTexture(textureSlot, skymap);
+    if (textureSlot > -1) {
+        gpu::TexturePointer skymap = getCubemap();
+        // FIXME: skymap->isDefined may not be threadsafe
+        if (skymap && skymap->isDefined()) {
+            batch.setResourceTexture(textureSlot, skymap);
+        }
     }
 }
 
