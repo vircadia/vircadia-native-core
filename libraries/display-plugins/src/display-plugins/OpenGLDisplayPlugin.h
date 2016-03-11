@@ -29,24 +29,26 @@ protected:
     using TextureEscrow = GLEscrow<gpu::TexturePointer>;
 public:
     OpenGLDisplayPlugin();
-    virtual void activate() override;
-    virtual void deactivate() override;
-    virtual void stop() override;
-    virtual bool eventFilter(QObject* receiver, QEvent* event) override;
+    void activate() override;
+    void deactivate() override;
+    void stop() override;
+    bool eventFilter(QObject* receiver, QEvent* event) override;
+    bool isDisplayVisible() const override { return true; }
 
-    virtual void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
-    virtual void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
-    virtual float presentRate() override;
 
-    virtual glm::uvec2 getRecommendedRenderSize() const override {
+    void submitSceneTexture(uint32_t frameIndex, const gpu::TexturePointer& sceneTexture) override;
+    void submitOverlayTexture(const gpu::TexturePointer& overlayTexture) override;
+    float presentRate() override;
+
+    glm::uvec2 getRecommendedRenderSize() const override {
         return getSurfacePixels();
     }
 
-    virtual glm::uvec2 getRecommendedUiSize() const override {
+    glm::uvec2 getRecommendedUiSize() const override {
         return getSurfaceSize();
     }
 
-    virtual QImage getScreenshot() const override;
+    QImage getScreenshot() const override;
 
 protected:
 #if THREADED_PRESENT
