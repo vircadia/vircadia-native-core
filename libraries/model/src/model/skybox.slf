@@ -14,11 +14,11 @@
 uniform samplerCube cubeMap;
 
 struct Skybox {
-    vec4 _color;
+    vec4 color;
 };
 
 uniform skyboxBuffer {
-    Skybox _skybox;
+    Skybox skybox;
 };
 
 in vec3  _normal;
@@ -40,10 +40,16 @@ void main(void) {
     _fragColor = vec4(color, 0.0);
 
 #else 
-
     vec3 coord = normalize(_normal);
-    vec3 texel = texture(cubeMap, coord).rgb;
-    vec3 color = texel * _skybox._color.rgb;
+    vec3 color = skybox.color.rgb;
+
+    // blend is only set if there is a cubemap
+    if (skybox.color.a > 0.0) {
+        color = texture(cubeMap, coord).rgb;
+        if (skybox.color.a < 1.0) {
+            color *= skybox.color.rgb;
+        }
+    }
     _fragColor = vec4(color, 0.0);
 
 #endif
