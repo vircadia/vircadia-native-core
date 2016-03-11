@@ -72,12 +72,16 @@ Window {
 
     }
     function doRenameFile(oldPath, newPath) {
-        console.log("Renaming " + oldPath + " to " + newPath);
-
         if (newPath[0] != "/") {
             newPath = "/" + newPath;
         }
 
+        if (Assets.isKnownFolder(newPath)) {
+            box = errorMessageBox("Cannot overwrite existing directory.");
+            box.selected.connect(reload);
+        }
+
+        console.log("Renaming " + oldPath + " to " + newPath);
         Assets.renameMapping(oldPath, newPath, function(err) {
             if (err) {
                 console.log("Error renaming: ", oldPath, "=>", newPath, " - error ", err);
@@ -110,9 +114,8 @@ Window {
         });
     }
 
-    function canAddToWorld() {
+    function canAddToWorld(path) {
         var supportedExtensions = [/\.fbx\b/i, /\.obj\b/i];
-        var path = assetProxyModel.data(treeView.currentIndex, 0x100);
 
         return supportedExtensions.reduce(function(total, current) {
             return total | new RegExp(current).test(path);
@@ -133,7 +136,7 @@ Window {
 
     function addToWorld() {
         var url = assetProxyModel.data(treeView.currentIndex, 0x103);
-        if (!url) {
+        if (!url || !canAddToWorld(url)) {
             return;
         }
         var addPosition = Vec3.sum(MyAvatar.position, Vec3.multiply(2, Quat.getFront(MyAvatar.orientation)));
@@ -284,7 +287,7 @@ Window {
                     height: 26
                     width: 120
 
-                    enabled: canAddToWorld()
+                    enabled: canAddToWorld(assetProxyModel.data(treeView.currentIndex, 0x100))
 
                     onClicked: root.addToWorld()
                 }
@@ -404,6 +407,9 @@ Window {
                 anchors.rightMargin: uploadButton.width + hifi.dimensions.contentSpacing.x
 
                 text: "Add to world on upload"
+
+                opacity: canAddToWorld(fileUrlTextField.text) ? 1 : 0
+
                 checked: false
             }
 
