@@ -54,7 +54,7 @@ void AssetMappingsScriptingInterface::setMapping(QString path, QString hash, QJS
 
     connect(request, &SetMappingRequest::finished, this, [this, callback](SetMappingRequest* request) mutable {
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()) };
+            QJSValueList args { uint8_t(request->getError()), request->getPath() };
             callback.call(args);
         }
 
@@ -150,7 +150,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
         }
 
         if (callback.isCallable()) {
-            QJSValueList args { uint8_t(request->getError()) };
+            QJSValueList args { uint8_t(request->getError()), map };
             callback.call(args);
         }
 
