@@ -77,7 +77,7 @@ Window {
         }
 
         if (Assets.isKnownFolder(newPath)) {
-            box = errorMessageBox("Cannot override existing directory.");
+            box = errorMessageBox("Cannot overwrite existing directory.");
             box.selected.connect(reload);
         }
 
@@ -408,7 +408,7 @@ Window {
 
                 text: "Add to world on upload"
 
-                enabled: canAddToWorld(fileUrlTextField.text)
+                opacity: canAddToWorld(fileUrlTextField.text) ? 1 : 0
 
                 checked: false
             }
