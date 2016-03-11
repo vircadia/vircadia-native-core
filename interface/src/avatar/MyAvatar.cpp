@@ -438,6 +438,10 @@ void MyAvatar::updateSensorToWorldMatrix() {
 
     lateUpdatePalms();
 
+    if (_enableDebugDrawSensorToWorldMatrix) {
+        DebugDraw::getInstance().addMarker("sensorToWorldMatrix", glmExtractRotation(_sensorToWorldMatrix), extractTranslation(_sensorToWorldMatrix), glm::vec4(1));
+    }
+
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
 }
 
@@ -695,9 +699,18 @@ void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
 
 void MyAvatar::setEnableDebugDrawHandControllers(bool isEnabled) {
     _enableDebugDrawHandControllers = isEnabled;
+
     if (!isEnabled) {
         DebugDraw::getInstance().removeMarker("leftHandController");
         DebugDraw::getInstance().removeMarker("rightHandController");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawSensorToWorldMatrix(bool isEnabled) {
+    _enableDebugDrawSensorToWorldMatrix = isEnabled;
+
+    if (!isEnabled) {
+        DebugDraw::getInstance().removeMarker("sensorToWorldMatrix");
     }
 }
 

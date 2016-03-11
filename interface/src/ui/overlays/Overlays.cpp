@@ -233,19 +233,6 @@ bool Overlays::editOverlay(unsigned int id, const QVariant& properties) {
     if (thisOverlay) {
         thisOverlay->setProperties(properties.toMap());
 
-        if (thisOverlay->is3D()) {
-            auto itemID = thisOverlay->getRenderItemID();
-            if (render::Item::isValidID(itemID)) {
-                render::ScenePointer scene = qApp->getMain3DScene();
-                const render::Item& item = scene->getItem(itemID);
-                if (item.getKey() != render::payloadGetKey(thisOverlay)) {
-                    render::PendingChanges pendingChanges;
-                    pendingChanges.updateItem(itemID);
-                    scene->enqueuePendingChanges(pendingChanges);
-                }
-            }
-        }
-
         return true;
     }
     return false;
