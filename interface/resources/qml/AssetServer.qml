@@ -168,9 +168,8 @@ Window {
         if (!index) {
             index = treeView.selection.currentIndex;
         }
-        console.log("THE CURRENT INDEX IS " + treeView.selection.currentIndex);
+        
         var path = assetProxyModel.data(index, 0x100);
-        console.log("THE PATH IS " + path);
         if (!path) {
             return;
         }
