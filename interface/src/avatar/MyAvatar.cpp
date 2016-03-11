@@ -342,12 +342,6 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("hand");
-        // update avatar skeleton and simulate hand and head
-        getHand()->simulate(deltaTime, true);
-    }
-
-    {
         PerformanceTimer perfTimer("skeleton");
         _skeletonModel.simulate(deltaTime);
     }
@@ -520,47 +514,49 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 
 
 glm::vec3 MyAvatar::getLeftHandPosition() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
-    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+    auto pose = getLeftHandControllerPose();
+    return pose.isValid() ? pose.getTranslation() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandPosition() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
-    return palmData.isValid() ? palmData.getPosition() : glm::vec3(0.0f);
+    auto pose = getRightHandControllerPose();
+    return pose.isValid() ? pose.getTranslation() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getLeftHandTipPosition() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
-    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+    const float TIP_LENGTH = 0.3f;
+    auto pose = getLeftHandControllerPose();
+    return pose.isValid() ? pose.getTranslation() * pose.getRotation() + glm::vec3(0.0f, TIP_LENGTH, 0.0f) : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandTipPosition() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
-    return palmData.isValid() ? palmData.getTipPosition() : glm::vec3(0.0f);
+    const float TIP_LENGTH = 0.3f;
+    auto pose = getRightHandControllerPose();
+    return pose.isValid() ? pose.getTranslation() * pose.getRotation() + glm::vec3(0.0f, TIP_LENGTH, 0.0f) : glm::vec3(0.0f);
 }
 
 controller::Pose MyAvatar::getLeftHandPose() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
-    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
+    return getLeftHandControllerPose();
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
-    return palmData.isValid() ? controller::Pose(palmData.getPosition(), palmData.getRotation(),
-        palmData.getVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
+    return getRightHandControllerPose();
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::LeftHand);
-    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
+    auto pose = getLeftHandControllerPose();
+    glm::vec3 tipTrans = getLeftHandTipPosition();
+    pose.velocity += glm::cross(pose.getAngularVelocity(), pose.getTranslation() - tipTrans);
+    pose.translation = tipTrans;
+    return pose;
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
-    auto palmData = getHandData()->getCopyOfPalmData(HandData::RightHand);
-    return palmData.isValid() ? controller::Pose(palmData.getTipPosition(), palmData.getRotation(),
-        palmData.getTipVelocity(), palmData.getRawAngularVelocity()) : controller::Pose();
+    auto pose = getRightHandControllerPose();
+    glm::vec3 tipTrans = getRightHandTipPosition();
+    pose.velocity += glm::cross(pose.getAngularVelocity(), pose.getTranslation() - tipTrans);
+    pose.translation = tipTrans;
+    return pose;
 }
 
 // virtual
@@ -695,6 +691,14 @@ void MyAvatar::setEnableDebugDrawPosition(bool isEnabled) {
         DebugDraw::getInstance().addMyAvatarMarker("avatarPosition", glm::quat(), glm::vec3(), red);
     } else {
         DebugDraw::getInstance().removeMyAvatarMarker("avatarPosition");
+    }
+}
+
+void MyAvatar::setEnableDebugDrawHandControllers(bool isEnabled) {
+    _enableDebugDrawHandControllers = isEnabled;
+    if (!isEnabled) {
+        DebugDraw::getInstance().removeMyAvatarMarker("leftHandController");
+        DebugDraw::getInstance().removeMyAvatarMarker("rightHandController");
     }
 }
 
@@ -1080,6 +1084,38 @@ void MyAvatar::rebuildCollisionShape() {
     _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
+static controller::Pose applyLowVelocityFilter(const controller::Pose& oldPose, const controller::Pose& newPose) {
+    controller::Pose finalPose = newPose;
+    if (newPose.isValid()) {
+        //  Use a velocity sensitive filter to damp small motions and preserve large ones with
+        //  no latency.
+        float velocityFilter = glm::clamp(1.0f - glm::length(oldPose.getVelocity()), 0.0f, 1.0f);
+        finalPose.translation = oldPose.getTranslation() * velocityFilter + newPose.getTranslation() * (1.0f - velocityFilter);
+        finalPose.rotation = safeMix(oldPose.getRotation(), newPose.getRotation(), 1.0f - velocityFilter);
+    }
+    return finalPose;
+}
+
+void MyAvatar::setHandControllerPoses(const controller::Pose& left, const controller::Pose& right) {
+    if (controller::InputDevice::getLowVelocityFilter()) {
+        auto oldLeftPose = getLeftHandControllerPose();
+        auto oldRightPose = getRightHandControllerPose();
+        _leftHandControllerPoseCache.set(applyLowVelocityFilter(oldLeftPose, left));
+        _rightHandControllerPoseCache.set(applyLowVelocityFilter(oldRightPose, right));
+    } else {
+        _leftHandControllerPoseCache.set(left);
+        _rightHandControllerPoseCache.set(right);
+    }
+}
+
+controller::Pose MyAvatar::getLeftHandControllerPose() const {
+    return _leftHandControllerPoseCache.get();
+}
+
+controller::Pose MyAvatar::getRightHandControllerPose() const {
+    return _rightHandControllerPoseCache.get();
+}
+
 void MyAvatar::prepareForPhysicsSimulation() {
     relayDriveKeysToCharacterController();
 
@@ -1215,11 +1251,6 @@ void MyAvatar::renderBody(RenderArgs* renderArgs, ViewFrustum* renderFrustum, fl
     } else {
         getHead()->renderLookAts(renderArgs);
     }
-
-    if (renderArgs->_renderMode != RenderArgs::SHADOW_RENDER_MODE &&
-            Menu::getInstance()->isOptionChecked(MenuOption::DisplayHandTargets)) {
-        getHand()->renderHandTargets(renderArgs, true);
-    }
 }
 
 void MyAvatar::setVisibleInSceneIfReady(Model* model, render::ScenePointer scene, bool visible) {
@@ -1325,6 +1356,23 @@ void MyAvatar::preRender(RenderArgs* renderArgs) {
             }
             glm::vec4 cyan(0.1f, 0.6f, 0.6f, 1.0f);
             AnimDebugDraw::getInstance().addAbsolutePoses("myAvatarAnimPoses", animSkeleton, absPoses, xform, cyan);
+        }
+    }
+
+    if (_enableDebugDrawHandControllers) {
+        auto leftHandPose = getLeftHandControllerPose();
+        auto rightHandPose = getRightHandControllerPose();
+
+        if (leftHandPose.isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("leftHandController", leftHandPose.getRotation(), leftHandPose.getTranslation(), glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("leftHandController");
+        }
+
+        if (rightHandPose.isValid()) {
+            DebugDraw::getInstance().addMyAvatarMarker("rightHandController", rightHandPose.getRotation(), rightHandPose.getTranslation(), glm::vec4(1));
+        } else {
+            DebugDraw::getInstance().removeMyAvatarMarker("rightHandController");
         }
     }
 
