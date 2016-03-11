@@ -156,6 +156,15 @@ var wasOverlaysVisible = Menu.isOptionChecked("Overlays");
 var eventMappingName = "io.highfidelity.away"; // goActive on hand controller button events, too.
 var eventMapping = Controller.newMapping(eventMappingName);
 
+// backward compatible version of getting HMD.mounted, so it works in old clients
+function safeGetHMDMounted() {
+    if (HMD.mounted === undefined) {
+        return true;
+    }
+    return HMD.mounted;
+}
+var wasHmdMounted = safeGetHMDMounted();
+
 function goAway() {
     if (isAway) {
         return;
@@ -182,7 +191,9 @@ function goAway() {
     if (HMD.active) {
         Reticle.visible = false;
     }
+    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
 }
+
 function goActive() {
     if (!isAway) {
         return;
@@ -205,6 +216,7 @@ function goActive() {
     if (HMD.active) {
         Reticle.position = HMD.getHUDLookAtPosition2D();
     }
+    wasHmdMounted = safeGetHMDMounted(); // always remember the correct state
 }
 
 function maybeGoActive(event) {
@@ -217,6 +229,7 @@ function maybeGoActive(event) {
         goActive();
     }
 }
+
 var wasHmdActive = HMD.active;
 var wasMouseCaptured = Reticle.mouseCaptured;
 
@@ -235,6 +248,13 @@ function maybeGoAway() {
         if (!wasMouseCaptured) {
             goAway();
         }
+    }
+
+    // If you've removed your HMD from your head, and we can detect it, we will also go away...
+    var hmdMounted = safeGetHMDMounted();
+    if (HMD.active && !hmdMounted && wasHmdMounted) {
+        wasHmdMounted = hmdMounted;
+        goAway();
     }
 }
 
