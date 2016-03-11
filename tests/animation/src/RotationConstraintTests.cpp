@@ -13,6 +13,7 @@
 #include <glm/glm.hpp>
 
 #include <ElbowConstraint.h>
+#include <GLMHelpers.h>
 #include <NumericalConstants.h>
 #include <SwingTwistConstraint.h>
 
@@ -433,8 +434,7 @@ void RotationConstraintTests::testDynamicSwingLimitFunction() {
     }
 }
 
-void RotationConstraintTests::testDynamicSwingTwistConstraint() {
-
+void RotationConstraintTests::testDynamicSwing() {
     const float ACCEPTABLE_ERROR = 1.0e-6f;
 
     // referenceRotation is the default rotation
@@ -489,7 +489,7 @@ void RotationConstraintTests::testDynamicSwingTwistConstraint() {
 
         // verify rotation is constrained
         glm::quat constrainedRotation = totalRotation;
-        QVERIFY(shoulder.apply(constrainedRotation)); // should FAIL
+        QVERIFY(shoulder.apply(constrainedRotation));
     }
 
     { // make a dynamic adjustment to the swing limits
@@ -555,3 +555,98 @@ void RotationConstraintTests::testDynamicSwingTwistConstraint() {
     }
 }
 
+void RotationConstraintTests::testDynamicTwist() {
+    // referenceRotation is the default rotation
+    float referenceAngle = 1.23f;
+    glm::vec3 referenceAxis = glm::normalize(glm::vec3(1.0f, 2.0f, -3.0f));
+    glm::quat referenceRotation = glm::angleAxis(referenceAngle, referenceAxis);
+
+    // the angle limits of the constriant about the hinge axis
+    const float minTwistAngle = -PI / 2.0f;
+    const float maxTwistAngle = PI / 2.0f;
+
+    // build the constraint
+    SwingTwistConstraint shoulder;
+    shoulder.setReferenceRotation(referenceRotation);
+    shoulder.setTwistLimits(minTwistAngle, maxTwistAngle);
+
+    glm::vec3 twistAxis = Vectors::UNIT_Y;
+    float deltaTwist = 0.1f;
+
+    { // compute min rotation that should NOT be constrained
+        float twistAngle = minTwistAngle + deltaTwist;
+        glm::quat twistRotation = glm::angleAxis(twistAngle, twistAxis);
+        glm::quat totalRotation = twistRotation * referenceRotation;
+
+        // verify rotation is NOT constrained
+        glm::quat constrainedRotation = totalRotation;
+        QVERIFY(!shoulder.apply(constrainedRotation));
+    }
+    { // compute max rotation that should NOT be constrained
+        float twistAngle = maxTwistAngle - deltaTwist;
+        glm::quat twistRotation = glm::angleAxis(twistAngle, twistAxis);
+        glm::quat totalRotation = twistRotation * referenceRotation;
+
+        // verify rotation is NOT constrained
+        glm::quat constrainedRotation = totalRotation;
+        QVERIFY(!shoulder.apply(constrainedRotation));
+    }
+    { // compute a min rotation that should be barely constrained
+        float twistAngle = minTwistAngle - deltaTwist;
+        glm::quat twistRotation = glm::angleAxis(twistAngle, twistAxis);
+        glm::quat totalRotation = twistRotation * referenceRotation;
+
+        // verify rotation is constrained
+        glm::quat constrainedRotation = totalRotation;
+        QVERIFY(shoulder.apply(constrainedRotation));
+
+        // adjust the constraint and verify rotation is NOT constrained
+        shoulder.dynamicallyAdjustLimits(totalRotation);
+        constrainedRotation = totalRotation;
+        bool constrained = shoulder.apply(constrainedRotation);
+        if (constrained) {
+            // or, if it is constrained then the adjustment is very small
+            // Note: Q1 = dQ * Q0  -->  dQ = Q1 * Q0^
+            glm::quat dQ = constrainedRotation * glm::inverse(totalRotation);
+            const float acceptableClampAngle = 0.01f;
+            float deltaAngle = glm::angle(dQ);
+            QVERIFY(deltaAngle < acceptableClampAngle);
+        }
+
+        // clear the adjustment using a null rotation
+        shoulder.dynamicallyAdjustLimits(glm::quat());
+
+        // verify that rotation is constrained again
+        constrainedRotation = totalRotation;
+        QVERIFY(shoulder.apply(constrainedRotation));
+    }
+    { // compute a min rotation that should be barely constrained
+        float twistAngle = maxTwistAngle + deltaTwist;
+        glm::quat twistRotation = glm::angleAxis(twistAngle, twistAxis);
+        glm::quat totalRotation = twistRotation * referenceRotation;
+
+        // verify rotation is constrained
+        glm::quat constrainedRotation = totalRotation;
+        QVERIFY(shoulder.apply(constrainedRotation));
+
+        // adjust the constraint and verify rotation is NOT constrained
+        shoulder.dynamicallyAdjustLimits(totalRotation);
+        constrainedRotation = totalRotation;
+        bool constrained = shoulder.apply(constrainedRotation);
+        if (constrained) {
+            // or, if it is constrained then the adjustment is very small
+            // Note: Q1 = dQ * Q0  -->  dQ = Q1 * Q0^
+            glm::quat dQ = constrainedRotation * glm::inverse(totalRotation);
+            const float acceptableClampAngle = 0.01f;
+            float deltaAngle = glm::angle(dQ);
+            QVERIFY(deltaAngle < acceptableClampAngle);
+        }
+
+        // clear the adjustment using a null rotation
+        shoulder.dynamicallyAdjustLimits(glm::quat());
+
+        // verify that rotation is constrained again
+        constrainedRotation = totalRotation;
+        QVERIFY(shoulder.apply(constrainedRotation));
+    }
+}

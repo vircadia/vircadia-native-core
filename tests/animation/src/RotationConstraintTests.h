@@ -20,7 +20,8 @@ private slots:
     void testElbowConstraint();
     void testSwingTwistConstraint();
     void testDynamicSwingLimitFunction();
-    void testDynamicSwingTwistConstraint();
+    void testDynamicSwing();
+    void testDynamicTwist();
 };
 
 #endif // hifi_RotationConstraintTests_h
