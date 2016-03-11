@@ -100,15 +100,22 @@ public:
     /// \brief exposed for unit testing
     void clearHistory();
 
+private:
+    float handleTwistBoundaryConditions(float twistAngle) const;
+
 protected:
     SwingLimitFunction _swingLimitFunction;
     float _minTwist;
     float _maxTwist;
 
+    float _oldMinTwist;
+    float _oldMaxTwist;
+
     // We want to remember the LAST clamped boundary, so we an use it even when the far boundary is closer.
     // This reduces "pops" when the input twist angle goes far beyond and wraps around toward the far boundary.
     mutable int _lastTwistBoundary;
     bool _lowerSpine { false };
+    bool _twistAdjusted { false };
 };
 
 #endif // hifi_SwingTwistConstraint_h

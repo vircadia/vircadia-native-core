@@ -13,6 +13,7 @@
 #include <math.h>
 
 #include <GeometryUtil.h>
+#include <GLMHelpers.h>
 #include <NumericalConstants.h>
 
 
@@ -31,7 +32,7 @@ SwingTwistConstraint::SwingLimitFunction::SwingLimitFunction() {
     _minDotIndexB = -1;
 }
 
-// In order to support the dynamic adjustment to swing limits we require 
+// In order to support the dynamic adjustment to swing limits we require
 // that minDots have a minimum number of elements:
 const int MIN_NUM_DOTS = 8;
 
@@ -214,11 +215,10 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     limits.reserve(numLimits);
 
     // compute the limit pairs: <theta, minDot>
-    const glm::vec3 yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < numLimits; ++i) {
         float directionLength = glm::length(swungDirections[i]);
         if (directionLength > EPSILON) {
-            glm::vec3 swingAxis = glm::cross(yAxis, swungDirections[i]);
+            glm::vec3 swingAxis = glm::cross(Vectors::UNIT_Y, swungDirections[i]);
             float theta = atan2f(-swingAxis.z, swingAxis.x);
             if (theta < 0.0f) {
                 theta += TWO_PI;
@@ -285,51 +285,57 @@ void SwingTwistConstraint::setTwistLimits(float minTwist, float maxTwist) {
     _maxTwist = glm::max(minTwist, maxTwist);
 
     _lastTwistBoundary = LAST_CLAMP_NO_BOUNDARY;
+    _twistAdjusted = false;
+}
+
+// private
+float SwingTwistConstraint::handleTwistBoundaryConditions(float twistAngle) const {
+    // adjust measured twistAngle according to clamping history
+    switch (_lastTwistBoundary) {
+        case LAST_CLAMP_LOW_BOUNDARY:
+            // clamp to min
+            if (twistAngle > _maxTwist) {
+                twistAngle -= TWO_PI;
+            }
+            break;
+        case LAST_CLAMP_HIGH_BOUNDARY:
+            // clamp to max
+            if (twistAngle < _minTwist) {
+                twistAngle += TWO_PI;
+            }
+            break;
+        default: // LAST_CLAMP_NO_BOUNDARY
+            // clamp to nearest boundary
+            float midBoundary = 0.5f * (_maxTwist + _minTwist + TWO_PI);
+            if (twistAngle > midBoundary) {
+                // lower boundary is closer --> phase down one cycle
+                twistAngle -= TWO_PI;
+            } else if (twistAngle < midBoundary - TWO_PI) {
+                // higher boundary is closer --> phase up one cycle
+                twistAngle += TWO_PI;
+            }
+            break;
+    }
+    return twistAngle;
 }
 
 bool SwingTwistConstraint::apply(glm::quat& rotation) const {
     // decompose the rotation into first twist about yAxis, then swing about something perp
-    const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
     // NOTE: rotation = postRotation * referenceRotation
     glm::quat postRotation = rotation * glm::inverse(_referenceRotation);
     glm::quat swingRotation, twistRotation;
-    swingTwistDecomposition(postRotation, yAxis, swingRotation, twistRotation);
+    swingTwistDecomposition(postRotation, Vectors::UNIT_Y, swingRotation, twistRotation);
     // NOTE: postRotation = swingRotation * twistRotation
 
-    // compute twistAngle
+    // compute raw twistAngle
     float twistAngle = 2.0f * acosf(fabsf(twistRotation.w));
-    const glm::vec3 xAxis = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 twistedX = twistRotation * xAxis;
-    twistAngle *= copysignf(1.0f, glm::dot(glm::cross(xAxis, twistedX), yAxis));
+    glm::vec3 twistedX = twistRotation * Vectors::UNIT_X;
+    twistAngle *= copysignf(1.0f, glm::dot(glm::cross(Vectors::UNIT_X, twistedX), Vectors::UNIT_Y));
 
     bool somethingClamped = false;
     if (_minTwist != _maxTwist) {
-        // adjust measured twistAngle according to clamping history
-        switch (_lastTwistBoundary) {
-            case LAST_CLAMP_LOW_BOUNDARY:
-                // clamp to min
-                if (twistAngle > _maxTwist) {
-                    twistAngle -= TWO_PI;
-                }
-                break;
-            case LAST_CLAMP_HIGH_BOUNDARY:
-                // clamp to max
-                if (twistAngle < _minTwist) {
-                    twistAngle += TWO_PI;
-                }
-                break;
-            default: // LAST_CLAMP_NO_BOUNDARY
-                // clamp to nearest boundary
-                float midBoundary = 0.5f * (_maxTwist + _minTwist + TWO_PI);
-                if (twistAngle > midBoundary) {
-                    // lower boundary is closer --> phase down one cycle
-                    twistAngle -= TWO_PI;
-                } else if (twistAngle < midBoundary - TWO_PI) {
-                    // higher boundary is closer --> phase up one cycle
-                    twistAngle += TWO_PI;
-                }
-                break;
-        }
+        // twist limits apply --> figure out which limit we're hitting, if any
+        twistAngle = handleTwistBoundaryConditions(twistAngle);
 
         // clamp twistAngle
         float clampedTwistAngle = glm::clamp(twistAngle, _minTwist, _maxTwist);
@@ -346,15 +352,15 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
 
     // clamp the swing
     // The swingAxis is always perpendicular to the reference axis (yAxis in the constraint's frame).
-    glm::vec3 swungY = swingRotation * yAxis;
-    glm::vec3 swingAxis = glm::cross(yAxis, swungY);
+    glm::vec3 swungY = swingRotation * Vectors::UNIT_Y;
+    glm::vec3 swingAxis = glm::cross(Vectors::UNIT_Y, swungY);
     float axisLength = glm::length(swingAxis);
     if (axisLength > EPSILON) {
         // The limit of swing is a function of "theta" which can be computed from the swingAxis
         // (which is in the constraint's ZX plane).
         float theta = atan2f(-swingAxis.z, swingAxis.x);
         float minDot = _swingLimitFunction.getMinDot(theta);
-        if (glm::dot(swungY, yAxis) < minDot) {
+        if (glm::dot(swungY, Vectors::UNIT_Y) < minDot) {
             // The swing limits are violated so we extract the angle from midDot and
             // use it to supply a new rotation.
             swingAxis /= axisLength;
@@ -365,7 +371,7 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
 
     if (somethingClamped) {
         // update the rotation
-        twistRotation = glm::angleAxis(twistAngle, yAxis);
+        twistRotation = glm::angleAxis(twistAngle, Vectors::UNIT_Y);
         rotation = swingRotation * twistRotation * _referenceRotation;
         return true;
     }
@@ -376,14 +382,40 @@ void SwingTwistConstraint::dynamicallyAdjustLimits(const glm::quat& rotation) {
     glm::quat postRotation = rotation * glm::inverse(_referenceRotation);
     glm::quat swingRotation, twistRotation;
 
-    const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
-    swingTwistDecomposition(postRotation, yAxis, swingRotation, twistRotation);
+    swingTwistDecomposition(postRotation, Vectors::UNIT_Y, swingRotation, twistRotation);
 
-    // we currently only handle swing limits
-    glm::vec3 swungY = swingRotation * yAxis;
-    glm::vec3 swingAxis = glm::cross(yAxis, swungY);
+    // adjust swing limits
+    glm::vec3 swungY = swingRotation * Vectors::UNIT_Y;
+    glm::vec3 swingAxis = glm::cross(Vectors::UNIT_Y, swungY);
     float theta = atan2f(-swingAxis.z, swingAxis.x);
     _swingLimitFunction.dynamicallyAdjustMinDots(theta, swungY.y);
+
+    // restore twist limits
+    if (_twistAdjusted) {
+        _minTwist = _oldMinTwist;
+        _maxTwist = _oldMaxTwist;
+        _twistAdjusted = false;
+    }
+
+    if (_minTwist != _maxTwist) {
+        // compute twistAngle
+        float twistAngle = 2.0f * acosf(fabsf(twistRotation.w));
+        glm::vec3 twistedX = twistRotation * Vectors::UNIT_X;
+        twistAngle *= copysignf(1.0f, glm::dot(glm::cross(Vectors::UNIT_X, twistedX), Vectors::UNIT_Y));
+        twistAngle = handleTwistBoundaryConditions(twistAngle);
+
+        if (twistAngle < _minTwist || twistAngle > _maxTwist) {
+            // expand twist limits
+            _twistAdjusted = true;
+            _oldMinTwist = _minTwist;
+            _oldMaxTwist = _maxTwist;
+            if (twistAngle < _minTwist) {
+                _minTwist = twistAngle;
+            } else if (twistAngle > _maxTwist) {
+                _maxTwist = twistAngle;
+            }
+        }
+    }
 }
 
 void SwingTwistConstraint::clearHistory() {
