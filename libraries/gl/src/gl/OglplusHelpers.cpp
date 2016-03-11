@@ -40,7 +40,8 @@ out vec4 FragColor;
 
 void main() {
 
-    FragColor = texture(sampler, vTexCoord) * alpha;
+    FragColor = texture(sampler, vTexCoord);
+    FragColor.a *= alpha;
 }
 
 )FS";

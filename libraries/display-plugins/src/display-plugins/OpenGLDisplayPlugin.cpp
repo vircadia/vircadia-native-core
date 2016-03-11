@@ -435,6 +435,7 @@ void OpenGLDisplayPlugin::compositeOverlay() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
         drawUnitQuad();
     }
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositePointer() {
@@ -461,6 +462,7 @@ void OpenGLDisplayPlugin::compositePointer() {
         drawUnitQuad();
     }
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void OpenGLDisplayPlugin::compositeLayers() {

@@ -84,6 +84,7 @@ void HmdDisplayPlugin::compositeOverlay() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _sphereSection->Draw();
     });
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::compositePointer() {
@@ -92,17 +93,15 @@ void HmdDisplayPlugin::compositePointer() {
     //Mouse Pointer
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
     // set the alpha
     auto overlayAlpha = compositorHelper->getAlpha();
-
-    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
-
     if (overlayAlpha <= 0.0f) {
-        //return; // don't render the overlay at all.
-        qDebug() << "would bail early...";
+    //return; // don't render the overlay at all.
+    qDebug() << "would bail early...";
     }
     qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
-    Uniform<float>(*_program, _alphaUniform).Set(1.0f);
+    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
 
 
     _plane->Use();
@@ -115,6 +114,7 @@ void HmdDisplayPlugin::compositePointer() {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mvp);
         _plane->Draw();
     });
+    Uniform<float>(*_program, _alphaUniform).Set(1.0);
 }
 
 void HmdDisplayPlugin::internalPresent() {
