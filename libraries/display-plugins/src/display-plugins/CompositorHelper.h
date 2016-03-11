@@ -145,6 +145,11 @@ private:
     float _fadeInAlpha { true };
     float _oculusUIRadius { 1.0f };
 
+    quint64 _fadeStarted { 0.0f };
+    float _fadeFailsafeEndValue { 1.0f };
+    void checkFadeFailsafe();
+    void startFadeFailsafe(float endValue);
+
     int _reticleQuad;
 
     int _previousBorderWidth { -1 };

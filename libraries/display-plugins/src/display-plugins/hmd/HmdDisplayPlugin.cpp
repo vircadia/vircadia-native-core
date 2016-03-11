@@ -62,6 +62,20 @@ void HmdDisplayPlugin::uncustomizeContext() {
 
 void HmdDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
+
+    // set the alpha
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    auto overlayAlpha = compositorHelper->getAlpha();
+
+    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
+
+    if (overlayAlpha <= 0.0f) {
+        //return; // don't render the overlay at all.
+        qDebug() << "would bail early...";
+    }
+    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
+
     _sphereSection->Use();
     for_each_eye([&](Eye eye) {
         eyeViewport(eye);
@@ -73,13 +87,28 @@ void HmdDisplayPlugin::compositeOverlay() {
 }
 
 void HmdDisplayPlugin::compositePointer() {
+    using namespace oglplus;
+
     //Mouse Pointer
+
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    // set the alpha
+    auto overlayAlpha = compositorHelper->getAlpha();
+
+    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
+
+    if (overlayAlpha <= 0.0f) {
+        //return; // don't render the overlay at all.
+        qDebug() << "would bail early...";
+    }
+    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
+    Uniform<float>(*_program, _alphaUniform).Set(1.0f);
+
+
     _plane->Use();
     // Reconstruct the headpose from the eye poses
     auto headPosition = (vec3(_currentRenderEyePoses[Left][3]) + vec3(_currentRenderEyePoses[Right][3])) / 2.0f;
     for_each_eye([&](Eye eye) {
-        using namespace oglplus;
         eyeViewport(eye);
         auto reticleTransform = compositorHelper->getReticleTransform(_currentRenderEyePoses[eye], headPosition);
         auto mvp = _eyeProjections[eye] * reticleTransform;

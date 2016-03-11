@@ -11,6 +11,7 @@
 #include <memory>
 #include <math.h>
 
+#include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
@@ -414,13 +415,45 @@ void CompositorHelper::updateTooltips() {
 }
 
 static const float FADE_DURATION = 500.0f;
+static const float FADE_IN_ALPHA = 1.0f;
+static const float FADE_OUT_ALPHA = 0.0f;
+
+void CompositorHelper::startFadeFailsafe(float endValue) {
+    return;
+
+    qDebug() << __FUNCTION__;
+    _fadeStarted = usecTimestampNow();
+    _fadeFailsafeEndValue = endValue;
+
+    const int SLIGHT_DELAY = 10;
+    QTimer::singleShot(FADE_DURATION + SLIGHT_DELAY, [this]{
+        checkFadeFailsafe();
+    });
+}
+
+void CompositorHelper::checkFadeFailsafe() {
+    return;
+
+    qDebug() << __FUNCTION__;
+    auto elapsedInFade = usecTimestampNow() - _fadeStarted;
+    if (elapsedInFade > FADE_DURATION) {
+        setAlpha(_fadeFailsafeEndValue);
+    }
+}
+
 void CompositorHelper::fadeIn() {
     _fadeInAlpha = true;
 
     _alphaPropertyAnimation->setDuration(FADE_DURATION);
     _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(1.0f);
+    _alphaPropertyAnimation->setEndValue(FADE_IN_ALPHA);
     _alphaPropertyAnimation->start();
+
+    // Sometimes, this "QPropertyAnimation" fails to complete the animation, and we end up with a partially faded
+    // state. So we will also have this fail-safe, where we record the timestamp of the fadeRequest, and the target
+    // value of the fade, and if after that time we still haven't faded all the way, we will kick it to the final
+    // fade value
+    startFadeFailsafe(FADE_IN_ALPHA);
 }
 
 void CompositorHelper::fadeOut() {
@@ -428,8 +461,9 @@ void CompositorHelper::fadeOut() {
 
     _alphaPropertyAnimation->setDuration(FADE_DURATION);
     _alphaPropertyAnimation->setStartValue(_alpha);
-    _alphaPropertyAnimation->setEndValue(0.0f);
+    _alphaPropertyAnimation->setEndValue(FADE_OUT_ALPHA);
     _alphaPropertyAnimation->start();
+    startFadeFailsafe(FADE_OUT_ALPHA);
 }
 
 void CompositorHelper::toggle() {

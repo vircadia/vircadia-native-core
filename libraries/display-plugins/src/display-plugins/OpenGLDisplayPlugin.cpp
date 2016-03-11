@@ -296,6 +296,9 @@ void OpenGLDisplayPlugin::customizeContext() {
         if (uniform.Name() == "mvp") {
             _mvpUniform = uniform.Index();
         }
+        if (uniform.Name() == "alpha") {
+            _alphaUniform = uniform.Index();
+        }
         uniforms.Next();
     }
   
@@ -406,6 +409,20 @@ void OpenGLDisplayPlugin::updateFramerate() {
 
 void OpenGLDisplayPlugin::compositeOverlay() {
     using namespace oglplus;
+
+
+    // set the alpha
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    auto overlayAlpha = compositorHelper->getAlpha();
+
+    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
+
+    if (overlayAlpha <= 0.0f) {
+        //return; // don't render the overlay at all.
+        qDebug() << "would bail early...";
+    }
+    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
     // Overlay draw
     if (isStereo()) {
         Uniform<glm::mat4>(*_program, _mvpUniform).Set(mat4());
@@ -423,6 +440,17 @@ void OpenGLDisplayPlugin::compositeOverlay() {
 void OpenGLDisplayPlugin::compositePointer() {
     using namespace oglplus;
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
+
+    // set the alpha
+    auto overlayAlpha = compositorHelper->getAlpha();
+    if (overlayAlpha <= 0.0f) {
+        //return; // don't render the overlay at all.
+        qDebug() << "would bail early...";
+    }
+    qDebug() << __FUNCTION__ << "overlayAlpha:" << overlayAlpha;
+    Uniform<float>(*_program, _alphaUniform).Set(overlayAlpha);
+
+
     Uniform<glm::mat4>(*_program, _mvpUniform).Set(compositorHelper->getReticleTransform(glm::mat4()));
     if (isStereo()) {
         for_each_eye([&](Eye eye) {
