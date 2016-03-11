@@ -538,7 +538,11 @@ function buildMenuArray(serverState) {
                 click: function() { shutdown(); }
             },
             {
-                label: 'Current Version: '+buildInfo.buildIdentifier
+                type: 'separator'
+            },
+            {
+                label: 'Current Version: '+buildInfo.buildIdentifier,
+                enabled: false
             }
         ];
 
@@ -776,6 +780,7 @@ app.on('ready', function() {
             var currentVersion = null;
             try {
                 currentVersion = parseInt(buildInfo.buildIdentifier);
+                console.log('CURRENT VERSION:: ',currentVersion)
             } catch (e) {
             }
 
