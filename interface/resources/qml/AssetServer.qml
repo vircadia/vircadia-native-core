@@ -238,7 +238,7 @@ Window {
         var directory = path ? path.slice(0, path.lastIndexOf('/') + 1) : "/";
         var filename = fileUrl.slice(fileUrl.lastIndexOf('/') + 1);
 
-        Assets.uploadFile(fileUrl, directory + filename, function(err) {
+        Assets.uploadFile(fileUrl, directory + filename, function(err, path) {
             if (err) {
                 console.log("Asset Browser - error uploading: ", fileUrl, " - error ", err);
                 var box = errorMessage("There was an error uploading:\n" + fileUrl + "\n" + Assets.getErrorString(err));
@@ -247,7 +247,7 @@ Window {
                 console.log("Asset Browser - finished uploading: ", fileUrl);
 
                 if (shouldAddToWorld) {
-                    addToWorld("atp:" + directory + filename);
+                    addToWorld("atp:" + path);
                 }
 
                 reload();
