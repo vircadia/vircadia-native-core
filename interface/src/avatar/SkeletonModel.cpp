@@ -16,7 +16,6 @@
 
 #include "Application.h"
 #include "Avatar.h"
-#include "Hand.h"
 #include "Menu.h"
 #include "SkeletonModel.h"
 #include "Util.h"
@@ -127,20 +126,20 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
         Rig::HandParameters handParams;
 
-        auto leftPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::LeftHand);
-        if (leftPalm.isValid() && leftPalm.isActive()) {
+        auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
+        if (leftPose.isValid()) {
             handParams.isLeftEnabled = true;
-            handParams.leftPosition = Quaternions::Y_180 * leftPalm.getRawPosition();
-            handParams.leftOrientation = Quaternions::Y_180 * leftPalm.getRawRotation();
+            handParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
+            handParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
         } else {
             handParams.isLeftEnabled = false;
         }
 
-        auto rightPalm = myAvatar->getHand()->getCopyOfPalmData(HandData::RightHand);
-        if (rightPalm.isValid() && rightPalm.isActive()) {
+        auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
+        if (rightPose.isValid()) {
             handParams.isRightEnabled = true;
-            handParams.rightPosition = Quaternions::Y_180 * rightPalm.getRawPosition();
-            handParams.rightOrientation = Quaternions::Y_180 * rightPalm.getRawRotation();
+            handParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
+            handParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
         } else {
             handParams.isRightEnabled = false;
         }
@@ -245,17 +244,6 @@ public:
 
 bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
-}
-
-void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
-    if (jointIndex == -1 || jointIndex >= _rig->getJointStateCount()) {
-        return;
-    }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    int parentJointIndex = geometry.joints.at(jointIndex).parentIndex;
-    if (parentJointIndex == -1) {
-        return;
-    }
 }
 
 bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
