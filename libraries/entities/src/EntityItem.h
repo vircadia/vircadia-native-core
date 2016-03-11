@@ -179,8 +179,6 @@ public:
     QString getDescription() const { return _description; }
     void setDescription(QString value) { _description = value; }
 
-    void checkAndAdjustQueryAACube();
-
     virtual void setParentID(const QUuid& parentID);
 
     /// Dimensions in meters (0.0 - TREE_SCALE)
@@ -242,6 +240,8 @@ public:
     AACube getMinimumAACube(bool& success) const;
     AABox getAABox(bool& success) const; /// axis aligned bounding box in world-frame (meters)
 
+    using SpatiallyNestable::getQueryAACube;
+    virtual AACube getQueryAACube(bool& success) const override;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
 

@@ -992,15 +992,21 @@ void EntityTree::fixupMissingParents() {
         EntityItemWeakPointer entityWP = iter.next();
         EntityItemPointer entity = entityWP.lock();
         if (entity) {
-            bool success;
-            AACube newCube = entity->getQueryAACube(success);
-            if (success) {
-                // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
-                // location in the EntityTree.
-                moveOperator.addEntityToMoveList(entity, newCube);
-                iter.remove();
-                entity->markAncestorMissing(false);
+            bool maxAACubeSuccess;
+            AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
+            bool queryAACubeSuccess;
+            AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
+            if (!maxAACubeSuccess || !queryAACubeSuccess) {
+                continue;
             }
+            if (!newCube.contains(maxAACube)) {
+                newCube = maxAACube;
+            }
+            // this entity's parent (or ancestry) was previously not fully known, and now is.  Update its
+            // location in the EntityTree.
+            moveOperator.addEntityToMoveList(entity, newCube);
+            iter.remove();
+            entity->markAncestorMissing(false);
         } else {
             // entity was deleted before we found its parent.
             iter.remove();

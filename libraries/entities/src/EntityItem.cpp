@@ -1202,25 +1202,24 @@ const Transform EntityItem::getTransformToCenter(bool& success) const {
     return result;
 }
 
-void EntityItem::checkAndAdjustQueryAACube() {
-    bool maxAACubeSuccess;
-    AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
-    if (maxAACubeSuccess) {
-        if (!_queryAACubeSet || !_queryAACube.contains(maxAACube)) {
-            // allow server to patch up broken queryAACubes
-            EntityTreePointer tree = getTree();
-            if (tree) {
-                EntityItemProperties properties;
-                properties.setQueryAACube(maxAACube);
-                tree->updateEntity(getID(), properties);
-            }
-        }
-    }
-}
+// void EntityItem::checkAndAdjustQueryAACube() {
+//     bool maxAACubeSuccess;
+//     AACube maxAACube = getMaximumAACube(maxAACubeSuccess);
+//     if (maxAACubeSuccess) {
+//         if (!_queryAACubeSet || !_queryAACube.contains(maxAACube)) {
+//             // allow server to patch up broken queryAACubes
+//             EntityTreePointer tree = getTree();
+//             if (tree) {
+//                 EntityItemProperties properties;
+//                 properties.setQueryAACube(maxAACube);
+//                 tree->updateEntity(getID(), properties);
+//             }
+//         }
+//     }
+// }
 
 void EntityItem::setParentID(const QUuid& parentID) {
     SpatiallyNestable::setParentID(parentID);
-    checkAndAdjustQueryAACube();
 }
 
 
@@ -1229,7 +1228,6 @@ void EntityItem::setDimensions(const glm::vec3& value) {
         return;
     }
     setScale(value);
-    checkAndAdjustQueryAACube();
 }
 
 /// The maximum bounding cube for the entity, independent of it's rotation.
@@ -1320,6 +1318,20 @@ AABox EntityItem::getAABox(bool& success) const {
         success = true;
     }
     return _cachedAABox;
+}
+
+AACube EntityItem::getQueryAACube(bool& success) const {
+    AACube result = SpatiallyNestable::getQueryAACube(success);
+    if (success) {
+        return result;
+    }
+    // this is for when we've loaded an older json file that didn't have queryAACube properties.
+    result = getMaximumAACube(success);
+    if (success) {
+        _queryAACube = result;
+        _queryAACubeSet = true;
+    }
+    return result;
 }
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data

@@ -752,6 +752,7 @@ void SpatiallyNestable::forEachDescendant(std::function<void(SpatiallyNestablePo
 }
 
 void SpatiallyNestable::locationChanged() {
+    checkAndAdjustQueryAACube();
     forEachChild([&](SpatiallyNestablePointer object) {
         object->locationChanged();
     });
@@ -761,13 +762,21 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
+void SpatiallyNestable::checkAndAdjustQueryAACube() {
+    bool success;
+    AACube maxAACube = getMaximumAACube(success);
+    if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
+        setQueryAACube(maxAACube);
+    }
+}
+
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
     if (queryAACube.containsNaN()) {
         qDebug() << "SpatiallyNestable::setQueryAACube -- cube contains NaN";
         return;
     }
     _queryAACube = queryAACube;
-    if (queryAACube.getScale() > 0.0f) {
+    if (_queryAACube.getScale() > 0.0f) {
         _queryAACubeSet = true;
     }
 }
