@@ -72,8 +72,8 @@
 #include <render-utils/overlay3D_vert.h>
 #include <render-utils/overlay3D_frag.h>
 
-#include <model/Skybox_vert.h>
-#include <model/Skybox_frag.h>
+#include <model/skybox_vert.h>
+#include <model/skybox_frag.h>
 
 #include <render-utils/stars_vert.h>
 #include <render-utils/stars_frag.h>
@@ -157,7 +157,7 @@ void QTestWindow::draw() {
         testShaderBuild(DrawTransformUnitQuad_vert, DrawTextureOpaque_frag);
         testShaderBuild(DrawTransformUnitQuad_vert, DrawColoredTexture_frag);
 
-        testShaderBuild(Skybox_vert, Skybox_frag);
+        testShaderBuild(skybox_vert, skybox_frag);
         testShaderBuild(simple_vert, simple_frag);
         testShaderBuild(simple_vert, simple_textured_frag);
         testShaderBuild(simple_vert, simple_textured_emisive_frag);
@@ -203,8 +203,6 @@ void QTestWindow::draw() {
 
         testShaderBuild(overlay3D_vert, overlay3D_frag);
 
-        testShaderBuild(Skybox_vert, Skybox_frag);
-        
         testShaderBuild(paintStroke_vert,paintStroke_frag);
         testShaderBuild(polyvox_vert, polyvox_frag);
 
