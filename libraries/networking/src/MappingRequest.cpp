@@ -28,7 +28,7 @@ void MappingRequest::start() {
 QString MappingRequest::getErrorString() const {
     switch (_error) {
         case MappingRequest::NoError:
-            return "No error";
+            return QString();
         case MappingRequest::NotFound:
             return "Asset not found";
         case MappingRequest::NetworkError:
@@ -42,7 +42,7 @@ QString MappingRequest::getErrorString() const {
         case MappingRequest::UnknownError:
             return "Asset Server internal error";
         default:
-            return QString();
+            return QString("Unknown error with code %1").arg(_error);
     }
 }
 
