@@ -88,6 +88,9 @@ void AssetMappingsScriptingInterface::uploadFile(QString path, QString mapping, 
         return;
     }
     mapping = result.toString();
+    if (mapping[0] != '/') {
+        mapping = "/" + mapping;
+    }
 
     // Check for override
     if (isKnownMapping(mapping)) {
