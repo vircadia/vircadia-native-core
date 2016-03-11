@@ -46,8 +46,7 @@ function(AUTOSCRIBE_SHADER SHADER_FILE)
         set(SHADER_TARGET ${SHADER_TARGET}_frag.h)
     endif()
 
-    # Put shaders in an isolated place
-    set(SHADER_TARGET "shaders/${TARGET_NAME}/${SHADER_TARGET}")
+    set(SHADER_TARGET "${SHADERS_DIR}/${SHADER_TARGET}")
 
     # Target dependant Custom rule on the SHADER_FILE
     if (APPLE)
@@ -90,10 +89,14 @@ macro(AUTOSCRIBE_SHADER_LIB)
   file(GLOB_RECURSE SHADER_INCLUDE_FILES src/*.slh)
   file(GLOB_RECURSE SHADER_SOURCE_FILES src/*.slv src/*.slf)
 
+  #make the shader folder
+  set(SHADERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
+  file(MAKE_DIRECTORY ${SHADERS_DIR})
+
   #message(${SHADER_INCLUDE_FILES})
   foreach(SHADER_FILE ${SHADER_SOURCE_FILES})
       AUTOSCRIBE_SHADER(${SHADER_FILE} ${SHADER_INCLUDE_FILES})
-      file(TO_CMAKE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
+      file(TO_CMAKE_PATH "${AUTOSCRIBE_SHADER_RETURN}" AUTOSCRIBE_GENERATED_FILE)
       list(APPEND AUTOSCRIBE_SHADER_SRC ${AUTOSCRIBE_GENERATED_FILE})
   endforeach()
   #message(${AUTOSCRIBE_SHADER_SRC})
@@ -109,6 +112,6 @@ macro(AUTOSCRIBE_SHADER_LIB)
   list(APPEND AUTOSCRIBE_SHADER_LIB_SRC ${AUTOSCRIBE_SHADER_SRC})
 
   # Link library shaders, if they exist
-  include_directories("${CMAKE_CURRENT_BINARY_DIR}/shaders/${TARGET_NAME}")
+  include_directories("${SHADERS_DIR}")
 
 endmacro()
