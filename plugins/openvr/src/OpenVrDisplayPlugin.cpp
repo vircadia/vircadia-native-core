@@ -68,6 +68,21 @@ void OpenVrDisplayPlugin::activate() {
     _compositor = vr::VRCompositor();
     Q_ASSERT(_compositor);
     HmdDisplayPlugin::activate();
+
+    // set up default sensor space such that the UI overlay will align with the front of the room.
+    auto chaperone = vr::VRChaperone();
+    if (chaperone) {
+        float const UI_RADIUS = 1.0f;
+        float const UI_HEIGHT = 1.6f;
+        float const UI_Z_OFFSET = 0.5;
+
+        float xSize, zSize;
+        chaperone->GetPlayAreaSize(&xSize, &zSize);
+        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
+        _sensorResetMat = glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
+    } else {
+        qDebug() << "OpenVR: error could not get chaperone pointer";
+    }
 }
 
 void OpenVrDisplayPlugin::deactivate() {
@@ -115,7 +130,7 @@ glm::mat4 OpenVrDisplayPlugin::getHeadPose(uint32_t frameIndex) const {
 #endif
 
     vr::TrackedDevicePose_t predictedTrackedDevicePose[vr::k_unMaxTrackedDeviceCount];
-    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseSeated, predictedSecondsFromNow, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
+    _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, predictedSecondsFromNow, predictedTrackedDevicePose, vr::k_unMaxTrackedDeviceCount);
 
     // copy and process predictedTrackedDevicePoses
     for (int i = 0; i < vr::k_unMaxTrackedDeviceCount; i++) {
