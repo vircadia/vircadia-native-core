@@ -25,7 +25,7 @@ void MappingRequest::start() {
     doStart();
 };
 
-GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path) {
+GetMappingRequest::GetMappingRequest(const AssetPath& path) : _path(path.trimmed()) {
 };
 
 void GetMappingRequest::doStart() {
@@ -97,7 +97,7 @@ void GetAllMappingsRequest::doStart() {
 };
 
 SetMappingRequest::SetMappingRequest(const AssetPath& path, const AssetHash& hash) :
-    _path(path),
+    _path(path.trimmed()),
     _hash(hash)
 {
 
@@ -138,6 +138,9 @@ void SetMappingRequest::doStart() {
 };
 
 DeleteMappingsRequest::DeleteMappingsRequest(const AssetPathList& paths) : _paths(paths) {
+    for (auto& path : _paths) {
+        path = path.trimmed();
+    }
 };
 
 void DeleteMappingsRequest::doStart() {
@@ -175,8 +178,8 @@ void DeleteMappingsRequest::doStart() {
 };
 
 RenameMappingRequest::RenameMappingRequest(const AssetPath& oldPath, const AssetPath& newPath) :
-    _oldPath(oldPath),
-    _newPath(newPath)
+    _oldPath(oldPath.trimmed()),
+    _newPath(newPath.trimmed())
 {
 
 }
