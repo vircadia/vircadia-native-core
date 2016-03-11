@@ -212,3 +212,15 @@ void GeometryUtilTests::testTwistSwingDecomposition() {
 }
 
 
+void GeometryUtilTests::testSphereCapsulePenetration() {
+    glm::vec3 sphereCenter(1.5, 0.0, 0.0);
+    float sphereRadius = 1.0f;
+    glm::vec3 capsuleStart(0.0f, -10.0f, 0.0f);
+    glm::vec3 capsuleEnd(0.0f, 10.0f, 0.0f);
+    float capsuleRadius = 1.0f;
+
+    glm::vec3 penetration(glm::vec3::_null);
+    bool hit = findSphereCapsulePenetration(sphereCenter, sphereRadius, capsuleStart, capsuleEnd, capsuleRadius, penetration);
+    QCOMPARE(hit, true);
+    QCOMPARE_WITH_ABS_ERROR(penetration, glm::vec3(-0.5f, 0.0f, 0.0f), EPSILON);
+}
