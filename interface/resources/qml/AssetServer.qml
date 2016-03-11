@@ -447,7 +447,22 @@ Window {
                     width: 155
 
                     enabled: fileUrlTextField.text != ""
-                    onClicked: root.uploadClicked()
+                    onClicked: uploadClickedTimer.running = true
+
+                    // For some reason trigginer an API that enters
+                    // an internal event loop directly from the button clicked
+                    // trigger below causes the appliction to behave oddly.
+                    // Most likely because the button onClicked handling is never
+                    // completed until the function returns.
+                    // FIXME find a better way of handling the input dialogs that
+                    // doesn't trigger this.
+                    Timer {
+                        id: uploadClickedTimer
+                        interval: 5
+                        repeat: false
+                        running: false
+                        onTriggered: uploadClicked();
+                    }
                 }
             }
 
