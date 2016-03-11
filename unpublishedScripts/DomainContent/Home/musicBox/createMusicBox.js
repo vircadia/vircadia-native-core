@@ -56,6 +56,8 @@ var LID_REGISTRATION_POINT = {
     z: 1
 }
 
+var LID_SCRIPT_URL = Script.resolvePath('lid.js?'+Math.random());
+
 var base, lid;
 
 
@@ -84,9 +86,11 @@ function createLid() {
         position: lidPosition,
         registrationPoint: LID_REGISTRATION_POINT,
         dynamic: false,
-        collidesWith: '',
+        script:LID_SCRIPT_URL,
+        collidesWith: 'myAvatar,otherAvatar',
         userData: JSON.stringify({
             grabConstraintsKey: {
+                callback:'rotateLid',
                 positionLocked: true,
                 rotationLocked: false,
                 positionMod: false,
@@ -97,8 +101,6 @@ function createLid() {
                         startingAxis:'y',
                         startingPoint:lidPosition.y,
                         distanceToMax:lidPosition.y+0.35,
-                        trigger:20,
-                        triggerFunction:'toggleMusic'
                     },
                     yaw: false,
                     roll: false
