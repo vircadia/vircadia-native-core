@@ -81,13 +81,23 @@ Item {
     }
 
     Item {
-        // Space for shortcut key or disclosure icon.
         id: tail
-        width: 48
+        width: 48 + (shortcut.visible ? shortcut.width : 0)
         anchors {
             verticalCenter: parent.verticalCenter
             right: parent.right
             rightMargin: hifi.dimensions.menuPadding.x
+        }
+
+        RalewayLight {
+            id: shortcut
+            text: source.shortcut ? source.shortcut : ""
+            size: hifi.fontSizes.shortcutText
+            color: hifi.colors.baseGrayShadow
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.right: parent.right
+            anchors.rightMargin: 15
+            visible: source.visible && text != ""
         }
 
         HiFiGlyphs {

@@ -104,6 +104,7 @@ void updateQmlItemFromAction(QObject* target, QAction* source) {
     target->setProperty("checkable", source->isCheckable());
     target->setProperty("enabled", source->isEnabled());
     target->setProperty("text", source->text());
+    target->setProperty("shortcut", source->shortcut().toString());
     target->setProperty("checked", source->isChecked());
     target->setProperty("visible", source->isVisible());
 }
