@@ -53,8 +53,18 @@ public:
     void setLowerSpine(bool lowerSpine) { _lowerSpine = lowerSpine; }
     virtual bool isLowerSpine() const override { return _lowerSpine; }
 
+    /// \param rotation rotation to allow
+    /// \brief clear previous adjustment and adjust constraint limits to allow rotation
+    void dynamicallyAdjustLimits(const glm::quat& rotation);
+
+    // for testing purposes
+    const std::vector<float>& getMinDots() { return _swingLimitFunction.getMinDots(); }
+
     // SwingLimitFunction is an implementation of the constraint check described in the paper:
     // "The Parameterization of Joint Rotation with the Unit Quaternion" by Quang Liu and Edmond C. Prakash
+    //
+    // The "dynamic adjustment" feature allows us to change the limits on the fly for one particular theta angle.
+    //
     class SwingLimitFunction {
     public:
         SwingLimitFunction();
@@ -62,12 +72,26 @@ public:
         /// \brief use a vector of lookup values for swing limits
         void setMinDots(const std::vector<float>& minDots);
 
+        /// \param theta radian angle to new minDot
+        /// \param minDot minimum dot limit
+        /// \brief updates swing constraint to permit minDot at theta
+        void dynamicallyAdjustMinDots(float theta, float minDot);
+
         /// \return minimum dotProduct between reference and swung axes
         float getMinDot(float theta) const;
 
-    protected:
+        // for testing purposes
+        const std::vector<float>& getMinDots() { return _minDots; }
+
+    private:
         // the limits are stored in a lookup table with cyclic boundary conditions
         std::vector<float> _minDots;
+
+        // these values used to restore dynamic adjustment
+        float _minDotA;
+        float _minDotB;
+        int8_t _minDotIndexA;
+        int8_t _minDotIndexB;
     };
 
     /// \return reference to SwingLimitFunction instance for unit-testing

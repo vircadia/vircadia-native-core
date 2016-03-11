@@ -26,22 +26,149 @@ const int LAST_CLAMP_HIGH_BOUNDARY = 1;
 SwingTwistConstraint::SwingLimitFunction::SwingLimitFunction() {
     _minDots.push_back(-1.0f);
     _minDots.push_back(-1.0f);
+
+    _minDotIndexA = -1;
+    _minDotIndexB = -1;
 }
 
+// In order to support the dynamic adjustment to swing limits we require 
+// that minDots have a minimum number of elements:
+const int MIN_NUM_DOTS = 8;
+
 void SwingTwistConstraint::SwingLimitFunction::setMinDots(const std::vector<float>& minDots) {
-    uint32_t numDots = (uint32_t)minDots.size();
+    int numDots = (int)minDots.size();
     _minDots.clear();
     if (numDots == 0) {
-        // push two copies of MIN_MINDOT
-        _minDots.push_back(MIN_MINDOT);
+        // push multiple copies of MIN_MINDOT
+        for (int i = 0; i < MIN_NUM_DOTS; ++i) {
+            _minDots.push_back(MIN_MINDOT);
+        }
+        // push one more for cyclic boundary conditions
         _minDots.push_back(MIN_MINDOT);
     } else {
-        _minDots.reserve(numDots);
-        for (uint32_t i = 0; i < numDots; ++i) {
-            _minDots.push_back(glm::clamp(minDots[i], MIN_MINDOT, MAX_MINDOT));
+        // for minimal fidelity in the dynamic adjustment we expand the swing limit data until
+        // we have enough data points
+        int trueNumDots = numDots;
+        int numFiller = 0;
+        while(trueNumDots < MIN_NUM_DOTS) {
+            numFiller++;
+            trueNumDots += numDots;
         }
-        // push the first value to the back to establish cyclic boundary conditions
+        _minDots.reserve(trueNumDots);
+
+        for (int i = 0; i < numDots; ++i) {
+            // push the next value
+            _minDots.push_back(glm::clamp(minDots[i], MIN_MINDOT, MAX_MINDOT));
+
+            if (numFiller > 0) {
+                // compute endpoints of line segment
+                float nearDot = glm::clamp(minDots[i], MIN_MINDOT, MAX_MINDOT);
+                int k = (i + 1) % numDots;
+                float farDot = glm::clamp(minDots[k], MIN_MINDOT, MAX_MINDOT);
+
+                // fill the gap with interpolated values
+                for (int j = 0; j < numFiller; ++j) {
+                    float delta = (float)(j + 1) / float(numFiller + 1);
+                    _minDots.push_back((1.0f - delta) * nearDot + delta * farDot);
+                }
+            }
+        }
+        // push the first value to the back to for cyclic boundary conditions
         _minDots.push_back(_minDots[0]);
+    }
+    _minDotIndexA = -1;
+    _minDotIndexB = -1;
+}
+
+/// \param angle radian angle to update
+/// \param minDotAdjustment minimum dot limit at that angle
+void SwingTwistConstraint::SwingLimitFunction::dynamicallyAdjustMinDots(float theta, float minDotAdjustment) {
+    // What does "dynamic adjustment" mean?
+    //
+    // Consider a limitFunction that looks like this:
+    //
+    //  1+
+    //   |                valid space
+    //   |
+    //   +-----+-----+-----+-----+-----+-----+-----+-----+
+    //   |
+    //   |                invalid space
+    //  0+------------------------------------------------
+    //   0          pi/2         pi         3pi/2       2pi
+    //   theta --->
+    //
+    // If we wanted to modify the envelope to accept a single invalid point X
+    // then we would need to modify neighboring values A and B accordingly:
+    //
+    //  1+          adjustment for X at some thetaX
+    //   |              |
+    //   |              |
+    //   +-----+.       V       .+-----+-----+-----+-----+
+    //   |        -           -
+    //   |         ' A--X--B '
+    //  0+------------------------------------------------
+    //   0          pi/2         pi         3pi/2       2pi
+    //
+    // The code below computes the values of A and B such that the line between them
+    // passes through the point X, and we get reasonable interpolation for nearby values
+    // of theta.  The old AB values are saved for later restore.
+
+    if (_minDotIndexA > -1) {
+        // retstore old values
+        _minDots[_minDotIndexA] = _minDotA;
+        _minDots[_minDotIndexB] = _minDotB;
+
+        // handle cyclic boundary conditions
+        int lastIndex = (int)_minDots.size() - 1;
+        if (_minDotIndexA == 0) {
+            _minDots[lastIndex] = _minDotA;
+        } else if (_minDotIndexB == lastIndex) {
+            _minDots[0] = _minDotB;
+        }
+    }
+
+    // extract the positive normalized fractional part of the theta
+    float integerPart;
+    float normalizedAngle = modff(theta / TWO_PI, &integerPart);
+    if (normalizedAngle < 0.0f) {
+        normalizedAngle += 1.0f;
+    }
+
+    // interpolate between the two nearest points in the curve
+    float delta = modff(normalizedAngle * (float)(_minDots.size() - 1), &integerPart);
+    int indexA = (int)(integerPart);
+    int indexB = (indexA + 1) % _minDots.size();
+    float interpolatedDot = _minDots[indexA] * (1.0f - delta) + _minDots[indexB] * delta;
+
+    if (minDotAdjustment < interpolatedDot) {
+        // minDotAdjustment is outside the existing bounds so we must modify
+
+        // remember the indices
+        _minDotIndexA = indexA;
+        _minDotIndexB = indexB;
+
+        // save the old minDots
+        _minDotA = _minDots[_minDotIndexA];
+        _minDotB = _minDots[_minDotIndexB];
+
+        // compute replacement values to _minDots that will provide a line segment
+        // that passes through minDotAdjustment while balancing the distortion between A and B.
+        // Note: the derivation of these formulae is left as an exercise to the reader.
+        float twiceUndershoot = 2.0f * (minDotAdjustment - interpolatedDot);
+        _minDots[_minDotIndexA] -= twiceUndershoot * (delta + 0.5f) * (delta - 1.0f);
+        _minDots[_minDotIndexB] -= twiceUndershoot * delta * (delta - 1.5f);
+
+        // handle cyclic boundary conditions
+        int lastIndex = (int)_minDots.size() - 1;
+        if (_minDotIndexA == 0) {
+            _minDots[lastIndex] = _minDots[_minDotIndexA];
+        } else if (_minDotIndexB == lastIndex) {
+            _minDots[0] = _minDots[_minDotIndexB];
+        }
+    } else {
+        // minDotAdjustment is inside bounds so there is nothing to do
+        _minDotIndexA = -1;
+        _minDotIndexB = -1;
     }
 }
 
@@ -83,12 +210,12 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     };
     std::vector<SwingLimitData> limits;
 
-    uint32_t numLimits = (uint32_t)swungDirections.size();
+    int numLimits = (int)swungDirections.size();
     limits.reserve(numLimits);
 
     // compute the limit pairs: <theta, minDot>
     const glm::vec3 yAxis = glm::vec3(0.0f, 1.0f, 0.0f);
-    for (uint32_t i = 0; i < numLimits; ++i) {
+    for (int i = 0; i < numLimits; ++i) {
         float directionLength = glm::length(swungDirections[i]);
         if (directionLength > EPSILON) {
             glm::vec3 swingAxis = glm::cross(yAxis, swungDirections[i]);
@@ -101,7 +228,7 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
     }
 
     std::vector<float> minDots;
-    numLimits = (uint32_t)limits.size();
+    numLimits = (int)limits.size();
     if (numLimits == 0) {
         // trivial case: nearly free constraint
         std::vector<float> minDots;
@@ -119,10 +246,10 @@ void SwingTwistConstraint::setSwingLimits(const std::vector<glm::vec3>& swungDir
 
         // extrapolate evenly distributed limits for fast lookup table
         float deltaTheta = TWO_PI / (float)(numLimits);
-        uint32_t rightIndex = 0;
-        for (uint32_t i = 0; i < numLimits; ++i) {
+        int rightIndex = 0;
+        for (int i = 0; i < numLimits; ++i) {
             float theta = (float)i * deltaTheta;
-            uint32_t leftIndex = (rightIndex - 1) % numLimits;
+            int leftIndex = (rightIndex - 1) % numLimits;
             while (rightIndex < numLimits && theta > limits[rightIndex]._theta) {
                 leftIndex = rightIndex++;
             }
@@ -243,6 +370,20 @@ bool SwingTwistConstraint::apply(glm::quat& rotation) const {
         return true;
     }
     return false;
+}
+
+void SwingTwistConstraint::dynamicallyAdjustLimits(const glm::quat& rotation) {
+    glm::quat postRotation = rotation * glm::inverse(_referenceRotation);
+    glm::quat swingRotation, twistRotation;
+
+    const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+    swingTwistDecomposition(postRotation, yAxis, swingRotation, twistRotation);
+
+    // we currently only handle swing limits
+    glm::vec3 swungY = swingRotation * yAxis;
+    glm::vec3 swingAxis = glm::cross(yAxis, swungY);
+    float theta = atan2f(-swingAxis.z, swingAxis.x);
+    _swingLimitFunction.dynamicallyAdjustMinDots(theta, swungY.y);
 }
 
 void SwingTwistConstraint::clearHistory() {
