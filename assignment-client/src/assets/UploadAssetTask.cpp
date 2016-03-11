@@ -61,13 +61,24 @@ void UploadAssetTask::run() {
         
         if (file.exists()) {
             qDebug() << "[WARNING] This file already exists: " << hexHash;
-        } else {
-            file.open(QIODevice::WriteOnly);
-            file.write(fileData);
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            replyPacket->write(hash);
+        } else if (file.open(QIODevice::WriteOnly) && file.write(fileData) == qint64(fileSize)) {
             file.close();
+
+            replyPacket->writePrimitive(AssetServerError::NoError);
+            replyPacket->write(hash);
+        } else {
+            // upload has failed - remove the file and return an error
+            auto removed = file.remove();
+
+            if (!removed) {
+                qWarning() << "Removal of failed upload file" << hash << "failed.";
+            }
+
+            replyPacket->writePrimitive(AssetServerError::FileOperationFailed);
         }
-        replyPacket->writePrimitive(AssetServerError::NoError);
-        replyPacket->write(hash);
     }
     
     auto nodeList = DependencyManager::get<NodeList>();

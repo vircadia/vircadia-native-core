@@ -32,7 +32,8 @@ public:
         Timeout,
         TooLarge,
         PermissionDenied,
-        FileOpenError
+        FileOpenError,
+        ServerFileError
     };
     
     static const QString PERMISSION_DENIED_ERROR;
