@@ -86,6 +86,7 @@ protected:
 
     ProgramPtr _program;
     int32_t _mvpUniform { -1 };
+    int32_t _alphaUniform { -1 };
     ShapeWrapperPtr _plane;
 
     mutable Mutex _mutex;
