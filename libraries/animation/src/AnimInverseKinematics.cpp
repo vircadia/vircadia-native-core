@@ -22,13 +22,9 @@ AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimN
 }
 
 AnimInverseKinematics::~AnimInverseKinematics() {
-    std::cout << "adebug dtor" << std::endl;  // adebug
     clearConstraints();
-    std::cout << "adebug dtor 002" << std::endl;  // adebug
     _accumulators.clear();
-    std::cout << "adebug dtor 003 targetVarVec.size() = " << _targetVarVec.size() << std::endl;  // adebug
     _targetVarVec.clear();
-    std::cout << "adebug dtor 004 targetVarVec.size() = " << _targetVarVec.size() << std::endl;  // adebug
 }
 
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
@@ -491,7 +487,6 @@ RotationConstraint* AnimInverseKinematics::getConstraint(int index) {
 }
 
 void AnimInverseKinematics::clearConstraints() {
-    std::cout << "adebug clearConstraints  size = " << _constraints.size() << std::endl;  // adebug
     std::map<int, RotationConstraint*>::iterator constraintItr = _constraints.begin();
     while (constraintItr != _constraints.end()) {
         delete constraintItr->second;
