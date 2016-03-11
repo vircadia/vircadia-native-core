@@ -509,7 +509,8 @@ bool AssetServer::writeMappingsToFile() {
     return false;
 }
 
-bool AssetServer::setMapping(const AssetPath& path, const AssetHash& hash) {
+bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
+    path = path.trimmed();
 
     if (!isValidPath(path)) {
         qWarning() << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
@@ -555,7 +556,9 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
     auto oldMappings = _fileMappings;
 
     // enumerate the paths to delete and remove them all
-    for (auto& path : paths) {
+    for (auto path : paths) {
+
+        path = path.trimmed();
 
         // figure out if this path will delete a file or folder
         if (pathIsFolder(path)) {
@@ -602,7 +605,10 @@ bool AssetServer::deleteMappings(const AssetPathList& paths) {
     }
 }
 
-bool AssetServer::renameMapping(const AssetPath& oldPath, const AssetPath& newPath) {
+bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
+    oldPath = oldPath.trimmed();
+    newPath = newPath.trimmed();
+    
     if (!isValidPath(oldPath) || !isValidPath(newPath)) {
         qWarning() << "Cannot perform rename with invalid paths - both should have leading forward slashes:"
             << oldPath << "=>" << newPath;

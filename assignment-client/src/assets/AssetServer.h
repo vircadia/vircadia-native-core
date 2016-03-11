@@ -52,13 +52,13 @@ private:
     bool writeMappingsToFile();
 
     /// Set the mapping for path to hash
-    bool setMapping(const AssetPath& path, const AssetHash& hash);
+    bool setMapping(AssetPath path, AssetHash hash);
 
     /// Delete mapping `path`. Returns `true` if deletion of mappings succeeds, else `false`.
     bool deleteMappings(const AssetPathList& paths);
 
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
-    bool renameMapping(const AssetPath& oldPath, const AssetPath& newPath);
+    bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
     void performMappingMigration();
 
