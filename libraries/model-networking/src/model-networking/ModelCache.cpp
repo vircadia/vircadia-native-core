@@ -135,6 +135,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
     }
 
     if (!_isLoadedWithTextures) {
+        _hasTransparentTextures = false;
+
         for (auto&& material : _materials) {
             if ((material->albedoTexture && !material->albedoTexture->isLoaded()) ||
                 (material->normalTexture && !material->normalTexture->isLoaded()) ||
@@ -148,7 +150,9 @@ bool NetworkGeometry::isLoadedWithTextures() const {
             if (material->albedoTexture) {
                 // Reset the materialKey transparentTexture key only, as it is albedoTexture-dependent
                 const auto& usage = material->albedoTexture->getGPUTexture()->getUsage();
-                material->_material->setTransparentTexture(usage.isAlpha() && !usage.isAlphaMask());
+                bool isTransparentTexture = usage.isAlpha() && !usage.isAlphaMask();
+                material->_material->setTransparentTexture(isTransparentTexture);
+                _hasTransparentTextures = _hasTransparentTextures || isTransparentTexture;
             }
         }
 
