@@ -19,22 +19,10 @@
 #include "ProceduralSkybox_frag.h"
 
 ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
-}
-
-ProceduralSkybox::ProceduralSkybox(const ProceduralSkybox& skybox) :
-    model::Skybox(skybox),
-    _procedural(skybox._procedural) {
-
-}
-
-void ProceduralSkybox::setProcedural(const ProceduralPointer& procedural) {
-    _procedural = procedural;
-    if (_procedural) {
-        _procedural->_vertexSource = ProceduralSkybox_vert;
-        _procedural->_fragmentSource = ProceduralSkybox_frag;
-        // Adjust the pipeline state for background using the stencil test
-        _procedural->_state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-    }
+    _procedural._vertexSource = ProceduralSkybox_vert;
+    _procedural._fragmentSource = ProceduralSkybox_frag;
+    // Adjust the pipeline state for background using the stencil test
+    _procedural._state->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) const {
@@ -42,12 +30,10 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& frustum) con
 }
 
 void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const ProceduralSkybox& skybox) {
-    if (!(skybox._procedural)) {
+    if (!(skybox._procedural.ready())) {
         skybox.updateDataBuffer();
         Skybox::render(batch, viewFrustum, skybox);
-    }
-
-    if (skybox._procedural && skybox._procedural->_enabled && skybox._procedural->ready()) {
+    } else {
         gpu::TexturePointer skymap = skybox.getCubemap();
         // FIXME: skymap->isDefined may not be threadsafe
         assert(skymap && skymap->isDefined());
@@ -62,8 +48,7 @@ void ProceduralSkybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum,
         batch.setModelTransform(Transform()); // only for Mac
         batch.setResourceTexture(0, skybox.getCubemap());
 
-        skybox._procedural->prepare(batch, glm::vec3(0), glm::vec3(1));
+        skybox._procedural.prepare(batch, glm::vec3(0), glm::vec3(1));
         batch.draw(gpu::TRIANGLE_STRIP, 4);
     }
 }
-
